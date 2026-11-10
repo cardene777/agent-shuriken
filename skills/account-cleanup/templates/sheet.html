@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>使っていないアカウントの候補</title>
+<style>
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --soft: #eef1f6; --text: #1d2330; --sub: #5b6475; --line: #dfe3ea;
+  --accent: #2f5bd3; --accent-text: #ffffff; --ok: #c8342b; --ok-bg: #fdecea; --ng: #2e7d4f; --ng-bg: #e7f5ec;
+  --easy: #2e7d4f; --medium: #9a6700; --hard: #c25e00; --impossible: #c8342b; --unknown: #6b7280; --prev: #8a5a00; --prev-bg: #fff4dc;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12151b; --panel: #1b2029; --soft: #232a36; --text: #e7eaf0; --sub: #a3abba; --line: #2c3340;
+    --accent: #6d8ff0; --accent-text: #0d1117; --ok: #ff7b72; --ok-bg: #3a1d1b; --ng: #56d38a; --ng-bg: #16301f;
+    --easy: #56d38a; --medium: #e3b341; --hard: #f0883e; --impossible: #ff7b72; --unknown: #9aa3b2; --prev: #e3b341; --prev-bg: #33290f;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.7 -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", "Segoe UI", sans-serif; }
+button { font: inherit; color: inherit; }
+main { max-width: 1280px; margin: 0 auto; padding: 24px 16px 110px; }
+.head { display: flex; align-items: center; gap: 10px; }
+h1 { font-size: 24px; margin: 0; }
+.icon { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); font-weight: 700; cursor: pointer; }
+.lead { margin: 6px 0 12px; }
+.steps { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; padding: 0; list-style: none; }
+.steps li { display: flex; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 6px 12px; }
+.steps i { font-style: normal; font-weight: 700; color: var(--accent); }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 12px; flex-wrap: wrap; }
+.tabs button { font-weight: 600; color: var(--sub); background: none; border: 0; border-bottom: 3px solid transparent; padding: 10px 14px; cursor: pointer; }
+.tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
+.tabs button[hidden] { display: none; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 4px; }
+.toolbar input, .toolbar select { font: inherit; color: inherit; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
+.toolbar input { flex: 1 1 240px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { background: var(--panel); border: 0; padding: 8px 12px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); }
+.panes { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 16px; align-items: start; }
+.list { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.row:last-child { border-bottom: 0; }
+.row:hover { background: var(--soft); }
+.row[aria-selected="true"] { background: var(--soft); box-shadow: inset 4px 0 0 var(--accent); }
+.row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.row-main { flex: 1; min-width: 0; }
+.row-name { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.row-name b { font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row-name small { color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.one { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.none { color: var(--sub); }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.chip { display: inline-block; font-size: 13px; border: 1px solid var(--line); border-radius: 999px; padding: 0 10px; color: var(--sub); }
+.chip.prev { border-color: transparent; background: var(--prev-bg); color: var(--prev); font-weight: 600; }
+.chip.ok { border-color: transparent; background: var(--ok-bg); color: var(--ok); }
+.chip.ng { border-color: transparent; background: var(--ng-bg); color: var(--ng); }
+.pick { display: inline-flex; gap: 6px; flex-shrink: 0; }
+.pick button { font-size: 15px; font-weight: 600; min-width: 60px; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+.pick button.ok[aria-pressed="true"] { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
+.pick button.ng[aria-pressed="true"] { background: var(--ng-bg); border-color: var(--ng); color: var(--ng); }
+.detail { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; position: sticky; top: 12px; max-height: calc(100vh - 100px); overflow: auto; }
+.detail h2 { font-size: 20px; margin: 0; overflow-wrap: anywhere; }
+.detail .key { color: var(--sub); overflow-wrap: anywhere; }
+.facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 16px; margin: 14px 0; }
+.facts dt { color: var(--sub); }
+.facts dd { margin: 0; overflow-wrap: anywhere; }
+.facts p { margin: 4px 0 0; }
+.facts ul { margin: 0; padding-left: 18px; }
+.diff { font-weight: 600; }
+.diff.easy { color: var(--easy); } .diff.medium { color: var(--medium); } .diff.hard { color: var(--hard); }
+.diff.impossible { color: var(--impossible); } .diff.unknown, .diff.limited, .diff.gone { color: var(--unknown); }
+.view-ok { color: var(--ok); font-weight: 600; }
+.view-ng { color: var(--ng); font-weight: 600; }
+.visit { display: block; color: var(--sub); }
+.visit.recent { color: var(--ng); font-weight: 600; }
+.decide { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; border-top: 1px solid var(--line); padding-top: 14px; }
+.memo-label { display: block; flex: 1 1 100%; color: var(--sub); }
+.memo { display: block; width: 100%; margin-top: 4px; font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
+.pager { display: flex; justify-content: center; gap: 4px; margin: 12px 0; flex-wrap: wrap; }
+.pager button { min-width: 36px; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+.pager button[aria-current="page"] { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.pager button:disabled { opacity: .4; cursor: default; }
+.empty { text-align: center; color: var(--sub); padding: 32px; }
+.bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--panel); border-top: 1px solid var(--line); }
+.bar div { max-width: 1280px; margin: 0 auto; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.bar span { font-size: 15px; }
+.bar b { font-size: 20px; }
+.bar button { font-weight: 600; background: var(--accent); color: var(--accent-text); border: 0; border-radius: 10px; padding: 12px 22px; cursor: pointer; }
+.toast { position: fixed; left: 50%; bottom: 88px; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 10px; display: none; }
+dialog { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--text); width: min(640px, calc(100vw - 32px)); padding: 20px 24px; }
+dialog::backdrop { background: rgba(0, 0, 0, .4); }
+dialog h2 { font-size: 17px; margin: 16px 0 6px; }
+dialog h2:first-child { margin-top: 0; }
+dialog p { margin: 0 0 6px; }
+dialog textarea { width: 100%; height: 200px; font: 13px/1.5 ui-monospace, Menlo, monospace; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+dialog .close { display: block; margin: 16px 0 0 auto; background: var(--accent); color: var(--accent-text); border: 0; border-radius: 8px; padding: 8px 18px; cursor: pointer; }
+@media (max-width: 860px) {
+  .panes { display: block; }
+  .detail { position: static; max-height: none; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: var(--soft); }
+  .row { flex-wrap: wrap; }
+}
+</style>
+</head>
+<body>
+<main>
+  <div class="head">
+    <h1>使っていないアカウントの候補</h1>
+    <button type="button" class="icon" id="help-open" aria-label="この画面の説明">?</button>
+  </div>
+  <p class="lead">あなたが登録したことのあるWebサービスの一覧です。この画面で押しただけでは、何も消えません。</p>
+  <ol class="steps">
+    <li><i>1</i>消してよければOK、残すならダメ。分からなければ押さない</li>
+    <li><i>2</i>気になることは詳しい欄のメモに書く</li>
+    <li><i>3</i>下の「OKの分をコピー」を押してチャットに貼る</li>
+  </ol>
+  <div class="tabs" role="tablist" id="tabs">
+    <button type="button" role="tab" data-t="prev" aria-selected="false" hidden>前の回の残り</button>
+    <button type="button" role="tab" data-t="cand" aria-selected="false">使っていない見込み</button>
+    <button type="button" role="tab" data-t="rest" aria-selected="false">それ以外</button>
+    <button type="button" role="tab" data-t="all" aria-selected="false">全部</button>
+  </div>
+  <div class="toolbar">
+    <input id="q" type="search" placeholder="サービスの名前かドメインで絞る" aria-label="絞り込み">
+    <div class="seg" id="filter" role="group" aria-label="選んだ状態で絞る">
+      <button type="button" data-f="all" aria-pressed="true">全部</button>
+      <button type="button" data-f="none" aria-pressed="false">まだ選んでいない</button>
+      <button type="button" data-f="ok" aria-pressed="false">OK</button>
+      <button type="button" data-f="ng" aria-pressed="false">ダメ</button>
+    </div>
+    <select id="sort" aria-label="並べ替え">
+      <option value="prev">前の回の結果ごと</option>
+      <option value="old">最後に更新した日が古い順</option>
+      <option value="new">最後に更新した日が新しい順</option>
+      <option value="name">名前順</option>
+    </select>
+  </div>
+  <div class="pager" id="pager-top"></div>
+  <div class="panes">
+    <div class="list" id="rows" role="listbox" aria-label="サービスの一覧"></div>
+    <aside class="detail" id="detail" aria-live="polite"></aside>
+  </div>
+  <div class="pager" id="pager-bottom"></div>
+</main>
+<div class="bar"><div><span>OK <b id="count">0</b> 件、ダメ <b id="count-ng">0</b> 件</span><button type="button" id="copy">OKの分をコピー</button></div></div>
+<div class="toast" id="toast">コピーしました。Claude Codeのチャットに貼ってください。</div>
+<dialog id="help">
+  <h2>この画面は何か</h2>
+  <p>パスワード管理 (1Passwordなど) とブラウザに保存してあるログイン情報から、サービスの名前とURLと日付だけを集めました。パスワードは読んでいません。</p>
+  <h2>押した後に起きること</h2>
+  <p>AIがOKにしたサービスから順に、有料の契約が残っていないかを確かめて解約し、アカウントを削除します。</p>
+  <p>ログインと、二要素の確認はあなたが行います。</p>
+  <h2>詳しい欄の項目</h2>
+  <dl class="facts">
+    <dt>何のサイトか</dt><dd>AIが名前から書いた短い説明</dd>
+    <dt>前の回</dt><dd>前の回に消せなかった理由と、次にやること</dd>
+    <dt>候補の理由</dt><dd>使っていないと見た理由</dd>
+    <dt>最後に更新した日</dt><dd>保存したログイン情報を最後に変えた日 (ブラウザに保存した物は最後に使った日)。まとめて移した日になっている物は、使った日を表さない</dd>
+    <dt>最後に開いた日</dt><dd>ブラウザの履歴でそのサイトを最後に開いた日。履歴は<span id="since">一部の期間</span>の分しか無いので、無くても使っていないとは限らない</dd>
+    <dt>削除の手間</dt><dd>かんたん、ふつう、難しい、削除できない (消去を頼むメールを出す)、未確認 (AIが後で調べる)</dd>
+    <dt>AIの見立て</dt><dd>消してよさそうか、残した方がよさそうか</dd>
+  </dl>
+  <button type="button" class="close" id="help-close">閉じる</button>
+</dialog>
+<dialog id="fallback">
+  <p>自動でコピーできなかったので、下の文を全部選んでコピーし、Claude Codeのチャットに貼ってください。</p>
+  <textarea id="fallback-text" readonly></textarea>
+  <button type="button" class="close" id="fallback-close">閉じる</button>
+</dialog>
+<script type="application/json" id="data">
+__DATA__
+</script>
+<script>
+(function () {
+  "use strict";
+  var PAGE = 50;
+  var STORE = "account-cleanup-choice";
+  var MEMO_STORE = "account-cleanup-memo";
+  var data = JSON.parse(document.getElementById("data").textContent) || [];
+  var picks = {};
+  try { picks = JSON.parse(localStorage.getItem(STORE) || "{}") || {}; } catch (e) { picks = {}; }
+  var memos = {};
+  try { memos = JSON.parse(localStorage.getItem(MEMO_STORE) || "{}") || {}; } catch (e) { memos = {}; }
+  var narrow = window.matchMedia("(max-width: 860px)");
+
+  var SOURCE = { "1password": "1Password", bitwarden: "Bitwarden", chrome: "Chrome", dia: "Dia", arc: "Arc", brave: "Brave", edge: "Edge", manual: "手で足した" };
+  var DIFF = { easy: "かんたん", medium: "ふつう", hard: "難しい", impossible: "削除できない", limited: "一部だけ消せる", unknown: "未確認" };
+  var TAB_NAME = { prev: "前の回の残り", cand: "使っていない見込み", rest: "それ以外", all: "全部" };
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  function title(g) { return g.service || (g.names && g.names[0]) || g.key; }
+  // 前の回に消せなかった物。label (短い札) を持つ時だけ数える
+  function hasPrev(g) { return !!(g.previous && g.previous.label); }
+  function isCandidate(g) { return (g.reasons && g.reasons.length > 0) || g.suggestion === "ok"; }
+  function save() {
+    try {
+      localStorage.setItem(STORE, JSON.stringify(picks));
+      localStorage.setItem(MEMO_STORE, JSON.stringify(memos));
+    } catch (e) { /* 保存できない時は開いている間だけ覚える */ }
+  }
+
+  // タブは重ならない。前の回の残りを先に取り、残りを見込みとそれ以外に分ける
+  function tabOf(g) { return hasPrev(g) ? "prev" : isCandidate(g) ? "cand" : "rest"; }
+  var prevCount = data.filter(hasPrev).length;
+  var prevRound = data.reduce(function (m, g) { return hasPrev(g) && g.previous.round > m ? g.previous.round : m; }, 0);
+  if (prevRound) TAB_NAME.prev = prevRound + "回目の残り";
+  var state = { tab: prevCount ? "prev" : "cand", q: "", f: "all", sort: prevCount ? "prev" : "old", page: 1, sel: null };
+  if (!prevCount) document.querySelector('#sort option[value="prev"]').remove();
+
+  function visible() {
+    var q = state.q.toLowerCase();
+    var list = data.filter(function (g) {
+      if (state.tab !== "all" && tabOf(g) !== state.tab) return false;
+      var p = picks[g.key] || "none";
+      if (state.f !== "all" && p !== state.f) return false;
+      if (!q) return true;
+      return (title(g) + " " + g.key + " " + (g.names || []).join(" ") + " " + (g.description || "")).toLowerCase().indexOf(q) >= 0;
+    });
+    list.sort(function (a, b) {
+      if (state.sort === "name") return title(a).localeCompare(title(b), "ja");
+      if (state.sort === "prev") {
+        var la = hasPrev(a) ? a.previous.label : "￿", lb = hasPrev(b) ? b.previous.label : "￿";
+        return la.localeCompare(lb, "ja") || title(a).localeCompare(title(b), "ja");
+      }
+      var x = a.updated || "", y = b.updated || "";
+      return state.sort === "old" ? x.localeCompare(y) : y.localeCompare(x);
+    });
+    return list;
+  }
+
+  function renderCounts() {
+    var ok = 0, ng = 0, counts = { prev: 0, cand: 0, rest: 0, all: data.length };
+    data.forEach(function (g) {
+      if (picks[g.key] === "ok") ok++;
+      if (picks[g.key] === "ng") ng++;
+      counts[tabOf(g)]++;
+    });
+    document.getElementById("count").textContent = String(ok);
+    document.getElementById("count-ng").textContent = String(ng);
+    Array.prototype.forEach.call(document.querySelectorAll("#tabs button"), function (b) {
+      var t = b.getAttribute("data-t");
+      b.textContent = TAB_NAME[t] + " (" + counts[t] + ")";
+      b.setAttribute("aria-selected", t === state.tab ? "true" : "false");
+      if (t === "prev") b.hidden = !prevCount;
+    });
+  }
+
+  function renderPager(id, pages) {
+    var box = document.getElementById(id);
+    box.textContent = "";
+    if (pages <= 1) return;
+    function add(label, page, disabled, current) {
+      var b = el("button", null, label);
+      b.type = "button";
+      b.disabled = !!disabled;
+      if (current) b.setAttribute("aria-current", "page");
+      b.addEventListener("click", function () { state.page = page; state.sel = null; render(); window.scrollTo(0, document.getElementById("tabs").offsetTop); });
+      box.appendChild(b);
+    }
+    add("‹", state.page - 1, state.page === 1);
+    var from = Math.max(1, state.page - 3), to = Math.min(pages, from + 6);
+    from = Math.max(1, to - 6);
+    for (var i = from; i <= to; i++) add(String(i), i, false, i === state.page);
+    add("›", state.page + 1, state.page === pages);
+  }
+
+  // OKとダメのボタン。同じ物を一覧の行と詳しい欄の両方に置く
+  function pickButtons(g) {
+    var wrap = el("div", "pick");
+    [["ok", "OK"], ["ng", "ダメ"]].forEach(function (o) {
+      var b = el("button", o[0], o[1]);
+      b.type = "button";
+      b.setAttribute("aria-pressed", picks[g.key] === o[0] ? "true" : "false");
+      b.setAttribute("aria-label", title(g) + " を" + o[1]);
+      b.addEventListener("click", function (e) {
+        e.stopPropagation();
+        if (picks[g.key] === o[0]) delete picks[g.key]; else picks[g.key] = o[0];
+        state.sel = g.key;
+        save(); render();
+      });
+      wrap.appendChild(b);
+    });
+    return wrap;
+  }
+
+  function diffOf(g) {
+    if (g.alive === false) return ["gone", "不要 (サイトが無い)"];
+    if (g.needs_search || !g.deletion) return ["unknown", "未確認"];
+    var d = g.deletion.difficulty || "unknown";
+    return [d, DIFF[d] || d];
+  }
+
+  function rowChips(g) {
+    var box = el("div", "chips");
+    if (hasPrev(g)) box.appendChild(el("span", "chip prev", g.previous.label));
+    else if (g.suggestion === "ok") box.appendChild(el("span", "chip ok", "消してよさそう"));
+    else if (g.suggestion === "ng") box.appendChild(el("span", "chip ng", "残した方がよさそう"));
+    if (g.alive === false) box.appendChild(el("span", "chip", "サイトが無い"));
+    if (memos[g.key]) box.appendChild(el("span", "chip", "メモあり"));
+    return box;
+  }
+
+  function fact(dl, name, value) {
+    dl.appendChild(el("dt", null, name));
+    var dd = el("dd");
+    if (typeof value === "string") dd.textContent = value; else dd.appendChild(value);
+    dl.appendChild(dd);
+  }
+
+  function renderDetail(box, g) {
+    box.textContent = "";
+    if (!g) { box.appendChild(el("p", "none", "一覧から選ぶと、ここに詳しく出ます。")); return; }
+    box.appendChild(el("h2", null, title(g)));
+    box.appendChild(el("div", "key", g.key));
+    var tags = el("div", "chips");
+    if (g.category) tags.appendChild(el("span", "chip", g.category));
+    var seen = {};
+    (g.sources || []).forEach(function (s) {
+      var name = SOURCE[s.source] || s.source;
+      if (seen[name]) return;
+      seen[name] = true;
+      tags.appendChild(el("span", "chip", name));
+    });
+    box.appendChild(tags);
+
+    var dl = el("dl", "facts");
+    fact(dl, "何のサイトか", g.description ? el("span", null, g.description) : el("span", "none", "まだ説明がありません"));
+    if (hasPrev(g)) {
+      var p = el("div");
+      p.appendChild(el("span", "chip prev", g.previous.label));
+      if (g.previous.detail) p.appendChild(el("p", null, g.previous.detail));
+      fact(dl, (g.previous.round ? g.previous.round + "回目" : "前の回"), p);
+    }
+    var rs = el("div");
+    if (g.reasons && g.reasons.length) {
+      var ul = el("ul");
+      g.reasons.forEach(function (r) { ul.appendChild(el("li", null, r)); });
+      rs.appendChild(ul);
+    } else rs.appendChild(el("span", "none", "なし"));
+    fact(dl, "候補の理由", rs);
+    var dates = el("div");
+    dates.appendChild(el("span", null, g.updated || "不明"));
+    if (g.last_visit) dates.appendChild(el("span", "visit recent", "最後に開いた日 " + g.last_visit));
+    else if (g.history_since) dates.appendChild(el("span", "visit", g.history_since + "以降は開いていない"));
+    fact(dl, "最後に更新した日", dates);
+    var d = diffOf(g);
+    fact(dl, "削除の手間", el("span", "diff " + d[0], d[1]));
+    var view = el("div");
+    if (g.suggestion === "ok") view.appendChild(el("span", "view-ok", "消してよさそう"));
+    else if (g.suggestion === "ng") view.appendChild(el("span", "view-ng", "残した方がよさそう"));
+    else view.appendChild(el("span", "none", "見立て無し"));
+    if (g.why) view.appendChild(el("p", null, g.why));
+    fact(dl, "AIの見立て", view);
+    box.appendChild(dl);
+
+    var decide = el("div", "decide");
+    decide.appendChild(el("span", null, "消してよいか"));
+    decide.appendChild(pickButtons(g));
+    var label = el("label", "memo-label", "メモ (コピーした文に入り、AIが消す時に読みます)");
+    var memo = el("input", "memo");
+    memo.type = "text";
+    memo.placeholder = "例 仕事で使うので残す";
+    memo.value = memos[g.key] || "";
+    memo.addEventListener("input", function () {
+      var v = memo.value.replace(/[\t\r\n]+/g, " ").trim();
+      if (v) memos[g.key] = v; else delete memos[g.key];
+      save();
+    });
+    label.appendChild(memo);
+    decide.appendChild(label);
+    box.appendChild(decide);
+  }
+
+  function select(key, focus) {
+    state.sel = key;
+    render();
+    if (focus) {
+      var r = document.querySelector('.row[data-key="' + CSS.escape(key) + '"]');
+      if (r) r.focus();
+    }
+  }
+
+  function renderRows(list) {
+    var body = document.getElementById("rows");
+    var detail = document.getElementById("detail");
+    body.textContent = "";
+    if (list.length === 0) {
+      body.appendChild(el("div", "empty", "当てはまるサービスがありません"));
+      renderDetail(detail, null);
+      document.querySelector(".panes").appendChild(detail);
+      return;
+    }
+    if (!list.some(function (g) { return g.key === state.sel; })) state.sel = list[0].key;
+    var current = null, currentRow = null;
+    list.forEach(function (g, i) {
+      var row = el("div", "row");
+      row.setAttribute("role", "option");
+      row.setAttribute("data-key", g.key);
+      row.tabIndex = 0;
+      row.setAttribute("aria-selected", g.key === state.sel ? "true" : "false");
+      var main = el("div", "row-main");
+      var name = el("div", "row-name");
+      name.appendChild(el("b", null, title(g)));
+      name.appendChild(el("small", null, g.key));
+      main.appendChild(name);
+      main.appendChild(el("span", g.description ? "one" : "one none", g.description || "まだ説明がありません"));
+      main.appendChild(rowChips(g));
+      row.appendChild(main);
+      row.appendChild(pickButtons(g));
+      row.addEventListener("click", function () { select(g.key); });
+      row.addEventListener("keydown", function (e) {
+        if (e.target !== row) return;
+        var next = e.key === "ArrowDown" ? list[i + 1] : e.key === "ArrowUp" ? list[i - 1] : null;
+        if (next) { e.preventDefault(); select(next.key, true); }
+        else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(g.key, true); }
+      });
+      body.appendChild(row);
+      if (g.key === state.sel) { current = g; currentRow = row; }
+    });
+    renderDetail(detail, current);
+    // 狭い画面では詳しい欄を選んだ行のすぐ下に、広い画面では一覧の右に置く
+    if (narrow.matches && currentRow) currentRow.after(detail);
+    else document.querySelector(".panes").appendChild(detail);
+  }
+
+  function render() {
+    var list = visible();
+    var pages = Math.max(1, Math.ceil(list.length / PAGE));
+    if (state.page > pages) state.page = pages;
+    renderCounts();
+    renderPager("pager-top", pages);
+    renderRows(list.slice((state.page - 1) * PAGE, state.page * PAGE));
+    renderPager("pager-bottom", pages);
+  }
+
+  function selectionText() {
+    var keys = data.filter(function (g) {
+      return picks[g.key] === "ok";
+    }).map(function (g) { return g.key + (memos[g.key] ? "\t" + memos[g.key] : ""); });
+    return ["account-cleanup selection"].concat(keys).join("\n") + "\n";
+  }
+
+  function openDialog(d) { if (d.showModal) d.showModal(); else d.setAttribute("open", ""); }
+  function showFallback(text) {
+    var t = document.getElementById("fallback-text");
+    t.value = text;
+    openDialog(document.getElementById("fallback"));
+    t.select();
+  }
+
+  document.getElementById("copy").addEventListener("click", function () {
+    var text = selectionText();
+    function done() {
+      var t = document.getElementById("toast");
+      t.style.display = "block";
+      setTimeout(function () { t.style.display = "none"; }, 2400);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { showFallback(text); });
+    } else {
+      showFallback(text);
+    }
+  });
+  document.getElementById("fallback-close").addEventListener("click", function () { document.getElementById("fallback").close(); });
+  document.getElementById("help-open").addEventListener("click", function () { openDialog(document.getElementById("help")); });
+  document.getElementById("help-close").addEventListener("click", function () { document.getElementById("help").close(); });
+  document.getElementById("q").addEventListener("input", function (e) { state.q = e.target.value; state.page = 1; render(); });
+  document.getElementById("sort").value = state.sort;
+  document.getElementById("sort").addEventListener("change", function (e) { state.sort = e.target.value; render(); });
+  Array.prototype.forEach.call(document.querySelectorAll("#filter button"), function (b) {
+    b.addEventListener("click", function () {
+      state.f = b.getAttribute("data-f"); state.page = 1;
+      Array.prototype.forEach.call(document.querySelectorAll("#filter button"), function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+      render();
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("#tabs button"), function (b) {
+    b.addEventListener("click", function () {
+      state.tab = b.getAttribute("data-t"); state.page = 1; state.sel = null;
+      render();
+    });
+  });
+  narrow.addEventListener("change", render);
+  var since = data.length && data[0].history_since;
+  if (since) document.getElementById("since").textContent = since + "以降";
+  render();
+})();
+</script>
+</body>
+</html>

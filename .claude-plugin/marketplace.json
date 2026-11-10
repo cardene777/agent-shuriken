@@ -1,0 +1,17 @@
+{
+  "name": "agent-shuriken",
+  "description": "cardene777が作ったAIの技 (スキル) の集まり。Claude CodeとCodexで使える",
+  "owner": {
+    "name": "cardene777"
+  },
+  "plugins": [
+    {
+      "name": "account-cleanup",
+      "source": "./",
+      "strict": false,
+      "description": "使わなくなったWebサービスのアカウントを、パスワードを読まずに洗い出して削除する",
+      "version": "0.1.0",
+      "skills": ["./skills/account-cleanup"]
+    }
+  ]
+}
