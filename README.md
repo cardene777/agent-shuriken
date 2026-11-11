@@ -8,22 +8,25 @@
 | 技 | 何をするか |
 |---|---|
 | [`account-cleanup`](skills/account-cleanup/SKILL.md) | 使わなくなったWebサービスのアカウントを、パスワードを読まずに洗い出し、解約と削除まで進める |
+| [`pc-tidy`](skills/pc-tidy/SKILL.md) | PCの中で長く使っていない物を一覧にし、選んだ物だけを消して空きを戻す |
 
 ## 入れ方
 
 ### Claude Code
 
-Claude Codeで次を打ちます。
+Claude Codeで、使う技の行を打ちます。
 
 ```
 /plugin install account-cleanup --marketplace cardene777/agent-shuriken
+/plugin install pc-tidy --marketplace cardene777/agent-shuriken
 ```
 
-Claude Codeが2.1.275より前の時は、2行に分けて打ちます。
+Claude Codeが2.1.275より前の時は、マーケットプレイスを足してから入れます。
 
 ```
 /plugin marketplace add cardene777/agent-shuriken
 /plugin install account-cleanup@agent-shuriken
+/plugin install pc-tidy@agent-shuriken
 ```
 
 ### Codex
@@ -33,6 +36,7 @@ Claude Codeが2.1.275より前の時は、2行に分けて打ちます。
 ```
 git clone git@github.com:cardene777/agent-shuriken.git
 cp -R agent-shuriken/skills/account-cleanup ~/.codex/skills/
+cp -R agent-shuriken/skills/pc-tidy ~/.codex/skills/
 ```
 
 ## account-cleanup
@@ -92,3 +96,39 @@ Claude Codeで`/account-cleanup:account-cleanup`を打つか、「使ってい�
 `skills/account-cleanup/data/sites.json`は、JustDeleteMeの公開データ (MIT) をそのまま写した物です。
 出どころと利用許諾は[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)に書きました。
 一覧に無いサービスは、AIが検索して見つけた削除ページを`~/.local/share/account-cleanup/additions.json`に足し、次からはそこを引きます。
+
+## pc-tidy
+
+PCの中で長く使っていない物を一覧にし、あなたが選んだ物だけを消して空きを戻します。
+作業場所と手元のrepo、アプリ、消したアプリの残り、道具の古い版、AIのモデル、Dockerのimage、溜まる記録が対象です。
+作り直せるキャッシュは消しません。
+動くのはmacOSだけです。
+
+```
+一覧を作る ─> 何の物かとおすすめを書く ─> 選ぶ頁で選ぶ ─> 選んだ物だけを消す ─> 空きの差を伝える
+ (AI)          (AI)                      (あなた)        (AI)                  (AI)
+```
+
+### 使い方
+
+Claude Codeで`/pc-tidy:pc-tidy`を打ちます。
+AIが自分から呼ぶことはありません。
+
+1. AIがホーム全体を測り、30日より前から触っていない物を一覧にします。数分掛かります
+2. AIが候補ごとに何の物かと、消してよいか、確かめてからか、残すかを書いた選ぶ頁を開きます
+3. 頁で消す物を選び、迷う物にはコメントを書いて、コピーした文をチャットに貼ります
+4. AIがコメントに答え、選んだ物だけを消します。消す直前に、commitしていない変更と動いているprocessを確かめ直します
+5. AIが、消した物と消さなかった物の理由と、消す前と後の空きの差を伝えます
+
+写真、鍵、iCloud Drive、メールなどの置き場は既定で守り、候補に出しません。
+守る置き場を足す時は、`~/.ikkan/tidy/protect.txt`に1行に1つずつ書きます。
+状態の置き場は`~/.ikkan/tidy/`です。
+
+### 必要な物
+
+| 物 | 要る時 |
+|---|---|
+| macOS | いつも |
+| `python3` | いつも。macOSに入っている物で動きます |
+| `git` | 作業場所とrepoを測る時 |
+| `docker` | Dockerのimageを測る時。無い時はその種類を測れないと出します |

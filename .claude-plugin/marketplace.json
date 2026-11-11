@@ -11,7 +11,19 @@
       "strict": false,
       "description": "使わなくなったWebサービスのアカウントを、パスワードを読まずに洗い出して削除する",
       "version": "0.1.0",
-      "skills": ["./skills/account-cleanup"]
+      "skills": [
+        "./skills/account-cleanup"
+      ]
+    },
+    {
+      "name": "pc-tidy",
+      "source": "./",
+      "strict": false,
+      "description": "PCの中で長く使っていない物を一覧にし、選んだ物だけを消して空きを戻す",
+      "version": "0.1.0",
+      "skills": [
+        "./skills/pc-tidy"
+      ]
     }
   ]
 }

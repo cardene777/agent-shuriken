@@ -1,0 +1,40 @@
+# 片付けが既定で守る置き場。
+# 1 行に 1 つの置き場を書く。 `~` はホームを指す。 `#` で始まる行と空行は読まない。
+# 置き場の下の物は、どの種類の候補にも出さず、置き場を中に含む物も消さない。
+#
+# 人ごとに守る物は、状態の置き場の `protect.txt` に同じ形で書く (技の手順の 6 節)。
+
+# 写真と動画と音楽
+~/Pictures
+~/Movies
+~/Music
+# 鍵と認証の置き場
+~/.ssh
+~/.gnupg
+~/.aws
+~/.azure
+~/.kube
+~/.docker
+~/.config/gcloud
+~/.config/gh
+~/.password-store
+~/Library/Keychains
+# 消すと他の端末とクラウドからも消える置き場
+~/Library/Mobile Documents
+~/Library/CloudStorage
+# 手元にしか無い連絡とiPhoneのバックアップ
+~/Library/Mail
+~/Library/Messages
+~/Library/Application Support/MobileSync
+~/Library/Photos
+# AIの道具の設定と会話の記録 (保持の日数は種類 `record` が扱う)
+~/.claude
+~/.codex
+# ゴミ箱と片付けの状態
+~/.Trash
+~/.ikkan
+
+[files]
+# 本人が作ったfileの置き場。repoと作業場所は候補に出し、それ以外は出さない
+~/Documents
+~/Desktop
