@@ -1,0 +1,33 @@
+{
+  "name": "oss-contribute",
+  "version": "0.1.0",
+  "description": "Send a fix to an outside open source project by that project's own rules: run its checks in a container, draft the issue or pull request in its language with a translation, and send only the exact draft you approve",
+  "author": {
+    "name": "cardene777",
+    "url": "https://github.com/cardene777"
+  },
+  "homepage": "https://github.com/cardene777/agent-shuriken/tree/main/plugins/oss-contribute",
+  "repository": "https://github.com/cardene777/agent-shuriken",
+  "license": "MIT",
+  "keywords": [
+    "open-source",
+    "github",
+    "pull-request",
+    "contributing",
+    "fork"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "OSS Contribute",
+    "shortDescription": "Send fixes to open source",
+    "longDescription": "Turns a bug you found in an open source project you use into a fix that follows that project's own rules, and sends it only after you approve the exact draft. It clones the project, lists the files that hold its rules (CONTRIBUTING, templates, security policy, sign-off and CLA requests, and what it says about AI tools), makes the fix on a branch named the project's way, and runs the project's lint, format, and test commands inside a Docker container that cannot reach your keys, your GitHub sign-in, or the network during the checks. It drafts the issue, pull request, or comment in the project's language with a translation for you, flags anything that looks like a credential, a personal path, or an email address, and records your approval as a fingerprint of the title, body, commits, and diff. Sending refuses anything that changed after the approval and checks the target again first. Security problems go to the project's private reporting channel, never to a public issue. It uses Python, git, the GitHub CLI, and Docker, and never contributes on its own.",
+    "developerName": "cardene777",
+    "category": "Developer Tools",
+    "capabilities": [],
+    "defaultPrompt": [
+      "Prepare a fix and a pull request for an open source project I use"
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
+  }
+}
