@@ -11,6 +11,7 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 - The secure-dotfile plugin, which moves the API keys and tokens written into shell startup files into the macOS Keychain without the agent seeing any value
 - The techdebt plugin, which ranks the files most worth fixing by combining how often they change with their size, old TODO comments, missing tests, long functions, and duplication
+- The doc-review plugin, which reviews a specification, design document, or README once with two reviewers that do not share the conversation, then fixes each finding or records why not
 
 ## [0.4.0] - 2026-11-12
 

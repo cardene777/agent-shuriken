@@ -1,0 +1,32 @@
+{
+  "name": "doc-review",
+  "version": "0.1.0",
+  "description": "Review a specification, design document, or README once with two reviewers that do not share the conversation, then fix each finding or record why not",
+  "author": {
+    "name": "cardene777",
+    "url": "https://github.com/cardene777"
+  },
+  "homepage": "https://github.com/cardene777/agent-shuriken/tree/main/plugins/doc-review",
+  "repository": "https://github.com/cardene777/agent-shuriken",
+  "license": "MIT",
+  "keywords": [
+    "documentation",
+    "review",
+    "specification",
+    "writing"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Doc Review",
+    "shortDescription": "Review docs with fresh eyes",
+    "longDescription": "Reviews a specification, design document, architecture document, ADR, README, or any other document once, before you publish or merge it. A script first checks the form it can check mechanically: heading levels, numbered headings, relative links and anchors, table rows, and code fences. Then two reviewers that do not share the conversation read only the document, one for the content its kind needs and one for the form, and return findings marked critical, major, or minor. The agent checks each finding, fixes the section or records why not, and stops after one round. A short record of the findings and decisions is kept on your machine.",
+    "developerName": "cardene777",
+    "category": "Developer Tools",
+    "capabilities": [],
+    "defaultPrompt": [
+      "Review docs/SPEC.md before I publish it"
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
+  }
+}
