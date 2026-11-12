@@ -1,0 +1,7 @@
+interface:
+  display_name: "Account Cleanup"
+  short_description: "Find and delete web accounts you no longer use"
+  default_prompt: "Use $account-cleanup to find web accounts I no longer use and delete the ones I approve."
+
+policy:
+  allow_implicit_invocation: true

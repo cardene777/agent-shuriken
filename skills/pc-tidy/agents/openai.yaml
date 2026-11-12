@@ -1,0 +1,9 @@
+interface:
+  display_name: "PC Tidy"
+  short_description: "Free up Mac disk space by deleting only what you pick"
+  default_prompt: "Use $pc-tidy to list what has gone unused on this Mac and free up disk space."
+
+# Same as `disable-model-invocation: true` in SKILL.md for Claude Code:
+# the skill runs only when the user names it, never on the model's own judgment.
+policy:
+  allow_implicit_invocation: false

@@ -13,9 +13,12 @@ Caches are cleared with each tool's own cleanup command (`brew cleanup`, `npm ca
 Talk to the user in the language they write in.
 The commands, the file formats, and the lines copied back from the selection page are the same in every language.
 
-All commands live in `scripts/` under this skill's directory (the base directory shown when the skill is loaded).
-Below, `S` stands for that absolute path.
-When running a command, put `S=<base directory>/scripts` at the start of the same Bash call.
+All commands live in `scripts/` next to this `SKILL.md`.
+Below, `S` stands for the absolute path of that folder.
+When running a command, put `S=<folder that contains this SKILL.md>/scripts` at the start of the same shell command.
+
+This skill works in Claude Code and in Codex.
+In Codex, the commands read the whole home folder and delete outside the project folder, so request approval for them when the sandbox blocks them.
 The commands need nothing from outside this skill's directory, so copying the directory is enough to use them on another Mac.
 They run only on macOS; on other systems they stop with reason `os-not-supported` and exit code 3.
 
