@@ -11,6 +11,7 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 - The repo-progress plugin, which shows every repository you work on in one table, with worktrees, open issues and pull requests, uncommitted files, and the ones that have stalled first, without changing anything
 - The learning-to-skill plugin, which writes a lesson from a session into the instruction files your agents read, such as AGENTS.md, CLAUDE.md, GEMINI.md, Copilot's instructions, or a skill's SKILL.md, once and in the place that reaches the right agents, only after you approve the diff
+- The feedback-loop plugin, which turns a correction you give the agent into fixed files, a review by an evaluator that edits nothing that passes every criterion, and a check or rule that keeps the mistake from coming back
 
 ### Removed
 

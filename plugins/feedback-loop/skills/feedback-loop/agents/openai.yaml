@@ -1,0 +1,7 @@
+interface:
+  display_name: "Feedback Loop"
+  short_description: "Record a correction, fix it, and have the fix reviewed until every criterion passes"
+  default_prompt: "Use $feedback-loop to fix what I just corrected and have the fix reviewed until it passes."
+
+policy:
+  allow_implicit_invocation: true
