@@ -1021,7 +1021,7 @@ aside { background: var(--panel); border: 1px solid var(--line); border-radius: 
 aside h2 { font-size: 19px; margin: 2px 0 6px; }
 aside dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 14px 0; font-size: 14px; }
 aside dt { color: var(--muted); }
-aside dd { margin: 0; word-break: break-all; }
+aside dd { margin: 0; overflow-wrap: anywhere; }
 aside h3 { font-size: 14px; color: var(--muted); font-weight: 600; margin: 16px 0 6px; }
 aside a { color: var(--accent); }
 .crow { display: grid; grid-template-columns: minmax(0, 1fr) 96px 64px; gap: 8px; align-items: center; font-size: 14px; margin: 6px 0; }
