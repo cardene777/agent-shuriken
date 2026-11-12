@@ -1,33 +1,19 @@
 {
   "name": "agent-shuriken",
-  "description": "A collection of agent skills for Claude Code and Codex",
+  "description": "Careful housekeeping plugins for Claude Code and Codex",
   "owner": {
     "name": "cardene777"
   },
   "plugins": [
     {
       "name": "account-cleanup",
-      "source": "./",
-      "strict": false,
-      "description": "Find web accounts you no longer use without reading any passwords, then cancel subscriptions and delete the accounts you approve",
-      "version": "0.1.0",
-      "license": "MIT",
-      "keywords": ["accounts", "privacy", "1password", "bitwarden", "subscriptions"],
-      "skills": [
-        "./skills/account-cleanup"
-      ]
+      "source": "./plugins/account-cleanup",
+      "description": "Find web accounts you no longer use without reading any passwords, then cancel subscriptions and delete the accounts you approve"
     },
     {
       "name": "pc-tidy",
-      "source": "./",
-      "strict": false,
-      "description": "List what has gone unused on your Mac and delete only the items you pick to free up disk space",
-      "version": "0.1.0",
-      "license": "MIT",
-      "keywords": ["macos", "disk-space", "cleanup"],
-      "skills": [
-        "./skills/pc-tidy"
-      ]
+      "source": "./plugins/pc-tidy",
+      "description": "List what has gone unused on your Mac and delete only the items you pick to free up disk space"
     }
   ]
 }

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Checks that the repository is consistent and safe to publish.
+# Checks that the repository is consistent and that every plugin is ready to install and submit.
 # Usage: bash scripts/check.sh
 # Prints one line per check. Exits 0 when no check fails and 1 when any check fails.
 # A check whose tool is missing is reported as "skip" and does not fail the run.
@@ -7,18 +7,21 @@ set -u
 root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$root" || exit 1
 
-# Files whose Japanese text is intended: the `ja` dictionaries of the HTML pages,
-# and words that scripts match on Japanese websites and emails.
+# Files whose Japanese text is intended, besides the *.ja.md pages: the `ja` dictionaries of
+# the HTML pages, and words that scripts match on Japanese websites and emails.
 JA_ALLOWED=(
-  skills/account-cleanup/templates/sheet.html
-  skills/account-cleanup/templates/followups.html
-  skills/account-cleanup/scripts/browser.mjs
-  skills/account-cleanup/scripts/connections-guide.sh
-  skills/account-cleanup/scripts/subscriptions-guide.sh
-  skills/pc-tidy/scripts/tidy.py
+  plugins/account-cleanup/skills/account-cleanup/templates/sheet.html
+  plugins/account-cleanup/skills/account-cleanup/templates/followups.html
+  plugins/account-cleanup/skills/account-cleanup/scripts/browser.mjs
+  plugins/account-cleanup/skills/account-cleanup/scripts/connections-guide.sh
+  plugins/account-cleanup/skills/account-cleanup/scripts/subscriptions-guide.sh
+  plugins/pc-tidy/skills/pc-tidy/scripts/tidy.py
 )
 # Third-party files copied unmodified; they are checked only for valid syntax.
-VENDORED=(skills/account-cleanup/data/sites.json)
+VENDORED=(plugins/account-cleanup/skills/account-cleanup/data/sites.json)
+# Files allowed over the directories' 256 KiB limit. Each one makes Anthropic's directory hold
+# the plugin for a reviewer, as docs/publishing.md says.
+SIZE_EXCEPTIONS=(plugins/account-cleanup/skills/account-cleanup/data/sites.json)
 
 pass=0 fail=0 skip=0
 
@@ -30,7 +33,10 @@ all_files() {
 }
 # Text files written in this repository (no vendored data, no images).
 own_text_files() {
-  all_files | grep -vE '\.(png|jpg|jpeg|gif|webp|ico|zip)$' | grep -vxF -f <(printf '%s\n' "${VENDORED[@]}")
+  all_files | grep -vE '\.(png|jpg|jpeg|gif|webp|svg|ico|zip)$' | grep -vxF -f <(printf '%s\n' "${VENDORED[@]}")
+}
+plugin_names() {
+  for d in plugins/*/; do basename "$d"; done
 }
 
 # run <name> <function>: the check fails when the function exits non-zero.
@@ -90,26 +96,74 @@ check_json() {
   return "$bad"
 }
 
-# Every skill folder is one plugin of the same name, and every plugin points at a skill folder.
+# Every plugin folder is one marketplace entry with the same name and description, and back.
 check_marketplace() {
-  local manifest=.claude-plugin/marketplace.json skills listed
-  skills="$(for d in skills/*/; do [ -f "$d/SKILL.md" ] && basename "$d"; done | sort)"
-  listed="$(jq -r '.plugins[] | "\(.name) \(.skills | join(","))"' "$manifest")"
-  [ "$(printf '%s\n' "$listed" | awk '{print $1}' | sort)" = "$skills" ] || {
-    echo "plugins: $(printf '%s\n' "$listed" | awk '{print $1}' | tr '\n' ' ')"
-    echo "skill folders: $(printf '%s\n' "$skills" | tr '\n' ' ')"
+  local manifest=.claude-plugin/marketplace.json listed name bad=0
+  listed="$(jq -r '.plugins[].name' "$manifest" | sort)"
+  [ "$listed" = "$(plugin_names | sort)" ] || {
+    echo "marketplace lists: $(printf '%s\n' "$listed" | tr '\n' ' ')"
+    echo "plugin folders: $(plugin_names | tr '\n' ' ')"
     return 1
   }
-  printf '%s\n' "$listed" | while read -r name paths; do
-    [ "$paths" = "./skills/$name" ] || { echo "plugin $name lists $paths instead of ./skills/$name"; exit 1; }
+  for name in $(plugin_names); do
+    jq -e --arg n "$name" --slurpfile p "plugins/$name/.claude-plugin/plugin.json" '
+      .plugins[] | select(.name == $n) | .source == "./plugins/\($n)" and .description == $p[0].description
+    ' "$manifest" >/dev/null || { echo "$name: the marketplace entry needs source ./plugins/$name and the plugin.json description"; bad=1; }
   done
+  return "$bad"
+}
+
+# The Claude Code and Codex manifests of a plugin agree, and the Codex listing fields are complete.
+check_manifests() {
+  local name claude codex bad=0
+  for name in $(plugin_names); do
+    claude="plugins/$name/.claude-plugin/plugin.json"
+    codex="plugins/$name/.codex-plugin/plugin.json"
+    [ -f "$claude" ] && [ -f "$codex" ] || { echo "$name: needs both .claude-plugin/plugin.json and .codex-plugin/plugin.json"; bad=1; continue; }
+    jq -e --arg n "$name" '.name == $n and (.version | test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))' "$claude" >/dev/null \
+      || { echo "$name: plugin.json needs name $name and a X.Y.Z version"; bad=1; }
+    for key in name version description author license; do
+      [ "$(jq -c ".$key" "$claude")" = "$(jq -c ".$key" "$codex")" ] || { echo "$name: $key differs between the two manifests"; bad=1; }
+    done
+    jq -e '.interface | (.displayName | length) <= 30 and (.shortDescription | length) <= 30
+      and (.longDescription | length) > 0 and (.developerName | length) > 0
+      and (.category | length) > 0 and (.capabilities | type) == "array"' "$codex" >/dev/null \
+      || { echo "$name: .codex-plugin interface needs displayName and shortDescription of at most 30 characters, longDescription, developerName, category, and capabilities"; bad=1; }
+  done
+  return "$bad"
+}
+
+check_plugin_files() {
+  local name f bad=0
+  for name in $(plugin_names); do
+    for f in README.md README.ja.md CHANGELOG.md LICENSE; do
+      [ -f "plugins/$name/$f" ] || { echo "$name: $f is missing"; bad=1; }
+    done
+    cmp -s LICENSE "plugins/$name/LICENSE" || { echo "$name: LICENSE differs from the root LICENSE"; bad=1; }
+    ls plugins/"$name"/skills/*/SKILL.md >/dev/null 2>&1 || { echo "$name: no skills/<skill>/SKILL.md"; bad=1; }
+    [ ! -e "plugins/$name/hooks" ] || { echo "$name: hooks make the plugin ineligible for OpenAI's directory"; bad=1; }
+  done
+  return "$bad"
+}
+
+# The plugin directories hold a version for a reviewer over these limits.
+check_plugin_limits() {
+  local name count f bad=0
+  for name in $(plugin_names); do
+    count="$(all_files | grep -c "^plugins/$name/")"
+    [ "$count" -le 512 ] || { echo "$name: $count files, over 512"; bad=1; }
+    for f in $(all_files | grep "^plugins/$name/" | grep -vE '\.(png|jpg|jpeg|gif|webp|svg|woff2?|ttf|otf)$' | grep -vxF -f <(printf '%s\n' "${SIZE_EXCEPTIONS[@]}")); do
+      [ "$(wc -c < "$f")" -le 262144 ] || { echo "$f is over 256 KiB"; bad=1; }
+    done
+  done
+  return "$bad"
 }
 
 check_skill_frontmatter() {
   local d name bad=0
-  for d in skills/*/; do
+  for d in plugins/*/skills/*/; do
     name="$(basename "$d")"
-    [ -f "$d/SKILL.md" ] || continue
+    [ -f "$d/SKILL.md" ] || { echo "$d has no SKILL.md"; bad=1; continue; }
     head -1 "$d/SKILL.md" | grep -qx -- '---' || { echo "$name: SKILL.md does not start with frontmatter"; bad=1; }
     grep -qx "name: $name" "$d/SKILL.md" || { echo "$name: frontmatter name does not match the folder"; bad=1; }
     grep -qE '^description: .{40,}' "$d/SKILL.md" || { echo "$name: description is missing or too short"; bad=1; }
@@ -118,11 +172,10 @@ check_skill_frontmatter() {
 }
 
 # Codex reads agents/openai.yaml. A skill that only runs when the user calls it says so to both agents.
-check_codex_metadata() {
-  local d name yaml manual implicit bad=0
-  for d in skills/*/; do
+check_codex_skill_metadata() {
+  local d name yaml manual implicit key bad=0
+  for d in plugins/*/skills/*/; do
     name="$(basename "$d")"
-    [ -f "$d/SKILL.md" ] || continue
     yaml="$d/agents/openai.yaml"
     [ -f "$yaml" ] || { echo "$name: agents/openai.yaml is missing"; bad=1; continue; }
     for key in display_name short_description default_prompt; do
@@ -141,34 +194,61 @@ check_codex_metadata() {
   return "$bad"
 }
 
-# Every plugin carries the version of the newest release in CHANGELOG.md.
-check_versions() {
-  local released versions
-  grep -qx '## \[Unreleased\]' CHANGELOG.md || { echo "CHANGELOG.md has no ## [Unreleased] section"; return 1; }
-  released="$(sed -nE 's/^## \[([0-9]+\.[0-9]+\.[0-9]+)\] - [0-9]{4}-[0-9]{2}-[0-9]{2}$/\1/p' CHANGELOG.md | head -1)"
-  [ -n "$released" ] || { echo "CHANGELOG.md has no ## [X.Y.Z] - YYYY-MM-DD section"; return 1; }
-  versions="$(jq -r '.plugins[] | "\(.name) \(.version)"' .claude-plugin/marketplace.json)"
-  printf '%s\n' "$versions" | while read -r name version; do
-    [ "$version" = "$released" ] || { echo "plugin $name is $version but CHANGELOG.md's newest release is $released"; exit 1; }
-  done
+# newest_release <changelog>: prints the version of the newest "## [X.Y.Z] - YYYY-MM-DD" heading.
+newest_release() {
+  sed -nE 's/^## \[([0-9]+\.[0-9]+\.[0-9]+)\] - [0-9]{4}-[0-9]{2}-[0-9]{2}$/\1/p' "$1" | head -1
 }
 
-check_readme_skills() {
-  local d name bad=0
-  for d in skills/*/; do
-    name="$(basename "$d")"
-    grep -qx "## $name" README.md || { echo "README.md has no ## $name section"; bad=1; }
+# Each plugin carries the version of its newest release, and every changelog keeps an Unreleased section.
+check_versions() {
+  local name changelog version released bad=0
+  for changelog in CHANGELOG.md plugins/*/CHANGELOG.md; do
+    [ -f "$changelog" ] || continue
+    grep -qx '## \[Unreleased\]' "$changelog" || { echo "$changelog has no ## [Unreleased] section"; bad=1; }
+    [ -n "$(newest_release "$changelog")" ] || { echo "$changelog has no ## [X.Y.Z] - YYYY-MM-DD section"; bad=1; }
+  done
+  for name in $(plugin_names); do
+    [ -f "plugins/$name/CHANGELOG.md" ] || continue
+    version="$(jq -r .version "plugins/$name/.claude-plugin/plugin.json")"
+    released="$(newest_release "plugins/$name/CHANGELOG.md")"
+    [ "$version" = "$released" ] || { echo "$name is $version but its CHANGELOG.md's newest release is $released"; bad=1; }
+  done
+  return "$bad"
+}
+
+check_readme_tables() {
+  local name readme bad=0
+  for readme in README.md README.ja.md; do
+    for name in $(plugin_names); do
+      grep -qE "^\| \[$name\]\(plugins/$name\) \|" "$readme" || { echo "$readme has no table row for $name"; bad=1; }
+    done
+  done
+  return "$bad"
+}
+
+# Every page has a Japanese counterpart with the same headings, table rows, and code fences.
+check_japanese_pages() {
+  local f ja bad=0
+  for f in $(all_files | grep -E '(^|/)(README|docs/[^/]+)\.md$' | grep -vE '\.ja\.md$' | grep -vE '^plugins/[^/]+/skills/'); do
+    ja="${f%.md}.ja.md"
+    [ -f "$ja" ] || { echo "$f has no $ja"; bad=1; continue; }
+    for pattern in '^#' '^\|' '^```'; do
+      [ "$(grep -c "$pattern" "$f")" = "$(grep -c "$pattern" "$ja")" ] \
+        || { echo "$ja: the number of lines matching $pattern differs from $f"; bad=1; }
+    done
   done
   return "$bad"
 }
 
 # Relative links and images in the Markdown files point at files that exist.
 check_links() {
-  local f link bad=0
+  local f link target bad=0
   for f in $(all_files | grep '\.md$'); do
-    for link in $(grep -oE '\]\([^)#]+\)|src="[^"]+"' "$f" | sed -E 's/^\]\(//; s/\)$//; s/^src="//; s/"$//' | grep -vE '^[a-z]+:'); do
-      [ -e "$(dirname "$f")/$link" ] || { echo "$f: $link does not exist"; bad=1; }
-    done
+    while IFS= read -r link; do
+      target="${link%%#*}"
+      [ -n "$target" ] || continue
+      [ -e "$(dirname "$f")/$target" ] || { echo "$f: $link does not exist"; bad=1; }
+    done < <(grep -oE '\]\([^) ]+\)|src="[^"]+"' "$f" | sed -E 's/^\]\(//; s/\)$//; s/^src="//; s/"$//' | grep -vE '^[a-z]+:|^#')
   done
   return "$bad"
 }
@@ -188,9 +268,9 @@ check_no_email() {
   return 0
 }
 
-# Japanese appears only in the allowed files, or as the language name on a switch.
+# Japanese appears only in *.ja.md pages and the allowed files, or as the language name on a switch.
 check_english() {
-  own_text_files | grep -vxF -f <(printf '%s\n' "${JA_ALLOWED[@]}") | python3 -c '
+  own_text_files | grep -vE '\.ja\.md$' | grep -vxF -f <(printf '%s\n' "${JA_ALLOWED[@]}") | python3 -c '
 import re, sys
 japanese = re.compile("[%s-%s%s-%s%s-%s]+" % tuple(map(chr, (0x3040, 0x30FF, 0x3400, 0x9FFF, 0xFF66, 0xFF9F))))
 bad = 0
@@ -204,37 +284,50 @@ sys.exit(bad)'
 }
 
 check_no_build_output() {
-  git ls-files | grep -E '(\.pyc$|__pycache__/|node_modules/|\.DS_Store$)' && return 1
+  git ls-files | grep -E '(\.pyc$|__pycache__/|node_modules/|\.DS_Store$|Thumbs\.db$|__MACOSX/)' && return 1
   return 0
 }
 
-# Every bundled data file is credited.
+# Every bundled data file is credited in its plugin's THIRD_PARTY_NOTICES.md.
 check_notices() {
-  local f bad=0
-  for f in $(all_files | grep -E '^skills/[^/]+/data/'); do
-    grep -qF "\`$f\`" THIRD_PARTY_NOTICES.md || { echo "$f is not listed in THIRD_PARTY_NOTICES.md"; bad=1; }
+  local f plugin rel bad=0
+  for f in $(all_files | grep -E '^plugins/[^/]+/skills/[^/]+/data/'); do
+    plugin="$(printf '%s\n' "$f" | cut -d/ -f2)"
+    rel="${f#plugins/$plugin/}"
+    grep -qF "\`$rel\`" "plugins/$plugin/THIRD_PARTY_NOTICES.md" 2>/dev/null \
+      || { echo "$f is not listed in plugins/$plugin/THIRD_PARTY_NOTICES.md"; bad=1; }
   done
   return "$bad"
 }
 
 check_plugin_validate() {
   command -v claude >/dev/null || { echo "claude is not installed"; return 77; }
-  claude plugin validate . >/dev/null 2>&1 || { claude plugin validate . 2>&1 | tail -5; return 1; }
+  local target bad=0
+  for target in . $(plugin_names | sed 's|^|plugins/|'); do
+    claude plugin validate "$target" 2>&1 | grep -q 'Validation passed' || {
+      echo "claude plugin validate $target failed:"; claude plugin validate "$target" 2>&1 | tail -5; bad=1
+    }
+  done
+  return "$bad"
 }
 
 run "shell scripts parse" check_shell_syntax
 run "node scripts parse" check_node_syntax
 run "python scripts parse" check_python_syntax
 run "JSON files parse" check_json
-run "marketplace lists every skill once" check_marketplace
+run "marketplace lists every plugin once" check_marketplace
+run "plugin manifests agree" check_manifests
+run "plugin folders are complete" check_plugin_files
+run "plugins stay within directory limits" check_plugin_limits
 run "SKILL.md frontmatter" check_skill_frontmatter
-run "Codex metadata matches SKILL.md" check_codex_metadata
-run "plugin versions match CHANGELOG.md" check_versions
-run "README.md has a section per skill" check_readme_skills
+run "Codex skill metadata matches SKILL.md" check_codex_skill_metadata
+run "versions match the changelogs" check_versions
+run "README tables list every plugin" check_readme_tables
+run "pages have Japanese counterparts" check_japanese_pages
 run "relative links resolve" check_links
 run "no local user paths" check_no_personal_paths
 run "no email addresses" check_no_email
-run "English outside the ja dictionaries" check_english
+run "English outside the Japanese pages" check_english
 run "no build output tracked" check_no_build_output
 run "bundled data is credited" check_notices
 run "claude plugin validate" check_plugin_validate

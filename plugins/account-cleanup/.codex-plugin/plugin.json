@@ -1,0 +1,31 @@
+{
+  "name": "account-cleanup",
+  "version": "0.1.0",
+  "description": "Find web accounts you no longer use without reading any passwords, then cancel subscriptions and delete the accounts you approve",
+  "author": {
+    "name": "cardene777",
+    "url": "https://github.com/cardene777"
+  },
+  "homepage": "https://github.com/cardene777/agent-shuriken/tree/main/plugins/account-cleanup",
+  "repository": "https://github.com/cardene777/agent-shuriken",
+  "license": "MIT",
+  "keywords": [
+    "accounts",
+    "privacy",
+    "1password",
+    "bitwarden",
+    "subscriptions"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Account Cleanup",
+    "shortDescription": "Clean up old web accounts",
+    "longDescription": "Collects only service names, URLs, and dates from 1Password, Bitwarden, and Chromium browsers, without reading any passwords. It explains why each account looks unused and opens a page where you mark each one OK or Keep. For the accounts you approve, the agent signs in from 1Password without seeing the credentials, cancels subscriptions, removes saved payment methods, and deletes the account. You complete two-factor prompts yourself. For services that cannot delete accounts, it drafts an erasure request under GDPR, CCPA, or Japan's APPI.",
+    "developerName": "cardene777",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": [
+      "Find web accounts I no longer use and delete the ones I approve"
+    ]
+  }
+}

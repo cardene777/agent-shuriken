@@ -8,7 +8,7 @@ Please report anything that could weaken those protections privately.
 Use GitHub's private vulnerability reporting: open the **Security** tab of this repository and choose **Report a vulnerability**.
 Do not open a public issue or pull request for a security problem.
 
-Please include the affected skill and file, steps to reproduce, and the impact you expect.
+Please include the affected plugin and file, steps to reproduce, and the impact you expect.
 You will get a first response within 7 days.
 
 ## What counts as a vulnerability
@@ -21,4 +21,4 @@ You will get a first response within 7 days.
 
 ## Supported versions
 
-Fixes ship in a new release. Only the latest release is supported, so update before reporting.
+Fixes ship in a new release of the affected plugin. Only the latest release of each plugin is supported, so update before reporting.
