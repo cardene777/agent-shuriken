@@ -1,0 +1,34 @@
+/* PDF button. In a document with 2 or more topics it sits at the right of the header;
+   in a single-topic document it sits above the contents list. */
+.printbar { position: relative; }
+.printbtn { appearance: none; font: inherit; font-size: 13px; line-height: 1; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink-2); cursor: pointer; }
+.printbtn:hover { border-color: var(--accent); color: var(--accent); }
+.printbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.printmenu { display: none; position: absolute; top: calc(100% + 6px); right: 0; min-width: 160px; padding: 4px; border-radius: 10px; border: 1px solid var(--line); background: #fff; box-shadow: 0 6px 20px rgba(0, 0, 0, .12); z-index: 40; }
+.printbar.open .printmenu { display: block; }
+.printmenu button { appearance: none; display: block; width: 100%; text-align: left; font: inherit; font-size: 13px; padding: 8px 10px; border: 0; border-radius: 7px; background: transparent; color: var(--ink-2); cursor: pointer; white-space: nowrap; }
+.printmenu button:hover { background: var(--accent-soft); color: var(--accent); }
+
+/* Paper layout. No header or contents list; every section in order, one section per page.
+   Collapsed details are opened, and charts with buttons show every state. */
+html[data-paper] body { display: block; overflow: visible; height: auto; background: #e9e9ee; }
+html[data-paper] .doc-top, html[data-paper] .doc-side, html[data-paper] .doc-mbar,
+html[data-paper] .doc-scrim, html[data-paper] .doc-step, html[data-paper] .printbar,
+html[data-paper] .chart-ctrl, html[data-paper] .chart-views,
+html[data-paper] .chart .tabtext, html[data-paper] details.exp > summary { display: none !important; }
+html[data-paper] .doc-main { overflow: visible; display: block; }
+html[data-paper="all"] .doc-page[hidden] { display: block !important; }
+html[data-paper] .doc-sec { display: block !important; width: 794px; max-width: none; margin: 24px auto; padding: 56px 60px; background: #fff; box-shadow: 0 2px 12px rgba(0, 0, 0, .08); break-after: page; }
+html[data-paper] details.exp > .exp-body { display: block !important; }
+html[data-paper] .chart svg.paper-only { display: block; margin-top: 14px; }
+html[data-paper] .chart g[data-lane] { opacity: 1 !important; }
+html[data-paper] .doc-views-list { display: block; margin: 12px 0 0; padding-left: 1.2em; font-size: 14px; color: var(--ink-2); }
+/* Keep each figure, card, key, note, comparison, table row, and code block on one sheet,
+   keep headings with what follows, and avoid a lone line at the top or bottom of a sheet. */
+html[data-paper] :is(figure, .card, .keys > *, .note, .compare, tr, pre) { break-inside: avoid; }
+html[data-paper] :is(h2, h3, h4, .lead) { break-after: avoid; }
+html[data-paper] p { orphans: 3; widows: 3; }
+@media print {
+  html[data-paper] body { background: #fff; }
+  html[data-paper] .doc-sec { width: auto; margin: 0; padding: 0; box-shadow: none; }
+}

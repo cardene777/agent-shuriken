@@ -1,0 +1,7 @@
+interface:
+  display_name: "Diagram Explainer"
+  short_description: "Write an explainer with a figure in every section as one HTML file"
+  default_prompt: "Use $diagram-explainer to write an explainer with figures on this topic."
+
+policy:
+  allow_implicit_invocation: true

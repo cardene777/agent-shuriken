@@ -1,0 +1,47 @@
+/* Step ladder figures, inserted by ladder.py.
+   Colors use the body's CSS variables, with defaults for when they are missing.
+   Keep markup-like text out of this comment: build.py copies the file into the page style,
+   and the checks scan the page text for figure markup. */
+.ladder {
+  --lad-emphasis: var(--edge-emphasis, #10b981);
+  --lad-plain: var(--edge, #64748b);
+  --lad-strong: var(--ink, #1a1d24);
+  --lad-back: var(--edge-dashed, #a78bfa);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.ladder svg.ladfig {
+  display: block;
+  width: 100%;
+  /* Shrinking without limit makes the text unreadable, so stop at a minimum and scroll sideways. */
+  min-width: 720px;
+  height: auto;
+}
+.ladfig .lad-node { fill: var(--panel, #fff); stroke: var(--line, #e3e5ea); stroke-width: 1; }
+.ladfig .lad-hair { stroke: var(--line, #e3e5ea); stroke-width: 1; }
+.ladfig .lad-flow { stroke: var(--lad-plain); stroke-width: 1.4; fill: none; }
+.ladfig .lad-head { fill: var(--lad-plain); }
+.ladfig .lad-back {
+  stroke: var(--lad-back);
+  stroke-width: 1.4;
+  fill: none;
+  stroke-dasharray: 5 4;
+}
+.ladfig .lad-head-back { fill: var(--lad-back); }
+.ladfig text { fill: var(--ink, #1a1d24); }
+.ladfig .lad-num {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 19px;
+  font-weight: 700;
+}
+.ladfig .lad-title { font-size: 15px; font-weight: 700; }
+.ladfig .lad-sub {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  fill: var(--ink-sub, #545a66);
+  font-variant-ligatures: none;
+}
+.ladfig .lad-place { font-size: 12px; fill: var(--ink-sub, #545a66); text-anchor: end; }
+.ladfig .lad-who { font-size: 12px; font-weight: 700; text-anchor: end; }
+.ladfig .lad-band { font-size: 13px; font-weight: 700; letter-spacing: 0.14em; }
+.ladfig .lad-blabel { font-size: 11.5px; fill: var(--ink-sub, #545a66); text-anchor: end; }

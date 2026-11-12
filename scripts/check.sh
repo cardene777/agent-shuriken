@@ -8,7 +8,8 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$root" || exit 1
 
 # Files whose Japanese text is intended, besides the *.ja.md pages: the `ja` dictionaries of
-# the HTML pages, and words that scripts match on Japanese websites and emails.
+# the HTML pages, words that scripts match on Japanese websites and emails, the patterns and
+# word lists that check Japanese prose, and Japanese samples and their tests.
 JA_ALLOWED=(
   plugins/account-cleanup/skills/account-cleanup/templates/sheet.html
   plugins/account-cleanup/skills/account-cleanup/templates/followups.html
@@ -16,6 +17,19 @@ JA_ALLOWED=(
   plugins/account-cleanup/skills/account-cleanup/scripts/connections-guide.sh
   plugins/account-cleanup/skills/account-cleanup/scripts/subscriptions-guide.sh
   plugins/pc-tidy/skills/pc-tidy/scripts/tidy.py
+  plugins/diagram-explainer/skills/diagram-explainer/assets/charts.js
+  plugins/diagram-explainer/skills/diagram-explainer/assets/doc.js
+  plugins/diagram-explainer/skills/diagram-explainer/assets/print.js
+  plugins/diagram-explainer/skills/diagram-explainer/scripts/render.py
+  plugins/diagram-explainer/skills/diagram-explainer/scripts/ladder.py
+  plugins/diagram-explainer/skills/diagram-explainer/scripts/check.py
+  plugins/diagram-explainer/skills/diagram-explainer/scripts/figure.py
+  plugins/diagram-explainer/skills/diagram-explainer/references/prose-words.txt
+  plugins/diagram-explainer/skills/diagram-explainer/references/words-plain.txt
+  plugins/diagram-explainer/skills/diagram-explainer/references/metaphor-words.tsv
+  plugins/diagram-explainer/skills/diagram-explainer/examples/content.sample.ja.json
+  plugins/diagram-explainer/skills/diagram-explainer/examples/ladders/checkout-ja.json
+  plugins/diagram-explainer/skills/diagram-explainer/tests/test-render.sh
 )
 # Third-party files copied unmodified; they are checked only for valid syntax.
 VENDORED=(plugins/account-cleanup/skills/account-cleanup/data/sites.json)

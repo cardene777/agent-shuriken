@@ -1,0 +1,213 @@
+# Words the prose check flags in Japanese documents. `prose.py` reads this file, and `figure.py`
+# reads the default-matched kinds through `prose.default_words()`. None of these words is used on a
+# document whose `<html lang>` does not start with `ja`.
+#
+# Format: `kind  word  replacement`, separated by spaces. The replacement is shown in the check's
+# output; spaces inside it are joined back with one space.
+#
+# The first column is the kind, and prose.py reads the kinds from this file.
+# Kinds with their own handling in prose.py:
+#   wordy           Phrases that can be dropped or shortened without changing the facts. Also words
+#                   that leave the judgement to the reader ("various", "many"), with a hint to be concrete.
+#                   Matched before the phrases allowed by a term table are removed.
+#   jargon          Words no reader understands. Proper names used correctly (products, standards) are
+#                   not listed. Merged with the term table; `--no-default-words` turns it off.
+#   logbook         Words about the state of the work. Only words that never appear in a sentence that
+#                   states the design. Matched before the allowed phrases are removed.
+#   bare-english    English words written outside backticks. Matched on word boundaries, ignoring case.
+#   worker-heading  Words that mark a heading written for the person making the document. Matched in
+#                   headings and `<summary>` only. The third column is not used.
+#   allow           English words never flagged as bare-english. The third column is not used.
+# Every other kind is matched the default way: a substring match on the text after removing the
+# phrases a term table allows. A new kind added here is checked without any change to the scripts.
+#   coined          Made-up Japanese words used where the field has an established term.
+#
+# Phrases allowed in a single document belong in that document's term table (`allow:` lines), not here.
+
+# --- wordy ---
+# Do not add a rewrite that changes the meaning (for example "it is necessary" into "it needs").
+# Before adding a phrase, run the check over existing documents and read the matches: a phrase that
+# also has an ordinary meaning (such as "next" meaning "the following section") makes every document
+# carry an `allow:` line.
+wordy  ことができます  できます
+wordy  ことができません  できません
+wordy  ことが可能です  できます
+wordy  することとなります  します
+wordy  ということになります  です
+wordy  という形になっています  です
+wordy  となっております  です
+wordy  することにより  すると
+wordy  に関して  は
+wordy  において  で
+wordy  非常に  落とす
+wordy  しっかりと  落とす
+wordy  きちんと  落とす
+wordy  基本的に  落とす
+wordy  言うまでもなく  落とす
+wordy  のとおりです  です
+wordy  することが可能  できます
+wordy  を行うことができ  でき
+wordy  という課題があります  が課題です
+wordy  という問題が存在します  という問題があります
+wordy  することが重要です  が重要です
+wordy  を提供しています  があります
+wordy  し得る  できる
+wordy  少なくありません  多いです
+wordy  しかしながら  しかし
+wordy  したがって  そのため
+wordy  それゆえに  だから
+wordy  すなわち  つまり
+wordy  ならびに  と
+wordy  なければなりません  する必要があります
+wordy  なくてはなりません  する必要があります
+wordy  する際  する時
+wordy  たとえば  例えば
+wordy  概念的には  仕様では
+wordy  様々な  数と中身を書く
+wordy  多くの  数を書く
+wordy  簡単に  手順か利点を書く
+wordy  と思います  言い切る
+wordy  方がよい  言い切る
+wordy  が話題になっています  落とす
+wordy  この記事では  落とす
+wordy  本文では  落とす
+wordy  一つ  1つ
+wordy  二つ  2つ
+wordy  三つ  3つ
+wordy  三度  3回
+
+# --- jargon ---
+# Words that stop the reader. Do not list words that are ordinary in the field: flagging common
+# technical words makes writers invent substitutes, which are harder to read than the word itself.
+# List a word only when both hold:
+#   1. an ordinary Japanese word for it exists, so no sentence needs it
+#   2. the same replacement works in technical documents and in meeting material alike
+# Technical katakana words to avoid for general readers are in `words-plain.txt`, which a document
+# passes with `--words`.
+jargon  ソリューション  解決策
+jargon  アセット  資産
+jargon  エビデンス  証拠
+jargon  ナレッジ  知識
+jargon  アジェンダ  議題
+jargon  スキーム  仕組み
+jargon  シナジー  相乗効果
+jargon  コミットメント  約束
+jargon  オンボーディング  受け入れ
+jargon  ペイン  困りごと
+jargon  バジェット  予算
+jargon  アグリー  同意
+jargon  フィックス  決める
+jargon  ブラッシュアップ  練り直す
+jargon  段階的開示  情報を少しずつ渡す
+jargon  系統  種類
+jargon  着金  残高に反映される
+jargon  非同一  異なる
+jargon  揃いません  一致しません
+
+# --- logbook ---
+# A document states the design as intended. These words make it read like a list of undecided items.
+logbook  見送り  その形にした理由を書くか、落とす
+logbook  見送った  その形にした理由を書くか、落とす
+logbook  当面は  落とす
+logbook  今のところ  落とす
+logbook  現時点では  落とす
+logbook  今後  落とす
+logbook  検討中  決めて書く
+logbook  未定です  決めて書く
+logbook  まだ決めていません  決めて書く
+logbook  予定です  言い切る
+logbook  TODO  落とす
+logbook  FIXME  落とす
+
+# --- bare-english ---
+# Abstract English words whose meaning becomes clear in Japanese, and English spellings of words that
+# have an established Japanese term. Words ordinary in the field (`endpoint`, `transaction`,
+# `interface`) are not listed, for the same reason as jargon; `words-plain.txt` lists them for
+# general readers.
+# The replacement is the established term in the field, never a made-up phrase. A replacement asking
+# to wrap the word in backticks means there is no established Japanese term: keep the word as an
+# identifier.
+bare-english  revert  backtickで囲む
+bare-english  library  ライブラリ
+bare-english  facet  backtickで囲む
+bare-english  module  モジュール
+bare-english  storage  ストレージ
+bare-english  edge  線
+bare-english  workaround  回避
+bare-english  tradeoff  引き換え
+bare-english  bottleneck  詰まり
+bare-english  coverage  カバレッジ
+bare-english  boilerplate  定型
+bare-english  deprecated  非推奨
+bare-english  scalable  スケールできる
+bare-english  robust  堅牢
+bare-english  seamless  継ぎ目が無い
+bare-english  leverage  使う
+bare-english  utilize  使う
+bare-english  optimize  速くする
+bare-english  optimization  速くすること
+bare-english  enhancement  良くする
+bare-english  capability  できること
+bare-english  granularity  粒度
+bare-english  alignment  揃え
+bare-english  observability  可観測性
+bare-english  maintainability  保守性
+bare-english  readability  可読性
+bare-english  reliability  信頼性
+bare-english  availability  可用性
+bare-english  throughput  スループット
+bare-english  latency  遅延
+bare-english  infrastructure  基盤
+bare-english  requirement  要件
+bare-english  specification  仕様
+bare-english  configuration  設定
+bare-english  deployment  配ること
+bare-english  authentication  認証
+bare-english  authorization  認可
+bare-english  notification  知らせ
+
+# --- coined ---
+# Made-up Japanese words used where the field has an established term.
+# Before adding a word, run the check over existing documents and read every match, not only the
+# count: a word that is correct Japanese in its usual meaning must not be listed.
+# A word that is correct in only one document stays listed; that document allows it with an `allow:`
+# line in its term table.
+# A replacement naming two terms joined by the particle for "or" offers both; the writer picks one.
+coined  財布  ウォレット
+coined  つなぎの検査  統合テスト
+coined  決済の流れ  チェックアウト
+coined  取消しの段  取消規則
+coined  常駐プログラム  デーモン
+coined  チェーンの番号  chainID
+coined  名簿  許可リストかレジストリ
+coined  呼び出し口  エンドポイント
+coined  入れ物  バケットかコンテナ
+coined  焼却  burn
+
+# --- worker-heading ---
+# Headings that show the worker's plan in a document meant for readers. `TODO` is checked by prose.py
+# in every language, so it is not listed here.
+worker-heading  実装方針  rename-or-drop
+worker-heading  対応方針  rename-or-drop
+worker-heading  実装手順  rename-or-drop
+worker-heading  作業手順  rename-or-drop
+worker-heading  残課題  rename-or-drop
+worker-heading  残作業  rename-or-drop
+worker-heading  次のステップ  rename-or-drop
+worker-heading  次の一手  rename-or-drop
+worker-heading  タスク  rename-or-drop
+worker-heading  メモ  rename-or-drop
+worker-heading  備考  rename-or-drop
+worker-heading  補足事項  rename-or-drop
+
+# --- allow ---
+# Acronyms and established technical words that stay in English. Keep this list and bare-english
+# disjoint; a word in both is never flagged.
+allow  API  keep
+allow  URL  keep
+allow  CLI  keep
+allow  JSON  keep
+allow  HTML  keep
+allow  CSS  keep
+allow  PDF  keep
+allow  ID  keep

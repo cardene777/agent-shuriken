@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Document title</title>
+<script>document.documentElement.className += ' doc-js';</script>
+<style>
+/* Layout and colors, charts, step ladders, and the print layout. build.py inlines each file from assets/. */
+/* diagram-explainer:asset doc.css */
+/* diagram-explainer:asset charts.css */
+/* diagram-explainer:asset ladder.css */
+/* diagram-explainer:asset print.css */
+</style>
+</head>
+<body>
+<!-- diagram-explainer:content:start -->
+<aside class="doc-side" id="doc-side" aria-label="Contents">
+  <p class="doc-brand">Document title</p>
+  <p class="doc-date">Date</p>
+  <nav class="doc-toc" data-page="a" aria-label="Document title contents">
+    <button type="button" data-sec="a-s1">What it does</button>
+    <button type="button" data-sec="a-s2">Terms</button>
+  </nav>
+</aside>
+<div class="doc-mbar"><button type="button" aria-controls="doc-side" aria-expanded="false">☰ Contents</button><span class="doc-here"></span><span class="doc-count"></span></div>
+<main class="doc-main">
+<div class="doc-page" data-page="a">
+
+<section class="doc-sec" id="a-s1" data-name="What it does">
+  <div class="doc-pagehead">
+    <h1>Document title</h1>
+    <p class="lead">One plain sentence that says what the subject does.</p>
+  </div>
+  <h2><span class="num">01</span>What it does</h2>
+  <p>Explain who the subject serves and what it handles, as a concrete sequence.</p>
+  <figure class="free" id="a-flow">
+    <div class="steps"><span>Input</span><span>Work</span><span>Output</span></div>
+    <figcaption>Figure 1 From input to output</figcaption>
+  </figure>
+</section>
+
+<section class="doc-sec" id="a-s2" data-name="Terms" data-nofig="A list of terms; a figure would repeat it.">
+  <h2><span class="num">02</span>Terms</h2>
+  <p>Define the words the rest of the document uses.</p>
+</section>
+
+</div>
+<div class="doc-step"><button type="button" data-step="-1">Previous section</button><span class="doc-count"></span><button type="button" data-step="1">Next section</button></div>
+</main>
+<div class="doc-scrim"></div>
+<!-- diagram-explainer:content:end -->
+<script>
+// diagram-explainer:asset charts.js
+</script>
+<script>
+// diagram-explainer:asset doc.js
+</script>
+<script>
+// diagram-explainer:asset print.js
+</script>
+</body>
+</html>

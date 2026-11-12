@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "alt": "貸出の5つの段と、上限を超えた時に段2へ戻る線",
+  "back_note": "段%sへ戻る",
+  "actors": {
+    "desk": {
+      "label": "窓口か貸出機",
+      "tone": "emphasis"
+    },
+    "system": {
+      "label": "図書館の仕組み",
+      "tone": "plain"
+    },
+    "member": {
+      "label": "利用者",
+      "tone": "strong"
+    }
+  },
+  "bands": [
+    {
+      "label": "窓口で",
+      "from": 1,
+      "to": 2
+    },
+    {
+      "label": "仕組みの中で",
+      "from": 3,
+      "to": 5
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "title": "利用者の券を読む",
+      "calls": "券の読み取り",
+      "gate": "期限内の券",
+      "actor": "desk",
+      "place": "利用者の記録"
+    },
+    {
+      "n": 2,
+      "title": "1冊ずつ読む",
+      "calls": "番号札",
+      "gate": "他の人の取り置きでない",
+      "actor": "desk",
+      "place": "1冊の記録"
+    },
+    {
+      "n": 3,
+      "title": "上限を確かめる",
+      "calls": "貸出の決まり",
+      "gate": "借りる数の上限より少ない",
+      "actor": "system",
+      "place": "利用者の記録"
+    },
+    {
+      "n": 4,
+      "title": "返す日を決める",
+      "calls": "貸出の決まり",
+      "actor": "system",
+      "place": "貸出の記録"
+    },
+    {
+      "n": 5,
+      "title": "控えを受け取る",
+      "calls": "印刷かメール",
+      "actor": "member",
+      "place": "控え"
+    }
+  ],
+  "back": [
+    {
+      "from": 3,
+      "to": 2,
+      "label": "上限を超えた"
+    }
+  ]
+}

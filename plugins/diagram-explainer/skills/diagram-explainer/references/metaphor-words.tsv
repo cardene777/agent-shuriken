@@ -1,0 +1,40 @@
+kind	pattern	usual meaning
+# Metaphor verbs and adverbs in Japanese prose. Columns are separated by tabs.
+# prose.py applies the `personify` and `operation` patterns with re.search, only to sentences whose
+# subject is an identifier (a `<code>` element followed by the topic or subject particle).
+# `adverb` rows are a list for writers to read; prose.py does not match them.
+# The lookbehinds and lookaheads exclude compounds that are not metaphors and established phrases.
+# When adding a word or an exclusion, run the pattern over human-written prose, count the matches,
+# and exclude the forms that match correct sentences.
+personify	(?<!役)(?<!役に)(?<!目)(?<!成り)(?<!際)(?<!先)(?<!主語に)(?:立つ|立ち(?!上が|会)|立って|立った)	place / create
+personify	立ち上が(?:る|り|って|った)	start
+personify	預か(?:る|り|って|った)?	hold / store
+personify	寄り添(?:う|い|って|った)?	place nearby / match
+personify	面倒を見(?:る|て|た)?	hold / manage
+personify	見張(?:る|り|って|った)?	check
+personify	歩い(?:て|た)?	process in order
+personify	眠(?:る|り|って|った)?	is unused
+personify	迷(?:う|い|って|った)?	cannot decide
+personify	困(?:る|り|って|った)?	fails / cannot process
+personify	嫌が(?:る|り|って|った)?	rejects
+personify	望(?:む|み)	requires / makes it a condition
+personify	覚え(?:る|て|た)?	records
+personify	忘れ(?:る|て|た)?	loses the record
+personify	知って(?:いる|いない)?	can refer to
+personify	話(?:す|し|して|した)	communicates
+personify	踏み込(?:む|み|んで|んだ)?	runs
+personify	引き返(?:す|し|して|した)?	stops / rolls back
+personify	添え(?:る|て|た)?	adds
+personify	黙(?:る|り|って|った)	prints nothing / detects nothing
+personify	沈黙(?:する|し|して|した)?	prints nothing / detects nothing
+operation	効(?:く|かない|い|いて|いた)	is counted / has the expected effect
+operation	(?<!卒)(?<!圧)(?<!転)(?<!打)(?<!安全側へ)(?<!安全側に)倒(?:す|し|して|した)	sets the default / excludes
+operation	潰(?:す|し|して|した)	fixes / excludes
+operation	壊れ(?:る|て|た)?	fails / returns a wrong result / becomes inconsistent
+operation	(?<!氷を)(?<!雪を)溶か(?:す|し|して|した)?	takes time / reduces
+operation	着地させ(?:る|て|た)?	completes / agrees
+operation	(?<!お)(?<!主導権を)握(?!り飯)(?:る|り|って|った)	chooses / controls
+operation	収斂(?:する|させる|し|して|した)?	narrows down / combines
+adverb	静かに	without a record / without an error / unnoticed
+adverb	地味に	gradually / out of sight
+adverb	ひっそり	without notice
