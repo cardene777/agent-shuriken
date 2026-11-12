@@ -1,0 +1,7 @@
+interface:
+  display_name: "Learning to Skill"
+  short_description: "Write a lesson from the session into AGENTS.md, CLAUDE.md, GEMINI.md, Copilot instructions, or a skill, after you approve the diff"
+  default_prompt: "Use $learning-to-skill to record what we learned in this session so future sessions follow it."
+
+policy:
+  allow_implicit_invocation: true
