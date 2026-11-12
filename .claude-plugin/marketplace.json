@@ -1,6 +1,6 @@
 {
   "name": "agent-shuriken",
-  "description": "Careful housekeeping plugins for Claude Code and Codex",
+  "description": "Careful plugins for Claude Code and Codex",
   "owner": {
     "name": "cardene777"
   },
@@ -14,6 +14,11 @@
       "name": "pc-tidy",
       "source": "./plugins/pc-tidy",
       "description": "List what has gone unused on your Mac and delete only the items you pick to free up disk space"
+    },
+    {
+      "name": "root-cause",
+      "source": "./plugins/root-cause",
+      "description": "Find the cause of a bug from evidence before fixing it, then fix only the cause with a test that fails first"
     }
   ]
 }

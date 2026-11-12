@@ -25,6 +25,7 @@ English · [日本語](README.ja.md)
 |---|---|---|---|
 | [account-cleanup](plugins/account-cleanup) | Finds web accounts you no longer use without reading any passwords, then cancels subscriptions and deletes the accounts you approve | `/account-cleanup:account-cleanup` in Claude Code, or **Account Cleanup** after typing `$` in Codex. It also starts when you describe the task | [0.1.1](plugins/account-cleanup/CHANGELOG.md) |
 | [pc-tidy](plugins/pc-tidy) | Lists what has gone unused on your Mac and deletes only the items you pick, to free up disk space | `/pc-tidy:pc-tidy` in Claude Code, or **PC Tidy** after typing `$` in Codex. It starts only when you call it | [0.1.1](plugins/pc-tidy/CHANGELOG.md) |
+| [root-cause](plugins/root-cause) | Finds the cause of a bug from evidence before changing any code, then fixes only the cause, starting with a test that fails | `/root-cause:root-cause` in Claude Code, or **Root Cause** after typing `$` in Codex. It also starts when you describe a bug | [0.1.0](plugins/root-cause/CHANGELOG.md) |
 
 Each plugin's README explains what it does, what it reads and sends, and what it needs.
 
