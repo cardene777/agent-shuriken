@@ -1,0 +1,20 @@
+{
+  "name": "excalidraw-diagram",
+  "displayName": "Excalidraw Diagram",
+  "version": "0.1.0",
+  "description": "Draw architecture, flow, sequence, and ER diagrams as Excalidraw files laid out by a script, checked for overlaps, crowded spacing, and labels on lines, with SVG and PNG copies and no downloads",
+  "author": {
+    "name": "cardene777",
+    "url": "https://github.com/cardene777"
+  },
+  "homepage": "https://github.com/cardene777/agent-shuriken/tree/main/plugins/excalidraw-diagram",
+  "repository": "https://github.com/cardene777/agent-shuriken",
+  "license": "MIT",
+  "keywords": [
+    "diagram",
+    "excalidraw",
+    "architecture",
+    "mermaid",
+    "svg"
+  ]
+}
