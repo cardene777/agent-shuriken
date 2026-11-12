@@ -7,7 +7,7 @@ English · [日本語](README.ja.md)
 ![The cover, a page with a build-time chart and scored table, and the ranking page of a report comparing four static site generators](assets/screenshot.png)
 
 Asked to compare tools, an agent tends to hand out scores without evidence, mix vendor claims with independent measurements, and fill gaps with guesses.
-This plugin gives Claude Code and Codex one way to do it instead.
+This plugin gives your agent one way to do it instead.
 You agree on the candidates and the evaluation axes first, the agent collects data with a source and a date for every claim, and every score in the report comes with its rationale.
 Figures that are not published are marked as not disclosed, never estimated.
 
@@ -24,12 +24,20 @@ List candidates from web searches ──> Agree on candidates and axes ──> R
 
 codex plugin marketplace add cardene777/agent-shuriken   # Codex
 codex plugin add compare-report@agent-shuriken
+
+copilot plugin marketplace add cardene777/agent-shuriken # GitHub Copilot CLI
+copilot plugin install compare-report@agent-shuriken
+
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/compare-report/skills/compare-report   # Gemini CLI
 ```
+
+In other agents that read `SKILL.md`, unzip the skill zip attached to each release into the agent's skills folder, as [Getting started](../../docs/getting-started.md#install-without-the-marketplace) shows.
 
 ## Use
 
 The plugin starts when you ask for a comparison, for example "compare the main static site generators for our docs site".
 You can also call it: run `/compare-report:compare-report` in Claude Code, optionally followed by the topic, or type `$` and pick **Compare Report** in Codex.
+In GitHub Copilot CLI, write `/compare-report` in your request, and in Gemini CLI, describe the task.
 
 1. The agent searches the web and shows ten to fifteen candidates. Pick the ones to compare, and add any it missed
 2. The agent suggests five to eight evaluation axes, such as performance, cost, and risk. Confirm them or change them
@@ -44,7 +52,7 @@ It is written in the language you write in.
 
 | Tool | When it's needed |
 |---|---|
-| Web search in your agent | Always. Claude Code and Codex both have it |
+| Web search in your agent | Always. Claude Code and Codex both have it; in other agents, check that web search is turned on |
 | `python3` | To check the report. The one that ships with macOS works |
 | Chrome, Chromium, Edge, or Brave | To print the PDF. Without one, you get the HTML, which any browser can print |
 

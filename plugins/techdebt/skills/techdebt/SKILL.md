@@ -15,8 +15,8 @@ All commands live in `scripts/` next to this `SKILL.md`.
 Below, `S` stands for the absolute path of that folder.
 When running a command, put `S=<folder that contains this SKILL.md>/scripts` at the start of the same shell command.
 
-This skill works in Claude Code and in Codex.
-In Codex, the report is written to `~/.local/share/techdebt/`, outside the project folder, so request approval for the commands when the sandbox blocks them.
+This skill works in Claude Code, Codex, and other agents that read `SKILL.md`, such as GitHub Copilot CLI and Gemini CLI.
+The report is written to `~/.local/share/techdebt/`, outside the project folder, so request approval for the commands when a sandbox blocks them, as Codex can.
 
 ## 1. Scan
 

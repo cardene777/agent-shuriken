@@ -23,12 +23,21 @@ Build the list ──> Describe each item and recommend ──> Pick on the page
 
 codex plugin marketplace add cardene777/agent-shuriken   # Codex
 codex plugin add pc-tidy@agent-shuriken
+
+copilot plugin marketplace add cardene777/agent-shuriken # GitHub Copilot CLI
+copilot plugin install pc-tidy@agent-shuriken
+
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/pc-tidy/skills/pc-tidy   # Gemini CLI
 ```
+
+In other agents that read `SKILL.md`, unzip the skill zip attached to each release into the agent's skills folder, as [Getting started](../../docs/getting-started.md#install-without-the-marketplace) shows.
 
 ## Use
 
 The plugin runs only when you call it.
 Run `/pc-tidy:pc-tidy` in Claude Code, or type `$` and pick **PC Tidy** in Codex.
+In GitHub Copilot CLI, write `/pc-tidy` in your request, and in Gemini CLI, ask for it by name.
+These agents may also start it when you describe the task, and it still deletes nothing until you pick the items.
 
 1. The agent scans your home folder and lists items untouched for more than 30 days. This takes a few minutes
 2. The agent opens a pick page that says what each item is and whether it is safe to delete, should be checked first, or should be kept
@@ -36,7 +45,7 @@ Run `/pc-tidy:pc-tidy` in Claude Code, or type `$` and pick **PC Tidy** in Codex
 4. The agent answers your comments and deletes only what you picked. Right before deleting, it re-checks for uncommitted changes and running processes
 5. The agent reports what it deleted, what it skipped and why, and how much free space changed
 
-In Codex, approve the commands when the sandbox asks, because they read your whole home folder and delete outside the project folder.
+When an agent's sandbox asks, as Codex can, approve the commands, because they read your whole home folder and delete outside the project folder.
 
 ## Requirements
 

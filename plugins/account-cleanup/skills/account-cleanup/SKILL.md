@@ -11,9 +11,9 @@ All scripts are in `scripts/` next to this `SKILL.md`.
 Below, the absolute path of that folder is written as `S`.
 When you run a command, put `S=<folder that contains this SKILL.md>/scripts` at the start of the same shell command.
 
-This skill works in Claude Code and in Codex.
-Where it says to ask the user, use AskUserQuestion in Claude Code, and ask in the chat with numbered options in Codex.
-In Codex, the scripts read and write outside the project folder and use the network, so request approval for them when the sandbox blocks them.
+This skill works in Claude Code, Codex, and other agents that read `SKILL.md`, such as GitHub Copilot CLI and Gemini CLI.
+Where it says to ask the user, use AskUserQuestion in Claude Code, and ask in the chat with numbered options in other agents.
+The scripts read and write outside the project folder and use the network, so request approval for them when a sandbox blocks them, as Codex can.
 
 Talk to the user in the language they write in.
 Script output, `plan.sh` output and the erasure request templates are in English, so translate what you show the user when they write in another language.

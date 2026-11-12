@@ -18,14 +18,14 @@ All commands live in `scripts/` next to this `SKILL.md`.
 Below, `S` stands for the absolute path of that folder.
 When running a command, put `S=<folder that contains this SKILL.md>/scripts` at the start of the same shell command.
 
-This skill works in Claude Code and in Codex.
-In Codex, the review record is written to `~/.local/share/doc-review/`, outside the project folder, so request approval for the commands when the sandbox blocks them.
+This skill works in Claude Code, Codex, and other agents that read `SKILL.md`, such as GitHub Copilot CLI and Gemini CLI.
+The review record is written to `~/.local/share/doc-review/`, outside the project folder, so request approval for the commands when a sandbox blocks them, as Codex can.
 
 ## 1. Pick the documents
 
 Use the files the user names.
 When they name none, take the first of `docs/SPEC.md`, `docs/DESIGN.md`, and `docs/ARCHITECTURE.md` that exists, or else the Markdown files under `docs/` changed most recently.
-When several files could be meant, ask the user which ones (with AskUserQuestion in Claude Code, or as a question in the chat in Codex).
+When several files could be meant, ask the user which ones (with AskUserQuestion in Claude Code, or as a question in the chat in other agents).
 Several files can be reviewed together when they belong together, such as a specification and the design that implements it, or a page and its translation.
 
 ## 2. Start
@@ -52,7 +52,7 @@ If the kind is wrong, for example a design document named `notes.md`, use the ri
 
 Start two reviewers at the same time, each reading only the documents.
 In Claude Code, call the Agent tool twice in the same message with `subagent_type: "general-purpose"`, which starts without the conversation, and pass `model: "sonnet"` to the content reviewer and `model: "haiku"` to the form reviewer when those models are offered.
-In Codex, start two sub-agents the same way when sub-agents are available.
+In Codex and other agents, start two sub-agents the same way when the agent has them.
 Otherwise review the two aspects yourself one after the other: read the files again from the start for each aspect, and judge only what the text says, not what you know the author meant.
 Tell the user in the report that the review was done without separate reviewers.
 
@@ -124,7 +124,7 @@ With no findings, record an empty list `[]`.
 
 Tell the user, in a few lines, how many findings each severity had and how many were fixed, what you changed by section, and each finding you did not fix with its reason.
 Give the path of `review.md` that `record` printed.
-When `record` says critical findings were not fixed, ask the user how to proceed (AskUserQuestion in Claude Code, a question in the chat in Codex).
+When `record` says critical findings were not fixed, ask the user how to proceed (AskUserQuestion in Claude Code, a question in the chat in other agents).
 Otherwise you are done; do not ask whether to continue and do not start another round.
 
 ## When something fails

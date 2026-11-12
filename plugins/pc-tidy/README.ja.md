@@ -30,12 +30,22 @@ Macで使われなくなった物を確かめ、選んだ物だけを消して�
 
 codex plugin marketplace add cardene777/agent-shuriken   # Codex
 codex plugin add pc-tidy@agent-shuriken
+
+copilot plugin marketplace add cardene777/agent-shuriken # GitHub Copilot CLI
+copilot plugin install pc-tidy@agent-shuriken
+
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/pc-tidy/skills/pc-tidy   # Gemini CLI
 ```
+
+`SKILL.md`を読むほかのエージェントでは、各リリースに添付したスキルのzipを、そのエージェントのスキル用フォルダに展開します。
+手順は[はじめに](../../docs/getting-started.ja.md#マーケットプレイスを使わずにインストールする)にあります。
 
 ## 使い方
 
 このプラグインは、あなたが呼び出した時だけ動きます。
 Claude Codeでは`/pc-tidy:pc-tidy`を実行し、Codexでは`$`を入力して**PC Tidy**を選びます。
+GitHub Copilot CLIでは依頼の中に`/pc-tidy`と書き、Gemini CLIでは名前を挙げて頼みます。
+これらのエージェントでは、やりたいことを伝えただけで始まることもありますが、その場合も項目を選ぶまで何も消しません。
 
 1. エージェントがホームフォルダを調べ、30日を超えて触れていない物を一覧にします。数分かかります
 2. エージェントが選ぶページを開きます。このページには、それぞれが何かと、「消してよい」「確かめてから」「残す」のどれに当たるかが出ます
@@ -43,7 +53,7 @@ Claude Codeでは`/pc-tidy:pc-tidy`を実行し、Codexでは`$`を入力して*
 4. エージェントがコメントに答え、選んだ物だけを消します。消す直前には、未コミットの変更と動いているプロセスが無いかをもう一度確かめます
 5. エージェントが、消した物、飛ばした物とその理由、空き容量がどれだけ変わったかを報告します
 
-コマンドはホームフォルダ全体を読み、プロジェクトのフォルダの外で削除するので、Codexではサンドボックスに聞かれた時に承認してください。
+コマンドはホームフォルダ全体を読み、プロジェクトのフォルダの外で削除するので、Codexのようにエージェントのサンドボックスに聞かれた時は承認してください。
 
 ## 必要な物
 

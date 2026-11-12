@@ -7,7 +7,8 @@ description: Researches the candidates for a choice, such as libraries, tools, s
 
 Research the candidates for a topic and write a comparison report as HTML and PDF.
 Talk to the user in the language they write in, and write the report in that language.
-Where it says to ask the user, use AskUserQuestion in Claude Code, and ask in the chat with numbered options in Codex.
+This skill works in Claude Code, Codex, and other agents that read `SKILL.md`, such as GitHub Copilot CLI and Gemini CLI.
+Where it says to ask the user, use AskUserQuestion in Claude Code, and ask in the chat with numbered options in other agents.
 
 All files are next to this `SKILL.md`.
 Below, the absolute path of that folder is written as `D`.
@@ -57,7 +58,7 @@ When you run a command, put `D=<folder that contains this SKILL.md>` at the star
 
 Follow `references/research-guide.md`.
 In Claude Code, research the candidates in parallel with one subagent per candidate, and wait for all of them before writing.
-In Codex, research them one after another.
+In other agents, research them in parallel with sub-agents when the agent has them, and otherwise one after another.
 
 ### 4. Write the report
 
@@ -100,7 +101,7 @@ It uses Chrome, Chromium, Edge, or Brave if one is installed, with a throwaway p
 When no such browser is found, it says so; give the user the HTML, which prints to PDF from any browser.
 
 Open the HTML for the user with `open` on macOS or `xdg-open` on Linux, give the paths of both files, and ask for feedback.
-In Codex, approve the commands when the sandbox asks, because they write outside the project folder and start a browser.
+When a sandbox asks, as Codex can, approve the commands, because they write outside the project folder and start a browser.
 
 ### 6. Apply feedback
 

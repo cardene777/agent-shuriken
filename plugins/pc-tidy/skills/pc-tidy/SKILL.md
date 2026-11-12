@@ -17,8 +17,9 @@ All commands live in `scripts/` next to this `SKILL.md`.
 Below, `S` stands for the absolute path of that folder.
 When running a command, put `S=<folder that contains this SKILL.md>/scripts` at the start of the same shell command.
 
-This skill works in Claude Code and in Codex.
-In Codex, the commands read the whole home folder and delete outside the project folder, so request approval for them when the sandbox blocks them.
+This skill works in Claude Code, Codex, and other agents that read `SKILL.md`, such as GitHub Copilot CLI and Gemini CLI.
+The commands read the whole home folder and delete outside the project folder, so request approval for them when a sandbox blocks them, as Codex can.
+Some agents ignore `disable-model-invocation` and may load this skill for a related request; when the user did not ask for this skill by name, ask whether to start before running any command.
 The commands need nothing from outside this skill's directory, so copying the directory is enough to use them on another Mac.
 They run only on macOS; on other systems they stop with reason `os-not-supported` and exit code 3.
 

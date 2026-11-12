@@ -2,7 +2,7 @@
 
 [English](creating-a-plugin.md) · 日本語
 
-このページでは、Claude CodeとCodexの両方にインストールできるプラグインを、このリポジトリに追加する方法を説明します。
+このページでは、Claude Code、Codex、GitHub Copilot CLIにインストールでき、Gemini CLIや`SKILL.md`を読むほかのエージェントでも動くプラグインを、このリポジトリに追加する方法を説明します。
 どの変更でも守る決まりは[`AGENTS.md`](../AGENTS.md)に、どのプラグインも守る約束は[安全性](safety.ja.md)に書いてあります。
 
 ## フォルダの構成
@@ -12,7 +12,7 @@
 
 ```
 plugins/<name>/
-├── .claude-plugin/plugin.json     Claude Codeが読む設定 (次の設定が無い時はCodexも読む)
+├── .claude-plugin/plugin.json     Claude CodeとGitHub Copilot CLIが読む設定 (次の設定が無い時はCodexも読む)
 ├── .codex-plugin/plugin.json      Codexが読む設定。OpenAIの公式ディレクトリに載せる紹介文も持つ
 ├── README.md                      何をするか、使い方、何を読み、何を実行し、何を送るか
 ├── README.ja.md                   その日本語版
@@ -29,12 +29,12 @@ plugins/<name>/
     └── data/                      同梱するデータ
 ```
 
-マーケットプレイスの定義`.claude-plugin/marketplace.json`には全プラグインのフォルダが載っていて、両方のエージェントがこれを読みます。
+マーケットプレイスの定義`.claude-plugin/marketplace.json`には全プラグインのフォルダが載っていて、Claude Code、Codex、GitHub Copilot CLIがこれを読みます。
 
 ## 手順
 
-1. `plugins/<name>/skills/<name>/SKILL.md`を作ります。フロントマターの`name`にはフォルダ名を、`description`にはスキルが何をし、いつ使うかを書きます。ユーザーが呼び出した時だけ動かすスキルには、`disable-model-invocation: true`を足します
-2. `SKILL.md`は両方のエージェントに向けて書きます。片方のエージェントのツール名を書く代わりに「shell command」と書きます。Claude CodeのAskUserQuestionのように片方にしか無いツールが要る手順では、もう片方でどうするかも書きます
+1. `plugins/<name>/skills/<name>/SKILL.md`を作ります。フロントマターの`name`にはフォルダ名を、`description`にはスキルが何をし、いつ使うかを書きます。ユーザーが呼び出した時だけ動かすスキルには、`disable-model-invocation: true`を足します。Claude Code以外では`name`と`description`以外のフロントマターが無視されることがあるため、そのスキルは、ユーザーが名前を挙げて呼んでいない時は始める前に尋ねるよう、本文にも書きます
+2. `SKILL.md`は、Claude CodeとCodexだけでなく、それを読むすべてのエージェントに向けて書きます。1つのエージェントのツール名を書く代わりに「shell command」と書きます。Claude CodeのAskUserQuestionのように1つのエージェントにしか無いツールが要る手順では、ほかのエージェントでどうするかも書きます
 3. `SKILL.md`の隣に`agents/openai.yaml`を置き、`interface.display_name`、`interface.short_description`、`$<name>`に触れた`interface.default_prompt`、`policy.allow_implicit_invocation`を書きます。`policy.allow_implicit_invocation`を`false`にするのは、`SKILL.md`に`disable-model-invocation: true`がある時だけです
 4. `.claude-plugin/plugin.json`と`.codex-plugin/plugin.json`を足します。既存のプラグインからコピーし、`name`、`description`、`keywords`、`interface`を書き換えます。バージョンは`0.1.0`から始めます。48px以上の正方形のアイコンを`assets/icon.svg`に置き、`interface.composerIcon`と`interface.logo`から指します。アイコンは既存のアイコンのタイルをそのまま使い、図柄だけを新しく描きます
 5. `README.md`と`README.ja.md`を足します。公式ディレクトリのセキュリティ審査ではREADMEとコードの実際の動きを突き合わせるため、プラグインが読む物、実行する物、接続する先、残す物をすべて書きます。画像は`assets/`に置き、Markdownの画像の記法で表示します

@@ -7,7 +7,7 @@
 ![4つの静的サイトジェネレーターを比べたレポートの表紙、ビルド時間の棒グラフと採点の表のページ、順位と推奨のページ](assets/screenshot.png)
 
 ツールの比較を頼むと、エージェントは根拠の無い点数を付けたり、提供元の主張と第三者の計測を混ぜたり、分からない所を推測で埋めたりしがちです。
-このプラグインは、代わりに従う1つのやり方をClaude CodeとCodexに渡します。
+このプラグインは、代わりに従う1つのやり方をエージェントに渡します。
 まず候補と評価の観点をあなたと決め、エージェントはすべての主張に出典と日付を付けて集め、レポートのすべての点数に判定の根拠を添えます。
 公開されていない数値は推測せず、「非公開」と書きます。
 
@@ -31,12 +31,21 @@ Webを検索して候補を挙げる          エージェント
 
 codex plugin marketplace add cardene777/agent-shuriken   # Codex
 codex plugin add compare-report@agent-shuriken
+
+copilot plugin marketplace add cardene777/agent-shuriken # GitHub Copilot CLI
+copilot plugin install compare-report@agent-shuriken
+
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/compare-report/skills/compare-report   # Gemini CLI
 ```
+
+`SKILL.md`を読むほかのエージェントでは、各リリースに添付したスキルのzipを、そのエージェントのスキル用フォルダに展開します。
+手順は[はじめに](../../docs/getting-started.ja.md#マーケットプレイスを使わずにインストールする)にあります。
 
 ## 使い方
 
 このプラグインは、「ドキュメントのサイト向けに主な静的サイトジェネレーターを比べて」のように比較を頼むと始まります。
 呼び出して始めることもできます。Claude Codeでは`/compare-report:compare-report`の後に題材を続けて実行し、Codexでは`$`を入力して**Compare Report**を選びます。
+GitHub Copilot CLIでは依頼の中に`/compare-report`と書き、Gemini CLIではやりたいことを伝えます。
 
 1. エージェントがWebを検索し、10〜15の候補を示します。比べる物を選び、漏れている物があれば足します
 2. エージェントが、性能、費用、リスクのような評価の観点を5〜8個示します。そのままにするか、直します
@@ -51,7 +60,7 @@ codex plugin add compare-report@agent-shuriken
 
 | ツール | 必要な時 |
 |---|---|
-| エージェントのWeb検索 | 常に。Claude CodeにもCodexにもあります |
+| エージェントのWeb検索 | 常に。Claude CodeにもCodexにもあります。ほかのエージェントでは、Web検索が使える状態かを確かめてください |
 | `python3` | レポートを確かめる時。macOSに最初から入っている物で動きます |
 | Chrome、Chromium、Edge、Braveのどれか | PDFにする時。無い時はHTMLを渡すので、どのブラウザーからでも印刷できます |
 

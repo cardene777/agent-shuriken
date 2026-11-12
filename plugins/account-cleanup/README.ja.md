@@ -33,13 +33,22 @@ OKの分を解約して削除する    エージェント。二段階認証と�
 
 codex plugin marketplace add cardene777/agent-shuriken   # Codex
 codex plugin add account-cleanup@agent-shuriken
+
+copilot plugin marketplace add cardene777/agent-shuriken # GitHub Copilot CLI
+copilot plugin install account-cleanup@agent-shuriken
+
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/account-cleanup/skills/account-cleanup   # Gemini CLI
 ```
+
+`SKILL.md`を読むほかのエージェントでは、各リリースに添付したスキルのzipを、そのエージェントのスキル用フォルダに展開します。
+手順は[はじめに](../../docs/getting-started.ja.md#マーケットプレイスを使わずにインストールする)にあります。
 
 ## 使い方
 
 エージェントに「使っていないアカウントを整理したい」のように頼みます。
 直接呼び出すこともできます。
 Claude Codeでは`/account-cleanup:account-cleanup`を実行し、Codexでは`$`を入力して**Account Cleanup**を選びます。
+GitHub Copilot CLIでは依頼の中に`/account-cleanup`と書き、Gemini CLIではやりたいことを伝えます。
 
 1. どこから集めるかと、住んでいる地域を選びます。地域はEU、イギリス、カリフォルニア、日本、その他から選び、これでデータ消去の依頼に使うひな形が決まります
 2. エージェントが使っていないと見られるアカウントに理由を付け、各サイトの短い説明を足して、候補を選ぶページを開きます

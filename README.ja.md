@@ -4,10 +4,10 @@
 
 # agent-shuriken
 
-**Claude CodeとCodexで使える、慎重なプラグイン集。**
+**Claude Code、Codex、ほかのコーディングエージェントで使える、慎重なプラグイン集。**
 
 どのプラグインでも、面倒な作業はエージェントが進め、取り消せない操作はすべてあなたが決めます。
-同じプラグインを、Claude CodeにもCodexにもインストールできます。
+同じプラグインを、Claude Code、Codex、GitHub Copilot CLIにインストールでき、そのスキルはGemini CLIや`SKILL.md`を読むほかのエージェントでも動きます。
 
 [English](README.md) · 日本語
 
@@ -52,7 +52,21 @@ codex plugin marketplace add cardene777/agent-shuriken
 codex plugin add pc-tidy@agent-shuriken
 ```
 
+**GitHub Copilot CLI**
+
+```
+copilot plugin marketplace add cardene777/agent-shuriken
+copilot plugin install pc-tidy@agent-shuriken
+```
+
+**Gemini CLI**
+
+```
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/pc-tidy/skills/pc-tidy
+```
+
 `pc-tidy`の部分は、表にある別のプラグイン名に置き換えられます。
+`SKILL.md`を読むほかのエージェントでは、各プラグインのリリースに添付したスキルのzipを使えます。
 インストールでコピーされるのは、そのプラグインのフォルダだけです。
 起動、アップデート、バージョンの固定、削除の方法は[はじめに](docs/getting-started.ja.md)で説明しています。
 
@@ -60,7 +74,7 @@ codex plugin add pc-tidy@agent-shuriken
 
 | ページ | 内容 |
 |---|---|
-| [はじめに](docs/getting-started.ja.md) | Claude CodeとCodexでのプラグインのインストール、起動、アップデート、削除 |
+| [はじめに](docs/getting-started.ja.md) | Claude Code、Codex、GitHub Copilot CLI、Gemini CLI、ほかのエージェントでのプラグインのインストール、起動、アップデート、削除 |
 | [安全性](docs/safety.ja.md) | あなたのアカウントやファイルに触れる時に、どのプラグインも守る約束 |
 | [プラグインの作り方](docs/creating-a-plugin.ja.md) | このリポジトリに新しいプラグインを追加する方法 |
 | [リリースの手順](docs/releasing.ja.md) | プラグインのバージョンとリポジトリのバージョンをリリースする方法 |
