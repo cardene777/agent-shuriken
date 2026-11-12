@@ -14,6 +14,7 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 - The feedback-loop plugin, which turns a correction you give the agent into fixed files, a review by an evaluator that edits nothing that passes every criterion, and a check or rule that keeps the mistake from coming back
 - The session-handoff plugin, which writes a short message to paste into a new agent session and saves the options already rejected, the current phase, delegated work, and things not to do for the project, refusing anything that looks like a secret
 - The docs-publish plugin, which writes the public documentation of an open source project in five parts, Quickstart, Concepts, API reference, Cookbook, and FAQ, in English and a second language you pick, and checks that every page has its translation and every link resolves
+- The portman plugin, which keeps one registry of the localhost ports each project uses, shows what holds each port right now, suggests free ports that avoid common defaults, finds collisions, and writes a project's ports to `.env.local` and a Docker Compose override after you approve
 
 ### Removed
 
