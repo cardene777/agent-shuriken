@@ -1,0 +1,478 @@
+{
+  "lang": "ja",
+  "title": "公共図書館が本を貸す仕組み",
+  "lead": "図書館は持っている本の1冊ごとに記録を持ち、窓口から出る時に返す日を決め、返ってきた本を次に待つ人のために取り置きます。",
+  "tabs": [
+    {
+      "id": "a",
+      "label": "借りる",
+      "title": "本を借りる",
+      "lead": "利用者は蔵書の一覧で本を探し、1冊を受け取り、返す日を決めて持ち帰ります。",
+      "sections": [
+        {
+          "id": "a-s1",
+          "title": "蔵書の一覧",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "蔵書の一覧は、1つの本を1回だけ載せ、その下に1冊ずつを並べます。利用者は書名、著者、分野で探し、どの館に1冊あり、それが棚にあるかを見ます。"
+            },
+            {
+              "type": "keys",
+              "items": [
+                {
+                  "term": "書名",
+                  "text": "本ごとに1件。著者と分野と年を持つ"
+                },
+                {
+                  "term": "1冊",
+                  "text": "手に取れる本1つ。自分の番号札と所属の館を持つ"
+                },
+                {
+                  "term": "状態",
+                  "text": "棚にある、貸出中、取り置き中、移動中のどれか"
+                }
+              ]
+            },
+            {
+              "type": "html",
+              "id": "a-flow",
+              "caption": "図1 探してから受け取りの棚に並ぶまで",
+              "html": "<div class=\"flow\"><div class=\"node\"><span class=\"role\">利用者</span><b>蔵書の一覧で探す</b><small>書名、著者、分野で</small></div><div class=\"arrow\" aria-hidden=\"true\"></div><div class=\"node\"><span class=\"role\">蔵書の一覧</span><b>全ての1冊を並べる</b><small>館、棚の位置、状態</small></div><div class=\"arrow\" aria-hidden=\"true\"></div><div class=\"fork\"><div class=\"node\"><span class=\"role\">棚に1冊ある</span><b>職員が棚から出す</b><small>その日のうちに</small></div><div class=\"node\"><span class=\"role\">全て貸出中</span><b>予約の列に並ぶ</b><small>先に頼んだ人から</small></div></div><div class=\"arrow\" aria-hidden=\"true\"></div><div class=\"node end\"><span class=\"role\">受け取る館</span><b>取り置きの棚に7日</b><small>利用者に知らせが届く</small></div></div>",
+              "css": "container-type: inline-size; .flow { display: grid; grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr) 44px minmax(0, 1.3fr) 44px minmax(0, 1fr); align-items: center; } .node { position: relative; min-width: 0; padding: 12px 14px; background: var(--panel); border: 1px solid var(--line-2); border-radius: 12px; } .role { display: block; font-size: 12px; font-weight: 600; line-height: 1.4; color: var(--ink-3); } .node b { display: block; margin-top: 3px; font-size: 15px; line-height: 1.4; color: var(--ink); } .node small { display: block; margin-top: 4px; font-size: 12.5px; line-height: 1.5; color: var(--ink-3); } .end { background: var(--accent-soft); border-color: var(--accent); } .end .role, .end b { color: var(--accent); } .arrow { position: relative; height: 2px; margin: 0 10px 0 6px; background: var(--edge); } .arrow::after { content: \"\"; position: absolute; right: -8px; top: -5px; border-left: 9px solid var(--edge); border-top: 6px solid transparent; border-bottom: 6px solid transparent; } .fork { position: relative; display: grid; grid-auto-rows: 1fr; gap: 12px; padding: 0 14px; } .fork::before, .fork::after { content: \"\"; position: absolute; top: calc(25% - 3px); bottom: calc(25% - 3px); width: 2px; background: var(--edge); } .fork::before { left: 0; } .fork::after { right: 0; } .fork .node::before, .fork .node::after { content: \"\"; position: absolute; top: calc(50% - 1px); width: 14px; height: 2px; background: var(--edge); } .fork .node::before { left: -15px; } .fork .node::after { right: -15px; } @container (max-width: 640px) { .flow { grid-template-columns: minmax(0, 1fr); } .arrow { width: 2px; height: 24px; margin: 6px auto 14px; } .arrow::after { right: auto; top: auto; left: -5px; bottom: -8px; border-top: 9px solid var(--edge); border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 0; } .fork { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding: 0; } .fork::before, .fork::after, .fork .node::before, .fork .node::after { display: none; } }"
+            }
+          ]
+        },
+        {
+          "id": "a-s2",
+          "title": "1冊を借りる",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "窓口か自動の貸出機で、利用者の券と1冊ずつの番号札を読み取ります。仕組みは利用者の上限を確かめ、返す日を書いた貸出の記録を作ります。"
+            },
+            {
+              "type": "html",
+              "id": "a-ladder",
+              "caption": "図2 貸出の各段で起きること",
+              "html": "<div class=\"ladder\" data-ladder=\"checkout-ja\"></div>"
+            },
+            {
+              "type": "list",
+              "items": [
+                "別の人の取り置きになっている本は、棚にあっても借りられません。",
+                "控えには1冊ずつ返す日が載ります。",
+                "待っている人がいなければ、貸出は2回まで延ばせます。"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "a-s3",
+          "title": "予約と開いている時間",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "予約の知らせは、どの館も開く前の朝早くに送ります。夜のうちに返却口へ入った本は窓口が開く前に戻し入れるので、返った本がその日の予約に回ります。"
+            },
+            {
+              "type": "chart",
+              "id": "a-hours",
+              "kind": "timeband",
+              "caption": "図3 平日に各窓口が動く時間",
+              "views": [
+                {
+                  "label": "全て",
+                  "lanes": [],
+                  "say": "返却口は閉まらず、職員がいる時間がいちばん短い。"
+                },
+                {
+                  "label": "職員がいる",
+                  "lanes": [
+                    "desk",
+                    "notice"
+                  ],
+                  "say": "知らせは6時に届き、9時から受け取れる。"
+                },
+                {
+                  "label": "職員がいない",
+                  "lanes": [
+                    "kiosk",
+                    "drop"
+                  ],
+                  "say": "貸出機と返却口が窓口の前後の時間を受け持つ。"
+                }
+              ],
+              "spec": {
+                "from": 0,
+                "to": 24,
+                "step": 3,
+                "labelWidth": 140,
+                "lanes": [
+                  {
+                    "key": "desk",
+                    "name": "館の窓口",
+                    "bands": [
+                      {
+                        "from": 9,
+                        "to": 20,
+                        "label": "職員がいる窓口",
+                        "color": "blue",
+                        "tip": "貸出、延長、券の作成、取り置きの受け取り"
+                      }
+                    ]
+                  },
+                  {
+                    "key": "kiosk",
+                    "name": "自動の貸出機",
+                    "bands": [
+                      {
+                        "from": 8,
+                        "to": 21,
+                        "label": "貸出機が動く",
+                        "color": "green",
+                        "tip": "利用者の券で貸出と延長ができる"
+                      }
+                    ]
+                  },
+                  {
+                    "key": "drop",
+                    "name": "返却口",
+                    "bands": [
+                      {
+                        "from": 0,
+                        "to": 24,
+                        "label": "一日中開いている",
+                        "color": "gray",
+                        "tip": "いつでも返せる"
+                      }
+                    ],
+                    "dots": [
+                      {
+                        "at": 7,
+                        "label": "取り出し",
+                        "color": "orange",
+                        "tip": "窓口が開く前に、夜の間に返った本を職員が戻し入れる"
+                      }
+                    ]
+                  },
+                  {
+                    "key": "notice",
+                    "name": "予約の知らせ",
+                    "dots": [
+                      {
+                        "at": 6,
+                        "label": "送る",
+                        "color": "violet",
+                        "tip": "受け取る館と受け取りの最終日をメールか携帯の文で知らせる"
+                      }
+                    ],
+                    "spans": [
+                      {
+                        "from": 6,
+                        "to": 9,
+                        "label": "窓口が開くまで待つ",
+                        "color": "violet"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "type": "note",
+              "tone": "info",
+              "title": "移動中の本",
+              "text": "別の館で返った本は車で戻ります。届くまでは移動中と表示され、予約には回りません。"
+            }
+          ]
+        },
+        {
+          "id": "a-s4",
+          "title": "借りられる人",
+          "nofigure": "3種類の券を少しの上限で比べるだけで、カードと表が既に並べて見せている。",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "その地域に住む人、働く人、学ぶ人なら誰でも券を作れます。一度に借りられる数は券の種類で決まります。"
+            },
+            {
+              "type": "cards",
+              "items": [
+                {
+                  "label": "18歳以上",
+                  "title": "大人の券",
+                  "tone": "accent",
+                  "list": [
+                    "一度に30冊",
+                    "予約は15件まで",
+                    "どの館でも"
+                  ]
+                },
+                {
+                  "label": "13歳から17歳",
+                  "title": "10代の券",
+                  "tone": "good",
+                  "list": [
+                    "一度に20冊",
+                    "予約は10件まで",
+                    "どの館でも"
+                  ]
+                },
+                {
+                  "label": "13歳未満",
+                  "title": "子どもの券",
+                  "tone": "info",
+                  "text": "親か保護者が券に署名し、返す日を過ぎた本があると知らせを受けます。"
+                }
+              ]
+            },
+            {
+              "type": "table",
+              "columns": [
+                "券",
+                "一度に借りる数",
+                "予約の数",
+                "1回の貸出の延長"
+              ],
+              "rows": [
+                [
+                  "大人",
+                  "30",
+                  "15",
+                  "2"
+                ],
+                [
+                  "10代",
+                  "20",
+                  "10",
+                  "2"
+                ],
+                [
+                  "子ども",
+                  "10",
+                  "5",
+                  "2"
+                ]
+              ]
+            },
+            {
+              "type": "note",
+              "tone": "warn",
+              "title": "期限が切れた券",
+              "text": "期限が切れて1年を過ぎた券は、住所の分かる書類を持って窓口でだけ作り直せます。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "b",
+      "label": "返す日と延滞",
+      "title": "本を返す",
+      "lead": "返った本は戻し入れられ、貸出の記録が閉じ、次の人か棚へ回ります。",
+      "sections": [
+        {
+          "id": "b-s1",
+          "title": "貸出の期間の移り変わり",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "以前の貸出は2週間でした。2022年の初めに3週間へ延ばし、長い本も延長せずに読み終えられるようにしました。"
+            },
+            {
+              "type": "chart",
+              "id": "b-period",
+              "kind": "period",
+              "caption": "図1 貸出の期間が変わった時期と、返却の数を数えた年",
+              "spec": {
+                "from": 2018,
+                "to": 2026,
+                "cut": {
+                  "at": 2022,
+                  "label": "3週間の貸出が始まる"
+                },
+                "learn": {
+                  "label": "2週間の貸出",
+                  "tip": "2018年から2021年の終わりまでの貸出は2週間"
+                },
+                "test": {
+                  "from": 2023,
+                  "to": 2026,
+                  "label": "返却の数を数えた年",
+                  "sub": "2023年から2025年",
+                  "tip": "図2はこの3年の返却を数えている"
+                },
+                "note": "数えた期間"
+              }
+            },
+            {
+              "type": "list",
+              "items": [
+                "変える前に始まった貸出は、2週間の返す日のままにしました。",
+                "返却の数は変えてから丸1年後の2023年から数え、全てが3週間の貸出になるようにしました。"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b-s2",
+          "title": "遅れた返却と延滞金",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "1日ごとの延滞金は2023年にやめました。代わりに、返す日を30日過ぎると貸出を止め、返す日の前に知らせを送ります。"
+            },
+            {
+              "type": "compare",
+              "items": [
+                {
+                  "label": "2022年まで",
+                  "value": "1日25セント",
+                  "text": "1冊10ドルまで"
+                },
+                {
+                  "label": "2023年から",
+                  "value": "1日ごとの延滞金なし",
+                  "text": "30日を過ぎると貸出を止める"
+                }
+              ]
+            },
+            {
+              "type": "chart",
+              "id": "b-late",
+              "kind": "bars",
+              "caption": "図2 知らせ方ごとの、貸出1000件あたりの遅れた返却",
+              "spec": {
+                "max": 100,
+                "step": 20,
+                "yLabel": "貸出1000件あたりの遅れた返却",
+                "bars": [
+                  {
+                    "label": "知らせなし",
+                    "value": 84,
+                    "color": "gray",
+                    "tip": "知らせを切った利用者"
+                  },
+                  {
+                    "label": "2日前にメール",
+                    "value": 41,
+                    "color": "blue",
+                    "tip": "最初からの知らせ方"
+                  },
+                  {
+                    "label": "メールと携帯の文",
+                    "value": 29,
+                    "color": "green",
+                    "tip": "電話番号を足した利用者"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "heading",
+              "text": "貸出を止めるかの決め方"
+            },
+            {
+              "type": "paragraph",
+              "text": "仕組みは1冊を読み取るたびに、その人のいちばん古い遅れた貸出を見ます。"
+            },
+            {
+              "type": "code",
+              "language": "python",
+              "text": "def can_borrow(loans, today, limit=30):\n    overdue = [(today - loan.due).days for loan in loans if loan.due < today]\n    return max(overdue, default=0) <= 30 and len(loans) < limit"
+            },
+            {
+              "type": "details",
+              "summary": "種類ごとの弁償の額",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "text": "なくした本と傷んで返った本は、決まった額を払います。"
+                },
+                {
+                  "type": "table",
+                  "columns": [
+                    "種類",
+                    "貸出の期間",
+                    "弁償の額"
+                  ],
+                  "rows": [
+                    [
+                      "本",
+                      "3週間",
+                      "20ドル"
+                    ],
+                    [
+                      "DVD",
+                      "1週間",
+                      "15ドル"
+                    ],
+                    [
+                      "雑誌",
+                      "1週間",
+                      "5ドル"
+                    ]
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b-s3",
+          "title": "取り置きの棚の空き",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "受け取る館には、広さの決まった取り置きの棚があります。職員は毎朝、7日のうちに受け取られなかった取り置きを外し、その日に届く本の場所を空けます。"
+            },
+            {
+              "type": "chart",
+              "id": "b-shelf",
+              "kind": "capbar",
+              "caption": "図3 朝の片付けの前と後の、取り置きの棚の空き",
+              "spec": {
+                "cap": 80,
+                "capLabel": "棚の上限80%",
+                "held": {
+                  "label": "職員の展示",
+                  "value": 15,
+                  "tip": "職員が選んだ本を並べる場所"
+                },
+                "items": [
+                  {
+                    "label": "待ち",
+                    "before": 45,
+                    "after": 45,
+                    "color": "blue",
+                    "tip": "7日のうちにある取り置き"
+                  },
+                  {
+                    "label": "期限切れ",
+                    "before": 28,
+                    "after": 12,
+                    "color": "orange",
+                    "tip": "7日を過ぎた取り置き。多くは棚へ戻る"
+                  }
+                ],
+                "buttons": [
+                  "片付けの前",
+                  "片付けの後"
+                ],
+                "beforeSay": "上限を超えている",
+                "afterSay": "上限に収まる"
+              }
+            },
+            {
+              "type": "note",
+              "tone": "warn",
+              "title": "動かす前に読み取る",
+              "text": "別の棚へ動かす前に、本の番号札を読み取ります。知らせには棚の場所が載るので、読み取らずに動かすと利用者が違う棚へ行きます。"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

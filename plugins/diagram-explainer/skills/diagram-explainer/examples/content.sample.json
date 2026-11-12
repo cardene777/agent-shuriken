@@ -1,0 +1,478 @@
+{
+  "lang": "en",
+  "title": "How a public library lends books",
+  "lead": "A library keeps one record for every copy it owns, sets a due date when a copy leaves the desk, and holds returned copies for the next member in line.",
+  "tabs": [
+    {
+      "id": "a",
+      "label": "Borrowing",
+      "title": "Borrowing a book",
+      "lead": "A member finds a title in the catalog, picks up a copy, and leaves with a due date.",
+      "sections": [
+        {
+          "id": "a-s1",
+          "title": "The catalog",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "The catalog lists each title once and every copy under it. A member searches by title, author, or subject and sees which branch has a copy and whether it is on the shelf."
+            },
+            {
+              "type": "keys",
+              "items": [
+                {
+                  "term": "Title",
+                  "text": "One entry per book, with author, subject, and year"
+                },
+                {
+                  "term": "Copy",
+                  "text": "One physical book with its own barcode and home branch"
+                },
+                {
+                  "term": "Status",
+                  "text": "On the shelf, checked out, on hold, or in transit"
+                }
+              ]
+            },
+            {
+              "type": "html",
+              "id": "a-flow",
+              "caption": "Figure 1 How a request moves from the catalog to the pickup shelf",
+              "html": "<div class=\"flow\"><div class=\"node\"><span class=\"role\">Member</span><b>Searches the catalog</b><small>by title, author, or subject</small></div><div class=\"arrow\" aria-hidden=\"true\"></div><div class=\"node\"><span class=\"role\">Catalog</span><b>Lists every copy</b><small>branch, shelf mark, and status</small></div><div class=\"arrow\" aria-hidden=\"true\"></div><div class=\"fork\"><div class=\"node\"><span class=\"role\">A copy is on the shelf</span><b>Staff pull it</b><small>the same day</small></div><div class=\"node\"><span class=\"role\">Every copy is out</span><b>Member joins the hold queue</b><small>first come, first served</small></div></div><div class=\"arrow\" aria-hidden=\"true\"></div><div class=\"node end\"><span class=\"role\">Pickup branch</span><b>Hold shelf for 7 days</b><small>the member gets a notice</small></div></div>",
+              "css": "container-type: inline-size; .flow { display: grid; grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr) 44px minmax(0, 1.3fr) 44px minmax(0, 1fr); align-items: center; } .node { position: relative; min-width: 0; padding: 12px 14px; background: var(--panel); border: 1px solid var(--line-2); border-radius: 12px; } .role { display: block; font-size: 12px; font-weight: 600; line-height: 1.4; color: var(--ink-3); } .node b { display: block; margin-top: 3px; font-size: 15px; line-height: 1.4; color: var(--ink); } .node small { display: block; margin-top: 4px; font-size: 12.5px; line-height: 1.5; color: var(--ink-3); } .end { background: var(--accent-soft); border-color: var(--accent); } .end .role, .end b { color: var(--accent); } .arrow { position: relative; height: 2px; margin: 0 10px 0 6px; background: var(--edge); } .arrow::after { content: \"\"; position: absolute; right: -8px; top: -5px; border-left: 9px solid var(--edge); border-top: 6px solid transparent; border-bottom: 6px solid transparent; } .fork { position: relative; display: grid; grid-auto-rows: 1fr; gap: 12px; padding: 0 14px; } .fork::before, .fork::after { content: \"\"; position: absolute; top: calc(25% - 3px); bottom: calc(25% - 3px); width: 2px; background: var(--edge); } .fork::before { left: 0; } .fork::after { right: 0; } .fork .node::before, .fork .node::after { content: \"\"; position: absolute; top: calc(50% - 1px); width: 14px; height: 2px; background: var(--edge); } .fork .node::before { left: -15px; } .fork .node::after { right: -15px; } @container (max-width: 640px) { .flow { grid-template-columns: minmax(0, 1fr); } .arrow { width: 2px; height: 24px; margin: 6px auto 14px; } .arrow::after { right: auto; top: auto; left: -5px; bottom: -8px; border-top: 9px solid var(--edge); border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 0; } .fork { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding: 0; } .fork::before, .fork::after, .fork .node::before, .fork .node::after { display: none; } }"
+            }
+          ]
+        },
+        {
+          "id": "a-s2",
+          "title": "Checking out a copy",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "At the desk or a self-checkout kiosk, the member card and each copy are scanned. The system checks the member's limits, then writes a loan record with a due date."
+            },
+            {
+              "type": "html",
+              "id": "a-ladder",
+              "caption": "Figure 2 What happens at each step of a checkout",
+              "html": "<div class=\"ladder\" data-ladder=\"checkout\"></div>"
+            },
+            {
+              "type": "list",
+              "items": [
+                "A copy on hold for another member cannot be checked out, even if it is on the shelf.",
+                "The receipt lists each copy with its due date.",
+                "A loan can be renewed twice unless someone is waiting for the copy."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "a-s3",
+          "title": "Holds and opening hours",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "Hold notices go out early in the morning, before any branch opens. Returns left in the book drop overnight are checked in before the desk opens, so a returned copy can fill a hold the same day."
+            },
+            {
+              "type": "chart",
+              "id": "a-hours",
+              "kind": "timeband",
+              "caption": "Figure 3 When each service runs during a weekday",
+              "views": [
+                {
+                  "label": "All services",
+                  "lanes": [],
+                  "say": "The book drop never closes; staffed hours are the shortest."
+                },
+                {
+                  "label": "With staff",
+                  "lanes": [
+                    "desk",
+                    "notice"
+                  ],
+                  "say": "Notices go out at 6:00 and members can collect from 9:00."
+                },
+                {
+                  "label": "Without staff",
+                  "lanes": [
+                    "kiosk",
+                    "drop"
+                  ],
+                  "say": "Kiosks and the book drop cover the hours around the desk."
+                }
+              ],
+              "spec": {
+                "from": 0,
+                "to": 24,
+                "step": 3,
+                "labelWidth": 140,
+                "lanes": [
+                  {
+                    "key": "desk",
+                    "name": "Branch desk",
+                    "bands": [
+                      {
+                        "from": 9,
+                        "to": 20,
+                        "label": "Staffed desk",
+                        "color": "blue",
+                        "tip": "Checkouts, renewals, card sign-ups, and hold pickups"
+                      }
+                    ]
+                  },
+                  {
+                    "key": "kiosk",
+                    "name": "Self-checkout",
+                    "bands": [
+                      {
+                        "from": 8,
+                        "to": 21,
+                        "label": "Kiosks open",
+                        "color": "green",
+                        "tip": "Checkouts and renewals with a member card"
+                      }
+                    ]
+                  },
+                  {
+                    "key": "drop",
+                    "name": "Book drop",
+                    "bands": [
+                      {
+                        "from": 0,
+                        "to": 24,
+                        "label": "Open all day",
+                        "color": "gray",
+                        "tip": "Returns are accepted at any hour"
+                      }
+                    ],
+                    "dots": [
+                      {
+                        "at": 7,
+                        "label": "Emptied",
+                        "color": "orange",
+                        "tip": "Staff check in the night's returns before the desk opens"
+                      }
+                    ]
+                  },
+                  {
+                    "key": "notice",
+                    "name": "Hold notices",
+                    "dots": [
+                      {
+                        "at": 6,
+                        "label": "Sent",
+                        "color": "violet",
+                        "tip": "An email or text names the pickup branch and the last pickup day"
+                      }
+                    ],
+                    "spans": [
+                      {
+                        "from": 6,
+                        "to": 9,
+                        "label": "waiting for the desk",
+                        "color": "violet"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "type": "note",
+              "tone": "info",
+              "title": "Copies in transit",
+              "text": "A copy returned at another branch travels back by van. It shows as in transit and cannot fill a hold until it arrives."
+            }
+          ]
+        },
+        {
+          "id": "a-s4",
+          "title": "Who can borrow",
+          "nofigure": "Three card types compared on a few limits; the cards and the table already show them side by side.",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "Anyone who lives, works, or studies in the area can get a card. The card type sets how many items a member can have at once."
+            },
+            {
+              "type": "cards",
+              "items": [
+                {
+                  "label": "Ages 18 and up",
+                  "title": "Adult card",
+                  "tone": "accent",
+                  "list": [
+                    "30 items at a time",
+                    "15 holds at a time",
+                    "Any branch"
+                  ]
+                },
+                {
+                  "label": "Ages 13 to 17",
+                  "title": "Teen card",
+                  "tone": "good",
+                  "list": [
+                    "20 items at a time",
+                    "10 holds at a time",
+                    "Any branch"
+                  ]
+                },
+                {
+                  "label": "Under 13",
+                  "title": "Child card",
+                  "tone": "info",
+                  "text": "A parent or guardian signs for the card and is told about overdue items."
+                }
+              ]
+            },
+            {
+              "type": "table",
+              "columns": [
+                "Card",
+                "Items at once",
+                "Holds at once",
+                "Renewals per loan"
+              ],
+              "rows": [
+                [
+                  "Adult",
+                  "30",
+                  "15",
+                  "2"
+                ],
+                [
+                  "Teen",
+                  "20",
+                  "10",
+                  "2"
+                ],
+                [
+                  "Child",
+                  "10",
+                  "5",
+                  "2"
+                ]
+              ]
+            },
+            {
+              "type": "note",
+              "tone": "warn",
+              "title": "Expired cards",
+              "text": "A card that expired more than a year ago is renewed only at a desk, with proof of address."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "b",
+      "label": "Returns and fines",
+      "title": "Returning a book",
+      "lead": "A returned copy is checked in, the loan is closed, and the copy goes to the next member or back to the shelf.",
+      "sections": [
+        {
+          "id": "b-s1",
+          "title": "Loan periods over time",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "Loans used to last two weeks. At the start of 2022 the library moved to three weeks, which gave members time to finish longer books without renewing."
+            },
+            {
+              "type": "chart",
+              "id": "b-period",
+              "kind": "period",
+              "caption": "Figure 1 When the loan period changed and which years the return figures cover",
+              "spec": {
+                "from": 2018,
+                "to": 2026,
+                "cut": {
+                  "at": 2022,
+                  "label": "3-week loans begin"
+                },
+                "learn": {
+                  "label": "2-week loans",
+                  "tip": "Loans from 2018 to the end of 2021 lasted two weeks"
+                },
+                "test": {
+                  "from": 2023,
+                  "to": 2026,
+                  "label": "Years in the return figures",
+                  "sub": "2023 to 2025",
+                  "tip": "Figure 2 counts returns from these three years"
+                },
+                "note": "Counted"
+              }
+            },
+            {
+              "type": "list",
+              "items": [
+                "Loans that started before the change kept their two-week due date.",
+                "The return figures start in 2023, a full year after the change, so every loan in them is a three-week loan."
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b-s2",
+          "title": "Late returns and fines",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "Daily fines were dropped in 2023. Instead, borrowing pauses once an item is 30 days overdue, and reminders go out before the due date."
+            },
+            {
+              "type": "compare",
+              "items": [
+                {
+                  "label": "Until 2022",
+                  "value": "$0.25 a day",
+                  "text": "Capped at $10 for each item"
+                },
+                {
+                  "label": "Since 2023",
+                  "value": "No daily fine",
+                  "text": "Borrowing pauses after 30 days overdue"
+                }
+              ]
+            },
+            {
+              "type": "chart",
+              "id": "b-late",
+              "kind": "bars",
+              "caption": "Figure 2 Late returns per 1,000 loans, by reminder",
+              "spec": {
+                "max": 100,
+                "step": 20,
+                "yLabel": "late returns per 1,000 loans",
+                "bars": [
+                  {
+                    "label": "No reminder",
+                    "value": 84,
+                    "color": "gray",
+                    "tip": "Members who turned reminders off"
+                  },
+                  {
+                    "label": "Email 2 days before",
+                    "value": 41,
+                    "color": "blue",
+                    "tip": "The default reminder"
+                  },
+                  {
+                    "label": "Email and text",
+                    "value": 29,
+                    "color": "green",
+                    "tip": "Members who added a phone number"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "heading",
+              "text": "How the pause is decided"
+            },
+            {
+              "type": "paragraph",
+              "text": "The system looks at the member's oldest overdue loan each time a copy is scanned."
+            },
+            {
+              "type": "code",
+              "language": "python",
+              "text": "def can_borrow(loans, today, limit=30):\n    overdue = [(today - loan.due).days for loan in loans if loan.due < today]\n    return max(overdue, default=0) <= 30 and len(loans) < limit"
+            },
+            {
+              "type": "details",
+              "summary": "Replacement charges by item type",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "text": "A copy that is lost or comes back damaged is charged at a flat rate."
+                },
+                {
+                  "type": "table",
+                  "columns": [
+                    "Item",
+                    "Loan period",
+                    "Replacement charge"
+                  ],
+                  "rows": [
+                    [
+                      "Book",
+                      "3 weeks",
+                      "$20"
+                    ],
+                    [
+                      "DVD",
+                      "1 week",
+                      "$15"
+                    ],
+                    [
+                      "Magazine",
+                      "1 week",
+                      "$5"
+                    ]
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b-s3",
+          "title": "Room on the hold shelf",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "Every pickup branch has a hold shelf with fixed space. Each morning staff remove holds that were not collected within 7 days, which makes room for the copies that arrive that day."
+            },
+            {
+              "type": "chart",
+              "id": "b-shelf",
+              "kind": "capbar",
+              "caption": "Figure 3 Hold shelf space before and after the morning sweep",
+              "spec": {
+                "cap": 80,
+                "capLabel": "Shelf limit 80%",
+                "held": {
+                  "label": "Staff picks",
+                  "value": 15,
+                  "tip": "Space kept for staff-chosen displays"
+                },
+                "items": [
+                  {
+                    "label": "Waiting",
+                    "before": 45,
+                    "after": 45,
+                    "color": "blue",
+                    "tip": "Holds still inside their 7 days"
+                  },
+                  {
+                    "label": "Expired",
+                    "before": 28,
+                    "after": 12,
+                    "color": "orange",
+                    "tip": "Holds past 7 days; most go back to the shelf"
+                  }
+                ],
+                "buttons": [
+                  "Before the sweep",
+                  "After the sweep"
+                ],
+                "beforeSay": "Over the limit",
+                "afterSay": "Under the limit"
+              }
+            },
+            {
+              "type": "note",
+              "tone": "warn",
+              "title": "Scan before moving",
+              "text": "Scan a copy before moving it to another shelf. The member's notice names the shelf, so an unscanned move sends the member to the wrong place."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

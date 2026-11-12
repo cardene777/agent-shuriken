@@ -1,0 +1,16 @@
+/* Charts drawn inside the document. Load after doc.css. */
+.chart { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px 26px 16px; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart svg text { font-family: var(--sans); }
+.chart-ctrl, .chart-views { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.chart-ctrl button, .chart-views button { font-size: 13.5px; padding: 6px 14px; border: 1px solid var(--line); border-radius: 999px; background: #fff; cursor: pointer; }
+.chart-ctrl button.on, .chart-views button.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.chart .tabtext { color: var(--ink-2); min-height: 1.8em; margin: 0 0 8px; }
+.chart g[data-lane] { transition: opacity .25s ease; }
+.chart svg.paper-only, .doc-views-list { display: none; }
+.ftip { position: fixed; z-index: 50; pointer-events: none; max-width: 270px; background: #111114; color: #fff; font-size: 12.5px; line-height: 1.6; padding: 6px 10px; border-radius: 8px; opacity: 0; transition: opacity .12s; }
+/* On narrow screens keep a readable minimum size and scroll sideways inside the chart frame. */
+@media (max-width: 860px) {
+  .chart { overflow-x: auto; padding: 16px; }
+  .chart svg { min-width: 720px; }
+}

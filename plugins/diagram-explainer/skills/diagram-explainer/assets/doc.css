@@ -1,0 +1,167 @@
+/* Explainer layout. The left contents list picks a section; one section is shown at a time.
+   A document with 2 or more topics is split into pages by tabs in the header.
+   The page uses a light color scheme only.
+   On narrow screens a bar shows the current section and the contents button slides the list in. */
+:root {
+  color-scheme: light;
+  --bg: #f6f6f8; --panel: #fff; --card: #fff; --line: #e4e4e8; --line-2: #d2d2d8;
+  --ink: #111114; --ink-2: #3c3c44; --ink-3: #6e6e78; --ink-sub: #545a66; --ink-faint: #8b909b;
+  --accent: #1d4ed8; --accent-soft: #eef2ff;
+  --bad: #b91c1c; --bad-soft: #fdf2f2; --warn: #a15c07; --warn-soft: #fdf8ec;
+  --good: #047857; --good-soft: #ecfdf5;
+  --edge: #64748b;
+  --radius: 14px;
+  --side: 264px;
+  --top: 56px;
+  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--sans);
+  font-size: 15px; line-height: 1.8; -webkit-font-smoothing: antialiased; font-feature-settings: "palt";
+  display: grid; grid-template-columns: var(--side) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr);
+  overflow: hidden;
+}
+body:has(> .doc-top) { grid-template-rows: var(--top) minmax(0, 1fr); }
+/* Links inside the document use the text color and an underline,
+   so they do not look like the browser's default blue links that leave the page. */
+a { color: inherit; text-underline-offset: 3px; }
+h1, h2, h3, p { margin: 0; }
+code { font-family: var(--mono); font-size: .88em; background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; }
+button { font: inherit; color: inherit; }
+
+/* Header: document name, page tabs, date, and the PDF button. */
+.doc-top { grid-column: 1 / -1; display: flex; align-items: stretch; gap: 28px; padding: 0 24px; background: #fff; border-bottom: 1px solid var(--line); min-width: 0; }
+.doc-brand { align-self: center; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 700; font-size: 15.5px; letter-spacing: -.01em; white-space: nowrap; }
+.doc-pages { display: flex; gap: 4px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.doc-pages::-webkit-scrollbar { display: none; }
+.doc-pages button { display: flex; align-items: center; padding: 0 16px; font-size: 15px; color: var(--ink-2); background: none; border: 0; border-bottom: 2.5px solid transparent; margin-bottom: -1px; cursor: pointer; white-space: nowrap; }
+.doc-pages button:hover { color: var(--ink); background: var(--bg); }
+.doc-pages button[aria-current] { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+.doc-top .doc-date { display: flex; align-items: center; margin-left: auto; font-size: 12.5px; color: var(--ink-3); white-space: nowrap; }
+.doc-top .printbar { display: flex; align-items: center; }
+
+/* Left contents list. One per page; only the shown page's list is visible. */
+.doc-side { background: #fff; border-right: 1px solid var(--line); padding: 26px 16px 22px; display: flex; flex-direction: column; gap: 2px; overflow: auto; min-height: 0; }
+.doc-side > .doc-brand { padding: 0 12px; font-size: 16px; line-height: 1.5; white-space: normal; }
+.doc-side > .doc-date { padding: 0 12px; font-size: 12px; color: var(--ink-3); }
+.doc-side > .printbar { padding: 8px 12px 14px; }
+.doc-toc { display: flex; flex-direction: column; gap: 2px; }
+.doc-toc[hidden] { display: none; }
+.doc-toc .doc-toc-head { font-size: 12px; font-weight: 600; color: var(--accent); letter-spacing: .02em; padding: 0 12px 8px; }
+.doc-toc button { text-align: left; border: 0; background: none; padding: 9px 12px; border-radius: 9px; color: var(--ink-2); cursor: pointer; font-size: 14px; line-height: 1.5; }
+.doc-toc button:hover { background: var(--bg); }
+.doc-toc button[aria-current] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+
+/* Top bar for narrow screens. Hidden on wide screens. */
+.doc-mbar, .doc-scrim { display: none; }
+
+/* Body. One section per screen; the section explains its topic fully in prose. */
+.doc-main { overflow: auto; min-height: 0; display: flex; flex-direction: column; }
+.doc-page[hidden] { display: none; }
+.doc-sec { width: 100%; max-width: 1180px; margin: 0 auto; padding: 44px 52px 32px; }
+html.doc-js .doc-sec:not(.on) { display: none; }
+.doc-sec > * + * { margin-top: 18px; }
+.doc-pagehead { margin-bottom: 30px; }
+.doc-pagehead h1 { font-size: 34px; line-height: 1.25; letter-spacing: -.02em; }
+.doc-pagehead .lead { margin-top: 12px; font-size: 18px; color: var(--ink-2); }
+.doc-sec h2 { font-size: 26px; line-height: 1.35; letter-spacing: -.01em; }
+.doc-sec h2 .num { color: var(--ink-faint); font-size: 14px; margin-right: 12px; font-weight: 600; letter-spacing: 0; }
+.doc-sec h3 { font-size: 19px; line-height: 1.45; margin-top: 30px; }
+/* Japanese sentences start on new lines (render.py); the line height keeps wrapped lines and new sentences evenly spaced. */
+.doc-sec p, .doc-sec li { font-size: 16px; line-height: 1.75; color: var(--ink-2); }
+/* Text wraps at the same right edge as figures and boxes.
+   Balance headings and the lead, and avoid a last line with only one or two characters. */
+.doc-pagehead .lead, .doc-sec h2, .doc-sec h3 { text-wrap: balance; }
+.doc-sec p, .doc-sec li { text-wrap: pretty; }
+/* Japanese text wraps at phrase boundaries instead of inside words.
+   This applies only with `lang="ja"`; browsers without support wrap as usual.
+   A word longer than the column still breaks so nothing overflows sideways. */
+.doc-pagehead, .doc-sec, .doc-mbar, .doc-side { word-break: auto-phrase; overflow-wrap: break-word; }
+.doc-sec pre, .doc-sec code { word-break: normal; }
+.doc-sec ul, .doc-sec ol { padding-left: 1.4em; }
+.doc-step { width: 100%; max-width: 1180px; margin: 0 auto; padding: 8px 52px 32px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--ink-3); }
+.doc-step button { font-size: 13.5px; border: 1px solid var(--line); background: #fff; border-radius: 9px; padding: 8px 16px; cursor: pointer; color: var(--ink); }
+.doc-step button:disabled { opacity: .35; cursor: default; }
+
+/* Figures and captions */
+figure { margin: 24px 0 0; }
+figcaption { font-size: 13px; color: var(--ink-3); margin-top: 10px; }
+/* Line legend for figures drawn in `html` blocks. */
+.legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 12px 0 0; font-size: 12.5px; color: var(--ink-sub); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 22px; height: 0; border-top-width: 2px; border-top-style: solid; display: inline-block; }
+
+
+/* Reading shapes that are not figures. On narrow screens they reflow and never overflow sideways. */
+.keys { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.keys > div { background: var(--panel); border: 1px solid var(--line); border-top: 3px solid var(--accent); border-radius: 10px; padding: 12px 16px; min-width: 0; }
+.keys b { display: block; font-size: 20px; line-height: 1.35; letter-spacing: -.01em; }
+.keys span { display: block; margin-top: 4px; font-size: 13.5px; line-height: 1.65; color: var(--ink-3); }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.card { --t: var(--accent); --t-soft: var(--accent-soft); background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; min-width: 0; }
+.card[data-tone="good"], .note[data-tone="good"] { --t: var(--good); --t-soft: var(--good-soft); }
+.card[data-tone="warn"], .note[data-tone="warn"] { --t: var(--warn); --t-soft: var(--warn-soft); }
+.card[data-tone="info"] { --t: var(--accent); --t-soft: var(--accent-soft); }
+.card .chip { display: inline-block; font-size: 12px; font-weight: 700; padding: 1px 10px; border-radius: 999px; background: var(--t-soft); color: var(--t); }
+.card h4 { margin: 8px 0 4px; font-size: 17px; line-height: 1.45; }
+.doc-sec .card p, .doc-sec .card li { font-size: 14px; line-height: 1.7; }
+.card ul { margin: 0; }
+.note { --t: var(--accent); --t-soft: var(--accent-soft); background: var(--t-soft); border-left: 4px solid var(--t); border-radius: 4px 10px 10px 4px; padding: 13px 18px; }
+.note b { display: block; color: var(--t); font-size: 15px; }
+.doc-sec .note p { font-size: 15px; line-height: 1.7; }
+.compare { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 14px; align-items: stretch; }
+.compare .side { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; }
+.compare .side.after { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.compare .cap { font-size: 12.5px; font-weight: 700; color: var(--ink-3); }
+.compare .big { font-size: 34px; font-weight: 800; line-height: 1.25; letter-spacing: -.02em; margin: 4px 0; overflow-wrap: anywhere; }
+.compare .after .big { color: var(--accent); }
+.doc-sec .compare .say { font-size: 13.5px; line-height: 1.7; }
+.compare .arrow { align-self: center; color: var(--ink-faint); font-size: 22px; }
+/* Writer-made shapes (`html` blocks). The writer's CSS applies only inside the block. */
+.free { max-width: 100%; overflow-x: auto; }
+figure.free { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px 26px 16px; }
+
+/* Tables, code, and collapsible details */
+.tbl { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; line-height: 1.7; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+th { text-align: left; font-size: 12.5px; font-weight: 600; color: var(--ink-3); background: #fafafb; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+td { padding: 11px 16px; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--ink-2); }
+tr:last-child td { border-bottom: 0; }
+pre { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-size: 13px; }
+pre code { border: 0; padding: 0; background: none; }
+details.exp > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 12px; padding: 13px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--ink-sub); font-size: 13.5px; }
+details.exp > summary::-webkit-details-marker { display: none; }
+details.exp > summary::before { content: ""; flex: none; width: 0; height: 0; border-left: 6px solid currentColor; border-top: 4.5px solid transparent; border-bottom: 4.5px solid transparent; transition: transform .15s; }
+details.exp[open] > summary::before { transform: rotate(90deg); }
+.exp-body { padding: 4px 4px 0; }
+
+@media (max-width: 640px) {
+  .compare { grid-template-columns: minmax(0, 1fr); }
+  .compare .arrow { justify-self: center; transform: rotate(90deg); }
+}
+
+@media (max-width: 860px) {
+  body { grid-template-columns: minmax(0, 1fr); }
+  body:has(> .doc-top) { grid-template-rows: 50px auto minmax(0, 1fr); }
+  body:not(:has(> .doc-top)) { grid-template-rows: auto minmax(0, 1fr); }
+  .doc-top { gap: 12px; padding: 0 12px; }
+  .doc-top .doc-date { display: none; }
+  /* On narrow screens a long title gives way to the page tabs. */
+  .doc-top .doc-brand { font-size: 14px; max-width: 34vw; }
+  .doc-pages { flex: 0 1 auto; }
+  .doc-pages button { padding: 0 10px; font-size: 14px; }
+  .doc-side { position: fixed; top: 0; bottom: 0; left: 0; width: 82%; max-width: 320px; z-index: 30; border-right: 1px solid var(--line); transform: translateX(-105%); box-shadow: 8px 0 30px rgba(0, 0, 0, .12); }
+  html.doc-side-open .doc-side { transform: none; }
+  html.doc-side-open .doc-scrim { display: block; position: fixed; inset: 0; background: rgba(17, 17, 20, .35); z-index: 25; }
+  .doc-mbar { display: flex; align-items: center; gap: 12px; background: #fff; border-bottom: 1px solid var(--line); padding: 8px 14px; min-width: 0; }
+  .doc-mbar button { font-size: 14px; border: 1px solid var(--line); background: #fff; border-radius: 9px; padding: 5px 12px; cursor: pointer; white-space: nowrap; }
+  .doc-mbar .doc-here { flex: 1; min-width: 0; font-weight: 600; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .doc-mbar .doc-count { font-size: 12.5px; color: var(--ink-3); }
+  .doc-sec { padding: 26px 18px 20px; }
+  figure.free { padding: 16px; }
+  .doc-pagehead h1 { font-size: 26px; }
+  .doc-step { padding: 8px 18px 24px; }
+}

@@ -25,6 +25,7 @@
 |---|---|---|---|
 | [account-cleanup](plugins/account-cleanup) | パスワードを一切読まずに、使っていないWebアカウントを見つけます。あなたが承認したアカウントは、サブスクリプションを解約してからアカウントを削除します | Claude Codeでは`/account-cleanup:account-cleanup`を実行し、Codexでは`$`を入力して**Account Cleanup**を選びます。やりたいことを言葉で頼んでも始まります | [0.1.1](plugins/account-cleanup/CHANGELOG.md) |
 | [compare-report](plugins/compare-report) | 選ぶ時の候補を調べ、すべての主張に出典を、すべての点数に判定の根拠を付けた比較のレポートをHTMLとPDFで作ります | Claude Codeでは`/compare-report:compare-report`を実行し、Codexでは`$`を入力して**Compare Report**を選びます。比較を言葉で頼んでも始まります | [0.1.0](plugins/compare-report/CHANGELOG.md) |
+| [diagram-explainer](plugins/diagram-explainer) | すべての節に図を描いた説明資料を、JSONから組んで確かめ、1つのHTMLファイルにします | Claude Codeでは`/diagram-explainer:diagram-explainer`を実行し、Codexでは`$`を入力して**Diagram Explainer**を選びます。説明資料を言葉で頼んでも始まります | [0.1.0](plugins/diagram-explainer/CHANGELOG.md) |
 | [pc-tidy](plugins/pc-tidy) | Macの中で使われなくなった物を一覧にし、あなたが選んだ物だけを消してディスクの空きを増やします | Claude Codeでは`/pc-tidy:pc-tidy`を実行し、Codexでは`$`を入力して**PC Tidy**を選びます。呼び出した時だけ始まります | [0.1.1](plugins/pc-tidy/CHANGELOG.md) |
 | [root-cause](plugins/root-cause) | コードを変える前にバグの原因を証拠から突き止め、落ちるテストを先に書いて原因だけを直します | Claude Codeでは`/root-cause:root-cause`を実行し、Codexでは`$`を入力して**Root Cause**を選びます。バグを言葉で伝えても始まります | [0.1.0](plugins/root-cause/CHANGELOG.md) |
 

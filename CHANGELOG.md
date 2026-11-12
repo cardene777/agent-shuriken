@@ -7,6 +7,10 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ## [Unreleased]
 
+### Added
+
+- The diagram-explainer plugin, which writes an explainer with a figure drawn in every section as one HTML file
+
 ### Changed
 
 - The publishing page lists root-cause and compare-report, and `scripts/check.sh` fails when a plugin is missing from its tables

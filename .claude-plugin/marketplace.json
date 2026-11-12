@@ -16,6 +16,11 @@
       "description": "Research the candidates for a choice and write an HTML and PDF comparison report, with a source for every claim and a rationale for every score"
     },
     {
+      "name": "diagram-explainer",
+      "source": "./plugins/diagram-explainer",
+      "description": "Write an explainer as one HTML file with a figure drawn in every section, built from JSON and checked before you share it"
+    },
+    {
       "name": "pc-tidy",
       "source": "./plugins/pc-tidy",
       "description": "List what has gone unused on your Mac and delete only the items you pick to free up disk space"
