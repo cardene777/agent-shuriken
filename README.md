@@ -21,8 +21,8 @@ English · [日本語](README.ja.md)
 
 | Plugin | What it does | Latest |
 |---|---|---|
-| [account-cleanup](plugins/account-cleanup) | Finds web accounts you no longer use without reading any passwords, then cancels subscriptions and deletes the accounts you approve | [0.1.0](plugins/account-cleanup/CHANGELOG.md) |
-| [pc-tidy](plugins/pc-tidy) | Lists what has gone unused on your Mac and deletes only the items you pick, to free up disk space | [0.1.0](plugins/pc-tidy/CHANGELOG.md) |
+| [account-cleanup](plugins/account-cleanup) | Finds web accounts you no longer use without reading any passwords, then cancels subscriptions and deletes the accounts you approve | [0.1.1](plugins/account-cleanup/CHANGELOG.md) |
+| [pc-tidy](plugins/pc-tidy) | Lists what has gone unused on your Mac and deletes only the items you pick, to free up disk space | [0.1.1](plugins/pc-tidy/CHANGELOG.md) |
 
 Each plugin's README explains what it does, what it reads and sends, and what it needs.
 

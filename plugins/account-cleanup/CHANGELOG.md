@@ -5,6 +5,10 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-12
+
+- Add an icon, used as the icon and the logo in the plugin directories
+
 ## [0.1.0] - 2026-11-12
 
 First public release.
@@ -16,5 +20,6 @@ First public release.
 - Bundles the JustDeleteMe deletion directory
 - The pages offer an English / 日本語 switch
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/account-cleanup--v0.1.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/account-cleanup--v0.1.1...HEAD
+[0.1.1]: https://github.com/cardene777/agent-shuriken/releases/tag/account-cleanup--v0.1.1
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/account-cleanup--v0.1.0

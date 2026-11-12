@@ -21,8 +21,8 @@
 
 | プラグイン | できること | 最新バージョン |
 |---|---|---|
-| [account-cleanup](plugins/account-cleanup) | パスワードを一切読まずに、使っていないWebアカウントを見つけます。あなたが承認したアカウントは、サブスクリプションを解約してからアカウントを削除します | [0.1.0](plugins/account-cleanup/CHANGELOG.md) |
-| [pc-tidy](plugins/pc-tidy) | Macの中で使われなくなった物を一覧にし、あなたが選んだ物だけを消してディスクの空きを増やします | [0.1.0](plugins/pc-tidy/CHANGELOG.md) |
+| [account-cleanup](plugins/account-cleanup) | パスワードを一切読まずに、使っていないWebアカウントを見つけます。あなたが承認したアカウントは、サブスクリプションを解約してからアカウントを削除します | [0.1.1](plugins/account-cleanup/CHANGELOG.md) |
+| [pc-tidy](plugins/pc-tidy) | Macの中で使われなくなった物を一覧にし、あなたが選んだ物だけを消してディスクの空きを増やします | [0.1.1](plugins/pc-tidy/CHANGELOG.md) |
 
 各プラグインのREADMEに、何をするか、何を読んで何を送るか、何が必要かを書いています。
 
