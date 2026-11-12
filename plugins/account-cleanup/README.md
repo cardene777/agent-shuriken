@@ -25,12 +25,20 @@ Collect ──> Add reasons and descriptions ──> Mark OK or Keep ──> Can
 
 codex plugin marketplace add cardene777/agent-shuriken   # Codex
 codex plugin add account-cleanup@agent-shuriken
+
+copilot plugin marketplace add cardene777/agent-shuriken # GitHub Copilot CLI
+copilot plugin install account-cleanup@agent-shuriken
+
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/account-cleanup/skills/account-cleanup   # Gemini CLI
 ```
+
+In other agents that read `SKILL.md`, unzip the skill zip attached to each release into the agent's skills folder, as [Getting started](../../docs/getting-started.md#install-without-the-marketplace) shows.
 
 ## Use
 
 Ask your agent something like "I want to clean up accounts I don't use anymore."
 You can also call it directly: `/account-cleanup:account-cleanup` in Claude Code, or type `$` and pick **Account Cleanup** in Codex.
+In GitHub Copilot CLI, write `/account-cleanup` in your request, and in Gemini CLI, describe the task.
 
 1. Choose which sources to collect from, and where you live (EU, UK, California, Japan, or elsewhere), which picks the erasure request template
 2. The agent tags likely-unused accounts with reasons, adds a short description of each site, and opens the candidate sheet

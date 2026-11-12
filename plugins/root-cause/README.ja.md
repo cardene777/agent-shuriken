@@ -5,7 +5,7 @@
 [English](README.md) · 日本語
 
 バグを直すよう頼むと、エージェントは症状だけを消しがちです。nullの確かめ、やり直し、待ち時間を足したり、落ちるテストを外したりして、バグは別の形で戻ってきます。
-このプラグインは、代わりに従う1つの手順をClaude CodeとCodexに渡します。
+このプラグインは、代わりに従う1つの手順をエージェントに渡します。
 エージェントはバグを再現し、その時に通るコードを読み、仮説を1つずつ確かめて誤りかどうかを試してから、コードを変えます。
 直すのは原因だけで、先に落ちるテストを書き、証拠と一緒に報告します。
 
@@ -31,12 +31,21 @@
 
 codex plugin marketplace add cardene777/agent-shuriken   # Codex
 codex plugin add root-cause@agent-shuriken
+
+copilot plugin marketplace add cardene777/agent-shuriken # GitHub Copilot CLI
+copilot plugin install root-cause@agent-shuriken
+
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/root-cause/skills/root-cause   # Gemini CLI
 ```
+
+`SKILL.md`を読むほかのエージェントでは、各リリースに添付したスキルのzipを、そのエージェントのスキル用フォルダに展開します。
+手順は[はじめに](../../docs/getting-started.ja.md#マーケットプレイスを使わずにインストールする)にあります。
 
 ## 使い方
 
 このプラグインは、「このテストがたまにだけ落ちる。原因を調べて」のようにバグを伝えると始まります。
 呼び出して始めることもできます。Claude Codeでは`/root-cause:root-cause`の後に何が失敗するかを続けて実行し、Codexでは`$`を入力して**Root Cause**を選びます。
+GitHub Copilot CLIでは依頼の中に`/root-cause`と書き、Gemini CLIではやりたいことを伝えます。
 
 1. 何が失敗するか、本来どうなるはずか、どう動かしたかをエージェントに伝えます。足りない時はエージェントが尋ねます
 2. エージェントがバグを再現します。できればテストで再現し、その時に通るコードを読みます

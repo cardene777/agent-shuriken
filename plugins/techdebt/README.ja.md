@@ -24,12 +24,21 @@
 
 codex plugin marketplace add cardene777/agent-shuriken   # Codex
 codex plugin add techdebt@agent-shuriken
+
+copilot plugin marketplace add cardene777/agent-shuriken # GitHub Copilot CLI
+copilot plugin install techdebt@agent-shuriken
+
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/techdebt/skills/techdebt   # Gemini CLI
 ```
+
+`SKILL.md`を読むほかのエージェントでは、各リリースに添付したスキルのzipを、そのエージェントのスキル用フォルダに展開します。
+手順は[はじめに](../../docs/getting-started.ja.md#マーケットプレイスを使わずにインストールする)にあります。
 
 ## 使い方
 
 このプラグインは、「このリポジトリの技術的負債はどこにあって、何から直すべき？」のように技術的負債について尋ねると始まります。
 呼び出して始めることもできます。Claude Codeでは`/techdebt:techdebt`の後に必要ならフォルダを続けて実行し、Codexでは`$`を入力して**Tech Debt**を選びます。
+GitHub Copilot CLIでは依頼の中に`/techdebt`と書き、Gemini CLIではやりたいことを伝えます。
 
 1. エージェントがリポジトリか、その中のフォルダ(monorepoのパッケージ1つなど)を調べます
 2. エージェントがファイルに順位を付け、上位のファイルを読んで、何のファイルか、なぜ負担になるか、直す最初の一手を書きます

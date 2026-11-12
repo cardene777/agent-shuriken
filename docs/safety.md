@@ -22,7 +22,7 @@ A change that would break one of them is not accepted.
 
 - Complete two-factor prompts and CAPTCHAs
 - Pick the items, and approve each round of destructive steps
-- Approve sandboxed commands in Codex
+- Approve the commands an agent's sandbox blocks, as Codex can
 - Review the plugin's README before the first run
 
 ## Reporting a problem

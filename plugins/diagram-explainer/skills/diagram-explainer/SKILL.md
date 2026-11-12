@@ -7,7 +7,8 @@ description: Writes an explainer of a system, a piece of research, or a setup as
 
 Write an explainer as one HTML file that opens without a network connection and can be handed to anyone.
 Talk to the user in the language they write in, and write the document in that language: set `lang` to `ja` for Japanese and to `en` otherwise.
-Where it says to ask the user, use AskUserQuestion in Claude Code, and ask in the chat with numbered options in Codex.
+This skill works in Claude Code, Codex, and other agents that read `SKILL.md`, such as GitHub Copilot CLI and Gemini CLI.
+Where it says to ask the user, use AskUserQuestion in Claude Code, and ask in the chat with numbered options in other agents.
 
 All files are next to this `SKILL.md`.
 Below, the absolute path of that folder is written as `D`.

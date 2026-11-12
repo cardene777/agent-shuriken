@@ -9,7 +9,8 @@ Find the cause of a bug from evidence, then fix the cause instead of the symptom
 Talk to the user in the language they write in.
 Work on the bug the user described when this skill started.
 If they did not describe one, ask what fails, what they expected instead, and how they ran it.
-Where it says to ask the user, use AskUserQuestion in Claude Code, and ask in the chat in Codex.
+This skill works in Claude Code, Codex, and other agents that read `SKILL.md`, such as GitHub Copilot CLI and Gemini CLI.
+Where it says to ask the user, use AskUserQuestion in Claude Code, and ask in the chat in other agents.
 
 The pages in `references/` next to this `SKILL.md` go deeper into the steps.
 

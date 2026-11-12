@@ -2,24 +2,32 @@
 
 [English](getting-started.md) · 日本語
 
-このページでは、Claude CodeとCodexでプラグインをインストール、起動、アップデート、削除する方法を説明します。
-同じプラグインのフォルダがどちらでも動くので、片方のエージェントにも両方にもインストールできます。
+このページでは、Claude Code、Codex、GitHub Copilot CLI、Gemini CLIでプラグインをインストール、起動、アップデート、削除する方法と、`SKILL.md`を読むほかのエージェントで使う方法を説明します。
+同じプラグインのフォルダがどれでも動くので、1つのエージェントにも複数のエージェントにもインストールできます。
 
 ## インストール
 
 このリポジトリを、マーケットプレイスとして一度だけ追加します。
 その後は、[プラグインの表](../README.ja.md#プラグイン)にあるプラグインを名前でインストールできます。
 
-| | Claude Code | Codex |
-|---|---|---|
-| マーケットプレイスを追加する | `/plugin marketplace add cardene777/agent-shuriken` | `codex plugin marketplace add cardene777/agent-shuriken` |
-| プラグインをインストールする | `/plugin install pc-tidy@agent-shuriken` | `codex plugin add pc-tidy@agent-shuriken` |
-| インストール済みの物を見る | `/plugin` | `codex plugin list` |
+| | Claude Code | Codex | GitHub Copilot CLI |
+|---|---|---|---|
+| マーケットプレイスを追加する | `/plugin marketplace add cardene777/agent-shuriken` | `codex plugin marketplace add cardene777/agent-shuriken` | `copilot plugin marketplace add cardene777/agent-shuriken` |
+| プラグインをインストールする | `/plugin install pc-tidy@agent-shuriken` | `codex plugin add pc-tidy@agent-shuriken` | `copilot plugin install pc-tidy@agent-shuriken` |
+| インストール済みの物を見る | `/plugin` | `codex plugin list` | `copilot plugin list` |
 
 Claude Codeでは、同じ操作をターミナルから`claude plugin marketplace add ...`や`claude plugin install ...`として実行することもできます。
+GitHub Copilot CLIはClaude Codeと同じマーケットプレイスのファイルを読むので、追加の準備は要りません。
 インストールした後は、エージェントがプラグインを読み込めるよう、新しいセッションを始めてください。
 
-インストールでは、そのプラグインのフォルダだけがエージェントのプラグイン用キャッシュにコピーされます。
+Gemini CLIにはスキルのマーケットプレイスが無いので、各プラグインのスキルのフォルダをこのリポジトリから直接インストールします。
+
+```
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/pc-tidy/skills/pc-tidy
+gemini skills list
+```
+
+インストールでは、そのプラグインのフォルダだけ、Gemini CLIではそのスキルのフォルダだけがコピーされます。
 インストールの時点では何も実行されません。
 
 ## プラグインを起動する
@@ -27,23 +35,26 @@ Claude Codeでは、同じ操作をターミナルから`claude plugin marketpla
 起動の仕方は、各プラグインのREADMEに書いてあります。
 やりたいことを普通の言葉で伝えると起動するプラグインと、呼び出した時だけ起動するプラグインがあります。
 
-| | Claude Code | Codex |
-|---|---|---|
-| プラグインのスキルを呼び出す | `/<plugin>:<skill>`の形で呼びます。例えば`/pc-tidy:pc-tidy`です | `$`を入力してスキルを選びます。例えば**PC Tidy**です |
-| やりたいことを伝える | 例えば「Macのディスクの空きを増やしたい」のように、やりたいことを書きます | Claude Codeと同じです |
+| | Claude Code | Codex | GitHub Copilot CLI | Gemini CLI |
+|---|---|---|---|---|
+| プラグインのスキルを呼び出す | `/<plugin>:<skill>`の形で呼びます。例えば`/pc-tidy:pc-tidy`です | `$`を入力してスキルを選びます。例えば**PC Tidy**です | 依頼の中でスキルの名前にスラッシュを付けて書きます。例えば「/pc-tidyのスキルを使って」です | やりたいことを伝えます。Gemini CLIはスキルを読み込む前に承認を求めます |
+| やりたいことを伝える | 例えば「Macのディスクの空きを増やしたい」のように、やりたいことを書きます | Claude Codeと同じです | Claude Codeと同じです | Claude Codeと同じです |
 
 エージェントは、あなたが書いた言語で返事をします。
 プラグインが開くページは最初は英語で表示され、上部のEnglish / 日本語の切り替えで日本語にできます。
 
-Codexでは、プラグインがプロジェクトのフォルダの外を読み書きし、ネットワークを使うプラグインもあります。
-Codexのサンドボックスでコマンドが止まった時は、そのコマンドを承認すると、プラグインが続きを実行します。
+プラグインはプロジェクトのフォルダの外を読み書きし、ネットワークを使うプラグインもあります。
+Codexのように、エージェントのサンドボックスでコマンドが止まった時は、そのコマンドを承認すると、プラグインが続きを実行します。
+
+Claude CodeとCodexでは呼び出した時だけ起動するプラグインも、ほかのエージェントでは、やりたいことを伝えただけで起動することがあります。起動を止める設定を読まないエージェントがあるためです。
+その場合も、READMEに書いた手順で項目を選んで承認するまで、プラグインは何も変えません。
 
 ## アップデート
 
-| | Claude Code | Codex |
-|---|---|---|
-| 最新のマーケットプレイスを取得する | `claude plugin marketplace update agent-shuriken` | `codex plugin marketplace upgrade agent-shuriken` |
-| プラグインをアップデートする | `claude plugin update pc-tidy@agent-shuriken` | `codex plugin add pc-tidy@agent-shuriken` |
+| | Claude Code | Codex | GitHub Copilot CLI | Gemini CLI |
+|---|---|---|---|---|
+| 最新のマーケットプレイスを取得する | `claude plugin marketplace update agent-shuriken` | `codex plugin marketplace upgrade agent-shuriken` | `copilot plugin marketplace update agent-shuriken` | 要りません |
+| プラグインをアップデートする | `claude plugin update pc-tidy@agent-shuriken` | `codex plugin add pc-tidy@agent-shuriken` | `copilot plugin update pc-tidy` | インストールのコマンドをもう一度実行します。入っている写しが置き換わります |
 
 アップデートした後は、エージェントを起動し直してください。
 何が変わったかは、各プラグインの`CHANGELOG.md`に書いてあります。
@@ -53,32 +64,36 @@ Codexのサンドボックスでコマンドが止まった時は、そのコマ
 マーケットプレイスを、最新のコミットではなくタグを指定して追加します。
 `pc-tidy--v0.1.0`のようなプラグインのタグでも、`v0.2.0`のようなリポジトリのタグでも指定でき、マーケットプレイスの全プラグインがそのタグの時点の物になります。
 
-| | Claude Code | Codex |
-|---|---|---|
-| タグを指定してマーケットプレイスを追加する | `/plugin marketplace add cardene777/agent-shuriken#v0.2.0` | `codex plugin marketplace add cardene777/agent-shuriken --ref v0.2.0` |
+| | Claude Code | Codex | GitHub Copilot CLI |
+|---|---|---|---|
+| タグを指定してマーケットプレイスを追加する | `/plugin marketplace add cardene777/agent-shuriken#v0.2.0` | `codex plugin marketplace add cardene777/agent-shuriken --ref v0.2.0` | `copilot plugin marketplace add cardene777/agent-shuriken#v0.2.0` |
 
+Gemini CLIでは、次の節のとおりリリースのスキルのzipをインストールします。
 プラグインのタグとリポジトリのタグの違いは、[リリースの手順](releasing.ja.md)で説明しています。
 
 ## マーケットプレイスを使わずにインストールする
 
 プラグインのリリースには、それぞれスキルのフォルダをまとめたzipが添付されています。
 これを、エージェントのスキル用フォルダに展開します。
+GitHub Copilot CLI、Gemini CLI、Agent Skillsの形式に従うほかのエージェントは`~/.agents/skills/`を読みます。
 
 ```
 unzip pc-tidy-0.1.0-skill.zip -d ~/.claude/skills/   # Claude Code
 unzip pc-tidy-0.1.0-skill.zip -d ~/.codex/skills/    # Codex
+unzip pc-tidy-0.1.0-skill.zip -d ~/.agents/skills/   # GitHub Copilot CLI, Gemini CLI, and other agents
 ```
 
+別のフォルダを読むエージェントでは、そのフォルダに展開します。フォルダの名前は、そのエージェントの資料に書いてあります。
 この方法で入れたスキルにはプラグイン名の接頭辞が付かないので、Claude Codeでは`/pc-tidy`で呼び出します。
 自動ではアップデートされません。
 アップデートするには、新しいzipをダウンロードしてください。
 
 ## 削除する
 
-| | Claude Code | Codex |
-|---|---|---|
-| プラグインを削除する | `claude plugin uninstall pc-tidy@agent-shuriken` | `codex plugin remove pc-tidy@agent-shuriken` |
-| マーケットプレイスを削除する | `claude plugin marketplace remove agent-shuriken` | `codex plugin marketplace remove agent-shuriken` |
+| | Claude Code | Codex | GitHub Copilot CLI | Gemini CLI |
+|---|---|---|---|---|
+| プラグインを削除する | `claude plugin uninstall pc-tidy@agent-shuriken` | `codex plugin remove pc-tidy@agent-shuriken` | `copilot plugin uninstall pc-tidy` | `gemini skills uninstall pc-tidy` |
+| マーケットプレイスを削除する | `claude plugin marketplace remove agent-shuriken` | `codex plugin marketplace remove agent-shuriken` | `copilot plugin marketplace remove agent-shuriken` | 要りません |
 
 プラグインを削除しても、プラグインが保存したデータは消えません。
 データの置き場所は、各プラグインのREADMEに書いてあります。

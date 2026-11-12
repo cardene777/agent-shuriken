@@ -5,12 +5,13 @@ Claude Code reads it through `CLAUDE.md`; Codex and other agents read it directl
 
 ## What this repository is
 
-A marketplace of agent plugins that install in both Claude Code and Codex.
-Each plugin is a self-contained folder under `plugins/`, listed in `.claude-plugin/marketplace.json`, which both agents read.
+A marketplace of agent plugins that install in Claude Code, Codex, and GitHub Copilot CLI.
+Each skill follows the Agent Skills format, so Gemini CLI and other agents that read `SKILL.md` can use it too.
+Each plugin is a self-contained folder under `plugins/`, listed in `.claude-plugin/marketplace.json`, which Claude Code, Codex, and GitHub Copilot CLI read.
 
 ```
-.claude-plugin/marketplace.json           Marketplace read by Claude Code and Codex (one entry per plugin)
-plugins/<name>/.claude-plugin/plugin.json Plugin manifest for Claude Code
+.claude-plugin/marketplace.json           Marketplace read by Claude Code, Codex, and GitHub Copilot CLI (one entry per plugin)
+plugins/<name>/.claude-plugin/plugin.json Plugin manifest for Claude Code and GitHub Copilot CLI
 plugins/<name>/.codex-plugin/plugin.json  Plugin manifest for Codex, with the listing text for OpenAI's directory
 plugins/<name>/README.md, README.ja.md    What the plugin does and what it reads, runs, and sends
 plugins/<name>/CHANGELOG.md               The plugin's releases
@@ -32,7 +33,7 @@ CHANGELOG.md                              The repository's releases
 - Keep the manifests in agreement: `name`, `version`, `description`, `author`, and `license` are the same in both `plugin.json` files, and `name` and `description` match the marketplace entry. `scripts/check.sh` enforces this.
 - Give each plugin a square icon of at least 48 px in `assets/icon.svg`, drawn on the same tile as the other plugins, and point `interface.composerIcon` and `interface.logo` in `.codex-plugin/plugin.json` at it.
 - Give each skill `agents/openai.yaml`. Set `policy.allow_implicit_invocation: false` exactly when `SKILL.md` has `disable-model-invocation: true`.
-- Write `SKILL.md` for both agents. Say "shell command" instead of naming one agent's tool, and when a step relies on a tool only one agent has, such as AskUserQuestion in Claude Code, say what to do in the other.
+- Write `SKILL.md` for every agent that reads it, not only Claude Code and Codex. Say "shell command" instead of naming one agent's tool, and when a step relies on a tool only one agent has, such as AskUserQuestion in Claude Code, say what to do in other agents. Outside Claude Code, frontmatter other than `name` and `description` may be ignored, so a skill with `disable-model-invocation: true` also says in its body to ask before starting when the user did not call it by name.
 - Describe in the plugin's README and `docs/how-it-works.md` everything the plugin reads, runs, connects to, and keeps. The directories' security reviews compare the README with the code.
 - Keep each non-image file under 256 KiB, the plugin under 512 files, and binaries limited to images and fonts. Do not add hooks.
 - Keep runtime dependencies small: Bash, `jq`, the Python 3 standard library, and Node.js only where a browser is driven. Do not ask users to install global packages.

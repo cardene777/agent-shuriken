@@ -7,7 +7,7 @@ English · [日本語](README.ja.md)
 ![A section of an explainer on how a TLS 1.3 connection is set up, with the contents list on the left and the handshake drawn as boxes and arrows, and the same section on a phone](assets/screenshot.png)
 
 Asked to explain a system, an agent tends to write one long Markdown file, leave whole sections without a figure, call the same thing by different names in the text and in the figures, and produce pages that pull fonts and scripts from the network.
-This plugin gives Claude Code and Codex one way to do it instead.
+This plugin gives your agent one way to do it instead.
 You agree on the outline first, with a figure planned for every section.
 The agent keeps the content as JSON, builds the document from it, draws every figure inside the page, and checks the result before you see it.
 
@@ -24,12 +24,20 @@ Research the topic ──> Agree on the outline ──> Write the content and bu
 
 codex plugin marketplace add cardene777/agent-shuriken   # Codex
 codex plugin add diagram-explainer@agent-shuriken
+
+copilot plugin marketplace add cardene777/agent-shuriken # GitHub Copilot CLI
+copilot plugin install diagram-explainer@agent-shuriken
+
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/diagram-explainer/skills/diagram-explainer   # Gemini CLI
 ```
+
+In other agents that read `SKILL.md`, unzip the skill zip attached to each release into the agent's skills folder, as [Getting started](../../docs/getting-started.md#install-without-the-marketplace) shows.
 
 ## Use
 
 The plugin starts when you ask for an explainer, for example "write an explainer with figures on how our deployment pipeline works".
 You can also call it: run `/diagram-explainer:diagram-explainer` in Claude Code, optionally followed by the topic, or type `$` and pick **Diagram Explainer** in Codex.
+In GitHub Copilot CLI, write `/diagram-explainer` in your request, and in Gemini CLI, describe the task.
 
 1. For a standard, an API, or a protocol, the agent reads the official specification first and records the version it read
 2. The agent shows the outline: the pages, the sections in order, and the figure planned for each section. Change it until it fits

@@ -24,12 +24,20 @@ Measure the code and its history ──> Rank the files ──> Explain the top 
 
 codex plugin marketplace add cardene777/agent-shuriken   # Codex
 codex plugin add techdebt@agent-shuriken
+
+copilot plugin marketplace add cardene777/agent-shuriken # GitHub Copilot CLI
+copilot plugin install techdebt@agent-shuriken
+
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/techdebt/skills/techdebt   # Gemini CLI
 ```
+
+In other agents that read `SKILL.md`, unzip the skill zip attached to each release into the agent's skills folder, as [Getting started](../../docs/getting-started.md#install-without-the-marketplace) shows.
 
 ## Use
 
 The plugin starts when you ask about technical debt, for example "where is the tech debt in this repo, and what should we refactor first?".
 You can also call it: run `/techdebt:techdebt` in Claude Code, optionally followed by a folder, or type `$` and pick **Tech Debt** in Codex.
+In GitHub Copilot CLI, write `/techdebt` in your request, and in Gemini CLI, describe the task.
 
 1. The agent scans the repository, or a folder inside it such as one package of a monorepo
 2. The agent ranks the files and reads the top ones to write what each is, why it costs the team, and the first step to fix it

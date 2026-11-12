@@ -22,12 +22,20 @@ Check the form ──> Review content and form ──> Fix or reject each findin
 
 codex plugin marketplace add cardene777/agent-shuriken   # Codex
 codex plugin add doc-review@agent-shuriken
+
+copilot plugin marketplace add cardene777/agent-shuriken # GitHub Copilot CLI
+copilot plugin install doc-review@agent-shuriken
+
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/doc-review/skills/doc-review   # Gemini CLI
 ```
+
+In other agents that read `SKILL.md`, unzip the skill zip attached to each release into the agent's skills folder, as [Getting started](../../docs/getting-started.md#install-without-the-marketplace) shows.
 
 ## Use
 
 The plugin starts when you ask for a review of a document, for example "review docs/SPEC.md before I publish it".
 You can also call it: run `/doc-review:doc-review` in Claude Code, optionally followed by the files, or type `$` and pick **Doc Review** in Codex.
+In GitHub Copilot CLI, write `/doc-review` in your request, and in Gemini CLI, describe the task.
 Without a file, it takes the first of `docs/SPEC.md`, `docs/DESIGN.md`, and `docs/ARCHITECTURE.md` that exists, or else the Markdown files under `docs/` changed most recently, and asks when several documents could be meant.
 
 1. A script checks the form and guesses the kind of each document: specification, design, architecture, decision record, README, or other
@@ -35,8 +43,8 @@ Without a file, it takes the first of `docs/SPEC.md`, `docs/DESIGN.md`, and `doc
 3. The agent checks each finding, fixes the section it names, or rejects it with a reason
 4. The script checks that every finding has a decision and records them, and the agent tells you what changed and what was not fixed
 
-In Codex, when sub-agents are not available, the agent reviews the two aspects itself one after the other, reading the files again from the start for each, and says so in its report.
-The review folder is outside the project, so Codex asks you to approve the commands that write it.
+In Codex and other agents, when sub-agents are not available, the agent reviews the two aspects itself one after the other, reading the files again from the start for each, and says so in its report.
+The review folder is outside the project, so an agent with a sandbox, such as Codex, asks you to approve the commands that write it.
 
 The form check prints a list like this.
 

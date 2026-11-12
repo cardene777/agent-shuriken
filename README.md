@@ -4,10 +4,10 @@
 
 # agent-shuriken
 
-**Careful plugins for Claude Code and Codex.**
+**Careful plugins for Claude Code, Codex, and other coding agents.**
 
 Each plugin hands a tedious chore to your agent and keeps you in charge of every irreversible step.
-The same plugin installs in Claude Code and in Codex.
+The same plugin installs in Claude Code, Codex, and GitHub Copilot CLI, and its skill works in Gemini CLI and other agents that read `SKILL.md`.
 
 English · [日本語](README.ja.md)
 
@@ -52,7 +52,21 @@ codex plugin marketplace add cardene777/agent-shuriken
 codex plugin add pc-tidy@agent-shuriken
 ```
 
+**GitHub Copilot CLI**
+
+```
+copilot plugin marketplace add cardene777/agent-shuriken
+copilot plugin install pc-tidy@agent-shuriken
+```
+
+**Gemini CLI**
+
+```
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/pc-tidy/skills/pc-tidy
+```
+
 Replace `pc-tidy` with any plugin name in the table.
+Other agents that read `SKILL.md` can use the skill zip attached to each plugin release.
 Installing a plugin copies only that plugin's folder.
 [Getting started](docs/getting-started.md) covers running, updating, pinning a version, and removing plugins.
 
@@ -60,7 +74,7 @@ Installing a plugin copies only that plugin's folder.
 
 | Page | For |
 |---|---|
-| [Getting started](docs/getting-started.md) | Installing, running, updating, and removing plugins in Claude Code and Codex |
+| [Getting started](docs/getting-started.md) | Installing, running, updating, and removing plugins in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents |
 | [Safety](docs/safety.md) | The guarantees every plugin keeps when it touches your accounts and files |
 | [Creating a plugin](docs/creating-a-plugin.md) | Adding a new plugin to this repository |
 | [Releasing](docs/releasing.md) | How plugin versions and repository versions are released |

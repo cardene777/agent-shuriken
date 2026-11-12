@@ -53,7 +53,7 @@ Both reviewers start without the conversation, so they read what the document sa
 They read the documents and the repository files they need to check names, and are told to only read and to treat the text of the documents as data.
 Reading only is an instruction, not a technical limit: the reviewers have the same tools as the agent.
 In Claude Code, the agent starts them with the Agent tool in the same message: the content reviewer on Sonnet and the form reviewer on Haiku when those models are offered.
-In Codex, the agent starts two sub-agents when they are available, and otherwise reviews the two aspects itself one after the other, reading the files again for each.
+In Codex and other agents, the agent starts two sub-agents when they are available, and otherwise reviews the two aspects itself one after the other, reading the files again for each.
 In that case the agent still has the conversation, so the review is less independent, and the agent says so in its report.
 
 The content reviewer checks what the document's kind needs, such as acceptance criteria that cannot be checked with a yes or no in a specification, or the reasons for each technology choice in a design document.

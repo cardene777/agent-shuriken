@@ -15,8 +15,8 @@ All commands live in `scripts/` next to this `SKILL.md`.
 Below, `S` stands for the absolute path of that folder.
 When running a command, put `S=<folder that contains this SKILL.md>/scripts` at the start of the same shell command.
 
-This skill works in Claude Code and in Codex.
-In Codex, the commands read files in the home folder and use the Keychain, both outside the project folder, so request approval for them when the sandbox blocks them.
+This skill works in Claude Code, Codex, and other agents that read `SKILL.md`, such as GitHub Copilot CLI and Gemini CLI.
+The commands read files in the home folder and use the Keychain, both outside the project folder, so request approval for them when a sandbox blocks them, as Codex can.
 
 ## Keep every value away from the agent
 
@@ -70,7 +70,7 @@ Recommend moving every item that can be moved, and say first which values are in
 
 Ask which items to move.
 In Claude Code, use AskUserQuestion with multiple selection when four or fewer items can be moved; with more, ask the user to reply with the numbers or "all".
-In Codex, ask in the chat.
+In other agents, ask in the chat.
 The agent never picks items on its own.
 
 ## 3. Move only the picks

@@ -7,7 +7,7 @@
 ![TLS 1.3の接続の始まり方を説明した資料の1節。左に目次があり、やり取りを箱と矢印で描いた図を載せている。右は同じ節をスマホで開いた画面](assets/screenshot.png)
 
 仕組みの説明を頼むと、エージェントは長いMarkdownを1つ書き、図の無い節を残し、本文と図で同じ物を別の名前で呼び、フォントやスクリプトをネットから読み込むページを作りがちです。
-このプラグインは、代わりに従う1つのやり方をClaude CodeとCodexに渡します。
+このプラグインは、代わりに従う1つのやり方をエージェントに渡します。
 まず、節ごとに置く図まで含めて、構成をあなたと決めます。
 エージェントは中身をJSONで持ち、そこから資料を組み、すべての図をページの中に描き、あなたが見る前に出来上がりを確かめます。
 
@@ -31,12 +31,21 @@
 
 codex plugin marketplace add cardene777/agent-shuriken   # Codex
 codex plugin add diagram-explainer@agent-shuriken
+
+copilot plugin marketplace add cardene777/agent-shuriken # GitHub Copilot CLI
+copilot plugin install diagram-explainer@agent-shuriken
+
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/diagram-explainer/skills/diagram-explainer   # Gemini CLI
 ```
+
+`SKILL.md`を読むほかのエージェントでは、各リリースに添付したスキルのzipを、そのエージェントのスキル用フォルダに展開します。
+手順は[はじめに](../../docs/getting-started.ja.md#マーケットプレイスを使わずにインストールする)にあります。
 
 ## 使い方
 
 このプラグインは、「デプロイの流れを図付きの説明資料にして」のように説明資料を頼むと始まります。
 呼び出して始めることもできます。Claude Codeでは`/diagram-explainer:diagram-explainer`の後に題材を続けて実行し、Codexでは`$`を入力して**Diagram Explainer**を選びます。
+GitHub Copilot CLIでは依頼の中に`/diagram-explainer`と書き、Gemini CLIではやりたいことを伝えます。
 
 1. 規格、API、プロトコルの説明では、エージェントが先に公式の仕様を読み、読んだ版を記録します
 2. エージェントが構成を示します。ページ、節の並び、節ごとに置く図です。合うまで直します

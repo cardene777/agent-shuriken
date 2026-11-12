@@ -5,7 +5,7 @@ Have your agent find the cause of a bug from evidence before it changes any code
 English · [日本語](README.ja.md)
 
 Asked to fix a bug, an agent often patches the symptom: it adds a null check, a retry, or a sleep, or skips the failing test, and the bug comes back in another form.
-This plugin gives Claude Code and Codex one procedure to follow instead.
+This plugin gives your agent one procedure to follow instead.
 The agent reproduces the bug, reads the code it runs through, and tests each hypothesis and tries to prove it wrong before changing anything.
 It fixes only the cause, starting with a test that fails, and reports the evidence.
 
@@ -31,12 +31,20 @@ Report the cause, the evidence, and the fix
 
 codex plugin marketplace add cardene777/agent-shuriken   # Codex
 codex plugin add root-cause@agent-shuriken
+
+copilot plugin marketplace add cardene777/agent-shuriken # GitHub Copilot CLI
+copilot plugin install root-cause@agent-shuriken
+
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/root-cause/skills/root-cause   # Gemini CLI
 ```
+
+In other agents that read `SKILL.md`, unzip the skill zip attached to each release into the agent's skills folder, as [Getting started](../../docs/getting-started.md#install-without-the-marketplace) shows.
 
 ## Use
 
 The plugin starts when you describe a bug, for example "this test fails only sometimes, find out why".
 You can also call it: run `/root-cause:root-cause` in Claude Code, optionally followed by what fails, or type `$` and pick **Root Cause** in Codex.
+In GitHub Copilot CLI, write `/root-cause` in your request, and in Gemini CLI, describe the task.
 
 1. Tell the agent what fails, what you expected, and how you ran it. The agent asks when something is missing
 2. The agent reproduces the bug, preferably with a test, and reads the code the reproduction runs through

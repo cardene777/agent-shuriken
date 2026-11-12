@@ -23,12 +23,20 @@ Scan the startup files ──> Pick what to move ──> Store in the Keychain a
 
 codex plugin marketplace add cardene777/agent-shuriken   # Codex
 codex plugin add secure-dotfile@agent-shuriken
+
+copilot plugin marketplace add cardene777/agent-shuriken # GitHub Copilot CLI
+copilot plugin install secure-dotfile@agent-shuriken
+
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/secure-dotfile/skills/secure-dotfile   # Gemini CLI
 ```
+
+In other agents that read `SKILL.md`, unzip the skill zip attached to each release into the agent's skills folder, as [Getting started](../../docs/getting-started.md#install-without-the-marketplace) shows.
 
 ## Use
 
 The plugin starts when you mention a secret in your shell configuration, for example "I have API keys in my .zshrc, move them somewhere safer".
 You can also call it: run `/secure-dotfile:secure-dotfile` in Claude Code, or type `$` and pick **Secure Dotfile** in Codex.
+In GitHub Copilot CLI, write `/secure-dotfile` in your request, and in Gemini CLI, describe the task.
 
 1. The agent scans your shell startup files and lists each secret by name, location, kind, and length, and whether its value is in the file's git history
 2. You pick the secrets to move
@@ -51,7 +59,7 @@ Found 2 secrets written into them.
    becomes  export OPENAI_API_KEY="$(security find-generic-password -a "$USER" -s OPENAI_API_KEY -w 2>/dev/null)"
 ```
 
-In Codex, approve the commands when the sandbox asks, because they read files in your home folder and use the Keychain.
+When an agent's sandbox asks, as Codex can, approve the commands, because they read files in your home folder and use the Keychain.
 
 ## Requirements
 

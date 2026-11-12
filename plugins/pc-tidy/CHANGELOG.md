@@ -5,6 +5,9 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- Works in GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`, and the README shows how to install it there
+- Asks before starting when an agent that ignores `disable-model-invocation` loads it without the user calling it by name
+
 ## [0.1.1] - 2026-11-12
 
 - Add an icon, used as the icon and the logo in the plugin directories

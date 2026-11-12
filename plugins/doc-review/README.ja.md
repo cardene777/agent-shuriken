@@ -22,12 +22,21 @@
 
 codex plugin marketplace add cardene777/agent-shuriken   # Codex
 codex plugin add doc-review@agent-shuriken
+
+copilot plugin marketplace add cardene777/agent-shuriken # GitHub Copilot CLI
+copilot plugin install doc-review@agent-shuriken
+
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/doc-review/skills/doc-review   # Gemini CLI
 ```
+
+`SKILL.md`を読むほかのエージェントでは、各リリースに添付したスキルのzipを、そのエージェントのスキル用フォルダに展開します。
+手順は[はじめに](../../docs/getting-started.ja.md#マーケットプレイスを使わずにインストールする)にあります。
 
 ## 使い方
 
 このプラグインは、「公開する前にdocs/SPEC.mdを見直して」のように文書の見直しを頼むと始まります。
 呼び出して始めることもできます。Claude Codeでは`/doc-review:doc-review`の後に必要ならファイルを続けて実行し、Codexでは`$`を入力して**Doc Review**を選びます。
+GitHub Copilot CLIでは依頼の中に`/doc-review`と書き、Gemini CLIではやりたいことを伝えます。
 ファイルを指定しない時は、`docs/SPEC.md`、`docs/DESIGN.md`、`docs/ARCHITECTURE.md`のうち最初にある物を使い、どれも無ければ`docs/`の下で最近変わったMarkdownのファイルを使います。どの文書か複数考えられる時は尋ねます。
 
 1. スクリプトが形を確かめ、各文書の種類を推し量ります。仕様書、設計書、アーキテクチャ、決定の記録、README、その他のどれかです
@@ -35,8 +44,8 @@ codex plugin add doc-review@agent-shuriken
 3. エージェントが指摘を1つずつ確かめ、指摘された節を直すか、理由を添えて退けます
 4. スクリプトがすべての指摘に判断があることを確かめて記録し、エージェントが何を変えたか、何を直さなかったかを伝えます
 
-Codexでサブエージェントが使えない時は、エージェント自身が2つの観点を順に見直し、観点ごとにファイルを最初から読み直し、そのことを報告で伝えます。
-見直しのフォルダはプロジェクトの外にあるので、Codexはそこへ書く命令の承認をあなたに求めます。
+Codexやほかのエージェントでサブエージェントが使えない時は、エージェント自身が2つの観点を順に見直し、観点ごとにファイルを最初から読み直し、そのことを報告で伝えます。
+見直しのフォルダはプロジェクトの外にあるので、Codexのようにサンドボックスを持つエージェントは、そこへ書く命令の承認をあなたに求めます。
 
 形を確かめると、次のような一覧が出ます。
 
