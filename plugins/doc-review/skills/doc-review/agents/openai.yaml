@@ -1,7 +1,0 @@
-interface:
-  display_name: "Doc Review"
-  short_description: "Review a document once with two fresh reviewers, then fix it"
-  default_prompt: "Use $doc-review to review docs/SPEC.md before I publish it."
-
-policy:
-  allow_implicit_invocation: true
