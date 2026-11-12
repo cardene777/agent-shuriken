@@ -1,0 +1,20 @@
+{
+  "name": "session-handoff",
+  "displayName": "Session Handoff",
+  "version": "0.1.0",
+  "description": "Hand an agent session over to a new one: a short message to paste, and a saved state of the options already rejected, the current phase, delegated work, and things not to do, with anything that looks like a secret refused",
+  "author": {
+    "name": "cardene777",
+    "url": "https://github.com/cardene777"
+  },
+  "homepage": "https://github.com/cardene777/agent-shuriken/tree/main/plugins/session-handoff",
+  "repository": "https://github.com/cardene777/agent-shuriken",
+  "license": "MIT",
+  "keywords": [
+    "session",
+    "handoff",
+    "context",
+    "agents",
+    "state"
+  ]
+}

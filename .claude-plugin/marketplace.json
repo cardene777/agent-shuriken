@@ -41,6 +41,11 @@
       "description": "Find API keys and tokens written into your shell startup files and move the ones you pick into the macOS Keychain, without the agent seeing any value"
     },
     {
+      "name": "session-handoff",
+      "source": "./plugins/session-handoff",
+      "description": "Hand an agent session over to a new one: a short message to paste, and a saved state of the options already rejected, the current phase, delegated work, and things not to do, with anything that looks like a secret refused"
+    },
+    {
       "name": "techdebt",
       "source": "./plugins/techdebt",
       "description": "Rank the files most worth fixing by combining how often they change with their size, old TODO comments, missing tests, long functions, and duplication, without downloading anything"

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Session Handoff"
+  short_description: "Hand a session over to a new one: a message to paste, and a saved state of rejected options, the current phase, delegated work, and things not to do"
+  default_prompt: "Use $session-handoff to hand this session over to a new one."
+
+policy:
+  allow_implicit_invocation: false
