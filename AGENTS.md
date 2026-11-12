@@ -73,7 +73,7 @@ Do not run steps that delete or change real data while testing.
 
 ## Commits and pull requests
 
-- Write the subject as `<emoji> <type>(<scope>): <summary>` in English, for example `✨ feat(pc-tidy): detect leftover data from removed apps`. The scope is the plugin name, or `repo` for repository-wide changes.
+- Write the subject as `<emoji> <type>(<scope>): <summary>` in English, for example `✨ feat(techdebt): count duplicated blocks in Go files`. The scope is the plugin name, or `repo` for repository-wide changes.
 
   | Emoji | Type |
   |---|---|

@@ -16,7 +16,6 @@ JA_ALLOWED=(
   plugins/account-cleanup/skills/account-cleanup/scripts/browser.mjs
   plugins/account-cleanup/skills/account-cleanup/scripts/connections-guide.sh
   plugins/account-cleanup/skills/account-cleanup/scripts/subscriptions-guide.sh
-  plugins/pc-tidy/skills/pc-tidy/scripts/tidy.py
   plugins/diagram-explainer/skills/diagram-explainer/assets/charts.js
   plugins/diagram-explainer/skills/diagram-explainer/assets/doc.js
   plugins/diagram-explainer/skills/diagram-explainer/assets/print.js
@@ -30,7 +29,6 @@ JA_ALLOWED=(
   plugins/diagram-explainer/skills/diagram-explainer/examples/content.sample.ja.json
   plugins/diagram-explainer/skills/diagram-explainer/examples/ladders/checkout-ja.json
   plugins/diagram-explainer/skills/diagram-explainer/tests/test-render.sh
-  plugins/doc-review/skills/doc-review/tests/test-doc-review.sh
   plugins/techdebt/skills/techdebt/templates/report.html
   plugins/techdebt/skills/techdebt/tests/test-techdebt.sh
 )

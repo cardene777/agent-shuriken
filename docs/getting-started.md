@@ -13,7 +13,7 @@ After that, install any plugin from the [plugin table](../README.md#plugins) by 
 | | Claude Code | Codex | GitHub Copilot CLI |
 |---|---|---|---|
 | Add the marketplace | `/plugin marketplace add cardene777/agent-shuriken` | `codex plugin marketplace add cardene777/agent-shuriken` | `copilot plugin marketplace add cardene777/agent-shuriken` |
-| Install a plugin | `/plugin install pc-tidy@agent-shuriken` | `codex plugin add pc-tidy@agent-shuriken` | `copilot plugin install pc-tidy@agent-shuriken` |
+| Install a plugin | `/plugin install techdebt@agent-shuriken` | `codex plugin add techdebt@agent-shuriken` | `copilot plugin install techdebt@agent-shuriken` |
 | See what is installed | `/plugin` | `codex plugin list` | `copilot plugin list` |
 
 Claude Code also accepts the same commands in a terminal as `claude plugin marketplace add ...` and `claude plugin install ...`.
@@ -23,7 +23,7 @@ Start a new session after installing so the agent loads the plugin.
 Gemini CLI has no marketplace for skills, so it installs each plugin's skill folder from this repository instead.
 
 ```
-gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/pc-tidy/skills/pc-tidy
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/techdebt/skills/techdebt
 gemini skills list
 ```
 
@@ -37,8 +37,8 @@ Some start when you describe the task in plain words, and some start only when y
 
 | | Claude Code | Codex | GitHub Copilot CLI | Gemini CLI |
 |---|---|---|---|---|
-| Call a plugin's skill | `/<plugin>:<skill>`, for example `/pc-tidy:pc-tidy` | Type `$` and pick the skill, for example **PC Tidy** | Name the skill with a slash in your request, for example "use the /pc-tidy skill" | Describe the task. Gemini CLI asks you to approve the skill before it loads it |
-| Describe the task | Write what you want, for example "free up disk space on my Mac" | Same | Same | Same |
+| Call a plugin's skill | `/<plugin>:<skill>`, for example `/techdebt:techdebt` | Type `$` and pick the skill, for example **Tech Debt** | Name the skill with a slash in your request, for example "use the /techdebt skill" | Describe the task. Gemini CLI asks you to approve the skill before it loads it |
+| Describe the task | Write what you want, for example "find the technical debt worth fixing first in this repository" | Same | Same | Same |
 
 The agent talks to you in the language you write in.
 The pages a plugin opens default to English and have an English / 日本語 switch in the header.
@@ -54,7 +54,7 @@ It still changes nothing until you pick the items and approve the step its READM
 | | Claude Code | Codex | GitHub Copilot CLI | Gemini CLI |
 |---|---|---|---|---|
 | Fetch the newest marketplace | `claude plugin marketplace update agent-shuriken` | `codex plugin marketplace upgrade agent-shuriken` | `copilot plugin marketplace update agent-shuriken` | Not needed |
-| Update a plugin | `claude plugin update pc-tidy@agent-shuriken` | `codex plugin add pc-tidy@agent-shuriken` | `copilot plugin update pc-tidy` | Run the install command again. It replaces the installed copy |
+| Update a plugin | `claude plugin update techdebt@agent-shuriken` | `codex plugin add techdebt@agent-shuriken` | `copilot plugin update techdebt` | Run the install command again. It replaces the installed copy |
 
 Restart the agent after updating.
 Each plugin's `CHANGELOG.md` lists what changed.
@@ -62,7 +62,7 @@ Each plugin's `CHANGELOG.md` lists what changed.
 ## Stay on one version
 
 Add the marketplace at a tag instead of the newest commit.
-A plugin tag such as `pc-tidy--v0.1.0` or a repository tag such as `v0.2.0` both work, and every plugin in the marketplace then comes from that tag.
+A plugin tag such as `techdebt--v0.1.0` or a repository tag such as `v0.2.0` both work, and every plugin in the marketplace then comes from that tag.
 
 | | Claude Code | Codex | GitHub Copilot CLI |
 |---|---|---|---|
@@ -78,20 +78,20 @@ Unzip it into your agent's skills folder.
 GitHub Copilot CLI, Gemini CLI, and other agents that follow the Agent Skills format read `~/.agents/skills/`.
 
 ```
-unzip pc-tidy-0.1.0-skill.zip -d ~/.claude/skills/   # Claude Code
-unzip pc-tidy-0.1.0-skill.zip -d ~/.codex/skills/    # Codex
-unzip pc-tidy-0.1.0-skill.zip -d ~/.agents/skills/   # GitHub Copilot CLI, Gemini CLI, and other agents
+unzip techdebt-0.1.0-skill.zip -d ~/.claude/skills/   # Claude Code
+unzip techdebt-0.1.0-skill.zip -d ~/.codex/skills/    # Codex
+unzip techdebt-0.1.0-skill.zip -d ~/.agents/skills/   # GitHub Copilot CLI, Gemini CLI, and other agents
 ```
 
 For an agent that reads another folder, unzip it there; its documentation names the folder.
-A skill installed this way has no plugin prefix, so you call it as `/pc-tidy` in Claude Code.
+A skill installed this way has no plugin prefix, so you call it as `/techdebt` in Claude Code.
 It does not update by itself. Download a newer zip to update it.
 
 ## Remove
 
 | | Claude Code | Codex | GitHub Copilot CLI | Gemini CLI |
 |---|---|---|---|---|
-| Remove a plugin | `claude plugin uninstall pc-tidy@agent-shuriken` | `codex plugin remove pc-tidy@agent-shuriken` | `copilot plugin uninstall pc-tidy` | `gemini skills uninstall pc-tidy` |
+| Remove a plugin | `claude plugin uninstall techdebt@agent-shuriken` | `codex plugin remove techdebt@agent-shuriken` | `copilot plugin uninstall techdebt` | `gemini skills uninstall techdebt` |
 | Remove the marketplace | `claude plugin marketplace remove agent-shuriken` | `codex plugin marketplace remove agent-shuriken` | `copilot plugin marketplace remove agent-shuriken` | Not needed |
 
 Removing a plugin does not delete the data it saved.

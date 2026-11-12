@@ -13,7 +13,7 @@
 | | Claude Code | Codex | GitHub Copilot CLI |
 |---|---|---|---|
 | マーケットプレイスを追加する | `/plugin marketplace add cardene777/agent-shuriken` | `codex plugin marketplace add cardene777/agent-shuriken` | `copilot plugin marketplace add cardene777/agent-shuriken` |
-| プラグインをインストールする | `/plugin install pc-tidy@agent-shuriken` | `codex plugin add pc-tidy@agent-shuriken` | `copilot plugin install pc-tidy@agent-shuriken` |
+| プラグインをインストールする | `/plugin install techdebt@agent-shuriken` | `codex plugin add techdebt@agent-shuriken` | `copilot plugin install techdebt@agent-shuriken` |
 | インストール済みの物を見る | `/plugin` | `codex plugin list` | `copilot plugin list` |
 
 Claude Codeでは、同じ操作をターミナルから`claude plugin marketplace add ...`や`claude plugin install ...`として実行することもできます。
@@ -23,7 +23,7 @@ GitHub Copilot CLIはClaude Codeと同じマーケットプレイスのファイ
 Gemini CLIにはスキルのマーケットプレイスが無いので、各プラグインのスキルのフォルダをこのリポジトリから直接インストールします。
 
 ```
-gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/pc-tidy/skills/pc-tidy
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/techdebt/skills/techdebt
 gemini skills list
 ```
 
@@ -37,8 +37,8 @@ gemini skills list
 
 | | Claude Code | Codex | GitHub Copilot CLI | Gemini CLI |
 |---|---|---|---|---|
-| プラグインのスキルを呼び出す | `/<plugin>:<skill>`の形で呼びます。例えば`/pc-tidy:pc-tidy`です | `$`を入力してスキルを選びます。例えば**PC Tidy**です | 依頼の中でスキルの名前にスラッシュを付けて書きます。例えば「/pc-tidyのスキルを使って」です | やりたいことを伝えます。Gemini CLIはスキルを読み込む前に承認を求めます |
-| やりたいことを伝える | 例えば「Macのディスクの空きを増やしたい」のように、やりたいことを書きます | Claude Codeと同じです | Claude Codeと同じです | Claude Codeと同じです |
+| プラグインのスキルを呼び出す | `/<plugin>:<skill>`の形で呼びます。例えば`/techdebt:techdebt`です | `$`を入力してスキルを選びます。例えば**Tech Debt**です | 依頼の中でスキルの名前にスラッシュを付けて書きます。例えば「/techdebtのスキルを使って」です | やりたいことを伝えます。Gemini CLIはスキルを読み込む前に承認を求めます |
+| やりたいことを伝える | 例えば「このリポジトリで先に直すべき技術的負債を知りたい」のように、やりたいことを書きます | Claude Codeと同じです | Claude Codeと同じです | Claude Codeと同じです |
 
 エージェントは、あなたが書いた言語で返事をします。
 プラグインが開くページは最初は英語で表示され、上部のEnglish / 日本語の切り替えで日本語にできます。
@@ -54,7 +54,7 @@ Claude CodeとCodexでは呼び出した時だけ起動するプラグインも�
 | | Claude Code | Codex | GitHub Copilot CLI | Gemini CLI |
 |---|---|---|---|---|
 | 最新のマーケットプレイスを取得する | `claude plugin marketplace update agent-shuriken` | `codex plugin marketplace upgrade agent-shuriken` | `copilot plugin marketplace update agent-shuriken` | 要りません |
-| プラグインをアップデートする | `claude plugin update pc-tidy@agent-shuriken` | `codex plugin add pc-tidy@agent-shuriken` | `copilot plugin update pc-tidy` | インストールのコマンドをもう一度実行します。入っている写しが置き換わります |
+| プラグインをアップデートする | `claude plugin update techdebt@agent-shuriken` | `codex plugin add techdebt@agent-shuriken` | `copilot plugin update techdebt` | インストールのコマンドをもう一度実行します。入っている写しが置き換わります |
 
 アップデートした後は、エージェントを起動し直してください。
 何が変わったかは、各プラグインの`CHANGELOG.md`に書いてあります。
@@ -62,7 +62,7 @@ Claude CodeとCodexでは呼び出した時だけ起動するプラグインも�
 ## バージョンを固定する
 
 マーケットプレイスを、最新のコミットではなくタグを指定して追加します。
-`pc-tidy--v0.1.0`のようなプラグインのタグでも、`v0.2.0`のようなリポジトリのタグでも指定でき、マーケットプレイスの全プラグインがそのタグの時点の物になります。
+`techdebt--v0.1.0`のようなプラグインのタグでも、`v0.2.0`のようなリポジトリのタグでも指定でき、マーケットプレイスの全プラグインがそのタグの時点の物になります。
 
 | | Claude Code | Codex | GitHub Copilot CLI |
 |---|---|---|---|
@@ -78,13 +78,13 @@ Gemini CLIでは、次の節のとおりリリースのスキルのzipをイン�
 GitHub Copilot CLI、Gemini CLI、Agent Skillsの形式に従うほかのエージェントは`~/.agents/skills/`を読みます。
 
 ```
-unzip pc-tidy-0.1.0-skill.zip -d ~/.claude/skills/   # Claude Code
-unzip pc-tidy-0.1.0-skill.zip -d ~/.codex/skills/    # Codex
-unzip pc-tidy-0.1.0-skill.zip -d ~/.agents/skills/   # GitHub Copilot CLI, Gemini CLI, and other agents
+unzip techdebt-0.1.0-skill.zip -d ~/.claude/skills/   # Claude Code
+unzip techdebt-0.1.0-skill.zip -d ~/.codex/skills/    # Codex
+unzip techdebt-0.1.0-skill.zip -d ~/.agents/skills/   # GitHub Copilot CLI, Gemini CLI, and other agents
 ```
 
 別のフォルダを読むエージェントでは、そのフォルダに展開します。フォルダの名前は、そのエージェントの資料に書いてあります。
-この方法で入れたスキルにはプラグイン名の接頭辞が付かないので、Claude Codeでは`/pc-tidy`で呼び出します。
+この方法で入れたスキルにはプラグイン名の接頭辞が付かないので、Claude Codeでは`/techdebt`で呼び出します。
 自動ではアップデートされません。
 アップデートするには、新しいzipをダウンロードしてください。
 
@@ -92,7 +92,7 @@ unzip pc-tidy-0.1.0-skill.zip -d ~/.agents/skills/   # GitHub Copilot CLI, Gemin
 
 | | Claude Code | Codex | GitHub Copilot CLI | Gemini CLI |
 |---|---|---|---|---|
-| プラグインを削除する | `claude plugin uninstall pc-tidy@agent-shuriken` | `codex plugin remove pc-tidy@agent-shuriken` | `copilot plugin uninstall pc-tidy` | `gemini skills uninstall pc-tidy` |
+| プラグインを削除する | `claude plugin uninstall techdebt@agent-shuriken` | `codex plugin remove techdebt@agent-shuriken` | `copilot plugin uninstall techdebt` | `gemini skills uninstall techdebt` |
 | マーケットプレイスを削除する | `claude plugin marketplace remove agent-shuriken` | `codex plugin marketplace remove agent-shuriken` | `copilot plugin marketplace remove agent-shuriken` | 要りません |
 
 プラグインを削除しても、プラグインが保存したデータは消えません。

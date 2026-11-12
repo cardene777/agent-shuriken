@@ -7,6 +7,10 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ## [Unreleased]
 
+### Removed
+
+- The root-cause, doc-review, and pc-tidy plugins are no longer offered in the marketplace, because they are no longer maintained here. Copies already installed keep working, and their past releases and tags stay available
+
 ## [0.6.0] - 2026-11-12
 
 ### Plugins

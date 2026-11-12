@@ -26,9 +26,6 @@
 | [account-cleanup](plugins/account-cleanup) | パスワードを一切読まずに、使っていないWebアカウントを見つけます。あなたが承認したアカウントは、サブスクリプションを解約してからアカウントを削除します | Claude Codeでは`/account-cleanup:account-cleanup`を実行し、Codexでは`$`を入力して**Account Cleanup**を選びます。やりたいことを言葉で頼んでも始まります | [0.2.0](plugins/account-cleanup/CHANGELOG.md) |
 | [compare-report](plugins/compare-report) | 選ぶ時の候補を調べ、すべての主張に出典を、すべての点数に判定の根拠を付けた比較のレポートをHTMLとPDFで作ります | Claude Codeでは`/compare-report:compare-report`を実行し、Codexでは`$`を入力して**Compare Report**を選びます。比較を言葉で頼んでも始まります | [0.2.0](plugins/compare-report/CHANGELOG.md) |
 | [diagram-explainer](plugins/diagram-explainer) | すべての節に図を描いた説明資料を、JSONから組んで確かめ、1つのHTMLファイルにします | Claude Codeでは`/diagram-explainer:diagram-explainer`を実行し、Codexでは`$`を入力して**Diagram Explainer**を選びます。説明資料を言葉で頼んでも始まります | [0.2.0](plugins/diagram-explainer/CHANGELOG.md) |
-| [doc-review](plugins/doc-review) | 仕様書、設計書、READMEを、見出し、リンク、アンカー、表を確かめたうえで、会話を引き継がない2人の見直し役に1回だけ見直させ、指摘ごとに直すか直さない理由を残します | Claude Codeでは`/doc-review:doc-review`を実行し、Codexでは`$`を入力して**Doc Review**を選びます。文書の見直しを頼んでも始まります | [0.2.0](plugins/doc-review/CHANGELOG.md) |
-| [pc-tidy](plugins/pc-tidy) | Macの中で使われなくなった物を一覧にし、あなたが選んだ物だけを消してディスクの空きを増やします | Claude Codeでは`/pc-tidy:pc-tidy`を実行し、Codexでは`$`を入力して**PC Tidy**を選びます。呼び出した時だけ始まります | [0.2.0](plugins/pc-tidy/CHANGELOG.md) |
-| [root-cause](plugins/root-cause) | コードを変える前にバグの原因を証拠から突き止め、落ちるテストを先に書いて原因だけを直します | Claude Codeでは`/root-cause:root-cause`を実行し、Codexでは`$`を入力して**Root Cause**を選びます。バグを言葉で伝えても始まります | [0.2.0](plugins/root-cause/CHANGELOG.md) |
 | [secure-dotfile](plugins/secure-dotfile) | シェルの起動ファイルに書いたAPIキーやトークンを見つけ、選んだ物だけを、エージェントに値を見せずにmacOSのキーチェーンへ移します | Claude Codeでは`/secure-dotfile:secure-dotfile`を実行し、Codexでは`$`を入力して**Secure Dotfile**を選びます。シェルの設定にある秘密の値の話をしても始まります | [0.2.0](plugins/secure-dotfile/CHANGELOG.md) |
 | [techdebt](plugins/techdebt) | ファイルごとの変更の回数に、大きさ、古いTODOのコメント、テストの有無、長い関数、重複を合わせて直す価値の高いファイルに順位を付け、上位のファイルを説明します | Claude Codeでは`/techdebt:techdebt`を実行し、Codexでは`$`を入力して**Tech Debt**を選びます。技術的負債について尋ねても始まります | [0.2.0](plugins/techdebt/CHANGELOG.md) |
 
@@ -42,30 +39,30 @@
 
 ```
 /plugin marketplace add cardene777/agent-shuriken
-/plugin install pc-tidy@agent-shuriken
+/plugin install techdebt@agent-shuriken
 ```
 
 **Codex**
 
 ```
 codex plugin marketplace add cardene777/agent-shuriken
-codex plugin add pc-tidy@agent-shuriken
+codex plugin add techdebt@agent-shuriken
 ```
 
 **GitHub Copilot CLI**
 
 ```
 copilot plugin marketplace add cardene777/agent-shuriken
-copilot plugin install pc-tidy@agent-shuriken
+copilot plugin install techdebt@agent-shuriken
 ```
 
 **Gemini CLI**
 
 ```
-gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/pc-tidy/skills/pc-tidy
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/techdebt/skills/techdebt
 ```
 
-`pc-tidy`の部分は、表にある別のプラグイン名に置き換えられます。
+`techdebt`の部分は、表にある別のプラグイン名に置き換えられます。
 `SKILL.md`を読むほかのエージェントでは、各プラグインのリリースに添付したスキルのzipを使えます。
 インストールでコピーされるのは、そのプラグインのフォルダだけです。
 起動、アップデート、バージョンの固定、削除の方法は[はじめに](docs/getting-started.ja.md)で説明しています。
@@ -84,7 +81,7 @@ gemini skills install https://github.com/cardene777/agent-shuriken.git --path pl
 
 ## バージョン
 
-プラグインごとにバージョンがあり、`pc-tidy--v0.1.0`のようなタグでリリースします。
+プラグインごとにバージョンがあり、`techdebt--v0.1.0`のようなタグでリリースします。
 リポジトリにもバージョンがあり、`v0.2.0`のようなタグでリリースします。
 リポジトリのバージョンを見ると、その時点でマーケットプレイスにあった各プラグインのバージョンが分かります。
 どちらもセマンティックバージョニングに従い、[リリースのページ](https://github.com/cardene777/agent-shuriken/releases)に並びます。

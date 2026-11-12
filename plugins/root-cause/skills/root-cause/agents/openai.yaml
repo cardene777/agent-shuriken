@@ -1,7 +1,0 @@
-interface:
-  display_name: "Root Cause"
-  short_description: "Find a bug's cause from evidence, then fix only the cause"
-  default_prompt: "Use $root-cause to find why this fails and fix the cause."
-
-policy:
-  allow_implicit_invocation: true

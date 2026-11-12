@@ -26,9 +26,6 @@ English · [日本語](README.ja.md)
 | [account-cleanup](plugins/account-cleanup) | Finds web accounts you no longer use without reading any passwords, then cancels subscriptions and deletes the accounts you approve | `/account-cleanup:account-cleanup` in Claude Code, or **Account Cleanup** after typing `$` in Codex. It also starts when you describe the task | [0.2.0](plugins/account-cleanup/CHANGELOG.md) |
 | [compare-report](plugins/compare-report) | Researches the candidates for a choice and writes an HTML and PDF comparison report, with a source for every claim and a rationale for every score | `/compare-report:compare-report` in Claude Code, or **Compare Report** after typing `$` in Codex. It also starts when you ask for a comparison | [0.2.0](plugins/compare-report/CHANGELOG.md) |
 | [diagram-explainer](plugins/diagram-explainer) | Writes an explainer with a figure drawn in every section as one HTML file, built from JSON and checked before you share it | `/diagram-explainer:diagram-explainer` in Claude Code, or **Diagram Explainer** after typing `$` in Codex. It also starts when you ask for an explainer | [0.2.0](plugins/diagram-explainer/CHANGELOG.md) |
-| [doc-review](plugins/doc-review) | Reviews a specification, design document, or README once with two reviewers that do not share the conversation, after checking headings, links, anchors, and tables, then fixes each finding or records why not | `/doc-review:doc-review` in Claude Code, or **Doc Review** after typing `$` in Codex. It also starts when you ask for a review of a document | [0.2.0](plugins/doc-review/CHANGELOG.md) |
-| [pc-tidy](plugins/pc-tidy) | Lists what has gone unused on your Mac and deletes only the items you pick, to free up disk space | `/pc-tidy:pc-tidy` in Claude Code, or **PC Tidy** after typing `$` in Codex. It starts only when you call it | [0.2.0](plugins/pc-tidy/CHANGELOG.md) |
-| [root-cause](plugins/root-cause) | Finds the cause of a bug from evidence before changing any code, then fixes only the cause, starting with a test that fails | `/root-cause:root-cause` in Claude Code, or **Root Cause** after typing `$` in Codex. It also starts when you describe a bug | [0.2.0](plugins/root-cause/CHANGELOG.md) |
 | [secure-dotfile](plugins/secure-dotfile) | Finds API keys and tokens written into your shell startup files and moves the ones you pick into the macOS Keychain, without the agent seeing any value | `/secure-dotfile:secure-dotfile` in Claude Code, or **Secure Dotfile** after typing `$` in Codex. It also starts when you mention a secret in your shell configuration | [0.2.0](plugins/secure-dotfile/CHANGELOG.md) |
 | [techdebt](plugins/techdebt) | Ranks the files most worth fixing by combining how often they change with their size, old TODO comments, missing tests, long functions, and duplication, and explains the top ones | `/techdebt:techdebt` in Claude Code, or **Tech Debt** after typing `$` in Codex. It also starts when you ask about technical debt | [0.2.0](plugins/techdebt/CHANGELOG.md) |
 
@@ -42,30 +39,30 @@ Add this repository as a marketplace once, then install the plugins you want.
 
 ```
 /plugin marketplace add cardene777/agent-shuriken
-/plugin install pc-tidy@agent-shuriken
+/plugin install techdebt@agent-shuriken
 ```
 
 **Codex**
 
 ```
 codex plugin marketplace add cardene777/agent-shuriken
-codex plugin add pc-tidy@agent-shuriken
+codex plugin add techdebt@agent-shuriken
 ```
 
 **GitHub Copilot CLI**
 
 ```
 copilot plugin marketplace add cardene777/agent-shuriken
-copilot plugin install pc-tidy@agent-shuriken
+copilot plugin install techdebt@agent-shuriken
 ```
 
 **Gemini CLI**
 
 ```
-gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/pc-tidy/skills/pc-tidy
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/techdebt/skills/techdebt
 ```
 
-Replace `pc-tidy` with any plugin name in the table.
+Replace `techdebt` with any plugin name in the table.
 Other agents that read `SKILL.md` can use the skill zip attached to each plugin release.
 Installing a plugin copies only that plugin's folder.
 [Getting started](docs/getting-started.md) covers running, updating, pinning a version, and removing plugins.
@@ -84,7 +81,7 @@ Every page is also available in Japanese.
 
 ## Versions
 
-Each plugin has its own version, released with a tag such as `pc-tidy--v0.1.0`.
+Each plugin has its own version, released with a tag such as `techdebt--v0.1.0`.
 The repository also has a version, released with a tag such as `v0.2.0`, which records the set of plugin versions in the marketplace at that point.
 Both follow semantic versioning and are listed on the [releases page](https://github.com/cardene777/agent-shuriken/releases).
 

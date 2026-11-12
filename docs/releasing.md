@@ -11,7 +11,7 @@ This page explains the two kinds of version in this repository and how to releas
 | What it versions | One plugin | The marketplace as a whole: which plugin versions it offers, and the repository's own docs and scripts |
 | Where it is written | `version` in both `plugin.json` files of the plugin | The newest release heading in the root `CHANGELOG.md` |
 | Changelog | `plugins/<name>/CHANGELOG.md` | `CHANGELOG.md` |
-| Tag | `<name>--v<X.Y.Z>`, for example `pc-tidy--v0.1.0` | `v<X.Y.Z>`, for example `v0.2.0` |
+| Tag | `<name>--v<X.Y.Z>`, for example `techdebt--v0.1.0` | `v<X.Y.Z>`, for example `v0.2.0` |
 | Release assets | `<name>-<X.Y.Z>-skill.zip` and `<name>-<X.Y.Z>-plugin.zip` | None |
 
 The agents decide whether a plugin has an update from its plugin version.
