@@ -21,4 +21,4 @@ You will get a first response within 7 days.
 
 ## Supported versions
 
-Only the latest commit on `main` is supported.
+Fixes ship in a new release. Only the latest release is supported, so update before reporting.

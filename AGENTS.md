@@ -6,14 +6,19 @@ Claude Code reads it through `CLAUDE.md`; Codex and other agents read it directl
 ## What this repository is
 
 A collection of agent skills that work in both Claude Code and Codex.
-Each skill is a folder with a `SKILL.md`, published as a Claude Code plugin through `.claude-plugin/marketplace.json`.
+Each skill is a folder with a `SKILL.md`, published as a plugin through `.claude-plugin/marketplace.json`, which both Claude Code and Codex install from.
 
 ```
-.claude-plugin/marketplace.json   Plugin marketplace manifest (one plugin per skill)
+.claude-plugin/marketplace.json   Plugin marketplace read by Claude Code and Codex (one plugin per skill)
 skills/<name>/SKILL.md            Instructions the agent follows
+skills/<name>/agents/openai.yaml  Codex display name, default prompt, and invocation policy
 skills/<name>/scripts/            Scripts the skill runs
 skills/<name>/templates/          Files the scripts render (HTML pages, text templates)
 skills/<name>/data/               Bundled data
+scripts/check.sh                  Repository checks, run before every pull request
+scripts/release.sh                Tags a version and publishes a GitHub Release
+docs/images/                      Screenshots shown in README.md
+CHANGELOG.md                      Changes in each release
 THIRD_PARTY_NOTICES.md            Source and license of every bundled third-party file
 ```
 
@@ -21,7 +26,10 @@ THIRD_PARTY_NOTICES.md            Source and license of every bundled third-part
 
 - Put everything the skill needs inside `skills/<name>/`. Scripts locate their own files relative to the skill folder and never read other parts of the repository.
 - Give `SKILL.md` frontmatter with `name` and a `description` that says what the skill does and when to use it. Add `disable-model-invocation: true` when the skill must only run when the user calls it.
-- Register a new skill as its own plugin in `.claude-plugin/marketplace.json`, add it to the skill table in `README.md`, and bump `version` when behavior changes.
+- Give the skill `agents/openai.yaml` for Codex with `interface.display_name`, `interface.short_description`, an `interface.default_prompt` that mentions `$<name>`, and `policy.allow_implicit_invocation`. Set `allow_implicit_invocation: false` exactly when `SKILL.md` has `disable-model-invocation: true`.
+- Write `SKILL.md` for both agents. Say "shell command" instead of naming one agent's tool, and when a step relies on a tool only one agent has, such as AskUserQuestion in Claude Code, say what to do in the other.
+- Register a new skill as its own plugin in `.claude-plugin/marketplace.json` with the current version, and add a row to the skill table and a `## <name>` section in `README.md`.
+- Add a line under `## [Unreleased]` in `CHANGELOG.md` for every change a user would notice. Versions change only when releasing.
 - Keep runtime dependencies small: Bash, `jq`, the Python 3 standard library, and Node.js only where a browser is driven. Do not ask users to install global packages.
 - Store state under `~/.local/share/<skill>/` (overridable with an environment variable), readable only by the user, and remove temporary files when the skill finishes.
 
@@ -45,14 +53,14 @@ These skills touch credentials, accounts, and files. Every change must keep thes
 
 ## Verifying a change
 
-Run what applies to the files you touched before opening a pull request.
+Run the repository checks before opening a pull request.
 
 ```bash
-bash -n skills/<name>/scripts/*.sh
-node --check skills/<name>/scripts/*.mjs
-PYTHONDONTWRITEBYTECODE=1 python3 -c "import ast,sys; [ast.parse(open(p).read()) for p in sys.argv[1:]]" skills/<name>/scripts/*.py
-claude plugin validate .
+bash scripts/check.sh
 ```
+
+It parses every script, validates the marketplace, checks that `agents/openai.yaml` agrees with `SKILL.md`, that plugin versions match `CHANGELOG.md`, that links resolve, and that no local paths, email addresses, or stray Japanese text slipped in.
+It exits 1 and names the failing check when anything is wrong.
 
 Smoke-test scripts against a throwaway data directory or `HOME`, never against real accounts, vaults, or files.
 Do not run steps that delete or change real data while testing.
@@ -78,6 +86,15 @@ Do not run steps that delete or change real data while testing.
 - One topic per pull request. The description has a summary of what changed and why, and a testing section listing the commands you ran and their results.
 - Do not include personal data in files, commits, or pull requests: local paths such as `/Users/<name>`, email addresses, account names, or real service lists.
 - Do not add CI workflows.
+
+## Releasing
+
+Releases follow semantic versioning, and both skills share the repository version.
+
+1. Open a pull request that moves the entries under `## [Unreleased]` in `CHANGELOG.md` into a new `## [X.Y.Z] - YYYY-MM-DD` section, leaves an empty `## [Unreleased]` above it, updates the link definitions at the end of the file, and sets every plugin `version` in `.claude-plugin/marketplace.json` to `X.Y.Z`
+2. Merge it, then check out `main` and pull
+3. Run `bash scripts/release.sh X.Y.Z --dry-run` and read the notes and the asset list it prints
+4. Run `bash scripts/release.sh X.Y.Z`. It tags `vX.Y.Z`, pushes the tag, and creates the GitHub Release with one zip per skill
 
 ## Third-party material
 
