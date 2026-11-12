@@ -10,8 +10,8 @@
 
 | プラグイン | Anthropicの公式ディレクトリ | OpenAIの公式ディレクトリ |
 |---|---|---|
-| account-cleanup | 提出できます。`skills/account-cleanup/data/sites.json`が256 KiBを超えるため、各バージョンは公開前に審査担当者の確認待ちになります | `assets/`に正方形のアイコンとロゴを置き、`interface.composerIcon`と`interface.logo`から参照する必要があります |
-| pc-tidy | 提出できます | 上と同じく、正方形のアイコンとロゴが要ります |
+| account-cleanup | 提出できます。`skills/account-cleanup/data/sites.json`が256 KiBを超えるため、各バージョンは公開前に審査担当者の確認待ちになります | アップロードできます。`assets/icon.svg`のアイコンを、`interface.composerIcon`と`interface.logo`の両方に使っています |
+| pc-tidy | 提出できます | アップロードできます。アイコンも同じ形で設定しています |
 
 Anthropicの公式ディレクトリでは、一般的な単語だけでできた名前も審査担当者の確認待ちになることがあります。
 
@@ -50,7 +50,7 @@ Anthropicの公式ディレクトリでは、一般的な単語だけででき�
 
 手順は次のとおりです。
 
-1. 上の表にあるアイコンとロゴを足し、それらが入ったプラグインのzipができるようにプラグインをリリースします
+1. プラグインの最新のGitHubリリースから、プラグインのzipをダウンロードします
 2. OpenAI Platformで**Plugins**を開き、**Upload new or existing plugin**を選びます
 3. 本人確認を済ませた開発者の身元を選び、**Upload plugin**を選んで、プラグインのzipをアップロードします
 4. **Metadata & Skills**で検査とスキルのスキャンが終わるのを待ちます。**Issues**が出たら、直したzipをアップロードし直します

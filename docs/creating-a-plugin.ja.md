@@ -36,7 +36,7 @@ plugins/<name>/
 1. `plugins/<name>/skills/<name>/SKILL.md`を作ります。フロントマターの`name`にはフォルダ名を、`description`にはスキルが何をし、いつ使うかを書きます。ユーザーが呼び出した時だけ動かすスキルには、`disable-model-invocation: true`を足します
 2. `SKILL.md`は両方のエージェントに向けて書きます。片方のエージェントのツール名を書く代わりに「shell command」と書きます。Claude CodeのAskUserQuestionのように片方にしか無いツールが要る手順では、もう片方でどうするかも書きます
 3. `SKILL.md`の隣に`agents/openai.yaml`を置き、`interface.display_name`、`interface.short_description`、`$<name>`に触れた`interface.default_prompt`、`policy.allow_implicit_invocation`を書きます。`policy.allow_implicit_invocation`を`false`にするのは、`SKILL.md`に`disable-model-invocation: true`がある時だけです
-4. `.claude-plugin/plugin.json`と`.codex-plugin/plugin.json`を足します。既存のプラグインからコピーし、`name`、`description`、`keywords`、`interface`を書き換えます。バージョンは`0.1.0`から始めます
+4. `.claude-plugin/plugin.json`と`.codex-plugin/plugin.json`を足します。既存のプラグインからコピーし、`name`、`description`、`keywords`、`interface`を書き換えます。バージョンは`0.1.0`から始めます。48px以上の正方形のアイコンを`assets/icon.svg`に置き、`interface.composerIcon`と`interface.logo`から指します。アイコンは既存のアイコンのタイルをそのまま使い、図柄だけを新しく描きます
 5. `README.md`と`README.ja.md`を足します。公式ディレクトリのセキュリティ審査ではREADMEとコードの実際の動きを突き合わせるため、プラグインが読む物、実行する物、接続する先、残す物をすべて書きます。画像は`assets/`に置き、Markdownの画像の記法で表示します
 6. 空の`## [Unreleased]`節だけを持つ`CHANGELOG.md`を足し、ルートの`LICENSE`をコピーします
 7. `.claude-plugin/marketplace.json`に、同じ`name`と`description`、そして`"source": "./plugins/<name>"`を持つ項目を足します

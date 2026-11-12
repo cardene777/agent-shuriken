@@ -10,8 +10,8 @@ Each directory takes one plugin folder at a time, and a maintainer submits it fr
 
 | Plugin | Anthropic's directory | OpenAI's directory |
 |---|---|---|
-| account-cleanup | Ready to submit. `skills/account-cleanup/data/sites.json` is over 256 KiB, so each version is held for a reviewer before it goes live | Needs a square icon and a logo in `assets/`, referenced from `interface.composerIcon` and `interface.logo` |
-| pc-tidy | Ready to submit | Needs a square icon and a logo, as above |
+| account-cleanup | Ready to submit. `skills/account-cleanup/data/sites.json` is over 256 KiB, so each version is held for a reviewer before it goes live | Ready to upload. The icon in `assets/icon.svg` is both `interface.composerIcon` and `interface.logo` |
+| pc-tidy | Ready to submit | Ready to upload, with its icon set the same way |
 
 Names made only of generic words can also be held for a reviewer in Anthropic's directory.
 
@@ -49,7 +49,7 @@ What you need:
 
 Steps:
 
-1. Add the icon and logo the table above names, and release the plugin so its plugin zip includes them
+1. Download the plugin zip from the plugin's newest GitHub release
 2. Open **Plugins** in the OpenAI Platform and select **Upload new or existing plugin**
 3. Choose your verified developer identity, select **Upload plugin**, and upload the plugin zip
 4. In **Metadata & Skills**, wait for the checks and the skill scans, and fix any **Issues** by uploading a corrected zip

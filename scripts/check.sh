@@ -133,6 +133,39 @@ check_manifests() {
   return "$bad"
 }
 
+# OpenAI's directory needs a square icon and logo of at least 48 px, as PNG, JPEG, WebP, or SVG under 5 MiB.
+check_icons() {
+  local name codex key path bad=0
+  for name in $(plugin_names); do
+    codex="plugins/$name/.codex-plugin/plugin.json"
+    [ -f "$codex" ] || continue
+    for key in composerIcon logo; do
+      path="$(jq -r ".interface.$key // empty" "$codex")"
+      [[ "$path" == ./* ]] || { echo "$name: interface.$key must be a ./ path inside the plugin"; bad=1; continue; }
+      python3 - "plugins/$name/${path#./}" "$name: interface.$key" <<'PY' || bad=1
+import re, struct, sys
+path, label = sys.argv[1], sys.argv[2]
+try:
+    data = open(path, "rb").read()
+except OSError:
+    sys.exit(print(f"{label} points at {path}, which does not exist") or 1)
+if len(data) > 5 * 1024 * 1024:
+    sys.exit(print(f"{label}: {path} is over 5 MiB") or 1)
+if path.endswith(".svg"):
+    box = re.search(rb'viewBox="\s*[-\d.]+\s+[-\d.]+\s+([\d.]+)\s+([\d.]+)\s*"', data)
+    size = (float(box.group(1)), float(box.group(2))) if box else None
+elif path.endswith(".png") and data[:8] == b"\x89PNG\r\n\x1a\n":
+    size = struct.unpack(">II", data[16:24])
+else:
+    sys.exit(print(f"{label}: {path} must be an SVG with a viewBox or a PNG") or 1)
+if not size or size[0] != size[1] or size[0] < 48:
+    sys.exit(print(f"{label}: {path} must be square and at least 48 px, not {size}") or 1)
+PY
+    done
+  done
+  return "$bad"
+}
+
 check_plugin_files() {
   local name f bad=0
   for name in $(plugin_names); do
@@ -216,11 +249,16 @@ check_versions() {
   return "$bad"
 }
 
+# Each README has a row per plugin whose last column links the plugin's current version.
 check_readme_tables() {
-  local name readme bad=0
+  local name readme version row bad=0
   for readme in README.md README.ja.md; do
     for name in $(plugin_names); do
-      grep -qE "^\| \[$name\]\(plugins/$name\) \|" "$readme" || { echo "$readme has no table row for $name"; bad=1; }
+      row="$(grep -E "^\| \[$name\]\(plugins/$name\) \|" "$readme")"
+      [ -n "$row" ] || { echo "$readme has no table row for $name"; bad=1; continue; }
+      version="$(jq -r .version "plugins/$name/.claude-plugin/plugin.json")"
+      [[ "$row" == *"| [$version](plugins/$name/CHANGELOG.md) |" ]] \
+        || { echo "$readme: the row for $name does not end with [$version](plugins/$name/CHANGELOG.md)"; bad=1; }
     done
   done
   return "$bad"
@@ -317,6 +355,7 @@ run "python scripts parse" check_python_syntax
 run "JSON files parse" check_json
 run "marketplace lists every plugin once" check_marketplace
 run "plugin manifests agree" check_manifests
+run "plugin icons are square and present" check_icons
 run "plugin folders are complete" check_plugin_files
 run "plugins stay within directory limits" check_plugin_limits
 run "SKILL.md frontmatter" check_skill_frontmatter

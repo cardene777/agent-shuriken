@@ -30,6 +30,7 @@ CHANGELOG.md                              The repository's releases
 
 - Put everything a plugin needs inside `plugins/<name>/`. Installing copies only that folder, so scripts locate their files relative to their own skill folder and never read other parts of the repository.
 - Keep the manifests in agreement: `name`, `version`, `description`, `author`, and `license` are the same in both `plugin.json` files, and `name` and `description` match the marketplace entry. `scripts/check.sh` enforces this.
+- Give each plugin a square icon of at least 48 px in `assets/icon.svg`, drawn on the same tile as the other plugins, and point `interface.composerIcon` and `interface.logo` in `.codex-plugin/plugin.json` at it.
 - Give each skill `agents/openai.yaml`. Set `policy.allow_implicit_invocation: false` exactly when `SKILL.md` has `disable-model-invocation: true`.
 - Write `SKILL.md` for both agents. Say "shell command" instead of naming one agent's tool, and when a step relies on a tool only one agent has, such as AskUserQuestion in Claude Code, say what to do in the other.
 - Describe in the plugin's README and `docs/how-it-works.md` everything the plugin reads, runs, connects to, and keeps. The directories' security reviews compare the README with the code.

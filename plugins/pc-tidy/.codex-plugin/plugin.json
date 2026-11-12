@@ -1,6 +1,6 @@
 {
   "name": "pc-tidy",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "List what has gone unused on your Mac and delete only the items you pick to free up disk space",
   "author": {
     "name": "cardene777",
@@ -24,6 +24,8 @@
     "capabilities": [],
     "defaultPrompt": [
       "List what has gone unused on this Mac and free up disk space"
-    ]
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
   }
 }
