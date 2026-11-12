@@ -21,6 +21,11 @@
       "description": "Write an explainer as one HTML file with a figure drawn in every section, built from JSON and checked before you share it"
     },
     {
+      "name": "feedback-loop",
+      "source": "./plugins/feedback-loop",
+      "description": "When you correct an agent's work, record the correction, fix the files, have an evaluator that edits nothing judge the fix, and repeat until it passes, keeping the lesson as a check or a rule for next time"
+    },
+    {
       "name": "learning-to-skill",
       "source": "./plugins/learning-to-skill",
       "description": "Write the lessons from a session into the instruction files your agents read, such as AGENTS.md, CLAUDE.md, GEMINI.md, Copilot's instructions, or a skill's SKILL.md, in the right place and without duplicates, only after you approve the diff"

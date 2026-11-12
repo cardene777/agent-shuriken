@@ -1,0 +1,33 @@
+{
+  "name": "feedback-loop",
+  "version": "0.1.0",
+  "description": "When you correct an agent's work, record the correction, fix the files, have an evaluator that edits nothing judge the fix, and repeat until it passes, keeping the lesson as a check or a rule for next time",
+  "author": {
+    "name": "cardene777",
+    "url": "https://github.com/cardene777"
+  },
+  "homepage": "https://github.com/cardene777/agent-shuriken/tree/main/plugins/feedback-loop",
+  "repository": "https://github.com/cardene777/agent-shuriken",
+  "license": "MIT",
+  "keywords": [
+    "feedback",
+    "corrections",
+    "review",
+    "quality",
+    "regression"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Feedback Loop",
+    "shortDescription": "Turn corrections into checks",
+    "longDescription": "When you correct something the agent produced, it records the correction for the repository, fixes the files, and has an evaluator that edits nothing judge the fix against criteria: whether your correction is resolved, whether the rules from earlier corrections still hold, and any point you raised. A failing review goes back to the fixer, and the loop repeats until every criterion passes or the round limit is reached, when it asks you what to do. A script refuses to close the correction until the checks passed on the final files and the last review passed every criterion on those same files, then keeps the lesson as texts a file must or must not contain, or as a rule for the repository. It keeps a hash of your words instead of the words, stores its records in a private folder or in a folder of the project you choose, uses Python and git, and sends nothing anywhere.",
+    "developerName": "cardene777",
+    "category": "Developer Tools",
+    "capabilities": [],
+    "defaultPrompt": [
+      "Fix what I just corrected and have the fix reviewed until it passes"
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
+  }
+}
