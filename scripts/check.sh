@@ -271,6 +271,21 @@ check_readme_tables() {
   return "$bad"
 }
 
+# The publishing pages have a status row and a data handling column for every plugin.
+check_publishing_tables() {
+  local page name headers bad=0
+  for page in docs/publishing.md docs/publishing.ja.md; do
+    [ -f "$page" ] || { echo "$page is missing"; bad=1; continue; }
+    # A table's header is the line right above its |---| separator.
+    headers="$(awk 'prev != "" && /^\|-/ { print prev } { prev = $0 }' "$page")"
+    for name in $(plugin_names); do
+      grep -q "^| $name |" "$page" || { echo "$page has no status row for $name"; bad=1; }
+      printf '%s\n' "$headers" | grep -qF "| $name |" || { echo "$page: no table header has a column for $name"; bad=1; }
+    done
+  done
+  return "$bad"
+}
+
 # Every page has a Japanese counterpart with the same headings, table rows, and code fences.
 check_japanese_pages() {
   local f ja bad=0
@@ -369,6 +384,7 @@ run "SKILL.md frontmatter" check_skill_frontmatter
 run "Codex skill metadata matches SKILL.md" check_codex_skill_metadata
 run "versions match the changelogs" check_versions
 run "README tables list every plugin" check_readme_tables
+run "publishing tables list every plugin" check_publishing_tables
 run "pages have Japanese counterparts" check_japanese_pages
 run "relative links resolve" check_links
 run "no local user paths" check_no_personal_paths
