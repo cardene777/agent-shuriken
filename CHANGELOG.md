@@ -9,6 +9,7 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ### Added
 
+- The root-cause plugin, which finds the cause of a bug from evidence before fixing it
 - The repository has an icon in `assets/icon.svg`, shown at the top of the README
 
 ### Changed
