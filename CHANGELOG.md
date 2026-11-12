@@ -7,6 +7,21 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-12
+
+### Plugins
+
+| Plugin | Version |
+|---|---|
+| account-cleanup | 0.1.1 |
+| compare-report | 0.1.0 |
+| diagram-explainer | 0.1.0 |
+| doc-review | 0.1.0 |
+| pc-tidy | 0.1.1 |
+| root-cause | 0.1.0 |
+| secure-dotfile | 0.1.0 |
+| techdebt | 0.1.0 |
+
 ### Added
 
 - The secure-dotfile plugin, which moves the API keys and tokens written into shell startup files into the macOS Keychain without the agent seeing any value
@@ -102,7 +117,8 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 - First public release with the account-cleanup and pc-tidy plugins, installable from this marketplace in Claude Code and Codex
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.5.0
 [0.4.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.4.0
 [0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.3.0
 [0.2.1]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.2.1
