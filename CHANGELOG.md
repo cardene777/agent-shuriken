@@ -17,6 +17,7 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 - The portman plugin, which keeps one registry of the localhost ports each project uses, shows what holds each port right now, suggests free ports that avoid common defaults, finds collisions, and writes a project's ports to `.env.local` and a Docker Compose override after you approve
 - The init-project plugin, which sets up a project for local work: a free local port that no other project set up with it gets, a Docker setup for Node and Python web apps and Foundry and Hardhat local chains, and env files linked to 1Password with `op://` references, each file shown before it is written
 - The oss-contribute plugin, which prepares a fix for an outside open source project by that project's own rules, runs its checks in a container, and sends only the exact draft you approve
+- The excalidraw-diagram plugin, which draws architecture, flow, sequence, and entity-relationship diagrams as Excalidraw files laid out by a script and checked for overlaps, crowded spacing, and labels on lines, with SVG and PNG copies
 
 ### Removed
 

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Excalidraw Diagram"
+  short_description: "Draw architecture, flow, sequence, and ER diagrams as checked Excalidraw files with SVG and PNG copies"
+  default_prompt: "Use $excalidraw-diagram to draw a diagram of how the parts of this project connect."
+
+policy:
+  allow_implicit_invocation: true

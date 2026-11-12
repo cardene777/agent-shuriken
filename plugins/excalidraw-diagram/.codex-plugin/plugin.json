@@ -1,0 +1,33 @@
+{
+  "name": "excalidraw-diagram",
+  "version": "0.1.0",
+  "description": "Draw architecture, flow, sequence, and ER diagrams as Excalidraw files laid out by a script, checked for overlaps, crowded spacing, and labels on lines, with SVG and PNG copies and no downloads",
+  "author": {
+    "name": "cardene777",
+    "url": "https://github.com/cardene777"
+  },
+  "homepage": "https://github.com/cardene777/agent-shuriken/tree/main/plugins/excalidraw-diagram",
+  "repository": "https://github.com/cardene777/agent-shuriken",
+  "license": "MIT",
+  "keywords": [
+    "diagram",
+    "excalidraw",
+    "architecture",
+    "mermaid",
+    "svg"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Excalidraw Diagram",
+    "shortDescription": "Draw diagrams for Excalidraw",
+    "longDescription": "Draws architecture, flow, sequence, and entity-relationship diagrams as .excalidraw files you can open and keep editing in the Excalidraw editor. The agent writes a small JSON spec of nodes, edges, groups, and labels, or converts a Mermaid flowchart or sequence diagram, and a Python script computes every coordinate: tiers centered on one line, zones around groups, arrows bound to their shapes and routed in straight stretches around other shapes, and labels placed beside their arrows. Before anything is written, the script checks for overlapping shapes, shapes closer than 40 px, text that does not fit its shape, small text, labels crossed by lines, arrows through shapes, and arrows that are not bound, and it widens the spacing or stops with the reasons. It writes an SVG itself and a PNG only when Chrome, Chromium, or Edge is already installed. It downloads nothing, uses no network, and never replaces a file you edited without asking. The plugin is not made by the Excalidraw project.",
+    "developerName": "cardene777",
+    "category": "Developer Tools",
+    "capabilities": [],
+    "defaultPrompt": [
+      "Draw a diagram of how the parts of this project connect"
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
+  }
+}

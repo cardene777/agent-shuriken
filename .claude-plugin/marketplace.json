@@ -26,6 +26,11 @@
       "description": "Write the public documentation of an open source project in five parts, Quickstart, Concepts, API reference, Cookbook, and FAQ, in English and a second language you pick, with every page's translation and every relative link checked"
     },
     {
+      "name": "excalidraw-diagram",
+      "source": "./plugins/excalidraw-diagram",
+      "description": "Draw architecture, flow, sequence, and ER diagrams as Excalidraw files laid out by a script, checked for overlaps, crowded spacing, and labels on lines, with SVG and PNG copies and no downloads"
+    },
+    {
       "name": "feedback-loop",
       "source": "./plugins/feedback-loop",
       "description": "When you correct an agent's work, record the correction, fix the files, have an evaluator that edits nothing judge the fix, and repeat until it passes, keeping the lesson as a check or a rule for next time"
