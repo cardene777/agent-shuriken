@@ -31,6 +31,11 @@
       "description": "When you correct an agent's work, record the correction, fix the files, have an evaluator that edits nothing judge the fix, and repeat until it passes, keeping the lesson as a check or a rule for next time"
     },
     {
+      "name": "init-project",
+      "source": "./plugins/init-project",
+      "description": "Set up a project for local work: pick a free local port, add a Docker setup, and link its env files to 1Password with references, writing each file only after you approve it"
+    },
+    {
       "name": "learning-to-skill",
       "source": "./plugins/learning-to-skill",
       "description": "Write the lessons from a session into the instruction files your agents read, such as AGENTS.md, CLAUDE.md, GEMINI.md, Copilot's instructions, or a skill's SKILL.md, in the right place and without duplicates, only after you approve the diff"
