@@ -7,6 +7,21 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-12
+
+### Plugins
+
+| Plugin | Version |
+|---|---|
+| account-cleanup | 0.2.0 |
+| compare-report | 0.2.0 |
+| diagram-explainer | 0.2.0 |
+| doc-review | 0.2.0 |
+| pc-tidy | 0.2.0 |
+| root-cause | 0.2.0 |
+| secure-dotfile | 0.2.0 |
+| techdebt | 0.2.0 |
+
 ### Changed
 
 - Every plugin works in GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`, and the READMEs and Getting started show how to install, run, update, and remove them there
@@ -121,7 +136,8 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 - First public release with the account-cleanup and pc-tidy plugins, installable from this marketplace in Claude Code and Codex
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.6.0
 [0.5.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.5.0
 [0.4.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.4.0
 [0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.3.0

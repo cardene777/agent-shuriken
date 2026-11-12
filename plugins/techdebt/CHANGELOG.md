@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-12
+
 - Works in GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`, and the README shows how to install it there
 
 ## [0.1.0] - 2026-11-12
@@ -18,5 +20,6 @@ First public release.
 - Writes one HTML report with a tab per measure, an English and Japanese switch, and pages of 50 rows, which loads nothing from the network
 - Starts when you ask about technical debt, or when you call it, in Claude Code and in Codex
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/techdebt--v0.1.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/techdebt--v0.2.0...HEAD
+[0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/techdebt--v0.2.0
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/techdebt--v0.1.0

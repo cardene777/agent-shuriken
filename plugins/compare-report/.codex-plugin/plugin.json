@@ -1,6 +1,6 @@
 {
   "name": "compare-report",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Research the candidates for a choice and write an HTML and PDF comparison report, with a source for every claim and a rationale for every score",
   "author": {
     "name": "cardene777",
