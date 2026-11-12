@@ -7,14 +7,28 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-12
+
+### Plugins
+
+| Plugin | Version |
+|---|---|
+| account-cleanup | 0.1.1 |
+| compare-report | 0.1.0 |
+| pc-tidy | 0.1.1 |
+| root-cause | 0.1.0 |
+
 ### Added
 
+- The compare-report plugin, which researches the candidates for a choice and writes an HTML and PDF comparison report
 - The root-cause plugin, which finds the cause of a bug from evidence before fixing it
 - The repository has an icon in `assets/icon.svg`, shown at the top of the README
 
 ### Changed
 
 - The plugin table in the README shows how to run each plugin in Claude Code and Codex
+- The marketplace describes the collection as careful plugins for Claude Code and Codex, no longer only housekeeping ones
+- The safety page says that the pick page applies to plugins that delete or cancel something, and the rules for kept files to plugins that keep files
 
 ## [0.2.1] - 2026-11-12
 
@@ -62,7 +76,8 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 - First public release with the account-cleanup and pc-tidy plugins, installable from this marketplace in Claude Code and Codex
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.3.0
 [0.2.1]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.2.1
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.2.0
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.1.0

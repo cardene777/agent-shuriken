@@ -1,0 +1,20 @@
+{
+  "name": "compare-report",
+  "displayName": "Compare Report",
+  "version": "0.1.0",
+  "description": "Research the candidates for a choice and write an HTML and PDF comparison report, with a source for every claim and a rationale for every score",
+  "author": {
+    "name": "cardene777",
+    "url": "https://github.com/cardene777"
+  },
+  "homepage": "https://github.com/cardene777/agent-shuriken/tree/main/plugins/compare-report",
+  "repository": "https://github.com/cardene777/agent-shuriken",
+  "license": "MIT",
+  "keywords": [
+    "comparison",
+    "research",
+    "report",
+    "selection",
+    "pdf"
+  ]
+}
