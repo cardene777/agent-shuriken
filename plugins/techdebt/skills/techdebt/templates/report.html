@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}} tech debt</title>
+<style>
+:root {
+  --bg: #f7f7f5; --fg: #1d2024; --muted: #5d636b; --card: #ffffff; --line: #e3e3de;
+  --accent: #9a6a12; --accent-soft: #f6ecd8; --bar: #c8901f; --bar2: #e7c98d;
+  --code: #f1f1ed; --good: #2f7a4a; --warn: #b4364a;
+  --radius: 10px; --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17191c; --fg: #e8e8e4; --muted: #a2a7ad; --card: #202328; --line: #33373d;
+    --accent: #e0a63a; --accent-soft: #3a3020; --bar: #d29a2f; --bar2: #6d5428;
+    --code: #2a2d32; --good: #6cc08d; --warn: #f07f8f;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.6 var(--font); }
+header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 16px 24px; border-bottom: 1px solid var(--line); background: var(--card); }
+header h1 { margin: 0; font-size: 20px; }
+header .meta { color: var(--muted); font-size: 13px; }
+.lang { display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.lang button { border: 0; background: transparent; color: var(--fg); padding: 6px 14px; font: inherit; cursor: pointer; }
+.lang button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+main { max-width: 1200px; margin: 0 auto; padding: 20px 16px 48px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px;
+  text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.card:hover { border-color: var(--accent); }
+.card .n { font-size: 26px; font-weight: 700; }
+.card .l { color: var(--muted); font-size: 13px; }
+.tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
+.tabs button { border: 0; background: transparent; color: var(--muted); padding: 10px 14px; font: inherit;
+  cursor: pointer; white-space: nowrap; border-bottom: 3px solid transparent; }
+.tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); font-weight: 600; }
+.lead { color: var(--muted); margin: 0 0 14px; }
+.rank { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 960px) { .rank { grid-template-columns: 1fr 1fr; } .rank .noted { grid-column: 1 / -1; } }
+.item { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
+.item .top { display: grid; grid-template-columns: auto 1fr; align-items: baseline; gap: 10px; }
+.item .no { color: var(--accent); font-weight: 700; }
+.item .file { font-family: var(--mono); font-size: 14px; word-break: break-all; }
+.item .file .dir { color: var(--muted); }
+.item .file b { font-weight: 700; }
+.score { height: 6px; background: var(--code); border-radius: 3px; margin: 8px 0; }
+.score span { display: block; height: 100%; background: var(--bar); border-radius: 3px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { background: var(--accent-soft); border-radius: 999px; padding: 2px 10px; font-size: 13px; }
+.note { margin-top: 10px; display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; font-size: 14px; }
+.note dt { color: var(--muted); }
+.note dd { margin: 0; }
+table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--radius); overflow: hidden; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 14px; }
+th { background: var(--code); font-weight: 600; }
+td.num, th.num { text-align: right; white-space: nowrap; }
+td code, .mono { font-family: var(--mono); font-size: 13px; word-break: break-all; }
+.tablewrap { overflow-x: auto; }
+.pager { display: flex; justify-content: center; align-items: center; gap: 4px; margin: 12px 0; flex-wrap: wrap; }
+.pager button { min-width: 36px; padding: 6px 10px; border: 1px solid var(--line); background: var(--card);
+  color: var(--fg); border-radius: 6px; font: inherit; cursor: pointer; }
+.pager button[aria-current="page"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.pager button:disabled { opacity: 0.4; cursor: default; }
+.chart { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; margin-bottom: 16px; }
+.chart svg { width: 100%; height: auto; display: block; }
+.chart text { fill: var(--fg); font: 12px var(--font); }
+.chart .lbl { fill: var(--muted); }
+.legend { display: flex; gap: 16px; font-size: 13px; color: var(--muted); margin: 4px 4px 0; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.tool { margin-bottom: 20px; }
+.tool h3 { margin: 0 0 6px; font-size: 16px; }
+.empty { background: var(--card); border: 1px dashed var(--line); border-radius: var(--radius); padding: 16px; color: var(--muted); }
+@media (max-width: 640px) {
+  header { padding: 12px 16px; }
+  main { padding: 16px 16px 40px; }
+  th, td { padding: 6px 8px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1 id="title"></h1>
+    <div class="meta" id="meta"></div>
+  </div>
+  <div class="lang" role="group" aria-label="Language">
+    <button type="button" data-lang="en">English</button>
+    <button type="button" data-lang="ja">日本語</button>
+  </div>
+</header>
+<main>
+  <section class="cards" id="cards"></section>
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+  <section id="panel" role="tabpanel"></section>
+</main>
+<script>
+const PAYLOAD = /*TECHDEBT_DATA*/null;
+const I18N = {
+  en: {
+    title: "{p}: technical debt",
+    meta: "{head} on {branch}, {files} source files, {commits} commits in the last {months} months, generated {at}",
+    metaNoGit: "Not a git repository, {files} source files, generated {at}",
+    start: "Start here", hotspots: "Hotspots", markers: "Markers", untested: "Untested", functions: "Long functions",
+    large: "Large files", dup: "Duplication", tools: "Tools",
+    cStart: "files ranked", cHot: "hotspots", cMarkers: "markers", cUntested: "untested files",
+    cFunctions: "long functions", cLarge: "large files", cDup: "duplicated lines",
+    leadStart: "Files ranked by how often they change, their size, long functions, markers, duplication, and missing tests. Fixing the top files pays off first, because people keep working in them.",
+    leadHot: "Files changed 2 or more times in the last {months} months, ranked by changes multiplied by non-blank lines.",
+    leadMarkers: "TODO, FIXME, HACK, XXX, and deprecation markers in comments, oldest first. The age comes from git blame.",
+    leadUntested: "Source files of 20 or more lines with no test file of a matching name (for example foo.py and test_foo.py). Busiest first.",
+    leadFunctions: "Functions over {n} lines. Python is measured exactly; other languages by matching braces, so treat those as approximate.",
+    leadLarge: "Source files over {n} non-blank lines.",
+    leadDup: "Blocks of {n} or more lines, ignoring whitespace, imports, and comments, that appear in two places.",
+    leadTools: "Tools that were already installed in the project or on PATH. Nothing is downloaded.",
+    what: "What", why: "Why it costs", action: "First step",
+    rChanges: "changed {v} times", rChangesOne: "changed once", rLines: "{v} lines", rLong: "{v} long functions", rLongOne: "1 long function", rMarkers: "marker weight {v}",
+    rDup: "{v} duplicated lines", rUntested: "no test file",
+    file: "File", changes: "Changes", lines: "Lines", product: "Changes × lines", kind: "Kind", age: "Age", text: "Line",
+    fn: "Function", range: "Lines in file", length: "Length", complexity: "Branches", measure: "Measured",
+    exact: "exact", approx: "approximate", first: "First place", second: "Second place", rule: "Rule", message: "Finding",
+    notCommitted: "not committed", days: "{n} days", months: "{n} months", years: "{n} years {m} months",
+    nothing: "Nothing found.", notRun: "Not run: {r}", ran: "{n} findings",
+    prev: "Previous", next: "Next", page: "Page {n}",
+    chartChanges: "changes", chartLines: "non-blank lines"
+  },
+  ja: {
+    title: "{p}の技術的負債",
+    meta: "{branch}の{head}、ソースファイル{files}個、直近{months}か月のコミット{commits}件、{at}に作成",
+    metaNoGit: "gitのリポジトリではありません、ソースファイル{files}個、{at}に作成",
+    start: "最初に直す物", hotspots: "変更の集中", markers: "目印", untested: "テストの無いファイル", functions: "長い関数",
+    large: "大きいファイル", dup: "重複", tools: "道具",
+    cStart: "順位付け", cHot: "変更の集中", cMarkers: "目印", cUntested: "テスト無し",
+    cFunctions: "長い関数", cLarge: "大きいファイル", cDup: "重複した行",
+    leadStart: "変更の回数、大きさ、長い関数、目印、重複、テストの有無を合わせて順位を付けたファイルです。人がよく手を入れるファイルなので、上から直すほど効き目が大きくなります。",
+    leadHot: "直近{months}か月に2回以上変更したファイルを、変更の回数と空行を除いた行数の積の順に並べています。",
+    leadMarkers: "コメントにあるTODO、FIXME、HACK、XXXと、非推奨の目印です。古い順に並べ、古さはgit blameで調べています。",
+    leadUntested: "20行以上のソースファイルのうち、名前の合うテストファイル(foo.pyに対するtest_foo.pyなど)が無い物です。変更の多い順に並べています。",
+    leadFunctions: "{n}行を超える関数です。Pythonは正確に測り、ほかの言語は波括弧の対応で測るので、目安として見てください。",
+    leadLarge: "空行を除いて{n}行を超えるソースファイルです。",
+    leadDup: "空白、import、コメントを除いて{n}行以上同じ並びが2か所にある部分です。",
+    leadTools: "プロジェクトかPATHにすでに入っていた道具の結果です。何も取り寄せていません。",
+    what: "何か", why: "負担になる理由", action: "最初の一手",
+    rChanges: "変更{v}回", rChangesOne: "変更1回", rLines: "{v}行", rLong: "長い関数{v}個", rLongOne: "長い関数1個", rMarkers: "目印の重み{v}",
+    rDup: "重複{v}行", rUntested: "テストファイル無し",
+    file: "ファイル", changes: "変更回数", lines: "行数", product: "変更回数×行数", kind: "種類", age: "古さ", text: "行",
+    fn: "関数", range: "ファイル内の行", length: "長さ", complexity: "分岐の数", measure: "測り方",
+    exact: "正確", approx: "目安", first: "1か所目", second: "2か所目", rule: "規則", message: "内容",
+    notCommitted: "未コミット", days: "{n}日", months: "{n}か月", years: "{n}年{m}か月",
+    nothing: "見つかりませんでした。", notRun: "動かしていません。{r}", ran: "{n}件",
+    prev: "前へ", next: "次へ", page: "{n}ページ",
+    chartChanges: "変更回数", chartLines: "空行を除いた行数"
+  }
+};
+const D = PAYLOAD.data, NOTES = PAYLOAD.notes || {};
+const PAGE = 50;
+let lang = "en", tab = "start";
+const pages = {};
+try { const s = localStorage.getItem("techdebt-lang"); if (s === "ja" || s === "en") lang = s; } catch (e) {}
+function show(id) {
+  tab = id;
+  try { history.replaceState(null, "", "#" + id); } catch (e) {}
+  render();
+}
+
+function t(key, vars) {
+  let s = (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key;
+  for (const k in (vars || {})) s = s.split("{" + k + "}").join(String(vars[k]));
+  return s;
+}
+function el(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const k in (attrs || {})) {
+    if (k === "class") e.className = attrs[k];
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), attrs[k]);
+    else e.setAttribute(k, attrs[k]);
+  }
+  for (const c of kids.flat()) if (c != null) e.append(c.nodeType ? c : document.createTextNode(String(c)));
+  return e;
+}
+function age(d) {
+  if (d == null) return t("notCommitted");
+  if (d < 60) return t("days", {n: d});
+  if (d < 730) return t("months", {n: Math.round(d / 30.4)});
+  const y = Math.floor(d / 365.25), m = Math.floor((d - y * 365.25) / 30.4);
+  return t("years", {n: y, m: m});
+}
+function reason(r) {
+  if (r.key === "changes" && r.value === 1) return t("rChangesOne");
+  if (r.key === "long_functions" && r.value === 1) return t("rLongOne");
+  const key = {changes: "rChanges", lines: "rLines", long_functions: "rLong", markers: "rMarkers", dup_lines: "rDup", untested: "rUntested"}[r.key];
+  return t(key, {v: r.value});
+}
+
+const TABS = [
+  ["start", "start", () => D.ranked.length],
+  ["hotspots", "hotspots", () => D.hotspots.length],
+  ["markers", "markers", () => D.markers.length],
+  ["untested", "untested", () => D.untested.length],
+  ["functions", "functions", () => D.functions.length],
+  ["large", "large", () => D.large_files.length],
+  ["dup", "dup", () => D.duplication.length],
+  ["tools", "tools", () => D.tools.length],
+];
+const CARDS = [
+  ["start", "cStart", () => D.ranked.length],
+  ["hotspots", "cHot", () => D.hotspots.length],
+  ["markers", "cMarkers", () => D.markers.length],
+  ["untested", "cUntested", () => D.untested.length],
+  ["functions", "cFunctions", () => D.functions.length],
+  ["large", "cLarge", () => D.large_files.length],
+  ["dup", "cDup", () => D.duplication.reduce((a, b) => a + b.lines, 0)],
+];
+
+function paged(id, rows, head, row) {
+  if (!rows.length) return el("div", {class: "empty"}, t("nothing"));
+  const total = Math.ceil(rows.length / PAGE);
+  const cur = Math.min(pages[id] || 0, total - 1);
+  const go = (p) => { pages[id] = p; render(); };
+  const pager = () => {
+    if (total < 2) return null;
+    const nav = el("nav", {class: "pager", "aria-label": "pages"});
+    nav.append(el("button", {type: "button", onclick: () => go(cur - 1), ...(cur === 0 ? {disabled: ""} : {})}, t("prev")));
+    for (let i = 0; i < total; i++) {
+      if (total > 9 && i > 1 && i < total - 2 && Math.abs(i - cur) > 1) {
+        if (i === 2 || i === total - 3) nav.append(el("span", null, "…"));
+        continue;
+      }
+      nav.append(el("button", {type: "button", "aria-label": t("page", {n: i + 1}), onclick: () => go(i),
+        ...(i === cur ? {"aria-current": "page"} : {})}, i + 1));
+    }
+    nav.append(el("button", {type: "button", onclick: () => go(cur + 1), ...(cur === total - 1 ? {disabled: ""} : {})}, t("next")));
+    return nav;
+  };
+  const body = rows.slice(cur * PAGE, cur * PAGE + PAGE).map(row);
+  const table = el("table", null,
+    el("thead", null, el("tr", null, head.map(([k, num]) => el("th", num ? {class: "num"} : null, t(k))))),
+    el("tbody", null, body));
+  return el("div", null, pager(), el("div", {class: "tablewrap"}, table), pager());
+}
+const td = (v, num) => el("td", num ? {class: "num"} : null, v);
+const tdc = (v) => el("td", null, el("code", null, v));
+
+function hotChart() {
+  const rows = D.hotspots.slice(0, 15);
+  if (!rows.length) return null;
+  const W = 760, rowH = 26, left = 300, H = rows.length * rowH + 10;
+  const maxC = Math.max(...rows.map(r => r.changes)), maxL = Math.max(...rows.map(r => r.lines));
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("role", "img");
+  const mk = (tag, a, txt) => { const e = document.createElementNS(ns, tag); for (const k in a) e.setAttribute(k, a[k]); if (txt != null) e.textContent = txt; svg.append(e); return e; };
+  const span = W - left - 70;
+  rows.forEach((r, i) => {
+    const y = i * rowH + 4;
+    const name = r.file.length > 42 ? "…" + r.file.slice(-41) : r.file;
+    mk("text", {x: left - 8, y: y + 12, "text-anchor": "end", class: "lbl"}, name);
+    mk("rect", {x: left, y: y, width: Math.max(2, span * r.changes / maxC), height: 9, rx: 2, fill: "var(--bar)"});
+    mk("rect", {x: left, y: y + 11, width: Math.max(2, span * r.lines / maxL), height: 9, rx: 2, fill: "var(--bar2)"});
+    mk("text", {x: left + span * r.changes / maxC + 6, y: y + 9}, r.changes);
+    mk("text", {x: left + span * r.lines / maxL + 6, y: y + 20, class: "lbl"}, r.lines);
+  });
+  return el("div", {class: "chart"}, svg,
+    el("div", {class: "legend"},
+      el("span", null, el("i", {style: "background:var(--bar)"}), t("chartChanges")),
+      el("span", null, el("i", {style: "background:var(--bar2)"}), t("chartLines"))));
+}
+
+const PANELS = {
+  start() {
+    const box = el("div", null, el("p", {class: "lead"}, t("leadStart")));
+    if (!D.ranked.length) return box.appendChild(el("div", {class: "empty"}, t("nothing"))) && box;
+    const list = el("div", {class: "rank"});
+    D.ranked.forEach((r, i) => {
+      const n = NOTES[r.file];
+      const item = el("article", {class: n ? "item noted" : "item"},
+        el("div", {class: "top"}, el("span", {class: "no"}, i + 1),
+          el("span", {class: "file"}, el("span", {class: "dir"}, r.file.slice(0, r.file.lastIndexOf("/") + 1)),
+            el("b", null, r.file.slice(r.file.lastIndexOf("/") + 1)))),
+        el("div", {class: "score", title: r.score}, el("span", {style: `width:${Math.round(r.score * 100)}%`})),
+        el("div", {class: "chips"}, r.reasons.map(x => el("span", {class: "chip"}, reason(x)))));
+      if (n) item.append(el("dl", {class: "note"},
+        el("dt", null, t("what")), el("dd", null, n.what),
+        el("dt", null, t("why")), el("dd", null, n.why),
+        el("dt", null, t("action")), el("dd", null, n.action)));
+      list.append(item);
+    });
+    box.append(list);
+    return box;
+  },
+  hotspots() {
+    return el("div", null, el("p", {class: "lead"}, t("leadHot", {months: D.months})), hotChart(),
+      paged("hot", D.hotspots, [["file"], ["changes", 1], ["lines", 1], ["product", 1]],
+        r => el("tr", null, tdc(r.file), td(r.changes, 1), td(r.lines, 1), td(r.changes * r.lines, 1))));
+  },
+  markers() {
+    return el("div", null, el("p", {class: "lead"}, t("leadMarkers")),
+      paged("markers", D.markers, [["file"], ["kind"], ["age", 1], ["text"]],
+        m => el("tr", null, tdc(m.file + ":" + m.line), td(m.kind), td(age(m.age_days), 1), tdc(m.text))));
+  },
+  untested() {
+    return el("div", null, el("p", {class: "lead"}, t("leadUntested")),
+      paged("untested", D.untested, [["file"], ["changes", 1], ["lines", 1]],
+        r => el("tr", null, tdc(r.file), td(r.changes, 1), td(r.lines, 1))));
+  },
+  functions() {
+    return el("div", null, el("p", {class: "lead"}, t("leadFunctions", {n: D.thresholds.long_function})),
+      paged("functions", D.functions, [["file"], ["fn"], ["range", 1], ["length", 1], ["complexity", 1], ["measure"]],
+        f => el("tr", null, tdc(f.file), tdc(f.name), td(f.start + "–" + f.end, 1), td(f.lines, 1), td(f.complexity, 1), td(t(f.exact ? "exact" : "approx")))));
+  },
+  large() {
+    return el("div", null, el("p", {class: "lead"}, t("leadLarge", {n: D.thresholds.large_file})),
+      paged("large", D.large_files, [["file"], ["lines", 1]], f => el("tr", null, tdc(f.file), td(f.lines, 1))));
+  },
+  dup() {
+    return el("div", null, el("p", {class: "lead"}, t("leadDup", {n: D.thresholds.duplicate_lines})),
+      paged("dup", D.duplication, [["first"], ["second"], ["lines", 1]],
+        d => el("tr", null, tdc(`${d.a}:${d.a_start}–${d.a_end}`), tdc(`${d.b}:${d.b_start}–${d.b_end}`), td(d.lines, 1))));
+  },
+  tools() {
+    const box = el("div", null, el("p", {class: "lead"}, t("leadTools")));
+    if (!D.tools.length) return box.appendChild(el("div", {class: "empty"}, t("nothing"))) && box;
+    for (const tool of D.tools) {
+      const sec = el("section", {class: "tool"}, el("h3", null, tool.tool + " — " + (tool.ran ? t("ran", {n: tool.findings.length}) : t("notRun", {r: tool.reason}))));
+      if (tool.ran) sec.append(paged("tool-" + tool.tool, tool.findings, [["file"], ["rule"], ["message"]],
+        f => el("tr", null, tdc(f.file + (f.line ? ":" + f.line : "")), tdc(f.rule), td(f.message))));
+      box.append(sec);
+    }
+    return box;
+  },
+};
+
+function render() {
+  document.documentElement.lang = lang;
+  document.title = t("title", {p: D.project});
+  document.getElementById("title").textContent = t("title", {p: D.project});
+  document.getElementById("meta").textContent = D.git
+    ? t("meta", {head: D.head, branch: D.branch, files: D.files, commits: D.commits, months: D.months, at: D.generated_at.slice(0, 16).replace("T", " ")})
+    : t("metaNoGit", {files: D.files, at: D.generated_at.slice(0, 16).replace("T", " ")});
+  for (const b of document.querySelectorAll(".lang button")) b.setAttribute("aria-pressed", String(b.dataset.lang === lang));
+  const cards = document.getElementById("cards");
+  cards.replaceChildren(...CARDS.map(([id, key, n]) => el("button", {type: "button", class: "card", onclick: () => show(id)},
+    el("div", {class: "n"}, n()), el("div", {class: "l"}, t(key)))));
+  const tabs = document.getElementById("tabs");
+  tabs.replaceChildren(...TABS.map(([id, key]) => el("button", {type: "button", role: "tab", "aria-selected": String(id === tab),
+    onclick: () => show(id)}, t(key))));
+  document.getElementById("panel").replaceChildren(PANELS[tab]());
+}
+for (const b of document.querySelectorAll(".lang button")) b.addEventListener("click", () => {
+  lang = b.dataset.lang;
+  try { localStorage.setItem("techdebt-lang", lang); } catch (e) {}
+  render();
+});
+if (PANELS[location.hash.slice(1)]) tab = location.hash.slice(1);
+render();
+</script>
+</body>
+</html>

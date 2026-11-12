@@ -30,6 +30,8 @@ JA_ALLOWED=(
   plugins/diagram-explainer/skills/diagram-explainer/examples/content.sample.ja.json
   plugins/diagram-explainer/skills/diagram-explainer/examples/ladders/checkout-ja.json
   plugins/diagram-explainer/skills/diagram-explainer/tests/test-render.sh
+  plugins/techdebt/skills/techdebt/templates/report.html
+  plugins/techdebt/skills/techdebt/tests/test-techdebt.sh
 )
 # Third-party files copied unmodified; they are checked only for valid syntax.
 VENDORED=(plugins/account-cleanup/skills/account-cleanup/data/sites.json)

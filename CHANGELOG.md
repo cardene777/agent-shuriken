@@ -10,6 +10,7 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 ### Added
 
 - The secure-dotfile plugin, which moves the API keys and tokens written into shell startup files into the macOS Keychain without the agent seeing any value
+- The techdebt plugin, which ranks the files most worth fixing by combining how often they change with their size, old TODO comments, missing tests, long functions, and duplication
 
 ## [0.4.0] - 2026-11-12
 

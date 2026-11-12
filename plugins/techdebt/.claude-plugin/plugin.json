@@ -1,0 +1,19 @@
+{
+  "name": "techdebt",
+  "displayName": "Tech Debt",
+  "version": "0.1.0",
+  "description": "Rank the files most worth fixing by combining how often they change with their size, old TODO comments, missing tests, long functions, and duplication, without downloading anything",
+  "author": {
+    "name": "cardene777",
+    "url": "https://github.com/cardene777"
+  },
+  "homepage": "https://github.com/cardene777/agent-shuriken/tree/main/plugins/techdebt",
+  "repository": "https://github.com/cardene777/agent-shuriken",
+  "license": "MIT",
+  "keywords": [
+    "technical-debt",
+    "refactoring",
+    "code-quality",
+    "hotspots"
+  ]
+}

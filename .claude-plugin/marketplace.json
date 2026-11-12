@@ -34,6 +34,11 @@
       "name": "secure-dotfile",
       "source": "./plugins/secure-dotfile",
       "description": "Find API keys and tokens written into your shell startup files and move the ones you pick into the macOS Keychain, without the agent seeing any value"
+    },
+    {
+      "name": "techdebt",
+      "source": "./plugins/techdebt",
+      "description": "Rank the files most worth fixing by combining how often they change with their size, old TODO comments, missing tests, long functions, and duplication, without downloading anything"
     }
   ]
 }
