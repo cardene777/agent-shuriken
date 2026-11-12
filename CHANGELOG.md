@@ -7,6 +7,10 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ## [Unreleased]
 
+### Added
+
+- The repo-progress plugin, which shows every repository you work on in one table, with worktrees, open issues and pull requests, uncommitted files, and the ones that have stalled first, without changing anything
+
 ### Removed
 
 - The root-cause, doc-review, and pc-tidy plugins are no longer offered in the marketplace, because they are no longer maintained here. Copies already installed keep working, and their past releases and tags stay available
