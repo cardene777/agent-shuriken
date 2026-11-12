@@ -28,6 +28,7 @@ English · [日本語](README.ja.md)
 | [diagram-explainer](plugins/diagram-explainer) | Writes an explainer with a figure drawn in every section as one HTML file, built from JSON and checked before you share it | `/diagram-explainer:diagram-explainer` in Claude Code, or **Diagram Explainer** after typing `$` in Codex. It also starts when you ask for an explainer | [0.1.0](plugins/diagram-explainer/CHANGELOG.md) |
 | [pc-tidy](plugins/pc-tidy) | Lists what has gone unused on your Mac and deletes only the items you pick, to free up disk space | `/pc-tidy:pc-tidy` in Claude Code, or **PC Tidy** after typing `$` in Codex. It starts only when you call it | [0.1.1](plugins/pc-tidy/CHANGELOG.md) |
 | [root-cause](plugins/root-cause) | Finds the cause of a bug from evidence before changing any code, then fixes only the cause, starting with a test that fails | `/root-cause:root-cause` in Claude Code, or **Root Cause** after typing `$` in Codex. It also starts when you describe a bug | [0.1.0](plugins/root-cause/CHANGELOG.md) |
+| [secure-dotfile](plugins/secure-dotfile) | Finds API keys and tokens written into your shell startup files and moves the ones you pick into the macOS Keychain, without the agent seeing any value | `/secure-dotfile:secure-dotfile` in Claude Code, or **Secure Dotfile** after typing `$` in Codex. It also starts when you mention a secret in your shell configuration | [0.1.0](plugins/secure-dotfile/CHANGELOG.md) |
 
 Each plugin's README explains what it does, what it reads and sends, and what it needs.
 

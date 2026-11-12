@@ -15,6 +15,7 @@ Each directory takes one plugin folder at a time, and a maintainer submits it fr
 | diagram-explainer | Ready to submit. Its name is made of generic words, so a version may be held for a reviewer | Ready to upload, with its icon set the same way |
 | pc-tidy | Ready to submit | Ready to upload, with its icon set the same way |
 | root-cause | Ready to submit. Its name is made of generic words, so a version may be held for a reviewer | Ready to upload, with its icon set the same way |
+| secure-dotfile | Ready to submit | Ready to upload, with its icon set the same way |
 
 Names made only of generic words can also be held for a reviewer in Anthropic's directory.
 
@@ -64,12 +65,12 @@ The listing text comes from `interface` in `.codex-plugin/plugin.json`, where `d
 
 ## Answers to the data handling questions
 
-| Question | account-cleanup | compare-report | diagram-explainer | pc-tidy | root-cause |
-|---|---|---|---|---|---|
-| Reads personal data | Service names, URLs, and dates from your password managers and browser, read on your machine. It never reads passwords | No. It reads public web pages about the candidates | The code and documents you point to, read on your machine, and public pages about standards and products | File names, sizes, and dates in your home folder, read on your machine | The code, tests, and logs of the project you are working on, read on your machine. It never prints the values of environment variables |
-| Stores personal data | Only on your machine, in `~/.local/share/account-cleanup/`, readable only by you | No. It stores the report in `~/.local/share/compare-report/`, readable only by you | No. It writes the document and its JSON source to a folder in your project | Only on your machine, in `~/.local/share/pc-tidy/` | No. It edits only files in your project, to reproduce and fix the bug |
-| Sends data elsewhere | A `HEAD` request to each candidate's domain, and the sign-in and deletion steps on services you approve. Web searches use only service names and domains | Web searches with only the topic and the names of candidates and vendors | Web searches with only the names of the topic, standards, products, and vendors | Nothing | Nothing |
-| Keeps data for | Until you finish. The candidate list, the sheet, and the browser profile are deleted then | Until you delete the report's folder. The browser profile used to print the PDF is deleted right after printing | Until you delete the document's folder. The browser profile used to measure the layout or print the PDF is deleted right after | Until you delete the settings folder | Nothing is kept. Logging and temporary files it adds are removed before it reports |
-| Intended for people under 18 | No | No | No | No | No |
+| Question | account-cleanup | compare-report | diagram-explainer | pc-tidy | root-cause | secure-dotfile |
+|---|---|---|---|---|---|---|
+| Reads personal data | Service names, URLs, and dates from your password managers and browser, read on your machine. It never reads passwords | No. It reads public web pages about the candidates | The code and documents you point to, read on your machine, and public pages about standards and products | File names, sizes, and dates in your home folder, read on your machine | The code, tests, and logs of the project you are working on, read on your machine. It never prints the values of environment variables | Variable names, file names, and line numbers in your shell startup files, read on your machine. Values are read only inside the script and never shown to the agent |
+| Stores personal data | Only on your machine, in `~/.local/share/account-cleanup/`, readable only by you | No. It stores the report in `~/.local/share/compare-report/`, readable only by you | No. It writes the document and its JSON source to a folder in your project | Only on your machine, in `~/.local/share/pc-tidy/` | No. It edits only files in your project, to reproduce and fix the bug | Only the values you pick, in your macOS Keychain. It keeps no files of its own |
+| Sends data elsewhere | A `HEAD` request to each candidate's domain, and the sign-in and deletion steps on services you approve. Web searches use only service names and domains | Web searches with only the topic and the names of candidates and vendors | Web searches with only the names of the topic, standards, products, and vendors | Nothing | Nothing | Nothing |
+| Keeps data for | Until you finish. The candidate list, the sheet, and the browser profile are deleted then | Until you delete the report's folder. The browser profile used to print the PDF is deleted right after printing | Until you delete the document's folder. The browser profile used to measure the layout or print the PDF is deleted right after | Until you delete the settings folder | Nothing is kept. Logging and temporary files it adds are removed before it reports | In the Keychain until you delete the item. Nothing else is kept |
+| Intended for people under 18 | No | No | No | No | No | No |
 
 Each plugin's `docs/how-it-works.md` has the details behind these answers.

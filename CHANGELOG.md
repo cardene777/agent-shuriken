@@ -7,6 +7,10 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ## [Unreleased]
 
+### Added
+
+- The secure-dotfile plugin, which moves the API keys and tokens written into shell startup files into the macOS Keychain without the agent seeing any value
+
 ## [0.4.0] - 2026-11-12
 
 ### Plugins

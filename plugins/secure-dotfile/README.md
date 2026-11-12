@@ -1,0 +1,79 @@
+# Secure Dotfile
+
+Move the API keys and tokens written into your shell startup files into the macOS Keychain, without your agent ever seeing a value.
+
+English · [日本語](README.ja.md)
+
+A line such as `export OPENAI_API_KEY="sk-..."` in `~/.zshrc` puts the key in every backup, every dotfile repository, and every agent session that reads the file.
+Moving it by hand means pasting the key into a terminal, where it lands in the shell history, and editing each line without a typo.
+This plugin finds those lines and moves the ones you pick into the Keychain.
+Each moved line then reads the value from the Keychain when the shell starts, so your programs see the same environment variable as before.
+Scripts read, store, and check the values, so the agent only ever sees names, locations, kinds, and lengths.
+
+```
+Scan the startup files ──> Pick what to move ──> Store in the Keychain and edit the lines ──> Report and suggest rotation
+ (agent)                    (you)                 (agent)                                     (agent)
+```
+
+## Install
+
+```
+/plugin marketplace add cardene777/agent-shuriken        # Claude Code
+/plugin install secure-dotfile@agent-shuriken
+
+codex plugin marketplace add cardene777/agent-shuriken   # Codex
+codex plugin add secure-dotfile@agent-shuriken
+```
+
+## Use
+
+The plugin starts when you mention a secret in your shell configuration, for example "I have API keys in my .zshrc, move them somewhere safer".
+You can also call it: run `/secure-dotfile:secure-dotfile` in Claude Code, or type `$` and pick **Secure Dotfile** in Codex.
+
+1. The agent scans your shell startup files and lists each secret by name, location, kind, and length, and whether its value is in the file's git history
+2. You pick the secrets to move
+3. The agent stores each one in the Keychain, reads it back, and changes its line to load the value from the Keychain. macOS may ask for your login password to unlock the Keychain
+4. The agent reports what it moved and what it skipped and why, and tells you which keys to rotate because their values are in git history
+
+The scan looks like this.
+
+```text
+Scanned 4 files: ~/.zprofile, ~/.zshrc, ~/.bashrc, ~/.secrets.sh
+Found 2 secrets written into them.
+
+1  GH_TOKEN  ~/.zshrc:12
+   GitHub token, 40 characters, in git history: not in a git repository
+   item     ~/.zshrc:12:GH_TOKEN
+   becomes  export GH_TOKEN="$(security find-generic-password -a "$USER" -s GH_TOKEN -w 2>/dev/null)"
+2  OPENAI_API_KEY  ~/.secrets.sh:3
+   OpenAI API key, 164 characters, in git history: yes
+   item     ~/.secrets.sh:3:OPENAI_API_KEY
+   becomes  export OPENAI_API_KEY="$(security find-generic-password -a "$USER" -s OPENAI_API_KEY -w 2>/dev/null)"
+```
+
+In Codex, approve the commands when the sandbox asks, because they read files in your home folder and use the Keychain.
+
+## Requirements
+
+| Tool | When it's needed |
+|---|---|
+| macOS and its `security` command | To move secrets. The scan also works on Linux |
+| `python3` | Always. The one that ships with macOS works |
+| `git` | To tell whether a value is in a file's git history |
+| `zsh`, `bash`, or `fish` | To check the syntax of an edited file. A file whose shell is missing is edited but not checked |
+| `chezmoi` | Only when your dotfiles are managed by chezmoi |
+
+## What it reads, runs, and sends
+
+[How it works](docs/how-it-works.md) lists every file it scans, what counts as a secret, and each step of a move.
+In short:
+
+- It reads your shell startup files and the files they source, and asks `git` for their history and `chezmoi` for their source files
+- It never prints any part of a value. The values stay inside the script and reach the `security` command on its standard input, never on its command line
+- It stores only the values you pick, in your default keychain, and never overwrites a different value stored under the same name
+- It edits only the lines of the values it moved, keeps each file's permissions and symlinks, and checks the edited file's syntax
+- It connects to nothing on the network and keeps no files of its own
+
+## License
+
+[MIT](LICENSE)
