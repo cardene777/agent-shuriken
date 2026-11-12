@@ -1,0 +1,733 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Accounts you may no longer use</title>
+<style>
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --soft: #eef1f6; --text: #1d2330; --sub: #5b6475; --line: #dfe3ea;
+  --accent: #2f5bd3; --accent-text: #ffffff; --ok: #c8342b; --ok-bg: #fdecea; --ng: #2e7d4f; --ng-bg: #e7f5ec;
+  --easy: #2e7d4f; --medium: #9a6700; --hard: #c25e00; --impossible: #c8342b; --unknown: #6b7280; --prev: #8a5a00; --prev-bg: #fff4dc;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12151b; --panel: #1b2029; --soft: #232a36; --text: #e7eaf0; --sub: #a3abba; --line: #2c3340;
+    --accent: #6d8ff0; --accent-text: #0d1117; --ok: #ff7b72; --ok-bg: #3a1d1b; --ng: #56d38a; --ng-bg: #16301f;
+    --easy: #56d38a; --medium: #e3b341; --hard: #f0883e; --impossible: #ff7b72; --unknown: #9aa3b2; --prev: #e3b341; --prev-bg: #33290f;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif; }
+button { font: inherit; color: inherit; }
+main { max-width: 1280px; margin: 0 auto; padding: 24px 16px 110px; }
+.head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+h1 { font-size: 24px; margin: 0; }
+.icon { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); font-weight: 700; cursor: pointer; }
+.seg.lang { margin-left: auto; flex-shrink: 0; }
+.seg.lang button { font-size: 14px; padding: 4px 12px; }
+.seg.lang button[aria-pressed="true"] { font-weight: 600; }
+.lead { margin: 6px 0 12px; }
+.steps { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; padding: 0; list-style: none; }
+.steps li { display: flex; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 6px 12px; }
+.steps i { font-style: normal; font-weight: 700; color: var(--accent); }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 12px; flex-wrap: wrap; }
+.tabs button { font-weight: 600; color: var(--sub); background: none; border: 0; border-bottom: 3px solid transparent; padding: 10px 14px; cursor: pointer; }
+.tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
+.tabs button[hidden] { display: none; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 4px; }
+.toolbar input, .toolbar select { font: inherit; color: inherit; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
+.toolbar input { flex: 1 1 240px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { background: var(--panel); border: 0; padding: 8px 12px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); }
+.panes { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 16px; align-items: start; }
+.list { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.row:last-child { border-bottom: 0; }
+.row:hover { background: var(--soft); }
+.row[aria-selected="true"] { background: var(--soft); box-shadow: inset 4px 0 0 var(--accent); }
+.row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.row-main { flex: 1; min-width: 0; }
+.row-name { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.row-name b { font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row-name small { color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.one { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.none { color: var(--sub); }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.chip { display: inline-block; font-size: 13px; border: 1px solid var(--line); border-radius: 999px; padding: 0 10px; color: var(--sub); }
+.chip.prev { border-color: transparent; background: var(--prev-bg); color: var(--prev); font-weight: 600; }
+.chip.ok { border-color: transparent; background: var(--ok-bg); color: var(--ok); }
+.chip.ng { border-color: transparent; background: var(--ng-bg); color: var(--ng); }
+.pick { display: inline-flex; gap: 6px; flex-shrink: 0; }
+.pick button { font-size: 15px; font-weight: 600; min-width: 60px; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+.pick button.ok[aria-pressed="true"] { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
+.pick button.ng[aria-pressed="true"] { background: var(--ng-bg); border-color: var(--ng); color: var(--ng); }
+.detail { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; position: sticky; top: 12px; max-height: calc(100vh - 100px); overflow: auto; }
+.detail h2 { font-size: 20px; margin: 0; overflow-wrap: anywhere; }
+.detail .key { color: var(--sub); overflow-wrap: anywhere; }
+.facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 16px; margin: 14px 0; }
+.facts dt { color: var(--sub); }
+.facts dd { margin: 0; overflow-wrap: anywhere; }
+.facts p { margin: 4px 0 0; }
+.facts ul { margin: 0; padding-left: 18px; }
+.diff { font-weight: 600; }
+.diff.easy { color: var(--easy); } .diff.medium { color: var(--medium); } .diff.hard { color: var(--hard); }
+.diff.impossible { color: var(--impossible); } .diff.unknown, .diff.limited, .diff.ended, .diff.gone { color: var(--unknown); }
+.view-ok { color: var(--ok); font-weight: 600; }
+.view-ng { color: var(--ng); font-weight: 600; }
+.visit { display: block; color: var(--sub); }
+.visit.recent { color: var(--ng); font-weight: 600; }
+.decide { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; border-top: 1px solid var(--line); padding-top: 14px; }
+.memo-label { display: block; flex: 1 1 100%; color: var(--sub); }
+.memo { display: block; width: 100%; margin-top: 4px; font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
+.pager { display: flex; justify-content: center; gap: 4px; margin: 12px 0; flex-wrap: wrap; }
+.pager button { min-width: 36px; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+.pager button[aria-current="page"] { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.pager button:disabled { opacity: .4; cursor: default; }
+.empty { text-align: center; color: var(--sub); padding: 32px; }
+.bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--panel); border-top: 1px solid var(--line); }
+.bar div { max-width: 1280px; margin: 0 auto; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.bar span { font-size: 15px; }
+.bar b { font-size: 20px; }
+.bar button { font-weight: 600; background: var(--accent); color: var(--accent-text); border: 0; border-radius: 10px; padding: 12px 22px; cursor: pointer; }
+.toast { position: fixed; left: 50%; bottom: 88px; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 10px; display: none; }
+dialog { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--text); width: min(640px, calc(100vw - 32px)); padding: 20px 24px; }
+dialog::backdrop { background: rgba(0, 0, 0, .4); }
+dialog h2 { font-size: 17px; margin: 16px 0 6px; }
+dialog h2:first-child { margin-top: 0; }
+dialog p { margin: 0 0 6px; }
+dialog textarea { width: 100%; height: 200px; font: 13px/1.5 ui-monospace, Menlo, monospace; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+dialog .close { display: block; margin: 16px 0 0 auto; background: var(--accent); color: var(--accent-text); border: 0; border-radius: 8px; padding: 8px 18px; cursor: pointer; }
+@media (max-width: 860px) {
+  .panes { display: block; }
+  .detail { position: static; max-height: none; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: var(--soft); }
+  .row { flex-wrap: wrap; }
+}
+</style>
+</head>
+<body>
+<main>
+  <div class="head">
+    <h1 data-i18n="title">Accounts you may no longer use</h1>
+    <button type="button" class="icon" id="help-open" data-i18n-aria="helpOpen" aria-label="About this page">?</button>
+    <div class="seg lang" id="lang" role="group" data-i18n-aria="langGroup" aria-label="Language">
+      <button type="button" data-lang="en" lang="en" aria-pressed="true">English</button>
+      <button type="button" data-lang="ja" lang="ja" aria-pressed="false">日本語</button>
+    </div>
+  </div>
+  <p class="lead" data-i18n="lead">These are web services you have signed up for. Pressing buttons on this page does not delete anything.</p>
+  <ol class="steps">
+    <li><i>1</i><span data-i18n="step1">Press OK to delete, Keep to keep. If you are not sure, leave it.</span></li>
+    <li><i>2</i><span data-i18n="step2">Write anything the AI should know in the memo in the details panel</span></li>
+    <li><i>3</i><span data-i18n="step3">Press "Copy OK items" at the bottom and paste the text into the chat</span></li>
+  </ol>
+  <div class="tabs" role="tablist" id="tabs">
+    <button type="button" role="tab" data-t="prev" aria-selected="false" hidden>Left from last round</button>
+    <button type="button" role="tab" data-t="cand" aria-selected="false">Likely unused</button>
+    <button type="button" role="tab" data-t="rest" aria-selected="false">Others</button>
+    <button type="button" role="tab" data-t="all" aria-selected="false">All</button>
+  </div>
+  <div class="toolbar">
+    <input id="q" type="search" data-i18n-placeholder="search" data-i18n-aria="searchLabel" placeholder="Filter by service name or domain" aria-label="Filter">
+    <div class="seg" id="filter" role="group" data-i18n-aria="filterGroup" aria-label="Filter by choice">
+      <button type="button" data-f="all" data-i18n="filterAll" aria-pressed="true">All</button>
+      <button type="button" data-f="none" data-i18n="filterNone" aria-pressed="false">Not chosen</button>
+      <button type="button" data-f="ok" data-i18n="ok" aria-pressed="false">OK</button>
+      <button type="button" data-f="ng" data-i18n="ng" aria-pressed="false">Keep</button>
+    </div>
+    <select id="sort" data-i18n-aria="sortLabel" aria-label="Sort">
+      <option value="prev" data-i18n="sortPrev">By last round's result</option>
+      <option value="old" data-i18n="sortOld">Last updated, oldest first</option>
+      <option value="new" data-i18n="sortNew">Last updated, newest first</option>
+      <option value="name" data-i18n="sortName">Name</option>
+    </select>
+  </div>
+  <div class="pager" id="pager-top"></div>
+  <div class="panes">
+    <div class="list" id="rows" role="listbox" data-i18n-aria="listLabel" aria-label="Services"></div>
+    <aside class="detail" id="detail" aria-live="polite"></aside>
+  </div>
+  <div class="pager" id="pager-bottom"></div>
+</main>
+<div class="bar"><div><span id="tally">OK <b id="count">0</b> · Keep <b id="count-ng">0</b></span><button type="button" id="copy" data-i18n="copy">Copy OK items</button></div></div>
+<div class="toast" id="toast" data-i18n="toast">Copied. Paste it into the chat.</div>
+<dialog id="help">
+  <h2 data-i18n="helpWhatTitle">What this page is</h2>
+  <p data-i18n="helpWhatBody">Only service names, URLs and dates were collected from your password manager (such as 1Password) and the logins saved in your browser. No passwords were read.</p>
+  <h2 data-i18n="helpNextTitle">What happens next</h2>
+  <p data-i18n="helpNextBody">Starting with the services you marked OK, the AI checks for paid plans, cancels any it finds, and deletes the account.</p>
+  <p data-i18n="helpNextYou">You complete two-factor checks, and sign in yourself wherever the AI cannot fill in your login.</p>
+  <h2 data-i18n="helpFieldsTitle">Fields in the details panel</h2>
+  <dl class="facts">
+    <dt data-i18n="fWhat">What it is</dt><dd data-i18n="fWhatHelp">A short description the AI wrote from the name</dd>
+    <dt data-i18n="fPrev">Last round</dt><dd data-i18n="fPrevHelp">Why it could not be deleted last time, and what to do next</dd>
+    <dt data-i18n="fReasons">Why it is listed</dt><dd data-i18n="fReasonsHelp">Why it looks unused</dd>
+    <dt data-i18n="fUpdated">Last updated</dt><dd data-i18n="fUpdatedHelp">When the saved login was last changed (for logins saved in a browser, when it was last used). If the logins were moved over in bulk, this is the date of the move, not when you used the service</dd>
+    <dt data-i18n="fOpened">Last opened</dt><dd id="opened-help">The last time your browser history shows the site being opened. The history only covers a limited period, so no visit does not mean you do not use it</dd>
+    <dt data-i18n="fEffort">Deletion effort</dt><dd data-i18n="fEffortHelp">Easy, Medium, Hard, Impossible (an erasure request is emailed), Unknown (the AI looks it up later)</dd>
+    <dt data-i18n="fView">AI's take</dt><dd data-i18n="fViewHelp">Whether it looks safe to delete or better to keep</dd>
+  </dl>
+  <button type="button" class="close" id="help-close" data-i18n="close">Close</button>
+</dialog>
+<dialog id="fallback">
+  <p data-i18n="fallback">Could not copy automatically. Select all of the text below, copy it, and paste it into the chat.</p>
+  <textarea id="fallback-text" readonly></textarea>
+  <button type="button" class="close" id="fallback-close" data-i18n="close">Close</button>
+</dialog>
+<script type="application/json" id="data">
+__DATA__
+</script>
+<script>
+(function () {
+  "use strict";
+  var PAGE = 50;
+  var STORE = "account-cleanup-choice";
+  var MEMO_STORE = "account-cleanup-memo";
+  var LANG_STORE = "account-cleanup-lang";
+  var data = JSON.parse(document.getElementById("data").textContent) || [];
+  var picks = {};
+  try { picks = JSON.parse(localStorage.getItem(STORE) || "{}") || {}; } catch (e) { picks = {}; }
+  var memos = {};
+  try { memos = JSON.parse(localStorage.getItem(MEMO_STORE) || "{}") || {}; } catch (e) { memos = {}; }
+  var lang = "en";
+  try { lang = localStorage.getItem(LANG_STORE) === "ja" ? "ja" : "en"; } catch (e) { lang = "en"; }
+  var narrow = window.matchMedia("(max-width: 860px)");
+
+  // Every UI string, per language. The text copied by "Copy OK items" never comes from here,
+  // so what plan.sh receives is the same in every language.
+  var I18N = {
+    en: {
+      title: "Accounts you may no longer use",
+      helpOpen: "About this page",
+      langGroup: "Language",
+      lead: "These are web services you have signed up for. Pressing buttons on this page does not delete anything.",
+      step1: "Press OK to delete, Keep to keep. If you are not sure, leave it.",
+      step2: "Write anything the AI should know in the memo in the details panel",
+      step3: "Press \"Copy OK items\" at the bottom and paste the text into the chat",
+      tabPrev: "Left from last round",
+      tabPrevRound: "Left from round {n}",
+      tabCand: "Likely unused",
+      tabRest: "Others",
+      tabAll: "All",
+      search: "Filter by service name or domain",
+      searchLabel: "Filter",
+      filterGroup: "Filter by choice",
+      filterAll: "All",
+      filterNone: "Not chosen",
+      sortLabel: "Sort",
+      sortPrev: "By last round's result",
+      sortOld: "Last updated, oldest first",
+      sortNew: "Last updated, newest first",
+      sortName: "Name",
+      listLabel: "Services",
+      ok: "OK",
+      ng: "Keep",
+      pickAria: "Mark {name} as {choice}",
+      tally: "OK {ok} · Keep {ng}",
+      copy: "Copy OK items",
+      toast: "Copied. Paste it into the chat.",
+      fallback: "Could not copy automatically. Select all of the text below, copy it, and paste it into the chat.",
+      close: "Close",
+      helpWhatTitle: "What this page is",
+      helpWhatBody: "Only service names, URLs and dates were collected from your password manager (such as 1Password) and the logins saved in your browser. No passwords were read.",
+      helpNextTitle: "What happens next",
+      helpNextBody: "Starting with the services you marked OK, the AI checks for paid plans, cancels any it finds, and deletes the account.",
+      helpNextYou: "You complete two-factor checks, and sign in yourself wherever the AI cannot fill in your login.",
+      helpFieldsTitle: "Fields in the details panel",
+      fWhat: "What it is",
+      fWhatHelp: "A short description the AI wrote from the name",
+      fPrev: "Last round",
+      fPrevRound: "Round {n}",
+      fPrevHelp: "Why it could not be deleted last time, and what to do next",
+      fReasons: "Why it is listed",
+      fReasonsHelp: "Why it looks unused",
+      fUpdated: "Last updated",
+      fUpdatedHelp: "When the saved login was last changed (for logins saved in a browser, when it was last used). If the logins were moved over in bulk, this is the date of the move, not when you used the service",
+      fOpened: "Last opened",
+      fOpenedHelp: "The last time your browser history shows the site being opened. The history only covers {since}, so no visit does not mean you do not use it",
+      sinceUnknown: "a limited period",
+      sinceDate: "the time since {date}",
+      fEffort: "Deletion effort",
+      fEffortHelp: "Easy, Medium, Hard, Impossible (an erasure request is emailed), Unknown (the AI looks it up later)",
+      fView: "AI's take",
+      fViewHelp: "Whether it looks safe to delete or better to keep",
+      chipOk: "Looks safe to delete",
+      chipNg: "Better to keep",
+      chipGone: "Site is gone",
+      chipMemo: "Has a memo",
+      detailEmpty: "Select a service in the list to see its details here.",
+      noDesc: "No description yet",
+      none: "None",
+      unknownDate: "Unknown",
+      lastOpened: "Last opened {date}",
+      notOpenedSince: "Not opened since {date}",
+      noView: "No suggestion",
+      decide: "Delete?",
+      memoLabel: "Memo (included in the copied text; the AI reads it before deleting)",
+      memoPlaceholder: "e.g. Used for work, so keep it",
+      emptyList: "No matching services",
+      diffGone: "Not needed (site is gone)",
+      diff: { easy: "Easy", medium: "Medium", hard: "Hard", impossible: "Impossible", limited: "Partial", unknown: "Unknown", ended: "Service ended" },
+      source: { manual: "Added by hand" },
+      category: {
+        email: "Email", bank: "Bank", brokerage: "Brokerage", card: "Credit card", government: "Government", work: "Work",
+        domain: "Domain", cloud: "Cloud", "password-manager": "Password manager", telecom: "Telecom", shopping: "Shopping",
+        social: "Social media", dev: "Developer", other: "Other"
+      },
+      reason: {
+        "browser-extension": "Browser extension (not a web service account)",
+        "broken-url": "Broken URL (the site cannot be identified)",
+        "dev-address": "Development address (not a web service account)",
+        "site-not-found": "Site not found (the service has likely shut down)",
+        stale: "Not updated in a long time (last: {date})"
+      }
+    },
+    ja: {
+      title: "使っていないアカウントの候補",
+      helpOpen: "この画面の説明",
+      langGroup: "言語",
+      lead: "あなたが登録したことのあるWebサービスの一覧です。この画面で押しただけでは、何も消えません。",
+      step1: "消してよければOK、残すならダメ。分からなければ押さない",
+      step2: "気になることは詳しい欄のメモに書く",
+      step3: "下の「OKの分をコピー」を押してチャットに貼る",
+      tabPrev: "前の回の残り",
+      tabPrevRound: "{n}回目の残り",
+      tabCand: "使っていない見込み",
+      tabRest: "それ以外",
+      tabAll: "全部",
+      search: "サービスの名前かドメインで絞る",
+      searchLabel: "絞り込み",
+      filterGroup: "選んだ状態で絞る",
+      filterAll: "全部",
+      filterNone: "まだ選んでいない",
+      sortLabel: "並べ替え",
+      sortPrev: "前の回の結果ごと",
+      sortOld: "最後に更新した日が古い順",
+      sortNew: "最後に更新した日が新しい順",
+      sortName: "名前順",
+      listLabel: "サービスの一覧",
+      ok: "OK",
+      ng: "ダメ",
+      pickAria: "{name} を{choice}",
+      tally: "OK {ok} 件、ダメ {ng} 件",
+      copy: "OKの分をコピー",
+      toast: "コピーしました。チャットに貼ってください。",
+      fallback: "自動でコピーできなかったので、下の文を全部選んでコピーし、チャットに貼ってください。",
+      close: "閉じる",
+      helpWhatTitle: "この画面は何か",
+      helpWhatBody: "パスワード管理 (1Passwordなど) とブラウザに保存してあるログイン情報から、サービスの名前とURLと日付だけを集めました。パスワードは読んでいません。",
+      helpNextTitle: "押した後に起きること",
+      helpNextBody: "AIがOKにしたサービスから順に、有料の契約が残っていないかを確かめて解約し、アカウントを削除します。",
+      helpNextYou: "ログインと、二要素の確認はあなたが行います。",
+      helpFieldsTitle: "詳しい欄の項目",
+      fWhat: "何のサイトか",
+      fWhatHelp: "AIが名前から書いた短い説明",
+      fPrev: "前の回",
+      fPrevRound: "{n}回目",
+      fPrevHelp: "前の回に消せなかった理由と、次にやること",
+      fReasons: "候補の理由",
+      fReasonsHelp: "使っていないと見た理由",
+      fUpdated: "最後に更新した日",
+      fUpdatedHelp: "保存したログイン情報を最後に変えた日 (ブラウザに保存した物は最後に使った日)。まとめて移した日になっている物は、使った日を表さない",
+      fOpened: "最後に開いた日",
+      fOpenedHelp: "ブラウザの履歴でそのサイトを最後に開いた日。履歴は{since}の分しか無いので、無くても使っていないとは限らない",
+      sinceUnknown: "一部の期間",
+      sinceDate: "{date}以降",
+      fEffort: "削除の手間",
+      fEffortHelp: "かんたん、ふつう、難しい、削除できない (消去を頼むメールを出す)、未確認 (AIが後で調べる)",
+      fView: "AIの見立て",
+      fViewHelp: "消してよさそうか、残した方がよさそうか",
+      chipOk: "消してよさそう",
+      chipNg: "残した方がよさそう",
+      chipGone: "サイトが無い",
+      chipMemo: "メモあり",
+      detailEmpty: "一覧から選ぶと、ここに詳しく出ます。",
+      noDesc: "まだ説明がありません",
+      none: "なし",
+      unknownDate: "不明",
+      lastOpened: "最後に開いた日 {date}",
+      notOpenedSince: "{date}以降は開いていない",
+      noView: "見立て無し",
+      decide: "消してよいか",
+      memoLabel: "メモ (コピーした文に入り、AIが消す時に読みます)",
+      memoPlaceholder: "例 仕事で使うので残す",
+      emptyList: "当てはまるサービスがありません",
+      diffGone: "不要 (サイトが無い)",
+      diff: { easy: "かんたん", medium: "ふつう", hard: "難しい", impossible: "削除できない", limited: "一部だけ消せる", unknown: "未確認", ended: "サービス終了" },
+      source: { manual: "手で足した" },
+      category: {
+        email: "メール", bank: "銀行", brokerage: "証券", card: "カード", government: "行政", work: "仕事",
+        domain: "ドメイン", cloud: "クラウド", "password-manager": "パスワード管理", telecom: "通信", shopping: "買い物",
+        social: "SNS", dev: "開発", other: "その他"
+      },
+      reason: {
+        "browser-extension": "ブラウザの拡張機能 (Webサービスのアカウントではない)",
+        "broken-url": "URLが壊れた項目 (サイトを特定できない)",
+        "dev-address": "開発用のアドレス (Webサービスのアカウントではない)",
+        "site-not-found": "サイトが見つからない (サービス終了の見込み)",
+        stale: "長く更新していない (最後は {date})"
+      }
+    }
+  };
+  // Product names are the same in every language
+  var SOURCE = { "1password": "1Password", bitwarden: "Bitwarden", chrome: "Chrome", dia: "Dia", arc: "Arc", brave: "Brave", edge: "Edge" };
+
+  function t(key) { return I18N[lang][key]; }
+  function fill(s, vars) {
+    return s.replace(/\{(\w+)\}/g, function (m, k) { return vars && vars[k] != null ? String(vars[k]) : m; });
+  }
+  // Look up a label in a per-language table. Unknown keys are shown as they are
+  function label(table, key) {
+    var map = I18N[lang][table];
+    return map && Object.prototype.hasOwnProperty.call(map, key) ? map[key] : key;
+  }
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  function title(g) { return g.service || (g.names && g.names[0]) || g.key; }
+  // Accounts that could not be deleted in an earlier round. Counted only when they have a label
+  function hasPrev(g) { return !!(g.previous && g.previous.label); }
+  function isCandidate(g) { return (g.reasons && g.reasons.length > 0) || g.suggestion === "ok"; }
+  function save() {
+    try {
+      localStorage.setItem(STORE, JSON.stringify(picks));
+      localStorage.setItem(MEMO_STORE, JSON.stringify(memos));
+    } catch (e) { /* when storage fails, choices last only while the page is open */ }
+  }
+  function sourceName(s) { return SOURCE[s] || label("source", s); }
+  function reasonText(r, g) { return fill(label("reason", r), { date: g.updated || t("unknownDate") }); }
+
+  // Tabs do not overlap. Leftovers from the last round come first; the rest split into likely unused and others
+  function tabOf(g) { return hasPrev(g) ? "prev" : isCandidate(g) ? "cand" : "rest"; }
+  var prevCount = data.filter(hasPrev).length;
+  var prevRound = data.reduce(function (m, g) { return hasPrev(g) && g.previous.round > m ? g.previous.round : m; }, 0);
+  var state = { tab: prevCount ? "prev" : "cand", q: "", f: "all", sort: prevCount ? "prev" : "old", page: 1, sel: null };
+  if (!prevCount) document.querySelector('#sort option[value="prev"]').remove();
+  var since = data.length && data[0].history_since;
+
+  function tabName(tab) {
+    if (tab === "prev") return prevRound ? fill(t("tabPrevRound"), { n: prevRound }) : t("tabPrev");
+    return t({ cand: "tabCand", rest: "tabRest", all: "tabAll" }[tab]);
+  }
+
+  function visible() {
+    var q = state.q.toLowerCase();
+    var list = data.filter(function (g) {
+      if (state.tab !== "all" && tabOf(g) !== state.tab) return false;
+      var p = picks[g.key] || "none";
+      if (state.f !== "all" && p !== state.f) return false;
+      if (!q) return true;
+      return (title(g) + " " + g.key + " " + (g.names || []).join(" ") + " " + (g.description || "")).toLowerCase().indexOf(q) >= 0;
+    });
+    list.sort(function (a, b) {
+      if (state.sort === "name") return title(a).localeCompare(title(b), lang);
+      if (state.sort === "prev") {
+        var la = hasPrev(a) ? a.previous.label : "￿", lb = hasPrev(b) ? b.previous.label : "￿";
+        return la.localeCompare(lb, lang) || title(a).localeCompare(title(b), lang);
+      }
+      var x = a.updated || "", y = b.updated || "";
+      return state.sort === "old" ? x.localeCompare(y) : y.localeCompare(x);
+    });
+    return list;
+  }
+
+  // Write "OK 3 · Keep 2" (or the other language's form) with the numbers in bold
+  function renderTally(ok, ng) {
+    var box = document.getElementById("tally");
+    box.textContent = "";
+    t("tally").split(/(\{ok\}|\{ng\})/).forEach(function (part) {
+      if (part === "{ok}") { var a = el("b", null, String(ok)); a.id = "count"; box.appendChild(a); }
+      else if (part === "{ng}") { var b = el("b", null, String(ng)); b.id = "count-ng"; box.appendChild(b); }
+      else if (part) box.appendChild(document.createTextNode(part));
+    });
+  }
+
+  function renderCounts() {
+    var ok = 0, ng = 0, counts = { prev: 0, cand: 0, rest: 0, all: data.length };
+    data.forEach(function (g) {
+      if (picks[g.key] === "ok") ok++;
+      if (picks[g.key] === "ng") ng++;
+      counts[tabOf(g)]++;
+    });
+    renderTally(ok, ng);
+    Array.prototype.forEach.call(document.querySelectorAll("#tabs button"), function (b) {
+      var tab = b.getAttribute("data-t");
+      b.textContent = tabName(tab) + " (" + counts[tab] + ")";
+      b.setAttribute("aria-selected", tab === state.tab ? "true" : "false");
+      if (tab === "prev") b.hidden = !prevCount;
+    });
+  }
+
+  function renderPager(id, pages) {
+    var box = document.getElementById(id);
+    box.textContent = "";
+    if (pages <= 1) return;
+    function add(text, page, disabled, current) {
+      var b = el("button", null, text);
+      b.type = "button";
+      b.disabled = !!disabled;
+      if (current) b.setAttribute("aria-current", "page");
+      b.addEventListener("click", function () { state.page = page; state.sel = null; render(); window.scrollTo(0, document.getElementById("tabs").offsetTop); });
+      box.appendChild(b);
+    }
+    add("‹", state.page - 1, state.page === 1);
+    var from = Math.max(1, state.page - 3), to = Math.min(pages, from + 6);
+    from = Math.max(1, to - 6);
+    for (var i = from; i <= to; i++) add(String(i), i, false, i === state.page);
+    add("›", state.page + 1, state.page === pages);
+  }
+
+  // OK and Keep buttons. The same pair goes on the list row and in the details panel
+  function pickButtons(g) {
+    var wrap = el("div", "pick");
+    ["ok", "ng"].forEach(function (choice) {
+      var b = el("button", choice, t(choice));
+      b.type = "button";
+      b.setAttribute("aria-pressed", picks[g.key] === choice ? "true" : "false");
+      b.setAttribute("aria-label", fill(t("pickAria"), { name: title(g), choice: t(choice) }));
+      b.addEventListener("click", function (e) {
+        e.stopPropagation();
+        if (picks[g.key] === choice) delete picks[g.key]; else picks[g.key] = choice;
+        state.sel = g.key;
+        save(); render();
+      });
+      wrap.appendChild(b);
+    });
+    return wrap;
+  }
+
+  function diffOf(g) {
+    if (g.alive === false) return ["gone", t("diffGone")];
+    if (g.needs_search || !g.deletion) return ["unknown", label("diff", "unknown")];
+    var d = g.deletion.difficulty || "unknown";
+    return [d, label("diff", d)];
+  }
+
+  function rowChips(g) {
+    var box = el("div", "chips");
+    if (hasPrev(g)) box.appendChild(el("span", "chip prev", g.previous.label));
+    else if (g.suggestion === "ok") box.appendChild(el("span", "chip ok", t("chipOk")));
+    else if (g.suggestion === "ng") box.appendChild(el("span", "chip ng", t("chipNg")));
+    if (g.alive === false) box.appendChild(el("span", "chip", t("chipGone")));
+    if (memos[g.key]) box.appendChild(el("span", "chip", t("chipMemo")));
+    return box;
+  }
+
+  function fact(dl, name, value) {
+    dl.appendChild(el("dt", null, name));
+    var dd = el("dd");
+    if (typeof value === "string") dd.textContent = value; else dd.appendChild(value);
+    dl.appendChild(dd);
+  }
+
+  function renderDetail(box, g) {
+    box.textContent = "";
+    if (!g) { box.appendChild(el("p", "none", t("detailEmpty"))); return; }
+    box.appendChild(el("h2", null, title(g)));
+    box.appendChild(el("div", "key", g.key));
+    var tags = el("div", "chips");
+    if (g.category) tags.appendChild(el("span", "chip", label("category", g.category)));
+    var seen = {};
+    (g.sources || []).forEach(function (s) {
+      var name = sourceName(s.source);
+      if (seen[name]) return;
+      seen[name] = true;
+      tags.appendChild(el("span", "chip", name));
+    });
+    box.appendChild(tags);
+
+    var dl = el("dl", "facts");
+    fact(dl, t("fWhat"), g.description ? el("span", null, g.description) : el("span", "none", t("noDesc")));
+    if (hasPrev(g)) {
+      var p = el("div");
+      p.appendChild(el("span", "chip prev", g.previous.label));
+      if (g.previous.detail) p.appendChild(el("p", null, g.previous.detail));
+      fact(dl, g.previous.round ? fill(t("fPrevRound"), { n: g.previous.round }) : t("fPrev"), p);
+    }
+    var rs = el("div");
+    if (g.reasons && g.reasons.length) {
+      var ul = el("ul");
+      g.reasons.forEach(function (r) { ul.appendChild(el("li", null, reasonText(r, g))); });
+      rs.appendChild(ul);
+    } else rs.appendChild(el("span", "none", t("none")));
+    fact(dl, t("fReasons"), rs);
+    var dates = el("div");
+    dates.appendChild(el("span", null, g.updated || t("unknownDate")));
+    if (g.last_visit) dates.appendChild(el("span", "visit recent", fill(t("lastOpened"), { date: g.last_visit })));
+    else if (g.history_since) dates.appendChild(el("span", "visit", fill(t("notOpenedSince"), { date: g.history_since })));
+    fact(dl, t("fUpdated"), dates);
+    var d = diffOf(g);
+    fact(dl, t("fEffort"), el("span", "diff " + d[0], d[1]));
+    var view = el("div");
+    if (g.suggestion === "ok") view.appendChild(el("span", "view-ok", t("chipOk")));
+    else if (g.suggestion === "ng") view.appendChild(el("span", "view-ng", t("chipNg")));
+    else view.appendChild(el("span", "none", t("noView")));
+    if (g.why) view.appendChild(el("p", null, g.why));
+    fact(dl, t("fView"), view);
+    box.appendChild(dl);
+
+    var decide = el("div", "decide");
+    decide.appendChild(el("span", null, t("decide")));
+    decide.appendChild(pickButtons(g));
+    var memoLabel = el("label", "memo-label", t("memoLabel"));
+    var memo = el("input", "memo");
+    memo.type = "text";
+    memo.placeholder = t("memoPlaceholder");
+    memo.value = memos[g.key] || "";
+    memo.addEventListener("input", function () {
+      var v = memo.value.replace(/[\t\r\n]+/g, " ").trim();
+      if (v) memos[g.key] = v; else delete memos[g.key];
+      save();
+    });
+    memoLabel.appendChild(memo);
+    decide.appendChild(memoLabel);
+    box.appendChild(decide);
+  }
+
+  function select(key, focus) {
+    state.sel = key;
+    render();
+    if (focus) {
+      var r = document.querySelector('.row[data-key="' + CSS.escape(key) + '"]');
+      if (r) r.focus();
+    }
+  }
+
+  function renderRows(list) {
+    var body = document.getElementById("rows");
+    var detail = document.getElementById("detail");
+    body.textContent = "";
+    if (list.length === 0) {
+      body.appendChild(el("div", "empty", t("emptyList")));
+      renderDetail(detail, null);
+      document.querySelector(".panes").appendChild(detail);
+      return;
+    }
+    if (!list.some(function (g) { return g.key === state.sel; })) state.sel = list[0].key;
+    var current = null, currentRow = null;
+    list.forEach(function (g, i) {
+      var row = el("div", "row");
+      row.setAttribute("role", "option");
+      row.setAttribute("data-key", g.key);
+      row.tabIndex = 0;
+      row.setAttribute("aria-selected", g.key === state.sel ? "true" : "false");
+      var main = el("div", "row-main");
+      var name = el("div", "row-name");
+      name.appendChild(el("b", null, title(g)));
+      name.appendChild(el("small", null, g.key));
+      main.appendChild(name);
+      main.appendChild(el("span", g.description ? "one" : "one none", g.description || t("noDesc")));
+      main.appendChild(rowChips(g));
+      row.appendChild(main);
+      row.appendChild(pickButtons(g));
+      row.addEventListener("click", function () { select(g.key); });
+      row.addEventListener("keydown", function (e) {
+        if (e.target !== row) return;
+        var next = e.key === "ArrowDown" ? list[i + 1] : e.key === "ArrowUp" ? list[i - 1] : null;
+        if (next) { e.preventDefault(); select(next.key, true); }
+        else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(g.key, true); }
+      });
+      body.appendChild(row);
+      if (g.key === state.sel) { current = g; currentRow = row; }
+    });
+    renderDetail(detail, current);
+    // On a narrow screen the details panel goes right under the selected row; on a wide one, to the right of the list
+    if (narrow.matches && currentRow) currentRow.after(detail);
+    else document.querySelector(".panes").appendChild(detail);
+  }
+
+  function render() {
+    var list = visible();
+    var pages = Math.max(1, Math.ceil(list.length / PAGE));
+    if (state.page > pages) state.page = pages;
+    renderCounts();
+    renderPager("pager-top", pages);
+    renderRows(list.slice((state.page - 1) * PAGE, state.page * PAGE));
+    renderPager("pager-bottom", pages);
+  }
+
+  // Put the current language's text into the fixed parts of the page
+  function applyLang() {
+    document.documentElement.lang = lang;
+    document.title = t("title");
+    Array.prototype.forEach.call(document.querySelectorAll("[data-i18n]"), function (n) { n.textContent = t(n.getAttribute("data-i18n")); });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-i18n-placeholder]"), function (n) { n.setAttribute("placeholder", t(n.getAttribute("data-i18n-placeholder"))); });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-i18n-aria]"), function (n) { n.setAttribute("aria-label", t(n.getAttribute("data-i18n-aria"))); });
+    document.getElementById("opened-help").textContent = fill(t("fOpenedHelp"), { since: since ? fill(t("sinceDate"), { date: since }) : t("sinceUnknown") });
+    Array.prototype.forEach.call(document.querySelectorAll("#lang button"), function (b) {
+      b.setAttribute("aria-pressed", b.getAttribute("data-lang") === lang ? "true" : "false");
+    });
+  }
+
+  // The pasted text is parsed by plan.sh: a fixed first line, then one key per line with the user's memo after a tab.
+  // It does not depend on the UI language.
+  function selectionText() {
+    var keys = data.filter(function (g) {
+      return picks[g.key] === "ok";
+    }).map(function (g) { return g.key + (memos[g.key] ? "\t" + memos[g.key] : ""); });
+    return ["account-cleanup selection"].concat(keys).join("\n") + "\n";
+  }
+
+  function openDialog(d) { if (d.showModal) d.showModal(); else d.setAttribute("open", ""); }
+  function showFallback(text) {
+    var ta = document.getElementById("fallback-text");
+    ta.value = text;
+    openDialog(document.getElementById("fallback"));
+    ta.select();
+  }
+
+  document.getElementById("copy").addEventListener("click", function () {
+    var text = selectionText();
+    function done() {
+      var toast = document.getElementById("toast");
+      toast.style.display = "block";
+      setTimeout(function () { toast.style.display = "none"; }, 2400);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { showFallback(text); });
+    } else {
+      showFallback(text);
+    }
+  });
+  document.getElementById("fallback-close").addEventListener("click", function () { document.getElementById("fallback").close(); });
+  document.getElementById("help-open").addEventListener("click", function () { openDialog(document.getElementById("help")); });
+  document.getElementById("help-close").addEventListener("click", function () { document.getElementById("help").close(); });
+  document.getElementById("q").addEventListener("input", function (e) { state.q = e.target.value; state.page = 1; render(); });
+  document.getElementById("sort").value = state.sort;
+  document.getElementById("sort").addEventListener("change", function (e) { state.sort = e.target.value; render(); });
+  Array.prototype.forEach.call(document.querySelectorAll("#filter button"), function (b) {
+    b.addEventListener("click", function () {
+      state.f = b.getAttribute("data-f"); state.page = 1;
+      Array.prototype.forEach.call(document.querySelectorAll("#filter button"), function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+      render();
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("#tabs button"), function (b) {
+    b.addEventListener("click", function () {
+      state.tab = b.getAttribute("data-t"); state.page = 1; state.sel = null;
+      render();
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("#lang button"), function (b) {
+    b.addEventListener("click", function () {
+      lang = b.getAttribute("data-lang") === "ja" ? "ja" : "en";
+      try { localStorage.setItem(LANG_STORE, lang); } catch (e) { /* not saved; the choice lasts while the page is open */ }
+      applyLang();
+      render();
+    });
+  });
+  narrow.addEventListener("change", render);
+  applyLang();
+  render();
+})();
+</script>
+</body>
+</html>

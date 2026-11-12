@@ -1,0 +1,41 @@
+# Locations pc-tidy protects by default.
+# Write one location per line. `~` means the home directory. Lines starting with `#` and blank lines are ignored.
+# Nothing under these locations becomes a candidate of any kind, and nothing that contains them is removed.
+#
+# For locations only you need protected, use `protect.txt` in the state directory, in the same format (SKILL.md, section 6).
+
+# Photos, videos and music
+~/Pictures
+~/Movies
+~/Music
+# Keys and credentials
+~/.ssh
+~/.gnupg
+~/.aws
+~/.azure
+~/.kube
+~/.docker
+~/.config/gcloud
+~/.config/gh
+~/.password-store
+~/Library/Keychains
+# Deleting these also deletes them from other devices and the cloud
+~/Library/Mobile Documents
+~/Library/CloudStorage
+# Messages and iPhone backups that exist only on this Mac
+~/Library/Mail
+~/Library/Messages
+~/Library/Application Support/MobileSync
+~/Library/Photos
+# AI tool settings and conversation logs (their retention period is handled by the `record` kind)
+~/.claude
+~/.codex
+# The Trash and pc-tidy's own state directory.
+# The state directory is also protected in code, wherever `PC_TIDY_HOME` puts it.
+~/.Trash
+~/.local/share/pc-tidy
+
+[files]
+# Where you keep your own files. Repos and worktrees here can still be candidates; nothing else here is listed
+~/Documents
+~/Desktop

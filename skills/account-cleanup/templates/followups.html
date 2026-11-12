@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<title>Things to clean up later</title>
+<style>
+:root { --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --sub: #5b6475; --line: #dfe3ea; --accent: #2f5bd3; --accent-text: #ffffff; }
+@media (prefers-color-scheme: dark) { :root { --bg: #12151b; --panel: #1b2029; --text: #e7eaf0; --sub: #a3abba; --line: #2c3340; --accent: #6d8ff0; --accent-text: #0d1117; } }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif; }
+main { max-width: 960px; margin: 0 auto; padding: 24px 16px; }
+.head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin: 0 0 8px; }
+h1 { font-size: 22px; margin: 0; }
+.lang { display: inline-flex; flex-shrink: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.lang button { font: inherit; font-size: 14px; color: inherit; background: var(--panel); border: 0; padding: 4px 12px; cursor: pointer; }
+.lang button + button { border-left: 1px solid var(--line); }
+.lang button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); font-weight: 600; }
+p { color: var(--sub); margin: 0 0 16px; }
+.wrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--sub); font-weight: 600; white-space: nowrap; }
+td:first-child { white-space: nowrap; }
+</style>
+</head>
+<body>
+<main>
+<div class="head">
+  <h1 id="heading" data-count="__COUNT__">Things to clean up later (__COUNT__)</h1>
+  <div class="lang" id="lang" role="group" aria-label="Language">
+    <button type="button" data-lang="en" lang="en" aria-pressed="true">English</button>
+    <button type="button" data-lang="ja" lang="ja" aria-pressed="false">日本語</button>
+  </div>
+</div>
+<p data-i18n="lead">Payment methods and other things the AI could not remove while deleting your accounts. Sign in to each service's site and remove them on its payment methods page.</p>
+<div class="wrap"><table>
+<thead><tr><th data-i18n="colDate">Recorded</th><th data-i18n="colService">Service</th><th data-i18n="colLeft">What's left</th></tr></thead>
+<tbody>
+__ROWS__
+</tbody>
+</table></div>
+</main>
+<script>
+(function () {
+  "use strict";
+  var LANG_STORE = "account-cleanup-lang";
+  var I18N = {
+    en: {
+      title: "Things to clean up later",
+      heading: "Things to clean up later ({n})",
+      lead: "Payment methods and other things the AI could not remove while deleting your accounts. Sign in to each service's site and remove them on its payment methods page.",
+      colDate: "Recorded",
+      colService: "Service",
+      colLeft: "What's left",
+      langGroup: "Language"
+    },
+    ja: {
+      title: "後で片付ける物",
+      heading: "後で片付ける物 ({n} 件)",
+      lead: "アカウントの削除の途中で、AIが消せなかった支払い先などです。サービスのサイトにログインして、支払い方法の画面から消してください。",
+      colDate: "記録した日",
+      colService: "サービス",
+      colLeft: "残っている物",
+      langGroup: "言語"
+    }
+  };
+  // Storage can throw (private windows, blocked site data). The page then just starts in English every time
+  function loadLang() {
+    try {
+      var v = localStorage.getItem(LANG_STORE);
+      return v === "ja" ? "ja" : "en";
+    } catch (e) { return "en"; }
+  }
+  function saveLang(v) {
+    try { localStorage.setItem(LANG_STORE, v); } catch (e) { /* not saved; the choice lasts until the page is closed */ }
+  }
+  var lang = loadLang();
+  var heading = document.getElementById("heading");
+  var count = heading.getAttribute("data-count") || "0";
+
+  function apply() {
+    var d = I18N[lang];
+    document.documentElement.lang = lang;
+    document.title = d.title;
+    heading.textContent = d.heading.replace("{n}", count);
+    Array.prototype.forEach.call(document.querySelectorAll("[data-i18n]"), function (n) {
+      n.textContent = d[n.getAttribute("data-i18n")];
+    });
+    var group = document.getElementById("lang");
+    group.setAttribute("aria-label", d.langGroup);
+    Array.prototype.forEach.call(group.querySelectorAll("button"), function (b) {
+      b.setAttribute("aria-pressed", b.getAttribute("data-lang") === lang ? "true" : "false");
+    });
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll("#lang button"), function (b) {
+    b.addEventListener("click", function () {
+      lang = b.getAttribute("data-lang") === "ja" ? "ja" : "en";
+      saveLang(lang);
+      apply();
+    });
+  });
+  apply();
+})();
+</script>
+</body>
+</html>
