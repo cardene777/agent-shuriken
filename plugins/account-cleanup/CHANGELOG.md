@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-12
+
 - Works in GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`, and the README shows how to install it there
 
 ## [0.1.1] - 2026-11-12
@@ -22,6 +24,7 @@ First public release.
 - Bundles the JustDeleteMe deletion directory
 - The pages offer an English / 日本語 switch
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/account-cleanup--v0.1.1...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/account-cleanup--v0.2.0...HEAD
+[0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/account-cleanup--v0.2.0
 [0.1.1]: https://github.com/cardene777/agent-shuriken/releases/tag/account-cleanup--v0.1.1
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/account-cleanup--v0.1.0

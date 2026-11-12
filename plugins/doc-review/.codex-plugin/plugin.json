@@ -1,6 +1,6 @@
 {
   "name": "doc-review",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Review a specification, design document, or README once with two reviewers that do not share the conversation, then fix each finding or record why not",
   "author": {
     "name": "cardene777",

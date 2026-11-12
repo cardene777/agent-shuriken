@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-12
+
 - Works in GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`, and the README shows how to install it there
 
 ## [0.1.0] - 2026-11-12
@@ -17,5 +19,6 @@ First public release.
 - Checks that every score has a rationale and that the report loads nothing from the network, then prints it to PDF with a browser already installed
 - Starts when you ask for a comparison, or when you call it, in Claude Code and in Codex
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/compare-report--v0.1.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/compare-report--v0.2.0...HEAD
+[0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/compare-report--v0.2.0
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/compare-report--v0.1.0

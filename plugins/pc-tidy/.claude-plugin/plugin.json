@@ -1,7 +1,7 @@
 {
   "name": "pc-tidy",
   "displayName": "PC Tidy",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "List what has gone unused on your Mac and delete only the items you pick to free up disk space",
   "author": {
     "name": "cardene777",

@@ -1,7 +1,7 @@
 {
   "name": "techdebt",
   "displayName": "Tech Debt",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Rank the files most worth fixing by combining how often they change with their size, old TODO comments, missing tests, long functions, and duplication, without downloading anything",
   "author": {
     "name": "cardene777",
