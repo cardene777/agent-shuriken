@@ -40,7 +40,7 @@ plugins/<name>/
 5. `README.md`と`README.ja.md`を足します。公式ディレクトリのセキュリティ審査ではREADMEとコードの実際の動きを突き合わせるため、プラグインが読む物、実行する物、接続する先、残す物をすべて書きます。画像は`assets/`に置き、Markdownの画像の記法で表示します
 6. 空の`## [Unreleased]`節だけを持つ`CHANGELOG.md`を足し、ルートの`LICENSE`をコピーします
 7. `.claude-plugin/marketplace.json`に、同じ`name`と`description`、そして`"source": "./plugins/<name>"`を持つ項目を足します
-8. `README.md`と`README.ja.md`のプラグインの表に行を足します
+8. `README.md`と`README.ja.md`のプラグインの表に行を足します。呼び出し方の列には、Claude Codeの命令`/<plugin>:<skill>`と、Codexで`$`を入力した後に選ぶ`interface.displayName`と、やりたいことを言葉で頼んだ時に始まるかを書きます
 9. `bash scripts/check.sh`を実行し、報告された問題をすべて直します
 
 ## プラグインを小さく審査しやすく保つ

@@ -259,6 +259,13 @@ check_readme_tables() {
       version="$(jq -r .version "plugins/$name/.claude-plugin/plugin.json")"
       [[ "$row" == *"| [$version](plugins/$name/CHANGELOG.md) |" ]] \
         || { echo "$readme: the row for $name does not end with [$version](plugins/$name/CHANGELOG.md)"; bad=1; }
+      # The run column names the Claude Code command of every skill and the name Codex lists.
+      for skill in plugins/"$name"/skills/*/; do
+        skill="$(basename "$skill")"
+        [[ "$row" == *"\`/$name:$skill\`"* ]] || { echo "$readme: the row for $name does not show \`/$name:$skill\`"; bad=1; }
+      done
+      display="$(jq -r '.interface.displayName // empty' "plugins/$name/.codex-plugin/plugin.json")"
+      [[ "$row" == *"**$display**"* ]] || { echo "$readme: the row for $name does not show **$display** for Codex"; bad=1; }
     done
   done
   return "$bad"

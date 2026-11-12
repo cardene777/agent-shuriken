@@ -7,6 +7,14 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ## [Unreleased]
 
+### Added
+
+- The repository has an icon in `assets/icon.svg`, shown at the top of the README
+
+### Changed
+
+- The plugin table in the README shows how to run each plugin in Claude Code and Codex
+
 ## [0.2.1] - 2026-11-12
 
 ### Plugins
