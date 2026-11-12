@@ -1,0 +1,7 @@
+interface:
+  display_name: "Repo Progress"
+  short_description: "See where every repository stands: worktrees, open issues and pull requests, uncommitted files, and stalled work"
+  default_prompt: "Use $repo-progress to show where each of my repositories stands."
+
+policy:
+  allow_implicit_invocation: true

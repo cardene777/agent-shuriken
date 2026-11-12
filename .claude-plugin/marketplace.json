@@ -21,6 +21,11 @@
       "description": "Write an explainer as one HTML file with a figure drawn in every section, built from JSON and checked before you share it"
     },
     {
+      "name": "repo-progress",
+      "source": "./plugins/repo-progress",
+      "description": "See where every repository you work on stands in one table: worktrees, open issues and pull requests, uncommitted files, and which ones have stalled, without changing anything"
+    },
+    {
       "name": "secure-dotfile",
       "source": "./plugins/secure-dotfile",
       "description": "Find API keys and tokens written into your shell startup files and move the ones you pick into the macOS Keychain, without the agent seeing any value"
