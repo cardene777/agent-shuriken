@@ -1,0 +1,7 @@
+interface:
+  display_name: "Docs Publish"
+  short_description: "Write public docs in five parts, in English and a second language, with every page and link checked"
+  default_prompt: "Use $docs-publish to write public documentation for this project in English and Japanese."
+
+policy:
+  allow_implicit_invocation: true

@@ -13,6 +13,7 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 - The learning-to-skill plugin, which writes a lesson from a session into the instruction files your agents read, such as AGENTS.md, CLAUDE.md, GEMINI.md, Copilot's instructions, or a skill's SKILL.md, once and in the place that reaches the right agents, only after you approve the diff
 - The feedback-loop plugin, which turns a correction you give the agent into fixed files, a review by an evaluator that edits nothing that passes every criterion, and a check or rule that keeps the mistake from coming back
 - The session-handoff plugin, which writes a short message to paste into a new agent session and saves the options already rejected, the current phase, delegated work, and things not to do for the project, refusing anything that looks like a secret
+- The docs-publish plugin, which writes the public documentation of an open source project in five parts, Quickstart, Concepts, API reference, Cookbook, and FAQ, in English and a second language you pick, and checks that every page has its translation and every link resolves
 
 ### Removed
 
