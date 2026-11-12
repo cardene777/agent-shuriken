@@ -1,0 +1,33 @@
+{
+  "name": "compare-report",
+  "version": "0.1.0",
+  "description": "Research the candidates for a choice and write an HTML and PDF comparison report, with a source for every claim and a rationale for every score",
+  "author": {
+    "name": "cardene777",
+    "url": "https://github.com/cardene777"
+  },
+  "homepage": "https://github.com/cardene777/agent-shuriken/tree/main/plugins/compare-report",
+  "repository": "https://github.com/cardene777/agent-shuriken",
+  "license": "MIT",
+  "keywords": [
+    "comparison",
+    "research",
+    "report",
+    "selection",
+    "pdf"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Compare Report",
+    "shortDescription": "Compare options in a report",
+    "longDescription": "Researches the candidates for a choice, such as libraries, tools, or services, and writes a comparison report as HTML and PDF. You agree on the candidates and the evaluation axes first. The report has a summary with the top three picks, a card per candidate, a section per axis with charts, the risks, a scorecard with a recommendation, and the sources. Every score has its rationale, figures that are not published are marked as not disclosed, and every claim cites its source. Searches use only the topic and the candidates' names. The report opens offline, and the PDF is printed with a browser already on your computer.",
+    "developerName": "cardene777",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": [
+      "Compare the main static site generators and write a report"
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
+  }
+}

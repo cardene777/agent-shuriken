@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="{{LANG}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}}</title>
+<style>
+/* The theme of every report. The report loads nothing from the network, so it opens offline and prints the same way every time.
+   The components and the markup that uses them are listed in references/report-structure.md. */
+:root {
+  --ink: #111827;
+  --muted: #4b5563;
+  --faint: #6b7280;
+  --line: #e5e7eb;
+  --surface: #f6f7f9;
+  --accent: #2f5bd3;
+  --accent-soft: #eef2fd;
+  --warn: #b42318;
+  --warn-soft: #fdf0ee;
+  --cover: #121826;
+  --s-ink: #1e40af; --s-bg: #dbe6fe;
+  --a-ink: #05603a; --a-bg: #d3f3e4;
+  --b-ink: #3f6212; --b-bg: #e9f7cf;
+  --c-ink: #93370d; --c-bg: #fcefd2;
+  --d-ink: #a11b1b; --d-bg: #fde3e3;
+  --gold: #b7791f; --silver: #6b7280; --bronze: #a0522d;
+}
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body {
+  margin: 0;
+  background: #ffffff;
+  color: var(--ink);
+  font: 15px/1.75 system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Noto Sans CJK JP", "Yu Gothic", Meiryo, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+a { color: var(--accent); }
+
+/* Cover */
+.cover {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 720px;
+  padding: 72px 64px 48px;
+  background: var(--cover);
+  color: #f3f4f6;
+}
+.cover .eyebrow { margin: 0 0 20px; color: #9fb3f5; font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
+.cover h1 { margin: 0; max-width: 720px; font-size: 44px; line-height: 1.25; font-weight: 700; }
+.cover hr { width: 72px; height: 4px; margin: 32px 0; border: 0; background: var(--accent); }
+.cover .subtitle { margin: 0; max-width: 680px; color: #d1d5db; font-size: 18px; }
+.cover .stats { display: flex; flex-wrap: wrap; gap: 0; margin: 48px 0 0; }
+.cover .stats div { min-width: 140px; padding: 4px 28px 4px 0; margin-right: 28px; border-right: 1px solid #374151; }
+.cover .stats div:last-child { border-right: 0; }
+.cover .stats dt { color: #9ca3af; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
+.cover .stats dd { margin: 4px 0 0; font-size: 28px; font-weight: 700; }
+.cover .cover-foot { margin: 48px 0 0; color: #9ca3af; font-size: 13px; }
+
+/* Body */
+main { max-width: 980px; margin: 0 auto; padding: 56px 40px 72px; counter-reset: chapter; }
+h2, h3 { line-height: 1.35; }
+.toc h2 { margin: 0 0 16px; font-size: 22px; }
+.toc ol { margin: 0; padding: 0; list-style: none; counter-reset: toc; }
+.toc li { display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px dashed var(--line); counter-increment: toc; }
+.toc li::before { content: counter(toc) "."; min-width: 24px; color: var(--faint); font-weight: 600; }
+.toc a { color: var(--ink); text-decoration: none; }
+.chapter { margin-top: 56px; counter-increment: chapter; }
+.chapter > h2 { display: flex; gap: 12px; align-items: baseline; margin: 0 0 20px; padding-bottom: 10px; border-bottom: 2px solid var(--ink); font-size: 24px; }
+.chapter > h2::before { content: counter(chapter, decimal-leading-zero); color: var(--accent); font-size: 16px; font-weight: 700; }
+.chapter h3 { margin: 28px 0 10px; font-size: 18px; }
+.lead { margin: 0 0 20px; color: var(--muted); font-size: 16px; }
+.note { margin: 8px 0 0; color: var(--faint); font-size: 12.5px; }
+
+/* Boxes */
+.callout { margin: 16px 0; padding: 14px 18px; border-left: 4px solid var(--accent); border-radius: 0 10px 10px 0; background: var(--accent-soft); }
+.callout.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+.callout > :first-child { margin-top: 0; }
+.callout > :last-child { margin-bottom: 0; }
+.callout strong { display: block; margin-bottom: 4px; }
+
+/* Top three picks */
+.picks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 20px 0; }
+.pick { position: relative; padding: 18px 18px 16px; border: 1px solid var(--line); border-top: 4px solid var(--silver); border-radius: 12px; }
+.pick.gold { border-top-color: var(--gold); }
+.pick.silver { border-top-color: var(--silver); }
+.pick.bronze { border-top-color: var(--bronze); }
+.pick .place { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; color: #ffffff; background: var(--silver); font-size: 13px; font-weight: 700; }
+.pick.gold .place { background: var(--gold); }
+.pick.bronze .place { background: var(--bronze); }
+.pick h3 { margin: 10px 0 4px; font-size: 18px; }
+.pick p { margin: 0; color: var(--muted); font-size: 14px; }
+.findings { margin: 12px 0 0; padding-left: 20px; }
+.findings li { margin: 6px 0; }
+
+/* Candidate cards */
+.cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 20px 0; }
+.card { padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px; }
+.card h3 { display: flex; gap: 10px; align-items: center; justify-content: space-between; margin: 0 0 6px; font-size: 17px; }
+.card p { margin: 0; color: var(--muted); font-size: 14px; }
+.card .pros, .card .cons { margin: 8px 0 0; font-size: 13.5px; }
+.card .pros::before { content: "+ "; color: var(--a-ink); font-weight: 700; }
+.card .cons::before { content: "\2212  "; color: var(--d-ink); font-weight: 700; }
+.tag { display: inline-block; padding: 2px 10px; border-radius: 999px; background: var(--surface); color: var(--muted); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.tag.t1 { background: var(--s-bg); color: var(--s-ink); }
+.tag.t2 { background: var(--a-bg); color: var(--a-ink); }
+.tag.t3 { background: var(--c-bg); color: var(--c-ink); }
+.tag.t4 { background: #ede7fb; color: #5b34b4; }
+.tag.t5 { background: var(--surface); color: var(--muted); }
+
+/* Tables */
+.table-wrap { margin: 16px 0; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th, td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: 0.03em; white-space: nowrap; }
+td.num, th.num { text-align: right; white-space: nowrap; }
+td.center, th.center { text-align: center; }
+th.rationale { width: 38%; white-space: normal; }
+td.rationale { color: var(--muted); }
+tbody tr:last-child td { border-bottom: 1px solid #d1d5db; }
+
+/* Scores and risk labels */
+.score { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; font-size: 14px; font-weight: 800; }
+.score.s { background: var(--s-bg); color: var(--s-ink); }
+.score.a { background: var(--a-bg); color: var(--a-ink); }
+.score.b { background: var(--b-bg); color: var(--b-ink); }
+.score.c { background: var(--c-bg); color: var(--c-ink); }
+.score.d { background: var(--d-bg); color: var(--d-ink); }
+.risk { display: inline-block; padding: 2px 10px; border-radius: 6px; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+.risk.critical { background: var(--d-ink); color: #ffffff; }
+.risk.high { background: var(--d-bg); color: var(--d-ink); }
+.risk.medium { background: var(--c-bg); color: var(--c-ink); }
+.risk.low { background: var(--a-bg); color: var(--a-ink); }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 8px 0 0; color: var(--faint); font-size: 12.5px; }
+.legend span { display: inline-flex; gap: 6px; align-items: center; }
+.legend .score { width: 20px; height: 20px; font-size: 11px; border-radius: 5px; }
+
+/* Bar charts */
+.bars { margin: 16px 0; padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px; }
+.bars h4 { margin: 0 0 12px; font-size: 14px; }
+.bar { display: grid; grid-template-columns: 150px 1fr 110px; gap: 12px; align-items: center; margin: 8px 0; font-size: 13px; }
+.bar .label { color: var(--muted); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar .track { display: block; height: 14px; border-radius: 7px; background: var(--surface); overflow: hidden; }
+.bar .fill { display: block; height: 100%; min-width: 4px; border-radius: 7px; background: var(--accent); }
+.bar.muted .fill { min-width: 0; background: #9ca3af; }
+.bar .value { font-weight: 700; white-space: nowrap; }
+
+/* Sources */
+.sources { columns: 2; column-gap: 32px; margin: 0; padding-left: 22px; font-size: 12.5px; }
+.sources li { margin: 0 0 8px; break-inside: avoid; overflow-wrap: anywhere; }
+.sources .accessed { color: var(--faint); }
+.report-foot { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--faint); font-size: 12.5px; }
+
+@media (max-width: 720px) {
+  .cover { padding: 48px 24px 32px; }
+  .cover h1 { font-size: 32px; }
+  main { padding: 40px 16px 56px; }
+  .picks, .cards { grid-template-columns: 1fr; }
+  .sources { columns: 1; }
+  .bar { grid-template-columns: 96px 1fr 80px; }
+}
+
+@page { size: A4; margin: 16mm 14mm; }
+@page :first { margin: 0; }
+@media print {
+  body { font-size: 10.5pt; }
+  .cover { min-height: 297mm; padding: 34mm 22mm 20mm; }
+  main { max-width: none; padding: 0; }
+  .chapter { margin-top: 28px; }
+  .page-break { break-after: page; }
+  .no-break, .picks, .pick, .card, .callout, .bars, .legend, tr { break-inside: avoid; }
+  h2, h3, h4, .lead { break-after: avoid; }
+  a { color: inherit; text-decoration: none; }
+  .sources a { color: var(--accent); }
+}
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div>
+    <p class="eyebrow">{{EYEBROW}}</p>
+    <h1>{{TITLE}}</h1>
+    <hr>
+    <p class="subtitle">{{SUBTITLE}}</p>
+    <dl class="stats">{{STATS}}</dl>
+  </div>
+  <p class="cover-foot">{{DATE}}</p>
+</section>
+<div class="page-break"></div>
+
+<main>
+<nav class="toc no-break">
+  <h2>{{CONTENTS_HEADING}}</h2>
+  <ol>{{TOC}}</ol>
+</nav>
+
+<section id="summary" class="chapter">{{SUMMARY}}</section>
+<section id="candidates" class="chapter">{{CANDIDATES}}</section>
+{{AXES}}
+<section id="risks" class="chapter">{{RISKS}}</section>
+<section id="ranking" class="chapter">{{RANKING}}</section>
+<section id="sources" class="chapter">{{SOURCES}}</section>
+
+<footer class="report-foot">{{FOOTER}}</footer>
+</main>
+</body>
+</html>

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Compare Report"
+  short_description: "Research candidates and write a comparison report as HTML and PDF"
+  default_prompt: "Use $compare-report to compare the options for my choice and write a report."
+
+policy:
+  allow_implicit_invocation: true
