@@ -1,0 +1,32 @@
+{
+  "name": "techdebt",
+  "version": "0.1.0",
+  "description": "Rank the files most worth fixing by combining how often they change with their size, old TODO comments, missing tests, long functions, and duplication, without downloading anything",
+  "author": {
+    "name": "cardene777",
+    "url": "https://github.com/cardene777"
+  },
+  "homepage": "https://github.com/cardene777/agent-shuriken/tree/main/plugins/techdebt",
+  "repository": "https://github.com/cardene777/agent-shuriken",
+  "license": "MIT",
+  "keywords": [
+    "technical-debt",
+    "refactoring",
+    "code-quality",
+    "hotspots"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Tech Debt",
+    "shortDescription": "Rank the debt worth fixing",
+    "longDescription": "Measures technical debt in any git repository with Python and git alone, and ranks the files where fixing it pays off first. It combines how often each file changed in the last 12 months with its size, TODO and FIXME comments aged with git blame, source files without a matching test file, functions over 60 lines, files over 500 lines, and duplicated blocks. It also runs knip and ruff when they are already installed, and never downloads anything. The agent explains what each top file does, why it costs the team, and the first step to fix it, and one HTML report shows the ranking and every measure in English or Japanese. It never changes code.",
+    "developerName": "cardene777",
+    "category": "Developer Tools",
+    "capabilities": [],
+    "defaultPrompt": [
+      "Find the technical debt in this repository worth fixing first"
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
+  }
+}

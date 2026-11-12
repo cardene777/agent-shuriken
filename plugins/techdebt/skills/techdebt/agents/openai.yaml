@@ -1,0 +1,7 @@
+interface:
+  display_name: "Tech Debt"
+  short_description: "Rank the files most worth fixing from changes, size, TODOs, tests, and duplication"
+  default_prompt: "Use $techdebt to find the technical debt in this repository worth fixing first."
+
+policy:
+  allow_implicit_invocation: true

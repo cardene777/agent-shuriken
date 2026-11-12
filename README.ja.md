@@ -29,6 +29,7 @@
 | [pc-tidy](plugins/pc-tidy) | Macの中で使われなくなった物を一覧にし、あなたが選んだ物だけを消してディスクの空きを増やします | Claude Codeでは`/pc-tidy:pc-tidy`を実行し、Codexでは`$`を入力して**PC Tidy**を選びます。呼び出した時だけ始まります | [0.1.1](plugins/pc-tidy/CHANGELOG.md) |
 | [root-cause](plugins/root-cause) | コードを変える前にバグの原因を証拠から突き止め、落ちるテストを先に書いて原因だけを直します | Claude Codeでは`/root-cause:root-cause`を実行し、Codexでは`$`を入力して**Root Cause**を選びます。バグを言葉で伝えても始まります | [0.1.0](plugins/root-cause/CHANGELOG.md) |
 | [secure-dotfile](plugins/secure-dotfile) | シェルの起動ファイルに書いたAPIキーやトークンを見つけ、選んだ物だけを、エージェントに値を見せずにmacOSのキーチェーンへ移します | Claude Codeでは`/secure-dotfile:secure-dotfile`を実行し、Codexでは`$`を入力して**Secure Dotfile**を選びます。シェルの設定にある秘密の値の話をしても始まります | [0.1.0](plugins/secure-dotfile/CHANGELOG.md) |
+| [techdebt](plugins/techdebt) | ファイルごとの変更の回数に、大きさ、古いTODOのコメント、テストの有無、長い関数、重複を合わせて直す価値の高いファイルに順位を付け、上位のファイルを説明します | Claude Codeでは`/techdebt:techdebt`を実行し、Codexでは`$`を入力して**Tech Debt**を選びます。技術的負債について尋ねても始まります | [0.1.0](plugins/techdebt/CHANGELOG.md) |
 
 各プラグインのREADMEに、何をするか、何を読んで何を送るか、何が必要かを書いています。
 
