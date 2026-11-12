@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/icon.svg" width="96" alt="agent-shurikenのアイコン">
+
 # agent-shuriken
 
 **Claude CodeとCodexで使える、慎重なプラグイン集。**
@@ -19,10 +21,10 @@
 
 ## プラグイン
 
-| プラグイン | できること | 最新バージョン |
-|---|---|---|
-| [account-cleanup](plugins/account-cleanup) | パスワードを一切読まずに、使っていないWebアカウントを見つけます。あなたが承認したアカウントは、サブスクリプションを解約してからアカウントを削除します | [0.1.1](plugins/account-cleanup/CHANGELOG.md) |
-| [pc-tidy](plugins/pc-tidy) | Macの中で使われなくなった物を一覧にし、あなたが選んだ物だけを消してディスクの空きを増やします | [0.1.1](plugins/pc-tidy/CHANGELOG.md) |
+| プラグイン | できること | 呼び出し方 | 最新バージョン |
+|---|---|---|---|
+| [account-cleanup](plugins/account-cleanup) | パスワードを一切読まずに、使っていないWebアカウントを見つけます。あなたが承認したアカウントは、サブスクリプションを解約してからアカウントを削除します | Claude Codeでは`/account-cleanup:account-cleanup`を実行し、Codexでは`$`を入力して**Account Cleanup**を選びます。やりたいことを言葉で頼んでも始まります | [0.1.1](plugins/account-cleanup/CHANGELOG.md) |
+| [pc-tidy](plugins/pc-tidy) | Macの中で使われなくなった物を一覧にし、あなたが選んだ物だけを消してディスクの空きを増やします | Claude Codeでは`/pc-tidy:pc-tidy`を実行し、Codexでは`$`を入力して**PC Tidy**を選びます。呼び出した時だけ始まります | [0.1.1](plugins/pc-tidy/CHANGELOG.md) |
 
 各プラグインのREADMEに、何をするか、何を読んで何を送るか、何が必要かを書いています。
 

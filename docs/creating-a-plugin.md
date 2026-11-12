@@ -40,7 +40,7 @@ The marketplace at `.claude-plugin/marketplace.json` lists every plugin folder, 
 5. Add `README.md` and `README.ja.md`. Describe everything the plugin reads, runs, connects to, and keeps, because the directories' security reviews compare the README with what the code does. Show images with Markdown image syntax from `assets/`
 6. Add `CHANGELOG.md` with an empty `## [Unreleased]` section, and copy the root `LICENSE`
 7. Add an entry to `.claude-plugin/marketplace.json` with the same `name` and `description`, and `"source": "./plugins/<name>"`
-8. Add a row to the plugin tables in `README.md` and `README.ja.md`
+8. Add a row to the plugin tables in `README.md` and `README.ja.md`. In the run column, give the Claude Code command `/<plugin>:<skill>`, the `interface.displayName` to pick after typing `$` in Codex, and whether the plugin starts when the user describes the task
 9. Run `bash scripts/check.sh` and fix everything it reports
 
 ## Keeping a plugin small and reviewable
