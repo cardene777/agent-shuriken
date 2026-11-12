@@ -1,0 +1,7 @@
+interface:
+  display_name: "Secure Dotfile"
+  short_description: "Move secrets out of shell startup files into the macOS Keychain"
+  default_prompt: "Use $secure-dotfile to find API keys written into my shell config and move them to the Keychain."
+
+policy:
+  allow_implicit_invocation: true
