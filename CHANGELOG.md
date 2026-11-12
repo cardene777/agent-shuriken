@@ -7,6 +7,27 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-13
+
+### Plugins
+
+| Plugin | Version |
+|---|---|
+| account-cleanup | 0.2.0 |
+| compare-report | 0.2.0 |
+| diagram-explainer | 0.2.0 |
+| docs-publish | 0.1.0 |
+| excalidraw-diagram | 0.1.0 |
+| feedback-loop | 0.1.0 |
+| init-project | 0.1.0 |
+| learning-to-skill | 0.1.0 |
+| oss-contribute | 0.1.0 |
+| portman | 0.1.0 |
+| repo-progress | 0.1.0 |
+| secure-dotfile | 0.2.0 |
+| session-handoff | 0.1.0 |
+| techdebt | 0.2.0 |
+
 ### Added
 
 - The repo-progress plugin, which shows every repository you work on in one table, with worktrees, open issues and pull requests, uncommitted files, and the ones that have stalled first, without changing anything
@@ -152,7 +173,8 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 - First public release with the account-cleanup and pc-tidy plugins, installable from this marketplace in Claude Code and Codex
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.7.0
 [0.6.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.6.0
 [0.5.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.5.0
 [0.4.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.4.0
