@@ -1,0 +1,33 @@
+{
+  "name": "session-handoff",
+  "version": "0.1.0",
+  "description": "Hand an agent session over to a new one: a short message to paste, and a saved state of the options already rejected, the current phase, delegated work, and things not to do, with anything that looks like a secret refused",
+  "author": {
+    "name": "cardene777",
+    "url": "https://github.com/cardene777"
+  },
+  "homepage": "https://github.com/cardene777/agent-shuriken/tree/main/plugins/session-handoff",
+  "repository": "https://github.com/cardene777/agent-shuriken",
+  "license": "MIT",
+  "keywords": [
+    "session",
+    "handoff",
+    "context",
+    "agents",
+    "state"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Session Handoff",
+    "shortDescription": "Hand a session to a new one",
+    "longDescription": "Hands the current agent session over to a new one when you call it. It writes a message of three short paragraphs to paste into the new session: what was handed off, the background, and the next task. It also saves a snapshot for the project with the options already rejected and why, the current phase, the work delegated to other agents, and the things not to do, so the new session does not propose a rejected option again or repeat a step you ruled out. A script checks the shape of both, refuses text that looks like a password, token, API key, private key, or the value of a secret environment variable, and keeps one file per project in ~/.local/share/session-handoff/, readable only by you, for 7 days. In the new session, it reads the saved state back with its age and the branch and commit it was saved on. It uses Python and git, sends nothing anywhere, and never starts on its own.",
+    "developerName": "cardene777",
+    "category": "Developer Tools",
+    "capabilities": [],
+    "defaultPrompt": [
+      "Hand this session over to a new one"
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
+  }
+}
