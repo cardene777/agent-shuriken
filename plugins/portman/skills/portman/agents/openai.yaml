@@ -1,0 +1,7 @@
+interface:
+  display_name: "Portman"
+  short_description: "Keep the localhost ports of your projects apart: see what holds each port, find free ports, and write them to .env.local and Docker Compose"
+  default_prompt: "Use $portman to find a free port for this project and register it."
+
+policy:
+  allow_implicit_invocation: true

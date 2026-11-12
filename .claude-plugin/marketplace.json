@@ -36,6 +36,11 @@
       "description": "Write the lessons from a session into the instruction files your agents read, such as AGENTS.md, CLAUDE.md, GEMINI.md, Copilot's instructions, or a skill's SKILL.md, in the right place and without duplicates, only after you approve the diff"
     },
     {
+      "name": "portman",
+      "source": "./plugins/portman",
+      "description": "Keep a registry of the localhost ports each project uses, so dev servers never collide: see what holds each port right now, get free ports that avoid common defaults, find collisions, and write a project's ports to .env.local and a Docker Compose override after you approve"
+    },
+    {
       "name": "repo-progress",
       "source": "./plugins/repo-progress",
       "description": "See where every repository you work on stands in one table: worktrees, open issues and pull requests, uncommitted files, and which ones have stalled, without changing anything"
