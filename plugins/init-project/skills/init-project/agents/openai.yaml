@@ -1,0 +1,7 @@
+interface:
+  display_name: "Init Project"
+  short_description: "Set up a project: a free local port, a Docker setup, and env files linked to 1Password, each file shown before it is written"
+  default_prompt: "Use $init-project to set up this project with a local port, Docker, and 1Password."
+
+policy:
+  allow_implicit_invocation: true

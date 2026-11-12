@@ -1,0 +1,33 @@
+{
+  "name": "init-project",
+  "version": "0.1.0",
+  "description": "Set up a project for local work: pick a free local port, add a Docker setup, and link its env files to 1Password with references, writing each file only after you approve it",
+  "author": {
+    "name": "cardene777",
+    "url": "https://github.com/cardene777"
+  },
+  "homepage": "https://github.com/cardene777/agent-shuriken/tree/main/plugins/init-project",
+  "repository": "https://github.com/cardene777/agent-shuriken",
+  "license": "MIT",
+  "keywords": [
+    "docker",
+    "ports",
+    "1password",
+    "env",
+    "setup"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Init Project",
+    "shortDescription": "Set up ports, Docker, and env",
+    "longDescription": "Prepares a project folder for local work, in three parts you can take together or one at a time. It tells what kind of project the folder is, then picks a local port from 3100 up that nothing is listening on, that common tools do not use, and that no other project set up with it has, and records it. It writes a Docker setup for Node and Python web apps and for Foundry and Hardhat local chains: a Dockerfile, a .dockerignore, a compose file without ports, and an override file that binds the local port to 127.0.0.1 and stays out of git. It links env files to 1Password by writing a .tpl file of op:// references for each one and printing the commands you run in your own terminal to store the values, so no value passes through the agent. Every file is shown first and written only after you approve, existing files are kept unless you name one to replace, and each file and the port are checked again right before writing. It uses Python and git, and never runs op.",
+    "developerName": "cardene777",
+    "category": "Developer Tools",
+    "capabilities": [],
+    "defaultPrompt": [
+      "Set up this project with a local port, Docker, and 1Password"
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
+  }
+}
