@@ -1,33 +1,69 @@
 #!/bin/bash
-# Publishes a release: tags vX.Y.Z on main, then creates a GitHub Release whose notes are the
-# version's section of CHANGELOG.md, with one zip per skill attached.
+# Releases one plugin or the repository as a whole.
 #
-# Usage: bash scripts/release.sh <X.Y.Z> [--dry-run]
+# Usage:
+#   bash scripts/release.sh <plugin> <X.Y.Z> [--dry-run]   Tag <plugin>--vX.Y.Z and publish a plugin release
+#   bash scripts/release.sh repo <X.Y.Z> [--dry-run]       Tag vX.Y.Z and publish a repository release
 #
-# Before running it, merge a pull request that moves the entries under "## [X.Y.Z] - <date>"
-# in CHANGELOG.md and sets every plugin version in .claude-plugin/marketplace.json to X.Y.Z.
-# --dry-run builds the notes and zips from HEAD and prints what would be published,
-# without tagging, pushing, or creating the release.
+# Before running it, merge a pull request that moves the changelog entries under "## [X.Y.Z] - <date>",
+# as docs/releasing.md describes. --dry-run builds the notes and assets from HEAD and prints what would
+# be published, without tagging, pushing, or creating the release.
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$root"
+REPO_URL="https://github.com/cardene777/agent-shuriken"
 
 die() { printf 'release: %s\n' "$1" >&2; exit 1; }
 
-version="${1:-}"
+target="${1:-}"
+version="${2:-}"
 dry_run=false
-[ "${2:-}" = "--dry-run" ] && dry_run=true
-[[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "usage: scripts/release.sh <X.Y.Z> [--dry-run]"
-tag="v$version"
+[ "${3:-}" = "--dry-run" ] && dry_run=true
+[ -n "$target" ] && [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] \
+  || die "usage: scripts/release.sh <plugin|repo> <X.Y.Z> [--dry-run]"
 
 for tool in git jq gh; do
   command -v "$tool" >/dev/null || die "$tool is not installed"
 done
 
+if [ "$target" = repo ]; then
+  changelog=CHANGELOG.md
+  tag="v$version"
+  title="v$version"
+else
+  [ -f "plugins/$target/.claude-plugin/plugin.json" ] || die "no plugin named $target in plugins/"
+  changelog="plugins/$target/CHANGELOG.md"
+  tag="$target--v$version"
+  title="$target $version"
+fi
+
 bash scripts/check.sh >/dev/null || die "scripts/check.sh failed; run it to see why"
 
-newest="$(sed -nE 's/^## \[([0-9]+\.[0-9]+\.[0-9]+)\] - [0-9-]+$/\1/p' CHANGELOG.md | head -1)"
-[ "$newest" = "$version" ] || die "the newest release in CHANGELOG.md is $newest, not $version"
+newest="$(sed -nE 's/^## \[([0-9]+\.[0-9]+\.[0-9]+)\] - [0-9-]+$/\1/p' "$changelog" | head -1)"
+[ "$newest" = "$version" ] || die "the newest release in $changelog is $newest, not $version"
+
+# The section of the changelog for this version: the lines between its heading and the next release
+# heading or the link definitions at the end. Command substitution drops trailing blank lines, and
+# sed drops leading ones.
+notes="$(awk -v heading="## [$version]" '
+  index($0, heading) == 1 { found = 1; next }
+  found && (/^## \[/ || /^\[[^]]+\]: /) { exit }
+  found { print }
+' "$changelog" | sed -e '/./,$!d')"
+[ -n "$notes" ] || die "the section for $version in $changelog is empty"
+
+if [ "$target" = repo ]; then
+  # The release records the plugin versions, so its table must match the manifests on this commit.
+  for dir in plugins/*/; do
+    name="$(basename "$dir")"
+    current="$(jq -r .version "$dir.claude-plugin/plugin.json")"
+    printf '%s\n' "$notes" | grep -qE "^\| $name \| $current \|$" \
+      || die "the Plugins table for $version in CHANGELOG.md does not list $name $current"
+  done
+  footer="See the README for the plugins and how to install them: $REPO_URL#readme"
+else
+  footer="See the README for how to install and use the plugin: $REPO_URL/tree/$tag/plugins/$target"
+fi
 
 if [ "$dry_run" = false ]; then
   [ "$(git branch --show-current)" = main ] || die "check out main first"
@@ -40,38 +76,37 @@ fi
 
 out="$(mktemp -d)"
 trap 'rm -rf "$out"' EXIT
+printf '%s\n\n%s\n' "$notes" "$footer" > "$out/notes.md"
 
-# Release notes: the lines between this version's heading and the next release heading,
-# or the link definitions at the end of the file.
-# Command substitution drops the trailing blank lines; sed drops the leading ones.
-notes="$(awk -v heading="## [$version]" '
-  index($0, heading) == 1 { found = 1; next }
-  found && (/^## \[/ || /^\[[^]]+\]: /) { exit }
-  found { print }
-' CHANGELOG.md | sed -e '/./,$!d')"
-[ -n "$notes" ] || die "the section for $version in CHANGELOG.md is empty"
-printf '%s\n\nSee the README for how to install and update: https://github.com/cardene777/agent-shuriken#install\n' \
-  "$notes" > "$out/notes.md"
-
-# One zip per skill, holding the skill folder at the top level so it unzips into a skills folder.
+# A plugin release attaches the skill folders, to unzip into a skills folder, and the plugin
+# folder's contents, to upload to OpenAI's plugin directory.
 assets=()
-for dir in skills/*/; do
-  name="$(basename "$dir")"
-  [ -f "$dir/SKILL.md" ] || continue
-  git archive --format=zip --prefix="$name/" -o "$out/$name-$tag.zip" "HEAD:skills/$name"
-  assets+=("$out/$name-$tag.zip")
-done
+if [ "$target" != repo ]; then
+  git archive --format=zip -o "$out/$target-$version-skill.zip" "HEAD:plugins/$target/skills"
+  git archive --format=zip -o "$out/$target-$version-plugin.zip" "HEAD:plugins/$target"
+  assets=("$out/$target-$version-skill.zip" "$out/$target-$version-plugin.zip")
+fi
 
 if [ "$dry_run" = true ]; then
-  printf 'Would tag %s at %s and publish this release.\n\n' "$tag" "$(git rev-parse --short HEAD)"
+  printf 'Would tag %s at %s and publish "%s".\n\n' "$tag" "$(git rev-parse --short HEAD)" "$title"
   cat "$out/notes.md"
-  printf '\nAssets:\n'
-  for asset in "${assets[@]}"; do
-    printf '  %s (%s files)\n' "$(basename "$asset")" "$(unzip -Z1 "$asset" | grep -vc '/$')"
-  done
+  if [ "${#assets[@]}" -gt 0 ]; then
+    printf '\nAssets:\n'
+    for asset in "${assets[@]}"; do
+      printf '  %s (%s files)\n' "$(basename "$asset")" "$(unzip -Z1 "$asset" | grep -vc '/$')"
+    done
+    printf '\nWould move branch release/%s to this commit.\n' "$target"
+  fi
   exit 0
 fi
 
-git tag -a "$tag" -m "$tag"
+git tag -a "$tag" -m "$title"
 git push --quiet origin "refs/tags/$tag"
-gh release create "$tag" --verify-tag --title "$tag" --notes-file "$out/notes.md" "${assets[@]}"
+if [ "$target" = repo ]; then
+  gh release create "$tag" --verify-tag --title "$title" --notes-file "$out/notes.md" --latest
+else
+  # Anthropic's plugin directory follows release/<plugin>, so it picks up only released versions.
+  # The push is a fast-forward; it fails rather than rewrite the branch if history diverged.
+  git push --quiet origin "refs/tags/$tag^{commit}:refs/heads/release/$target"
+  gh release create "$tag" --verify-tag --title "$title" --notes-file "$out/notes.md" --latest=false "${assets[@]}"
+fi
