@@ -42,6 +42,22 @@ Pick the kind of diagram.
 | Graph with `table` nodes | Entity-relationship diagrams | `"shape": "table"` |
 | Sequence | Messages between participants over time | `"type": "sequence"` |
 
+Pick a theme, the look of the lines, fonts, and fills.
+Use what the user asks for; when they say nothing about the look, leave `theme` out to get `sketch`, and name the other themes in one line of the report.
+
+| Theme | Look | Fits |
+|---|---|---|
+| `sketch` (default) | Hand-drawn lines and Excalifont, shapes filled with color, as the Excalidraw editor draws by default | Most diagrams |
+| `hatch` | `sketch` with shapes filled with hatching | A whiteboard look |
+| `pencil` | Thin black hand-drawn lines with no fill | Printing in black and white, or a quiet document |
+| `soft` | Light fills, the color carried by the outlines, zones not filled | Calm documents |
+| `marker` | Rougher lines, thick outlines, and hatching | Talks and slides |
+| `dark` | `sketch` on a dark background, as Excalidraw's dark mode shows it | Pages read in dark mode |
+| `clean` | Straight lines and system sans-serif fonts | Formal documents |
+| `friendly` | Hand-drawn lines with Nunito, a rounded font | Diagrams with a lot of text |
+
+Excalifont and Nunito cover Latin, Greek, and Cyrillic letters only; other text, such as Japanese, uses the system fonts, so a diagram written mostly in Japanese reads more evenly with `clean`.
+
 Follow these rules for the content; the script cannot check them for you.
 
 - Give each box real content, not only a name: fields and types for data, protocols, ports, or endpoints for services. Put the name in `label` and the details in `lines`
@@ -83,13 +99,14 @@ A graph spec:
 | Key | Values |
 |---|---|
 | `title` | Optional title above the diagram |
+| `theme` | `sketch` (default), `hatch`, `pencil`, `soft`, `marker`, `dark`, `clean`, or `friendly`, from step 1 |
 | `direction` | `down` (default) or `right` |
 | `order` | `auto` (default): the script reorders the nodes in a tier when that makes fewer arrows cross. `listed`: nodes keep exactly the order you list them in |
-| `style` | `clean` (default) or `sketch`, the hand-drawn look the Excalidraw editor shows. The SVG and PNG always use clean shapes |
-| `fill` | `solid` (default) or `hachure` (diagonal lines in the editor and the SVG) |
+| `style` | Optional. `clean` makes the theme's lines straight and its text Helvetica; `sketch` makes them hand-drawn |
+| `fill` | Optional. `solid` or `hachure` (diagonal lines) replaces the theme's fill |
 | `node_gap`, `tier_gap` | Space between nodes in a tier (default 60, at least 40) and between tiers (default 80, at least 60) |
 | `nodes[].id` | Letters, digits, `_`, `.`, or `-` |
-| `nodes[].label`, `nodes[].lines` | The name, drawn bold in the SVG and PNG, and the lines of detail under it |
+| `nodes[].label`, `nodes[].lines` | The name, drawn bold (or thickened, in the hand-drawn fonts) in the SVG and PNG, and the lines of detail under it |
 | `nodes[].shape` | `box` (default), `ellipse` (start, end, people), `diamond` (decision), `table` (name over a list of fields) |
 | `nodes[].color`, `groups[].color` | `gray` (default), `blue`, `green`, `red`, `orange`, `yellow`, `violet`, `teal` |
 | `nodes[].group` | The id of a group; its nodes are drawn inside a dashed zone with the group's label |
@@ -104,7 +121,7 @@ List them in the order you want, and set `"order": "listed"` when that order mus
 Inside a group, `tier` counts from the group's own top.
 To put a side branch, such as a failure path, beside its source instead of in line with the flow, give it the same tier as its source.
 
-A sequence spec has `participants` (`id`, `label`, `lines`, `color`) and `messages` (`from`, `to`, `label`, `line` of `solid` or `dashed`, `head` of `end` or `none`), plus `title`, `style`, and `fill`.
+A sequence spec has `participants` (`id`, `label`, `lines`, `color`) and `messages` (`from`, `to`, `label`, `line` of `solid` or `dashed`, `head` of `end` or `none`), plus `title`, `theme`, `style`, and `fill`.
 Use a dashed line for replies.
 
 To start from Mermaid, convert it and then add details and colors to the spec:
@@ -123,7 +140,7 @@ S=<skill folder>/scripts; python3 "$S/excalidraw_diagram.py" build <folder>/<nam
 ```
 
 The files go next to the spec.
-`--out <folder>` and `--name <name>` change that, `--png skip` leaves out the PNG, and `--scale 1` makes a smaller PNG (the default 2 is sharp on high-density screens).
+`--out <folder>` and `--name <name>` change that, `--theme <name>` draws the spec in another theme without editing it, `--png skip` leaves out the PNG, and `--scale 1` makes a smaller PNG (the default 2 is sharp on high-density screens).
 
 | Exit code | Meaning | What to do |
 |---|---|---|
@@ -160,6 +177,7 @@ If you cannot view images, say that you checked the script's results only.
 ## 5. Report
 
 Give the paths of the `.excalidraw`, `.svg`, and `.png` files, and say when the PNG was skipped and why.
+Name the theme you used, and when the user did not pick one, the other themes they can ask for.
 Tell the user they can open the `.excalidraw` file in the Excalidraw editor (on the web, open the file from the menu or drag it onto the canvas) and keep editing it there, and that you can change the diagram if they say what to change.
 For changes, edit the spec and build again.
 

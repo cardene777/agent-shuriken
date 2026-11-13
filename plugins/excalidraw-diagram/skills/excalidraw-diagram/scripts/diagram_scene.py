@@ -82,11 +82,14 @@ def scene_digest(doc):
     return "sha256:" + hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
-def document(elements, background="#ffffff"):
+def document(elements, background="#ffffff", dark=False):
+    """A scene; dark=True asks the editor, the SVG, and the PNG to show it in Excalidraw's dark mode."""
+    state = {"gridSize": 20, "gridStep": 5, "gridModeEnabled": False, "viewBackgroundColor": background}
+    if dark:
+        state["theme"] = "dark"
     doc = {
         "type": "excalidraw", "version": 2, "source": SOURCE, "elements": elements,
-        "appState": {"gridSize": 20, "gridStep": 5, "gridModeEnabled": False,
-                     "viewBackgroundColor": background},
+        "appState": state,
         "files": {},
     }
     doc["generator"] = {"name": NAME, "digest": scene_digest(doc)}

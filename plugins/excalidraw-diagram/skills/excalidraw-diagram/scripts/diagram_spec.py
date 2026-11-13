@@ -6,6 +6,8 @@ defaults filled in, or raises SpecError listing every problem at once.
 """
 import re
 
+import diagram_theme as themes
+
 PALETTE = {
     # name: (outline and text, shape fill, zone fill)
     "gray": ("#495057", "#e9ecef", "#f8f9fa"),
@@ -24,8 +26,9 @@ ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$")
 MAX_NODES, MAX_EDGES, MAX_LINES, MAX_TEXT = 80, 160, 15, 120
 
 KEYS = {
-    "graph": {"type", "title", "direction", "order", "style", "fill", "nodes", "edges", "groups", "node_gap", "tier_gap"},
-    "sequence": {"type", "title", "style", "fill", "participants", "messages"},
+    "graph": {"type", "title", "theme", "direction", "order", "style", "fill", "nodes", "edges", "groups", "node_gap",
+              "tier_gap"},
+    "sequence": {"type", "title", "theme", "style", "fill", "participants", "messages"},
     "node": {"id", "label", "lines", "shape", "color", "group", "tier"},
     "edge": {"from", "to", "label", "line", "head"},
     "group": {"id", "label", "color", "tier"},
@@ -131,8 +134,10 @@ def _ids(errors, items, kind):
 def _common(errors, spec):
     out = {
         "title": _text(errors, "title", spec.get("title"), False),
-        "style": _choice(errors, "style", spec.get("style"), ("clean", "sketch"), "clean"),
-        "fill": _choice(errors, "fill", spec.get("fill"), ("solid", "hachure"), "solid"),
+        "theme": _choice(errors, "theme", spec.get("theme"), tuple(themes.names()), themes.default()),
+        # "style" and "fill" adjust the theme: clean or hand-drawn lines, and solid or hatched fills.
+        "style": _choice(errors, "style", spec.get("style"), ("clean", "sketch"), None),
+        "fill": _choice(errors, "fill", spec.get("fill"), ("solid", "hachure"), None),
     }
     return out
 

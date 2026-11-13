@@ -10,6 +10,7 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 ### Changed
 
 - The link check in `scripts/check.sh` no longer reads links inside fenced code blocks, so a README can show a sample page with its own relative links
+- The text checks in `scripts/check.sh` skip font files, so a plugin can bundle the fonts it embeds
 
 ## [0.7.0] - 2026-11-13
 

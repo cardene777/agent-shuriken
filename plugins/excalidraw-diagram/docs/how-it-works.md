@@ -4,7 +4,7 @@ English · [日本語](how-it-works.ja.md)
 
 This page explains what the plugin reads and writes, how the script lays a diagram out, every rule it checks, and how the SVG and PNG are made.
 Everything here is done by the scripts in `skills/excalidraw-diagram/scripts/`, which use only the Python standard library.
-`excalidraw_diagram.py` is the command; the other files hold the spec reader, the layout, the checks, the SVG and PNG steps, and the Mermaid converter.
+`excalidraw_diagram.py` is the command; the other files hold the spec reader, the themes, the layout, the checks, the SVG with its hand-drawn strokes and fonts, the PNG step, and the Mermaid converter.
 
 ## Commands
 
@@ -34,10 +34,11 @@ The agent writes the spec as JSON; the script rejects unknown keys, ids that do 
 |---|---|
 | `type` | `graph` (default) or `sequence` |
 | `title` | Optional title, drawn at 28 px above the diagram |
+| `theme` | `sketch` (default), `hatch`, `pencil`, `soft`, `marker`, `dark`, `clean`, or `friendly`, as described under "Themes" |
 | `direction` | Graphs only: `down` (default) or `right` |
 | `order` | Graphs only: `auto` (default) reorders the nodes in a tier when that makes fewer arrows cross; `listed` keeps the order of the spec exactly |
-| `style` | `clean` (default): straight outlines and Helvetica in the editor. `sketch`: Excalidraw's hand-drawn outlines and its hand-drawn font in the editor |
-| `fill` | `solid` (default) or `hachure` |
+| `style` | Optional. `clean` makes the theme's lines straight and its text Helvetica; `sketch` makes them hand-drawn |
+| `fill` | Optional. `solid` or `hachure` replaces the theme's fill |
 | `node_gap` | Space between nodes in one tier, 40 to 400, default 60 |
 | `tier_gap` | Space between tiers, 60 to 600, default 80 |
 | `nodes` | `id`, `label`, and optional `lines`, `shape` (`box`, `ellipse`, `diamond`, `table`), `color`, `group`, `tier` |
@@ -49,9 +50,31 @@ The agent writes the spec as JSON; the script rejects unknown keys, ids that do 
 Colors are `gray` (default), `blue`, `green`, `red`, `orange`, `yellow`, `violet`, and `teal`, each with an outline, a fill for shapes, and a paler fill for zones.
 A spec holds at most 80 nodes and 160 edges, or 20 participants and 160 messages, and every line of text at most 120 characters.
 
+## Themes
+
+A theme sets the look: how lines are drawn, which font the text uses, and how shapes and zones are filled.
+The spec picks one with `theme`, or `build --theme` picks one for a single build; without either, the theme is `sketch`.
+Every theme is defined in `skills/excalidraw-diagram/themes.json`, and the layout and the SVG read every setting from it.
+
+| Theme | Roughness | Font | Fill | Outlines | Background |
+|---|---|---|---|---|---|
+| `sketch` | 1 | Excalifont | The shape's color | In color, 2 px | White |
+| `hatch` | 1 | Excalifont | Hatching in the shape's color | In color, 2 px | White |
+| `pencil` | 1 | Excalifont | None, in zones too | Black, 1 px | White |
+| `soft` | 1 | Excalifont | The light tint, and none in zones | In color, 2 px | White |
+| `marker` | 2 | Excalifont | Hatching in the shape's color | In color, 4 px | White |
+| `dark` | 1 | Excalifont | The shape's color | In color, 2 px | Dark, as Excalidraw's dark mode shows it |
+| `clean` | 0 | Helvetica | The shape's color | In color, 2 px | White |
+| `friendly` | 1 | Nunito | The shape's color | In color, 2 px | White |
+
+Roughness is Excalidraw's own setting: 0 draws straight lines, 1 the editor's default hand-drawn lines, and 2 rougher ones.
+Arrows and their labels are dark gray `#495057` and 2 px, or black and 1 px in `pencil`.
+`style` and `fill` in the spec adjust the theme: `"style": "clean"` makes its lines straight and its text Helvetica, `"style": "sketch"` makes them hand-drawn, and `fill` replaces its fill.
+The file holds one object per theme with the keys `roughness`, `font`, `fill`, `tint`, `zone_fill`, `outline`, `shape_stroke`, `line_stroke`, `line_color`, and `dark`; the script checks every value and stops with exit code 2, naming the setting, when one is wrong.
+
 ## How a graph is laid out
 
-1. Every node is sized from its text so the text, with its first line in bold as the SVG draws it, has at least 20 px on each side: a box is at least 160 by 60 px, an ellipse 140 by 60, and a diamond 140 by 80, and sizes are rounded up to 10 px. A diamond is twice as wide and tall as its text needs, because text fits only in its middle half. A `table` is a header with the label over a white body with the lines, left-aligned
+1. Every node is sized from its text so the text, with its first line in bold as the SVG draws it, has at least 20 px on each side: a box is at least 160 by 60 px, an ellipse 140 by 60, and a diamond 140 by 80, and sizes are rounded up to 10 px. A diamond is twice as wide and tall as its text needs, because text fits only in its middle half. A `table` is a header with the label over a white body with the lines, left-aligned. Boxes and tables then widen toward the widest of them, by at most half their own width, so boxes in one diagram share a width when their text allows and the columns line up
 2. Text is measured without font files, from the average width of each kind of character (narrow, wide, capital, and East Asian characters, which count as a full em) plus 6 % to spare, so the estimate is never smaller than the real text
 3. Each node gets a tier: the one in the spec, or one more than the deepest node with an arrow into it. Arrows that close a loop are left out of this count, so the first node of a loop stays on top
 4. Nodes in one tier start in the order of the spec and are centered on the same line, with `node_gap` between them and `tier_gap` between tiers. A gap grows to fit a label that has to sit in it: the label's size along the arrow plus 48 px. Tiers going down are aligned at their tops, and tiers going right at their left edges
@@ -60,8 +83,8 @@ A spec holds at most 80 nodes and 160 edges, or 20 participants and 160 messages
 
 ## How arrows are drawn
 
-- An arrow leaves the side of its shape that faces the other shape, and both ends stop 12 px outside the outline. An arrow back against the flow goes around the side its two ends lean toward: the left when both sit, on average, left of the middle of the diagram, and otherwise the right (the top or the bottom when the flow goes right). An arrow that answers one going the other way runs beside it instead. A loop back to the same node leaves and re-enters across the flow
-- Arrows that share a side are spread along it. Two sides that face each other and carry the same arrows get matching ports so the arrows run straight. A diamond has one port per tip, and extra arrows move to a free tip on the side of their other end
+- An arrow leaves the side of its shape that faces the other shape, and both ends stop 5 px outside the outline; its route starts 12 px out. An arrow back against the flow goes around the side its two ends lean toward: the left when both sit, on average, left of the middle of the diagram, and otherwise the right (the top or the bottom when the flow goes right). An arrow that answers one going the other way runs beside it instead. A loop back to the same node leaves and re-enters across the flow
+- Arrows that share a side are spread along it. Two sides that face each other and carry the same arrows get matching ports so the arrows run straight. A diamond has one port per tip, and extra arrows move to a free tip on the side of their other end. Arrows that all leave one side of a box, each for a different shape, start from the middle of that side and share one line before they split, like the branches of a tree; they do not pay for running along each other
 - Between its ends an arrow is routed along horizontal and vertical lines: the edges of every shape grown by 10 px, the middles of the gaps between them, and the ports. The route is the cheapest path where each pixel costs 1 (1.25 along a shape's edge line), each bend costs 40, running on the same line as another arrow costs 400 per step plus 4 per shared pixel, running along a zone's dashed outline costs 3 per pixel, and each point where it crosses an arrow routed before it, or passes within 8 px of the end of one, costs 150. Arrows are routed shortest first. Bends prefer the middle between the two ends
 - Arrows with bends are written with `roundness: null`, so the Excalidraw editor draws straight stretches with sharp corners instead of smoothing them into a curve
 - Each label is placed beside the longest straight stretch of its arrow first, 8 px from the line, at the middle or further along, above or below a horizontal stretch and right or left of a vertical one. A spot is taken only when the label touches no shape outline (it may sit wholly inside a zone), stays 10 px from a zone's dashed outline on either side, and keeps clear of other text (4 px) and of every line (3 px)
@@ -96,12 +119,12 @@ Each problem names the shapes by their text.
 | `text-overlap` | Free text crosses a shape's outline (it must be wholly inside or wholly outside, 4 px from the outline, or 8 px from a zone's outline so it does not read as sitting on it), or two texts overlap |
 | `label-on-line` | An arrow or line passes through free text, or through an arrow label other than its own |
 | `arrow-through` | An arrow or line passes through a shape other than a zone |
-| `arrow-end` | An arrow end is inside a shape, closer than 8 px to the shape it is bound to, or more than 30 px from it |
+| `arrow-end` | An arrow end is inside a shape, closer than 4 px to the shape it is bound to, or more than 30 px from it |
 | `unbound` | An arrow end is within 30 px of a shape but not bound to it, so it would not follow the shape |
 | `curve` | An arrow or line with more than two points has a roundness, so Excalidraw would draw it as a curve |
-| `arrow-overlap` | Two arrows or lines run along the same horizontal or vertical stretch for more than 2 px |
+| `arrow-overlap` | Two arrows or lines run along the same horizontal or vertical stretch for more than 2 px, except two arrows of one trunk, which leave one shape from one point, run together, and split |
 
-Warnings do not fail the check. `crossing` names every pair of arrows that cross or touch, counting a point where they meet, where one ends on the other, or where they come within 3 px, and says how many such points there are. Some graphs cannot be drawn without a crossing, so `build` and `check` still exit 0 and print each pair on a line starting with `Warning: crossing:`.
+Warnings do not fail the check. `crossing` names every pair of arrows that cross or touch, counting a point where they meet, where one ends on the other, or where they come within 3 px, and says how many such points there are. Two arrows of one trunk meet along it and where they split, and those points are not counted. Some graphs cannot be drawn without a crossing, so `build` and `check` still exit 0 and print each pair on a line starting with `Warning: crossing:`.
 
 Notes do not fail the check either: boxes that hold one line of text, shapes much larger than their text, text with emoji, and element types the checks do not cover (images, frames, and freehand drawings).
 
@@ -112,9 +135,10 @@ Every element carries the fields the editor writes itself.
 
 - Element ids come from the spec: `node:<id>` and `node:<id>:text`, `node:<id>:fields` for a table's body, `zone:<group>`, `edge:<n>` and `edge:<n>:label`, `participant:<id>`, `message:<n>`, and `title`
 - Text in a shape is bound to it (`containerId`), so it moves with the shape; labels of arrows and zones are grouped with their arrow or zone
-- A text element in Excalidraw has one font, size, and weight for all its lines, so a node's name and its detail lines look the same in the editor. Only the SVG and PNG draw the name bold
-- Arrows are bound at both ends with `focus` 0 and `gap` 12, and the shapes list them in `boundElements`, so they follow when a shape moves
-- Boxes and zones have rounded corners; tables, diamonds, and ellipses do not. Text uses Excalidraw font 2 (Helvetica) in the clean style and font 5 (its hand-drawn font) in the sketch style
+- A text element in Excalidraw has one font, size, and weight for all its lines, so a node's name and its detail lines look the same in the editor. Only the SVG and PNG draw the name bold, or thicken it with a thin outline in a font that has no bold face
+- Arrows are bound at both ends with `focus` 0 and `gap` 5, and the shapes list them in `boundElements`, so they follow when a shape moves
+- Boxes and zones have rounded corners, with Excalidraw's adaptive radius of at most 8 px for boxes and 16 px for zones; tables, diamonds, and ellipses do not. Text uses the theme's font: Excalidraw font 5 (Excalifont), 6 (Nunito), or 2 (Helvetica). Arrows end in filled triangles
+- A scene in the `dark` theme sets `appState.theme` to `dark`, which the SVG and PNG read to draw it dark
 - Seeds come from the ids and the timestamp is fixed, so the same spec always gives the same file
 - A top-level `generator` entry holds a SHA-256 digest of the elements, `appState`, and `files`. The editor drops this entry when it saves, which is how the plugin tells that a file was edited
 
@@ -122,7 +146,10 @@ Every element carries the fields the editor writes itself.
 
 The SVG is drawn by the script from the scene, with 24 px of margin and the scene's background color.
 It draws rectangles, ellipses, diamonds, text, arrows with their heads, and lines; other element types are left out and named.
-Shapes have clean outlines, the first line of text in a shape (a node's name) is bold, and text uses fonts already on the viewer's machine (a sans-serif list that includes Japanese fonts, or a monospace list for Excalidraw's code fonts), so it does not imitate the hand-drawn look.
+Elements whose roughness is above 0 are drawn by hand, the way the Excalidraw editor draws them with the rough.js library: each straight stroke bows a little and is drawn twice, rounded corners and ellipses wobble at their control points, a solid fill is a slightly looser copy of the outline, and hatching is a row of rough strokes at -41 degrees. The formulas follow rough.js, and every random number comes from the element's seed, so the same scene always gives the same SVG. Elements with roughness 0 get clean outlines.
+The first line of text in a shape (a node's name) is bold, or thickened with a thin outline in its own color in Excalifont and Nunito, which have no bold face.
+Text in Excalifont or Nunito embeds the font files it needs as data URLs, read from `skills/excalidraw-diagram/data/fonts/`, so the SVG looks the same on any machine and needs no network. Characters those fonts lack, such as Japanese, use the fonts already on the viewer's machine (a sans-serif list that includes Japanese fonts); Helvetica text uses that list, and Excalidraw's code fonts a monospace list.
+A scene whose `appState.theme` is `dark` gets the CSS filter `invert(93%) hue-rotate(180deg)` on the whole SVG, the one Excalidraw's dark mode uses.
 The second line of the SVG is a comment with a SHA-256 digest of the rest of the file.
 
 The PNG is a screenshot of the SVG taken by a browser that is already installed.
@@ -196,7 +223,7 @@ Anything else, such as `loop`, `alt`, notes, arrows ending in `x` or `o`, nested
 - Send your diagrams, specs, or code anywhere
 - Replace a file it did not write, or that changed since, without `--replace`
 - Change a scene it is asked to check or render
-- Copy Excalidraw's code or fonts: the plugin writes the open file format with its own code
+- Copy Excalidraw's code: the plugin writes the open file format with its own code. The font files in `data/fonts/` are unmodified copies of the Excalifont and Nunito files that Excalidraw ships, under the SIL Open Font License, as `THIRD_PARTY_NOTICES.md` records
 
 ## Environment variables
 

@@ -8,7 +8,7 @@
       "type": "rectangle",
       "x": 0,
       "y": 420,
-      "width": 510,
+      "width": 600,
       "height": 180,
       "angle": 0,
       "strokeColor": "#2f9e44",
@@ -16,14 +16,15 @@
       "fillStyle": "solid",
       "strokeWidth": 1,
       "strokeStyle": "dashed",
-      "roughness": 0,
+      "roughness": 1,
       "opacity": 100,
       "groupIds": [
         "group:zone:svc"
       ],
       "frameId": null,
       "roundness": {
-        "type": 3
+        "type": 3,
+        "value": 16
       },
       "seed": 1033281265,
       "version": 1,
@@ -39,8 +40,8 @@
       "type": "text",
       "x": 16,
       "y": 430,
-      "width": 71.57,
-      "height": 18.4,
+      "width": 82.31,
+      "height": 20.0,
       "angle": 0,
       "strokeColor": "#2f9e44",
       "backgroundColor": "transparent",
@@ -65,19 +66,19 @@
       "text": "Services",
       "originalText": "Services",
       "fontSize": 16,
-      "fontFamily": 2,
+      "fontFamily": 5,
       "textAlign": "left",
       "verticalAlign": "top",
       "containerId": null,
       "autoResize": true,
-      "lineHeight": 1.15
+      "lineHeight": 1.25
     },
     {
       "id": "node:web",
       "type": "rectangle",
-      "x": 175,
+      "x": 190,
       "y": 80,
-      "width": 160,
+      "width": 220,
       "height": 100,
       "angle": 0,
       "strokeColor": "#1971c2",
@@ -85,12 +86,13 @@
       "fillStyle": "solid",
       "strokeWidth": 2,
       "strokeStyle": "solid",
-      "roughness": 0,
+      "roughness": 1,
       "opacity": 100,
       "groupIds": [],
       "frameId": null,
       "roundness": {
-        "type": 3
+        "type": 3,
+        "value": 8
       },
       "seed": 1964858270,
       "version": 1,
@@ -113,10 +115,10 @@
     {
       "id": "node:web:text",
       "type": "text",
-      "x": 217.01,
-      "y": 102.4,
-      "width": 75.98,
-      "height": 55.2,
+      "x": 256.31,
+      "y": 100.0,
+      "width": 87.38,
+      "height": 60.0,
       "angle": 0,
       "strokeColor": "#1e1e1e",
       "backgroundColor": "transparent",
@@ -139,19 +141,19 @@
       "text": "Web app\nNext.js\nport 3000",
       "originalText": "Web app\nNext.js\nport 3000",
       "fontSize": 16,
-      "fontFamily": 2,
+      "fontFamily": 5,
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "node:web",
       "autoResize": true,
-      "lineHeight": 1.15
+      "lineHeight": 1.25
     },
     {
       "id": "node:api",
       "type": "rectangle",
-      "x": 175,
+      "x": 190,
       "y": 260,
-      "width": 160,
+      "width": 220,
       "height": 80,
       "angle": 0,
       "strokeColor": "#6741d9",
@@ -159,12 +161,13 @@
       "fillStyle": "solid",
       "strokeWidth": 2,
       "strokeStyle": "solid",
-      "roughness": 0,
+      "roughness": 1,
       "opacity": 100,
       "groupIds": [],
       "frameId": null,
       "roundness": {
-        "type": 3
+        "type": 3,
+        "value": 8
       },
       "seed": 1305590720,
       "version": 1,
@@ -195,10 +198,10 @@
     {
       "id": "node:api:text",
       "type": "text",
-      "x": 202.93,
-      "y": 281.6,
-      "width": 104.13,
-      "height": 36.8,
+      "x": 240.12,
+      "y": 280.0,
+      "width": 119.75,
+      "height": 40.0,
       "angle": 0,
       "strokeColor": "#1e1e1e",
       "backgroundColor": "transparent",
@@ -221,19 +224,19 @@
       "text": "API gateway\nREST, JWT",
       "originalText": "API gateway\nREST, JWT",
       "fontSize": 16,
-      "fontFamily": 2,
+      "fontFamily": 5,
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "node:api",
       "autoResize": true,
-      "lineHeight": 1.15
+      "lineHeight": 1.25
     },
     {
       "id": "node:orders",
       "type": "rectangle",
       "x": 50,
       "y": 470,
-      "width": 160,
+      "width": 220,
       "height": 80,
       "angle": 0,
       "strokeColor": "#2f9e44",
@@ -241,12 +244,13 @@
       "fillStyle": "solid",
       "strokeWidth": 2,
       "strokeStyle": "solid",
-      "roughness": 0,
+      "roughness": 1,
       "opacity": 100,
       "groupIds": [],
       "frameId": null,
       "roundness": {
-        "type": 3
+        "type": 3,
+        "value": 8
       },
       "seed": 816972506,
       "version": 1,
@@ -273,10 +277,10 @@
     {
       "id": "node:orders:text",
       "type": "text",
-      "x": 75.22,
-      "y": 491.6,
-      "width": 109.56,
-      "height": 36.8,
+      "x": 97.0,
+      "y": 490.0,
+      "width": 126.0,
+      "height": 40.0,
       "angle": 0,
       "strokeColor": "#1e1e1e",
       "backgroundColor": "transparent",
@@ -299,19 +303,19 @@
       "text": "Order service\nPOST /orders",
       "originalText": "Order service\nPOST /orders",
       "fontSize": 16,
-      "fontFamily": 2,
+      "fontFamily": 5,
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "node:orders",
       "autoResize": true,
-      "lineHeight": 1.15
+      "lineHeight": 1.25
     },
     {
       "id": "node:payments",
       "type": "rectangle",
-      "x": 270,
+      "x": 330,
       "y": 470,
-      "width": 190,
+      "width": 220,
       "height": 80,
       "angle": 0,
       "strokeColor": "#2f9e44",
@@ -319,12 +323,13 @@
       "fillStyle": "solid",
       "strokeWidth": 2,
       "strokeStyle": "solid",
-      "roughness": 0,
+      "roughness": 1,
       "opacity": 100,
       "groupIds": [],
       "frameId": null,
       "roundness": {
-        "type": 3
+        "type": 3,
+        "value": 8
       },
       "seed": 1945817813,
       "version": 1,
@@ -351,10 +356,10 @@
     {
       "id": "node:payments:text",
       "type": "text",
-      "x": 295.8,
-      "y": 491.6,
-      "width": 138.39,
-      "height": 36.8,
+      "x": 360.42,
+      "y": 490.0,
+      "width": 159.15,
+      "height": 40.0,
       "angle": 0,
       "strokeColor": "#1e1e1e",
       "backgroundColor": "transparent",
@@ -377,19 +382,19 @@
       "text": "Payment service\nPOST /payments",
       "originalText": "Payment service\nPOST /payments",
       "fontSize": 16,
-      "fontFamily": 2,
+      "fontFamily": 5,
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "node:payments",
       "autoResize": true,
-      "lineHeight": 1.15
+      "lineHeight": 1.25
     },
     {
       "id": "node:db",
       "type": "rectangle",
-      "x": 55,
+      "x": 50,
       "y": 680,
-      "width": 160,
+      "width": 220,
       "height": 50,
       "angle": 0,
       "strokeColor": "#e8590c",
@@ -397,7 +402,7 @@
       "fillStyle": "solid",
       "strokeWidth": 2,
       "strokeStyle": "solid",
-      "roughness": 0,
+      "roughness": 1,
       "opacity": 100,
       "groupIds": [
         "group:table:db"
@@ -425,10 +430,10 @@
     {
       "id": "node:db:text",
       "type": "text",
-      "x": 109.22,
-      "y": 695.8,
-      "width": 51.56,
-      "height": 18.4,
+      "x": 130.35,
+      "y": 695.0,
+      "width": 59.29,
+      "height": 20.0,
       "angle": 0,
       "strokeColor": "#1e1e1e",
       "backgroundColor": "transparent",
@@ -453,19 +458,19 @@
       "text": "orders",
       "originalText": "orders",
       "fontSize": 16,
-      "fontFamily": 2,
+      "fontFamily": 5,
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "node:db",
       "autoResize": true,
-      "lineHeight": 1.15
+      "lineHeight": 1.25
     },
     {
       "id": "node:db:fields",
       "type": "rectangle",
-      "x": 55,
+      "x": 50,
       "y": 730,
-      "width": 160,
+      "width": 220,
       "height": 90,
       "angle": 0,
       "strokeColor": "#e8590c",
@@ -473,7 +478,7 @@
       "fillStyle": "solid",
       "strokeWidth": 2,
       "strokeStyle": "solid",
-      "roughness": 0,
+      "roughness": 1,
       "opacity": 100,
       "groupIds": [
         "group:table:db"
@@ -492,10 +497,10 @@
     {
       "id": "node:db:fields:text",
       "type": "text",
-      "x": 71,
-      "y": 747.4,
-      "width": 88.19,
-      "height": 55.2,
+      "x": 66,
+      "y": 745.0,
+      "width": 101.42,
+      "height": 60.0,
       "angle": 0,
       "strokeColor": "#1e1e1e",
       "backgroundColor": "transparent",
@@ -520,19 +525,19 @@
       "text": "id uuid\ntotal int\nstatus text",
       "originalText": "id uuid\ntotal int\nstatus text",
       "fontSize": 16,
-      "fontFamily": 2,
+      "fontFamily": 5,
       "textAlign": "left",
       "verticalAlign": "top",
       "containerId": null,
       "autoResize": true,
-      "lineHeight": 1.15
+      "lineHeight": 1.25
     },
     {
       "id": "node:card",
       "type": "rectangle",
-      "x": 275,
+      "x": 330,
       "y": 680,
-      "width": 180,
+      "width": 220,
       "height": 100,
       "angle": 0,
       "strokeColor": "#495057",
@@ -540,12 +545,13 @@
       "fillStyle": "solid",
       "strokeWidth": 2,
       "strokeStyle": "solid",
-      "roughness": 0,
+      "roughness": 1,
       "opacity": 100,
       "groupIds": [],
       "frameId": null,
       "roundness": {
-        "type": 3
+        "type": 3,
+        "value": 8
       },
       "seed": 489657233,
       "version": 1,
@@ -568,10 +574,10 @@
     {
       "id": "node:card:text",
       "type": "text",
-      "x": 302.93,
-      "y": 702.4,
-      "width": 124.15,
-      "height": 55.2,
+      "x": 368.62,
+      "y": 700.0,
+      "width": 142.77,
+      "height": 60.0,
       "angle": 0,
       "strokeColor": "#1e1e1e",
       "backgroundColor": "transparent",
@@ -594,27 +600,27 @@
       "text": "Card processor\nexternal\nHTTPS",
       "originalText": "Card processor\nexternal\nHTTPS",
       "fontSize": 16,
-      "fontFamily": 2,
+      "fontFamily": 5,
       "textAlign": "center",
       "verticalAlign": "middle",
       "containerId": "node:card",
       "autoResize": true,
-      "lineHeight": 1.15
+      "lineHeight": 1.25
     },
     {
       "id": "edge:0",
       "type": "arrow",
-      "x": 255,
-      "y": 192.0,
+      "x": 300,
+      "y": 185.0,
       "width": 0,
-      "height": 56.0,
+      "height": 70.0,
       "angle": 0,
-      "strokeColor": "#1e1e1e",
+      "strokeColor": "#495057",
       "backgroundColor": "transparent",
       "fillStyle": "solid",
       "strokeWidth": 2,
       "strokeStyle": "solid",
-      "roughness": 0,
+      "roughness": 1,
       "opacity": 100,
       "groupIds": [
         "group:edge:0"
@@ -636,38 +642,38 @@
         ],
         [
           0,
-          56.0
+          70.0
         ]
       ],
       "lastCommittedPoint": null,
       "startBinding": {
         "elementId": "node:web",
         "focus": 0,
-        "gap": 12
+        "gap": 5
       },
       "endBinding": {
         "elementId": "node:api",
         "focus": 0,
-        "gap": 12
+        "gap": 5
       },
       "startArrowhead": null,
-      "endArrowhead": "arrow",
+      "endArrowhead": "triangle",
       "elbowed": false
     },
     {
       "id": "edge:1",
       "type": "arrow",
-      "x": 235,
-      "y": 352.0,
-      "width": 105,
-      "height": 106.0,
+      "x": 300,
+      "y": 345.0,
+      "width": 140,
+      "height": 120.0,
       "angle": 0,
-      "strokeColor": "#1e1e1e",
+      "strokeColor": "#495057",
       "backgroundColor": "transparent",
       "fillStyle": "solid",
       "strokeWidth": 2,
       "strokeStyle": "solid",
-      "roughness": 0,
+      "roughness": 1,
       "opacity": 100,
       "groupIds": [],
       "frameId": null,
@@ -687,46 +693,46 @@
         ],
         [
           0,
-          52.0
+          59.0
         ],
         [
-          -105,
-          52.0
+          -140,
+          59.0
         ],
         [
-          -105,
-          106.0
+          -140,
+          120.0
         ]
       ],
       "lastCommittedPoint": null,
       "startBinding": {
         "elementId": "node:api",
         "focus": 0,
-        "gap": 12
+        "gap": 5
       },
       "endBinding": {
         "elementId": "node:orders",
         "focus": 0,
-        "gap": 12
+        "gap": 5
       },
       "startArrowhead": null,
-      "endArrowhead": "arrow",
+      "endArrowhead": "triangle",
       "elbowed": false
     },
     {
       "id": "edge:2",
       "type": "arrow",
-      "x": 275,
-      "y": 352.0,
-      "width": 90,
-      "height": 106.0,
+      "x": 300,
+      "y": 345.0,
+      "width": 140,
+      "height": 120.0,
       "angle": 0,
-      "strokeColor": "#1e1e1e",
+      "strokeColor": "#495057",
       "backgroundColor": "transparent",
       "fillStyle": "solid",
       "strokeWidth": 2,
       "strokeStyle": "solid",
-      "roughness": 0,
+      "roughness": 1,
       "opacity": 100,
       "groupIds": [],
       "frameId": null,
@@ -746,46 +752,46 @@
         ],
         [
           0,
-          52.0
+          59.0
         ],
         [
-          90,
-          52.0
+          140,
+          59.0
         ],
         [
-          90,
-          106.0
+          140,
+          120.0
         ]
       ],
       "lastCommittedPoint": null,
       "startBinding": {
         "elementId": "node:api",
         "focus": 0,
-        "gap": 12
+        "gap": 5
       },
       "endBinding": {
         "elementId": "node:payments",
         "focus": 0,
-        "gap": 12
+        "gap": 5
       },
       "startArrowhead": null,
-      "endArrowhead": "arrow",
+      "endArrowhead": "triangle",
       "elbowed": false
     },
     {
       "id": "edge:3",
       "type": "arrow",
-      "x": 132,
-      "y": 562.0,
+      "x": 160,
+      "y": 555.0,
       "width": 0,
-      "height": 106.0,
+      "height": 120.0,
       "angle": 0,
-      "strokeColor": "#1e1e1e",
+      "strokeColor": "#495057",
       "backgroundColor": "transparent",
       "fillStyle": "solid",
       "strokeWidth": 2,
       "strokeStyle": "dashed",
-      "roughness": 0,
+      "roughness": 1,
       "opacity": 100,
       "groupIds": [
         "group:edge:3"
@@ -807,38 +813,38 @@
         ],
         [
           0,
-          106.0
+          120.0
         ]
       ],
       "lastCommittedPoint": null,
       "startBinding": {
         "elementId": "node:orders",
         "focus": 0,
-        "gap": 12
+        "gap": 5
       },
       "endBinding": {
         "elementId": "node:db",
         "focus": 0,
-        "gap": 12
+        "gap": 5
       },
       "startArrowhead": null,
-      "endArrowhead": "arrow",
+      "endArrowhead": "triangle",
       "elbowed": false
     },
     {
       "id": "edge:4",
       "type": "arrow",
-      "x": 365,
-      "y": 562.0,
+      "x": 440,
+      "y": 555.0,
       "width": 0,
-      "height": 106.0,
+      "height": 120.0,
       "angle": 0,
-      "strokeColor": "#1e1e1e",
+      "strokeColor": "#495057",
       "backgroundColor": "transparent",
       "fillStyle": "solid",
       "strokeWidth": 2,
       "strokeStyle": "solid",
-      "roughness": 0,
+      "roughness": 1,
       "opacity": 100,
       "groupIds": [
         "group:edge:4"
@@ -860,33 +866,33 @@
         ],
         [
           0,
-          106.0
+          120.0
         ]
       ],
       "lastCommittedPoint": null,
       "startBinding": {
         "elementId": "node:payments",
         "focus": 0,
-        "gap": 12
+        "gap": 5
       },
       "endBinding": {
         "elementId": "node:card",
         "focus": 0,
-        "gap": 12
+        "gap": 5
       },
       "startArrowhead": null,
-      "endArrowhead": "arrow",
+      "endArrowhead": "triangle",
       "elbowed": false
     },
     {
       "id": "edge:0:label",
       "type": "text",
-      "x": 263,
-      "y": 211,
-      "width": 58.68,
-      "height": 18.4,
+      "x": 308,
+      "y": 210,
+      "width": 67.48,
+      "height": 20.0,
       "angle": 0,
-      "strokeColor": "#1e1e1e",
+      "strokeColor": "#495057",
       "backgroundColor": "transparent",
       "fillStyle": "solid",
       "strokeWidth": 2,
@@ -909,22 +915,22 @@
       "text": "HTTPS",
       "originalText": "HTTPS",
       "fontSize": 16,
-      "fontFamily": 2,
+      "fontFamily": 5,
       "textAlign": "center",
       "verticalAlign": "top",
       "containerId": null,
       "autoResize": true,
-      "lineHeight": 1.15
+      "lineHeight": 1.25
     },
     {
       "id": "edge:3:label",
       "type": "text",
-      "x": 140,
-      "y": 618,
-      "width": 35.62,
-      "height": 18.4,
+      "x": 168,
+      "y": 619,
+      "width": 40.96,
+      "height": 20.0,
       "angle": 0,
-      "strokeColor": "#1e1e1e",
+      "strokeColor": "#495057",
       "backgroundColor": "transparent",
       "fillStyle": "solid",
       "strokeWidth": 2,
@@ -947,22 +953,22 @@
       "text": "SQL",
       "originalText": "SQL",
       "fontSize": 16,
-      "fontFamily": 2,
+      "fontFamily": 5,
       "textAlign": "center",
       "verticalAlign": "top",
       "containerId": null,
       "autoResize": true,
-      "lineHeight": 1.15
+      "lineHeight": 1.25
     },
     {
       "id": "edge:4:label",
       "type": "text",
-      "x": 373,
-      "y": 618,
-      "width": 55.29,
-      "height": 18.4,
+      "x": 448,
+      "y": 619,
+      "width": 63.58,
+      "height": 20.0,
       "angle": 0,
-      "strokeColor": "#1e1e1e",
+      "strokeColor": "#495057",
       "backgroundColor": "transparent",
       "fillStyle": "solid",
       "strokeWidth": 2,
@@ -985,20 +991,20 @@
       "text": "charge",
       "originalText": "charge",
       "fontSize": 16,
-      "fontFamily": 2,
+      "fontFamily": 5,
       "textAlign": "center",
       "verticalAlign": "top",
       "containerId": null,
       "autoResize": true,
-      "lineHeight": 1.15
+      "lineHeight": 1.25
     },
     {
       "id": "title",
       "type": "text",
-      "x": 187.03,
+      "x": 221.84,
       "y": 0,
-      "width": 135.93,
-      "height": 32.2,
+      "width": 156.32,
+      "height": 35.0,
       "angle": 0,
       "strokeColor": "#1e1e1e",
       "backgroundColor": "transparent",
@@ -1021,12 +1027,12 @@
       "text": "Checkout",
       "originalText": "Checkout",
       "fontSize": 28,
-      "fontFamily": 2,
+      "fontFamily": 5,
       "textAlign": "center",
       "verticalAlign": "top",
       "containerId": null,
       "autoResize": true,
-      "lineHeight": 1.15
+      "lineHeight": 1.25
     }
   ],
   "appState": {
@@ -1038,6 +1044,6 @@
   "files": {},
   "generator": {
     "name": "excalidraw-diagram",
-    "digest": "sha256:2726dbbc5f1c2b0d6047930f1d290add93696fb0c1a45d5bd8e1f72829e38e57"
+    "digest": "sha256:b5bf6d90f42ca8e74a56887781ceff2493dbfde8f1c63b5021024239c15ee05d"
   }
 }

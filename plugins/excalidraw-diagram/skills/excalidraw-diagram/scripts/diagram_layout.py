@@ -3,6 +3,8 @@
 Graph diagrams:
 
 1. Every node is sized from its text, so its text fits with 20 px to spare on each side.
+   Boxes and tables then widen toward the widest of them, up to 1.5 times their own width,
+   so that boxes in one diagram share a width and the columns line up.
 2. Nodes are put in tiers (rows going down, or columns going right). A node's tier is
    the one the spec gives, or one more than the deepest node with an edge into it.
    Each tier is centered on the same line, and spacing is computed from widths and gaps,
@@ -11,15 +13,17 @@ Graph diagrams:
    exactly with "order": "listed".
 3. A group is laid out the same way inside its own zone, and the zone then takes part
    in the outer layout as one item, so zones never overlap each other or other nodes.
-4. Arrows leave and enter shapes at right angles, 12 px outside the outline, and are
-   routed along horizontal and vertical lines that keep 10 px away from every shape
-   (a shortest-path search that pays extra for bends, for sharing a line, and for
-   crossing or nearly touching an arrow routed before).
+4. Arrows leave and enter shapes at right angles and end 5 px outside the outline. They are
+   routed from 12 px out along horizontal and vertical lines that keep 10 px away from every
+   shape (a shortest-path search that pays extra for bends, for sharing a line, and for
+   crossing or nearly touching an arrow routed before). Arrows that all leave one side of a
+   box start from its middle and share one line before they split.
 5. Each label is placed beside one straight stretch of its arrow, where it touches no
    shape outline, no other text, and no line, and keeps clear of zone outlines.
 
 When something does not fit, the caller tries again with 1.5 and 2.25 times the spacing.
 Sequence diagrams put participants in a row with dashed lifelines and one message per row.
+Colors, line widths, roughness, fonts, and fills come from the spec's theme (themes.json).
 """
 import bisect
 import heapq
@@ -29,12 +33,14 @@ import diagram_check as rules
 import diagram_geometry as geo
 import diagram_scene as scene
 import diagram_text as measure
+import diagram_theme as themes
 from diagram_spec import PALETTE
 
 FONT = 16
 TITLE_FONT = 28
 SQRT2 = math.sqrt(2)
-ARROW_GAP = 12        # arrow ends stop this far outside a shape
+ARROW_GAP = 5         # arrow ends stop this far outside a shape
+ROUTE_GAP = 12        # routing starts this far outside a shape
 CLEAR = 10            # arrows keep this far from shapes they pass
 LABEL_OFFSET = 8      # a label sits this far beside its line
 ZONE_LABEL_CLEAR = 10  # an arrow label keeps this far from a zone's dashed outline, inside or outside
@@ -51,6 +57,11 @@ LOOP_W, LOOP_H = 40, 30
 SCALES = (1.0, 1.5, 2.25)
 INK = scene.INK
 LIFELINE = "#868e96"
+ZONE_TEXT = "#495057"   # a zone's label when outlines are drawn in ink
+BOX_RADIUS = 8          # corner radius of boxes and participants, in Excalidraw's "value" of adaptive roundness
+ZONE_RADIUS = 16
+HEAD = "triangle"
+WIDEN = 1.5             # a box widens toward the widest box up to this many times its own width
 
 NORMAL = {"top": (0, -1), "bottom": (0, 1), "left": (-1, 0), "right": (1, 0)}
 # Directions of travel: 0 right, 1 left, 2 down, 3 up.
@@ -70,10 +81,26 @@ def _snap(v, step=10):
 
 
 def _style(spec):
-    sketch = spec["style"] == "sketch"
-    family = measure.FAMILY_HAND if sketch else measure.FAMILY_SANS
-    return {"family": family, "lh": measure.line_height(family), "rough": 1 if sketch else 0,
-            "fill": "hachure" if spec["fill"] == "hachure" else "solid"}
+    t = themes.settings(spec)
+    family = t["family"]
+    return {"family": family, "lh": measure.line_height(family), "rough": t["roughness"],
+            "fill": "hachure" if t["fill"] == "hachure" else "solid", "filled": t["fill"] != "none",
+            "tint": t["tint"], "zone_fill": t["zone_fill"], "outline": t["outline"],
+            "shape_sw": t["shape_stroke"], "line_sw": t["line_stroke"], "line_ink": t["line_color"]}
+
+
+def _shape_colors(color, st):
+    """(outline, fill) of a shape in a palette color under the theme."""
+    stroke, mid, light = PALETTE[color]
+    fill = "transparent" if not st["filled"] else light if st["tint"] == "light" else mid
+    return (stroke if st["outline"] == "color" else INK), fill
+
+
+def _zone_colors(color, st):
+    """(outline, fill, label color) of a zone in a palette color under the theme."""
+    stroke, _, light = PALETTE[color]
+    fill = light if st["zone_fill"] == "light" else "transparent"
+    return (stroke, fill, stroke) if st["outline"] == "color" else (LIFELINE, fill, ZONE_TEXT)
 
 
 def _r(v):
@@ -324,14 +351,15 @@ def _end(kind, box, side, coord):
     bx, by = _boundary(kind, box, side, coord)
     nx, ny = NORMAL[side]
     p = (_r(bx + nx * ARROW_GAP), _r(by + ny * ARROW_GAP))
+    extra = ROUTE_GAP - ARROW_GAP
     if side == "top":
-        esc = (p[0], min(p[1], box[1] - ARROW_GAP))
+        esc = (p[0], min(p[1] - extra, box[1] - ROUTE_GAP))
     elif side == "bottom":
-        esc = (p[0], max(p[1], box[3] + ARROW_GAP))
+        esc = (p[0], max(p[1] + extra, box[3] + ROUTE_GAP))
     elif side == "left":
-        esc = (min(p[0], box[0] - ARROW_GAP), p[1])
+        esc = (min(p[0] - extra, box[0] - ROUTE_GAP), p[1])
     else:
-        esc = (max(p[0], box[2] + ARROW_GAP), p[1])
+        esc = (max(p[0] + extra, box[2] + ROUTE_GAP), p[1])
     return p, esc
 
 
@@ -384,6 +412,7 @@ def _ports(edges, boxes, kinds, down):
 
     coords = {}
     spans = {}
+    trunks = set()
     for (node, side), ends in attach.items():
         if not ends:
             continue
@@ -394,6 +423,16 @@ def _ports(edges, boxes, kinds, down):
         lo, hi = spans[(node, side)]
         for j, it in enumerate(ends):
             coords[it] = lo + (hi - lo) * (j + 1) / (len(ends) + 1)
+    # Arrows that all leave one side of a box, each for a different shape, start from its middle
+    # and share a line before they split.
+    for (node, side), ends in attach.items():
+        targets = [edges[i]["to"] for i, _ in ends]
+        if kinds[node] == "rectangle" and len(ends) >= 2 and all(end == 0 for _, end in ends) \
+                and node not in targets and len(set(targets)) == len(targets):
+            lo, hi = spans[(node, side)]
+            for it in ends:
+                coords[it] = (lo + hi) / 2.0
+            trunks.add((node, side))
     # Facing sides that carry exactly the same arrows get matching ports, so the arrows run straight.
     facing = {("bottom", "top"), ("top", "bottom"), ("right", "left"), ("left", "right")}
     done = set()
@@ -402,7 +441,7 @@ def _ports(edges, boxes, kinds, down):
         if e["from"] == e["to"] or (sa, sb) not in facing:
             continue
         ka, kb = (e["from"], sa), (e["to"], sb)
-        if frozenset((ka, kb)) in done:
+        if ka in trunks or frozenset((ka, kb)) in done:
             continue
         done.add(frozenset((ka, kb)))
         A, B = attach[ka], attach[kb]
@@ -423,6 +462,8 @@ def _ports(edges, boxes, kinds, down):
             continue
         for free in (1, 0):
             node, side = (e["to"], sides[(i, 1)]) if free else (e["from"], sides[(i, 0)])
+            if not free and (e["from"], sides[(i, 0)]) in trunks:
+                continue
             want = coords[(i, 1 - free)]
             lo, hi = spans[(node, side)]
             if kinds[node] != "diamond" and len(attach[(node, side)]) == 1 and lo <= want <= hi:
@@ -673,6 +714,11 @@ def _graph(spec, scale, meet=MEET_COST):
     down = spec["direction"] == "down"
     node_gap, tier_gap = _snap(spec["node_gap"] * scale), _snap(spec["tier_gap"] * scale)
     nodes = {n["id"]: _size_node(n, fam) for n in spec["nodes"]}
+    flat = [n for n in nodes.values() if n["shape"] in ("box", "table")]
+    if flat:
+        widest = max(n["w"] for n in flat)
+        for n in flat:
+            n["w"] = max(n["w"], min(widest, _snap(n["w"] * WIDEN)))
     order = [n["id"] for n in spec["nodes"]]
     edges = spec["edges"]
     lsize = [measure.text_size(e["label"], FONT, fam) if e["label"] else (0.0, 0.0) for e in edges]
@@ -738,13 +784,13 @@ def _graph(spec, scale, meet=MEET_COST):
     elements, shape_of, obstacles, texts, shapes = [], {}, [], [], []
     # Zones first, so they sit behind everything else.
     for gid, z in zones.items():
-        stroke, _, zfill = PALETTE[groups[gid]["color"]]
+        stroke, zfill, ztext = _zone_colors(groups[gid]["color"], st)
         zid, grp = "zone:" + gid, "group:zone:" + gid
         rect = scene.base("rectangle", zid, z["x"], z["y"], z["w"], z["h"], stroke, zfill, "solid", 1,
-                          "dashed", rough, {"type": 3}, [grp])
+                          "dashed", rough, {"type": 3, "value": ZONE_RADIUS}, [grp])
         lw, lhh = z["label"]
         label = scene.text(zid + ":label", z["x"] + 16, z["y"] + 10, _r(lw), _r(lhh), groups[gid]["label"],
-                           FONT, fam, lh, "left", "top", None, stroke, [grp])
+                           FONT, fam, lh, "left", "top", None, ztext, [grp])
         elements += [rect, label]
         shapes.append((geo.polygon(rect), True))
         texts.append(geo.bbox(label))
@@ -753,14 +799,15 @@ def _graph(spec, scale, meet=MEET_COST):
     boxes, kinds = {}, {}
     for k in order:
         n = nodes[k]
-        stroke, fill, _ = PALETTE[n["color"]]
+        stroke, fill = _shape_colors(n["color"], st)
+        sw = st["shape_sw"]
         x, y, w, h = n["x"], n["y"], n["w"], n["h"]
         boxes[k], kinds[k] = (x, y, x + w, y + h), n["kind"]
         sid = "node:" + k
         if n["shape"] == "table":
             grp = ["group:table:" + k]
             hh = n["head_h"]
-            head = scene.base("rectangle", sid, x, y, w, hh, stroke, fill, st["fill"], 2, "solid", rough, None, grp)
+            head = scene.base("rectangle", sid, x, y, w, hh, stroke, fill, st["fill"], sw, "solid", rough, None, grp)
             tw, th = n["head_text"]
             ht = scene.text(sid + ":text", _r(x + (w - tw) / 2), _r(y + (hh - th) / 2), _r(tw), _r(th), n["label"],
                             FONT, fam, lh, "center", "middle", sid, INK, grp)
@@ -771,8 +818,8 @@ def _graph(spec, scale, meet=MEET_COST):
             shapes.append((geo.polygon(head), False))
             if n["lines"]:
                 bw, bh = n["body_text"]
-                body = scene.base("rectangle", sid + ":fields", x, y + hh, w, h - hh, stroke, "#ffffff", "solid", 2,
-                                  "solid", rough, None, grp)
+                body = scene.base("rectangle", sid + ":fields", x, y + hh, w, h - hh, stroke,
+                                  "#ffffff" if st["filled"] else "transparent", "solid", sw, "solid", rough, None, grp)
                 bt = scene.text(sid + ":fields:text", x + 16, _r(y + hh + (h - hh - bh) / 2), _r(bw), _r(bh),
                                 "\n".join(n["lines"]), FONT, fam, lh, "left", "top", None, INK, grp)
                 elements += [body, bt]
@@ -780,8 +827,8 @@ def _graph(spec, scale, meet=MEET_COST):
                 texts.append(geo.bbox(bt))
                 shapes.append((geo.polygon(body), False))
         else:
-            shape = scene.base(n["kind"], sid, x, y, w, h, stroke, fill, st["fill"], 2, "solid", rough,
-                               {"type": 3} if n["shape"] == "box" else None)
+            shape = scene.base(n["kind"], sid, x, y, w, h, stroke, fill, st["fill"], sw, "solid", rough,
+                               {"type": 3, "value": BOX_RADIUS} if n["shape"] == "box" else None)
             tw, th = n["text"]
             t = scene.text(sid + ":text", _r(x + (w - tw) / 2), _r(y + (h - th) / 2), _r(tw), _r(th), n["content"],
                            FONT, fam, lh, "center", "middle", sid, INK)
@@ -825,8 +872,17 @@ def _graph(spec, scale, meet=MEET_COST):
     plain.sort(key=lambda i: (abs(ends[(i, 0)][2][0] - ends[(i, 1)][2][0]) + abs(ends[(i, 0)][2][1] - ends[(i, 1)][2][1]), i))
     for i in plain:
         (sa, pa, ea), (sb, pb, eb) = ends[(i, 0)], ends[(i, 1)]
-        path = router.route(ea, OUTWARD[sa], eb, INWARD[sb], used, True) or \
-            router.route(ea, OUTWARD[sa], eb, INWARD[sb], used, False)
+        # Arrows that share a start point (a trunk) do not pay for running along each other.
+        siblings = [j for j in routes if edges[j]["from"] == edges[i]["from"] and ends[(j, 0)][1] == pa]
+        if siblings:
+            mine = ({}, {})
+            for j, pts in routes.items():
+                if j not in siblings:
+                    _record(mine, pts)
+        else:
+            mine = used
+        path = router.route(ea, OUTWARD[sa], eb, INWARD[sb], mine, True) or \
+            router.route(ea, OUTWARD[sa], eb, INWARD[sb], mine, False)
         if path is None:
             raise PlacementError("edges[%d] (%s -> %s): no route that keeps clear of the other shapes"
                                  % (i, edges[i]["from"], edges[i]["to"]))
@@ -837,9 +893,9 @@ def _graph(spec, scale, meet=MEET_COST):
     arrows, labels = [], []
     for i, e in enumerate(edges):
         grp = ["group:edge:%d" % i] if e["label"] else []
-        arrow = scene.linear("arrow", "edge:%d" % i, routes[i], INK, 2, e["line"], rough,
-                             "arrow" if e["head"] == "both" else None,
-                             None if e["head"] == "none" else "arrow", grp)
+        arrow = scene.linear("arrow", "edge:%d" % i, routes[i], st["line_ink"], st["line_sw"], e["line"], rough,
+                             HEAD if e["head"] == "both" else None,
+                             None if e["head"] == "none" else HEAD, grp)
         for end, key in ((0, "startBinding"), (1, "endBinding")):
             node = e["from"] if end == 0 else e["to"]
             side = ends[(i, end)][0]
@@ -859,7 +915,7 @@ def _graph(spec, scale, meet=MEET_COST):
                 raise PlacementError('edges[%d] (%s -> %s): no free spot beside the arrow for its label "%s"'
                                      % (i, e["from"], e["to"], e["label"].split("\n")[0]))
             t = scene.text("edge:%d:label" % i, spot[0], spot[1], _r(w), _r(h), e["label"], FONT, fam, lh,
-                           "center", "top", None, INK, grp)
+                           "center", "top", None, st["line_ink"], grp)
             labels.append(t)
             texts.append(geo.bbox(t))
     elements += arrows + labels
@@ -901,12 +957,12 @@ def _sequence(spec, scale):
 
     elements, lifelines = [], []
     for i, p in enumerate(parts):
-        stroke, fill, _ = PALETTE[p["color"]]
+        stroke, fill = _shape_colors(p["color"], st)
         b = boxes[i]
         sid, grp = "participant:" + p["id"], ["group:participant:" + p["id"]]
         x = xs[i] - b["w"] // 2
-        rect = scene.base("rectangle", sid, x, top, b["w"], height, stroke, fill, st["fill"], 2, "solid", rough,
-                          {"type": 3}, grp)
+        rect = scene.base("rectangle", sid, x, top, b["w"], height, stroke, fill, st["fill"], st["shape_sw"], "solid",
+                          rough, {"type": 3, "value": BOX_RADIUS}, grp)
         tw, th = b["text"]
         t = scene.text(sid + ":text", _r(x + (b["w"] - tw) / 2), _r(top + (height - th) / 2), _r(tw), _r(th),
                        b["content"], FONT, fam, lh, "center", "middle", sid, INK, grp)
@@ -929,11 +985,11 @@ def _sequence(spec, scale):
             nxt = xs[a + 1] if b > a else xs[a - 1]
             spot = (_r((xs[a] + nxt) / 2.0 - lw / 2), _r(y - LABEL_OFFSET - lhh))
             cursor = y + 24
-        arrows.append(scene.linear("arrow", "message:%d" % k, pts, INK, 2, m["line"], rough, None,
-                                   None if m["head"] == "none" else "arrow", grp))
+        arrows.append(scene.linear("arrow", "message:%d" % k, pts, st["line_ink"], st["line_sw"], m["line"], rough, None,
+                                   None if m["head"] == "none" else HEAD, grp))
         if m["label"]:
             labels.append(scene.text("message:%d:label" % k, spot[0], spot[1], _r(lw), _r(lhh), m["label"],
-                                     FONT, fam, lh, "center", "top", None, INK, grp))
+                                     FONT, fam, lh, "center", "top", None, st["line_ink"], grp))
     for i, p in enumerate(parts):
         lifelines.append(scene.linear("line", "participant:%s:lifeline" % p["id"], [(xs[i], top + height), (xs[i], cursor + 16)],
                                       LIFELINE, 1, "dashed", rough, None, None, ["group:participant:" + p["id"]]))
@@ -974,7 +1030,7 @@ def build(spec):
             except PlacementError as e:
                 error = e
                 continue
-            doc, report, used = scene.document(elements), None, scale
+            doc, report, used = scene.document(elements, dark=themes.settings(spec)["dark"]), None, scale
             report = rules.check(doc)
             if not report.problems:
                 return doc, report, scale, None
