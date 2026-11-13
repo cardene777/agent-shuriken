@@ -44,22 +44,27 @@ GitHub Copilot CLIでは依頼の中に`/techdebt`と書き、Gemini CLIでは�
 2. エージェントがファイルに順位を付け、上位のファイルを読んで、何のファイルか、なぜ負担になるか、直す最初の一手を書きます
 3. エージェントが報告のページを開き、上位のファイルと各項目の合計をチャットでまとめます
 
-調べた結果の要約は次の形です。
+画像のリポジトリを調べた結果の要約は、次のように始まります。
 
 ```text
-techdebt scan of ~/work/shop (HEAD 3f2a91c on main, 412 source files, 96 test files, 388 commits in the last 12 months)
-Hotspots:       118 files changed 2 or more times
-Markers:        57 (FIXME 9, HACK 3, TODO 41, deprecated 4), oldest 1312 days
-Untested:       64 source files have no test file with a matching name
-Long functions: 22 over 60 lines
-Large files:    7 over 500 lines
-Duplication:    11 blocks, 214 lines
-Tool knip:      38 findings
+techdebt scan of ~/work/shop (HEAD 61d7f14 on main, 26 source files, 5 test files, 199 commits in the last 12 months)
+Hotspots:       19 files changed 2 or more times
+Markers:        6 (FIXME 1, HACK 1, TODO 4), oldest 360 days
+Untested:       15 source files have no test file with a matching name
+Long functions: 7 over 60 lines
+Large files:    1 over 500 lines
+Duplication:    2 blocks, 20 lines
+Tool ruff:      not run, ruff is not installed in .venv/bin or on PATH
 
 Start here
- 1  src/billing/invoice.py  score 0.86  changed 31 times, 612 lines, 3 long functions, marker weight 5, no test file
- 2  src/api/orders.ts  score 0.71  changed 44 times, 380 lines, 1 long function, 26 duplicated lines
+ 1  src/billing/invoice.py  score 0.97  changed 31 times, 543 lines, 3 long functions, marker weight 4, 11 duplicated lines, no test file
+ 2  src/api/orders.ts  score 0.67  changed 44 times, 331 lines, 1 long function, marker weight 1, 9 duplicated lines, no test file
+ 3  src/web/checkout.tsx  score 0.40  changed 25 times, 220 lines, 2 long functions, marker weight 2, no test file
+ 4  src/billing/refunds.py  score 0.36  changed 18 times, 163 lines, 1 long function, marker weight 1, 11 duplicated lines, no test file
+ 5  src/api/returns.ts  score 0.17  changed 13 times, 70 lines, 9 duplicated lines, no test file
 ```
+
+順位は20位まで続き、最後の2行にデータと報告のページの置き場が出ます。
 
 報告のページには、順位のタブと項目ごとのタブがあり、英語と日本語を切り替えられます。
 
