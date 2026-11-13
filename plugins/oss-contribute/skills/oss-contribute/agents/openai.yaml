@@ -1,7 +1,0 @@
-interface:
-  display_name: "OSS Contribute"
-  short_description: "Send a fix to an outside open source project by its own rules, only after you approve the exact draft"
-  default_prompt: "Use $oss-contribute to prepare a fix and a pull request for an open source project I use."
-
-policy:
-  allow_implicit_invocation: true

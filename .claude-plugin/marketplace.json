@@ -46,11 +46,6 @@
       "description": "Write the lessons from a session into the instruction files your agents read, such as AGENTS.md, CLAUDE.md, GEMINI.md, Copilot's instructions, or a skill's SKILL.md, in the right place and without duplicates, only after you approve the diff"
     },
     {
-      "name": "oss-contribute",
-      "source": "./plugins/oss-contribute",
-      "description": "Send a fix to an outside open source project by that project's own rules: run its checks in a container, draft the issue or pull request in its language with a translation, and send only the exact draft you approve"
-    },
-    {
       "name": "portman",
       "source": "./plugins/portman",
       "description": "Keep a registry of the localhost ports each project uses, so dev servers never collide: see what holds each port right now, get free ports that avoid common defaults, find collisions, and write a project's ports to .env.local and a Docker Compose override after you approve"
