@@ -6,6 +6,7 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 ## [Unreleased]
 
 - The PDF is written readable only by you, like the HTML report. Before, it could be read by other users once copied out of the report's folder
+- The README's screenshot comes from a new report on the same four static site generators with five axes, as the steps ask, and shows each page larger
 
 ## [0.2.0] - 2026-11-12
 
