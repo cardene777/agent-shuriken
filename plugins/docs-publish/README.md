@@ -85,6 +85,57 @@ Every page has a line under its title that links the same page in the other lang
 `_translation-map.json` lists the languages, source first, and the pages.
 For each translation it keeps the sha256 of the source page as it was when the translation was recorded, so the check notices when a source page changes later.
 
+A finished Cookbook page looks like this, here `docs/en/cookbook/apply-a-coupon.md` for a made-up library called Acme Shop.
+Its translation at `docs/ja/cookbook/apply-a-coupon.md` has the same headings, lists, and code blocks.
+
+````markdown
+# Apply a coupon
+
+English · [日本語](../../ja/cookbook/apply-a-coupon.md)
+
+Take a coupon code at checkout and lower the cart total before the customer pays.
+The discount stays on the cart until the order is placed.
+
+## Before you start
+
+- Acme Shop installed, as in the [Quickstart](../quickstart.md)
+- A cart made with [`createCart`](../api/createCart.md)
+
+## Steps
+
+1. Apply the code to the cart.
+
+   ```ts
+   import { applyCoupon } from "acme-shop";
+
+   const result = await applyCoupon(cart, "SPRING10");
+   ```
+
+2. Tell the customer when the code cannot be used.
+
+   ```ts
+   if (!result.ok) {
+     showError(result.reason); // "expired", "unknown", or "minimum-not-met"
+   }
+   ```
+
+## Check the result
+
+```ts
+console.log(cart.total, cart.discounts);
+```
+
+```text
+4500 [ { code: 'SPRING10', amount: 500 } ]
+```
+
+## Related
+
+- [`applyCoupon`](../api/applyCoupon.md)
+- [`createCart`](../api/createCart.md)
+- [Cookbook](README.md)
+````
+
 ## The checks
 
 | Check | What it catches |

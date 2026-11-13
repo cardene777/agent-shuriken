@@ -4,6 +4,8 @@
 
 [English](README.md) · 日本語
 
+<img src="assets/checkout.png" width="420" alt="このプラグインが描いた図。Web appがHTTPSでAPI gatewayを呼び、API gatewayは点線で囲んだServicesの中のOrder serviceとPayment serviceを呼ぶ。Order serviceはSQLで表ordersに書き、Payment serviceはCard processorに請求する">
+
 エージェントが目分量で置いた図は、箱どうしが触れる、ラベルが線に重なる、矢印がほかの箱を突き抜ける、図形を動かすと矢印が外れる、といった崩れが起きがちです。
 このプラグインは作業を分けます。エージェントは図が伝える中身を決めて小さなJSONの仕様に書き、Pythonのスクリプトがすべての座標を計算し、矢印の道筋を決め、何かを書く前に配置の決まりで結果を確かめます。
 出力はExcalidrawのエディタで開いて編集を続けられる`.excalidraw`のファイルと、文書やプルリクエストに貼るSVGとPNGです。
@@ -44,7 +46,7 @@ GitHub Copilot CLIでは依頼の中に`/excalidraw-diagram`と書き、Gemini C
 3. スクリプトが図を配置して確かめ、ラベルが収まらない時は間隔を広げ、`checkout.excalidraw`、`checkout.svg`、`checkout.png`を書きます。確かめに通らない時は理由を示して止まり、何も書きません
 4. エージェントは画像を見られる時にPNGを見て、読み違えやすい所を直し、ファイルの場所を伝えます
 
-組み立ては次のようになります。
+このページの最初の図を組み立てると、次のようになります。
 
 ```text
 Checked 8 shapes, 5 arrows, 0 lines, and 12 texts.
@@ -82,6 +84,7 @@ Mermaidのフローチャートやシーケンス図から始めることもで�
 ## Excalidrawで編集する
 
 `.excalidraw`のファイルをExcalidrawのエディタで開き、そこで編集します。例えばWebアプリのメニューから開くか、キャンバスにドラッグします。
+試すには、このページの最初の図の元のファイル[`assets/checkout.excalidraw`](assets/checkout.excalidraw)を開きます。スクリプトは、この図を[`assets/checkout.diagram.json`](assets/checkout.diagram.json)の仕様から作りました。
 その後にエージェントへ変更を頼んでも、編集したファイルは上書きしません。スクリプトは書いた後に変わったファイルの置き換えを断り、エージェントが先にあなたに尋ねます。
 エージェントは、編集したファイルを同じ決まりで確かめることも、ファイルを変えずに新しいSVGとPNGを作ることもできます。
 

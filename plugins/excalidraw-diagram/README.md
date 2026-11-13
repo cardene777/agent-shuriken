@@ -4,6 +4,8 @@ Draw architecture, flow, sequence, and entity-relationship diagrams as Excalidra
 
 English · [日本語](README.ja.md)
 
+<img src="assets/checkout.png" width="420" alt="A diagram this plugin drew: the Web app calls the API gateway over HTTPS, the gateway calls the Order service and the Payment service inside a dashed Services zone, the Order service writes the orders table over SQL, and the Payment service charges the Card processor">
+
 Diagrams that an agent places by eye tend to come out with boxes that touch, labels sitting on lines, and arrows that cut through other boxes or come loose when you move a shape.
 This plugin splits the work: the agent decides what the diagram says and writes it as a small JSON spec, and a Python script computes every coordinate, routes the arrows, and checks the result against layout rules before writing anything.
 The output is an `.excalidraw` file you can open and keep editing in the Excalidraw editor, plus an SVG and a PNG for documents and pull requests.
@@ -43,7 +45,7 @@ In GitHub Copilot CLI, write `/excalidraw-diagram` in your request, and in Gemin
 3. The script lays the diagram out, checks it, widens the spacing when a label does not fit, and writes `checkout.excalidraw`, `checkout.svg`, and `checkout.png`, or stops with the reasons and writes nothing
 4. The agent looks at the PNG when it can view images, fixes what reads wrong, and gives you the paths
 
-A build looks like this.
+Building the diagram at the top of this page looks like this.
 
 ```text
 Checked 8 shapes, 5 arrows, 0 lines, and 12 texts.
@@ -81,6 +83,7 @@ The `.excalidraw` file can use the editor's hand-drawn look with `"style": "sket
 ## Editing in Excalidraw
 
 Open the `.excalidraw` file in the Excalidraw editor, for example by opening it from the menu of the web app or dragging it onto the canvas, and edit it there.
+To try it, open [`assets/checkout.excalidraw`](assets/checkout.excalidraw), the file behind the diagram at the top of this page, which the script built from [`assets/checkout.diagram.json`](assets/checkout.diagram.json).
 When you ask the agent for changes afterwards, it does not overwrite your edited file: the script refuses to replace a file that changed since it wrote it, and the agent asks you first.
 The agent can also check your edited file against the same rules and make a new SVG and PNG from it without changing it.
 

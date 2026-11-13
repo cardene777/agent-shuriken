@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The README opens with a diagram the plugin drew, and ships its `.excalidraw` file and spec in `assets/` so you can open it in the editor
+
 ## [0.1.0] - 2026-11-12
 
 First public release.

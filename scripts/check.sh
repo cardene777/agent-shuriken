@@ -316,6 +316,26 @@ check_japanese_pages() {
 }
 
 # Relative links and images in the Markdown files point at files that exist.
+# Prints the lines of a Markdown file that are outside fenced code blocks.
+# A fence opens with three or more backticks or tildes and closes on a line
+# with the same character, at least as many of them, and nothing else, so a
+# sample page with its own fences can sit inside a longer fence.
+outside_code() {
+  awk '
+    function run(s, c,   n) { n = 0; while (substr(s, n + 1, 1) == c) n++; return n }
+    {
+      t = $0; sub(/^[ \t]*/, "", t)
+      c = substr(t, 1, 1); n = (c == "`" || c == "~") ? run(t, c) : 0
+      if (open == 0) {
+        if (n >= 3) { open = n; mark = c; next }
+        print
+      } else if (c == mark && n >= open && substr(t, n + 1) ~ /^[ \t]*$/) {
+        open = 0
+      }
+    }' "$1"
+}
+
+# Links inside code are examples, not links, so only the text outside fences is read.
 check_links() {
   local f link target bad=0
   for f in $(all_files | grep '\.md$'); do
@@ -323,7 +343,7 @@ check_links() {
       target="${link%%#*}"
       [ -n "$target" ] || continue
       [ -e "$(dirname "$f")/$target" ] || { echo "$f: $link does not exist"; bad=1; }
-    done < <(grep -oE '\]\([^) ]+\)|src="[^"]+"' "$f" | sed -E 's/^\]\(//; s/\)$//; s/^src="//; s/"$//' | grep -vE '^[a-z]+:|^#')
+    done < <(outside_code "$f" | grep -oE '\]\([^) ]+\)|src="[^"]+"' | sed -E 's/^\]\(//; s/\)$//; s/^src="//; s/"$//' | grep -vE '^[a-z]+:|^#')
   done
   return "$bad"
 }
