@@ -1,7 +1,7 @@
 #!/bin/bash
 # Build the HTML sheet for choosing which accounts to delete from the matched candidates, and print its path.
 # The sheet loads nothing from outside (CSP blocks it, and it has no external images or scripts).
-# So that a `<` in a candidate name cannot break out of the embedded data, <, > and & are escaped as <, > and & before embedding.
+# So that a `<` in a candidate name cannot break out of the embedded data, <, >, and & are escaped as \u003c, \u003e, and \u0026 before embedding.
 #
 # Usage: build-sheet.sh [matched.json]
 
