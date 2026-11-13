@@ -56,7 +56,7 @@ Wrote docs/images/checkout.svg (648x868)
 Wrote docs/images/checkout.png (1296x1736) with chrome-headless-shell
 ```
 
-Chrome、Chromium、Edgeのどれも無い時は、最後の行の代わりに、PNGを作らなかったことと理由を示す行が出ます。SVGに同じ図が入っています。
+Playwrightの`chrome-headless-shell`、Chrome、Chromium、Edgeのどれも無い時は、最後の行の代わりに、PNGを作らなかったことと理由を示す行が出ます。SVGに同じ図が入っています。
 
 エディタで誰かが箱を動かした後のファイルを確かめると、次のようになります。
 
@@ -111,7 +111,7 @@ SVGは、使う書体のExcalidraw自身のExcalifontとNunitoを埋め込むの
 | 道具 | 要る時 |
 |---|---|
 | `python3` | 常に。標準ライブラリだけを使います |
-| Google Chrome、Chromium、Microsoft Edge | PNGを作る時だけ、既に入っていれば使います。無い時は`.excalidraw`のファイルとSVGができます |
+| Playwrightの`chrome-headless-shell`、Google Chrome、Chromium、Microsoft Edge | PNGを作る時だけ、既に入っていれば使います。無い時は`.excalidraw`のファイルとSVGができます |
 
 ## 読む物、動かす物、送る物
 

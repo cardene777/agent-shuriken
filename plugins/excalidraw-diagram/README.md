@@ -55,7 +55,7 @@ Wrote docs/images/checkout.svg (648x868)
 Wrote docs/images/checkout.png (1296x1736) with chrome-headless-shell
 ```
 
-Without Chrome, Chromium, or Edge, the last line is replaced by one that says the PNG was skipped and why; the SVG holds the same drawing.
+Without Playwright's `chrome-headless-shell`, Chrome, Chromium, or Edge, the last line is replaced by one that says the PNG was skipped and why; the SVG holds the same drawing.
 
 Checking a file after someone moved a box in the editor looks like this.
 
@@ -110,7 +110,7 @@ The agent can also check your edited file against the same rules and make a new 
 | Tool | When it's needed |
 |---|---|
 | `python3` | Always. Only the standard library is used |
-| Google Chrome, Chromium, or Microsoft Edge | For the PNG only, if already installed. Without one, you get the `.excalidraw` file and the SVG |
+| Playwright's `chrome-headless-shell`, Google Chrome, Chromium, or Microsoft Edge | For the PNG only, if already installed. Without one, you get the `.excalidraw` file and the SVG |
 
 ## What it reads, runs, and sends
 

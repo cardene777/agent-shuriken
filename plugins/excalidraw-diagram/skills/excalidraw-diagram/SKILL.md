@@ -1,6 +1,6 @@
 ---
 name: excalidraw-diagram
-description: Draws architecture, flow, sequence, and entity-relationship diagrams as Excalidraw files. The agent writes a small JSON spec (or converts Mermaid), a script lays it out, checks it for overlapping shapes, crowded spacing, text that does not fit, labels on lines, and unbound arrows, and exports SVG and, when Chrome, Chromium, or Edge is installed, PNG. Use when the user asks for an architecture, flow, sequence, or ER diagram, an Excalidraw file, or to turn a Mermaid diagram into Excalidraw.
+description: Draws architecture, flow, sequence, and entity-relationship diagrams as Excalidraw files. The agent writes a small JSON spec (or converts Mermaid), a script lays it out, checks it for overlapping shapes, crowded spacing, text that does not fit, labels on lines, and unbound arrows, and exports SVG and, when Playwright's chrome-headless-shell, Chrome, Chromium, or Edge is installed, PNG. Use when the user asks for an architecture, flow, sequence, or ER diagram, an Excalidraw file, or to turn a Mermaid diagram into Excalidraw.
 ---
 
 # Excalidraw diagram
