@@ -54,7 +54,7 @@ By default it is kept in `docs/explainers/<name>/` of the project you are workin
 | Tool | When it's needed |
 |---|---|
 | `python3` | Always, to build and check the document. The one that ships with macOS works |
-| Chrome, Chromium, Edge, or Brave | To check the layout at several screen widths and to print a PDF. Without one, the agent builds and checks the document without measuring the layout, and any browser can still print it |
+| Chrome, Chromium, Edge, Brave, or Playwright's headless shell | To check the layout at several screen widths and to print a PDF. Without one, the agent builds and checks the document without measuring the layout, and any browser can still print it |
 
 ## What it reads, runs, and sends
 
