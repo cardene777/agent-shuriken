@@ -1,7 +1,7 @@
 {
   "name": "feedback-loop",
   "displayName": "Feedback Loop",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "When you correct an agent's work, record the correction, fix the files, have an evaluator that edits nothing judge the fix, and repeat until it passes, keeping the lesson as a check or a rule for next time",
   "author": {
     "name": "cardene777",

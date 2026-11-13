@@ -1,6 +1,6 @@
 {
   "name": "repo-progress",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "See where every repository you work on stands in one table: worktrees, open issues and pull requests, uncommitted files, and which ones have stalled, without changing anything",
   "author": {
     "name": "cardene777",

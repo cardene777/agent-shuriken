@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-13
+
 - The README's one-repository sample lists all 13 waiting issues, as the script prints them, instead of only the first
 
 ## [0.1.0] - 2026-11-12
@@ -18,5 +20,6 @@ First public release.
 - Never changes a repository, a branch, a worktree, or an issue
 - Starts when you ask what you were working on or which repositories have stalled, or when you call it, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/repo-progress--v0.1.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/repo-progress--v0.1.1...HEAD
+[0.1.1]: https://github.com/cardene777/agent-shuriken/releases/tag/repo-progress--v0.1.1
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/repo-progress--v0.1.0

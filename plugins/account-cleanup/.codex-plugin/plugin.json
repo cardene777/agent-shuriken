@@ -1,6 +1,6 @@
 {
   "name": "account-cleanup",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Find web accounts you no longer use without reading any passwords, then cancel subscriptions and delete the accounts you approve",
   "author": {
     "name": "cardene777",

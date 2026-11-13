@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-13
+
 - The README says that its sample plan is for a project whose `.gitignore` already ignores `.env*`, which is why the plan adds `!.env.tpl`
 
 ## [0.1.0] - 2026-11-12
@@ -18,5 +20,6 @@ First public release.
 - Shows every file first and writes only after you approve, keeps existing files unless you name one to replace, and checks each file and the port again right before writing
 - Starts when you ask to set up a project, add Docker, or move environment variables into 1Password, or when you call it, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/init-project--v0.1.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/init-project--v0.1.1...HEAD
+[0.1.1]: https://github.com/cardene777/agent-shuriken/releases/tag/init-project--v0.1.1
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/init-project--v0.1.0

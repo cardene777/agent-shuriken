@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-13
+
 - The README's sample proposal ends with the line that tells the agent to run `apply` with `--expect` and the fingerprint, so the sample shows how a change that was not approved, or a file that changed, is never written
 
 ## [0.1.0] - 2026-11-12
@@ -19,5 +21,6 @@ First public release.
 - Never commits, sends nothing, and keeps no files of its own
 - Starts when you ask the agent to remember a lesson, or when you call it, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/learning-to-skill--v0.1.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/learning-to-skill--v0.1.1...HEAD
+[0.1.1]: https://github.com/cardene777/agent-shuriken/releases/tag/learning-to-skill--v0.1.1
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/learning-to-skill--v0.1.0
