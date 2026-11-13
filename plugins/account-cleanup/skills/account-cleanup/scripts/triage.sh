@@ -28,7 +28,7 @@ alive=$(mktemp "${TMPDIR:-/tmp}/account-cleanup-alive.XXXXXX")
 trap 'rm -f "$input" "$alive"' EXIT
 cat > "$input"
 
-LOCAL_RE='^(localhost|.*\.localhost|.*\.local|.*\.internal|.*\.lan|.*\.home\.arpa|[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+|\[[0-9a-f:]+\])$'
+# LOCAL_RE (development addresses) comes from common.sh
 # Chromium extension ID (32 lowercase letters from a to p). Most are crypto wallet extensions
 EXT_RE='^[a-p]{32}$'
 

@@ -6,6 +6,7 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 ## [Unreleased]
 
 - The README's screenshot is the candidate sheet the scripts built from a sample list of real services, and its details panel shows a reason and a date
+- Each IP address and local network name (`localhost`, `.local`, `.lan`, `.home.arpa`, and the like) is its own candidate marked as a development address. Before, two devices such as `192.168.1.1` and `10.0.1.1` became one candidate, `1.1`, that was treated as a web service and contacted at `https://1.1/`
 
 ## [0.2.0] - 2026-11-12
 

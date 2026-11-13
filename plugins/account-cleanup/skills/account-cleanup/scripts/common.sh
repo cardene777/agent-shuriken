@@ -46,11 +46,19 @@ JQ_HOST='def host:
     | sub("^www[.]"; "")
   end;'
 
-# Take the registrable domain from a host (example.co.jp for accounts.example.co.jp)
+# Hosts that are not web services: the local machine, local network names, and IP addresses.
+# triage.sh gives them the dev-address reason and never contacts them, and regdomain keeps each one whole
+LOCAL_RE='^(localhost|.*\.localhost|.*\.local|.*\.internal|.*\.lan|.*\.home\.arpa|[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+|\[[0-9a-f:]+\])$'
+
+# Take the registrable domain from a host (example.co.jp for accounts.example.co.jp).
+# A local host or an IP address is returned as it is, so two devices on one network stay two candidates.
+# browser.mjs has the same rules in its regdomain
 JQ_REGDOMAIN='def regdomain:
-  split(".") as $p
-  | if ($p | length) < 3 then ($p | join("."))
-    else ($p[-2:] | join(".")) as $two
-      | if ($two | IN("co.jp","ne.jp","or.jp","ac.jp","go.jp","gr.jp","ed.jp","lg.jp","co.uk","org.uk","ac.uk","gov.uk","me.uk","com.au","net.au","org.au","co.nz","com.br","com.cn","com.tw","com.hk","co.kr","com.sg","co.in","com.mx","co.za","com.tr"))
-        then ($p[-3:] | join(".")) else $two end
-    end;'
+  if test("'"${LOCAL_RE//\\/\\\\}"'") or contains(":") then .
+  else split(".") as $p
+    | if ($p | length) < 3 then ($p | join("."))
+      else ($p[-2:] | join(".")) as $two
+        | if ($two | IN("co.jp","ne.jp","or.jp","ac.jp","go.jp","gr.jp","ed.jp","lg.jp","co.uk","org.uk","ac.uk","gov.uk","me.uk","com.au","net.au","org.au","co.nz","com.br","com.cn","com.tw","com.hk","co.kr","com.sg","co.in","com.mx","co.za","com.tr"))
+          then ($p[-3:] | join(".")) else $two end
+      end
+  end;'

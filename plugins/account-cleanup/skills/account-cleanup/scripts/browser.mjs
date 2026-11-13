@@ -54,7 +54,9 @@ function withTimeout(p, ms) {
   return Promise.race([p, sleep(ms).then(() => null)]);
 }
 
-// Registrable domain. The same two-label suffix list as JQ_REGDOMAIN in common.sh, plus hosting suffixes where anyone can get a subdomain
+// Registrable domain, by the same rules as JQ_REGDOMAIN in common.sh: a local host or an IP address stays whole,
+// and the same two-label suffix list, plus hosting suffixes where anyone can get a subdomain
+const LOCAL_NAME = /^(localhost|.*\.localhost|.*\.local|.*\.internal|.*\.lan|.*\.home\.arpa)$/;
 const THREE_LEVEL = new Set([
   "co.jp", "ne.jp", "or.jp", "ac.jp", "go.jp", "gr.jp", "ed.jp", "lg.jp", "co.uk", "org.uk", "ac.uk", "gov.uk",
   "me.uk", "com.au", "net.au", "org.au", "co.nz", "com.br", "com.cn", "com.tw", "com.hk", "co.kr", "com.sg", "co.in",
@@ -64,7 +66,7 @@ const THREE_LEVEL = new Set([
 
 function regdomain(host) {
   if (!host) return "";
-  if (/^\d+\.\d+\.\d+\.\d+$/.test(host) || host.includes(":") || host.startsWith("[")) return host;
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(host) || host.includes(":") || host.startsWith("[") || LOCAL_NAME.test(host)) return host;
   const p = host.split(".");
   if (p.length <= 2) return host;
   return THREE_LEVEL.has(p.slice(-2).join(".")) ? p.slice(-3).join(".") : p.slice(-2).join(".");
