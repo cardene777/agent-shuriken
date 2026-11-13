@@ -2,7 +2,7 @@
 """Draw a diagram as an Excalidraw file that passes layout checks, with SVG and PNG copies.
 
 Usage:
-  excalidraw_diagram.py build <spec.json | diagram.mmd> [--out DIR] [--name NAME]
+  excalidraw_diagram.py build <spec.json | diagram.mmd> [--out DIR] [--name NAME] [--theme THEME]
                               [--png auto|skip|require] [--scale 1|2|3] [--replace]
   excalidraw_diagram.py check <file.excalidraw>
   excalidraw_diagram.py render <file.excalidraw> [--out DIR] [--name NAME]
@@ -12,6 +12,7 @@ Usage:
 build    lays out the spec, checks the result, and writes NAME.excalidraw, NAME.svg, and
          NAME.png (the PNG only when a Chromium-based browser is installed). The files go
          next to the spec unless --out names a folder. Nothing is written when a check fails.
+         --theme draws the spec with that theme instead of the one it names (themes.json).
 check    checks any .excalidraw file against the same rules.
 render   writes the SVG and PNG of an .excalidraw file, for example after editing it in Excalidraw.
 mermaid  turns a Mermaid flowchart or sequence diagram into a spec to edit before building.
@@ -39,6 +40,7 @@ import diagram_png  # noqa: E402
 import diagram_scene  # noqa: E402
 import diagram_spec  # noqa: E402
 import diagram_svg  # noqa: E402
+import diagram_theme  # noqa: E402
 
 NAME_OK = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$")
 SUFFIXES = (".diagram.json", ".json", ".mmd", ".mermaid", ".excalidraw")
@@ -148,8 +150,8 @@ def _write_images(doc, paths, png_mode, scale):
     return 0
 
 
-def _load_spec(path):
-    """Returns (spec, notes) or raises SystemExit(2) after printing why."""
+def _load_spec(path, theme=None):
+    """Returns (spec, notes) or raises SystemExit(2) after printing why. theme replaces the spec's theme."""
     try:
         text = _read_text(path)
     except OSError as e:
@@ -168,8 +170,13 @@ def _load_spec(path):
         except ValueError as e:
             err("%s is not valid JSON: %s" % (path, e))
             raise SystemExit(2)
+    if theme is not None and isinstance(raw, dict):
+        raw = dict(raw, theme=theme)
     try:
         return diagram_spec.validate(raw), notes
+    except diagram_theme.ThemeError as e:
+        err(str(e))
+        raise SystemExit(2)
     except diagram_spec.SpecError as e:
         problems = str(e).split("\n")
         err("The spec has %d problem%s:" % (len(problems), "" if len(problems) == 1 else "s"))
@@ -179,7 +186,7 @@ def _load_spec(path):
 
 
 def cmd_build(args):
-    spec, notes = _load_spec(args.input)
+    spec, notes = _load_spec(args.input, args.theme)
     for note in notes:
         say("Note: " + note)
     doc, report, scale, error = diagram_layout.build(spec)
@@ -268,6 +275,8 @@ def main(argv):
         p.add_argument("--png", choices=("auto", "skip", "require"), default="auto")
         p.add_argument("--scale", type=int, choices=(1, 2, 3), default=2)
         p.add_argument("--replace", action="store_true")
+        if name == "build":
+            p.add_argument("--theme")
     p = sub.add_parser("check")
     p.add_argument("input")
     p = sub.add_parser("mermaid")

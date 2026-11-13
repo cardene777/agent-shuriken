@@ -6,6 +6,11 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 ## [Unreleased]
 
 - The README opens with a diagram the plugin drew, and ships its `.excalidraw` file and spec in `assets/` so you can open it in the editor
+- The SVG and PNG are drawn the way the Excalidraw editor draws the file: hand-drawn strokes that bow and are drawn twice, hand-drawn fills and hatching, and Excalidraw's own fonts, Excalifont and Nunito, embedded in the SVG
+- A spec picks one of eight themes with `"theme"`: `sketch`, `hatch`, `pencil`, `soft`, `marker`, `dark`, `clean`, and `friendly`, all defined in `themes.json`. `build --theme` draws a spec in another theme without editing it
+- Diagrams are drawn in the hand-drawn `sketch` theme unless the spec picks another; `"theme": "clean"` gives straight lines and system fonts as before. `style` and `fill` still work and now adjust the theme
+- Arrows end 5 px from their shapes instead of 12 px, in filled arrowheads, boxes in one diagram widen toward one width so the columns line up, and arrows leaving one side of a box for different shapes share one line before they split
+- Boxes have smaller rounded corners, and arrows and their labels are dark gray instead of black
 
 ## [0.1.0] - 2026-11-12
 

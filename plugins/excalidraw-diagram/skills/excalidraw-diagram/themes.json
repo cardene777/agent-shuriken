@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "default": "sketch",
+  "themes": {
+    "sketch": {
+      "description": "Hand-drawn lines and Excalifont, shapes filled with color",
+      "roughness": 1, "font": "excalifont", "fill": "solid", "tint": "medium", "zone_fill": "light",
+      "outline": "color", "shape_stroke": 2, "line_stroke": 2, "line_color": "#495057", "dark": false
+    },
+    "hatch": {
+      "description": "Hand-drawn lines and Excalifont, shapes filled with hatching",
+      "roughness": 1, "font": "excalifont", "fill": "hachure", "tint": "medium", "zone_fill": "light",
+      "outline": "color", "shape_stroke": 2, "line_stroke": 2, "line_color": "#495057", "dark": false
+    },
+    "pencil": {
+      "description": "Thin black hand-drawn lines with no fill, readable in black and white",
+      "roughness": 1, "font": "excalifont", "fill": "none", "tint": "medium", "zone_fill": "none",
+      "outline": "ink", "shape_stroke": 1, "line_stroke": 1, "line_color": "#1e1e1e", "dark": false
+    },
+    "soft": {
+      "description": "Hand-drawn lines with light fills, the color carried by the outlines, and zones not filled",
+      "roughness": 1, "font": "excalifont", "fill": "solid", "tint": "light", "zone_fill": "none",
+      "outline": "color", "shape_stroke": 2, "line_stroke": 2, "line_color": "#495057", "dark": false
+    },
+    "marker": {
+      "description": "Rougher hand-drawn lines, thick outlines, and hatching",
+      "roughness": 2, "font": "excalifont", "fill": "hachure", "tint": "medium", "zone_fill": "light",
+      "outline": "color", "shape_stroke": 4, "line_stroke": 2, "line_color": "#495057", "dark": false
+    },
+    "dark": {
+      "description": "The sketch theme on a dark background, as Excalidraw's dark mode shows it",
+      "roughness": 1, "font": "excalifont", "fill": "solid", "tint": "medium", "zone_fill": "light",
+      "outline": "color", "shape_stroke": 2, "line_stroke": 2, "line_color": "#495057", "dark": true
+    },
+    "clean": {
+      "description": "Straight lines and system sans-serif fonts",
+      "roughness": 0, "font": "helvetica", "fill": "solid", "tint": "medium", "zone_fill": "light",
+      "outline": "color", "shape_stroke": 2, "line_stroke": 2, "line_color": "#495057", "dark": false
+    },
+    "friendly": {
+      "description": "Hand-drawn lines with Nunito, a rounded font that is easy to read",
+      "roughness": 1, "font": "nunito", "fill": "solid", "tint": "medium", "zone_fill": "light",
+      "outline": "color", "shape_stroke": 2, "line_stroke": 2, "line_color": "#495057", "dark": false
+    }
+  }
+}

@@ -14,7 +14,7 @@ import diagram_text as measure
 MIN_FONT = 16          # smallest readable text, in px
 MIN_GAP = 40           # space between shapes that are not nested
 ZONE_PAD = 50          # space between a background zone and the shapes inside it
-END_MIN = 8            # an arrow end stays at least this far from a shape
+END_MIN = 4            # an arrow end stays at least this far from a shape
 BIND_MAX = 30          # a bound end is at most this far from its shape; an unbound end this close should be bound
 TEXT_PAD = 5           # Excalidraw keeps bound text this far inside its shape
 TEXT_MARGIN = 4        # free text stays this far from outlines it does not sit inside
@@ -317,13 +317,16 @@ def _check_lines(scene, shapes, zones, lines, report):
     for ln in lines:
         for p, q in geo.segments(geo.linear_points(ln)):
             if abs(p[1] - q[1]) < 0.5:
-                runs.append((ln, "h", p[1], min(p[0], q[0]), max(p[0], q[0])))
+                runs.append((ln, "h", p[1], min(p[0], q[0]), max(p[0], q[0]), (p, q)))
             elif abs(p[0] - q[0]) < 0.5:
-                runs.append((ln, "v", p[0], min(p[1], q[1]), max(p[1], q[1])))
+                runs.append((ln, "v", p[0], min(p[1], q[1]), max(p[1], q[1]), (p, q)))
     reported = set()
     for i, a in enumerate(runs):
         for b in runs[i + 1:]:
             if a[0] is b[0] or a[1] != b[1] or abs(a[2] - b[2]) >= 1:
+                continue
+            trunk = _trunk(a[0], b[0])[0]
+            if a[5] in trunk and b[5] in trunk:
                 continue
             if min(a[4], b[4]) - max(a[3], b[3]) > 2:
                 pair = (a[0]["id"], b[0]["id"])
@@ -364,8 +367,32 @@ def _meeting(p1, p2, q1, q2):
     return None
 
 
+def _trunk(a, b):
+    """Where two arrows share a trunk: both leave one shape from one point, run together on one
+    line, and split. Returns (their segments along the trunk, the point where they split), or
+    ([], None) when they do not, including when one runs along the other to its end."""
+    pa, pb = geo.linear_points(a), geo.linear_points(b)
+    start_a, start_b = a.get("startBinding") or {}, b.get("startBinding") or {}
+    if len(pa) < 2 or len(pb) < 2 or pa[0] != pb[0] or not start_a.get("elementId") \
+            or start_a.get("elementId") != start_b.get("elementId"):
+        return [], None
+    k = 0
+    while k + 1 < min(len(pa), len(pb)) and pa[k + 1] == pb[k + 1]:
+        k += 1
+    if k + 1 >= len(pa) or k + 1 >= len(pb):
+        return [], None
+    segs = list(zip(pa[:k + 1], pa[1:k + 1])) + [(pa[k], pa[k + 1]), (pb[k], pb[k + 1])]
+    o, na, nb = pa[k], pa[k + 1], pb[k + 1]
+    da, db = (na[0] - o[0], na[1] - o[1]), (nb[0] - o[0], nb[1] - o[1])
+    same_way = da[0] * db[1] == da[1] * db[0] and da[0] * db[0] + da[1] * db[1] > 0
+    # Leaving the last shared point the same way, the shorter one turns off the other's line there.
+    split = min((na, nb), key=lambda q: abs(q[0] - o[0]) + abs(q[1] - o[1])) if same_way else o
+    return segs, split
+
+
 def _check_crossings(scene, lines, report):
-    """Warn about every pair of arrows that cross or touch, with how many points they meet at."""
+    """Warn about every pair of arrows that cross or touch, with how many points they meet at.
+    Two arrows of one trunk meet along it and where they split; that is not a crossing."""
     arrows = []
     for ln in lines:
         if ln.get("type") == "arrow":
@@ -373,10 +400,14 @@ def _check_crossings(scene, lines, report):
     for i, (a, sa) in enumerate(arrows):
         for b, sb in arrows[i + 1:]:
             points = set()
+            segs, split = _trunk(a, b)
+            trunk = set(segs)
             for p, q in sa:
                 for r, s in sb:
+                    if (p, q) in trunk and (r, s) in trunk:
+                        continue
                     m = _meeting(p, q, r, s)
-                    if m is not None:
+                    if m is not None and not (split and abs(m[0] - split[0]) <= 1 and abs(m[1] - split[1]) <= 1):
                         points.add((round(m[0]), round(m[1])))
             n = len(points)
             if n:

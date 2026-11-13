@@ -52,8 +52,8 @@ GitHub Copilot CLIでは依頼の中に`/excalidraw-diagram`と書き、Gemini C
 Checked 8 shapes, 5 arrows, 0 lines, and 12 texts.
 No problems found.
 Wrote docs/images/checkout.excalidraw
-Wrote docs/images/checkout.svg (558x868)
-Wrote docs/images/checkout.png (1116x1736) with chrome-headless-shell
+Wrote docs/images/checkout.svg (648x868)
+Wrote docs/images/checkout.png (1296x1736) with chrome-headless-shell
 ```
 
 Chrome、Chromium、Edgeのどれも無い時は、最後の行の代わりに、PNGを作らなかったことと理由を示す行が出ます。SVGに同じ図が入っています。
@@ -79,7 +79,25 @@ Checked 8 shapes, 5 arrows, 0 lines, and 12 texts.
 
 矢印はつないだ図形に結び付けるため、エディタで図形を動かすと矢印も付いてきます。
 Mermaidのフローチャートやシーケンス図から始めることもできます。変換は文書にした範囲だけを読み、読めない所は行を示します。
-`.excalidraw`のファイルは、`"style": "sketch"`にするとエディタの手描き風の見た目になります。SVGとPNGは常にすっきりした図形と、お使いのマシンのフォントで描きます。
+SVGとPNGは、Excalidrawのエディタがそのファイルを描くのと同じように、選んだテーマで描きます。
+
+## テーマ
+
+どの図も、8つのテーマのどれかで描きます。
+「白黒で刷る用に」「暗い表示のREADME用に」のように見た目を伝えるか、テーマの名前を伝えます。何も無い時、エージェントは`sketch`を使います。
+
+| `sketch`(既定) | `hatch` | `pencil` | `soft` |
+|---|---|---|---|
+| <img src="assets/themes/sketch.png" width="200" alt="手描きの線で、図形を色で塗った決済の図"> | <img src="assets/themes/hatch.png" width="200" alt="図形を斜線で塗った決済の図"> | <img src="assets/themes/pencil.png" width="200" alt="塗らずに黒い細い線で描いた決済の図"> | <img src="assets/themes/soft.png" width="200" alt="淡い塗りと色付きの輪郭の決済の図"> |
+| 手描きの線とExcalifontで、図形を色で塗ります。エディタの既定の描き方です | 図形の中を斜線で塗ります | 黒い細い線だけで描き、塗りません。白黒で刷っても読めます | 淡い色で塗り、色は輪郭で示します |
+
+| `marker` | `dark` | `clean` | `friendly` |
+|---|---|---|---|
+| <img src="assets/themes/marker.png" width="200" alt="粗い線と太い輪郭と斜線の決済の図"> | <img src="assets/themes/dark.png" width="200" alt="暗い背景の決済の図"> | <img src="assets/themes/clean.png" width="200" alt="直線とサンセリフの書体の決済の図"> | <img src="assets/themes/friendly.png" width="200" alt="手描きの線と丸い書体の決済の図"> |
+| もっと粗い線と太い輪郭に斜線の塗りで、発表や資料に向きます | Excalidrawの暗い表示と同じ見た目です | 直線と手元のマシンのサンセリフの書体で、正式な資料に向きます | 手描きの線に、読みやすい丸い書体のNunitoを合わせます |
+
+SVGは、使う書体のExcalidraw自身のExcalifontとNunitoを埋め込むので、どのマシンでも同じ見た目になります。
+これらの書体はラテン文字、ギリシャ文字、キリル文字を持ちます。日本語などの文字は手元のマシンの書体で描くので、ほとんど日本語で書いた図は`clean`の方が揃って読めます。
 
 ## Excalidrawで編集する
 
@@ -102,6 +120,7 @@ Mermaidのフローチャートやシーケンス図から始めることもで�
 
 - エージェントが書く仕様、あなたが指したMermaidのファイル、確かめや書き出しを頼まれた`.excalidraw`のファイルを読みます。コードのファイルは、その図を頼まれた時だけエージェントが読みます
 - 選んだフォルダに`<名前>.excalidraw`、`<名前>.svg`、`<名前>.png`を書きます。自分が書いていないファイルや、書いた後に変わったファイルは、あなたに尋ねずに置き換えません
+- SVGには、プラグインが`skills/excalidraw-diagram/data/fonts/`に同梱した書体のファイルを埋め込みます。ExcalidrawのExcalifontとNunitoを手を加えずに写した物で、SIL Open Font Licenseに従い、[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)に記録しています
 - PNGを作る時は、マシンに既にあるブラウザを画面無しで動かします。使い捨てのプロファイルは後で削除し、ホスト名の名前解決はすべて止め、開くのは手元のSVGだけです
 - どこにも何も送らず、頼まれたファイルのほかは何も残しません
 

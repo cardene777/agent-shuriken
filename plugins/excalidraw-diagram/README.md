@@ -51,8 +51,8 @@ Building the diagram at the top of this page looks like this.
 Checked 8 shapes, 5 arrows, 0 lines, and 12 texts.
 No problems found.
 Wrote docs/images/checkout.excalidraw
-Wrote docs/images/checkout.svg (558x868)
-Wrote docs/images/checkout.png (1116x1736) with chrome-headless-shell
+Wrote docs/images/checkout.svg (648x868)
+Wrote docs/images/checkout.png (1296x1736) with chrome-headless-shell
 ```
 
 Without Chrome, Chromium, or Edge, the last line is replaced by one that says the PNG was skipped and why; the SVG holds the same drawing.
@@ -78,7 +78,25 @@ Arrows that cross or touch are named on lines starting with `Warning: crossing:`
 
 Arrows are bound to the shapes they connect, so they follow when you move a shape in the editor.
 Diagrams can start from a Mermaid flowchart or sequence diagram; the converter reads a documented subset and names the line of anything it cannot read.
-The `.excalidraw` file can use the editor's hand-drawn look with `"style": "sketch"`; the SVG and PNG always use clean shapes and your system fonts.
+The SVG and PNG are drawn the way the Excalidraw editor draws the file, in the theme you pick.
+
+## Themes
+
+Every diagram is drawn in one of eight themes.
+Ask for a look, such as "black and white for printing" or "for a README in dark mode", or name a theme; without one, the agent uses `sketch`.
+
+| `sketch` (default) | `hatch` | `pencil` | `soft` |
+|---|---|---|---|
+| <img src="assets/themes/sketch.png" width="200" alt="The checkout diagram with hand-drawn lines and shapes filled with color"> | <img src="assets/themes/hatch.png" width="200" alt="The checkout diagram with shapes filled with hatching"> | <img src="assets/themes/pencil.png" width="200" alt="The checkout diagram in thin black lines with no fill"> | <img src="assets/themes/soft.png" width="200" alt="The checkout diagram with light fills and colored outlines"> |
+| Hand-drawn lines and Excalifont, shapes filled with color, as the editor draws by default | Hatching inside the shapes | Thin black lines and no fill, readable when printed in black and white | Light fills, with the color carried by the outlines |
+
+| `marker` | `dark` | `clean` | `friendly` |
+|---|---|---|---|
+| <img src="assets/themes/marker.png" width="200" alt="The checkout diagram with rough lines, thick outlines, and hatching"> | <img src="assets/themes/dark.png" width="200" alt="The checkout diagram on a dark background"> | <img src="assets/themes/clean.png" width="200" alt="The checkout diagram with straight lines and a sans-serif font"> | <img src="assets/themes/friendly.png" width="200" alt="The checkout diagram with hand-drawn lines and a rounded font"> |
+| Rougher lines, thick outlines, and hatching, for talks and slides | The way Excalidraw's dark mode shows the diagram | Straight lines and your system's sans-serif font, for formal documents | Hand-drawn lines with Nunito, a rounded font that is easy to read |
+
+The SVG embeds the fonts it uses, Excalidraw's own Excalifont and Nunito, so it looks the same on every machine.
+They cover Latin, Greek, and Cyrillic letters; Japanese and other text uses your system fonts, so a diagram written mostly in Japanese reads more evenly in `clean`.
 
 ## Editing in Excalidraw
 
@@ -101,6 +119,7 @@ In short:
 
 - It reads the spec the agent writes, a Mermaid file you point to, or an `.excalidraw` file you ask it to check or export. The agent reads code files only when you ask for a diagram of them
 - It writes `<name>.excalidraw`, `<name>.svg`, and `<name>.png` in the folder you choose, and never replaces a file it did not write or that changed since without asking you
+- The SVG embeds font files that ship with the plugin in `skills/excalidraw-diagram/data/fonts/`: unmodified copies of Excalidraw's Excalifont and Nunito under the SIL Open Font License, as [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) records
 - For the PNG, it starts a browser already on your machine, headless, with a throwaway profile that is deleted afterwards, blocked from resolving any host name, and pointed only at the local SVG
 - It sends nothing anywhere and keeps nothing besides the files you asked for
 

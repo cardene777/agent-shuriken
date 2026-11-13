@@ -29,6 +29,7 @@ JA_ALLOWED=(
   plugins/diagram-explainer/skills/diagram-explainer/examples/content.sample.ja.json
   plugins/diagram-explainer/skills/diagram-explainer/examples/ladders/checkout-ja.json
   plugins/diagram-explainer/skills/diagram-explainer/tests/test-render.sh
+  plugins/excalidraw-diagram/skills/excalidraw-diagram/tests/test-excalidraw-diagram.sh
   plugins/techdebt/skills/techdebt/templates/report.html
   plugins/techdebt/skills/techdebt/tests/test-techdebt.sh
 )
@@ -46,9 +47,9 @@ all_files() {
     [ -f "$f" ] && printf '%s\n' "$f"
   done
 }
-# Text files written in this repository (no vendored data, no images).
+# Text files written in this repository (no vendored data, no images, no fonts).
 own_text_files() {
-  all_files | grep -vE '\.(png|jpg|jpeg|gif|webp|svg|ico|zip)$' | grep -vxF -f <(printf '%s\n' "${VENDORED[@]}")
+  all_files | grep -vE '\.(png|jpg|jpeg|gif|webp|svg|ico|zip|woff2?|ttf|otf)$' | grep -vxF -f <(printf '%s\n' "${VENDORED[@]}")
 }
 plugin_names() {
   for d in plugins/*/; do basename "$d"; done

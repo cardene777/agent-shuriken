@@ -103,7 +103,7 @@ elif what == "ends":
     for a in arrows:
         p = pts(a)
         for k, q in (("startBinding", p[0]), ("endBinding", p[-1])):
-            ok = ok and abs(dist(q, box(by[a[k]["elementId"]])) - 12) < 0.01
+            ok = ok and abs(dist(q, box(by[a[k]["elementId"]])) - 5) < 0.01
 elif what == "straight":
     for a in arrows:
         p = pts(a)
@@ -135,7 +135,22 @@ elif what == "crossings":
             for k in range(n + 1):
                 out.add((round(p[0] + (q[0] - p[0]) * k / max(n, 1)), round(p[1] + (q[1] - p[1]) * k / max(n, 1))))
         return out
-    n = sum(1 for i, a in enumerate(arrows) for b in arrows[i + 1:] if cells(a) & cells(b))
+    def trunk(a, b):
+        # Cells two arrows share as a trunk: from their common start to where they split.
+        pa, pb = pts(a), pts(b)
+        if pa[0] != pb[0] or (a.get("startBinding") or {}).get("elementId") != (b.get("startBinding") or {}).get("elementId"):
+            return set()
+        k = 0
+        while k + 1 < min(len(pa), len(pb)) and pa[k + 1] == pb[k + 1]:
+            k += 1
+        if k + 1 >= len(pa) or k + 1 >= len(pb):
+            return set()
+        o, na, nb = pa[k], pa[k + 1], pb[k + 1]
+        near = min((na, nb), key=lambda q: abs(q[0] - o[0]) + abs(q[1] - o[1]))
+        same = (na[0] - o[0]) * (nb[1] - o[1]) == (na[1] - o[1]) * (nb[0] - o[0]) and (na[0] - o[0]) * (nb[0] - o[0]) + (na[1] - o[1]) * (nb[1] - o[1]) > 0
+        shared = {"points": pa[:k + 1] + ([near] if same else []), "x": a["x"], "y": a["y"]}
+        return cells({"x": 0, "y": 0, "points": [list(q) for q in shared["points"]]}) if len(shared["points"]) > 1 else {(round(o[0]), round(o[1]))}
+    n = sum(1 for i, a in enumerate(arrows) for b in arrows[i + 1:] if (cells(a) & cells(b)) - trunk(a, b))
     print(n); sys.exit(0)
 elif what == "zone-gap":
     labels = [e for e in els if e["type"] == "text" and e["id"].startswith("edge:")]
@@ -186,7 +201,7 @@ check "the scene has the type, version, and fields Excalidraw writes" 'V "$S.exc
 check "every arrow is bound at both ends and each shape lists its arrows" 'V "$S.excalidraw" bound'
 check "text bound to a shape is centered in it" 'V "$S.excalidraw" centered'
 check "shapes are at least 40 px apart" 'V "$S.excalidraw" apart'
-check "arrow ends stop 12 px outside the shapes they connect" 'V "$S.excalidraw" ends'
+check "arrow ends stop 5 px outside the shapes they connect" 'V "$S.excalidraw" ends'
 check "arrows run in horizontal and vertical stretches with no rounding" 'V "$S.excalidraw" straight'
 check "no arrow passes through a shape" 'V "$S.excalidraw" clear'
 check "all 3 arrow labels are placed off every line and off every shape" 'V "$S.excalidraw" labels 3'
@@ -327,13 +342,13 @@ check "an arrow back up the flow enters its target from the right side" \
 import json,sys
 d=json.load(open(sys.argv[1])); e={x[\"id\"]:x for x in d[\"elements\"]}; a=e[\"edge:4\"]; t=e[\"node:d\"]
 end=a[\"x\"]+a[\"points\"][-1][0]
-sys.exit(0 if end == t[\"x\"]+t[\"width\"]+12 else 1)" "$T/tiers.excalidraw"'
+sys.exit(0 if end == t[\"x\"]+t[\"width\"]+5 else 1)" "$T/tiers.excalidraw"'
 check "an arrow that answers another runs beside it, into the bottom of its target" \
   'python3 -c "
 import json,sys
 d=json.load(open(sys.argv[1])); e={x[\"id\"]:x for x in d[\"elements\"]}; a=e[\"edge:3\"]; t=e[\"node:a\"]
 end=a[\"y\"]+a[\"points\"][-1][1]
-sys.exit(0 if end == t[\"y\"]+t[\"height\"]+12 else 1)" "$T/tiers.excalidraw"'
+sys.exit(0 if end == t[\"y\"]+t[\"height\"]+5 else 1)" "$T/tiers.excalidraw"'
 sed 's/"nodes"/"direction": "right", "nodes"/' "$T/tiers.json" > "$T/right.json"
 run build "$T/right.json" --png skip >/dev/null
 xa="$(V "$T/right.excalidraw" center-of node:a)"; xb="$(V "$T/right.excalidraw" center-of node:b)"
@@ -377,10 +392,13 @@ check "a tier below a zone is reordered after the nodes inside it, so no arrows 
 check "a build without crossings prints no crossing warning and needs no wider spacing" \
   '! printf "%s\n" "$out" | grep -q "^Warning: crossing" && ! printf "%s\n" "$out" | grep -q "^Spacing was widened"'
 check "arrow labels keep at least 8 px from a zone outline, inside or outside" 'V "$T/cross.excalidraw" zone-gap 8'
-check "the first line of each shape's text is bold in the SVG, and nothing else is" \
-  '[ "$(grep -o "font-weight=\"bold\"[^>]*>[^<]*" "$T/cross.svg" | sed "s/.*>//" | sort | tr "\n" "|")" = "API gateway|Order service|Payment service|Retry queue|Web app|orders|" ]'
+check "the first line of each shape's text is thickened in the hand-drawn SVG, and nothing else is" \
+  '[ "$(grep -o "stroke-width=\"0.7\"[^>]*>[^<]*" "$T/cross.svg" | sed "s/.*>//" | sort | tr "\n" "|")" = "API gateway|Order service|Payment service|Retry queue|Web app|orders|" ]'
+run build "$T/cross.json" --theme clean --name cross-clean --png skip >/dev/null
+check "the first line of each shape's text is bold in the clean SVG, and nothing else is" \
+  '[ "$(grep -o "font-weight=\"bold\"[^>]*>[^<]*" "$T/cross-clean.svg" | sed "s/.*>//" | sort | tr "\n" "|")" = "API gateway|Order service|Payment service|Retry queue|Web app|orders|" ]'
 check "detail lines and arrow labels are not bold" \
-  'grep -q ">Next.js<" "$T/cross.svg" && ! grep -q "bold[^>]*>Next.js<" "$T/cross.svg" && ! grep -q "bold[^>]*>SQL<" "$T/cross.svg"'
+  'grep -q ">Next.js<" "$T/cross.svg" && ! grep -q "\(bold\|0\.7\)[^>]*>Next.js<" "$T/cross.svg" && ! grep -q "\(bold\|0\.7\)[^>]*>SQL<" "$T/cross.svg"'
 printf '{"nodes": [{"id": "a", "label": "Payment reconciliation service"}]}\n' > "$T/boldroom.json"
 run build "$T/boldroom.json" --png skip >/dev/null
 check "a shape leaves room for its name in bold, which runs wider than the regular text" 'python3 -c "
@@ -420,7 +438,7 @@ check "an arrow back from a node on the left goes around the left, crossing noth
   '[ "$rc" = 0 ] && ! printf "%s\n" "$out" | grep -q "^Warning: crossing" && python3 -c "
 import json,sys
 d=json.load(open(sys.argv[1])); e={x[\"id\"]:x for x in d[\"elements\"]}; a=e[\"edge:4\"]; t=e[\"node:e\"]
-sys.exit(0 if a[\"x\"]+a[\"points\"][-1][0] == t[\"x\"]-12 else 1)" "$T/retry.excalidraw"'
+sys.exit(0 if a[\"x\"]+a[\"points\"][-1][0] == t[\"x\"]-5 else 1)" "$T/retry.excalidraw"'
 cat > "$T/route1.json" <<'JSON'
 {"nodes": [{"id": "n0", "label": "Node 0"}, {"id": "n1", "label": "Node 1"}, {"id": "n2", "label": "Node 2"},
            {"id": "n3", "label": "Node 3"}, {"id": "n4", "label": "Node 4"}, {"id": "n5", "label": "Node 5"}],
@@ -565,6 +583,110 @@ for case in 'graph BT|line 1: direction BT' \
 done
 run mermaid "$T/flow.mmd" -o "$T/flow.json" >/dev/null 2>&1; rc=$?
 check "mermaid -o does not replace an existing file without --replace" '[ "$rc" = 3 ]'
+
+# --- themes and the hand-drawn look
+cat > "$T/checkout.json" <<'JSON'
+{"title": "Checkout", "direction": "down",
+ "nodes": [{"id": "web", "label": "Web app", "lines": ["Next.js", "port 3000"], "color": "blue"},
+           {"id": "api", "label": "API gateway", "lines": ["REST, JWT"], "color": "violet"},
+           {"id": "orders", "label": "Order service", "lines": ["POST /orders"], "group": "svc", "color": "green"},
+           {"id": "payments", "label": "Payment service", "lines": ["POST /payments"], "group": "svc", "color": "green"},
+           {"id": "db", "label": "orders", "lines": ["id uuid", "total int", "status text"], "shape": "table", "color": "orange"},
+           {"id": "card", "label": "Card processor", "lines": ["external", "HTTPS"], "color": "gray"}],
+ "edges": [{"from": "web", "to": "api", "label": "HTTPS"}, {"from": "api", "to": "orders"}, {"from": "api", "to": "payments"},
+           {"from": "orders", "to": "db", "label": "SQL", "line": "dashed"}, {"from": "payments", "to": "card", "label": "charge"}],
+ "groups": [{"id": "svc", "label": "Services", "color": "green"}]}
+JSON
+THEMES="sketch hatch pencil soft marker dark clean friendly"
+check "themes.json lists the eight themes in order, with sketch as the default" \
+  '[ "$(python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(d[\"default\"], *d[\"themes\"])" "$HERE/../themes.json")" = "sketch $THEMES" ]'
+for theme in $THEMES; do
+  out="$(run build "$T/checkout.json" --theme "$theme" --name "co-$theme" --png skip)"; rc=$?
+  check "the checkout diagram builds with the $theme theme and passes every check" \
+    '[ "$rc" = 0 ] && printf "%s\n" "$out" | grep -q "^No problems found." && ! printf "%s\n" "$out" | grep -q "^Warning:"'
+done
+run build "$T/checkout.json" --png skip >/dev/null
+check "a spec without a theme is drawn with sketch: hand-drawn lines and Excalifont" 'python3 -c "
+import json,sys
+d=json.load(open(sys.argv[1])); els=d[\"elements\"]
+ok=all(e[\"roughness\"]==1 for e in els if e[\"type\"]!=\"text\") and all(e[\"fontFamily\"]==5 for e in els if e[\"type\"]==\"text\")
+sys.exit(0 if ok and \"theme\" not in d[\"appState\"] else 1)" "$T/checkout.excalidraw"'
+check "a spec without a theme gives the same scene as the sketch theme" 'cmp -s "$T/checkout.excalidraw" "$T/co-sketch.excalidraw" || python3 -c "
+import json,sys
+a=json.load(open(sys.argv[1])); b=json.load(open(sys.argv[2])); sys.exit(0 if a[\"elements\"]==b[\"elements\"] else 1)" "$T/checkout.excalidraw" "$T/co-sketch.excalidraw"'
+printf '{"theme": "neon", "nodes": [{"id": "a", "label": "A"}]}\n' > "$T/neon.json"
+run build "$T/neon.json" >/dev/null 2>"$T/err"; rc=$?
+check "an unknown theme exits 2 and lists the eight themes" \
+  '[ "$rc" = 2 ] && grep -qF "theme: \"neon\" is not one of sketch, hatch, pencil, soft, marker, dark, clean, friendly" "$T/err"'
+run build "$T/checkout.json" --theme neon --png skip >/dev/null 2>"$T/err"; rc=$?
+check "an unknown --theme exits 2 the same way" '[ "$rc" = 2 ] && grep -qF "theme: \"neon\" is not one of" "$T/err"'
+check "hand-drawn shapes and arrows are curves in the SVG, not rectangles or polylines" \
+  'grep -q "<path d=\"M[^\"]*C" "$T/co-sketch.svg" && ! grep -q "<rect x=\"[^\"]*\" y=\"[^\"]*\" width=\"[^\"]*\" height=\"[^\"]*\" rx=" "$T/co-sketch.svg" && ! grep -q "<polyline" "$T/co-sketch.svg"'
+check "the hand-drawn SVG embeds the Excalifont file for Latin text as a data URL, and no other" \
+  '[ "$(grep -o "@font-face{font-family:[^;]*" "$T/co-sketch.svg" | sort -u)" = "@font-face{font-family:'"'"'Excalifont'"'"'" ] && [ "$(grep -o "@font-face" "$T/co-sketch.svg" | wc -l | tr -d " ")" = 1 ] && grep -q "src:url(data:font/woff2;base64," "$T/co-sketch.svg"'
+check "the friendly SVG embeds Nunito, and the clean SVG embeds no font and draws plain rectangles" \
+  'grep -q "font-family:'"'"'Nunito'"'"'" "$T/co-friendly.svg" && ! grep -q "@font-face" "$T/co-clean.svg" && grep -q "<rect x=\"[^\"]*\" y=\"[^\"]*\" width=\"[^\"]*\" height=\"[^\"]*\" rx=" "$T/co-clean.svg"'
+check "the hatch theme fills shapes with hatching, drawn as strokes in the fill color" \
+  'python3 -c "
+import json,sys
+d=json.load(open(sys.argv[1])); n=[e for e in d[\"elements\"] if e[\"id\"]==\"node:web\"][0]
+sys.exit(0 if n[\"fillStyle\"]==\"hachure\" else 1)" "$T/co-hatch.excalidraw" && grep -q "fill=\"none\" stroke=\"#a5d8ff\"" "$T/co-hatch.svg"'
+check "the pencil theme draws shapes in thin black outlines with no fill" 'python3 -c "
+import json,sys
+d=json.load(open(sys.argv[1])); s=[e for e in d[\"elements\"] if e[\"type\"]==\"rectangle\" and not e[\"id\"].startswith(\"zone:\")]
+sys.exit(0 if s and all(e[\"strokeColor\"]==\"#1e1e1e\" and e[\"backgroundColor\"]==\"transparent\" and e[\"strokeWidth\"]==1 for e in s) else 1)" "$T/co-pencil.excalidraw"'
+check "the soft theme fills shapes with the light tint and leaves zones unfilled" 'python3 -c "
+import json,sys
+d=json.load(open(sys.argv[1])); e={x[\"id\"]:x for x in d[\"elements\"]}
+sys.exit(0 if e[\"node:web\"][\"backgroundColor\"]==\"#e7f5ff\" and e[\"zone:svc\"][\"backgroundColor\"]==\"transparent\" else 1)" "$T/co-soft.excalidraw"'
+check "the marker theme uses roughness 2 and 4 px outlines" 'python3 -c "
+import json,sys
+d=json.load(open(sys.argv[1])); e={x[\"id\"]:x for x in d[\"elements\"]}
+sys.exit(0 if e[\"node:web\"][\"roughness\"]==2 and e[\"node:web\"][\"strokeWidth\"]==4 else 1)" "$T/co-marker.excalidraw"'
+check "the dark theme sets appState.theme to dark and its SVG inverts the colors as Excalidraw does" \
+  'python3 -c "import json,sys; sys.exit(0 if json.load(open(sys.argv[1]))[\"appState\"].get(\"theme\")==\"dark\" else 1)" "$T/co-dark.excalidraw" && grep -q "<svg [^>]*style=\"filter:invert(93%) hue-rotate(180deg)\"" "$T/co-dark.svg" && ! grep -q "invert(" "$T/co-sketch.svg"'
+check "in the checkout diagram every arrow ends 5 px from its shape" 'V "$T/co-sketch.excalidraw" ends'
+check "the two arrows from the API gateway start at the same point and split" 'python3 -c "
+import json,sys
+d=json.load(open(sys.argv[1])); e={x[\"id\"]:x for x in d[\"elements\"]}
+p=lambda a: [(a[\"x\"]+q[0], a[\"y\"]+q[1]) for q in a[\"points\"]]
+a, b = p(e[\"edge:1\"]), p(e[\"edge:2\"])
+sys.exit(0 if a[0]==b[0] and a[1]==b[1] and a[-1]!=b[-1] else 1)" "$T/co-sketch.excalidraw"'
+check "every box in the checkout diagram has the same width" 'python3 -c "
+import json,sys
+d=json.load(open(sys.argv[1]))
+w={e[\"width\"] for e in d[\"elements\"] if e[\"type\"]==\"rectangle\" and e[\"id\"].startswith(\"node:\") and not e[\"id\"].endswith(\":fields\")}
+sys.exit(0 if len(w)==1 else 1)" "$T/co-sketch.excalidraw"'
+printf '{"nodes": [{"id": "a", "label": "A"}, {"id": "b", "label": "A service with a very long name indeed"}], "edges": [{"from": "a", "to": "b"}]}\n' > "$T/wide2.json"
+run build "$T/wide2.json" --png skip >/dev/null
+check "a box far narrower than the widest one widens by at most half its width" 'python3 -c "
+import json,sys
+d=json.load(open(sys.argv[1])); e={x[\"id\"]:x for x in d[\"elements\"]}
+sys.exit(0 if 160 < e[\"node:a\"][\"width\"] <= 240 < e[\"node:b\"][\"width\"] else 1)" "$T/wide2.excalidraw"'
+cp "$T/co-sketch.excalidraw" "$T/again1.excalidraw"; cp "$T/co-sketch.svg" "$T/again1.svg"
+run build "$T/checkout.json" --theme sketch --name co-sketch --png skip --replace >/dev/null
+check "building the same spec again writes byte-identical .excalidraw and SVG files" \
+  'cmp -s "$T/again1.excalidraw" "$T/co-sketch.excalidraw" && cmp -s "$T/again1.svg" "$T/co-sketch.svg"'
+sed 's/"direction": "down"/"direction": "down", "style": "clean", "fill": "hachure"/' "$T/checkout.json" > "$T/override.json"
+run build "$T/override.json" --png skip >/dev/null
+check "\"style\" and \"fill\" adjust the theme: clean lines and hatched fills on top of sketch" 'python3 -c "
+import json,sys
+d=json.load(open(sys.argv[1])); e={x[\"id\"]:x for x in d[\"elements\"]}
+sys.exit(0 if e[\"node:web\"][\"roughness\"]==0 and e[\"node:web\"][\"fillStyle\"]==\"hachure\" and e[\"node:web:text\"][\"fontFamily\"]==2 else 1)" "$T/override.excalidraw"'
+printf '{"type": "sequence", "theme": "pencil", "participants": [{"id": "c", "label": "Client"}, {"id": "s", "label": "Server", "color": "blue"}], "messages": [{"from": "c", "to": "s", "label": "GET /"}]}\n' > "$T/seqtheme.json"
+run build "$T/seqtheme.json" --png skip >/dev/null; rc=$?
+check "sequence diagrams take the theme too" '[ "$rc" = 0 ] && python3 -c "
+import json,sys
+d=json.load(open(sys.argv[1])); e={x[\"id\"]:x for x in d[\"elements\"]}
+sys.exit(0 if e[\"participant:s\"][\"strokeColor\"]==\"#1e1e1e\" and e[\"message:0\"][\"strokeWidth\"]==1 else 1)" "$T/seqtheme.excalidraw"'
+printf '{"nodes": [{"id": "a", "label": "注文サービス", "lines": ["POST /orders"]}, {"id": "b", "label": "決済"}], "edges": [{"from": "a", "to": "b", "label": "請求"}]}\n' > "$T/ja.json"
+run build "$T/ja.json" --png skip >/dev/null; rc=$?
+check "Japanese text in the hand-drawn theme builds and falls back to the system fonts after Excalifont" \
+  '[ "$rc" = 0 ] && grep -q "font-family=\"'"'"'Excalifont'"'"', '"'"'Helvetica Neue'"'"'" "$T/ja.svg"'
+mkdir -p "$T/skill" && cp -R "$HERE/../scripts" "$T/skill/" && sed 's/"roughness": 2/"roughness": 9/' "$HERE/../themes.json" > "$T/skill/themes.json"
+python3 "$T/skill/scripts/excalidraw_diagram.py" build "$T/checkout.json" --out "$T/skill" --png skip >/dev/null 2>"$T/err"; rc=$?
+check "a themes.json that breaks its format stops the build with exit 2 and names the setting" \
+  '[ "$rc" = 2 ] && grep -qF "themes.json: theme marker: roughness must be one of 0, 1, 2" "$T/err"'
 
 printf '%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
