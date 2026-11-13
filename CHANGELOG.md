@@ -12,6 +12,10 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 - The link check in `scripts/check.sh` no longer reads links inside fenced code blocks, so a README can show a sample page with its own relative links
 - The text checks in `scripts/check.sh` skip font files, so a plugin can bundle the fonts it embeds
 
+### Removed
+
+- One plugin was withdrawn: the marketplace no longer offers it, and its release, tag, and release branch were removed
+
 ## [0.7.0] - 2026-11-13
 
 ### Plugins
@@ -26,7 +30,6 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 | feedback-loop | 0.1.0 |
 | init-project | 0.1.0 |
 | learning-to-skill | 0.1.0 |
-| oss-contribute | 0.1.0 |
 | portman | 0.1.0 |
 | repo-progress | 0.1.0 |
 | secure-dotfile | 0.2.0 |
@@ -42,7 +45,6 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 - The docs-publish plugin, which writes the public documentation of an open source project in five parts, Quickstart, Concepts, API reference, Cookbook, and FAQ, in English and a second language you pick, and checks that every page has its translation and every link resolves
 - The portman plugin, which keeps one registry of the localhost ports each project uses, shows what holds each port right now, suggests free ports that avoid common defaults, finds collisions, and writes a project's ports to `.env.local` and a Docker Compose override after you approve
 - The init-project plugin, which sets up a project for local work: a free local port that no other project set up with it gets, a Docker setup for Node and Python web apps and Foundry and Hardhat local chains, and env files linked to 1Password with `op://` references, each file shown before it is written
-- The oss-contribute plugin, which prepares a fix for an outside open source project by that project's own rules, runs its checks in a container, and sends only the exact draft you approve
 - The excalidraw-diagram plugin, which draws architecture, flow, sequence, and entity-relationship diagrams as Excalidraw files laid out by a script and checked for overlaps, crowded spacing, and labels on lines, with SVG and PNG copies
 
 ### Removed
