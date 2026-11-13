@@ -35,7 +35,7 @@
 | [repo-progress](plugins/repo-progress) | 作業しているリポジトリ全部を、worktree、開いたIssueとプルリクエスト、コミットしていない変更とともに1つの表にし、止まっている物から並べます。何も変えません | Claude Codeでは`/repo-progress:repo-progress`を実行し、Codexでは`$`を入力して**Repo Progress**を選びます。何をやりかけだったか尋ねても始まります | [0.1.1](plugins/repo-progress/CHANGELOG.md) |
 | [secure-dotfile](plugins/secure-dotfile) | シェルの起動ファイルに書いたAPIキーやトークンを見つけ、選んだ物だけを、エージェントに値を見せずにmacOSのキーチェーンへ移します | Claude Codeでは`/secure-dotfile:secure-dotfile`を実行し、Codexでは`$`を入力して**Secure Dotfile**を選びます。シェルの設定にある秘密の値の話をしても始まります | [0.2.0](plugins/secure-dotfile/CHANGELOG.md) |
 | [session-handoff](plugins/session-handoff) | 新しいセッションに貼り付ける短いメッセージを書き、却下した案、今の段階、任せた作業、してはいけないことをプロジェクトごとに保存します。秘密の値に見える物は保存しません | Claude Codeでは`/session-handoff:session-handoff`を実行し、Codexでは`$`を入力して**Session Handoff**を選びます。呼び出した時だけ始まります | [0.1.0](plugins/session-handoff/CHANGELOG.md) |
-| [techdebt](plugins/techdebt) | ファイルごとの変更の回数に、大きさ、古いTODOのコメント、テストの有無、長い関数、重複を合わせて直す価値の高いファイルに順位を付け、上位のファイルを説明します | Claude Codeでは`/techdebt:techdebt`を実行し、Codexでは`$`を入力して**Tech Debt**を選びます。技術的負債について尋ねても始まります | [0.2.1](plugins/techdebt/CHANGELOG.md) |
+| [techdebt](plugins/techdebt) | ファイルごとの変更の回数に、大きさ、古いTODOのコメント、テストの有無、長い関数、重複を合わせて直す価値の高いファイルに順位を付け、上位のファイルを説明します | Claude Codeでは`/techdebt:techdebt`を実行し、Codexでは`$`を入力して**Tech Debt**を選びます。技術的負債について尋ねても始まります | [0.2.2](plugins/techdebt/CHANGELOG.md) |
 
 各プラグインのREADMEに、何をするか、何を読んで何を送るか、何が必要かを書いています。
 
