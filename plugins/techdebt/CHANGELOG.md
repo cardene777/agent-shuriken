@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- Marker lines in `scan.json` and the report have text that looks like a key, a token, or a password replaced with `***`, and the home folder with `~`. Before, a comment quoting a token carried it into the report and into any issue that quoted the line
+
 ## [0.2.1] - 2026-11-13
 
 - The README's summary and screenshot come from one scan of one sample repository, so their numbers agree
