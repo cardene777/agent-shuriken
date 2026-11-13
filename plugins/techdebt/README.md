@@ -86,6 +86,7 @@ In short:
 - It never changes a file in your project
 - It connects to nothing on the network
 - It keeps `scan.json`, the agent's notes, and `report.html` in `~/.local/share/techdebt/<project>/`, readable only by you, until you delete them
+- It keeps up to 200 characters of each marker line, with text that looks like a key, a token, or a password replaced with `***` and your home folder with `~`
 
 ## License
 

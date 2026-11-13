@@ -75,6 +75,8 @@ Say which measures are approximate (function length outside Python) and which to
 
 Do not change any code unless the user asks.
 When the user asks to track the work, open issues only for the files they name, in the project's own tracker.
+In an issue, quote a marker line only as `scan.json` or the report shows it, where text that looks like a key, a token, or a password is replaced with `***` and the home folder with `~`, and never copy it from the source file.
+Read the line before quoting it, because text that the patterns miss stays as it is.
 
 ## When something fails
 

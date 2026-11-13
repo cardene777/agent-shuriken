@@ -96,6 +96,32 @@ BRACE_HEADERS = {
 }
 GENERIC_HEADER = re.compile(r"^\s*(?:[\w<>\[\],.*&:?]+\s+)+\**([A-Za-z_]\w*)\s*\([^;]*\)\s*(?:const\s*)?(?:throws\s+[\w.,\s]+)?(?::\s*[\w<>?,\s]+)?\s*\{?\s*$")
 COMPLEXITY = re.compile(r"\b(?:if|for|while|case|catch|elif|except)\b|&&|\|\||\?\?|(?<![?.])\?(?![.?:])")
+# Text in a marker line that looks like a secret is replaced with *** before the line is kept,
+# because scan.json and the report keep the line and an agent may quote it in an issue.
+KEY_SHAPES = re.compile(
+    r"-----BEGIN [A-Z ]*PRIVATE KEY-----"
+    r"|\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"
+    r"|\bgh[pousr]_[A-Za-z0-9]{30,}"
+    r"|\bgithub_pat_[A-Za-z0-9_]{20,}"
+    r"|\bglpat-[A-Za-z0-9_-]{20,}"
+    r"|\bxox[abprs]-[A-Za-z0-9-]{10,}"
+    r"|\bsk-[A-Za-z0-9_-]{20,}"
+    r"|\b[spr]k_(?:live|test)_[A-Za-z0-9]{16,}"
+    r"|\bAIza[0-9A-Za-z_-]{30,}"
+    r"|\bnpm_[A-Za-z0-9]{30,}"
+    r"|\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}")
+URL_LOGIN = re.compile(r"\b([A-Za-z][A-Za-z0-9+.-]*://)[^/\s:@]+:[^/\s@]+@")
+AUTH_HEADER = re.compile(r"\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]{16,}", re.I)
+# NAME=value, NAME: value, or "NAME": "value", with a value of 8 or more characters. Only the name
+# and the sign are matched, so `TODO: API_TOKEN=...` finds API_TOKEN after TODO.
+ASSIGNMENT = re.compile(r"\b([A-Za-z_][A-Za-z0-9_.-]*)([\"']?\s*[:=]\s*)")
+VALUE = re.compile(r"([\"']?)([^\s\"'`,;(){}\[\]<>]{8,})")
+SECRET_NAME = re.compile(r"key|token|secret|passw|pwd|auth|credential|session|cookie|private|signature|salt|dsn", re.I)
+ENV_NAME = re.compile(r"[A-Z][A-Z0-9_]*")
+# A run of 32 or more token characters with upper and lower case letters and digits is a token when
+# its words are short: random tokens average under 4 characters a word, camelCase names 4 or more.
+LONG_TOKEN = re.compile(r"[A-Za-z0-9_+/=-]{32,}")
+WORD = re.compile(r"[A-Z]?[a-z]+|[A-Z]+(?![a-z])|[0-9]+")
 TEST_DIRS = {"test", "tests", "__tests__", "spec", "specs", "testing", "e2e"}
 NOT_SOURCE = re.compile(r"(\.d\.ts$|\.config\.[a-z]+$|^setup\.py$|^conftest\.py$|^__init__\.py$|^manage\.py$)")
 
@@ -231,6 +257,45 @@ def comment_part(line, lang):
     return None
 
 
+def _hide_assignments(text):
+    out, pos = [], 0
+    for m in ASSIGNMENT.finditer(text):
+        v = VALUE.match(text, m.end())
+        if m.start() < pos or not v:
+            continue
+        name, sep = m.groups()
+        quote, value = v.groups()
+        secret_name = SECRET_NAME.search(name)
+        if "=" in sep:
+            hide = ENV_NAME.fullmatch(name) or secret_name
+        else:
+            hide = secret_name and (quote or re.search(r"[^A-Za-z_-]", value))
+        if hide:
+            out.append(text[pos:m.end()] + quote + "***")
+            pos = v.end()
+    return "".join(out) + text[pos:]
+
+
+def _hide_long_token(m):
+    s = m.group(0)
+    if not (re.search("[a-z]", s) and re.search("[A-Z]", s) and re.search("[0-9]", s)):
+        return s
+    words = WORD.findall(s)
+    return "***" if sum(map(len, words)) / len(words) < 4 else s
+
+
+def mask(text):
+    """The text with the home folder written as `~` and anything that looks like a secret as ***."""
+    home = os.path.expanduser("~").rstrip(os.sep)
+    if len(home) > 1:
+        text = re.sub(re.escape(home) + r"(?![A-Za-z0-9_.-])", "~", text)
+    text = KEY_SHAPES.sub("***", text)
+    text = URL_LOGIN.sub(r"\1***@", text)
+    text = AUTH_HEADER.sub(lambda m: m.group(1) + " ***", text)
+    text = _hide_assignments(text)
+    return LONG_TOKEN.sub(_hide_long_token, text)
+
+
 def markers_in(lines, lang):
     found = []
     for n, line in enumerate(lines, 1):
@@ -242,7 +307,8 @@ def markers_in(lines, lang):
         if not kind and DEPRECATED.search(line):
             kind = "deprecated"
         if kind:
-            found.append((n, kind, line.strip()[:200]))
+            # Mask the whole line first, so a secret cut at the 200th character is still caught
+            found.append((n, kind, mask(line.strip())[:200]))
     return found
 
 

@@ -76,6 +76,22 @@ The folder is readable only by you, and the files stay until you delete them.
 | `notes.json` | The agent's notes |
 | `report.html` | The report, with the data inside the page. It loads nothing from the network |
 
+### Text hidden in marker lines
+
+`scan.json` and the report keep up to 200 characters of each marker line, so a comment that quotes a secret would carry it into them and into any issue that quotes the line.
+Before a line is kept, the plugin replaces the text below, on the whole line before it is cut to 200 characters.
+
+| Text | Shown as |
+|---|---|
+| The home folder | `~` |
+| Keys of a known shape: private key headers, AWS access key IDs, GitHub, GitLab, Slack, Stripe, Google API, and npm tokens, `sk-` keys, and JSON Web Tokens | `***` |
+| A user name and password in a URL | `https://***@host` |
+| A token after `Bearer` or `Basic` | `Bearer ***` |
+| A value of 8 or more characters after `NAME=` when the name is in capitals or contains a word such as key, token, secret, password, or session, and after `name:` when such a name is followed by a quoted value or one with digits or symbols | `NAME=***` |
+| A run of 32 or more letters and digits with upper and lower case and digits whose words average under 4 characters, as random tokens do. camelCase names average 4 or more and stay | `***` |
+
+Text that none of these match stays as it is, so read a marker line before quoting it outside the report.
+
 ## What it never does
 
 - Change, format, or delete a file in your project

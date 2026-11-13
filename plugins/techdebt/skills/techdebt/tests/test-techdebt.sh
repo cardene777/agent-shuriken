@@ -10,8 +10,9 @@ FAIL=0
 T="$(mktemp -d)"
 trap 'rm -rf "$T"' EXIT
 export TECHDEBT_HOME="$T/state"
+export HOME="$T/home/someone"
 R="$T/repo"
-mkdir -p "$R"
+mkdir -p "$R" "$HOME"
 
 ok() { PASS=$((PASS + 1)); printf 'ok    %s\n' "$1"; }
 ng() { FAIL=$((FAIL + 1)); printf 'FAIL  %s\n' "$1"; }
@@ -63,6 +64,30 @@ w(".venv/bin/ruff", "#!/bin/sh\necho '[{\"code\":\"C901\",\"message\":\"big is t
 os.chmod(os.path.join(r, "node_modules/.bin/knip"), 0o755)
 os.chmod(os.path.join(r, ".venv/bin/ruff"), 0o755)
 PY
+# Marker lines that quote secrets, made fresh for each run, and the secrets in a file for the checks.
+python3 - "$R" "$HOME" "$T/secrets.txt" <<'PY'
+import secrets, string, sys
+r, home, out = sys.argv[1:]
+def rand(n, alphabet=string.ascii_letters + string.digits):
+    return "".join(secrets.choice(alphabet) for _ in range(n))
+gh = "ghp_" + rand(36)
+aws = "AKIA" + rand(16, string.ascii_uppercase + string.digits)
+env = rand(12)
+pw = rand(10)
+loose = ""
+while not (any(c.islower() for c in loose) and any(c.isupper() for c in loose) and any(c.isdigit() for c in loose)):
+    loose = rand(40)
+open(out, "w").write("\n".join([gh, aws, env, pw, loose]) + "\n")
+open(r + "/src/settings.py", "w").write(
+    "# TODO: rotate %s before the release\n" % gh
+    + "# FIXME the old key %s still works\n" % aws
+    + "# TODO: API_TOKEN=%s is only for staging\n" % env
+    + "# TODO move %s/projects/shop/.env out of the repository\n" % home
+    + "# TODO drop https://deploy:" + pw + "@" + "ci.example.org/hook\n"
+    + "# TODO remove the fallback %s\n" % loose
+    + "# TODO: split handleOAuth2CallbackForExternalProviders, see https://github.com/org/repo/issues/123\n"
+    + "value = 1\n")
+PY
 commit_at 400 "first"
 for d in 50 35 20 10; do
   printf '# change %s\n' "$d" >> "$R/src/core.py"
@@ -80,7 +105,7 @@ q() { python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(eval(sy
 check "the top ranked file is the busy long file" "[ \"\$(q 'd[\"ranked\"][0][\"file\"]')\" = src/core.py ]"
 check "changes in the last 12 months are counted" "[ \"\$(q '[h[\"changes\"] for h in d[\"hotspots\"] if h[\"file\"]==\"src/core.py\"][0]')\" = 4 ]"
 check "an old TODO is aged from git blame" "[ \"\$(q '[m[\"age_days\"] for m in d[\"markers\"] if m[\"kind\"]==\"TODO\" and m[\"file\"]==\"src/core.py\"][0] >= 399')\" = True ]"
-check "an uncommitted FIXME has no age" "[ \"\$(q '[m[\"age_days\"] for m in d[\"markers\"] if m[\"kind\"]==\"FIXME\"][0]')\" = None ]"
+check "an uncommitted FIXME has no age" "[ \"\$(q '[m[\"age_days\"] for m in d[\"markers\"] if m[\"kind\"]==\"FIXME\" and m[\"file\"]==\"src/core.py\"][0]')\" = None ]"
 check "HACK and deprecation markers are found" "[ \"\$(q 'sorted({m[\"kind\"] for m in d[\"markers\"]})')\" = \"['FIXME', 'HACK', 'TODO', 'deprecated']\" ]"
 check "TODO inside a string is not a marker" "[ \"\$(q 'any(m[\"file\"] in (\"src/str.ts\",\"src/lonely.py\") and m[\"kind\"]==\"TODO\" for m in d[\"markers\"])')\" = False ]"
 check "a deprecation annotation counts and one in a string does not" "[ \"\$(q '[m[\"line\"] for m in d[\"markers\"] if m[\"file\"]==\"src/legacy.java\"]')\" = '[2]' ]"
@@ -105,6 +130,24 @@ check "the report is written" "[ -s \"$H\" ]"
 check "the report loads nothing from the network" "! grep -qiE '(src|href)=\"https?:|url\\(https?:|fetch\\(|XMLHttpRequest|<link ' \"$H\""
 check "a marker containing a closing script tag does not break the page" "[ \"\$(grep -o '</script>' \"$H\" | wc -l | tr -d ' ')\" = 1 ]"
 check "the report has English and Japanese labels" "grep -q 'Start here' \"$H\" && grep -q '最初に直す物' \"$H\""
+
+# Masking of marker lines
+leaked=""
+while IFS= read -r s; do
+  for f in "$J" "$H"; do
+    if grep -qF -- "$s" "$f" || grep -qF -- "${s: -10}" "$f"; then leaked="$leaked ${f##*/}"; fi
+  done
+done < "$T/secrets.txt"
+check "no generated secret or its last 10 characters is in scan.json or the report" "[ -z \"$leaked\" ]"
+mt() { q "[m['text'] for m in d['markers'] if m['file']=='src/settings.py' and m['line']==$1][0]"; }
+check "a GitHub token is replaced with ***" "[ \"\$(mt 1)\" = '# TODO: rotate *** before the release' ]"
+check "an AWS access key ID is replaced with ***" "[ \"\$(mt 2)\" = '# FIXME the old key *** still works' ]"
+check "API_TOKEN= and a 12-character value shows API_TOKEN=***" "[ \"\$(mt 3)\" = '# TODO: API_TOKEN=*** is only for staging' ]"
+check "the home folder is shown as ~" "[ \"\$(mt 4)\" = '# TODO move ~/projects/shop/.env out of the repository' ] && ! grep -qF \"\$HOME\" \"$J\""
+check "a password in a URL is replaced with ***" "[ \"\$(mt 5)\" = '# TODO drop https://***@ci.example.org/hook' ]"
+check "a long random token is replaced with ***" "[ \"\$(mt 6)\" = '# TODO remove the fallback ***' ]"
+check "a marker line with nothing to hide is unchanged" \
+  "[ \"\$(mt 7)\" = '# TODO: split handleOAuth2CallbackForExternalProviders, see https://github.com/org/repo/issues/123' ] && [ \"\$(q '[m[\"text\"] for m in d[\"markers\"] if m[\"file\"]==\"src/core.py\" and m[\"line\"]==1][0]')\" = '# TODO: replace this loop with the batch API' ]"
 
 # explain
 printf '{"src/nowhere.py": {"what": "x", "why": "y", "action": "z"}}' > "$T/bad.json"
