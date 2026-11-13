@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The PDF is written readable only by you, like the HTML report. Before, it could be read by other users once copied out of the report's folder
+
 ## [0.2.0] - 2026-11-12
 
 - Works in GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`, and the README shows how to install it there
