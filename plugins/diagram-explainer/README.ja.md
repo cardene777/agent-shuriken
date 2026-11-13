@@ -62,7 +62,7 @@ GitHub Copilot CLIでは依頼の中に`/diagram-explainer`と書き、Gemini CL
 | ツール | 必要な時 |
 |---|---|
 | `python3` | 常に。資料を組む時と確かめる時に使います。macOSに最初から入っている物で動きます |
-| Chrome、Chromium、Edge、Braveのどれか | 画面の幅ごとの崩れを確かめる時と、PDFにする時。無い時は崩れを測らずに組んで確かめ、どのブラウザーからでも印刷できます |
+| Chrome、Chromium、Edge、Brave、PlaywrightのHeadless Shellのどれか | 画面の幅ごとの崩れを確かめる時と、PDFにする時。無い時は崩れを測らずに組んで確かめ、どのブラウザーからでも印刷できます |
 
 ## 読む物と実行する物と送る物
 
