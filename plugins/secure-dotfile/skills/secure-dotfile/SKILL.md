@@ -98,6 +98,8 @@ From the command output, tell the user these things.
 
 - Which items were moved, and which were skipped and why
 - That a new terminal, or `exec $SHELL -l`, loads the moved values
+- That the move takes the value out of the file, not out of the shell's environment: the shell still exports it, so every program it starts receives it, and tools that list a process's environment can show it. A key with wide access is safer read only for the one command that needs it, by putting the same `security find-generic-password` call in front of that command instead of exporting it from the startup file
+- For a key the team shares: it belongs in the team's password manager, such as 1Password read with `op`, not in one person's Keychain, so that rotating it reaches everyone who uses it
 - When a chezmoi source file was moved, that `chezmoi apply` updates the generated file; run it if the user agrees
 - For each value that is in git history, or was ever shared, pasted, or shown on screen: rotate the key. The user creates a new key with the service, revokes the old one, and stores the new one by running this in their own terminal. It asks for the value without showing it
 
@@ -123,3 +125,4 @@ For items that could not be moved, explain the reason and that the user can move
 - Files that tools read on their own rather than through the shell: project `.env` files, `~/.npmrc`, `~/.netrc`, `~/.aws/credentials`, and SSH keys
 - Assignments without `export` (or fish `set -x`), and values that span several lines
 - Copies of the old value in shell history, backups, Time Machine, and other machines. Rotating the key makes those copies useless
+- The environment the shell passes to the programs it starts. A moved value is still exported to every one of them, and tools that list a process's environment can show it
