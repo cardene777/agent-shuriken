@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The README says that its sample plan is for a project whose `.gitignore` already ignores `.env*`, which is why the plan adds `!.env.tpl`
+
 ## [0.1.0] - 2026-11-12
 
 First public release.

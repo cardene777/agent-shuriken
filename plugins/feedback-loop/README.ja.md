@@ -67,6 +67,67 @@ Closed fb-20330518-001 after 2 round(s): Setup steps use jargon
 log  ~/.local/share/feedback-loop/repos/shop-bd3b0bd07953/events.jsonl
 ```
 
+## 訂正が残すファイル
+
+この訂正の後、記録のフォルダには次のファイルが残ります。
+
+| ファイル | 中身 |
+|---|---|
+| `cases/docs-setup.md-4ca53116.json` | `docs/setup.md`に含めてはいけない文字列と含めるべき文字列、評価者への問い |
+| `reviews/fb-20330518-001-1.md`、`reviews/fb-20330518-001-2.md` | 各回の評価者の答え。受け取ったとおりに保存します |
+| `rules.md` | リポジトリ全体のルール |
+| `events.jsonl` | 閉じた訂正1件につき1行。訂正の文の代わりにそのハッシュを持ちます |
+
+検査の文字列は、`docs/setup.md`について学んだことを残します。
+このファイルを後で訂正するたびに、禁じた文字列のどちらかがまた入っていれば`check`が落ち、評価者はこの問いに答えます。
+
+```json
+{
+  "version": 1,
+  "target": "docs/setup.md",
+  "entries": [
+    {
+      "id": "fb-20330518-001",
+      "forbid": [
+        "Bootstrap the toolchain",
+        "Hydrate the env"
+      ],
+      "require": [],
+      "questions": [
+        "Can someone new to the project follow every step without asking what a word means?"
+      ]
+    }
+  ]
+}
+```
+
+1回目のレビュー`reviews/fb-20330518-001-1.md`は`plain`で不合格だったので、エージェントが手順1を直しました。
+
+```text
+- user-feedback: PASS - the jargon is gone
+- regression: PASS - the case checks hold
+- plain: FAIL - step 1 does not say which command sets up the environment
+```
+
+2回目のレビュー`reviews/fb-20330518-001-2.md`は全部の基準に合格したので、訂正を閉じられました。
+
+```text
+- user-feedback: PASS - every step is in plain words
+- regression: PASS - the case checks hold
+- plain: PASS - both steps name the command to run
+```
+
+この訂正は`docs/setup.md`だけに当てはまるので、`rules.md`にはスクリプトが書く見出しだけが残りました。
+リポジトリ全体に当てはまる訂正では、エージェントが何をするかとその理由をルールとして書き足します。
+
+```markdown
+# Rules
+
+Rules learned from corrections in this repository. Each one says what to do and why.
+
+- Name the command to run in every setup step, because a newcomer cannot tell which tool a word such as "bootstrap" means
+```
+
 ## 訂正を閉じられる時
 
 スクリプトは次の条件が全部そろった時だけ訂正を閉じます。「直しました」だけでは閉じません。

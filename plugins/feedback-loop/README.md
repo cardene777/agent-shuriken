@@ -66,6 +66,67 @@ Closed fb-20330518-001 after 2 round(s): Setup steps use jargon
 log  ~/.local/share/feedback-loop/repos/shop-bd3b0bd07953/events.jsonl
 ```
 
+## What a correction leaves
+
+After that correction, the records folder holds these files.
+
+| File | Holds |
+|---|---|
+| `cases/docs-setup.md-4ca53116.json` | The texts `docs/setup.md` must not contain and must contain, and the questions for the evaluator |
+| `reviews/fb-20330518-001-1.md`, `reviews/fb-20330518-001-2.md` | The evaluator's answer in each round, exactly as saved |
+| `rules.md` | Rules for the whole repository |
+| `events.jsonl` | One line per closed correction, with the hash of your words instead of the words |
+
+The case keeps the lesson for `docs/setup.md`.
+In every later correction of that file, `check` fails if the file contains either forbidden text again, and the evaluator is asked the question.
+
+```json
+{
+  "version": 1,
+  "target": "docs/setup.md",
+  "entries": [
+    {
+      "id": "fb-20330518-001",
+      "forbid": [
+        "Bootstrap the toolchain",
+        "Hydrate the env"
+      ],
+      "require": [],
+      "questions": [
+        "Can someone new to the project follow every step without asking what a word means?"
+      ]
+    }
+  ]
+}
+```
+
+The review of round 1, `reviews/fb-20330518-001-1.md`, failed on `plain`, so the agent fixed step 1.
+
+```text
+- user-feedback: PASS - the jargon is gone
+- regression: PASS - the case checks hold
+- plain: FAIL - step 1 does not say which command sets up the environment
+```
+
+The review of round 2, `reviews/fb-20330518-001-2.md`, passed every criterion, so the correction could close.
+
+```text
+- user-feedback: PASS - every step is in plain words
+- regression: PASS - the case checks hold
+- plain: PASS - both steps name the command to run
+```
+
+This correction applied only to `docs/setup.md`, so `rules.md` kept only the heading the script writes.
+A correction that applies to the whole repository adds a rule there, written by the agent as what to do and why.
+
+```markdown
+# Rules
+
+Rules learned from corrections in this repository. Each one says what to do and why.
+
+- Name the command to run in every setup step, because a newcomer cannot tell which tool a word such as "bootstrap" means
+```
+
 ## When a correction can close
 
 The script closes a correction only when all of these hold, so "I fixed it" is never enough.
