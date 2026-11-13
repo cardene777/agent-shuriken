@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The README's sample proposal ends with the line that tells the agent to run `apply` with `--expect` and the fingerprint, so the sample shows how a change that was not approved, or a file that changed, is never written
+
 ## [0.1.0] - 2026-11-12
 
 First public release.

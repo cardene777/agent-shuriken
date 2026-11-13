@@ -92,6 +92,7 @@ Size       15 -> 16 lines
 Similar lines already in the instruction files: none
 
 Fingerprint  56d1c6cf161bc716
+Nothing was written. Show this diff to the user. After they approve it, run the same command with apply in place of propose and add --expect 56d1c6cf161bc716.
 ```
 
 ## 学びを書く場所
