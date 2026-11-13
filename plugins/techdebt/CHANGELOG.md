@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-11-14
+
 - Marker lines in `scan.json` and the report have text that looks like a key, a token, or a password replaced with `***`, and the home folder with `~`. Before, a comment quoting a token carried it into the report and into any issue that quoted the line
 
 ## [0.2.1] - 2026-11-13
@@ -26,7 +28,8 @@ First public release.
 - Writes one HTML report with a tab per measure, an English and Japanese switch, and pages of 50 rows, which loads nothing from the network
 - Starts when you ask about technical debt, or when you call it, in Claude Code and in Codex
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/techdebt--v0.2.1...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/techdebt--v0.2.2...HEAD
+[0.2.2]: https://github.com/cardene777/agent-shuriken/releases/tag/techdebt--v0.2.2
 [0.2.1]: https://github.com/cardene777/agent-shuriken/releases/tag/techdebt--v0.2.1
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/techdebt--v0.2.0
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/techdebt--v0.1.0
