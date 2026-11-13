@@ -8,6 +8,7 @@ A line such as `export OPENAI_API_KEY="sk-..."` in `~/.zshrc` puts the key in ev
 Moving it by hand means pasting the key into a terminal, where it lands in the shell history, and editing each line without a typo.
 This plugin finds those lines and moves the ones you pick into the Keychain.
 Each moved line then reads the value from the Keychain when the shell starts, so your programs see the same environment variable as before.
+The value leaves the file, not the shell's environment: every program the shell starts still receives it, so a key with wide access is safer read only for the command that needs it, and a key your team shares belongs in the team's password manager, such as 1Password, not in one person's Keychain.
 Scripts read, store, and check the values, so the agent only ever sees names, locations, kinds, and lengths.
 
 ```

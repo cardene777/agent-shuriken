@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The report step, the README, and How it works say that a move takes a value out of the file, not out of the environment of the programs the shell starts, that a key with wide access is safer read only for the command that needs it, and that a key a team shares belongs in the team's password manager
+
 ## [0.2.0] - 2026-11-12
 
 - Works in GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`, and the README shows how to install it there

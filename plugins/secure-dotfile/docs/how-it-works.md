@@ -95,3 +95,5 @@ For each file with secrets inside a git repository, the script reads `git log --
 - Files that tools read on their own, such as project `.env` files, `~/.npmrc`, `~/.netrc`, `~/.aws/credentials`, and SSH keys, are not scanned
 - Assignments without `export` (or fish `set -x`), and values that span several lines, are not found
 - Copies of an old value in shell history, backups, or Time Machine stay where they are. Rotating the key makes them useless
+- A moved value is still exported to every program the shell starts, and tools that list a process's environment can show it. A key with wide access is safer read only for the command that needs it
+- A key a team shares belongs in the team's password manager, such as 1Password read with `op`, not in one person's Keychain
