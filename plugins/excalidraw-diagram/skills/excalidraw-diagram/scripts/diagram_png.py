@@ -80,7 +80,7 @@ def find_browser():
         p = shutil.which(name)
         if p:
             return p, None
-    return None, "no Chrome, Chromium, or Edge was found"
+    return None, "no Playwright chrome-headless-shell, Chrome, Chromium, or Edge was found"
 
 
 def _chunks(data):
