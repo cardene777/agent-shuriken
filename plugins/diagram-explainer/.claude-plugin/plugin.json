@@ -1,7 +1,7 @@
 {
   "name": "diagram-explainer",
   "displayName": "Diagram Explainer",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Write an explainer as one HTML file with a figure drawn in every section, built from JSON and checked before you share it",
   "author": {
     "name": "cardene777",

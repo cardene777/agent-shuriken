@@ -1,6 +1,6 @@
 {
   "name": "init-project",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Set up a project for local work: pick a free local port, add a Docker setup, and link its env files to 1Password with references, writing each file only after you approve it",
   "author": {
     "name": "cardene777",

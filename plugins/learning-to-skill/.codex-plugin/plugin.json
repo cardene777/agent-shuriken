@@ -1,6 +1,6 @@
 {
   "name": "learning-to-skill",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Write the lessons from a session into the instruction files your agents read, such as AGENTS.md, CLAUDE.md, GEMINI.md, Copilot's instructions, or a skill's SKILL.md, in the right place and without duplicates, only after you approve the diff",
   "author": {
     "name": "cardene777",

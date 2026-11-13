@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-13
+
 - The README, the skill's description, and the line printed when no browser is found name Playwright's `chrome-headless-shell`, which the PNG step already uses first
 - The README opens with a diagram the plugin drew, and ships its `.excalidraw` file and spec in `assets/` so you can open it in the editor
 - The SVG and PNG are drawn the way the Excalidraw editor draws the file: hand-drawn strokes that bow and are drawn twice, hand-drawn fills and hatching, and Excalidraw's own fonts, Excalifont and Nunito, embedded in the SVG
@@ -27,5 +29,6 @@ First public release.
 - Downloads nothing, uses no network, and keeps no files besides the diagrams you ask for
 - Starts when you ask for a diagram, or when you call it, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/excalidraw-diagram--v0.1.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/excalidraw-diagram--v0.2.0...HEAD
+[0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/excalidraw-diagram--v0.2.0
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/excalidraw-diagram--v0.1.0

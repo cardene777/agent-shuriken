@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-13
+
 - The README shows a finished Cookbook page, so you can see what the plugin writes before you install it
 - The README's two check samples are what the check printed for one run on the docs that hold that Cookbook page, so their line numbers and link counts agree with it
 
@@ -20,5 +22,6 @@ First public release.
 - Writes only inside the docs folder, keeps nothing outside the project, and commits nothing
 - Starts when you ask for documentation for your project, or when you call it, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/docs-publish--v0.1.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/docs-publish--v0.1.1...HEAD
+[0.1.1]: https://github.com/cardene777/agent-shuriken/releases/tag/docs-publish--v0.1.1
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/docs-publish--v0.1.0

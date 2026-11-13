@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-13
+
 - The README's requirements name Playwright's headless shell, which the layout check and the PDF already use when it is installed
 
 ## [0.2.0] - 2026-11-12
@@ -24,6 +26,7 @@ First public release.
 - Prints the document to PDF with a browser already installed
 - Starts when you ask for an explainer, or when you call it, in Claude Code and in Codex
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/diagram-explainer--v0.2.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/diagram-explainer--v0.2.1...HEAD
+[0.2.1]: https://github.com/cardene777/agent-shuriken/releases/tag/diagram-explainer--v0.2.1
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/diagram-explainer--v0.2.0
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/diagram-explainer--v0.1.0

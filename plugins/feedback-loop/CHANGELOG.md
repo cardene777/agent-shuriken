@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-13
+
 - The README shows the files a correction leaves: the case with the texts a file must and must not contain, the review of each round, and a rule in `rules.md`
 
 ## [0.1.0] - 2026-11-12
@@ -19,5 +21,6 @@ First public release.
 - Changes your project's agent instructions, a skill, or your user-level instruction file only after you agree, and sends nothing over the network
 - Starts when you correct earlier output or when you call it, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/feedback-loop--v0.1.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/feedback-loop--v0.1.1...HEAD
+[0.1.1]: https://github.com/cardene777/agent-shuriken/releases/tag/feedback-loop--v0.1.1
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/feedback-loop--v0.1.0
