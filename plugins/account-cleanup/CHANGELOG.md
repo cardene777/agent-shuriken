@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The README's screenshot is the candidate sheet the scripts built from a sample list of real services, and its details panel shows a reason and a date
+
 ## [0.2.0] - 2026-11-12
 
 - Works in GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`, and the README shows how to install it there
