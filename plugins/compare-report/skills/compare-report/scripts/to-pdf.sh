@@ -3,8 +3,9 @@
 # Usage: to-pdf.sh <report.html> [output.pdf]
 # The browser runs headless with a throwaway profile, so it never touches the user's own browser profile,
 # and the profile is removed when the script ends. Set COMPARE_REPORT_BROWSER to the browser's executable
-# to choose one. Prints the path of the PDF.
+# to choose one. Prints the path of the PDF, which is readable only by the user, like report.html.
 set -euo pipefail
+umask 077
 
 in="${1:-}"
 if [ -z "$in" ] || [ ! -f "$in" ]; then
