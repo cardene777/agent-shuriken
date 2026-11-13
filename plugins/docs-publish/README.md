@@ -50,18 +50,18 @@ While work is left, the check looks like this.
 docs: 11 pages in en, ja, translated from en
 
 stale        en/concepts/checkout.md changed after ja/concepts/checkout.md was translated from it
-link         ja/cookbook/apply-a-coupon.md:11: ../api/applycoupon.md differs in letter case from the file on disk, so it breaks on GitHub and most web servers
-crosslink    ja/faq.md:8: ../en/quickstart.md points into en/; link the page in ja/ instead
-orphan       ja/concepts/checkout.md cannot be reached by following links from ja/README.md
+link         ja/cookbook/apply-a-coupon.md:43: ../api/applycoupon.md differs in letter case from the file on disk, so it breaks on GitHub and most web servers
+crosslink    ja/faq.md:15: ../en/quickstart.md points into en/; link the page in ja/ instead
+orphan       ja/faq.md cannot be reached by following links from ja/README.md
 
-4 problems. Links: 56 checked, 1 broken.
+4 problems. Links: 85 checked, 1 broken.
 ```
 
 When the docs are ready, it looks like this.
 
 ```text
 docs: 11 pages in en, ja, translated from en
-No problems. Links: 57 checked, 0 broken.
+No problems. Links: 86 checked, 0 broken.
 ```
 
 ## The layout

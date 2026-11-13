@@ -6,6 +6,7 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 ## [Unreleased]
 
 - The README shows a finished Cookbook page, so you can see what the plugin writes before you install it
+- The README's two check samples are what the check printed for one run on the docs that hold that Cookbook page, so their line numbers and link counts agree with it
 
 ## [0.1.0] - 2026-11-12
 
