@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The README shows the files a correction leaves: the case with the texts a file must and must not contain, the review of each round, and a rule in `rules.md`
+
 ## [0.1.0] - 2026-11-12
 
 First public release.

@@ -51,7 +51,7 @@ In GitHub Copilot CLI, write `/init-project` in your request, and in Gemini CLI,
 5. For Docker, the agent offers to start the project and checks that it answers
 6. For 1Password, you run the printed commands in your own terminal to store the values, then start the app with `op run`
 
-The plan for a Next.js project with pnpm and one `.env` file looks like this.
+The plan for a Next.js project with pnpm, one `.env` file, and a `.gitignore` that ignores `.env*`, as the one Next.js creates does, looks like this.
 
 ```text
 Plan 2760c3b6 for ~/projects/shop

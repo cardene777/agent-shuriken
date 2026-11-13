@@ -52,7 +52,7 @@ GitHub Copilot CLIでは依頼の中に`/init-project`と書き、Gemini CLIで�
 5. Dockerを用意した時は、エージェントがプロジェクトを起動して応答を確かめるか尋ねます
 6. 1Passwordを用意した時は、表示されたコマンドをあなたが自分の端末で動かして値を保存し、`op run`でアプリを起動します
 
-pnpmを使うNext.jsのプロジェクトで、`.env`ファイルが1つある時の計画は次のようになります。
+pnpmを使うNext.jsのプロジェクトで、`.env`ファイルが1つあり、Next.jsが作る物と同じく`.env*`を無視する`.gitignore`がある時の計画は次のようになります。
 
 ```text
 Plan 2760c3b6 for ~/projects/shop
