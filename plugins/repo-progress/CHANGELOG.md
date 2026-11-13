@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The README's one-repository sample lists all 13 waiting issues, as the script prints them, instead of only the first
+
 ## [0.1.0] - 2026-11-12
 
 First public release.
