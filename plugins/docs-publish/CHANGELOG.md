@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The README shows a finished Cookbook page, so you can see what the plugin writes before you install it
+
 ## [0.1.0] - 2026-11-12
 
 First public release.

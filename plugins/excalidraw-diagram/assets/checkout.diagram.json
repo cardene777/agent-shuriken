@@ -1,0 +1,20 @@
+{
+  "title": "Checkout",
+  "direction": "down",
+  "nodes": [
+    {"id": "web", "label": "Web app", "lines": ["Next.js", "port 3000"], "color": "blue"},
+    {"id": "api", "label": "API gateway", "lines": ["REST, JWT"], "color": "violet"},
+    {"id": "orders", "label": "Order service", "lines": ["POST /orders"], "group": "svc", "color": "green"},
+    {"id": "payments", "label": "Payment service", "lines": ["POST /payments"], "group": "svc", "color": "green"},
+    {"id": "db", "label": "orders", "lines": ["id uuid", "total int", "status text"], "shape": "table", "color": "orange"},
+    {"id": "card", "label": "Card processor", "lines": ["external", "HTTPS"], "color": "gray"}
+  ],
+  "edges": [
+    {"from": "web", "to": "api", "label": "HTTPS"},
+    {"from": "api", "to": "orders"},
+    {"from": "api", "to": "payments"},
+    {"from": "orders", "to": "db", "label": "SQL", "line": "dashed"},
+    {"from": "payments", "to": "card", "label": "charge"}
+  ],
+  "groups": [{"id": "svc", "label": "Services", "color": "green"}]
+}

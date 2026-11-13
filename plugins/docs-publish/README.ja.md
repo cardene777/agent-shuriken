@@ -86,6 +86,57 @@ docs/
 `_translation-map.json`は、言語(元の言語が先)とページの一覧です。
 翻訳ごとに、記録した時点の元のページのsha256を保つので、あとで元のページが変わると確かめる時に気付きます。
 
+完成したCookbookのページは、次のようになります。架空のライブラリAcme Shopの`docs/ja/cookbook/apply-a-coupon.md`です。
+英語の元のページ`docs/en/cookbook/apply-a-coupon.md`も、同じ見出し、一覧、コードブロックを持ちます。
+
+````markdown
+# クーポンを使う
+
+[English](../../en/cookbook/apply-a-coupon.md) · 日本語
+
+会計の時にクーポンのコードを受け取り、お客さんが支払う前にカートの合計を下げます。
+値引きは、注文を確定するまでカートに残ります。
+
+## 始める前に
+
+- [Quickstart](../quickstart.md)のとおりにAcme Shopを入れてある
+- [`createCart`](../api/createCart.md)でカートを作ってある
+
+## 手順
+
+1. コードをカートに当てます。
+
+   ```ts
+   import { applyCoupon } from "acme-shop";
+
+   const result = await applyCoupon(cart, "SPRING10");
+   ```
+
+2. コードを使えない時は、お客さんに伝えます。
+
+   ```ts
+   if (!result.ok) {
+     showError(result.reason); // "expired"、"unknown"、"minimum-not-met" のどれか
+   }
+   ```
+
+## 結果を確かめる
+
+```ts
+console.log(cart.total, cart.discounts);
+```
+
+```text
+4500 [ { code: 'SPRING10', amount: 500 } ]
+```
+
+## 関連
+
+- [`applyCoupon`](../api/applyCoupon.md)
+- [`createCart`](../api/createCart.md)
+- [Cookbook](README.md)
+````
+
 ## 確かめること
 
 | 確かめること | 見つけるもの |
