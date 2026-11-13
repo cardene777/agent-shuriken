@@ -43,22 +43,27 @@ In GitHub Copilot CLI, write `/techdebt` in your request, and in Gemini CLI, des
 2. The agent ranks the files and reads the top ones to write what each is, why it costs the team, and the first step to fix it
 3. The agent opens the report and sums up the top files and the totals in the chat
 
-The scan prints a summary like this.
+The scan of the repository in the screenshot starts like this.
 
 ```text
-techdebt scan of ~/work/shop (HEAD 3f2a91c on main, 412 source files, 96 test files, 388 commits in the last 12 months)
-Hotspots:       118 files changed 2 or more times
-Markers:        57 (FIXME 9, HACK 3, TODO 41, deprecated 4), oldest 1312 days
-Untested:       64 source files have no test file with a matching name
-Long functions: 22 over 60 lines
-Large files:    7 over 500 lines
-Duplication:    11 blocks, 214 lines
-Tool knip:      38 findings
+techdebt scan of ~/work/shop (HEAD 61d7f14 on main, 26 source files, 5 test files, 199 commits in the last 12 months)
+Hotspots:       19 files changed 2 or more times
+Markers:        6 (FIXME 1, HACK 1, TODO 4), oldest 360 days
+Untested:       15 source files have no test file with a matching name
+Long functions: 7 over 60 lines
+Large files:    1 over 500 lines
+Duplication:    2 blocks, 20 lines
+Tool ruff:      not run, ruff is not installed in .venv/bin or on PATH
 
 Start here
- 1  src/billing/invoice.py  score 0.86  changed 31 times, 612 lines, 3 long functions, marker weight 5, no test file
- 2  src/api/orders.ts  score 0.71  changed 44 times, 380 lines, 1 long function, 26 duplicated lines
+ 1  src/billing/invoice.py  score 0.97  changed 31 times, 543 lines, 3 long functions, marker weight 4, 11 duplicated lines, no test file
+ 2  src/api/orders.ts  score 0.67  changed 44 times, 331 lines, 1 long function, marker weight 1, 9 duplicated lines, no test file
+ 3  src/web/checkout.tsx  score 0.40  changed 25 times, 220 lines, 2 long functions, marker weight 2, no test file
+ 4  src/billing/refunds.py  score 0.36  changed 18 times, 163 lines, 1 long function, marker weight 1, 11 duplicated lines, no test file
+ 5  src/api/returns.ts  score 0.17  changed 13 times, 70 lines, 9 duplicated lines, no test file
 ```
+
+The ranking goes on to 20 files, and the last two lines give the folders of the data and the report.
 
 The report has a tab for the ranking and one per measure, and switches between English and Japanese.
 
