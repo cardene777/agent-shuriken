@@ -46,7 +46,8 @@ It reads these files, when they exist, and every file they load with a `source F
 To scan another file the user names, add `--file <path>` once per file.
 
 A line is listed when it sets an exported variable to a literal value (`export NAME=value`, or `set -x NAME value` in fish) and either the name ends in a word such as `_TOKEN`, `_API_KEY`, `_SECRET`, or `_PASSWORD`, or the value has the shape of a known key (GitHub, OpenAI, Anthropic, Slack, AWS, Google, Stripe, and others).
-Values read at run time (`$(...)`, `$VAR`), placeholders such as `REPLACE_ME`, paths, and values shorter than 8 characters are not listed.
+Values read at run time (`$(...)`, `$VAR`), placeholders such as `REPLACE_ME`, values of one repeated character, and paths are not listed.
+Values shorter than 8 characters are listed only under a password name: one ending in `PASSWORD` or `PASSWD`, also without an underscore as in `PGPASSWORD`, or in `_PASS`, `_PWD`, or `_PIN`, as in `MYSQL_PWD`. Their kind is `short password`.
 
 Each listed item has these fields.
 
@@ -101,6 +102,7 @@ From the command output, tell the user these things.
 - That the move takes the value out of the file, not out of the shell's environment: the shell still exports it, so every program it starts receives it, and tools that list a process's environment can show it. A key with wide access is safer read only for the one command that needs it, by putting the same `security find-generic-password` call in front of that command instead of exporting it from the startup file
 - For a key the team shares: it belongs in the team's password manager, such as 1Password read with `op`, not in one person's Keychain, so that rotating it reaches everyone who uses it
 - When a chezmoi source file was moved, that `chezmoi apply` updates the generated file; run it if the user agrees
+- For each `short password`: moving it keeps it out of the file but not from being guessed. Suggest the user sets a longer password with the service, then stores it with the command below
 - For each value that is in git history, or was ever shared, pasted, or shown on screen: rotate the key. The user creates a new key with the service, revokes the old one, and stores the new one by running this in their own terminal. It asks for the value without showing it
 
 ```bash

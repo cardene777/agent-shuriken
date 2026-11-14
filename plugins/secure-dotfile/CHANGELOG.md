@@ -5,6 +5,9 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- `scan` lists passwords under names ending in `PASSWORD` or `PASSWD` without an underscore, such as `PGPASSWORD`, and in `_PASS`, `_PWD`, or `_PIN`, such as `MYSQL_PWD`. Before, these names were not read as secrets at all
+- Values under those password names are listed at any length, and one shorter than 8 characters has the kind `short password`, with a suggestion in the report to make it longer. Before, every value shorter than 8 characters was skipped
+
 - The report step, the README, and How it works say that a move takes a value out of the file, not out of the environment of the programs the shell starts, that a key with wide access is safer read only for the command that needs it, and that a key a team shares belongs in the team's password manager
 
 ## [0.2.0] - 2026-11-12

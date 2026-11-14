@@ -51,7 +51,15 @@ export S_SHARED="$(rand Qz9 32)"
 export S_CZ="$(rand Qz9 25)"
 export S_BACKSLASH="Qz9$(rand '' 10)\\$(rand '' 5)"
 export S_NONASCII="Qz9$(rand '' 10)ä"
-ALL_SECRETS=(S_GH S_OAI S_NAME S_AWS S_SPACE S_SOURCED S_GIT S_FISH S_ENVD S_CONFLICT S_CONFLICT_OTHER S_SHARED S_CZ S_BACKSLASH S_NONASCII)
+# Short passwords: names ending in a password word are listed at any length.
+export S_PG="$(rand Qz9 3)"
+export S_MYSQL="$(rand Qz9 2)"
+export S_DBPASS="$(rand Qz 1)"
+export S_PIN="$(rand Qz9 1)"
+export S_LOCAL="Q$((RANDOM % 10))"
+export S_MYPASSWD="$(rand Qz9 20)"
+ALL_SECRETS=(S_GH S_OAI S_NAME S_AWS S_SPACE S_SOURCED S_GIT S_FISH S_ENVD S_CONFLICT S_CONFLICT_OTHER S_SHARED S_CZ S_BACKSLASH S_NONASCII
+  S_PG S_MYSQL S_DBPASS S_PIN S_LOCAL S_MYPASSWD)
 
 H="$T/home"
 mkdir -p "$H/.config/fish" "$H/.config/direnv/env.d" "$H/dotfiles" "$H/.local/share/chezmoi"
@@ -78,6 +86,16 @@ lines = [
     "export SHORT_KEY=abc",
     "export EMPTY_TOKEN= notavalue",
     "[ -f ~/.secrets.sh ] && source ~/.secrets.sh",
+    "export PGPASSWORD=%s" % e["S_PG"],
+    'export MYSQL_PWD="%s"' % e["S_MYSQL"],
+    "export DB_PASS='%s'" % e["S_DBPASS"],
+    "export SIM_PIN=%s" % e["S_PIN"],
+    "export LOCAL_PASSWORD=%s" % e["S_LOCAL"],
+    "export MYPASSWD=%s" % e["S_MYPASSWD"],
+    "export SINGLE_PASSWORD=x",
+    "export TEST_PASSWORD=todo",
+    "export FEATURE_KEY=abcdef",
+    "export COMPASS=abcdef",
 ]
 open(sys.argv[1], "w").write("\n".join(lines) + "\n")
 PY
@@ -116,6 +134,23 @@ done
 for n in PATH PLACEHOLDER_TOKEN DYNAMIC_TOKEN SSH_KEY SHORT_KEY EMPTY_TOKEN; do
   check "scan ignores $n" "! has $n"
 done
+check "scan lists a six-character PGPASSWORD as a movable short password" \
+  "[ \"\$(field PGPASSWORD kind 2>/dev/null)\" = 'short password' ] && [ \"\$(field PGPASSWORD movable 2>/dev/null)\" = True ] && [ \"\$(field PGPASSWORD length 2>/dev/null)\" = 6 ]"
+for n in MYSQL_PWD DB_PASS SIM_PIN LOCAL_PASSWORD; do
+  check "scan finds $n" "has $n"
+done
+check "scan finds MYPASSWD as a password" "[ \"\$(field MYPASSWD kind 2>/dev/null)\" = password ]"
+for n in SINGLE_PASSWORD TEST_PASSWORD FEATURE_KEY COMPASS; do
+  check "scan ignores $n" "! has $n"
+done
+check "a long DB_PASSWORD keeps the kind password" "[ \"\$(field DB_PASSWORD kind)\" = password ]"
+docs_name() {
+  local f
+  for f in skills/secure-dotfile/SKILL.md README.md README.ja.md docs/how-it-works.md docs/how-it-works.ja.md; do
+    grep -q "short password" "$HERE/../../../$f" && grep -q "PGPASSWORD" "$HERE/../../../$f" || return 1
+  done
+}
+check "the docs name the short password kind and the names" "docs_name"
 check "kind of a GitHub token" "[ \"\$(field GH_TOKEN kind)\" = 'GitHub token' ]"
 check "kind of an AWS key ID found by its value" "[ \"\$(field AWS_ACCESS_KEY_ID kind)\" = 'AWS access key ID' ]"
 check "length is reported" "[ \"\$(field GH_TOKEN length)\" = 40 ]"
@@ -192,6 +227,19 @@ PY
   }
   check "a new zsh loads the moved values" "loaded"
   check "a new bash loads the value from the linked file" "bash --norc -c 'source ~/.bashrc; [ \"\$GIT_TOKEN\" = \"\$S_GIT\" ]'"
+
+  # Short passwords move like any other value.
+  run scan --json > "$J" 2>> "$OUT/scan.err"
+  run move --json --item "$(item PGPASSWORD 2>/dev/null)" --item "$(item DB_PASS 2>/dev/null)" > "$OUT/move-short.json" 2>> "$OUT/move.err"
+  short_status() { python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(" ".join(r["status"] for r in d["results"] if r["name"]==sys.argv[2]))' "$OUT/move-short.json" "$1" 2>/dev/null; }
+  for n in PGPASSWORD DB_PASS; do
+    check "move moves $n" "[ \"\$(short_status $n)\" = moved ]"
+  done
+  short_loaded() {
+    zsh -fc 'source ~/.zshrc 2>/dev/null; printf "%s\n%s" "$PGPASSWORD" "$DB_PASS"' \
+      | python3 -c 'import os,sys; sys.exit(0 if sys.stdin.read().split("\n") == [os.environ["S_PG"], os.environ["S_DBPASS"]] else 1)'
+  }
+  check "a new zsh loads the short passwords" "short_loaded && ! grep -qF \"\$S_PG\" \"$H/.zshrc\""
 
   if command -v chezmoi >/dev/null 2>&1; then
     run move --json --item "~/.zprofile:1:CZ_TOKEN" --item "~/.local/share/chezmoi/dot_zprofile:1:CZ_TOKEN" > "$M" 2>> "$OUT/move.err"

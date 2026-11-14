@@ -40,7 +40,7 @@ gemini skills install https://github.com/cardene777/agent-shuriken.git --path pl
 呼び出して始めることもできます。Claude Codeでは`/secure-dotfile:secure-dotfile`を実行し、Codexでは`$`を入力して**Secure Dotfile**を選びます。
 GitHub Copilot CLIでは依頼の中に`/secure-dotfile`と書き、Gemini CLIではやりたいことを伝えます。
 
-1. エージェントがシェルの起動ファイルを調べ、秘密の値を名前と場所と種類と長さで並べ、値がファイルのgitの履歴にあるかを示します
+1. エージェントがシェルの起動ファイルを調べ、秘密の値を名前と場所と種類と長さで並べ、値がファイルのgitの履歴にあるかを示します。`DB_PASSWORD`、`PGPASSWORD`、`MYSQL_PWD`のような名前のパスワードは長さを問わず並べ、8文字より短い物は種類を`short password`にするので、長くするべきだと分かります
 2. 移す物をあなたが選びます
 3. エージェントが1つずつキーチェーンへ保存して読み戻し、その行をキーチェーンから値を読む形に書き換えます。キーチェーンの鍵を開けるために、macOSがログインのパスワードを尋ねることがあります
 4. エージェントが、移した物と、移さなかった物とその理由を報告します。値がgitの履歴にあるキーは作り直すよう伝えます
