@@ -53,6 +53,7 @@ Untested:       15 source files have no test file with a matching name
 Long functions: 7 over 60 lines
 Large files:    1 over 500 lines
 Duplication:    2 blocks, 20 lines
+Unused deps:    2 (approximate: names not found in imports, configs, or scripts)
 Tool ruff:      not run, ruff is not installed in .venv/bin or on PATH
 
 Start here
@@ -66,6 +67,7 @@ Start here
 The ranking goes on to 20 files, and the last two lines give the folders of the data and the report.
 
 The report has a tab for the ranking and one per measure, and switches between English and Japanese.
+Unused dependencies are found without knip by searching for each name in imports, config files, and `scripts`, so that count is approximate. When knip is installed, its findings are used instead.
 
 ## Requirements
 

@@ -5,6 +5,9 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- `scan` lists unused dependencies without knip: names in the `dependencies` and `devDependencies` of each `package.json` that no import, require, config file, or `scripts` entry uses. A package that a used package needs as a peer, a plugin named by its short name, and `@types/<name>` of a used name count as used. The measure is marked approximate, and when knip ran, its unused dependencies are listed instead, once. Before, unused dependencies were found only when knip was installed
+- `scan.json` has schema 2. `explain` and `report` refuse a `scan.json` from another version and ask for a new scan
+
 ## [0.2.2] - 2026-11-14
 
 - Marker lines in `scan.json` and the report have text that looks like a key, a token, or a password replaced with `***`, and the home folder with `~`. Before, a comment quoting a token carried it into the report and into any issue that quoted the line

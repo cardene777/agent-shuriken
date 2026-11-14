@@ -37,6 +37,7 @@ It measures these things and prints a summary, the ranked files, and the paths o
 | Long functions | Functions over 60 lines. Python is measured exactly with `ast`; brace languages (JavaScript, TypeScript, Go, Rust, Java, Kotlin, C, C++, C#, Swift, PHP, Solidity) by matching braces |
 | Large files | Source files over 500 non-blank lines |
 | Duplication | Blocks of 8 or more lines, ignoring whitespace, imports, and comments, that appear in two places |
+| Unused dependencies | Names in the `dependencies` and `devDependencies` of each `package.json` that no import, require, config file, or `scripts` entry uses, counting a package that a used package needs as a peer, a plugin named by its short name, and `@types/<name>` of a used name. This is approximate. When `knip` ran, its findings are used instead |
 | Installed tools | `knip` from `node_modules/.bin` and `ruff` from `.venv/bin` or `PATH`, only when already installed. Nothing is downloaded |
 
 It skips dependencies, build output, lockfiles, minified files, and files whose first lines say they are generated.
@@ -71,7 +72,8 @@ Notes stay attached to the same files in later scans while those files are still
 Open `report.html` and show it to the user.
 The page has a tab for the ranking and one per measure, an English and Japanese switch, and pages of 50 rows.
 In the chat, give the top 3 to 5 files with the `why` and `action` of each, and the totals per measure.
-Say which measures are approximate (function length outside Python) and which tools did not run and why.
+Say which measures are approximate (function length outside Python, and unused dependencies found without `knip`) and which tools did not run and why.
+For unused dependencies found by name, tell the user to check each one before removing it, since a package can be used in ways the search does not see, such as a name built at run time.
 
 Do not change any code unless the user asks.
 When the user asks to track the work, open issues only for the files they name, in the project's own tracker.
@@ -83,6 +85,7 @@ Read the line before quoting it, because text that the patterns miss stays as it
 | What happens | What to do |
 |---|---|
 | Exit code 2 | `--months` is below 1, the notes name a file that is not ranked or leave a field empty, or `explain` ran before any scan. Fix it and run again |
+| "run scan again" | The last `scan.json` was written by another version of techdebt. Run `scan` again, then `explain` |
 | Exit code 3 | The folder does not exist |
 | The folder is not a git repository | The scan still runs, without hotspots, ages, or the history part of the ranking |
 | A tool shows "not run" | It is not installed in the project. Install it only if the user wants it; the scan never installs anything |
