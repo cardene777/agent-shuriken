@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Tests for secure_dotfile.py against a throwaway HOME, a throwaway keychain, and a stand-in
-# secret-tool that keeps its values in a temporary folder.
+# Tests for secure_dotfile.py against a throwaway HOME, a throwaway keychain, and stand-ins for
+# secret-tool, pass, and op that keep their values in a temporary folder.
 #
 # The test secrets are generated when the test runs, so no key-shaped text is kept in the
 # repository. Every check prints only its name and the result, never a value.
@@ -72,8 +72,17 @@ export S_PC="$(rand Qz9 24)"
 export S_PC_OTHER="$(rand Qz9 24)"
 export S_PL="$(rand Qz9 22)"
 export S_PF="$(rand Qz9 28)"
+# Values moved into the stand-in 1Password.
+export S_OA="$(rand Qz9 31)"
+export S_OS="$(rand Qz9 25)"
+export S_OC="$(rand Qz9 27)"
+export S_OC_OTHER="$(rand Qz9 27)"
+export S_OT="$(rand Qz9 23)"
+export S_ON="$(rand Qz9 21)"
+export S_OF="$(rand Qz9 29)"
 ALL_SECRETS=(S_GH S_OAI S_NAME S_AWS S_SPACE S_SOURCED S_GIT S_FISH S_ENVD S_CONFLICT S_CONFLICT_OTHER S_SHARED S_CZ S_BACKSLASH S_NONASCII
-  S_PG S_MYSQL S_DBPASS S_PIN S_LOCAL S_MYPASSWD S_LXA S_LXC S_LXC_OTHER S_LXD S_LXF S_PA S_PC S_PC_OTHER S_PL S_PF)
+  S_PG S_MYSQL S_DBPASS S_PIN S_LOCAL S_MYPASSWD S_LXA S_LXC S_LXC_OTHER S_LXD S_LXF S_PA S_PC S_PC_OTHER S_PL S_PF
+  S_OA S_OS S_OC S_OC_OTHER S_OT S_ON S_OF)
 
 H="$T/home"
 mkdir -p "$H/.config/fish" "$H/.config/direnv/env.d" "$H/dotfiles" "$H/.local/share/chezmoi"
@@ -512,6 +521,218 @@ docs_pass() {
   grep -q -- "--store pass" "$HERE/../SKILL.md"
 }
 check "the docs describe moving into pass and reaching KWallet through secret-tool" "docs_pass"
+
+# ---------------------------------------------------------------------------
+# move into 1Password, through a stand-in op
+#
+# The stand-in follows the help of op 2.42: `vault list` and `item list` print JSON, `item create`
+# takes an item JSON template on standard input after `-`, and `read` prints the field named by
+# an op://vault/item/field reference, matching names without regard to case. It records its
+# arguments and keeps the items as plain JSON in FAKE_OP_DIR/items.json. FAKE_OP_VAULTS names the
+# account's vaults, and FAKE_OP_DOWN=1 makes every command fail the way op does with no account.
+
+OH="$T/op/home"
+OD="$T/op/data"
+OPBIN="$T/op/bin"
+OLOG="$T/op/args"
+mkdir -p "$OH/.config/fish" "$OD" "$OPBIN"
+cat > "$OPBIN/op" <<'PY'
+#!/usr/bin/env python3
+import json, os, sys
+
+args = sys.argv[1:]
+with open(os.environ["FAKE_OP_LOG"], "a") as fh:
+    fh.write(" ".join(args) + "\n")
+if os.environ.get("FAKE_OP_DOWN") == "1":
+    sys.stderr.write("No accounts configured for use with 1Password CLI.\n")
+    sys.exit(1)
+path = os.path.join(os.environ["FAKE_OP_DIR"], "items.json")
+items = json.load(open(path)) if os.path.exists(path) else []
+vaults = [v for v in os.environ.get("FAKE_OP_VAULTS", "Personal,Shared").split(",") if v]
+
+
+def vault(name):
+    return {"id": "v%d" % vaults.index(name), "name": name}
+
+
+def flag(name):
+    return args[args.index(name) + 1] if name in args[:-1] else None
+
+
+def fail(message, code=1):
+    sys.stderr.write("[ERROR] 2026/11/14 12:00:00 %s\n" % message)
+    sys.exit(code)
+
+
+if args[:2] == ["vault", "list"] and flag("--format") == "json":
+    print(json.dumps([vault(v) for v in vaults]))
+elif args[:2] == ["item", "list"] and flag("--format") == "json":
+    v = flag("--vault")
+    if v is not None and v not in vaults:
+        fail("\"%s\" isn't a vault in this account." % v)
+    print(json.dumps([{"id": i["id"], "title": i["title"], "vault": vault(i["vault"])}
+                      for i in items if v is None or i["vault"] == v]))
+elif args[:2] == ["item", "create"]:
+    # Assignment statements would put the value on the command line.
+    if args[-1] != "-" or any("=" in a for a in args[2:]):
+        fail("expected an item template on standard input", 2)
+    v = flag("--vault")
+    if v not in vaults:
+        fail("\"%s\" isn't a vault in this account." % v)
+    t = json.load(sys.stdin)
+    pw = [f for f in t.get("fields", []) if f.get("id") == "password" and f.get("type") == "CONCEALED"]
+    if not t.get("title") or t.get("category") != "LOGIN" or len(pw) != 1 or not pw[0].get("value"):
+        fail("invalid item template")
+    items.append({"id": "i%d" % len(items), "title": t["title"], "vault": v, "value": pw[0]["value"]})
+    json.dump(items, open(path, "w"))
+    print("ID: i%d\nTitle: %s\nVault: %s" % (len(items) - 1, t["title"], v))
+elif args[:1] == ["read"]:
+    refs = [a for a in args[1:] if a.startswith("op://")]
+    parts = refs[0][len("op://"):].split("/") if len(refs) == 1 else []
+    if len(parts) != 3 or parts[2] != "password":
+        fail("invalid secret reference")
+    hits = [i for i in items if i["vault"].lower() == parts[0].lower() and i["title"].lower() == parts[1].lower()]
+    if len(hits) != 1:
+        fail("could not read secret '%s': %s" % (refs[0], "more than one item matches" if hits else "item not found"))
+    sys.stdout.write(hits[0]["value"] + ("" if "-n" in args or "--no-newline" in args else "\n"))
+else:
+    fail("unexpected arguments", 2)
+PY
+chmod 755 "$OPBIN/op"
+printf 'export OP_TOKEN="%s"\nexport OP_SAME_TOKEN=%s\nexport OP_CONFLICT_TOKEN=%s\nexport OP_TWICE_TOKEN=%s\nexport OP_DOWN_TOKEN=%s\n' \
+  "$S_OA" "$S_OS" "$S_OC" "$S_OT" "$S_ON" > "$OH/.bashrc"
+printf 'set -gx OP_FISH_TOKEN %s\n' "$S_OF" > "$OH/.config/fish/config.fish"
+python3 - "$OD/items.json" <<'PY'
+import json, os, sys
+items = [
+    {"id": "s1", "title": "OP_SAME_TOKEN", "vault": "Personal", "value": os.environ["S_OS"]},
+    {"id": "s2", "title": "OP_CONFLICT_TOKEN", "vault": "Personal", "value": os.environ["S_OC_OTHER"]},
+    {"id": "s3", "title": "OP_TWICE_TOKEN", "vault": "Personal", "value": os.environ["S_OT"]},
+    {"id": "s4", "title": "op_twice_token", "vault": "Personal", "value": os.environ["S_OT"]},
+    # Another vault's item of the same name is never read or replaced.
+    {"id": "s5", "title": "OP_TOKEN", "vault": "Shared", "value": os.environ["S_OC_OTHER"]},
+]
+json.dump(items, open(sys.argv[1], "w"))
+PY
+o1() { HOME="$OH" PATH="$OPBIN:$PATH" FAKE_OP_DIR="$OD" FAKE_OP_LOG="$OLOG" SECURE_DOTFILE_KEYCHAIN="$KC" "$@"; }
+# How many items in the vault have this title (ignoring case), and how many of them hold the value.
+titled() { python3 -c 'import json,sys; print(sum(1 for i in json.load(open(sys.argv[1])) if i["vault"]==sys.argv[2] and i["title"].lower()==sys.argv[3].lower()))' "$OD/items.json" "$1" "$2"; }
+in_op() { python3 -c 'import json,os,sys; print(sum(1 for i in json.load(open(sys.argv[1])) if i["vault"]==sys.argv[2] and i["title"]==sys.argv[3] and i["value"]==os.environ[sys.argv[4]]))' "$OD/items.json" "$1" "$2" "$3"; }
+op_calls() { local n; n="$(grep -c "$1" "$OLOG" 2>/dev/null)"; echo "${n:-0}"; }
+want_op_bash="export OP_TOKEN=\"\$(op read 'op://Personal/OP_TOKEN/password' 2>/dev/null)\""
+want_op_same="export OP_SAME_TOKEN=\"\$(op read 'op://Personal/OP_SAME_TOKEN/password' 2>/dev/null)\""
+want_op_fish="set -gx OP_FISH_TOKEN (op read 'op://Personal/OP_FISH_TOKEN/password' 2>/dev/null)"
+
+# A scan that does not pick 1Password lists it when op is installed, and never runs op.
+o1 python3 "$SCRIPT" scan --json > "$OUT/op-stores.json" 2>> "$OUT/op-scan.err"
+o1 python3 "$SCRIPT" scan > "$OUT/op-stores.txt" 2>> "$OUT/op-scan.err"
+op_calls_after_plain_scan="$(op_calls .)"
+HOME="$OH" PATH="$NOST" SECURE_DOTFILE_KEYCHAIN="$KC" "$PY3" "$SCRIPT" scan --json > "$OUT/op-stores-none.json" 2>> "$OUT/op-scan.err"
+op_stores() {
+  has_store "$OUT/op-stores.json" 1password && ! has_store "$OUT/op-stores-none.json" 1password &&
+    grep -q -- '--store 1password' "$OUT/op-stores.txt" && [ "$op_calls_after_plain_scan" -eq 0 ]
+}
+check "scan lists 1Password as a store to choose only when op is installed, without running op" "op_stores"
+
+OJ="$OUT/op-scan.json"
+o1 python3 "$SCRIPT" scan --store 1password --json > "$OJ" 2>> "$OUT/op-scan.err"
+op_scan() {
+  [ "$(jfield "$OJ" OP_TOKEN movable)" = True ] && [ "$(jfield "$OJ" OP_TOKEN becomes)" = "$want_op_bash" ] &&
+    [ "$(op_calls '^vault list --format json$')" -ge 1 ]
+}
+check "with --store 1password, scan shows the op read line with the real vault name" "op_scan"
+
+op_file_before="$(cksum < "$OH/.bashrc")"
+op_items_before="$(cksum < "$OD/items.json")"
+o1 env FAKE_OP_DOWN=1 python3 "$SCRIPT" move --store 1password --json --item "~/.bashrc:5:OP_DOWN_TOKEN" > "$OUT/op-down.json" 2> "$OUT/op-down.err"
+op_down_rc=$?
+o1 env FAKE_OP_DOWN=1 python3 "$SCRIPT" scan --store 1password --json > "$OUT/op-down-scan.json" 2>> "$OUT/op-scan.err"
+op_down() {
+  [ "$op_down_rc" -eq 3 ] && grep -q 'op exited with 1: No accounts configured' "$OUT/op-down.err" &&
+    jfield "$OUT/op-down-scan.json" OP_DOWN_TOKEN reason | grep -q 'op exited with 1: No accounts configured' &&
+    [ "$(cksum < "$OH/.bashrc")" = "$op_file_before" ] && [ "$(cksum < "$OD/items.json")" = "$op_items_before" ]
+}
+check "with --store 1password, a signed-out op stops the move with a reason that names op and leaves the file as it was" "op_down"
+
+o1 env FAKE_OP_VAULTS=Shared,Work python3 "$SCRIPT" move --store 1password --json --item "~/.bashrc:5:OP_DOWN_TOKEN" > "$OUT/op-novault.json" 2> "$OUT/op-novault.err"
+op_novault_rc=$?
+o1 env FAKE_OP_VAULTS=Private,Personal python3 "$SCRIPT" move --store 1password --json --item "~/.bashrc:5:OP_DOWN_TOKEN" > "$OUT/op-twovaults.json" 2> "$OUT/op-twovaults.err"
+op_twovaults_rc=$?
+op_novault() {
+  [ "$op_novault_rc" -eq 3 ] && [ "$op_twovaults_rc" -eq 3 ] &&
+    grep -q 'op' "$OUT/op-novault.err" && grep -q 'Private, Personal, or Employee' "$OUT/op-novault.err" &&
+    grep -q 'Private, Personal, or Employee' "$OUT/op-twovaults.err" &&
+    [ "$(cksum < "$OH/.bashrc")" = "$op_file_before" ] && [ "$(cksum < "$OD/items.json")" = "$op_items_before" ]
+}
+check "with --store 1password, a move that cannot tell the default vault stops and changes nothing" "op_novault"
+
+o1 python3 "$SCRIPT" move --store 1password --json --item "~/.bashrc:1:OP_TOKEN" --item "~/.bashrc:2:OP_SAME_TOKEN" \
+  --item "~/.bashrc:3:OP_CONFLICT_TOKEN" --item "~/.bashrc:4:OP_TWICE_TOKEN" \
+  --item "~/.config/fish/config.fish:1:OP_FISH_TOKEN" > "$OUT/op-move.json" 2>> "$OUT/op-move.err"
+op_moved() {
+  jnote "$OUT/op-move.json" OP_TOKEN | grep -q '^moved stored in 1Password as OP_TOKEN' &&
+    [ "$(in_op Personal OP_TOKEN S_OA)" -eq 1 ] && [ "$(in_op Shared OP_TOKEN S_OC_OTHER)" -eq 1 ] &&
+    [ "$(sed -n 1p "$OH/.bashrc")" = "$want_op_bash" ] &&
+    awk '/^item create --vault Personal -$/{s=1} s && /^read -n op:\/\/Personal\/OP_TOKEN\/password$/{f=1} END{exit !f}' "$OLOG"
+}
+check "with --store 1password, move stores the value in 1Password, reads it back, and rewrites the line" "op_moved"
+op_stdin_only() {
+  [ -s "$OLOG" ] && [ "$(in_op Personal OP_TOKEN S_OA)" -eq 1 ] && [ "$(in_op Personal OP_FISH_TOKEN S_OF)" -eq 1 ] &&
+    python3 -c 'import os,sys; t=open(sys.argv[1]).read(); sys.exit(1 if any(os.environ[n] in t or os.environ[n][:4] in t for n in sys.argv[2:]) else 0)' \
+      "$OLOG" S_OA S_OS S_OC S_OC_OTHER S_OT S_ON S_OF
+}
+check "with --store 1password, the value reaches op only on standard input" "op_stdin_only"
+op_fish() { [ "$(sed -n 1p "$OH/.config/fish/config.fish")" = "$want_op_fish" ] && [ "$(in_op Personal OP_FISH_TOKEN S_OF)" -eq 1 ]; }
+check "with --store 1password, a fish line reads the value with fish command substitution" "op_fish"
+op_same() {
+  jnote "$OUT/op-move.json" OP_SAME_TOKEN | grep -q '^moved stored in 1Password as OP_SAME_TOKEN' &&
+    [ "$(titled Personal OP_SAME_TOKEN)" -eq 1 ] && [ "$(sed -n 2p "$OH/.bashrc")" = "$want_op_same" ]
+}
+check "with --store 1password, a name that already holds the same value is not added again" "op_same"
+op_conflict() {
+  jnote "$OUT/op-move.json" OP_CONFLICT_TOKEN | grep -q '^skipped a different value is already stored as OP_CONFLICT_TOKEN' &&
+    [ "$(titled Personal OP_CONFLICT_TOKEN)" -eq 1 ] && [ "$(in_op Personal OP_CONFLICT_TOKEN S_OC_OTHER)" -eq 1 ] &&
+    grep -qF "$S_OC" "$OH/.bashrc"
+}
+check "with --store 1password, a name that holds a different value is skipped and not overwritten" "op_conflict"
+op_twice() {
+  jnote "$OUT/op-move.json" OP_TWICE_TOKEN | grep -q '^skipped .*more than one' &&
+    [ "$(titled Personal OP_TWICE_TOKEN)" -eq 2 ] && grep -qF "$S_OT" "$OH/.bashrc"
+}
+check "with --store 1password, a name held by more than one item is skipped" "op_twice"
+op_loaded() {
+  local before
+  before="$(op_calls '^read op://Personal/OP_TOKEN/password$')"
+  HOME="$OH" PATH="$OPBIN:$PATH" FAKE_OP_DIR="$OD" FAKE_OP_LOG="$OLOG" bash --norc -c 'source ~/.bashrc; [ "$OP_TOKEN" = "$S_OA" ]' &&
+    [ "$(op_calls '^read op://Personal/OP_TOKEN/password$')" -gt "$before" ]
+}
+check "with --store 1password, a new bash loads the moved value through op" "op_loaded"
+
+# Without op on PATH. Only the commands the scan runs are linked into it.
+HOME="$OH" PATH="$NOST" SECURE_DOTFILE_KEYCHAIN="$KC" \
+  "$PY3" "$SCRIPT" move --store 1password --item "~/.bashrc:5:OP_DOWN_TOKEN" > "$OUT/op-none.txt" 2> "$OUT/op-none.err"
+op_none_rc=$?
+HOME="$OH" PATH="$NOST" SECURE_DOTFILE_KEYCHAIN="$KC" \
+  "$PY3" "$SCRIPT" scan --store 1password --json > "$OUT/op-none.json" 2>> "$OUT/op-scan.err"
+op_none() {
+  [ "$op_none_rc" -eq 3 ] && grep -q 'needs the op command' "$OUT/op-none.err" &&
+    [ "$(jfield "$OUT/op-none.json" OP_DOWN_TOKEN movable)" = False ] &&
+    jfield "$OUT/op-none.json" OP_DOWN_TOKEN reason | grep -q 'needs the op command'
+}
+check "without op, move --store 1password exits 3 and names it, and scan says why it cannot move" "op_none"
+docs_op() {
+  local f
+  for f in skills/secure-dotfile/SKILL.md README.md README.ja.md docs/how-it-works.md docs/how-it-works.ja.md; do
+    grep -q "op read" "$HERE/../../../$f" && grep -q "1Password" "$HERE/../../../$f" || return 1
+  done
+  for f in README.md README.ja.md; do
+    grep -q "op 2.42" "$HERE/../../../$f" || return 1
+  done
+  grep -q "real 1Password account" "$HERE/../../../README.md" &&
+    grep -q "BW_SESSION" "$HERE/../../../docs/how-it-works.md" && grep -q "BW_SESSION" "$HERE/../../../docs/how-it-works.ja.md" &&
+    grep -q -- "--store 1password" "$HERE/../SKILL.md"
+}
+check "the docs describe moving into 1Password and why Bitwarden is not a store" "docs_op"
 
 # ---------------------------------------------------------------------------
 # No output holds a value or its first 4 characters.
