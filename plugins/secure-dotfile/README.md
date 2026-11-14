@@ -9,6 +9,7 @@ Moving it by hand means pasting the key into a terminal, where it lands in the s
 This plugin finds those lines and moves the ones you pick into the Keychain on macOS, or on Linux into the secret service that GNOME Keyring, KWallet, or KeePassXC with its secret service turned on, provides.
 If you keep your secrets in `pass` or 1Password, they can go into your password store or your 1Password vault instead, on any system.
 Each moved line then reads the value from there when the shell starts, so your programs see the same environment variable as before.
+It also looks in files that tools read on their own: an npm token in `~/.npmrc` and AWS keys in `~/.aws/credentials` move too, while passwords in `~/.netrc` and keys in the `.env` and `.env.*` files of the folder you work in are listed with the reason they cannot be moved.
 The value leaves the file, not the shell's environment: every program the shell starts still receives it, so a key with wide access is safer read only for the command that needs it, and a key your team shares belongs in a vault your team shares, not in one person's Keychain or personal vault.
 Scripts read, store, and check the values, so the agent only ever sees names, locations, kinds, and lengths.
 
@@ -40,7 +41,7 @@ The plugin starts when you mention a secret in your shell configuration, for exa
 You can also call it: run `/secure-dotfile:secure-dotfile` in Claude Code, or type `$` and pick **Secure Dotfile** in Codex.
 In GitHub Copilot CLI, write `/secure-dotfile` in your request, and in Gemini CLI, describe the task.
 
-1. The agent scans your shell startup files and lists each secret by name, location, kind, and length, and whether its value is in the file's git history. A password under a name such as `DB_PASSWORD`, `PGPASSWORD`, or `MYSQL_PWD` is listed at any length, and one shorter than 8 characters has the kind `short password`, so you know to make it longer
+1. The agent scans your shell startup files and the files tools read on their own, and lists each secret by name, location, kind, and length, and whether its value is in the file's git history. A password under a name such as `DB_PASSWORD`, `PGPASSWORD`, or `MYSQL_PWD` is listed at any length, and one shorter than 8 characters has the kind `short password`, so you know to make it longer
 2. You pick the secrets to move. When your password store is set up or the 1Password CLI `op` is installed too, you also pick which store they go into
 3. The agent stores each one in the Keychain on macOS, in the secret service through `secret-tool` on Linux, in `pass`, or in 1Password through `op`, reads it back, and changes its line to load the value from there. macOS may ask for your login password to unlock the Keychain, the keyring on Linux may ask you to unlock it, `pass` may ask for your GPG key's passphrase, and the 1Password app may ask you to approve `op`
 4. The agent reports what it moved and what it skipped and why, and tells you which keys to rotate because their values are in git history
@@ -66,6 +67,15 @@ On Linux the same line becomes `export GH_TOKEN="$(secret-tool lookup service GH
 In 1Password it becomes `export GH_TOKEN="$(op read 'op://Personal/GH_TOKEN/password' 2>/dev/null)"`, where `Personal` is the name of the vault `op` stores new items in: Private, Personal, or Employee, depending on your account type.
 The 1Password move was checked with a stand-in `op` that follows the help of op 2.42, not against a real 1Password account.
 
+Files that tools read on their own are handled like this.
+
+| File | What happens |
+|---|---|
+| `~/.npmrc` | A token on a `//registry.npmjs.org/:_authToken=` line moves to the store, the line becomes `${NPM_TOKEN}`, which npm fills in from the environment, and your shell's startup file gets `export NPM_TOKEN="$(...)"`. A token for another registry gets its own name, such as `NPM_TOKEN_NPM_PKG_GITHUB_COM` |
+| `~/.aws/credentials` | A profile's `aws_access_key_id` and `aws_secret_access_key` move to the store, and the two lines become one `credential_process` line that reads them back. The AWS CLI runs that line itself, so it works outside the shell too. A profile with `aws_session_token` holds temporary keys and is left alone |
+| `~/.netrc` | Listed, not moved: curl and git read it as written. For git, a credential helper such as osxkeychain or libsecret can keep the password instead |
+| `.env` and `.env.*` in the folder you work in | Listed with whether the key is in git history, not moved: `node --env-file` keeps `${VAR}` as written while python-dotenv expands it, so a reference could break the app |
+
 When an agent's sandbox asks, as Codex can, approve the commands, because they read files in your home folder and use the Keychain, the secret service, `pass`, or `op`.
 
 ## Requirements
@@ -86,10 +96,10 @@ When an agent's sandbox asks, as Codex can, approve the commands, because they r
 [How it works](docs/how-it-works.md) lists every file it scans, what counts as a secret, and each step of a move.
 In short:
 
-- It reads your shell startup files and the files they source, and asks `git` for their history and `chezmoi` for their source files
+- It reads your shell startup files and the files they source, `~/.npmrc`, `~/.aws/credentials`, `~/.netrc`, and the `.env` and `.env.*` files of the folder it runs in, and asks `git` for their history and `chezmoi` for their source files
 - It never prints any part of a value. The values stay inside the script and reach `security`, `secret-tool`, `pass`, or `op` on its standard input, never on its command line
 - It stores only the values you pick, in your default keychain on macOS, your default secret service collection on Linux, your password store, or your 1Password vault named Private, Personal, or Employee, and never overwrites a different value stored under the same name. When the password store is a git repository, `pass` commits each new entry there, encrypted, and pushing it is up to you
-- It edits only the lines of the values it moved, keeps each file's permissions and symlinks, and checks the edited file's syntax
+- It edits only the lines of the values it moved, plus one export line added to your shell's startup file for each npm token, keeps each file's permissions and symlinks, and checks the syntax of each edited shell file
 - It connects to nothing on the network itself and keeps no files of its own. On Linux, `secret-tool` reaches the secret service over your login session's local message bus (D-Bus). With `--store 1password`, `op` talks to the 1Password app or to 1Password's servers to read and store the items in your account, and only a scan or move that picks 1Password runs `op`
 
 ## License
