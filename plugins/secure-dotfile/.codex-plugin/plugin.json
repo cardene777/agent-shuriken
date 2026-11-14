@@ -1,6 +1,6 @@
 {
   "name": "secure-dotfile",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Find API keys and tokens written into your shell startup files and move the ones you pick into the macOS Keychain or the Linux secret service, without the agent seeing any value",
   "author": {
     "name": "cardene777",

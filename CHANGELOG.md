@@ -7,6 +7,26 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-11-14
+
+### Plugins
+
+| Plugin | Version |
+|---|---|
+| account-cleanup | 0.2.1 |
+| compare-report | 0.4.0 |
+| diagram-explainer | 0.2.1 |
+| docs-publish | 0.2.0 |
+| excalidraw-diagram | 0.2.0 |
+| feedback-loop | 0.1.1 |
+| init-project | 0.2.0 |
+| learning-to-skill | 0.1.1 |
+| portman | 0.2.0 |
+| repo-progress | 0.1.1 |
+| secure-dotfile | 0.4.0 |
+| session-handoff | 0.1.0 |
+| techdebt | 0.3.0 |
+
 ## [0.10.0] - 2026-11-14
 
 ### Plugins
@@ -264,7 +284,8 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 - First public release with the account-cleanup and pc-tidy plugins, installable from this marketplace in Claude Code and Codex
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.11.0
 [0.10.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.10.0
 [0.9.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.9.0
 [0.8.1]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.8.1

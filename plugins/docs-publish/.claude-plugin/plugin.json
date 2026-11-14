@@ -1,7 +1,7 @@
 {
   "name": "docs-publish",
   "displayName": "Docs Publish",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Write the public documentation of an open source project in five parts, Quickstart, Concepts, API reference, Cookbook, and FAQ, in English and a second language you pick, with every page's translation and every relative link checked",
   "author": {
     "name": "cardene777",

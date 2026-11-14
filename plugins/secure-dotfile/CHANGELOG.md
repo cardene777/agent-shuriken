@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-14
+
 - `move` works on Linux: it stores each picked value in the secret service (GNOME Keyring, or KeePassXC with its secret service turned on) by passing it to `secret-tool store` on standard input, reads it back, and changes the line to `"$(secret-tool lookup service NAME account "$USER" 2>/dev/null)"`, or the same inside `( )` in fish. It skips a name that already holds a different value, and an item whose secret service cannot be reached, with `secret-tool`'s own message. Before, `move` stopped with exit code 3 on every system other than macOS
 - Without `secret-tool`, `move` stops with exit code 3 and names it, and `scan` gives that as the reason an item cannot be moved
 - `SECURE_DOTFILE_STORE` picks `keychain` or `secret-service` for tests against a throwaway store
@@ -31,7 +33,8 @@ First public release.
 - Moves a secret in the chezmoi source file instead of the file chezmoi generates
 - Starts when you mention a secret in your shell configuration, or when you call it, in Claude Code and in Codex
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/secure-dotfile--v0.3.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/secure-dotfile--v0.4.0...HEAD
+[0.4.0]: https://github.com/cardene777/agent-shuriken/releases/tag/secure-dotfile--v0.4.0
 [0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/secure-dotfile--v0.3.0
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/secure-dotfile--v0.2.0
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/secure-dotfile--v0.1.0
