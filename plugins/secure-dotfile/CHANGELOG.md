@@ -5,6 +5,10 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- `scan` and `move` take `--store 1password`, which moves each picked value into 1Password through the 1Password CLI `op`: it finds the vault `op` stores new items in, named Private, Personal, or Employee, with `op vault list`, sends the value to `op item create -` inside an item JSON template on standard input, reads it back with `op read -n`, and changes the line to `"$(op read 'op://VAULT/NAME/password' 2>/dev/null)"`, or the same inside `( )` in fish. A name that already holds a different value is skipped, and so is a name that two or more items in the vault share. When `op` is not signed in or no single vault has one of those names, the move stops with exit code 3 and changes nothing
+- `scan` lists 1Password as a store to choose when `op` is installed, without running `op`; only a scan or move with `--store 1password` runs it
+- The docs say why Bitwarden is not a store: its `bw` command reads only with the session key `BW_SESSION` in the environment, so a new shell would get an empty variable
+
 ## [0.5.0] - 2026-11-14
 
 - `scan` and `move` take `--store pass`, which moves each picked value into your `pass` password store on any system: `pass insert -e` gets the value on standard input, `pass show` reads it back, and the line becomes `"$(pass show NAME 2>/dev/null)"`, or the same inside `( )` in fish. A name that already holds a different value is skipped, and so is a value that cannot be read back because the GPG key is locked, with the first line `pass` printed

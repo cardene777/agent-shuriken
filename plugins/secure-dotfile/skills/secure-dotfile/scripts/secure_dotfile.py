@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Find secrets written into shell startup files and move the ones you pick into the Keychain, the secret service, or pass.
+"""Find secrets written into shell startup files and move the ones you pick into the Keychain, the secret service, pass, or 1Password.
 
 Usage:
 
@@ -18,14 +18,16 @@ reads the value when the shell starts. On macOS the value goes into the Keychain
 `security` command. On Linux it goes into the secret service (GNOME Keyring, KWallet, or
 KeePassXC with its secret service turned on) through `secret-tool` from libsecret. With
 `--store pass` it goes into the password store of `pass`, encrypted with the user's GPG key, on
-any system. It runs the shell's syntax check on the edited file and restores the file when the
-check fails.
+any system. With `--store 1password` it goes into 1Password through the 1Password CLI `op`, as a
+Login item in the vault `op` stores new items in (Private, Personal, or Employee). It runs the
+shell's syntax check on the edited file and restores the file when the check fails.
 
 No part of a value is ever printed: the output names the variable, the file and line, the kind,
 and the length. The values stay inside this process and are handed to `security`,
-`secret-tool`, or `pass` on its standard input, never on its command line.
+`secret-tool`, `pass`, or `op` on its standard input, never on its command line.
 
-`--store` picks the store: `keychain`, `secret-service`, or `pass`. Without it the store is
+`--store` picks the store: `keychain`, `secret-service`, `pass`, or `1password`. Only a scan or
+move that picks `1password` runs `op`, which may ask the 1Password app for approval. Without it the store is
 `SECURE_DOTFILE_STORE` when set, or else the Keychain on macOS and the secret service on Linux.
 `scan` names the stores that can be used here. `SECURE_DOTFILE_STORE` and
 `SECURE_DOTFILE_KEYCHAIN`, which names a keychain file to use instead of the default keychain,
@@ -49,8 +51,10 @@ ACCOUNT = os.environ.get("USER") or os.path.basename(HOME)
 KEYCHAIN = os.environ.get("SECURE_DOTFILE_KEYCHAIN", "")
 STORE = os.environ.get("SECURE_DOTFILE_STORE") or (
     "keychain" if sys.platform == "darwin" else "secret-service" if sys.platform.startswith("linux") else "")
-WHERE = {"keychain": "the keychain", "secret-service": "the secret service", "pass": "pass"}
+WHERE = {"keychain": "the keychain", "secret-service": "the secret service", "pass": "pass", "1password": "1Password"}
 PASS_DIR = os.environ.get("PASSWORD_STORE_DIR") or os.path.join(HOME, ".password-store")
+# `op item create` without `--vault` stores the item in one of these, depending on the account type.
+OP_DEFAULT_VAULTS = ("Private", "Personal", "Employee")
 TIMEOUT = 120
 MIN_LENGTH = 8
 MAX_INCLUDE_DEPTH = 5
@@ -256,18 +260,68 @@ def store_problem(store):
         if not os.path.isfile(os.path.join(PASS_DIR, ".gpg-id")):
             return "moving into pass needs a password store; set one up with `pass init` and your GPG key ID first"
         return None
+    if store == "1password":
+        # Only the command is looked for here: running op may ask the 1Password app for approval.
+        if shutil.which("op"):
+            return None
+        return "moving into 1Password needs the op command (1Password CLI)"
     if store:
-        return "SECURE_DOTFILE_STORE must be keychain, secret-service, or pass"
-    return "moving needs macOS, Linux with secret-tool, or pass"
+        return "SECURE_DOTFILE_STORE must be keychain, secret-service, pass, or 1password"
+    return "moving needs macOS, Linux with secret-tool, pass, or the 1Password CLI"
+
+
+_op_vault = None
+
+
+def op_vault():
+    """(vault, problem): the vault op stores new items in, or why it cannot be told.
+
+    op has no command that names that vault; its help says it is Private, Personal, or Employee,
+    depending on the account type. So the vault is the one of the account's vaults with one of
+    those names. op runs once, and only when the store is 1Password."""
+    global _op_vault
+    if _op_vault is None:
+        try:
+            r = subprocess.run(["op", "vault", "list", "--format", "json"], capture_output=True, timeout=TIMEOUT)
+        except subprocess.TimeoutExpired:
+            _op_vault = None, "1Password did not answer within %d s; it may be waiting for approval" % TIMEOUT
+            return _op_vault
+        names = None
+        if r.returncode == 0:
+            try:
+                names = [v.get("name") for v in json.loads(r.stdout)]
+            except (ValueError, TypeError, AttributeError):
+                names = None
+        hits = [n for n in names or [] if n in OP_DEFAULT_VAULTS]
+        if r.returncode != 0:
+            _op_vault = None, "could not reach 1Password (op exited with %d%s); sign in with op or turn on " \
+                              "the 1Password app integration" % (r.returncode, first_line(r.stderr))
+        elif names is None:
+            _op_vault = None, "could not read the vault list that op printed"
+        elif len(hits) != 1:
+            _op_vault = None, "could not tell which vault op stores new items in: %s of your vaults is named " \
+                              "Private, Personal, or Employee" % ("none" if not hits else "more than one")
+        else:
+            _op_vault = hits[0], None
+    return _op_vault
 
 
 def moving_problem():
-    return store_problem(STORE)
+    problem = store_problem(STORE)
+    if problem or STORE != "1password":
+        return problem
+    return op_vault()[1]
 
 
 def usable_stores():
     """The stores that values can be moved into here, in the order `--store` lists them."""
     return [s for s in WHERE if store_problem(s) is None]
+
+
+def op_reference(name):
+    """The secret reference of the item's password field. The vault name is one of
+    OP_DEFAULT_VAULTS and the item name is a variable name, so no part needs quoting."""
+    return "op://%s/%s/password" % (op_vault()[0], name)
 
 
 def lookup(name, fish):
@@ -276,6 +330,8 @@ def lookup(name, fish):
         cmd = 'secret-tool lookup service %s account "$USER" 2>/dev/null' % name
     elif STORE == "pass":
         cmd = "pass show %s 2>/dev/null" % name
+    elif STORE == "1password":
+        cmd = "op read '%s' 2>/dev/null" % op_reference(name)
     else:
         kc = ' "%s"' % KEYCHAIN if KEYCHAIN else ""
         cmd = 'security find-generic-password -a "$USER" -s %s -w%s 2>/dev/null' % (name, kc)
@@ -403,7 +459,9 @@ def scan(extra):
                 "item": "%s:%d:%s" % (display(path), n, name),
                 "movable": problem is None and cannot_move is None,
                 "reason": problem or cannot_move,
-                "becomes": line[:start] + lookup(name, fish) + line[end:] if not problem and STORE in WHERE else None,
+                # A 1Password line names the vault, which is known only when op answered.
+                "becomes": line[:start] + lookup(name, fish) + line[end:]
+                if not problem and STORE in WHERE and not (STORE == "1password" and cannot_move) else None,
             }
             items.append(item)
     return scanned, items
@@ -412,7 +470,8 @@ def scan(extra):
 def store_line(stores):
     """Where the move would store values, and the other stores `--store` can pick here."""
     cannot_move = moving_problem()
-    line = "Cannot move here: %s" % cannot_move if cannot_move else "Moves into %s" % WHERE[STORE]
+    where = "the 1Password vault %s" % op_vault()[0] if STORE == "1password" and not cannot_move else WHERE.get(STORE)
+    line = "Cannot move here: %s" % cannot_move if cannot_move else "Moves into %s" % where
     others = ["%s (add --store %s)" % (WHERE[s], s) for s in stores if s != STORE]
     return line + (". Also available: " + ", ".join(others) if others else "")
 
@@ -435,8 +494,8 @@ def print_scan(scanned, items, stores):
 
 
 # ---------------------------------------------------------------------------
-# Stores: the macOS Keychain through `security`, the secret service through `secret-tool`, and
-# the password store through `pass`
+# Stores: the macOS Keychain through `security`, the secret service through `secret-tool`, the
+# password store through `pass`, and 1Password through `op`
 
 
 def kc_args():
@@ -450,9 +509,9 @@ def quote(s):
 def first_line(err):
     """The first line of a command's error output, as `: line`, or "" when it wrote none.
 
-    Only `secret-tool` and `pass` errors are passed here. They describe the D-Bus session, the
-    keyring, or the GPG key and never repeat the value, which reaches the command on standard
-    input."""
+    Only errors of `secret-tool`, `pass`, and the `op` commands that are given no value are passed
+    here. They describe the D-Bus session, the keyring, the GPG key, or the 1Password sign-in and
+    never repeat the value, which reaches the command on standard input."""
     lines = err.decode("utf-8", "replace").strip().splitlines()
     if not lines:
         return ""
@@ -460,7 +519,27 @@ def first_line(err):
 
 
 def read_secret(name):
-    """(state, value bytes, exit code, error). State is `found`, `missing`, or `error`."""
+    """(state, value bytes, exit code, error). State is `found`, `missing`, `many`, or `error`."""
+    if STORE == "1password":
+        # The item list tells whether the item exists, so a missing item is not judged by an error
+        # message. Secret references ignore case, so titles that differ only in case count too.
+        r = subprocess.run(["op", "item", "list", "--vault", op_vault()[0], "--format", "json"],
+                           capture_output=True, timeout=TIMEOUT)
+        if r.returncode != 0:
+            return "error", b"", r.returncode, first_line(r.stderr)
+        try:
+            titles = [i.get("title") for i in json.loads(r.stdout)]
+        except (ValueError, TypeError, AttributeError):
+            return "error", b"", 0, ": the item list that op printed could not be read"
+        same = [t for t in titles if isinstance(t, str) and t.lower() == name.lower()]
+        if not same:
+            return "missing", b"", 0, ""
+        if len(same) > 1:
+            return "many", b"", 0, ""
+        r = subprocess.run(["op", "read", "-n", op_reference(name)], capture_output=True, timeout=TIMEOUT)
+        if r.returncode != 0:
+            return "error", b"", r.returncode, first_line(r.stderr)
+        return "found", r.stdout, 0, ""
     if STORE == "pass":
         # The entry's file tells whether it exists, so a missing entry needs no GPG key.
         if not os.path.isfile(os.path.join(PASS_DIR, name + ".gpg")):
@@ -491,8 +570,21 @@ def read_secret(name):
 def add_secret(name, value):
     """Store the value on the command's standard input, so it never reaches a command line.
 
-    Returns (exit code, error). `secret-tool store` and `pass insert` replace an item silently, so
-    `store` reads first and calls this only when the name holds nothing."""
+    Returns (exit code, error). `secret-tool store` and `pass insert` replace an item silently, and
+    `op item create` adds a second item of the same name, so `store` reads first and calls this
+    only when the name holds nothing."""
+    if STORE == "1password":
+        # op's help says values given as assignment arguments can be seen by other processes, and
+        # points to an item JSON template on standard input instead.
+        item = {"title": name, "category": "LOGIN", "fields": [
+            {"id": "password", "type": "CONCEALED", "purpose": "PASSWORD", "label": "password", "value": value},
+            {"id": "notesPlain", "type": "STRING", "purpose": "NOTES", "label": "notesPlain",
+             "value": "added by secure-dotfile"},
+        ]}
+        # The error output is never read: it could quote the template, value included.
+        r = subprocess.run(["op", "item", "create", "--vault", op_vault()[0], "-"],
+                           input=json.dumps(item).encode("utf-8"), capture_output=True, timeout=TIMEOUT)
+        return r.returncode, ""
     if STORE == "pass":
         r = subprocess.run(["pass", "insert", "-e", name], input=value.encode("utf-8") + b"\n",
                            capture_output=True, timeout=TIMEOUT)
@@ -519,7 +611,13 @@ def store(name, value):
             if have == want:
                 return None
             return "a different value is already stored as %s; remove or rename that item first" % name
+        if state == "many":
+            return "more than one item in the 1Password vault %s is named %s; remove or rename the others first" % (
+                op_vault()[0], name)
         if state == "error":
+            if STORE == "1password":
+                return "could not read 1Password (op exited with %d%s); sign in with op or unlock the 1Password app" % (
+                    code, err)
             if STORE == "secret-service":
                 return "could not reach the secret service (secret-tool exited with %d%s); " \
                        "it may be locked or not running" % (code, err)
@@ -534,6 +632,11 @@ def store(name, value):
         return None
     if STORE == "keychain":
         return "the value could not be stored and read back (security exited with %d)" % code
+    if STORE == "1password":
+        if added != 0:
+            return "the value could not be stored in 1Password (op exited with %d)" % added
+        return "the value was stored in the 1Password vault %s as %s but could not be read back " \
+               "(op exited with %d%s); check that item and run the move again" % (op_vault()[0], name, code, err)
     tool = "secret-tool" if STORE == "secret-service" else "pass"
     if added != 0:
         return "the value could not be stored in %s (%s exited with %d%s)" % (WHERE[STORE], tool, added, added_err)
@@ -684,7 +787,7 @@ def main(argv):
     s.add_argument("--file", action="append", default=[], help="also scan this file")
     s.add_argument("--store", choices=list(WHERE), help="show the lines for this store")
     s.add_argument("--json", action="store_true")
-    m = sub.add_parser("move", help="move the picked secrets into the Keychain, the secret service, or pass")
+    m = sub.add_parser("move", help="move the picked secrets into the Keychain, the secret service, pass, or 1Password")
     m.add_argument("--item", action="append", required=True, help="PATH:LINE:NAME from the scan")
     m.add_argument("--store", choices=list(WHERE), help="the store to move the values into")
     m.add_argument("--dry-run", action="store_true")
