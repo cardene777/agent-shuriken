@@ -1,7 +1,7 @@
 {
   "name": "portman",
   "displayName": "Portman",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Keep a registry of the localhost ports each project uses, so dev servers never collide: see what holds each port right now, get free ports that avoid common defaults, find collisions, and write a project's ports to .env.local and a Docker Compose override after you approve",
   "author": {
     "name": "cardene777",

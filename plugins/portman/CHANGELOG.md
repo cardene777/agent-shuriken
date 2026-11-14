@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-14
+
 - `doctor` lists under `[Folders gone]` the ports of projects whose recorded folder no longer exists, such as a removed git worktree, and counts them as problems
 - The README says that the init-project plugin registers its ports in this registry
 
@@ -20,5 +22,6 @@ First public release.
 - Removes ports only after you approve the entries it shows, and skips an entry that changed in between
 - Starts when a port is already in use, when two projects want the same port, or when you set up ports for a project, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/portman--v0.1.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/portman--v0.2.0...HEAD
+[0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/portman--v0.2.0
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/portman--v0.1.0
