@@ -461,6 +461,23 @@ eval "pm $cmd" > "$T/out"; rc=$?
 check "the command the preview prints writes the files" '[ "$rc" = 0 ] && grep -q "^Wrote .env.local$" "$T/out" && grep -q "^PORT_APP=21041$" "$H/.env.local"'
 
 # Without PORTMAN_HOME, the registry lives in ~/.local/share/portman.
+# --- doctor and folders that are gone, such as a removed git worktree
+mkdir -p "$T/gone"
+pm add gone app 21071 --dir "$T/gone" >/dev/null
+rm -rf "$T/gone"
+doc="$(pm doctor)"
+check "doctor names a project whose folder is gone" 'dsection "Folders gone" | grep -q "^  gone/app  21071 "'
+pm remove --confirm gone/app=21071 >/dev/null 2>&1
+
+readme_names() {
+  local f
+  for f in "$HERE/../../../README.md" "$HERE/../../../README.ja.md"; do
+    grep -q "init-project" "$f" || return 1
+  done
+  grep -q "folder no longer exists" "$HERE/../../../README.md"
+}
+check "the README says init-project registers here and doctor names missing folders" 'readme_names'
+
 (
   unset PORTMAN_HOME
   pm add home app 21051 >/dev/null
