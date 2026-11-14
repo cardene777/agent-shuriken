@@ -1,7 +1,7 @@
 {
   "name": "secure-dotfile",
   "version": "0.6.0",
-  "description": "Find API keys and tokens written into your shell startup files and move the ones you pick into the macOS Keychain, the Linux secret service, pass, or 1Password, without the agent seeing any value",
+  "description": "Find API keys and tokens written into your shell startup files, ~/.npmrc, and ~/.aws/credentials and move the ones you pick into the macOS Keychain, the Linux secret service, pass, or 1Password, without the agent seeing any value",
   "author": {
     "name": "cardene777",
     "url": "https://github.com/cardene777"
@@ -21,7 +21,7 @@
   "interface": {
     "displayName": "Secure Dotfile",
     "shortDescription": "Move secrets out of dotfiles",
-    "longDescription": "Scans your zsh, bash, and fish startup files, .envrc, direnv env.d files, and the files they source for API keys, tokens, and passwords written as literal values. It lists each one by name, location, kind, and length, and says whether the value is in the file's git history. It moves only the items you pick into the macOS Keychain, the Linux secret service through secret-tool (GNOME Keyring, KWallet, or KeePassXC), or, when you choose it, your pass password store or your 1Password vault through the 1Password CLI, and changes each line to read the value from there when the shell starts, so programs keep the same environment variable. Scripts read and store the values, so the agent never sees any part of one. It re-checks each line before moving it, never overwrites a different value in the store, and runs the shell's syntax check on every edited file. Moving needs macOS, Linux with secret-tool, pass, or the 1Password CLI; scanning works anywhere.",
+    "longDescription": "Scans your zsh, bash, and fish startup files, .envrc, direnv env.d files, and the files they source for API keys, tokens, and passwords written as literal values. It also scans files that tools read on their own: an npm token in ~/.npmrc moves behind ${NPM_TOKEN} with an export line in your shell, AWS keys in ~/.aws/credentials move behind a credential_process line, and passwords in ~/.netrc and keys in the current folder's .env files are listed with the reason they cannot be moved. It lists each one by name, location, kind, and length, and says whether the value is in the file's git history. It moves only the items you pick into the macOS Keychain, the Linux secret service through secret-tool (GNOME Keyring, KWallet, or KeePassXC), or, when you choose it, your pass password store or your 1Password vault through the 1Password CLI, and changes each line to read the value from there when the shell starts, so programs keep the same environment variable. Scripts read and store the values, so the agent never sees any part of one. It re-checks each line before moving it, never overwrites a different value in the store, and runs the shell's syntax check on every edited file. Moving needs macOS, Linux with secret-tool, pass, or the 1Password CLI; scanning works anywhere.",
     "developerName": "cardene777",
     "category": "Developer Tools",
     "capabilities": [],

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Find secrets written into shell startup files and move the ones you pick into the Keychain, the secret service, pass, or 1Password.
+"""Find secrets written into shell startup files and files that tools read on their own, and move the ones you pick into the Keychain, the secret service, pass, or 1Password.
 
 Usage:
 
@@ -12,6 +12,9 @@ they source, and every PATH given with `--file`. It lists each `export NAME=valu
 in a word such as `_TOKEN`, `_API_KEY`, or `_PASSWORD`, or the value has the shape of a known
 key (GitHub, OpenAI, Anthropic, Slack, AWS, and others). Values shorter than 8 characters are
 listed only under a password name, such as `PGPASSWORD` or `MYSQL_PWD`, as a `short password`.
+It also reads files that tools read on their own: `_authToken` lines in `~/.npmrc`, the secret
+keys of the profiles in `~/.aws/credentials`, `password` entries in `~/.netrc`, and the
+assignments in the `.env` and `.env.*` files of the current folder.
 
 `move` stores each picked value, reads it back, and replaces the literal with a command that
 reads the value when the shell starts. On macOS the value goes into the Keychain through the
@@ -21,6 +24,10 @@ KeePassXC with its secret service turned on) through `secret-tool` from libsecre
 any system. With `--store 1password` it goes into 1Password through the 1Password CLI `op`, as a
 Login item in the vault `op` stores new items in (Private, Personal, or Employee). It runs the
 shell's syntax check on the edited file and restores the file when the check fails.
+An npm token becomes `${NAME}`, which npm fills in from the environment, and an export line that
+reads the store is added to the startup file of the shell in `$SHELL`. An AWS profile's two keys
+become one `credential_process` line that prints them from the store. `~/.netrc` and `.env`
+files are never edited.
 
 No part of a value is ever printed: the output names the variable, the file and line, the kind,
 and the length. The values stay inside this process and are handed to `security`,
@@ -107,6 +114,29 @@ BASH_RE = re.compile(r"^(?P<pre>[ \t]*export[ \t]+(?P<name>[A-Za-z_][A-Za-z0-9_]
 FISH_RE = re.compile(r"^(?P<pre>[ \t]*set[ \t]+(?:-gx|-xg|-x)[ \t]+(?P<name>[A-Za-z_][A-Za-z0-9_]*)[ \t]+)(?P<val>.*)$")
 UNQUOTED_RE = re.compile(r"[^\s'\"$`;#&|<>()]+")
 SOURCE_RE = re.compile(r"(?:^|[\s;&|])(?:source|\.)[ \t]+(\"[^\"]+\"|'[^']+'|[^\s;#&|]+)")
+
+# Files that tools read on their own.
+# `//registry.npmjs.org/:_authToken=VALUE` in ~/.npmrc. npm replaces `${NAME}` there with the
+# environment variable when it reads the file.
+NPMRC_RE = re.compile(r"^(?P<pre>[ \t]*(?:(?P<scope>//[^\s=]+?):)?_authToken[ \t]*=[ \t]*)(?P<val>\S+)[ \t]*$")
+NPM_VALUE_RE = re.compile(r"[A-Za-z0-9._~+/=-]+")
+# ~/.aws/credentials: `[profile]` sections of `key = value` lines.
+INI_SECTION_RE = re.compile(r"^[ \t]*\[(?P<name>[^\]]+)\][ \t]*$")
+AWS_LINE_RE = re.compile(r"^[ \t]*(?P<key>aws_access_key_id|aws_secret_access_key|aws_session_token|credential_process)"
+                         r"[ \t]*=[ \t]*(?P<val>.*?)[ \t]*$")
+AWS_ID_RE = re.compile(r"[A-Z0-9]{16,128}")
+AWS_SECRET_RE = re.compile(r"[A-Za-z0-9/+=]{16,}")
+# What `credential_process` runs: the AWS CLI splits it like a shell and runs it without one, so
+# `sh -c` does the reading. It prints the JSON the AWS CLI expects, and exits non-zero when the
+# store cannot be read, so the AWS CLI reports the failure instead of using empty keys.
+CREDENTIAL_PROCESS = (r"""sh -c 'a=$(%s) && s=$(%s) && printf "{\"Version\": 1, \"AccessKeyId\": \"%%s\", """
+                      r"""\"SecretAccessKey\": \"%%s\"}" "$a" "$s"'""")
+# `NAME=value` in a .env file, with or without `export`.
+ENV_RE = re.compile(r"^[ \t]*(?:export[ \t]+)?(?P<name>[A-Za-z_][A-Za-z0-9_]*)[ \t]*=[ \t]*(?P<val>.*?)[ \t]*$")
+NETRC_REASON = ("curl and git read ~/.netrc as written and cannot read a value from elsewhere; for git, "
+                "a credential helper such as osxkeychain or libsecret can keep it instead, then remove the line")
+ENV_REASON = ("tools read .env files differently: node --env-file keeps ${VAR} as written while python-dotenv "
+              "expands it, so a reference could break the app; keep the file out of git")
 
 
 def display(path):
@@ -244,6 +274,211 @@ def kind_of(name, value):
     return NAME_KIND[word] if word else None
 
 
+# ---------------------------------------------------------------------------
+# Files that tools read on their own: ~/.npmrc, ~/.aws/credentials, ~/.netrc, and the .env files
+# of the folder the scan runs in. Each entry is a dict with the line, name, kind, value, and
+# problem, and for the files that can be moved, what the line becomes.
+
+
+def upper_name(text):
+    return re.sub(r"[^A-Za-z0-9]", "_", text).upper()
+
+
+def tool_files():
+    """(path, kind) of the files tools read on their own that exist, in the order scan lists them."""
+    files = [(os.path.join(HOME, ".npmrc"), "npmrc"), (os.path.join(HOME, ".aws", "credentials"), "aws"),
+             (os.path.join(HOME, ".netrc"), "netrc")]
+    cwd = os.getcwd()
+    try:
+        names = sorted(os.listdir(cwd))
+    except OSError:
+        names = []
+    files += [(os.path.join(cwd, f), "env") for f in names if f == ".env" or f.startswith(".env.")]
+    return [(p, k) for p, k in files if os.path.isfile(p)]
+
+
+def tool_kind(path):
+    real = os.path.realpath(path)
+    return next((k for p, k in tool_files() if os.path.realpath(p) == real), None)
+
+
+def shell_rc():
+    """(path, fish) of the startup file of the user's shell, from $SHELL, or (None, False)."""
+    sh = os.path.basename(os.environ.get("SHELL", ""))
+    if sh == "zsh":
+        return os.path.join(os.environ.get("ZDOTDIR") or HOME, ".zshrc"), False
+    if sh == "bash":
+        return os.path.join(HOME, ".bashrc"), False
+    if sh == "fish":
+        return os.path.join(HOME, ".config", "fish", "config.fish"), True
+    return None, False
+
+
+def variable_set_in(name, rc):
+    """Where a startup file, or a file it sources, already sets `name`, as `FILE:LINE`, or None."""
+    rx = re.compile(r"^[ \t]*(?:export[ \t]+%s=|set[ \t]+(?:-[A-Za-z]+[ \t]+)*%s(?:[ \t]|$))" % (name, name))
+    files = startup_files() + ([rc] if os.path.isfile(rc) else [])
+    seen = set()
+    while files:
+        f = files.pop(0)
+        real = os.path.realpath(f)
+        if real in seen:
+            continue
+        seen.add(real)
+        try:
+            text = read_text(f)
+        except OSError:
+            continue
+        for n, line in enumerate(text.splitlines(), 1):
+            if rx.match(line):
+                return "%s:%d" % (display(f), n)
+        files += sourced_files(f, text)
+    return None
+
+
+def npmrc_entries(text, ready):
+    """Tokens written into ~/.npmrc. Each moves to `${NAME}` plus an export line in the startup file."""
+    rc, fish = shell_rc()
+    out = []
+    for n, line in enumerate(text.splitlines(), 1):
+        m = NPMRC_RE.match(line.rstrip("\r"))
+        if not m or m.group("val").startswith("${"):
+            continue
+        value = m.group("val")
+        host = (m.group("scope") or "//registry.npmjs.org/")[2:].split("/")[0]
+        name = "NPM_TOKEN" if host == "registry.npmjs.org" else "NPM_TOKEN_" + upper_name(host)
+        kind = kind_of(name, value)
+        if not kind:
+            continue
+        problem = None
+        if not NPM_VALUE_RE.fullmatch(value):
+            problem = "the value contains characters npm may read differently; move it by hand"
+        elif rc is None:
+            problem = "could not tell your shell from $SHELL, so there is no startup file to export %s from; move it by hand" % name
+        else:
+            where = variable_set_in(name, rc)
+            source = chezmoi_source(rc)
+            if where:
+                problem = "a startup file already sets %s (%s); move the token by hand under another name" % (name, where)
+            elif source:
+                problem = "%s is generated by chezmoi; add the export line to %s by hand" % (display(rc), display(source))
+        start, end = m.start("val"), m.end("val")
+        show = ready and not problem
+        out.append({
+            "line": n, "name": name, "kind": kind, "value": value, "problem": problem, "rc": rc,
+            "becomes": line[:start] + "${%s}" % name + line[end:] if show else None,
+            "adds": {"path": display(rc), "line": ("set -gx %s %s" if fish else "export %s=%s") % (name, lookup(name, fish))}
+            if show else None,
+        })
+    return out
+
+
+def aws_entries(text, ready):
+    """The secret key of each profile in ~/.aws/credentials. Its two key lines become one
+    `credential_process` line that reads both keys from the store."""
+    profiles = []
+    for n, line in enumerate(text.splitlines(), 1):
+        m = INI_SECTION_RE.match(line)
+        if m:
+            profiles.append((m.group("name").strip(), {}))
+            continue
+        m = AWS_LINE_RE.match(line)
+        if m and profiles:
+            profiles[-1][1][m.group("key")] = (n, m.group("val"))
+    out = []
+    for profile, keys in profiles:
+        if "aws_secret_access_key" not in keys:
+            continue
+        n, secret = keys["aws_secret_access_key"]
+        if not kind_of("AWS_SECRET_ACCESS_KEY", secret):
+            continue
+        name, id_name = "AWS_SECRET_ACCESS_KEY_" + upper_name(profile), "AWS_ACCESS_KEY_ID_" + upper_name(profile)
+        id_line, key_id = keys.get("aws_access_key_id", (None, ""))
+        problem = None
+        if "aws_session_token" in keys:
+            problem = "the profile also has a session token (aws_session_token), so its keys are temporary; renew " \
+                      "them with your sign-in tool instead of storing them"
+        elif "credential_process" in keys:
+            problem = "the profile already has credential_process; move the keys by hand"
+        elif id_line is None:
+            problem = "the profile has no aws_access_key_id line to go with the secret key; move it by hand"
+        elif not AWS_ID_RE.fullmatch(key_id) or not AWS_SECRET_RE.fullmatch(secret):
+            problem = "the keys contain characters AWS keys do not use; move them by hand"
+        show = ready and not problem
+        out.append({
+            "line": n, "name": name, "kind": "AWS secret access key", "value": secret, "problem": problem,
+            "id_line": id_line, "id_name": id_name, "id_value": key_id,
+            "becomes": "credential_process = " + CREDENTIAL_PROCESS % (plain_lookup(id_name), plain_lookup(name))
+            if show else None,
+            "adds": None,
+        })
+    return out
+
+
+def netrc_entries(text):
+    """Passwords in ~/.netrc, which cannot be moved."""
+    tokens = [(t, n) for n, line in enumerate(text.splitlines(), 1) for t in line.split()]
+    out = []
+    machine = "default"
+    i = 0
+    while i < len(tokens):
+        t = tokens[i][0]
+        if t == "macdef":
+            break
+        if t == "machine" and i + 1 < len(tokens):
+            machine = tokens[i + 1][0]
+            i += 2
+            continue
+        if t == "default":
+            machine = "default"
+        elif t == "password" and i + 1 < len(tokens):
+            value, n = tokens[i + 1]
+            if value.lower() not in PLACEHOLDERS:
+                out.append({"line": n, "name": "NETRC_" + upper_name(machine), "value": value, "problem": NETRC_REASON,
+                            "kind": "password" if len(value) >= MIN_LENGTH else "short password",
+                            "becomes": None, "adds": None})
+            i += 2
+            continue
+        i += 1
+    return out
+
+
+def env_entries(text):
+    """Secrets in a .env file, which cannot be moved."""
+    out = []
+    for n, line in enumerate(text.splitlines(), 1):
+        m = ENV_RE.match(line.rstrip("\r"))
+        if not m or not m.group("val"):
+            continue
+        val = m.group("val")
+        if val[0] in "\"'":
+            close = val.find(val[0], 1)
+            if close < 0:
+                continue
+            value = val[1:close]
+            if val[0] == '"' and "$" in value:
+                continue
+        else:
+            value = re.split(r"[ \t]+#", val, maxsplit=1)[0]
+            if "$" in value:
+                continue
+        kind = kind_of(m.group("name"), value)
+        if kind:
+            out.append({"line": n, "name": m.group("name"), "kind": kind, "value": value, "problem": ENV_REASON,
+                        "becomes": None, "adds": None})
+    return out
+
+
+def tool_entries(kind, text, ready):
+    if kind == "npmrc":
+        return npmrc_entries(text, ready)
+    if kind == "aws":
+        return aws_entries(text, ready)
+    if kind == "netrc":
+        return netrc_entries(text)
+    return env_entries(text)
+
+
 def store_problem(store):
     """Why values cannot be moved into `store` here, or None when it and its command are present."""
     if store == "keychain":
@@ -336,6 +571,18 @@ def lookup(name, fish):
         kc = ' "%s"' % KEYCHAIN if KEYCHAIN else ""
         cmd = 'security find-generic-password -a "$USER" -s %s -w%s 2>/dev/null' % (name, kc)
     return "(%s)" % cmd if fish else '"$(%s)"' % cmd
+
+
+def plain_lookup(name):
+    """The command that prints the value, with no single quotes, to go inside `sh -c '...'`."""
+    if STORE == "secret-service":
+        return 'secret-tool lookup service %s account "$USER"' % name
+    if STORE == "pass":
+        return "pass show %s" % name
+    if STORE == "1password":
+        return "op read -n %s" % op_reference(name)
+    kc = ' "%s"' % KEYCHAIN if KEYCHAIN else ""
+    return 'security find-generic-password -a "$USER" -s %s -w%s' % (name, kc)
 
 
 def chezmoi_source(path):
@@ -439,32 +686,66 @@ def scan(extra):
             queue.append((source, depth))
         state, hist = git_history(path, [f[3] for f in found])
         for n, line, name, value, start, end, problem, kind in found:
-            if state == "none":
-                history = "not in a git repository"
-            elif state == "untracked":
-                history = "not tracked by git"
-            elif hist.get(value):
-                history = "yes"
-            else:
-                history = state if state.startswith("unknown") else "no"
             if source and not problem:
                 problem = "managed by chezmoi: move it in %s, then run `chezmoi apply`" % display(source)
-            item = {
-                "name": name,
-                "path": display(path),
-                "line": n,
-                "kind": kind,
-                "length": len(value),
-                "in_git_history": history,
-                "item": "%s:%d:%s" % (display(path), n, name),
-                "movable": problem is None and cannot_move is None,
-                "reason": problem or cannot_move,
-                # A 1Password line names the vault, which is known only when op answered.
-                "becomes": line[:start] + lookup(name, fish) + line[end:]
-                if not problem and STORE in WHERE and not (STORE == "1password" and cannot_move) else None,
-            }
-            items.append(item)
+            becomes = line[:start] + lookup(name, fish) + line[end:] if not problem and lines_ready(cannot_move) else None
+            items.append(make_item(path, n, name, kind, value, history_of(state, hist, value), problem, cannot_move,
+                                   becomes, None))
+    for path, kind in tool_files():
+        real = os.path.realpath(path)
+        if real in seen_real:
+            continue
+        seen_real.add(real)
+        try:
+            text = read_text(path)
+        except OSError:
+            continue
+        scanned.append(path)
+        entries = tool_entries(kind, text, lines_ready(cannot_move))
+        if not entries:
+            continue
+        source = chezmoi_source(path)
+        state, hist = git_history(path, [e["value"] for e in entries])
+        for e in entries:
+            problem = e["problem"]
+            if source and not problem:
+                problem = "managed by chezmoi: move it by hand in %s, then run `chezmoi apply`" % display(source)
+            items.append(make_item(path, e["line"], e["name"], e["kind"], e["value"], history_of(state, hist, e["value"]),
+                                   problem, cannot_move, None if problem else e["becomes"], None if problem else e["adds"]))
     return scanned, items
+
+
+def lines_ready(cannot_move):
+    """Whether the lines a move writes can be shown. A 1Password line names the vault, which is
+    known only when op answered."""
+    return STORE in WHERE and not (STORE == "1password" and cannot_move)
+
+
+def history_of(state, hist, value):
+    if state == "none":
+        return "not in a git repository"
+    if state == "untracked":
+        return "not tracked by git"
+    if hist.get(value):
+        return "yes"
+    return state if state.startswith("unknown") else "no"
+
+
+def make_item(path, n, name, kind, value, history, problem, cannot_move, becomes, adds):
+    return {
+        "name": name,
+        "path": display(path),
+        "line": n,
+        "kind": kind,
+        "length": len(value),
+        "in_git_history": history,
+        "item": "%s:%d:%s" % (display(path), n, name),
+        "movable": problem is None and cannot_move is None,
+        "reason": problem or cannot_move,
+        "becomes": becomes,
+        # An npm token also adds an export line to the startup file: {"path": ..., "line": ...}.
+        "adds": adds,
+    }
 
 
 def store_line(stores):
@@ -489,6 +770,8 @@ def print_scan(scanned, items, stores):
         print("   item     %s" % it["item"])
         if it["movable"]:
             print("   becomes  %s" % it["becomes"].strip())
+            if it.get("adds"):
+                print("   adds     %s  (to %s)" % (it["adds"]["line"], it["adds"]["path"]))
         else:
             print("   cannot move: %s" % it["reason"])
 
@@ -690,6 +973,79 @@ def write_atomic(path, text):
         raise
 
 
+def append_line(path, line):
+    """Add `line` at the end of a startup file and check its syntax. Returns None, or why the line
+    was not added. A missing file is created, readable only by the user."""
+    exists = os.path.isfile(path)
+    text = read_text(path) if exists else ""
+    new = text + ("\n" if text and not text.endswith("\n") else "") + line + "\n"
+    before_ok = syntax_check(path, text)[0] if exists else True
+    after_ok, label = syntax_check(path, new)
+    if before_ok and after_ok is False:
+        return "%s failed `%s` with the export line added, so it was left as it was" % (display(path), label)
+    if exists:
+        write_atomic(path, new)
+    else:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(new.encode("utf-8", "surrogateescape"))
+    return None
+
+
+def move_tool_file(path, kind, picks, dry_run, result):
+    """Move the picks of one file that a tool reads on its own. npm tokens become `${NAME}` with an
+    export line in the startup file, and AWS profiles get a `credential_process` line. Items in
+    ~/.netrc and .env files are skipped with the reason."""
+    original = read_text(path)
+    lines = original.splitlines(keepends=True)
+    entries = {e["line"]: e for e in tool_entries(kind, original, True)}
+    where = WHERE[STORE]
+    changed = []
+    for _, n, name in sorted(picks, key=lambda p: p[1]):
+        e = entries.get(n)
+        if not e or e["name"] != name:
+            result(name, n, "skipped", "line %d no longer holds %s as a literal value; scan again" % (n, name))
+            continue
+        if e["problem"]:
+            result(name, n, "skipped", e["problem"])
+            continue
+        eol = lines[n - 1][len(lines[n - 1].rstrip("\r\n")):]
+        if kind == "npmrc":
+            if dry_run:
+                result(name, n, "would move", "would store %s in %s, change the line to: %s, and add to %s: %s" % (
+                    name, where, e["becomes"], e["adds"]["path"], e["adds"]["line"]))
+                continue
+            reason = store(name, e["value"])
+            if reason:
+                result(name, n, "skipped", reason)
+                continue
+            reason = append_line(e["rc"], e["adds"]["line"])
+            if reason:
+                result(name, n, "skipped", "the value is stored in %s as %s, but %s" % (where, name, reason))
+                continue
+            lines[n - 1] = e["becomes"] + eol
+            changed.append((name, n, "stored in %s as %s; %s reads ${%s}, which %s exports" % (
+                where, name, display(path), name, e["adds"]["path"])))
+            continue
+        if dry_run:
+            result(name, n, "would move", "would store %s and %s in %s and replace their two lines with: %s" % (
+                e["id_name"], name, where, e["becomes"]))
+            continue
+        reason = store(e["id_name"], e["id_value"]) or store(name, e["value"])
+        if reason:
+            result(name, n, "skipped", reason)
+            continue
+        lines[n - 1] = e["becomes"] + eol
+        lines[e["id_line"] - 1] = ""
+        changed.append((name, n, "stored in %s as %s and %s; the profile reads them through credential_process" % (
+            where, e["id_name"], name)))
+    if changed:
+        write_atomic(path, "".join(lines))
+    for name, n, note in changed:
+        result(name, n, "moved", note)
+
+
 def parse_item(spec):
     try:
         path, line, name = spec.rsplit(":", 2)
@@ -715,10 +1071,16 @@ def move(specs, dry_run):
             for _, line, name in picks:
                 result(name, line, "skipped", "the file no longer exists")
             continue
+        kind = tool_kind(path)
         source = chezmoi_source(path)
         if source:
+            how = "by hand " if kind else ""
             for _, line, name in picks:
-                result(name, line, "skipped", "managed by chezmoi: move it in %s, then run `chezmoi apply`" % display(source))
+                result(name, line, "skipped", "managed by chezmoi: move it %sin %s, then run `chezmoi apply`" % (
+                    how, display(source)))
+            continue
+        if kind:
+            move_tool_file(path, kind, picks, dry_run, result)
             continue
         original = read_text(path)
         lines = original.splitlines(keepends=True)

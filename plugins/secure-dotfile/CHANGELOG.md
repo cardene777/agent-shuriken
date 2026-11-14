@@ -5,6 +5,11 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- `scan` also reads files that tools read on their own: `~/.npmrc`, `~/.aws/credentials`, `~/.netrc`, and the `.env` and `.env.*` files of the folder it runs in
+- `move` moves an npm token in `~/.npmrc` by storing it as `NPM_TOKEN`, or `NPM_TOKEN_<HOST>` for another registry, changing the line to `${NPM_TOKEN}`, and adding `export NPM_TOKEN="$(...)"` to the startup file of the shell in `$SHELL`, or `set -gx` in fish. It skips the token when a startup file already sets that variable
+- `move` moves an AWS profile in `~/.aws/credentials` by storing its two keys as `AWS_ACCESS_KEY_ID_<PROFILE>` and `AWS_SECRET_ACCESS_KEY_<PROFILE>` and replacing the two lines with one `credential_process` line that prints them from the store. A profile with `aws_session_token` is left alone
+- Passwords in `~/.netrc` and values in `.env` files are listed with the reason they are not moved, and whether they are in git history
+
 ## [0.6.0] - 2026-11-14
 
 - `scan` and `move` take `--store 1password`, which moves each picked value into 1Password through the 1Password CLI `op`: it finds the vault `op` stores new items in, named Private, Personal, or Employee, with `op vault list`, sends the value to `op item create -` inside an item JSON template on standard input, reads it back with `op read -n`, and changes the line to `"$(op read 'op://VAULT/NAME/password' 2>/dev/null)"`, or the same inside `( )` in fish. A name that already holds a different value is skipped, and so is a name that two or more items in the vault share. When `op` is not signed in or no single vault has one of those names, the move stops with exit code 3 and changes nothing

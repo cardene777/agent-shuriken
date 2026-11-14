@@ -16,6 +16,10 @@ Everything here is done by `skills/secure-dotfile/scripts/secure_dotfile.py`, wh
 | Loaded files | Every file those files load with `source FILE` or `. FILE`, when the path is fixed (`~`, `$HOME`, and `$ZDOTDIR` are expanded), up to five levels deep |
 | chezmoi | The chezmoi source file of any scanned file that chezmoi generates |
 | Your choice | Any file passed with `--file` |
+| npm | `~/.npmrc`: lines such as `//registry.npmjs.org/:_authToken=VALUE` |
+| AWS | `~/.aws/credentials`: the `aws_secret_access_key` of each profile |
+| netrc | `~/.netrc`: each `password` |
+| The folder it runs in | `.env` and every `.env.*` file in that folder, not in its subfolders: lines such as `NAME=value`, with or without `export` |
 
 ## What counts as a secret
 
@@ -73,6 +77,19 @@ The agent passes the items you picked, and the script does these steps for each 
 
 `--dry-run` shows what each item would become without storing or editing anything.
 
+## Files that tools read on their own
+
+These tools do not run a shell, so a line cannot read the value with `$( )`. Each file is handled the way its tool allows.
+
+| File | How it moves |
+|---|---|
+| `~/.npmrc` | npm replaces `${NAME}` in the file with the environment variable when it reads it. The move stores the token as `NPM_TOKEN`, or for another registry as `NPM_TOKEN_` followed by the host in capitals with `_` for other characters, such as `NPM_TOKEN_NPM_PKG_GITHUB_COM`. It adds `export NPM_TOKEN="$(...)"` at the end of your shell's startup file, chosen by `$SHELL`: `~/.zshrc`, `~/.bashrc`, or fish's `config.fish`, and checks that file's syntax. Only after that line is added does it change the `.npmrc` line to `${NPM_TOKEN}`. When a startup file already sets that variable, the token is skipped |
+| `~/.aws/credentials` | The AWS CLI runs `credential_process` and reads the keys it prints as JSON. The move stores a profile's two keys as `AWS_ACCESS_KEY_ID_PROFILE` and `AWS_SECRET_ACCESS_KEY_PROFILE`, with the profile name in capitals, and replaces the two lines with `credential_process = sh -c 'a=$(...) && s=$(...) && printf ...'`. When the store cannot be read, the command fails and the AWS CLI says so instead of using empty keys. A profile with `aws_session_token` holds temporary keys, so it is listed but not moved, and so is a profile that already has `credential_process` |
+| `~/.netrc` | Listed but not moved. curl and git read it as written and cannot read a value from elsewhere. For git, a credential helper such as osxkeychain or libsecret can keep the password instead |
+| `.env` and `.env.*` | Listed but not moved, with whether the value is in git history. `node --env-file` keeps `${VAR}` as written while python-dotenv expands it, so replacing the value with a reference could break the app. Keep the file out of git |
+
+Values that are already references, such as `${NPM_TOKEN}` or `$API_KEY`, are not listed.
+
 ## When an item is skipped
 
 | Reason | Why |
@@ -86,6 +103,9 @@ The agent passes the items you picked, and the script does these steps for each 
 | The Keychain did not answer | It is locked or waiting for a password. Unlock it and run the move again |
 | The secret service could not be reached | No D-Bus session or keyring is running, or the keyring is locked. The reason ends with `secret-tool`'s own message. Unlock or start the keyring and run the move again |
 | `pass` could not read the entry, or read it back | The GPG key is locked and no passphrase prompt could be shown, or the key is missing. The reason ends with the first line `pass` printed. `pass insert` encrypts with the public key, so the value may already be stored. Unlock the key and run the move again, and it finds the same value and edits the line |
+| A startup file already sets the npm token's variable | Adding another export line would set it twice. Move the token by hand under another name |
+| The AWS profile has `aws_session_token` or `credential_process` | Its keys are temporary, or it already reads them from elsewhere |
+| The item is in `~/.netrc` or a `.env` file | Those files cannot read a value from elsewhere for every tool, as the section above says |
 | 1Password could not be read, or two items have the name | `op` is not signed in or the 1Password app did not approve it, and the reason ends with the first line `op` printed. Or the vault holds two or more items titled with the name. Sign in, approve, or rename the other items, and run the move again |
 
 ## chezmoi
@@ -105,9 +125,9 @@ For each file with secrets inside a git repository, the script reads `git log --
 
 - Print, log, or send any part of a value
 - Overwrite a value already stored in the Keychain, the secret service, `pass`, or 1Password
-- Edit any line other than the lines of the values it moved
+- Edit any line other than the lines of the values it moved, apart from the export line it adds to your shell's startup file for an npm token
 - Write a backup of a file, since a backup would hold the secret
-- Rotate keys, or ask for the new value. You run `security add-generic-password -a "$USER" -s NAME -U -w` on macOS, `secret-tool store --label=NAME service NAME account "$USER"` on Linux, or `pass insert -f NAME` for `pass`, in your own terminal, which asks for the value without showing it, or edit the item in the 1Password app
+- Rotate keys, or ask for the new value. You run `security add-generic-password -a "$USER" -s NAME -U -w` on macOS, `secret-tool store --label=NAME service NAME account "$USER"` on Linux, or `pass insert -f NAME` for `pass`, in your own terminal, which asks for the value without showing it, or edit the item in the 1Password app. A moved npm token or AWS key is stored under the name the move used, such as `NPM_TOKEN` or `AWS_SECRET_ACCESS_KEY_DEFAULT`
 - Connect to the network itself, or keep files of its own. On Linux, `secret-tool` talks to the secret service only over your login session's D-Bus. When the password store is a git repository, `pass` commits each new entry there, encrypted, and never pushes it. With `--store 1password`, `op` talks to the 1Password app or to 1Password's servers to read and store the items in your account
 
 ## Limits
@@ -117,7 +137,8 @@ For each file with secrets inside a git repository, the script reads `git log --
 - The 1Password move was checked with a stand-in `op` that follows the help of op 2.42, not against a real 1Password account
 - Bitwarden is not a store. Its `bw` command takes a value on standard input, but reads one only when the session key `BW_SESSION` is set in the environment, so a new shell would get an empty variable, and writing the session key into a startup file would put a secret there again. Each read also takes about 3 seconds
 - Other stores are not supported
-- Files that tools read on their own, such as project `.env` files, `~/.npmrc`, `~/.netrc`, `~/.aws/credentials`, and SSH keys, are not scanned
+- SSH keys, a project's own `.npmrc`, `.env` files in subfolders, and the files that `AWS_SHARED_CREDENTIALS_FILE` or `NPM_CONFIG_USERCONFIG` point to are not scanned
+- A moved npm token reaches only an npm started from a shell that ran the export line. An editor or app started outside the shell does not get it
 - Assignments without `export` (or fish `set -x`), and values that span several lines, are not found
 - Copies of an old value in shell history, backups, or Time Machine stay where they are. Rotating the key makes them useless
 - A moved value is still exported to every program the shell starts, and tools that list a process's environment can show it. A key with wide access is safer read only for the command that needs it

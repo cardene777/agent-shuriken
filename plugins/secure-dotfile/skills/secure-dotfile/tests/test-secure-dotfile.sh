@@ -17,6 +17,8 @@ REAL_HOME="$HOME"
 KC="$T/test.keychain-db"
 OUT="$T/out"
 mkdir -p "$OUT"
+# The scan also reads the .env files of the folder it runs in, so it runs in an empty one.
+cd "$T" || exit 1
 
 ok() { PASS=$((PASS + 1)); printf 'ok    %s\n' "$1"; }
 ng() { FAIL=$((FAIL + 1)); printf 'FAIL  %s\n' "$1"; }
@@ -80,9 +82,26 @@ export S_OC_OTHER="$(rand Qz9 27)"
 export S_OT="$(rand Qz9 23)"
 export S_ON="$(rand Qz9 21)"
 export S_OF="$(rand Qz9 29)"
+# Values in files that tools read on their own.
+export S_NPM="$(rand npm_ 36)"
+export S_NPMGH="$(rand ghp_ 36)"
+export S_NPM2="$(rand npm_ 36)"
+keyid() { python3 -c 'import secrets,string,sys; print(sys.argv[1]+"".join(secrets.choice(string.ascii_uppercase+string.digits) for _ in range(16)))' "$1"; }
+export S_AK="$(keyid AKIA)"
+export S_SK="$(rand Qz9 37)"
+export S_AK2="$(keyid AKIA)"
+export S_SK2="$(rand Qz9 37)"
+export S_AKT="$(keyid ASIA)"
+export S_SKT="$(rand Qz9 37)"
+export S_ST="$(rand Qz9 60)"
+export S_NETRC="$(rand Qz9 20)"
+export S_ENV="$(rand Qz9 26)"
+export S_ENVLOCAL="$(rand Qz9 24)"
+export S_ENVSUB="$(rand Qz9 22)"
 ALL_SECRETS=(S_GH S_OAI S_NAME S_AWS S_SPACE S_SOURCED S_GIT S_FISH S_ENVD S_CONFLICT S_CONFLICT_OTHER S_SHARED S_CZ S_BACKSLASH S_NONASCII
   S_PG S_MYSQL S_DBPASS S_PIN S_LOCAL S_MYPASSWD S_LXA S_LXC S_LXC_OTHER S_LXD S_LXF S_PA S_PC S_PC_OTHER S_PL S_PF
-  S_OA S_OS S_OC S_OC_OTHER S_OT S_ON S_OF)
+  S_OA S_OS S_OC S_OC_OTHER S_OT S_ON S_OF
+  S_NPM S_NPMGH S_NPM2 S_AK S_SK S_AK2 S_SK2 S_AKT S_SKT S_ST S_NETRC S_ENV S_ENVLOCAL S_ENVSUB)
 
 H="$T/home"
 mkdir -p "$H/.config/fish" "$H/.config/direnv/env.d" "$H/dotfiles" "$H/.local/share/chezmoi"
@@ -733,6 +752,164 @@ docs_op() {
     grep -q -- "--store 1password" "$HERE/../SKILL.md"
 }
 check "the docs describe moving into 1Password and why Bitwarden is not a store" "docs_op"
+
+# ---------------------------------------------------------------------------
+# Files that tools read on their own: ~/.npmrc, ~/.aws/credentials, ~/.netrc, and the .env files
+# of the folder the scan runs in. Values move into the stand-in secret-tool, so these checks run
+# on any system.
+
+TH="$T/tools/home"
+TH2="$T/tools/home2"
+TS="$T/tools/store"
+TP="$T/tools/project"
+mkdir -p "$TH/.aws" "$TH2" "$TS" "$TP/sub"
+printf 'registry=https://registry.npmjs.org/\n//registry.npmjs.org/:_authToken=%s\n//npm.pkg.github.com/:_authToken=%s\n' "$S_NPM" "$S_NPMGH" > "$TH/.npmrc"
+printf '[default]\naws_access_key_id = %s\naws_secret_access_key = %s\n\n[work]\naws_access_key_id = %s\naws_secret_access_key = %s\n\n[temp]\naws_access_key_id = %s\naws_secret_access_key = %s\naws_session_token = %s\n' \
+  "$S_AK" "$S_SK" "$S_AK2" "$S_SK2" "$S_AKT" "$S_SKT" "$S_ST" > "$TH/.aws/credentials"
+printf 'machine api.example.com login tester password %s\n' "$S_NETRC" > "$TH/.netrc"
+printf '# shell setup\n' > "$TH/.zshrc"
+printf '# shell setup\n' > "$TH/.bashrc"
+# A second home whose startup file already sets NPM_TOKEN.
+printf '//registry.npmjs.org/:_authToken=%s\n' "$S_NPM2" > "$TH2/.npmrc"
+printf 'export NPM_TOKEN="$(cat ~/.npm-token)"\n' > "$TH2/.zshrc"
+# The project: .env is untracked, .env.local was committed, and sub/.env is one folder down.
+printf 'API_TOKEN=%s\n' "$S_ENV" > "$TP/.env"
+printf 'LOCAL_SECRET_KEY=%s\n' "$S_ENVLOCAL" > "$TP/.env.local"
+printf 'SUB_TOKEN=%s\n' "$S_ENVSUB" > "$TP/sub/.env"
+git -C "$TP" init -q
+git -C "$TP" -c user.name=test -c user.email=test@example.com add -f .env.local
+git -C "$TP" -c user.name=test -c user.email=test@example.com commit -qm init
+tf() { (cd "$TP" && HOME="$TH" SHELL=/bin/zsh PATH="$FAKEBIN:$PATH" FAKE_SECRET_DIR="$TS" SECURE_DOTFILE_STORE=secret-service SECURE_DOTFILE_KEYCHAIN="$KC" "$@"); }
+in_ts() { printf '%s' "$2" | cmp -s - "$TS/$1.$USER"; }
+# The fields of the scanned item at this path and line, as JSON.
+titem() { python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(json.dumps(next((i for i in d["items"] if i["path"]==sys.argv[2] and i["line"]==int(sys.argv[3])), {})))' "$1" "$2" "$3" 2>/dev/null; }
+# A field of an item read from standard input, following the keys given.
+tget() {
+  python3 -c '
+import json, sys
+v = json.loads(sys.stdin.read() or "{}")
+for k in sys.argv[1:]:
+    v = v.get(k) if isinstance(v, dict) else None
+print("" if v is None else v)' "$@"
+}
+lookup_of() { printf '"$(secret-tool lookup service %s account "$USER" 2>/dev/null)"' "$1"; }
+want_npmrc_line='//registry.npmjs.org/:_authToken=${NPM_TOKEN}'
+want_npm_export="export NPM_TOKEN=$(lookup_of NPM_TOKEN)"
+
+TJ="$OUT/tf-scan.json"
+tf python3 "$SCRIPT" scan --json > "$TJ" 2>> "$OUT/tf-scan.err"
+tf_npm_scan() {
+  local it
+  it="$(titem "$TJ" '~/.npmrc' 2)"
+  [ "$(tget name <<< "$it")" = NPM_TOKEN ] && [ "$(tget length <<< "$it")" = "${#S_NPM}" ] && [ "$(tget movable <<< "$it")" = True ] &&
+    [ "$(tget becomes <<< "$it")" = "$want_npmrc_line" ] &&
+    [ "$(tget adds path <<< "$it")" = '~/.zshrc' ] && [ "$(tget adds line <<< "$it")" = "$want_npm_export" ]
+}
+check "scan lists the npm token in .npmrc with the line it becomes and the export line it adds" "tf_npm_scan"
+
+tf python3 "$SCRIPT" move --json --item "~/.npmrc:2:NPM_TOKEN" > "$OUT/tf-npm.json" 2>> "$OUT/tf-move.err"
+tf env SHELL=/bin/bash python3 "$SCRIPT" move --json --item "~/.npmrc:3:NPM_TOKEN_NPM_PKG_GITHUB_COM" > "$OUT/tf-npmgh.json" 2>> "$OUT/tf-move.err"
+tf_npm_moved() {
+  jnote "$OUT/tf-npm.json" NPM_TOKEN | grep -q '^moved stored in the secret service as NPM_TOKEN' &&
+    in_ts NPM_TOKEN "$S_NPM" && [ "$(sed -n 2p "$TH/.npmrc")" = "$want_npmrc_line" ] &&
+    [ "$(tail -n 1 "$TH/.zshrc")" = "$want_npm_export" ] && ! grep -qF "$S_NPM" "$TH/.npmrc"
+}
+check "move stores the npm token, rewrites .npmrc to the variable, and adds the export line" "tf_npm_moved"
+tf_npm_loaded() {
+  HOME="$TH" PATH="$FAKEBIN:$PATH" FAKE_SECRET_DIR="$TS" zsh -fc 'source ~/.zshrc; [ "$NPM_TOKEN" = "$S_NPM" ]' &&
+    HOME="$TH" PATH="$FAKEBIN:$PATH" FAKE_SECRET_DIR="$TS" bash --norc -c 'source ~/.bashrc; [ "$NPM_TOKEN_NPM_PKG_GITHUB_COM" = "$S_NPMGH" ]'
+}
+check "a new shell exports the moved npm token" "tf_npm_loaded"
+tf_npm_other() {
+  jnote "$OUT/tf-npmgh.json" NPM_TOKEN_NPM_PKG_GITHUB_COM | grep -q '^moved ' && in_ts NPM_TOKEN_NPM_PKG_GITHUB_COM "$S_NPMGH" &&
+    [ "$(sed -n 3p "$TH/.npmrc")" = '//npm.pkg.github.com/:_authToken=${NPM_TOKEN_NPM_PKG_GITHUB_COM}' ] &&
+    [ "$(tail -n 1 "$TH/.bashrc")" = "export NPM_TOKEN_NPM_PKG_GITHUB_COM=$(lookup_of NPM_TOKEN_NPM_PKG_GITHUB_COM)" ]
+}
+check "a token for another registry gets a variable named after its host" "tf_npm_other"
+
+tf2_before="$(cat "$TH2/.npmrc" "$TH2/.zshrc" | cksum)"
+(cd "$TP" && HOME="$TH2" SHELL=/bin/zsh PATH="$FAKEBIN:$PATH" FAKE_SECRET_DIR="$TS" SECURE_DOTFILE_STORE=secret-service SECURE_DOTFILE_KEYCHAIN="$KC" \
+  python3 "$SCRIPT" move --json --item "~/.npmrc:1:NPM_TOKEN") > "$OUT/tf-npmset.json" 2>> "$OUT/tf-move.err"
+tf_npm_set() {
+  jnote "$OUT/tf-npmset.json" NPM_TOKEN | grep -q '^skipped .*already sets NPM_TOKEN' &&
+    [ "$(cat "$TH2/.npmrc" "$TH2/.zshrc" | cksum)" = "$tf2_before" ] && ! grep -rqF "$S_NPM2" "$TS"
+}
+check "an npm token whose variable a startup file already sets is skipped and no file changes" "tf_npm_set"
+
+tf_aws_scan() {
+  local d w
+  d="$(titem "$TJ" '~/.aws/credentials' 3)"
+  w="$(titem "$TJ" '~/.aws/credentials' 7)"
+  [ "$(tget name <<< "$d")" = AWS_SECRET_ACCESS_KEY_DEFAULT ] && [ "$(tget movable <<< "$d")" = True ] &&
+    tget becomes <<< "$d" | grep -q "^credential_process = sh -c .*AWS_ACCESS_KEY_ID_DEFAULT.*AWS_SECRET_ACCESS_KEY_DEFAULT" &&
+    [ "$(tget name <<< "$w")" = AWS_SECRET_ACCESS_KEY_WORK ] && tget becomes <<< "$w" | grep -q 'AWS_SECRET_ACCESS_KEY_WORK'
+}
+check "scan lists each AWS profile's secret key with the credential_process line it becomes" "tf_aws_scan"
+tf_temp_listed() {
+  local it
+  it="$(titem "$TJ" '~/.aws/credentials' 11)"
+  [ "$(tget movable <<< "$it")" = False ] && tget reason <<< "$it" | grep -q 'session token'
+}
+
+tf python3 "$SCRIPT" move --json --item "~/.aws/credentials:3:AWS_SECRET_ACCESS_KEY_DEFAULT" \
+  --item "~/.aws/credentials:11:AWS_SECRET_ACCESS_KEY_TEMP" > "$OUT/tf-aws.json" 2>> "$OUT/tf-move.err"
+aws_section() { awk -v s="[$1]" '$0==s{f=1;next} /^\[/{f=0} f' "$TH/.aws/credentials"; }
+tf_aws_moved() {
+  jnote "$OUT/tf-aws.json" AWS_SECRET_ACCESS_KEY_DEFAULT | grep -q '^moved ' &&
+    in_ts AWS_ACCESS_KEY_ID_DEFAULT "$S_AK" && in_ts AWS_SECRET_ACCESS_KEY_DEFAULT "$S_SK" &&
+    [ "$(aws_section default | grep -c '^credential_process = ')" -eq 1 ] && ! aws_section default | grep -q '^aws_' &&
+    aws_section work | grep -qF "$S_AK2" && aws_section work | grep -qF "$S_SK2" && ! grep -qF "$S_SK" "$TH/.aws/credentials"
+}
+check "move stores both AWS keys and replaces the two lines with credential_process" "tf_aws_moved"
+# Runs the command the way the AWS CLI does: split like a shell, then run without a shell.
+tf_aws_process() {
+  aws_section default | sed -n 's/^credential_process = //p' |
+    PATH="$FAKEBIN:$PATH" FAKE_SECRET_DIR="$TS" python3 -c '
+import json, os, shlex, subprocess, sys
+cmd = sys.stdin.read().strip()
+if not cmd:
+    sys.exit(1)
+r = subprocess.run(shlex.split(cmd), capture_output=True)
+d = json.loads(r.stdout)
+sys.exit(0 if r.returncode == 0 and d.get("Version") == 1 and d.get("AccessKeyId") == os.environ["S_AK"] and d.get("SecretAccessKey") == os.environ["S_SK"] else 1)' 2>/dev/null
+}
+check "the credential_process command prints both AWS keys as the JSON the AWS CLI reads" "tf_aws_process"
+tf_aws_temp() {
+  tf_temp_listed && jnote "$OUT/tf-aws.json" AWS_SECRET_ACCESS_KEY_TEMP | grep -q '^skipped .*session token' &&
+    aws_section temp | grep -qF "$S_SKT" && aws_section temp | grep -qF "$S_ST" && [ ! -e "$TS/AWS_SECRET_ACCESS_KEY_TEMP.$USER" ]
+}
+check "an AWS profile with a session token is listed as not movable and left as it was" "tf_aws_temp"
+tf_stdin_only() {
+  [ -s "$TS/args" ] && in_ts NPM_TOKEN "$S_NPM" && in_ts AWS_SECRET_ACCESS_KEY_DEFAULT "$S_SK" &&
+    python3 -c 'import os,sys; t=open(sys.argv[1]).read(); sys.exit(1 if any(os.environ[n] in t or os.environ[n][:4] in t for n in sys.argv[2:]) else 0)' \
+      "$TS/args" S_NPM S_NPMGH S_AK S_SK
+}
+check "npm and AWS values reach the store only on standard input" "tf_stdin_only"
+
+netrc_item="$(titem "$TJ" '~/.netrc' 1)"
+netrc_before="$(cksum < "$TH/.netrc")"
+tf python3 "$SCRIPT" move --json --item "$(tget item <<< "$netrc_item")" > "$OUT/tf-netrc.json" 2>> "$OUT/tf-move.err"
+tf_netrc() {
+  [ "$(tget movable <<< "$netrc_item")" = False ] && tget reason <<< "$netrc_item" | grep -q 'credential helper' &&
+    [ "$(cksum < "$TH/.netrc")" = "$netrc_before" ]
+}
+check "scan lists a .netrc password as not movable and names git's credential helper" "tf_netrc"
+
+tf_env() {
+  [ "$(jfield "$TJ" API_TOKEN movable)" = False ] && jfield "$TJ" API_TOKEN reason | grep -q 'env' &&
+    [ "$(jfield "$TJ" API_TOKEN in_git_history)" = 'not tracked by git' ] &&
+    [ "$(jfield "$TJ" LOCAL_SECRET_KEY movable)" = False ] && [ "$(jfield "$TJ" LOCAL_SECRET_KEY in_git_history)" = yes ] &&
+    [ -z "$(jfield "$TJ" SUB_TOKEN name)" ] && [ ! -s "$OUT/tf-scan.err" ]
+}
+check "scan lists secrets in the current folder's .env files as not movable, with their git history, and skips subfolders" "tf_env"
+docs_tools() {
+  local f
+  for f in skills/secure-dotfile/SKILL.md README.md README.ja.md docs/how-it-works.md docs/how-it-works.ja.md; do
+    grep -q '\.npmrc' "$HERE/../../../$f" && grep -q 'credential_process' "$HERE/../../../$f" &&
+      grep -q '\.netrc' "$HERE/../../../$f" && grep -q '\.env\.\*' "$HERE/../../../$f" || return 1
+  done
+}
+check "the docs describe the tool files it scans and how each is moved or why not" "docs_tools"
 
 # ---------------------------------------------------------------------------
 # No output holds a value or its first 4 characters.
