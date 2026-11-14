@@ -38,11 +38,12 @@ You can also call it: run `/docs-publish:docs-publish` in Claude Code, or type `
 In GitHub Copilot CLI, write `/docs-publish` in your request, and in Gemini CLI, describe the task.
 
 1. The agent reads your project: the README, the package manifest, the public API, the examples, the tests, and any existing docs
-2. The agent proposes the second language, the docs folder, and the pages: three to five concepts, one API page per function, class, or command, and one Cookbook page per task. You confirm or change them
-3. The script lays out the folders and starter pages, and the agent writes each page in the source language, usually English
-4. The agent translates every page into the second language, and the script records each translation
-5. The script checks every page and link, and the agent fixes what it reports until nothing is left
-6. With your agreement, the agent links the docs from your README. Nothing is committed, so you review the new files first
+2. When you name projects whose docs yours should follow, such as a sibling library, and agree, the agent reads their table of contents and up to five pages each, and takes only their structure
+3. The agent proposes the second language, the docs folder, and the pages: three to five concepts, one API page per function, class, or command, and one Cookbook page per task. You confirm or change them
+4. The script lays out the folders and starter pages, and the agent writes each page in the source language, usually English
+5. The agent translates every page into the second language, and the script records each translation
+6. The script checks every page and link, and the agent fixes what it reports until nothing is left
+7. With your agreement, the agent links the docs from your README. Nothing is committed, so you review the new files first
 
 While work is left, the check looks like this.
 
@@ -165,6 +166,7 @@ In short:
 - It writes only inside the docs folder, and adds links to your README only when you agree. It never overwrites, moves, or deletes a file
 - It runs its own Python script, and runs your Quickstart and Cookbook commands to show their real output when they need nothing new installed. It asks before installing anything
 - With your agreement, it runs `gh issue list` and `gh issue view` on your project, which sends the repository's name to GitHub through your own `gh` sign-in
+- It reads the docs of projects you name to follow only with your agreement: the table of contents and up to five pages of each, through `gh api` for a GitHub repository, which sends its name to GitHub through your own `gh` sign-in, or with the agent's tool for reading web pages for another site. It takes only their structure, never copies their text, and records each project's name, address, and what was followed in the translation map
 - It keeps nothing outside your project. The pages and the translation map stay in your docs folder until you delete them
 
 ## License

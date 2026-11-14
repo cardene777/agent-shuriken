@@ -43,8 +43,9 @@ missing=""
 for lang in en de; do for p in $PAGES; do [ -f "$T/s/docs/$lang/$p" ] || missing="$missing $lang/$p"; done; done
 check "scaffold writes every page in every language" '[ -z "$missing" ]'
 check "a slug ending in .md is used without the extension" '[ -f "$T/s/docs/en/api/createCart.md" ] && [ ! -e "$T/s/docs/en/api/createCart.md.md" ]'
-check "the map has version 1 and the source language first" \
-  '[ "$(jq -r "[.version, (.languages | map(.code) | join(\",\"))] | join(\" \")" "$T/s/docs/_translation-map.json")" = "1 en,de" ]'
+check "the map has version 2 and the source language first" \
+  '[ "$(jq -r "[.version, (.languages | map(.code) | join(\",\"))] | join(\" \")" "$T/s/docs/_translation-map.json")" = "2 en,de" ]'
+check "a plan without projects to follow keeps an empty list" '[ "$(jq -c .follow "$T/s/docs/_translation-map.json")" = "[]" ]'
 check "the map lists the pages in reading order" \
   '[ "$(jq -r ".pages | map(.path) | join(\" \")" "$T/s/docs/_translation-map.json")" = "$PAGES" ]'
 check "the source part index links every planned page" 'grep -qxF -- "- [Carts](carts.md)" "$T/s/docs/en/concepts/README.md"'
@@ -62,6 +63,26 @@ printf 'my own words\n' > "$T/k/docs/en/quickstart.md"
 out="$(cd "$T/k" && dp scaffold "$T/plan.json")"
 check "an existing page is kept as it is" '[ "$(cat "$T/k/docs/en/quickstart.md")" = "my own words" ]'
 check "a kept page is reported as kept" 'printf "%s\n" "$out" | grep -q "^kept  docs/en/quickstart.md (it already exists)"'
+
+# Projects to follow: recorded from the plan, never fetched by the script.
+FOLLOW='[{"name": "Sibling A", "url": "https://git.example.org/acme/sibling-a", "adopted": "One API page per function, with parameters, return value, and errors in that order"}, {"name": "Sibling B", "url": "https://docs.example.com/sibling-b/", "adopted": "A Cookbook page per task, named as the task"}]'
+jq --argjson f "$FOLLOW" '. + {follow: $f}' "$T/plan.json" > "$T/follow.json"
+mkdir -p "$T/fdry" "$T/f2"
+out="$(cd "$T/fdry" && dp scaffold --dry-run "$T/follow.json")"; rc=$?
+(cd "$T/f2" && dp scaffold "$T/follow.json") >/dev/null 2>&1
+check "a plan with projects to follow is shown and kept in the map" \
+  '[ "$rc" = 0 ] && printf "%s\n" "$out" | grep -qxF "follow Sibling A (https://git.example.org/acme/sibling-a): One API page per function, with parameters, return value, and errors in that order" && [ "$(jq -c .follow "$T/f2/docs/_translation-map.json")" = "$(jq -c .follow "$T/follow.json")" ]'
+python3 - "$T/plan.json" "$T/badfollow.json" <<'PY'
+import json, sys
+plan = json.load(open(sys.argv[1]))
+plan["follow"] = [{"name": "", "url": "http://plain.example.org", "adopted": ""}, "Sibling C",
+                  {"name": "Sibling D", "url": "https://d.example.org", "adopted": "x" * 201}]
+json.dump(plan, open(sys.argv[2], "w"))
+PY
+mkdir -p "$T/badf"
+(cd "$T/badf" && dp scaffold "$T/badfollow.json") >/dev/null 2>"$T/err"; rc=$?
+check "a plan with a bad project to follow is refused and names the entry" \
+  '[ "$rc" = 2 ] && [ -z "$(ls -A "$T/badf")" ] && grep -q "follow\[0\]: give the project" "$T/err" && grep -q "follow\[0\]: url must start with https://" "$T/err" && grep -q "follow\[0\]: adopted must" "$T/err" && grep -q "follow\[1\]: list each project" "$T/err" && grep -q "follow\[2\]: adopted must" "$T/err"'
 
 cat > "$T/bad.json" <<'JSON'
 {"project": "Acme",
@@ -422,6 +443,28 @@ check "translated refuses the source language" '[ "$rc" = 2 ] && grep -q "en is 
 out="$(dp translated --root "$C/docs" concepts/none.md)"; rc=$?
 check "translated refuses a page not in the map" '[ "$rc" = 1 ] && has "de/concepts/none.md: it is not in the map"'
 
+# --- projects to follow in the map
+# follow_copy <name>: a copy of the finished set whose map, in the current version, follows two projects
+follow_copy() { case_copy "$1"; jq --argjson f "$FOLLOW" '.version = 2 | .follow = $f' "$C/docs/_translation-map.json" > "$C/x" && mv "$C/x" "$C/docs/_translation-map.json"; }
+follow_copy follow
+plain_out="$(dp check --root "$D")"; plain_rc=$?
+out="$(run_check)"; rc=$?
+check "check passes with and without projects to follow" \
+  '[ "$plain_rc" = 0 ] && [ "$rc" = 0 ] && printf "%s\n" "$plain_out" | tail -1 | grep -q "^No problems." && printf "%s\n" "$out" | tail -1 | grep -q "^No problems."'
+check "check names the projects the docs follow" \
+  'has "Follows: Sibling A (https://git.example.org/acme/sibling-a), Sibling B (https://docs.example.com/sibling-b/)" && ! printf "%s\n" "$plain_out" | grep -q "^Follows:"'
+dp add --root "$C/docs" concepts/caching.md --title "Caching" >/dev/null 2>&1
+dp drop --root "$C/docs" cookbook/apply-a-coupon.md >/dev/null 2>&1
+dp translated --root "$C/docs" faq.md >/dev/null 2>&1
+check "add, drop, and translated keep the projects to follow" \
+  '[ "$(jq -c .follow "$C/docs/_translation-map.json")" = "$(jq -c . <<< "$FOLLOW")" ] && jq -e ".pages[] | select(.path == \"concepts/caching.md\")" "$C/docs/_translation-map.json" >/dev/null'
+case_copy v1
+jq 'del(.follow) | .version = 1' "$C/docs/_translation-map.json" > "$C/x" && mv "$C/x" "$C/docs/_translation-map.json"
+run_check >/dev/null 2>&1; rc=$?
+dp add --root "$C/docs" concepts/caching.md --title "Caching" >/dev/null 2>&1
+check "a version 1 map is read as following no project and written as version 2" \
+  '[ "$rc" = 0 ] && [ "$(jq -c "[.version, .follow]" "$C/docs/_translation-map.json")" = "[2,[]]" ]'
+
 # --- add and drop
 case_copy add
 out="$(dp add --root "$C/docs" concepts/caching.md --title "Caching")"; rc=$?
@@ -457,15 +500,33 @@ check "drop refuses one of the five parts" '[ "$rc" = 2 ]'
 
 # --- the map
 case_copy version
-jq '.version = 2' "$C/docs/_translation-map.json" > "$C/x" && mv "$C/x" "$C/docs/_translation-map.json"
+jq '.version = 3' "$C/docs/_translation-map.json" > "$C/x" && mv "$C/x" "$C/docs/_translation-map.json"
 run_check >/dev/null 2>"$T/err"; rc=$?
-check "a map of another version exits 2" '[ "$rc" = 2 ] && grep -q "has version 2; this script reads version 1 only" "$T/err"'
+check "a map of version 3 exits 2" '[ "$rc" = 2 ] && grep -q "has version 3; this script reads versions 1 and 2 only" "$T/err"'
+case_copy badfollow
+jq '.version = 2 | .follow = [{"name": "X", "url": "ftp://x.example.org", "adopted": "Layout"}]' "$C/docs/_translation-map.json" > "$C/x" && mv "$C/x" "$C/docs/_translation-map.json"
+run_check >/dev/null 2>"$T/err"; rc=$?
+check "a map with a bad project to follow exits 2" '[ "$rc" = 2 ] && grep -q "follow\[0\]: url must start with https://" "$T/err"'
 case_copy badpage
 jq '.pages += [{"path": "../../etc/passwd", "source_sha256": {}}]' "$C/docs/_translation-map.json" > "$C/x" && mv "$C/x" "$C/docs/_translation-map.json"
 run_check >/dev/null 2>"$T/err"; rc=$?
 check "a map with a path outside the layout exits 2" '[ "$rc" = 2 ] && grep -q "is not a page path this layout allows" "$T/err"'
 dp check --root "$T/nowhere" >/dev/null 2>"$T/err"; rc=$?
 check "check without a map exits 2" '[ "$rc" = 2 ] && grep -q "No _translation-map.json in" "$T/err"'
+
+# --- the docs
+SKILL="$HERE/../SKILL.md"
+PLUGIN="$HERE/../../.."
+follow_step="$(awk '/^### 2\. Read the projects to follow/{f=1; next} /^### /{f=0} f' "$SKILL")"
+step_says() { printf '%s\n' "$follow_step" | grep -qiF -- "$1"; }
+check "SKILL.md reads the projects to follow only when the user names them and agrees" \
+  'step_says "only when the user names" && step_says "agrees" && step_says "gh api" && step_says "web" && step_says "five pages" && step_says "skip"'
+check "SKILL.md says not to copy text from the docs it follows" 'step_says "never copy"'
+# The Japanese words for "named" and "agreement", built from code points so this file stays in English.
+ja_named="$(python3 -c 'print("".join(map(chr, (0x540d, 0x6307, 0x3057, 0x305f))))')"
+ja_agree="$(python3 -c 'print("".join(map(chr, (0x540c, 0x610f))))')"
+check "the READMEs say the docs of other projects are read only with the user's agreement" \
+  'grep -i "projects you name" "$PLUGIN/README.md" | grep -q "agreement" && grep -F "$ja_named" "$PLUGIN/README.ja.md" | grep -qF "$ja_agree"'
 
 printf '%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
