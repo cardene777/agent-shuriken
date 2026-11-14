@@ -7,6 +7,10 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ## [Unreleased]
 
+### Changed
+
+- `scripts/check.sh` no longer reads the files under `.ikkan/`, the acceptance criteria the ikkan workflow keeps in Japanese, when it looks for text outside English
+
 ## [0.8.1] - 2026-11-14
 
 ### Plugins

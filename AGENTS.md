@@ -23,6 +23,7 @@ docs/                                     Repository docs, each with a .ja.md co
 scripts/check.sh                          Repository checks, run before every pull request
 scripts/release.sh                        Releases a plugin or the repository
 CHANGELOG.md                              The repository's releases
+.ikkan/specs/                             Acceptance criteria kept by the ikkan workflow, not installed with any plugin
 ```
 
 [Creating a plugin](docs/creating-a-plugin.md) walks through adding a plugin, and [Releasing](docs/releasing.md) explains versions.
@@ -54,6 +55,7 @@ These plugins touch credentials, accounts, and files. Every change must keep the
 
 - Write code, comments, script output, commits, and pull requests in English.
 - Every README and doc page has a Japanese counterpart named `<name>.ja.md` with the same headings, tables, and code blocks. Update both in the same pull request.
+- The records under `.ikkan/` are written by the ikkan workflow in Japanese. `scripts/check.sh` does not read them for English, and they are not part of any plugin.
 - `SKILL.md` tells the agent to talk to the user in the language the user writes in.
 - HTML pages default to English and offer an English / 日本語 switch in the header. Keep all UI strings in one dictionary per page.
 - Text that users copy back into the chat, and any format a script parses, must not depend on the UI language.

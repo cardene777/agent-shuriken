@@ -117,6 +117,12 @@ Suggested ports are not registered, not in use on this machine, and not a defaul
 Ask for one of those defaults by name and the agent offers it anyway.
 Suggestions stay below 32768, where the operating system starts handing out temporary ports.
 
+## Other tools that use the registry
+
+The init-project plugin registers the ports it picks here with portman's own `add` command, and skips every port registered here, so a project it sets up never gets a port another project holds.
+A git worktree is a folder of its own, so it gets its own port.
+When a project's folder no longer exists, for example after its worktree is removed, `doctor` lists its ports under `[Folders gone]` so you can remove them.
+
 ## What it writes into a project
 
 In `.env.local`, it writes only the lines between `# >>> portman >>>` and `# <<< portman <<<`: `PORT`, set to the port named `app` or the project's first port, and one `PORT_<NAME>` per registered port.

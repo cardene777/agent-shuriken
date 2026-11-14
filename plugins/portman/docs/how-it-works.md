@@ -103,6 +103,7 @@ The defaults it skips are 1433 (SQL Server), 3000 and 3001 (Node.js, React, Next
 | `[Collisions]` | Registered ports held by another program, with a free port to move to. Counted as problems |
 | `[In use, owner unclear]` | Registered ports in use whose owner cannot be told |
 | `[In use by its own project]` | Registered ports held by the project's own process or container |
+| `[Folders gone]` | Registered ports of projects whose recorded folder no longer exists, such as a removed git worktree, with the command to remove them. Shown only when there are some. Counted as problems |
 | `[Unregistered]` | Ports from 1024 to 32767 that `lsof`, `/proc/net`, or `docker` list and that are not registered. When neither `lsof` nor `/proc/net` can be read, it says `unknown`, never `none` |
 
 The last line counts the problems.

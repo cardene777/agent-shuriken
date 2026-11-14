@@ -365,8 +365,9 @@ check_no_email() {
 }
 
 # Japanese appears only in *.ja.md pages and the allowed files, or as the language name on a switch.
+# The records under .ikkan/ are written by the ikkan workflow in Japanese and are not installed with any plugin.
 check_english() {
-  own_text_files | grep -vE '\.ja\.md$' | grep -vxF -f <(printf '%s\n' "${JA_ALLOWED[@]}") | python3 -c '
+  own_text_files | grep -vE '\.ja\.md$' | grep -vE '^\.ikkan/' | grep -vxF -f <(printf '%s\n' "${JA_ALLOWED[@]}") | python3 -c '
 import re, sys
 japanese = re.compile("[%s-%s%s-%s%s-%s]+" % tuple(map(chr, (0x3040, 0x30FF, 0x3400, 0x9FFF, 0xFF66, 0xFF9F))))
 bad = 0
