@@ -78,7 +78,8 @@ semgrep_out = {"errors": [], "results": [
      "extra": {"message": "Avoid eval", "metadata": {"category": "security"}}},
     {"check_id": "rules.no-console-log", "path": "src/b.ts", "start": {"line": 3, "col": 1},
      "extra": {"message": "Use the logger instead of console.log", "metadata": {"category": "best-practice"}}}]}
-w(".venv/bin/semgrep", "#!/bin/sh\nprintf '%%s\\n' \"$@\" > '%s/semgrep-args'\ncat <<'EOF'\n%s\nEOF\n" % (t, json.dumps(semgrep_out)))
+w(".venv/bin/semgrep", "#!/bin/sh\nprintf '%%s\\n' \"$@\" > '%s/semgrep-args'\nprintf '%%s\\n' \"$SEMGREP_SETTINGS_FILE\" > '%s/semgrep-env'\n"
+  "cat <<'EOF'\n%s\nEOF\n" % (t, t, json.dumps(semgrep_out)))
 w(".semgrep.yml", "rules: []\n")
 eslint_config = {"rules": {"@typescript-eslint/no-deprecated": [2], "no-console": [1], "react/no-deprecated": [0]}}
 eslint_out = [{"filePath": r + "/src/a.ts", "messages": [
@@ -174,6 +175,12 @@ sys.exit(0 if metrics and configs == [".semgrep.yml"] else 1)
 PY
 }
 check "semgrep runs with the project's rule file, metrics off, and no registry rules" "semgrep_args_ok \"$T/semgrep-args\""
+semgrep_settings_ok() { # semgrep's settings file was in a folder outside HOME that is gone after the scan
+  local s
+  s="$(cat "$T/semgrep-env" 2>/dev/null)"
+  [ -n "$s" ] && [ "${s#"$HOME"}" = "$s" ] && [ ! -e "$(dirname "$s")" ] && [ ! -e "$HOME/.semgrep" ]
+}
+check "semgrep keeps its settings and log out of the home folder" "semgrep_settings_ok"
 check "a semgrep finding of a rule about deprecation is listed as a deprecated call" \
   "[ \"\$(q 'sorted((c[\"rule\"], c[\"file\"], c[\"line\"]) for c in (d.get(\"deprecated_calls\") or {}).get(\"items\", []) if c[\"tool\"]==\"semgrep\")')\" = \"[('rules.no-moment', 'src/a.ts', 3), ('rules.old-client', 'src/b.ts', 2)]\" ]"
 check "a semgrep finding of a security rule is listed nowhere" \

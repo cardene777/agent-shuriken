@@ -31,6 +31,7 @@ These are skipped.
 | Large files | Non-blank lines | Over 500 |
 | Duplication | Lines are compared after removing whitespace, blank lines, imports, comments, and lines of only brackets. Any 8 lines in a row that appear in two places are joined into the longest matching block | 8 or more lines, outside test files |
 | Unused dependencies | Approximate, by name. For each `package.json`, the names in `dependencies` and `devDependencies` are looked for in the files under its folder: module names in `import`, `export ... from`, `import()`, `require()`, and `require.resolve()` (`lodash/fp` counts for `lodash`), quoted names in config files (`*.config.*`, `.*rc`, `tsconfig*.json`) and in the other fields of `package.json`, and command names in `scripts`, including the `bin` names of packages installed in `node_modules`, such as `tsc` for `typescript`. A package is also used when a used package lists it in `peerDependencies`, when a config names it by its short name (`react` for `eslint-plugin-react`), or, for `@types/<name>`, when `<name>` is used. When `knip` ran, its unused dependencies are listed instead, and the search does not run | No use was found |
+| Deprecated calls | Found by the tools that are already installed, described in the next section: `ruff` with its deprecation rules, `semgrep` with the project's own rule files, and `eslint` with the deprecation rules its config turns on. Each tool that did not run is listed with the reason, and the measure counts as not checked when none ran | A tool reported a call to a deprecated API |
 
 Function length is not measured for Ruby, Lua, shell, Elixir, Clojure, and Haskell; the summary names those languages when they appear.
 
@@ -39,9 +40,12 @@ Function length is not measured for Ruby, Lua, shell, Elixir, Clojure, and Haske
 | Tool | Where it is looked for | What is kept |
 |---|---|---|
 | `knip` | `node_modules/.bin/knip`, when `package.json` exists | Unused files, exports, and types, and dependencies that are used but not listed. Its unused dependencies are shown under the unused dependencies measure, not here |
-| `ruff` | `.venv/bin/ruff`, then `PATH`, when the folder has Python files | Rules `C901`, `PLR0911`, `PLR0912`, `PLR0913`, and `PLR0915` (complexity, returns, branches, arguments, and statements) |
+| `ruff` | `.venv/bin/ruff`, then `PATH`, when the folder has Python files | Rules `C901`, `PLR0911`, `PLR0912`, `PLR0913`, and `PLR0915` (complexity, returns, branches, arguments, and statements). Its rules for deprecated APIs go to the deprecated calls measure: `UP005`, `UP019`, `UP021`, `UP023`, `UP026`, and `UP035` (aliases and imports of the standard library), `NPY001`, `NPY003`, and `NPY201` (numpy), `PT020` (pytest), `PD007` (pandas), `PYI057` (typing), `G010` (logging), `AIR301`, `AIR302`, `AIR311`, and `AIR312` (Airflow 3), and `TID251` (APIs the project bans in its ruff config). The security rule `S306` is not used |
+| `semgrep` | `.venv/bin/semgrep`, then `PATH`, when the folder has `.semgrep.yml`, `.semgrep.yaml`, or `.semgrep/` | It runs as `semgrep scan --json --quiet --metrics off --disable-version-check` with a `--config` for each of those rule files, and never with registry rules such as `auto` or `p/...`. A finding whose rule id or `category` says security is dropped. A finding whose rule id, message, or metadata mentions deprecation goes to the deprecated calls measure. The rest are kept here. semgrep's settings, anonymous id, and log go to a temporary folder that is removed after the run, so `~/.semgrep` is not written and a semgrep login is not used |
+| `eslint` | `node_modules/.bin/eslint`, when `package.json` exists | It first runs `eslint --print-config` on a JavaScript or TypeScript file. Only when the config turns on a deprecation rule, such as `@typescript-eslint/no-deprecated`, `react/no-deprecated`, `import/no-deprecated`, or `deprecation/deprecation`, it runs `eslint --format json .` with the project's config and keeps the findings of those rules, under the deprecated calls measure |
 
 A tool that is not installed is reported as not run, with the reason.
+A tool that stops with an error is also reported as not run, with its exit code and the first line it wrote, so that its findings are not counted as zero.
 The plugin never downloads or installs a tool.
 
 ## The ranking
@@ -77,7 +81,7 @@ The folder is readable only by you, and the files stay until you delete them.
 | `notes.json` | The agent's notes |
 | `report.html` | The report, with the data inside the page. It loads nothing from the network |
 
-`scan.json` records the version of its format. `explain` and `report` refuse a `scan.json` written by another version of the plugin and ask you to run `scan` again, so a report is never built from data it cannot read.
+`scan.json` records the version of its format, now 3, which added the deprecated calls. `explain` and `report` refuse a `scan.json` written by another version of the plugin and ask you to run `scan` again, so a report is never built from data it cannot read.
 
 ### Text hidden in marker lines
 

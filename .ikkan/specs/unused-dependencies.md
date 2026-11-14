@@ -12,7 +12,7 @@
 | 要約に`Unused deps:`の行があり、数と、名前で探した概算かknipの結果かを示す | `bash plugins/techdebt/skills/techdebt/tests/test-techdebt.sh`の検査`"the summary shows the unused dependencies and how they were found"`が通る | #65 |
 | 報告に、英語と日本語の見出しを持つ「使っていない依存」の欄がある | `bash plugins/techdebt/skills/techdebt/tests/test-techdebt.sh`の検査`"the report has a tab for unused dependencies"`が通る | #65 |
 | `package.json`の無いフォルダーでは、使っていない依存を測らず、要約にその行を出さない | `bash plugins/techdebt/skills/techdebt/tests/test-techdebt.sh`の検査`"a folder without package.json has no unused dependencies measure"`が通る | #65 |
-| `scan.json`の形式の版は2で、`report`と`explain`は版1の`scan.json`を終了コード2で断り、`scan`のやり直しを求める | `bash plugins/techdebt/skills/techdebt/tests/test-techdebt.sh`の検査`"scan.json has schema 2"`と`"report refuses a scan.json of schema 1 and asks to scan again"`が通る | #65 |
+| `scan.json`の形式の版は使っていない依存の欄を足した2より後(今は3)で、`report`と`explain`は版1の`scan.json`を終了コード2で断り、`scan`のやり直しを求める | `bash plugins/techdebt/skills/techdebt/tests/test-techdebt.sh`の検査`"scan.json has schema 3"`と`"report refuses a scan.json of schema 1 and asks to scan again"`が通る | #65 |
 | `SKILL.md`と`docs/how-it-works.md`と`docs/how-it-works.ja.md`と`README.md`と`README.ja.md`が、使っていない依存の測り方を概算と書く | `bash plugins/techdebt/skills/techdebt/tests/test-techdebt.sh`の検査`"the docs call the unused dependencies approximate"`が通る | #65 |
 | `scan`はパッケージの管理の命令(`npm`、`npx`、`pnpm`、`yarn`、`bunx`)を動かさず、ネットにつながない | `bash plugins/techdebt/skills/techdebt/tests/test-techdebt.sh`の検査`"the scan runs no package manager"`が通る | #65 |
 | knipが入っている時は今どおりknipを動かし、その結果を道具の欄に残す | `bash plugins/techdebt/skills/techdebt/tests/test-techdebt.sh`の検査`"installed knip ran"`が通る | #65 |
