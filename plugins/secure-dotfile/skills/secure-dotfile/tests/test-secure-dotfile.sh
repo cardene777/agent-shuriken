@@ -66,8 +66,14 @@ export S_LXC="$(rand Qz9 23)"
 export S_LXC_OTHER="$(rand Qz9 23)"
 export S_LXD="$(rand Qz9 21)"
 export S_LXF="$(rand Qz9 29)"
+# Values moved into the stand-in pass.
+export S_PA="$(rand Qz9 26)"
+export S_PC="$(rand Qz9 24)"
+export S_PC_OTHER="$(rand Qz9 24)"
+export S_PL="$(rand Qz9 22)"
+export S_PF="$(rand Qz9 28)"
 ALL_SECRETS=(S_GH S_OAI S_NAME S_AWS S_SPACE S_SOURCED S_GIT S_FISH S_ENVD S_CONFLICT S_CONFLICT_OTHER S_SHARED S_CZ S_BACKSLASH S_NONASCII
-  S_PG S_MYSQL S_DBPASS S_PIN S_LOCAL S_MYPASSWD S_LXA S_LXC S_LXC_OTHER S_LXD S_LXF)
+  S_PG S_MYSQL S_DBPASS S_PIN S_LOCAL S_MYPASSWD S_LXA S_LXC S_LXC_OTHER S_LXD S_LXF S_PA S_PC S_PC_OTHER S_PL S_PF)
 
 H="$T/home"
 mkdir -p "$H/.config/fish" "$H/.config/direnv/env.d" "$H/dotfiles" "$H/.local/share/chezmoi"
@@ -382,6 +388,130 @@ docs_linux() {
   done
 }
 check "the docs describe moving on Linux with secret-tool" "docs_linux"
+
+# ---------------------------------------------------------------------------
+# move into pass, through a stand-in pass
+#
+# The stand-in records its arguments and keeps each entry as plain text in
+# PASSWORD_STORE_DIR/NAME.gpg, where the real pass keeps the encrypted file. `insert -e` stores
+# one line from standard input followed by a newline, as the real one does, and
+# FAKE_PASS_LOCKED=1 makes `show` fail the way gpg does when the key cannot be used.
+
+PH="$T/pass/home"
+PS="$T/pass/store"
+PASSBIN="$T/pass/bin"
+PLOG="$T/pass/args"
+mkdir -p "$PH/.config/fish" "$PS" "$PASSBIN" "$T/pass/empty"
+printf 'stand-in-key\n' > "$PS/.gpg-id"
+cat > "$PASSBIN/pass" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$FAKE_PASS_LOG"
+case "${1:-} ${2:-}" in
+  "insert -e")
+    IFS= read -r line
+    printf '%s\n' "$line" > "$PASSWORD_STORE_DIR/$3.gpg"
+    ;;
+  show\ *)
+    f="$PASSWORD_STORE_DIR/$2.gpg"
+    if [ ! -f "$f" ]; then
+      echo "Error: $2 is not in the password store." >&2
+      exit 1
+    fi
+    if [ "${FAKE_PASS_LOCKED:-}" = 1 ]; then
+      echo "gpg: decryption failed: No secret key" >&2
+      exit 2
+    fi
+    cat "$f"
+    ;;
+  *)
+    echo "pass: unexpected arguments" >&2
+    exit 2
+    ;;
+esac
+SH
+chmod 755 "$PASSBIN/pass"
+printf 'export PA_TOKEN="%s"\nexport PA_CONFLICT_TOKEN=%s\nexport PA_LOCKED_TOKEN=%s\n' "$S_PA" "$S_PC" "$S_PL" > "$PH/.bashrc"
+printf 'set -gx PA_FISH_TOKEN %s\n' "$S_PF" > "$PH/.config/fish/config.fish"
+printf '%s\n' "$S_PC_OTHER" > "$PS/PA_CONFLICT_TOKEN.gpg"
+pz() { HOME="$PH" PATH="$PASSBIN:$PATH" PASSWORD_STORE_DIR="$PS" FAKE_PASS_LOG="$PLOG" SECURE_DOTFILE_KEYCHAIN="$KC" "$@"; }
+in_pass() { printf '%s\n' "$2" | cmp -s - "$PS/$1.gpg"; }
+shows() { local n; n="$(grep -c "^show $1\$" "$PLOG" 2>/dev/null)"; echo "${n:-0}"; }
+want_pass_bash='export PA_TOKEN="$(pass show PA_TOKEN 2>/dev/null)"'
+want_pass_fish='set -gx PA_FISH_TOKEN (pass show PA_FISH_TOKEN 2>/dev/null)'
+
+PJ="$OUT/pass-scan.json"
+pz python3 "$SCRIPT" scan --store pass --json > "$PJ" 2>> "$OUT/pass-scan.err"
+pass_scan() { [ "$(jfield "$PJ" PA_TOKEN movable)" = True ] && [ "$(jfield "$PJ" PA_TOKEN becomes)" = "$want_pass_bash" ]; }
+check "with --store pass, scan shows the pass line as what the line becomes" "pass_scan"
+
+pz python3 "$SCRIPT" scan --json > "$OUT/pass-stores.json" 2>> "$OUT/pass-scan.err"
+pz env PASSWORD_STORE_DIR="$T/pass/empty" python3 "$SCRIPT" scan --json > "$OUT/pass-stores-empty.json" 2>> "$OUT/pass-scan.err"
+pz python3 "$SCRIPT" scan > "$OUT/pass-stores.txt" 2>> "$OUT/pass-scan.err"
+has_store() { python3 -c 'import json,sys; sys.exit(0 if sys.argv[2] in json.load(open(sys.argv[1])).get("stores", []) else 1)' "$1" "$2" 2>/dev/null; }
+pass_stores() {
+  has_store "$OUT/pass-stores.json" pass && ! has_store "$OUT/pass-stores-empty.json" pass &&
+    grep -q -- '--store pass' "$OUT/pass-stores.txt"
+}
+check "scan lists pass as a store to choose only when the password store is initialized" "pass_stores"
+
+pass_before="$(cksum < "$PH/.bashrc")"
+pz env FAKE_PASS_LOCKED=1 python3 "$SCRIPT" move --store pass --json --item "$(jfield "$PJ" PA_LOCKED_TOKEN item)" > "$OUT/pass-locked.json" 2>> "$OUT/pass-move.err"
+pass_after_locked="$(cksum < "$PH/.bashrc")"
+pass_locked() {
+  jnote "$OUT/pass-locked.json" PA_LOCKED_TOKEN | grep -q '^skipped .*could not be read back.*gpg: decryption failed' &&
+    [ "$pass_after_locked" = "$pass_before" ]
+}
+check "with --store pass, a value that cannot be read back is skipped and the file is left as it was" "pass_locked"
+
+pz python3 "$SCRIPT" move --store pass --json --item "$(jfield "$PJ" PA_TOKEN item)" --item "$(jfield "$PJ" PA_CONFLICT_TOKEN item)" \
+  --item "$(jfield "$PJ" PA_FISH_TOKEN item)" > "$OUT/pass-move.json" 2>> "$OUT/pass-move.err"
+pass_moved() {
+  jnote "$OUT/pass-move.json" PA_TOKEN | grep -q '^moved stored in pass as PA_TOKEN' &&
+    in_pass PA_TOKEN "$S_PA" && [ "$(sed -n 1p "$PH/.bashrc")" = "$want_pass_bash" ] &&
+    awk '/^insert -e PA_TOKEN$/{s=1} s && /^show PA_TOKEN$/{f=1} END{exit !f}' "$PLOG"
+}
+check "with --store pass, move stores the value in pass, reads it back, and rewrites the line" "pass_moved"
+pass_stdin_only() {
+  [ -s "$PLOG" ] && in_pass PA_TOKEN "$S_PA" && in_pass PA_FISH_TOKEN "$S_PF" &&
+    python3 -c 'import os,sys; t=open(sys.argv[1]).read(); sys.exit(1 if any(os.environ[n] in t or os.environ[n][:4] in t for n in sys.argv[2:]) else 0)' \
+      "$PLOG" S_PA S_PC S_PC_OTHER S_PL S_PF
+}
+check "with --store pass, the value reaches pass only on standard input" "pass_stdin_only"
+pass_fish() { [ "$(sed -n 1p "$PH/.config/fish/config.fish")" = "$want_pass_fish" ] && in_pass PA_FISH_TOKEN "$S_PF"; }
+check "with --store pass, a fish line reads the value with fish command substitution" "pass_fish"
+pass_conflict() {
+  jnote "$OUT/pass-move.json" PA_CONFLICT_TOKEN | grep -q '^skipped a different value is already stored as PA_CONFLICT_TOKEN' &&
+    in_pass PA_CONFLICT_TOKEN "$S_PC_OTHER" && grep -qF "$S_PC" "$PH/.bashrc"
+}
+check "with --store pass, a name that holds a different value is skipped and not overwritten" "pass_conflict"
+pass_loaded() {
+  local before
+  before="$(shows PA_TOKEN)"
+  HOME="$PH" PATH="$PASSBIN:$PATH" PASSWORD_STORE_DIR="$PS" FAKE_PASS_LOG="$PLOG" bash --norc -c 'source ~/.bashrc; [ "$PA_TOKEN" = "$S_PA" ]' &&
+    [ "$(shows PA_TOKEN)" -gt "$before" ]
+}
+check "with --store pass, a new bash loads the moved value through pass" "pass_loaded"
+
+# Without pass on PATH. Only the commands the scan runs are linked into it.
+HOME="$PH" PATH="$NOST" PASSWORD_STORE_DIR="$PS" SECURE_DOTFILE_KEYCHAIN="$KC" \
+  "$PY3" "$SCRIPT" move --store pass --item "~/.bashrc:3:PA_LOCKED_TOKEN" > "$OUT/pass-none.txt" 2> "$OUT/pass-none.err"
+pass_none_rc=$?
+HOME="$PH" PATH="$NOST" PASSWORD_STORE_DIR="$PS" SECURE_DOTFILE_KEYCHAIN="$KC" \
+  "$PY3" "$SCRIPT" scan --store pass --json > "$OUT/pass-none.json" 2>> "$OUT/pass-scan.err"
+pass_none() {
+  [ "$pass_none_rc" -eq 3 ] && grep -q 'needs the pass command' "$OUT/pass-none.err" && [ ! -s "$OUT/pass-scan.err" ] &&
+    [ "$(jfield "$OUT/pass-none.json" PA_LOCKED_TOKEN movable)" = False ] &&
+    jfield "$OUT/pass-none.json" PA_LOCKED_TOKEN reason | grep -q 'needs the pass command'
+}
+check "without pass, move --store pass exits 3 and names it, and scan says why it cannot move" "pass_none"
+docs_pass() {
+  local f
+  for f in skills/secure-dotfile/SKILL.md README.md README.ja.md docs/how-it-works.md docs/how-it-works.ja.md; do
+    grep -q "pass show" "$HERE/../../../$f" && grep -q "KWallet" "$HERE/../../../$f" || return 1
+  done
+  grep -q -- "--store pass" "$HERE/../SKILL.md"
+}
+check "the docs describe moving into pass and reaching KWallet through secret-tool" "docs_pass"
 
 # ---------------------------------------------------------------------------
 # No output holds a value or its first 4 characters.
