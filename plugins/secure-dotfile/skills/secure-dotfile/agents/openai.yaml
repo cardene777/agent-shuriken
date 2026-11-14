@@ -1,6 +1,6 @@
 interface:
   display_name: "Secure Dotfile"
-  short_description: "Move secrets out of shell startup files into the Keychain or secret service"
+  short_description: "Move secrets out of shell startup files into the Keychain, secret service, or pass"
   default_prompt: "Use $secure-dotfile to find API keys written into my shell config and move them to the Keychain."
 
 policy:

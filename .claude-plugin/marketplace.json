@@ -58,7 +58,7 @@
     {
       "name": "secure-dotfile",
       "source": "./plugins/secure-dotfile",
-      "description": "Find API keys and tokens written into your shell startup files and move the ones you pick into the macOS Keychain or the Linux secret service, without the agent seeing any value"
+      "description": "Find API keys and tokens written into your shell startup files and move the ones you pick into the macOS Keychain, the Linux secret service, or pass, without the agent seeing any value"
     },
     {
       "name": "session-handoff",

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Find secrets written into shell startup files and move the ones you pick into the Keychain or the secret service.
+"""Find secrets written into shell startup files and move the ones you pick into the Keychain, the secret service, or pass.
 
 Usage:
 
-  secure_dotfile.py scan [--file PATH]... [--json]
-  secure_dotfile.py move --item PATH:LINE:NAME [--item ...] [--dry-run] [--json]
+  secure_dotfile.py scan [--file PATH]... [--store STORE] [--json]
+  secure_dotfile.py move --item PATH:LINE:NAME [--item ...] [--store STORE] [--dry-run] [--json]
 
 `scan` reads the zsh, bash, and fish startup files, `.envrc`, direnv `env.d` files, the files
 they source, and every PATH given with `--file`. It lists each `export NAME=value` (or fish
@@ -15,17 +15,22 @@ listed only under a password name, such as `PGPASSWORD` or `MYSQL_PWD`, as a `sh
 
 `move` stores each picked value, reads it back, and replaces the literal with a command that
 reads the value when the shell starts. On macOS the value goes into the Keychain through the
-`security` command. On Linux it goes into the secret service (GNOME Keyring, or KeePassXC with
-its secret service turned on) through `secret-tool` from libsecret. It runs the shell's syntax
-check on the edited file and restores the file when the check fails.
+`security` command. On Linux it goes into the secret service (GNOME Keyring, KWallet, or
+KeePassXC with its secret service turned on) through `secret-tool` from libsecret. With
+`--store pass` it goes into the password store of `pass`, encrypted with the user's GPG key, on
+any system. It runs the shell's syntax check on the edited file and restores the file when the
+check fails.
 
 No part of a value is ever printed: the output names the variable, the file and line, the kind,
-and the length. The values stay inside this process and are handed to `security` or
-`secret-tool` on its standard input, never on its command line.
+and the length. The values stay inside this process and are handed to `security`,
+`secret-tool`, or `pass` on its standard input, never on its command line.
 
-`SECURE_DOTFILE_STORE` picks the store, `keychain` or `secret-service`; the default is the
-Keychain on macOS and the secret service on Linux. `SECURE_DOTFILE_KEYCHAIN` names a keychain
-file to use instead of the default keychain. Both are meant for tests against a throwaway store.
+`--store` picks the store: `keychain`, `secret-service`, or `pass`. Without it the store is
+`SECURE_DOTFILE_STORE` when set, or else the Keychain on macOS and the secret service on Linux.
+`scan` names the stores that can be used here. `SECURE_DOTFILE_STORE` and
+`SECURE_DOTFILE_KEYCHAIN`, which names a keychain file to use instead of the default keychain,
+are meant for tests against a throwaway store. `pass` reads `PASSWORD_STORE_DIR` as it always
+does.
 
 Exit codes: 0 done, 2 bad arguments, 3 moving is not supported on this system or the store's
 command is missing.
@@ -44,7 +49,8 @@ ACCOUNT = os.environ.get("USER") or os.path.basename(HOME)
 KEYCHAIN = os.environ.get("SECURE_DOTFILE_KEYCHAIN", "")
 STORE = os.environ.get("SECURE_DOTFILE_STORE") or (
     "keychain" if sys.platform == "darwin" else "secret-service" if sys.platform.startswith("linux") else "")
-WHERE = {"keychain": "the keychain", "secret-service": "the secret service"}
+WHERE = {"keychain": "the keychain", "secret-service": "the secret service", "pass": "pass"}
+PASS_DIR = os.environ.get("PASSWORD_STORE_DIR") or os.path.join(HOME, ".password-store")
 TIMEOUT = 120
 MIN_LENGTH = 8
 MAX_INCLUDE_DEPTH = 5
@@ -234,25 +240,42 @@ def kind_of(name, value):
     return NAME_KIND[word] if word else None
 
 
-def moving_problem():
-    """Why values cannot be moved here, or None when the store and its command are present."""
-    if STORE == "keychain":
+def store_problem(store):
+    """Why values cannot be moved into `store` here, or None when it and its command are present."""
+    if store == "keychain":
         if sys.platform == "darwin" and shutil.which("security"):
             return None
         return "moving needs macOS and its security command"
-    if STORE == "secret-service":
+    if store == "secret-service":
         if shutil.which("secret-tool"):
             return None
         return "moving on Linux needs secret-tool from libsecret, such as the libsecret-tools package"
-    if STORE:
-        return "SECURE_DOTFILE_STORE must be keychain or secret-service"
-    return "moving needs macOS, or Linux with secret-tool"
+    if store == "pass":
+        if not shutil.which("pass"):
+            return "moving into pass needs the pass command"
+        if not os.path.isfile(os.path.join(PASS_DIR, ".gpg-id")):
+            return "moving into pass needs a password store; set one up with `pass init` and your GPG key ID first"
+        return None
+    if store:
+        return "SECURE_DOTFILE_STORE must be keychain, secret-service, or pass"
+    return "moving needs macOS, Linux with secret-tool, or pass"
+
+
+def moving_problem():
+    return store_problem(STORE)
+
+
+def usable_stores():
+    """The stores that values can be moved into here, in the order `--store` lists them."""
+    return [s for s in WHERE if store_problem(s) is None]
 
 
 def lookup(name, fish):
     """The command that reads the value back when the shell starts."""
     if STORE == "secret-service":
         cmd = 'secret-tool lookup service %s account "$USER" 2>/dev/null' % name
+    elif STORE == "pass":
+        cmd = "pass show %s 2>/dev/null" % name
     else:
         kc = ' "%s"' % KEYCHAIN if KEYCHAIN else ""
         cmd = 'security find-generic-password -a "$USER" -s %s -w%s 2>/dev/null' % (name, kc)
@@ -386,11 +409,20 @@ def scan(extra):
     return scanned, items
 
 
-def print_scan(scanned, items):
+def store_line(stores):
+    """Where the move would store values, and the other stores `--store` can pick here."""
+    cannot_move = moving_problem()
+    line = "Cannot move here: %s" % cannot_move if cannot_move else "Moves into %s" % WHERE[STORE]
+    others = ["%s (add --store %s)" % (WHERE[s], s) for s in stores if s != STORE]
+    return line + (". Also available: " + ", ".join(others) if others else "")
+
+
+def print_scan(scanned, items, stores):
     print("Scanned %d files: %s" % (len(scanned), ", ".join(display(p) for p in scanned) or "none"))
     if not items:
         print("Found no secrets written into them.")
         return
+    print(store_line(stores))
     print("Found %d secret%s written into them.\n" % (len(items), "" if len(items) == 1 else "s"))
     for i, it in enumerate(items, 1):
         print("%d  %s  %s:%d" % (i, it["name"], it["path"], it["line"]))
@@ -403,7 +435,8 @@ def print_scan(scanned, items):
 
 
 # ---------------------------------------------------------------------------
-# Stores: the macOS Keychain through `security`, the secret service through `secret-tool`
+# Stores: the macOS Keychain through `security`, the secret service through `secret-tool`, and
+# the password store through `pass`
 
 
 def kc_args():
@@ -417,8 +450,9 @@ def quote(s):
 def first_line(err):
     """The first line of a command's error output, as `: line`, or "" when it wrote none.
 
-    Only `secret-tool` errors are passed here. They describe the D-Bus session or the keyring and
-    never repeat the value, which reaches the command on standard input."""
+    Only `secret-tool` and `pass` errors are passed here. They describe the D-Bus session, the
+    keyring, or the GPG key and never repeat the value, which reaches the command on standard
+    input."""
     lines = err.decode("utf-8", "replace").strip().splitlines()
     if not lines:
         return ""
@@ -427,6 +461,16 @@ def first_line(err):
 
 def read_secret(name):
     """(state, value bytes, exit code, error). State is `found`, `missing`, or `error`."""
+    if STORE == "pass":
+        # The entry's file tells whether it exists, so a missing entry needs no GPG key.
+        if not os.path.isfile(os.path.join(PASS_DIR, name + ".gpg")):
+            return "missing", b"", 1, ""
+        r = subprocess.run(["pass", "show", name], capture_output=True, timeout=TIMEOUT)
+        err = first_line(r.stderr)
+        if r.returncode != 0:
+            return "error", b"", r.returncode, err
+        # `pass insert -e` stores the value followed by a newline.
+        return "found", r.stdout[:-1] if r.stdout.endswith(b"\n") else r.stdout, 0, err
     if STORE == "secret-service":
         # A missing item exits 1 with no output; an unreachable secret service exits 1 and says why.
         r = subprocess.run(["secret-tool", "lookup", "service", name, "account", ACCOUNT],
@@ -447,8 +491,12 @@ def read_secret(name):
 def add_secret(name, value):
     """Store the value on the command's standard input, so it never reaches a command line.
 
-    Returns (exit code, error). `secret-tool store` replaces an item silently, so `store` reads
-    first and calls this only when the name holds nothing."""
+    Returns (exit code, error). `secret-tool store` and `pass insert` replace an item silently, so
+    `store` reads first and calls this only when the name holds nothing."""
+    if STORE == "pass":
+        r = subprocess.run(["pass", "insert", "-e", name], input=value.encode("utf-8") + b"\n",
+                           capture_output=True, timeout=TIMEOUT)
+        return r.returncode, first_line(r.stderr)
     if STORE == "secret-service":
         r = subprocess.run(["secret-tool", "store", "--label=%s (added by secure-dotfile)" % name,
                             "service", name, "account", ACCOUNT],
@@ -465,7 +513,6 @@ def add_secret(name, value):
 def store(name, value):
     """Put the value in the store. Returns None when it is there now, or the reason it is not."""
     want = value.encode("utf-8")
-    service = STORE == "secret-service"
     try:
         state, have, code, err = read_secret(name)
         if state == "found":
@@ -473,21 +520,28 @@ def store(name, value):
                 return None
             return "a different value is already stored as %s; remove or rename that item first" % name
         if state == "error":
-            if service:
+            if STORE == "secret-service":
                 return "could not reach the secret service (secret-tool exited with %d%s); " \
                        "it may be locked or not running" % (code, err)
+            if STORE == "pass":
+                return "could not read pass (pass exited with %d%s); the GPG key may be locked or missing" % (code, err)
             return "could not read the keychain (security exited with %d); it may be locked" % code
         added, added_err = add_secret(name, value)
         state, have, code, err = read_secret(name)
     except subprocess.TimeoutExpired:
         return "%s did not answer within %d s; it may be waiting for a password" % (WHERE[STORE], TIMEOUT)
-    if state != "found" or have != want:
-        if service and added != 0:
-            return "the value could not be stored in the secret service (secret-tool exited with %d%s)" % (added, added_err)
-        if service:
-            return "the value could not be stored and read back (secret-tool exited with %d%s)" % (code, err)
+    if state == "found" and have == want:
+        return None
+    if STORE == "keychain":
         return "the value could not be stored and read back (security exited with %d)" % code
-    return None
+    tool = "secret-tool" if STORE == "secret-service" else "pass"
+    if added != 0:
+        return "the value could not be stored in %s (%s exited with %d%s)" % (WHERE[STORE], tool, added, added_err)
+    if STORE == "pass":
+        # `pass insert` encrypts with the public key, so it succeeds while the private key is locked.
+        return "the value was stored in pass as %s but could not be read back (pass exited with %d%s); " \
+               "unlock the GPG key and run the move again" % (name, code, err)
+    return "the value could not be stored and read back (secret-tool exited with %d%s)" % (code, err)
 
 
 # ---------------------------------------------------------------------------
@@ -628,18 +682,25 @@ def main(argv):
     sub = ap.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("scan", help="list secrets written into shell startup files")
     s.add_argument("--file", action="append", default=[], help="also scan this file")
+    s.add_argument("--store", choices=list(WHERE), help="show the lines for this store")
     s.add_argument("--json", action="store_true")
-    m = sub.add_parser("move", help="move the picked secrets into the Keychain or the secret service")
+    m = sub.add_parser("move", help="move the picked secrets into the Keychain, the secret service, or pass")
     m.add_argument("--item", action="append", required=True, help="PATH:LINE:NAME from the scan")
+    m.add_argument("--store", choices=list(WHERE), help="the store to move the values into")
     m.add_argument("--dry-run", action="store_true")
     m.add_argument("--json", action="store_true")
     args = ap.parse_args(argv)
+    global STORE
+    if args.store:
+        STORE = args.store
     if args.cmd == "scan":
         scanned, items = scan(args.file)
+        stores = usable_stores()
         if args.json:
-            print(json.dumps({"scanned": [display(p) for p in scanned], "items": items}, indent=2))
+            print(json.dumps({"scanned": [display(p) for p in scanned], "store": STORE or None, "stores": stores,
+                              "items": items}, indent=2))
         else:
-            print_scan(scanned, items)
+            print_scan(scanned, items, stores)
         return 0
     cannot_move = moving_problem()
     if cannot_move:
