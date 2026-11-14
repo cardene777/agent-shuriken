@@ -4,7 +4,8 @@
 The pages live under one root folder, `docs` by default, with one folder per language and
 the same page paths in every language folder:
 
-    docs/_translation-map.json      the languages, the pages, and which translations are current
+    docs/_translation-map.json      the languages, the projects followed, the pages, and which
+                                    translations are current
     docs/<code>/README.md           the index of that language
     docs/<code>/quickstart.md
     docs/<code>/concepts/README.md  and one page per concept
@@ -16,7 +17,8 @@ The first language in the map is the source; every other language is translated 
 
 Commands (each takes --root, default `docs`):
     scaffold PLAN        Creates the folders, a starter page for every planned page in every
-                         language, and the map. PLAN is a JSON file, or - for standard input.
+                         language, and the map. PLAN is a JSON file, or - for standard input,
+                         and may list projects whose docs were followed, which the map keeps.
                          Never overwrites a file. --dry-run prints the files and writes nothing.
     add PATH --title T   Adds one page to every language and to the map.
     drop PATH            Removes one page from the map. Its files are left in place.
@@ -38,7 +40,10 @@ import tempfile
 from urllib.parse import unquote
 
 MAP_NAME = "_translation-map.json"
-MAP_VERSION = 1
+# Version 2 added the projects followed. A version 1 map is read as following none and written
+# back as version 2; a script that knows only version 1 refuses version 2 instead of dropping them.
+MAP_VERSION = 2
+READABLE_VERSIONS = (1, 2)
 TODO = "docs-publish:todo"
 PARTS = ("concepts", "api", "cookbook")
 FIXED = ("README.md", "quickstart.md", "concepts/README.md", "api/README.md", "cookbook/README.md", "faq.md")
@@ -51,6 +56,8 @@ PAGE_RE = re.compile(r"(?:%s)/(?:%s/)*%s\.md" % ("|".join(PARTS), SEGMENT, SEGME
 LANG_RE = re.compile(r"[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*")
 LABEL_RE = re.compile(r"[^\[\]\r\n]{1,80}")
 SHA_RE = re.compile(r"[0-9a-f]{64}")
+URL_RE = re.compile(r"https://[^\s\[\]()<>]{1,300}")
+ADOPTED_RE = re.compile(r"[^\r\n]{1,200}")
 
 FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
 HEADING_RE = re.compile(r"^ {0,3}(#{1,6})(?:[ \t]|$)")
@@ -114,8 +121,37 @@ def valid_title(title):
     return isinstance(title, str) and bool(title.strip()) and bool(LABEL_RE.fullmatch(title))
 
 
+def check_follow(value, errors):
+    """The projects whose docs were followed, as [{"name", "url", "adopted"}]. Absent means none."""
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        errors.append('follow: list the projects you followed as {"name": "...", "url": "https://...", "adopted": "..."}')
+        return []
+    out = []
+    for i, item in enumerate(value):
+        if not isinstance(item, dict):
+            errors.append('follow[%d]: list each project as {"name": "...", "url": "https://...", "adopted": "..."}' % i)
+            continue
+        name, url, adopted = item.get("name"), item.get("url"), item.get("adopted")
+        bad = False
+        if not valid_title(name):
+            errors.append("follow[%d]: give the project's name, up to 80 characters on one line, without [ or ]" % i)
+            bad = True
+        if not isinstance(url, str) or not URL_RE.fullmatch(url):
+            errors.append("follow[%d]: url must start with https:// and have no spaces" % i)
+            bad = True
+        if not isinstance(adopted, str) or not adopted.strip() or not ADOPTED_RE.fullmatch(adopted):
+            errors.append("follow[%d]: adopted must say which parts of the project's structure you followed, "
+                          "up to 200 characters on one line" % i)
+            bad = True
+        if not bad:
+            out.append({"name": name.strip(), "url": url, "adopted": adopted.strip()})
+    return out
+
+
 def read_plan(source):
-    """Return (project, languages, {page path: title}) from a plan, or raise Usage."""
+    """Return (project, languages, {page path: title}, projects followed) from a plan, or raise Usage."""
     try:
         if source == "-":
             text = sys.stdin.read()
@@ -132,6 +168,7 @@ def read_plan(source):
     if not valid_title(project):
         errors.append("project: give the project's name, up to 80 characters on one line")
     languages = check_languages(plan.get("languages"), errors)
+    follow = check_follow(plan.get("follow"), errors)
     titles = {}
     for part in PARTS:
         items = plan.get(part)
@@ -157,7 +194,7 @@ def read_plan(source):
                 titles[path] = title.strip()
     if errors:
         raise Usage("The plan has problems:\n" + "\n".join("  " + e for e in errors))
-    return project.strip(), languages, titles
+    return project.strip(), languages, titles, follow
 
 
 # ------------------------------------------------------------------ the map
@@ -175,11 +212,13 @@ def load_map(root):
             data = json.load(f)
     except (OSError, ValueError) as error:
         raise Usage("Cannot read %s: %s" % (path, error))
-    if not isinstance(data, dict) or data.get("version") != MAP_VERSION:
+    if not isinstance(data, dict) or data.get("version") not in READABLE_VERSIONS:
         version = data.get("version") if isinstance(data, dict) else None
-        raise Usage("%s has version %r; this script reads version %d only" % (path, version, MAP_VERSION))
+        raise Usage("%s has version %r; this script reads versions %s only"
+                    % (path, version, " and ".join(map(str, READABLE_VERSIONS))))
     errors = []
     languages = check_languages(data.get("languages"), errors, "languages in the map")
+    follow = check_follow(data.get("follow"), errors)
     codes = {l["code"] for l in languages}
     source = languages[0]["code"] if languages else None
     pages, seen = [], set()
@@ -207,7 +246,7 @@ def load_map(root):
     if errors:
         raise Usage("%s has problems:\n%s" % (path, "\n".join("  " + e for e in errors)))
     pages.sort(key=lambda page: order_key(page["path"]))
-    return {"version": MAP_VERSION, "languages": languages, "pages": pages}
+    return {"version": MAP_VERSION, "languages": languages, "follow": follow, "pages": pages}
 
 
 def write_map(root, data):
@@ -430,7 +469,7 @@ class Disk:
 
 def cmd_scaffold(args):
     root = args.root
-    project, languages, titles = read_plan(args.plan)
+    project, languages, titles, follow = read_plan(args.plan)
     if os.path.exists(map_path(root)):
         print("%s already exists, so the docs are already laid out. Use add for new pages." % map_path(root),
               file=sys.stderr)
@@ -456,10 +495,12 @@ def cmd_scaffold(args):
             written, kept = written + fresh, kept + (not fresh)
     if not args.dry_run:
         os.makedirs(root, exist_ok=True)
-        write_map(root, {"version": MAP_VERSION, "languages": languages,
+        write_map(root, {"version": MAP_VERSION, "languages": languages, "follow": follow,
                          "pages": [{"path": p, "source_sha256": {}} for p in paths]})
     for state, file in rows:
         print("%-5s %s" % (state, file))
+    for f in follow:
+        print("follow %s (%s): %s" % (f["name"], f["url"], f["adopted"]))
     codes = [l["code"] for l in languages]
     if args.dry_run:
         print("Would write %d pages and the map, and keep %d. Nothing was written (dry run)." % (written, kept))
@@ -698,6 +739,8 @@ def cmd_check(args):
         print("%s: %d pages in %s, translated from %s" % (root, len(pages), ", ".join(languages), source))
     else:
         print("%s: %d pages in %s" % (root, len(pages), source))
+    if data["follow"]:
+        print("Follows: %s" % ", ".join("%s (%s)" % (f["name"], f["url"]) for f in data["follow"]))
     if problems:
         print()
         for kind, message in sorted(problems, key=lambda p: (KIND_ORDER.index(p[0]), p[1])):

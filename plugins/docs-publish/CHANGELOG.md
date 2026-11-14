@@ -5,6 +5,10 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The docs can follow the docs of projects you name, such as a sibling library. Only with your agreement, the agent reads each one's table of contents and up to five pages, through `gh api` for a GitHub repository or its own tool for reading web pages for another site, takes only their structure, and never copies their text
+- The plan takes an optional `follow` list of the projects followed, with each one's name, address, and what was adopted. The translation map keeps it, `check` prints it under `Follows:`, and `add`, `drop`, and `translated` keep it
+- The translation map has version 2. A version 1 map is read as following no project and written back as version 2
+
 ## [0.1.1] - 2026-11-13
 
 - The README shows a finished Cookbook page, so you can see what the plugin writes before you install it

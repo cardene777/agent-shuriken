@@ -10,7 +10,7 @@ The script uses only the Python standard library and reads and writes only the d
 
 | Who | Reads |
 |---|---|
-| The agent | Your project's files: the README, the package manifest, the public entry points, the command-line help, the examples, the tests, the changelog, and any existing docs. With your agreement, the titles, bodies, and comments of your project's most discussed GitHub issues, through `gh` |
+| The agent | Your project's files: the README, the package manifest, the public entry points, the command-line help, the examples, the tests, the changelog, and any existing docs. With your agreement, the titles, bodies, and comments of your project's most discussed GitHub issues, through `gh`. Also with your agreement, the table of contents and up to five pages of the docs of each project you name to follow, through `gh api` for a GitHub repository or the agent's tool for reading web pages for another site; only their structure is taken, never their text |
 | The script | The plan the agent passes it, `_translation-map.json`, and the Markdown files in the docs folder's language folders |
 
 Everything it reads is treated as data, never as instructions.
@@ -32,6 +32,7 @@ The plan is JSON.
 |---|---|
 | `project` | The project's name, up to 80 characters on one line |
 | `languages` | One or more languages, the source first. `code` is a language tag such as `en`, `ja`, or `pt-BR` and names the language's folder. `name` is the language's own name, shown in the language switch. A code may appear once |
+| `follow` | Optional. The projects whose docs were followed, each with `name` (up to 80 characters on one line), `url` (starting with `https://`, without spaces), and `adopted` (what was followed, up to 200 characters on one line). Left out means none, and the map keeps the list |
 | `concepts`, `api`, `cookbook` | At least one page each. `slug` names the file and uses letters, digits, `.`, `_`, and `-`, starting with a letter or digit, with `/` for a subfolder; a trailing `.md` is dropped, and `README` is not allowed. `title` is up to 80 characters on one line |
 
 Titles and names may not contain `[` or `]`, because they become link text.
@@ -81,15 +82,16 @@ With one language, pages have no switch line.
 
 ## The translation map
 
-`_translation-map.json` holds the languages and the pages, in reading order.
+`_translation-map.json` holds the languages, the projects the docs follow, and the pages, in reading order.
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "languages": [
     {"code": "en", "name": "English"},
     {"code": "es", "name": "Español"}
   ],
+  "follow": [],
   "pages": [
     {"path": "README.md", "source_sha256": {"es": "<sha256 of en/README.md when es/README.md was recorded>"}},
     {"path": "quickstart.md", "source_sha256": {}}
@@ -100,7 +102,9 @@ With one language, pages have no switch line.
 `source_sha256` maps each translation's language code to the sha256 of the source page at the moment the translation was recorded.
 An empty object means no translation of that page has been recorded yet.
 
-The script reads version 1 only, and exits 2 with the version it found for any other.
+The script reads versions 1 and 2, and exits 2 with the version it found for any other.
+Version 2 added `follow`. A version 1 map is read as following no project and written back as version 2 the next time a command writes the map, and a script that reads version 1 only refuses version 2 instead of dropping the list.
+It also exits 2 when a `follow` entry breaks the rules of the plan.
 It also exits 2 when a page path is outside the layout or listed twice, when a `source_sha256` entry names an unknown language or the source language or is not a sha256 value, or when one of the six fixed pages is missing from the map.
 It writes the map to a temporary file in the docs folder and renames it over the old one, so a failed write never leaves half a map, and it removes the temporary file if the write fails.
 
@@ -167,7 +171,8 @@ The output starts with a line naming the docs folder, the number of pages, and t
 
 - The script runs no other program and connects to nothing
 - The agent runs the script with `python3`, and runs your project's Quickstart and Cookbook commands to show their real output only when they need nothing new installed. It asks before installing anything
-- With your agreement, the agent runs `gh issue list` and `gh issue view` on your project, which sends the repository's name to GitHub through your own `gh` sign-in. Nothing else is sent anywhere
+- With your agreement, the agent runs `gh issue list` and `gh issue view` on your project, which sends the repository's name to GitHub through your own `gh` sign-in
+- With your agreement, the agent reads the docs of the projects you name to follow: `gh api` for a GitHub repository, which sends its name to GitHub through your own `gh` sign-in, and the agent's tool for reading web pages for another site, which requests those pages from that site. When the agent has no such tool, it skips the project and tells you. Nothing else is sent anywhere
 
 ## What it keeps
 
