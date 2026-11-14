@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Find secrets written into shell startup files and move the ones you pick into the macOS Keychain.
+"""Find secrets written into shell startup files and move the ones you pick into the Keychain or the secret service.
 
 Usage:
 
@@ -13,18 +13,22 @@ in a word such as `_TOKEN`, `_API_KEY`, or `_PASSWORD`, or the value has the sha
 key (GitHub, OpenAI, Anthropic, Slack, AWS, and others). Values shorter than 8 characters are
 listed only under a password name, such as `PGPASSWORD` or `MYSQL_PWD`, as a `short password`.
 
-`move` stores each picked value in the Keychain, reads it back, and replaces the literal with a
-command that reads the Keychain when the shell starts. It runs the shell's syntax check on the
-edited file and restores the file when the check fails.
+`move` stores each picked value, reads it back, and replaces the literal with a command that
+reads the value when the shell starts. On macOS the value goes into the Keychain through the
+`security` command. On Linux it goes into the secret service (GNOME Keyring, or KeePassXC with
+its secret service turned on) through `secret-tool` from libsecret. It runs the shell's syntax
+check on the edited file and restores the file when the check fails.
 
 No part of a value is ever printed: the output names the variable, the file and line, the kind,
-and the length. The values stay inside this process and are handed to the `security` command on
-its standard input, never on its command line.
+and the length. The values stay inside this process and are handed to `security` or
+`secret-tool` on its standard input, never on its command line.
 
-`SECURE_DOTFILE_KEYCHAIN` names a keychain file to use instead of the default keychain. It is
-meant for tests against a throwaway keychain.
+`SECURE_DOTFILE_STORE` picks the store, `keychain` or `secret-service`; the default is the
+Keychain on macOS and the secret service on Linux. `SECURE_DOTFILE_KEYCHAIN` names a keychain
+file to use instead of the default keychain. Both are meant for tests against a throwaway store.
 
-Exit codes: 0 done, 2 bad arguments, 3 moving is not supported on this system.
+Exit codes: 0 done, 2 bad arguments, 3 moving is not supported on this system or the store's
+command is missing.
 """
 import argparse
 import json
@@ -38,6 +42,10 @@ import tempfile
 HOME = os.path.expanduser("~")
 ACCOUNT = os.environ.get("USER") or os.path.basename(HOME)
 KEYCHAIN = os.environ.get("SECURE_DOTFILE_KEYCHAIN", "")
+STORE = os.environ.get("SECURE_DOTFILE_STORE") or (
+    "keychain" if sys.platform == "darwin" else "secret-service" if sys.platform.startswith("linux") else "")
+WHERE = {"keychain": "the keychain", "secret-service": "the secret service"}
+TIMEOUT = 120
 MIN_LENGTH = 8
 MAX_INCLUDE_DEPTH = 5
 HISTORY_LIMIT = 64 * 1024 * 1024
@@ -226,10 +234,28 @@ def kind_of(name, value):
     return NAME_KIND[word] if word else None
 
 
+def moving_problem():
+    """Why values cannot be moved here, or None when the store and its command are present."""
+    if STORE == "keychain":
+        if sys.platform == "darwin" and shutil.which("security"):
+            return None
+        return "moving needs macOS and its security command"
+    if STORE == "secret-service":
+        if shutil.which("secret-tool"):
+            return None
+        return "moving on Linux needs secret-tool from libsecret, such as the libsecret-tools package"
+    if STORE:
+        return "SECURE_DOTFILE_STORE must be keychain or secret-service"
+    return "moving needs macOS, or Linux with secret-tool"
+
+
 def lookup(name, fish):
     """The command that reads the value back when the shell starts."""
-    kc = ' "%s"' % KEYCHAIN if KEYCHAIN else ""
-    cmd = 'security find-generic-password -a "$USER" -s %s -w%s 2>/dev/null' % (name, kc)
+    if STORE == "secret-service":
+        cmd = 'secret-tool lookup service %s account "$USER" 2>/dev/null' % name
+    else:
+        kc = ' "%s"' % KEYCHAIN if KEYCHAIN else ""
+        cmd = 'security find-generic-password -a "$USER" -s %s -w%s 2>/dev/null' % (name, kc)
     return "(%s)" % cmd if fish else '"$(%s)"' % cmd
 
 
@@ -299,6 +325,7 @@ def scan(extra):
             print("no such file: %s" % f, file=sys.stderr)
             sys.exit(2)
     queue = [(f, 0) for f in startup_files()] + [(expand(f), 0) for f in extra]
+    cannot_move = moving_problem()
     seen_real = set()
     scanned = []
     items = []
@@ -351,9 +378,9 @@ def scan(extra):
                 "length": len(value),
                 "in_git_history": history,
                 "item": "%s:%d:%s" % (display(path), n, name),
-                "movable": problem is None and sys.platform == "darwin",
-                "reason": problem if problem else (None if sys.platform == "darwin" else "moving needs macOS"),
-                "becomes": line[:start] + lookup(name, fish) + line[end:] if not problem else None,
+                "movable": problem is None and cannot_move is None,
+                "reason": problem or cannot_move,
+                "becomes": line[:start] + lookup(name, fish) + line[end:] if not problem and STORE in WHERE else None,
             }
             items.append(item)
     return scanned, items
@@ -376,7 +403,7 @@ def print_scan(scanned, items):
 
 
 # ---------------------------------------------------------------------------
-# Keychain
+# Stores: the macOS Keychain through `security`, the secret service through `secret-tool`
 
 
 def kc_args():
@@ -387,39 +414,78 @@ def quote(s):
     return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
+def first_line(err):
+    """The first line of a command's error output, as `: line`, or "" when it wrote none.
+
+    Only `secret-tool` errors are passed here. They describe the D-Bus session or the keyring and
+    never repeat the value, which reaches the command on standard input."""
+    lines = err.decode("utf-8", "replace").strip().splitlines()
+    if not lines:
+        return ""
+    return ": " + "".join(c for c in lines[0] if 32 <= ord(c) < 127)[:200]
+
+
 def read_secret(name):
-    """(code, value bytes). Code 0 found, 44 not found, anything else an error."""
+    """(state, value bytes, exit code, error). State is `found`, `missing`, or `error`."""
+    if STORE == "secret-service":
+        # A missing item exits 1 with no output; an unreachable secret service exits 1 and says why.
+        r = subprocess.run(["secret-tool", "lookup", "service", name, "account", ACCOUNT],
+                           capture_output=True, timeout=TIMEOUT)
+        err = first_line(r.stderr)
+        if r.returncode == 0:
+            return "found", r.stdout, 0, err
+        if r.returncode == 1 and not r.stdout and not err:
+            return "missing", b"", 1, err
+        return "error", b"", r.returncode, err
     r = subprocess.run(["security", "find-generic-password", "-a", ACCOUNT, "-s", name, "-w"] + kc_args(),
-                       capture_output=True, timeout=120)
+                       capture_output=True, timeout=TIMEOUT)
     out = r.stdout[:-1] if r.stdout.endswith(b"\n") else r.stdout
-    return r.returncode, out
+    state = "found" if r.returncode == 0 else "missing" if r.returncode == 44 else "error"
+    return state, out, r.returncode, ""
 
 
 def add_secret(name, value):
-    """Store the value, passing the command on standard input so it never reaches a command line."""
+    """Store the value on the command's standard input, so it never reaches a command line.
+
+    Returns (exit code, error). `secret-tool store` replaces an item silently, so `store` reads
+    first and calls this only when the name holds nothing."""
+    if STORE == "secret-service":
+        r = subprocess.run(["secret-tool", "store", "--label=%s (added by secure-dotfile)" % name,
+                            "service", name, "account", ACCOUNT],
+                           input=value.encode("utf-8"), capture_output=True, timeout=TIMEOUT)
+        return r.returncode, first_line(r.stderr)
     cmd = "add-generic-password -a %s -s %s -j %s -w %s%s\n" % (
         quote(ACCOUNT), quote(name), quote("added by secure-dotfile"), quote(value),
         " " + quote(KEYCHAIN) if KEYCHAIN else "")
-    r = subprocess.run(["security", "-i"], input=cmd.encode("utf-8"), capture_output=True, timeout=120)
-    return r.returncode
+    # The error output of `security -i` is never read: it could repeat the command, value included.
+    r = subprocess.run(["security", "-i"], input=cmd.encode("utf-8"), capture_output=True, timeout=TIMEOUT)
+    return r.returncode, ""
 
 
 def store(name, value):
-    """Put the value in the keychain. Returns None when it is there now, or the reason it is not."""
+    """Put the value in the store. Returns None when it is there now, or the reason it is not."""
     want = value.encode("utf-8")
+    service = STORE == "secret-service"
     try:
-        code, have = read_secret(name)
-        if code == 0:
+        state, have, code, err = read_secret(name)
+        if state == "found":
             if have == want:
                 return None
             return "a different value is already stored as %s; remove or rename that item first" % name
-        if code != 44:
+        if state == "error":
+            if service:
+                return "could not reach the secret service (secret-tool exited with %d%s); " \
+                       "it may be locked or not running" % (code, err)
             return "could not read the keychain (security exited with %d); it may be locked" % code
-        add_secret(name, value)
-        code, have = read_secret(name)
+        added, added_err = add_secret(name, value)
+        state, have, code, err = read_secret(name)
     except subprocess.TimeoutExpired:
-        return "the keychain did not answer within 120 s; it may be waiting for a password"
-    if code != 0 or have != want:
+        return "%s did not answer within %d s; it may be waiting for a password" % (WHERE[STORE], TIMEOUT)
+    if state != "found" or have != want:
+        if service and added != 0:
+            return "the value could not be stored in the secret service (secret-tool exited with %d%s)" % (added, added_err)
+        if service:
+            return "the value could not be stored and read back (secret-tool exited with %d%s)" % (code, err)
         return "the value could not be stored and read back (security exited with %d)" % code
     return None
 
@@ -518,7 +584,7 @@ def move(specs, dry_run):
                 continue
             new = body[:start] + lookup(name, fish) + body[end:]
             if dry_run:
-                result(name, n, "would move", "would store %s in the keychain and change the line to: %s" % (name, new.strip()))
+                result(name, n, "would move", "would store %s in %s and change the line to: %s" % (name, WHERE[STORE], new.strip()))
                 continue
             reason = store(name, value)
             if reason:
@@ -534,13 +600,13 @@ def move(specs, dry_run):
         if before_ok and after_ok is False:
             for name, n in changed:
                 result(name, n, "skipped", "the edited file failed `%s`, so the file was left as it was; "
-                       "the value is stored in the keychain as %s" % (label, name))
+                       "the value is stored in %s as %s" % (label, WHERE[STORE], name))
             continue
         write_atomic(path, edited)
         check = "syntax check passed (%s)" % label if after_ok else (
             label if after_ok is None else "the file already failed `%s` before the edit" % label)
         for name, n in changed:
-            result(name, n, "moved", "stored in the keychain as %s; %s" % (name, check))
+            result(name, n, "moved", "stored in %s as %s; %s" % (WHERE[STORE], name, check))
     return results
 
 
@@ -563,7 +629,7 @@ def main(argv):
     s = sub.add_parser("scan", help="list secrets written into shell startup files")
     s.add_argument("--file", action="append", default=[], help="also scan this file")
     s.add_argument("--json", action="store_true")
-    m = sub.add_parser("move", help="move the picked secrets into the Keychain")
+    m = sub.add_parser("move", help="move the picked secrets into the Keychain or the secret service")
     m.add_argument("--item", action="append", required=True, help="PATH:LINE:NAME from the scan")
     m.add_argument("--dry-run", action="store_true")
     m.add_argument("--json", action="store_true")
@@ -575,8 +641,9 @@ def main(argv):
         else:
             print_scan(scanned, items)
         return 0
-    if sys.platform != "darwin" or not shutil.which("security"):
-        print("os-not-supported: moving needs macOS and its security command", file=sys.stderr)
+    cannot_move = moving_problem()
+    if cannot_move:
+        print("os-not-supported: %s" % cannot_move, file=sys.stderr)
         return 3
     results = move(args.item, args.dry_run)
     if args.json:

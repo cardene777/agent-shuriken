@@ -5,6 +5,10 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- `move` works on Linux: it stores each picked value in the secret service (GNOME Keyring, or KeePassXC with its secret service turned on) by passing it to `secret-tool store` on standard input, reads it back, and changes the line to `"$(secret-tool lookup service NAME account "$USER" 2>/dev/null)"`, or the same inside `( )` in fish. It skips a name that already holds a different value, and an item whose secret service cannot be reached, with `secret-tool`'s own message. Before, `move` stopped with exit code 3 on every system other than macOS
+- Without `secret-tool`, `move` stops with exit code 3 and names it, and `scan` gives that as the reason an item cannot be moved
+- `SECURE_DOTFILE_STORE` picks `keychain` or `secret-service` for tests against a throwaway store
+
 ## [0.3.0] - 2026-11-14
 
 - `scan` lists passwords under names ending in `PASSWORD` or `PASSWD` without an underscore, such as `PGPASSWORD`, and in `_PASS`, `_PWD`, or `_PIN`, such as `MYSQL_PWD`. Before, these names were not read as secrets at all

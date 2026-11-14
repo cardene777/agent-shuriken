@@ -1,12 +1,12 @@
 ---
 name: secure-dotfile
-description: Finds API keys, tokens, and passwords written straight into shell startup files (~/.zshrc, ~/.bashrc, fish config, .envrc, direnv env.d files, and the files they source) and moves the ones the user picks into the macOS Keychain, so the shell reads them from there at startup. The agent never sees any part of a value. Use when a secret is written into a dotfile, or when the user wants to move keys out of their shell configuration.
+description: Finds API keys, tokens, and passwords written straight into shell startup files (~/.zshrc, ~/.bashrc, fish config, .envrc, direnv env.d files, and the files they source) and moves the ones the user picks into the macOS Keychain or, on Linux, the secret service through secret-tool, so the shell reads them from there at startup. The agent never sees any part of a value. Use when a secret is written into a dotfile, or when the user wants to move keys out of their shell configuration.
 ---
 
 # Secure dotfile
 
-This skill finds secrets written as literal values in shell startup files, such as `export OPENAI_API_KEY="sk-..."` in `~/.zshrc`, and moves the ones the user picks into the macOS Keychain.
-Each moved line then reads the value from the Keychain when the shell starts, so programs see the same environment variable as before.
+This skill finds secrets written as literal values in shell startup files, such as `export OPENAI_API_KEY="sk-..."` in `~/.zshrc`, and moves the ones the user picks into the macOS Keychain, or on Linux into the secret service (GNOME Keyring, or KeePassXC with its secret service turned on) through `secret-tool`.
+Each moved line then reads the value from there when the shell starts, so programs see the same environment variable as before.
 
 Talk to the user in the language they write in.
 The commands and their output are the same in every language.
@@ -16,7 +16,7 @@ Below, `S` stands for the absolute path of that folder.
 When running a command, put `S=<folder that contains this SKILL.md>/scripts` at the start of the same shell command.
 
 This skill works in Claude Code, Codex, and other agents that read `SKILL.md`, such as GitHub Copilot CLI and Gemini CLI.
-The commands read files in the home folder and use the Keychain, both outside the project folder, so request approval for them when a sandbox blocks them, as Codex can.
+The commands read files in the home folder and use the Keychain or the secret service, both outside the project folder, so request approval for them when a sandbox blocks them, as Codex can.
 
 ## Keep every value away from the agent
 
@@ -25,7 +25,7 @@ They print only the variable name, the file and line, the kind of secret, and th
 The rest of this skill relies on the agent never seeing a value, so follow these rules for the whole session.
 
 - Never open, print, or search the startup files or the files they source with any tool (file readers, `cat`, `grep`, editors). Use only the commands below
-- Never run `security find-generic-password` with `-w`, since it prints the value
+- Never run `security find-generic-password` with `-w` or `secret-tool lookup`, since they print the value
 - Never ask the user to paste a value into the chat. If they paste one anyway, tell them it is now in the conversation and recommend rotating that key (section 4)
 
 ## 1. Scan
@@ -85,12 +85,12 @@ python3 "$S/secure_dotfile.py" move --item '<item>' --item '<item>'
 For each item, the command does these steps in order.
 
 1. Reads the line again and skips the item with a reason if it no longer sets that variable to a literal value
-2. Skips the item if the Keychain already holds a different value under the same name, so nothing is overwritten. When it already holds the same value, the item is moved without storing it again
-3. Stores the value in the login keychain under the variable's name (service `NAME`, account `$USER`), passing it to `security` on standard input, then reads it back and compares
-4. Replaces only the value on that line with `"$(security find-generic-password -a "$USER" -s NAME -w 2>/dev/null)"` (a command substitution in fish), keeping the rest of the line
+2. Skips the item if the store already holds a different value under the same name, so nothing is overwritten. When it already holds the same value, the item is moved without storing it again
+3. Stores the value under the variable's name (service `NAME`, account `$USER`), in the login keychain through `security` on macOS or in the secret service through `secret-tool store` on Linux, passing it on standard input, then reads it back and compares
+4. Replaces only the value on that line with `"$(security find-generic-password -a "$USER" -s NAME -w 2>/dev/null)"` on macOS or `"$(secret-tool lookup service NAME account "$USER" 2>/dev/null)"` on Linux (a command substitution in fish), keeping the rest of the line
 5. Writes the file in one step, keeping its permissions and any symlink to it, and runs the shell's syntax check (`zsh -n`, `bash -n`, or `fish --no-execute`). If the edited file fails a check that the original passed, the file is left as it was
 
-macOS may ask for the login password to unlock the keychain; the user types it into the macOS dialog, never into the chat.
+macOS may ask for the login password to unlock the keychain, and on Linux the keyring may ask to be unlocked; the user types the password into that dialog, never into the chat.
 To show what would change without storing or editing anything, add `--dry-run`.
 
 ## 4. Report the result
@@ -99,14 +99,15 @@ From the command output, tell the user these things.
 
 - Which items were moved, and which were skipped and why
 - That a new terminal, or `exec $SHELL -l`, loads the moved values
-- That the move takes the value out of the file, not out of the shell's environment: the shell still exports it, so every program it starts receives it, and tools that list a process's environment can show it. A key with wide access is safer read only for the one command that needs it, by putting the same `security find-generic-password` call in front of that command instead of exporting it from the startup file
+- That the move takes the value out of the file, not out of the shell's environment: the shell still exports it, so every program it starts receives it, and tools that list a process's environment can show it. A key with wide access is safer read only for the one command that needs it, by putting the same `security find-generic-password` or `secret-tool lookup` call in front of that command instead of exporting it from the startup file
 - For a key the team shares: it belongs in the team's password manager, such as 1Password read with `op`, not in one person's Keychain, so that rotating it reaches everyone who uses it
 - When a chezmoi source file was moved, that `chezmoi apply` updates the generated file; run it if the user agrees
 - For each `short password`: moving it keeps it out of the file but not from being guessed. Suggest the user sets a longer password with the service, then stores it with the command below
 - For each value that is in git history, or was ever shared, pasted, or shown on screen: rotate the key. The user creates a new key with the service, revokes the old one, and stores the new one by running this in their own terminal. It asks for the value without showing it
 
 ```bash
-security add-generic-password -a "$USER" -s <NAME> -U -w
+security add-generic-password -a "$USER" -s <NAME> -U -w          # macOS
+secret-tool store --label=<NAME> service <NAME> account "$USER"   # Linux
 ```
 
 Never run that command for the user, because the new value would pass through the agent.
@@ -117,9 +118,10 @@ For items that could not be moved, explain the reason and that the user can move
 | What happens | What to do |
 |---|---|
 | Exit code 2 | An item is not in the form `PATH:LINE:NAME`, or a `--file` does not exist. Fix the arguments and run again |
-| Exit code 3 | Moving needs macOS and its `security` command. The scan still works on other systems |
-| "a different value is already stored" | Another item in the Keychain uses that name. The user renames or removes it in Keychain Access, then the move is run again |
+| Exit code 3 | Moving needs macOS and its `security` command, or Linux and `secret-tool`; the message names what is missing. Tell the user that Debian and Ubuntu ship `secret-tool` in the `libsecret-tools` package, and let them install it. The scan still works without it |
+| "a different value is already stored" | Another item in the store uses that name. The user renames or removes it in Keychain Access on macOS, or in Passwords and Keys (Seahorse) or KeePassXC on Linux, then the move is run again |
 | "could not read the keychain" or "did not answer" | The keychain is locked or waiting for a password. Ask the user to unlock it and run the move again |
+| "could not reach the secret service" | No D-Bus session or keyring is running, or the keyring is locked. Ask the user to unlock the keyring in their desktop session and run the move again. Over SSH the secret service is often out of reach, so the move has to run in a desktop session |
 | "line N no longer sets NAME" | The file changed after the scan. Scan again and pass the new item |
 
 ## Not covered
@@ -128,3 +130,4 @@ For items that could not be moved, explain the reason and that the user can move
 - Assignments without `export` (or fish `set -x`), and values that span several lines
 - Copies of the old value in shell history, backups, Time Machine, and other machines. Rotating the key makes those copies useless
 - The environment the shell passes to the programs it starts. A moved value is still exported to every one of them, and tools that list a process's environment can show it
+- Stores other than the Keychain and the secret service, such as `pass` or KWallet without its secret service

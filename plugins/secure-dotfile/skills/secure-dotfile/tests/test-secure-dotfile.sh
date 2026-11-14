@@ -123,6 +123,47 @@ ln -s "$H/dotfiles/bashrc" "$H/.bashrc"
 printf 'export CZ_TOKEN=%s\n' "$S_CZ" > "$H/.local/share/chezmoi/dot_zprofile"
 cp "$H/.local/share/chezmoi/dot_zprofile" "$H/.zprofile"
 
+# A stand-in secret-tool. It records its arguments, keeps each value in
+# FAKE_SECRET_DIR/NAME.ACCOUNT, and answers like the real one: a missing value exits 1 with no
+# output, and FAKE_SECRET_DOWN=1 makes it fail the way it does when no D-Bus session is running.
+: "${USER:=$(id -un)}"
+export USER
+LH="$T/linux/home"
+LS="$T/linux/store"
+FAKEBIN="$T/linux/bin"
+NOST="$T/linux/no-secret-tool"
+mkdir -p "$LS" "$FAKEBIN" "$NOST"
+cat > "$FAKEBIN/secret-tool" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$FAKE_SECRET_DIR/args"
+if [ "${FAKE_SECRET_DOWN:-}" = 1 ]; then
+  printf '%s\n' 'secret-tool: Cannot autolaunch D-Bus without X11 $DISPLAY' >&2
+  exit 1
+fi
+cmd="$1"
+shift
+case "${1:-}" in --label=*) shift ;; esac
+if [ "$#" -ne 4 ] || [ "$1" != service ] || [ "$3" != account ]; then
+  echo "secret-tool: unexpected arguments" >&2
+  exit 2
+fi
+f="$FAKE_SECRET_DIR/$2.$4"
+case "$cmd" in
+  store) cat > "$f" ;;
+  lookup) [ -f "$f" ] || exit 1; cat "$f" ;;
+  *) exit 2 ;;
+esac
+SH
+chmod 755 "$FAKEBIN/secret-tool"
+for c in bash zsh git; do
+  p="$(command -v "$c")" && ln -s "$p" "$NOST/$c"
+done
+PY3="$(command -v python3)"
+# Elsewhere than macOS the scan reports the secret service, so the stand-in answers for it.
+if [ "$(uname)" != Darwin ]; then
+  export PATH="$FAKEBIN:$PATH" FAKE_SECRET_DIR="$LS"
+fi
+
 export HOME="$H"
 run() { python3 "$SCRIPT" "$@"; }
 
@@ -167,7 +208,7 @@ check "file outside git is reported" "[ \"\$(field GH_TOKEN in_git_history)\" = 
 check "backslash cannot be moved" "[ \"\$(field BAD_SECRET movable)\" = False ]"
 check "non-ASCII cannot be moved" "[ \"\$(field ODD_SECRET movable)\" = False ]"
 check "trailing comment is kept in the new line" "field MY_SERVICE_TOKEN becomes | grep -q '  # work account\$'"
-check "fish line uses fish command substitution" "field FISH_TOKEN becomes | grep -q '^set -gx FISH_TOKEN (security '"
+check "fish line uses fish command substitution" "field FISH_TOKEN becomes | grep -Eq '^set -gx FISH_TOKEN \\((security|secret-tool) '"
 if command -v chezmoi >/dev/null 2>&1; then
   check "chezmoi target cannot be moved" "[ \"\$(field CZ_TOKEN movable .zprofile)\" = False ]"
   check "chezmoi source is scanned too" "field CZ_TOKEN path dot_zprofile | grep -q dot_zprofile"
@@ -262,46 +303,12 @@ PY
 fi
 
 # ---------------------------------------------------------------------------
-# move into the secret service, through a stand-in secret-tool
+# move into the secret service, through the stand-in secret-tool
 #
-# The stand-in records its arguments, keeps each value in FAKE_SECRET_DIR/NAME.ACCOUNT, and
-# answers like the real one: a missing value exits 1 with no output, and FAKE_SECRET_DOWN=1
-# makes it fail the way it does when no D-Bus session is running. SECURE_DOTFILE_KEYCHAIN
-# still names the throwaway keychain, so nothing can reach the default keychain.
+# SECURE_DOTFILE_KEYCHAIN still names the throwaway keychain, so nothing can reach the default
+# keychain.
 
-: "${USER:=$(id -un)}"
-export USER
-LH="$T/linux/home"
-LS="$T/linux/store"
-FAKEBIN="$T/linux/bin"
-NOST="$T/linux/no-secret-tool"
-mkdir -p "$LH/.config/fish" "$LS" "$FAKEBIN" "$NOST"
-cat > "$FAKEBIN/secret-tool" <<'SH'
-#!/usr/bin/env bash
-printf '%s\n' "$*" >> "$FAKE_SECRET_DIR/args"
-if [ "${FAKE_SECRET_DOWN:-}" = 1 ]; then
-  printf '%s\n' 'secret-tool: Cannot autolaunch D-Bus without X11 $DISPLAY' >&2
-  exit 1
-fi
-cmd="$1"
-shift
-case "${1:-}" in --label=*) shift ;; esac
-if [ "$#" -ne 4 ] || [ "$1" != service ] || [ "$3" != account ]; then
-  echo "secret-tool: unexpected arguments" >&2
-  exit 2
-fi
-f="$FAKE_SECRET_DIR/$2.$4"
-case "$cmd" in
-  store) cat > "$f" ;;
-  lookup) [ -f "$f" ] || exit 1; cat "$f" ;;
-  *) exit 2 ;;
-esac
-SH
-chmod 755 "$FAKEBIN/secret-tool"
-for c in bash zsh git; do
-  p="$(command -v "$c")" && ln -s "$p" "$NOST/$c"
-done
-PY3="$(command -v python3)"
+mkdir -p "$LH/.config/fish"
 printf 'export LX_TOKEN="%s"\nexport LX_CONFLICT_TOKEN=%s\nexport LX_DOWN_TOKEN=%s\n' "$S_LXA" "$S_LXC" "$S_LXD" > "$LH/.bashrc"
 printf 'set -gx LX_FISH_TOKEN %s\n' "$S_LXF" > "$LH/.config/fish/config.fish"
 printf '%s' "$S_LXC_OTHER" > "$LS/LX_CONFLICT_TOKEN.$USER"
