@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-15
+
 - `scan` also reads files that tools read on their own: `~/.npmrc`, `~/.aws/credentials`, `~/.netrc`, and the `.env` and `.env.*` files of the folder it runs in
 - `move` moves an npm token in `~/.npmrc` by storing it as `NPM_TOKEN`, or `NPM_TOKEN_<HOST>` for another registry, changing the line to `${NPM_TOKEN}`, and adding `export NPM_TOKEN="$(...)"` to the startup file of the shell in `$SHELL`, or `set -gx` in fish. It skips the token when a startup file already sets that variable
 - `move` moves an AWS profile in `~/.aws/credentials` by storing its two keys as `AWS_ACCESS_KEY_ID_<PROFILE>` and `AWS_SECRET_ACCESS_KEY_<PROFILE>` and replacing the two lines with one `credential_process` line that prints them from the store. A profile with `aws_session_token` is left alone
@@ -50,7 +52,8 @@ First public release.
 - Moves a secret in the chezmoi source file instead of the file chezmoi generates
 - Starts when you mention a secret in your shell configuration, or when you call it, in Claude Code and in Codex
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/secure-dotfile--v0.6.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/secure-dotfile--v0.7.0...HEAD
+[0.7.0]: https://github.com/cardene777/agent-shuriken/releases/tag/secure-dotfile--v0.7.0
 [0.6.0]: https://github.com/cardene777/agent-shuriken/releases/tag/secure-dotfile--v0.6.0
 [0.5.0]: https://github.com/cardene777/agent-shuriken/releases/tag/secure-dotfile--v0.5.0
 [0.4.0]: https://github.com/cardene777/agent-shuriken/releases/tag/secure-dotfile--v0.4.0
