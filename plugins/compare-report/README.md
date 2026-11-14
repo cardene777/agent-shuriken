@@ -43,7 +43,7 @@ In GitHub Copilot CLI, write `/compare-report` in your request, and in Gemini CL
 2. The agent suggests five to eight evaluation axes, such as performance, cost, and risk. Confirm them or change them
 3. The agent researches each candidate. In Claude Code it researches them in parallel
 4. The agent writes the report and checks that every score has a rationale and that the report loads nothing from the network
-5. The agent prints the report to PDF, opens it, and gives you the paths of both files. Ask for any change, and it updates both
+5. The agent prints the report to PDF, opens it, and gives you the paths of both files. The PDF contents give the page each section starts on, and every page but the cover shows its page number at the bottom. Ask for any change, and it updates both
 
 The report has a cover, a summary with the top three picks, a card per candidate, a section per axis with tables and charts, the risks, a scorecard with a recommendation, and the numbered sources.
 It is written in the language you write in.

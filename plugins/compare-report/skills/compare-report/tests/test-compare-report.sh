@@ -17,6 +17,24 @@ ng() { FAIL=$((FAIL + 1)); printf 'FAIL  %s\n' "$1"; }
 check() { if eval "$2"; then ok "$1"; else ng "$1"; fi; }
 mode() { python3 -c 'import os, sys; print(format(os.stat(sys.argv[1]).st_mode & 0o777, "o"))' "$1"; }
 
+# A real Chromium-based browser and pdftotext, for the checks that print a report for real.
+# COMPARE_REPORT_TEST_BROWSER names the browser; otherwise the usual apps, the headless browsers
+# Playwright downloaded, and then the usual commands are tried. The commands come last because a
+# command can be a wrapper that finds its browser through HOME, which the test replaces.
+# Without a browser and pdftotext, those checks are skipped.
+real_browser=""
+for b in "${COMPARE_REPORT_TEST_BROWSER:-}" \
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+  "/Applications/Chromium.app/Contents/MacOS/Chromium" \
+  "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge" \
+  "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser" \
+  "$HOME"/Library/Caches/ms-playwright/chromium_headless_shell-*/*/chrome-headless-shell \
+  "$HOME"/.cache/ms-playwright/chromium_headless_shell-*/*/chrome-headless-shell \
+  "$(command -v google-chrome 2>/dev/null)" "$(command -v chromium 2>/dev/null)" "$(command -v chromium-browser 2>/dev/null)"; do
+  if [ -n "$b" ] && [ -x "$b" ]; then real_browser="$b"; break; fi
+done
+pdftotext_cmd="$(command -v pdftotext 2>/dev/null || true)"
+
 export HOME="$T/home"
 export PYTHONDONTWRITEBYTECODE=1
 export TMPDIR="$T/tmp"
@@ -245,7 +263,8 @@ for a in "$@"; do
   esac
 done
 [ -d "${profile:-}" ] && printf '%s\n' "$profile" > "$BROWSER_LOG.profile"
-[ "${BROWSER_WRITES:-1}" = 1 ] && printf '%%PDF-1.4\n' > "$out"
+# a PDF with one page and no named destinations
+[ "${BROWSER_WRITES:-1}" = 1 ] && printf '%%PDF-1.4\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n3 0 obj << /Type /Page /Parent 2 0 R >> endobj\n%%%%EOF\n' > "$out"
 exit 0
 SH
 chmod +x "$T/bin/browser"
@@ -279,6 +298,111 @@ check "a COMPARE_REPORT_BROWSER that is not a program exits 3" '[ "$rc" = 3 ] &&
 BROWSER_WRITES=0 to_pdf "$T/good.html" >/dev/null 2>"$T/err"; rc=$?
 check "a browser that writes nothing exits 4" '[ "$rc" = 4 ] && grep -q "did not write" "$T/err" && [ ! -e "$T/good.pdf" ]'
 check "no profile is left behind after a failure" '[ -z "$(ls -A "$TMPDIR")" ]'
+
+plugin="$HERE/../../.."
+ja_pages="$(python3 -c 'print("".join(map(chr, (0x30da, 0x30fc, 0x30b8, 0x756a, 0x53f7))))')"
+undocumented=""
+for f in README.md docs/how-it-works.md; do grep -qF "page number" "$plugin/$f" || undocumented="$undocumented $f"; done
+for f in README.ja.md docs/how-it-works.ja.md; do grep -qF "$ja_pages" "$plugin/$f" || undocumented="$undocumented $f"; done
+check "the docs describe the page numbers" '[ -z "$undocumented" ]'
+
+# --- to-pdf.sh with a real browser
+# long_report <file> [extra contents entry]: the real template filled with nine sections of different lengths
+long_report() {
+  python3 - "$TEMPLATE" "$1" "${2:-}" <<'PY'
+import re, sys
+src, dst, extra = sys.argv[1:]
+para = "<p>" + "The candidates were measured on the same machine and the same sample site, and every figure below cites its source. " * 6 + "</p>"
+sections = [("summary", "Summary", 3), ("candidates", "Candidates", 6), ("axis-speed", "Build speed", 9),
+            ("axis-cost", "Cost", 4), ("axis-docs", "Documentation", 12), ("axis-plugins", "Plugins", 2),
+            ("risks", "Risks", 5), ("ranking", "Ranking", 7), ("sources", "Sources", 3)]
+body = {i: f"<h2>{t}</h2>" + para * n for i, t, n in sections}
+toc = "".join(f'<li><a href="#{i}">{t}</a></li>' for i, t, n in sections) + extra
+axes = "".join(f'<section id="{i}" class="chapter axis">{body[i]}</section>' for i, t, n in sections if i.startswith("axis-"))
+values = {"LANG": "en", "TITLE": "Static site generators", "EYEBROW": "Comparison report", "SUBTITLE": "Four generators",
+          "DATE": "2026-11-14", "AUTHOR": "", "STATS": "<div><dt>Candidates</dt><dd>4</dd></div>",
+          "CONTENTS_HEADING": "Contents", "TOC": toc, "AXES": axes, "FOOTER": "2026-11-14",
+          "SUMMARY": body["summary"], "CANDIDATES": body["candidates"], "RISKS": body["risks"],
+          "RANKING": body["ranking"], "SOURCES": body["sources"]}
+text = open(src, encoding="utf-8").read()
+open(dst, "w", encoding="utf-8").write(re.sub(r"\{\{([A-Z_]+)\}\}", lambda m: values[m.group(1)], text))
+PY
+}
+
+# pdf_pages <pdf>: compares the PDF contents with the pages of the headings and the numbers at the bottom
+pdf_pages() {
+  "$pdftotext_cmd" -layout "$1" - | python3 -c '
+import re, sys
+pages = sys.stdin.read().split("\f")
+pages = [p.splitlines() for p in pages if p.strip()]
+titles = ["Summary", "Candidates", "Build speed", "Cost", "Documentation", "Plugins", "Risks", "Ranking", "Sources"]
+toc, heading = {}, {}
+for n, lines in enumerate(pages, 1):
+    for line in lines:
+        m = re.match(r"\s*\d+\.\s+(.+?)(?:\s+(\d+))?\s*$", line)
+        if m and m.group(1) in titles and m.group(1) not in toc:
+            toc[m.group(1)] = int(m.group(2)) if m.group(2) else None
+        m = re.match(r"\s*\d\d\s+(.+?)\s*$", line)
+        if m and m.group(1) in titles and m.group(1) not in heading:
+            heading[m.group(1)] = n
+for t in titles:
+    print(f"contents {t}: {toc.get(t)} heading {heading.get(t)}")
+for n, lines in enumerate(pages, 1):
+    last = [l.strip() for l in lines if l.strip()][-1]
+    print(f"bottom {n}: {last}")
+'
+}
+
+# The stand-in browser writes a PDF without destinations, so the contents keep titles only
+mkdir -p "$T/stand-in"
+long_report "$T/stand-in/report.html"
+out="$(to_pdf "$T/stand-in/report.html" 2>"$T/err")"; rc=$?
+check "a PDF without page destinations keeps titles only and says why" \
+  '[ "$rc" = 0 ] && [ "$out" = "$T/stand-in/report.pdf" ] && [ "$(head -c 8 "$out")" = "%PDF-1.4" ] && [ "$(wc -l < "$T/err" | tr -d " ")" = 1 ] && grep -q "^The PDF contents show titles only: the browser wrote no page destinations" "$T/err" && [ "$(ls -A "$T/stand-in" | tr "\n" " ")" = "report.html report.pdf " ]'
+
+dump_dom() {
+  "$real_browser" --headless --disable-gpu --no-first-run --user-data-dir="$T/dom-profile" --dump-dom "$1" 2>/dev/null
+  rm -rf "$T/dom-profile"
+}
+
+real_checks=(
+  "every contents entry in the PDF shows the page that holds its section heading"
+  "every page but the cover shows its number at the bottom"
+  "the cover shows no page number"
+  "printing leaves report.html unchanged and no copy in its folder"
+  "report.html in a browser has no page numbers in its contents"
+  "a contents link to a missing section keeps titles only and names the section"
+)
+if [ -z "$real_browser" ] || [ -z "$pdftotext_cmd" ]; then
+  for name in "${real_checks[@]}"; do printf 'skip  %s (needs a Chromium-based browser and pdftotext)\n' "$name"; done
+else
+  mkdir -p "$T/real"
+  long_report "$T/real/report.html"
+  cp "$T/real/report.html" "$T/original.html"
+  out="$(COMPARE_REPORT_BROWSER="$real_browser" to_pdf "$T/real/report.html" 2>"$T/real-err")"; rc=$?
+  pages="$(pdf_pages "$T/real/report.pdf")"
+  printf '%s\n' "$pages" > "$T/real-pages"
+  # every entry's number equals the page of its heading, and the headings spread over at least five pages
+  check "every contents entry in the PDF shows the page that holds its section heading" \
+    '[ "$rc" = 0 ] && LC_ALL=C awk "/^contents /{ n++; if (\$NF != \$(NF-2)) bad++; p[\$NF] = 1 } END { for (k in p) d++; exit !(n == 9 && bad == 0 && d >= 5) }" "$T/real-pages"'
+  check "every page but the cover shows its number at the bottom" \
+    'LC_ALL=C awk "/^bottom / && \$2 != \"1:\" { n++; if (\$2 != \$NF \":\") bad++ } END { exit !(n >= 5 && bad == 0) }" "$T/real-pages"'
+  check "the cover shows no page number" '! grep -qE "^bottom 1: [0-9]+$" "$T/real-pages"'
+  check "printing leaves report.html unchanged and no copy in its folder" \
+    'cmp -s "$T/original.html" "$T/real/report.html" && [ "$(ls -A "$T/real" | tr "\n" " ")" = "report.html report.pdf " ]'
+  dom_toc="$(dump_dom "file://$T/real/report.html" | python3 -c 'import re, sys
+m = re.search(r"<nav class=\"toc[^\"]*\"[^>]*>(.*?)</nav>", sys.stdin.read(), re.S)
+print(re.sub(r"<[^>]+>", " ", m.group(1)) if m else "")')"
+  check "report.html in a browser has no page numbers in its contents" \
+    'printf "%s" "$dom_toc" | grep -q "Build speed" && ! printf "%s" "$dom_toc" | grep -q "[0-9]"'
+
+  mkdir -p "$T/missing"
+  long_report "$T/missing/report.html" '<li><a href="#axis-missing">Missing</a></li>'
+  out="$(COMPARE_REPORT_BROWSER="$real_browser" to_pdf "$T/missing/report.html" 2>"$T/missing-err")"; rc=$?
+  pdf_pages "$T/missing/report.pdf" > "$T/missing-pages"
+  check "a contents link to a missing section keeps titles only and names the section" \
+    '[ "$rc" = 0 ] && [ "$out" = "$T/missing/report.pdf" ] && [ "$(wc -l < "$T/missing-err" | tr -d " ")" = 1 ] && grep -q "^The PDF contents show titles only" "$T/missing-err" && grep -qF "#axis-missing" "$T/missing-err" && LC_ALL=C awk "/^contents /{ n++; if (\$(NF-2) != \"None\") bad++ } END { exit !(n == 9 && bad == 0) }" "$T/missing-pages"'
+fi
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" = 0 ]

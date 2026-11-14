@@ -22,7 +22,8 @@ When you run a command, put `D=<folder that contains this SKILL.md>` at the star
 | `scripts/new-report.sh` | Creates the report's folder from the template |
 | `scripts/author.sh` | Shows, saves, or forgets the author's name for the cover |
 | `scripts/check-report.py` | Checks a finished report |
-| `scripts/to-pdf.sh` | Prints the report to PDF |
+| `scripts/to-pdf.sh` | Prints the report to PDF, with the page of each section in the contents |
+| `scripts/toc-pages.py` | Finds those pages; `to-pdf.sh` runs it |
 
 ## Rules
 
@@ -118,6 +119,8 @@ D=<folder>; bash "$D/scripts/to-pdf.sh" <path of report.html>
 
 It uses Chrome, Chromium, Edge, or Brave if one is installed, with a throwaway profile, and prints the path of the PDF next to the HTML.
 When no such browser is found, it says so; give the user the HTML, which prints to PDF from any browser.
+The PDF contents give the page each section starts on, and every page but the cover shows its number at the bottom; the HTML keeps the contents without numbers.
+When it prints `The PDF contents show titles only:` with a reason, the PDF is still written; fix the cause it names, such as a contents link to an id that no section has, and print again, or tell the user the reason.
 
 Open the HTML for the user with `open` on macOS or `xdg-open` on Linux, give the paths of both files, and ask for feedback.
 When a sandbox asks, as Codex can, approve the commands, because they write outside the project folder and start a browser.
