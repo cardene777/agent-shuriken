@@ -173,6 +173,89 @@ PJ="$(ls -d "$TECHDEBT_HOME"/plain-*)/scan.json"
 check "a folder outside git is scanned without history" "[ \"\$(J=$PJ q '(d[\"git\"], d[\"files\"], len(d[\"hotspots\"]))')\" = '(False, 2, 0)' ]"
 run scan "$T/missing" > /dev/null 2>&1
 check "a missing folder exits 3" "[ $? -eq 3 ]"
+check "a folder without package.json has no unused dependencies measure" \
+  "[ \"\$(J=$PJ q '\"unused_dependencies\" in d and d[\"unused_dependencies\"] is None')\" = True ] && ! grep -q '^Unused deps' \"$T/plain.txt\""
+
+# Unused dependencies, found by name without knip, in a folder outside git
+D="$T/deps"
+python3 - "$D" <<'PY'
+import json, os, sys
+r = sys.argv[1]
+def w(p, text):
+    p = os.path.join(r, p)
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    open(p, "w").write(text)
+w("package.json", json.dumps({
+    "name": "deps-fixture",
+    "scripts": {"build": "tsc --noEmit && next build", "dev": "next dev"},
+    "dependencies": {"used-lib": "1.0.0", "unused-lib": "1.0.0", "next": "15.0.0", "react": "19.0.0",
+                     "react-dom": "19.0.0", "lodash": "4.0.0", "@scope/thing": "1.0.0", "dyn-lib": "1.0.0", "req-lib": "1.0.0"},
+    "devDependencies": {"typescript": "5.0.0", "@types/lodash": "4.0.0", "@types/react": "19.0.0", "@types/unused-lib": "1.0.0",
+                        "vite": "5.0.0", "eslint-plugin-react": "7.0.0", "unused-dev": "1.0.0"}}, indent=2))
+w("src/app.tsx", 'import React from "react";\nimport { thing } from "@scope/thing/sub";\nimport used from \'used-lib\';\n'
+  "// unused-dev was dropped last year, and unused-lib with it\n"
+  'export async function load() { return import("dyn-lib"); }\nexport const x = [React, thing, used];\n')
+w("src/util.js", 'const fp = require("lodash/fp");\nconst r = require(\'req-lib\');\nmodule.exports = { fp, r };\n')
+w("vite.config.ts", 'import { defineConfig } from "vite";\nexport default defineConfig({});\n')
+w(".eslintrc.json", '{"plugins": ["react"]}\n')
+w("README.md", "unused-lib and unused-dev are mentioned only here.\n")
+w("node_modules/typescript/package.json", '{"name": "typescript", "bin": {"tsc": "bin/tsc", "tsserver": "bin/tsserver"}}\n')
+w("node_modules/next/package.json", '{"name": "next", "bin": {"next": "dist/bin/next"}, "peerDependencies": {"react": "*", "react-dom": "*"}}\n')
+PY
+mkdir -p "$T/fakebin"
+for pm in npm npx pnpm yarn bunx; do
+  printf '#!/bin/sh\necho %s >> "%s/pm-called"\n' "$pm" "$T" > "$T/fakebin/$pm"
+  chmod +x "$T/fakebin/$pm"
+done
+PATH="$T/fakebin:$PATH" run scan "$D" > "$T/deps.txt" 2> "$T/deps.err"
+DJ="$(ls -d "$TECHDEBT_HOME"/deps-*)/scan.json"
+dq() { J="$DJ" q "$1"; }
+unused='sorted((u["name"], u["kind"], u["package"]) for u in (d.get("unused_dependencies") or {}).get("items", []))'
+check "unused dependencies are listed by name search and marked approximate" \
+  "[ \"\$(dq '$unused')\" = \"[('@types/unused-lib', 'devDependencies', 'package.json'), ('unused-dev', 'devDependencies', 'package.json'), ('unused-lib', 'dependencies', 'package.json')]\" ] && [ \"\$(dq '(d[\"unused_dependencies\"][\"source\"], d[\"unused_dependencies\"][\"approximate\"])')\" = \"('search', True)\" ]"
+names() { python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(sorted({u["name"] for u in (d.get("unused_dependencies") or {}).get("items", [])} & set(sys.argv[2:])))' "$DJ" "$@"; }
+check "a dependency used by import, require, dynamic import, or a subpath is not listed" \
+  "[ \"\$(dq 'd.get(\"unused_dependencies\") is not None')\" = True ] && [ \"\$(names used-lib react @scope/thing dyn-lib lodash req-lib)\" = '[]' ]"
+check "a dependency used only by a scripts entry is not listed, also through its bin name" \
+  "[ \"\$(dq 'd.get(\"unused_dependencies\") is not None')\" = True ] && [ \"\$(names next typescript)\" = '[]' ]"
+check "a dependency used only in a config file is not listed" \
+  "[ \"\$(dq 'd.get(\"unused_dependencies\") is not None')\" = True ] && [ \"\$(names vite)\" = '[]' ]"
+check "@types/<name> is not listed while <name> is used" \
+  "[ \"\$(names @types/lodash @types/react @types/unused-lib)\" = \"['@types/unused-lib']\" ]"
+check "a peer dependency of a used package and a plugin named by its short name are not listed" \
+  "[ \"\$(dq 'd.get(\"unused_dependencies\") is not None')\" = True ] && [ \"\$(names react-dom eslint-plugin-react)\" = '[]' ]"
+check "the summary shows the unused dependencies and how they were found" \
+  "grep -qE '^Unused deps: +3 \\(approximate' \"$T/deps.txt\""
+check "the report has a tab for unused dependencies" \
+  "grep -q 'Unused dependencies' \"\$(dirname \"$DJ\")/report.html\" && grep -q '使っていない依存' \"\$(dirname \"$DJ\")/report.html\""
+check "the scan runs no package manager" "[ ! -e \"$T/pm-called\" ] && [ ! -s \"$T/deps.err\" ]"
+check "scan.json has schema 2" "[ \"\$(dq 'd[\"schema\"]')\" = 2 ]"
+
+# With knip installed, its dependency findings are the measure, listed once
+K="$T/knipdeps"
+cp -R "$D" "$K"
+mkdir -p "$K/node_modules/.bin"
+printf '#!/bin/sh\necho %s\n' "'{\"files\":[],\"issues\":[{\"file\":\"package.json\",\"dependencies\":[{\"name\":\"unused-lib\"}],\"devDependencies\":[{\"name\":\"unused-dev\"}]}]}'" > "$K/node_modules/.bin/knip"
+chmod +x "$K/node_modules/.bin/knip"
+run scan "$K" > "$T/knipdeps.txt" 2>&1
+KJ="$(ls -d "$TECHDEBT_HOME"/knipdeps-*)/scan.json"
+check "when knip ran, its dependency findings are used and none is listed twice" \
+  "[ \"\$(J=$KJ q '(d[\"unused_dependencies\"][\"source\"], sorted(u[\"name\"] for u in d[\"unused_dependencies\"][\"items\"]), [f[\"rule\"] for t in d[\"tools\"] if t[\"tool\"]==\"knip\" for f in t[\"findings\"]])')\" = \"('knip', ['unused-dev', 'unused-lib'], [])\" ] && grep -qE '^Unused deps: +2 \\(from knip' \"$T/knipdeps.txt\""
+
+# An old scan.json is refused
+python3 -c 'import json,sys; p=sys.argv[1]; d=json.load(open(p)); d["schema"]=1; json.dump(d, open(p, "w"))' "$PJ"
+run report "$P" > /dev/null 2> "$T/old.err"
+check "report refuses a scan.json of schema 1 and asks to scan again" "[ $? -eq 2 ] && grep -q 'run scan again' \"$T/old.err\""
+
+docs="$HERE/../../.."
+undocumented=""
+for f in skills/techdebt/SKILL.md docs/how-it-works.md README.md; do
+  grep -i 'unused dependenc' "$docs/$f" | grep -qi 'approximate' || undocumented="$undocumented $f"
+done
+for f in docs/how-it-works.ja.md README.ja.md; do
+  grep '使っていない依存' "$docs/$f" | grep -q '概算' || undocumented="$undocumented $f"
+done
+check "the docs call the unused dependencies approximate" "[ -z \"$undocumented\" ]"
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

@@ -29,7 +29,7 @@ header .meta { color: var(--muted); font-size: 13px; }
 .lang button { border: 0; background: transparent; color: var(--fg); padding: 6px 14px; font: inherit; cursor: pointer; }
 .lang button[aria-pressed="true"] { background: var(--accent); color: #fff; }
 main { max-width: 1200px; margin: 0 auto; padding: 20px 16px 48px; }
-.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 12px; margin-bottom: 20px; }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px;
   text-align: left; font: inherit; color: inherit; cursor: pointer; }
 .card:hover { border-color: var(--accent); }
@@ -107,9 +107,9 @@ const I18N = {
     meta: "{head} on {branch}, {files} source files, {commits} commits in the last {months} months, generated {at}",
     metaNoGit: "Not a git repository, {files} source files, generated {at}",
     start: "Start here", hotspots: "Hotspots", markers: "Markers", untested: "Untested", functions: "Long functions",
-    large: "Large files", dup: "Duplication", tools: "Tools",
+    large: "Large files", dup: "Duplication", deps: "Unused dependencies", tools: "Tools",
     cStart: "files ranked", cHot: "hotspots", cMarkers: "markers", cUntested: "untested files",
-    cFunctions: "long functions", cLarge: "large files", cDup: "duplicated lines",
+    cFunctions: "long functions", cLarge: "large files", cDup: "duplicated lines", cDeps: "unused dependencies",
     leadStart: "Files ranked by how often they change, their size, long functions, markers, duplication, and missing tests. Fixing the top files pays off first, because people keep working in them.",
     leadHot: "Files changed 2 or more times in the last {months} months, ranked by changes multiplied by non-blank lines.",
     leadMarkers: "TODO, FIXME, HACK, XXX, and deprecation markers in comments, oldest first. The age comes from git blame.",
@@ -117,6 +117,10 @@ const I18N = {
     leadFunctions: "Functions over {n} lines. Python is measured exactly; other languages by matching braces, so treat those as approximate.",
     leadLarge: "Source files over {n} non-blank lines.",
     leadDup: "Blocks of {n} or more lines, ignoring whitespace, imports, and comments, that appear in two places.",
+    leadDepsSearch: "Dependencies in package.json whose names were not found in any import, require, config file, or scripts entry, counting packages that a used package needs as a peer and plugins named by their short names. This is approximate: check each one before removing it.",
+    leadDepsKnip: "Dependencies in package.json that knip found unused.",
+    noPackage: "There is no package.json, so dependencies were not checked.",
+    manifest: "package.json", depName: "Dependency", depKind: "Listed under",
     leadTools: "Tools that were already installed in the project or on PATH. Nothing is downloaded.",
     what: "What", why: "Why it costs", action: "First step",
     rChanges: "changed {v} times", rChangesOne: "changed once", rLines: "{v} lines", rLong: "{v} long functions", rLongOne: "1 long function", rMarkers: "marker weight {v}",
@@ -134,9 +138,9 @@ const I18N = {
     meta: "{branch}の{head}、ソースファイル{files}個、直近{months}か月のコミット{commits}件、{at}に作成",
     metaNoGit: "gitのリポジトリではありません、ソースファイル{files}個、{at}に作成",
     start: "最初に直す物", hotspots: "変更の集中", markers: "目印", untested: "テストの無いファイル", functions: "長い関数",
-    large: "大きいファイル", dup: "重複", tools: "道具",
+    large: "大きいファイル", dup: "重複", deps: "使っていない依存", tools: "道具",
     cStart: "順位付け", cHot: "変更の集中", cMarkers: "目印", cUntested: "テスト無し",
-    cFunctions: "長い関数", cLarge: "大きいファイル", cDup: "重複した行",
+    cFunctions: "長い関数", cLarge: "大きいファイル", cDup: "重複した行", cDeps: "使っていない依存",
     leadStart: "変更の回数、大きさ、長い関数、目印、重複、テストの有無を合わせて順位を付けたファイルです。人がよく手を入れるファイルなので、上から直すほど効き目が大きくなります。",
     leadHot: "直近{months}か月に2回以上変更したファイルを、変更の回数と空行を除いた行数の積の順に並べています。",
     leadMarkers: "コメントにあるTODO、FIXME、HACK、XXXと、非推奨の目印です。古い順に並べ、古さはgit blameで調べています。",
@@ -144,6 +148,10 @@ const I18N = {
     leadFunctions: "{n}行を超える関数です。Pythonは正確に測り、ほかの言語は波括弧の対応で測るので、目安として見てください。",
     leadLarge: "空行を除いて{n}行を超えるソースファイルです。",
     leadDup: "空白、import、コメントを除いて{n}行以上同じ並びが2か所にある部分です。",
+    leadDepsSearch: "package.jsonの依存のうち、import、require、設定のファイル、scriptsのどこにも名前が見つからなかった物です。使っている依存が求める依存と、短い名前で書かれた差し込みは使っている物と数えています。名前で探した概算なので、消す前に1つずつ確かめてください。",
+    leadDepsKnip: "package.jsonの依存のうち、knipが使っていないと判定した物です。",
+    noPackage: "package.jsonが無いので、依存は調べていません。",
+    manifest: "package.json", depName: "依存", depKind: "書かれた欄",
     leadTools: "プロジェクトかPATHにすでに入っていた道具の結果です。何も取り寄せていません。",
     what: "何か", why: "負担になる理由", action: "最初の一手",
     rChanges: "変更{v}回", rChangesOne: "変更1回", rLines: "{v}行", rLong: "長い関数{v}個", rLongOne: "長い関数1個", rMarkers: "目印の重み{v}",
@@ -205,6 +213,7 @@ const TABS = [
   ["functions", "functions", () => D.functions.length],
   ["large", "large", () => D.large_files.length],
   ["dup", "dup", () => D.duplication.length],
+  ["deps", "deps", () => D.unused_dependencies ? D.unused_dependencies.items.length : 0],
   ["tools", "tools", () => D.tools.length],
 ];
 const CARDS = [
@@ -215,6 +224,7 @@ const CARDS = [
   ["functions", "cFunctions", () => D.functions.length],
   ["large", "cLarge", () => D.large_files.length],
   ["dup", "cDup", () => D.duplication.reduce((a, b) => a + b.lines, 0)],
+  ["deps", "cDeps", () => D.unused_dependencies ? D.unused_dependencies.items.length : 0],
 ];
 
 function paged(id, rows, head, row) {
@@ -322,6 +332,13 @@ const PANELS = {
     return el("div", null, el("p", {class: "lead"}, t("leadDup", {n: D.thresholds.duplicate_lines})),
       paged("dup", D.duplication, [["first"], ["second"], ["lines", 1]],
         d => el("tr", null, tdc(`${d.a}:${d.a_start}–${d.a_end}`), tdc(`${d.b}:${d.b_start}–${d.b_end}`), td(d.lines, 1))));
+  },
+  deps() {
+    const u = D.unused_dependencies;
+    if (!u) return el("div", {class: "empty"}, t("noPackage"));
+    return el("div", null, el("p", {class: "lead"}, t(u.source === "knip" ? "leadDepsKnip" : "leadDepsSearch")),
+      paged("deps", u.items, [["manifest"], ["depName"], ["depKind"]],
+        d => el("tr", null, tdc(d.package), tdc(d.name), tdc(d.kind))));
   },
   tools() {
     const box = el("div", null, el("p", {class: "lead"}, t("leadTools")));

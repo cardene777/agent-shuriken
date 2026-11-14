@@ -15,6 +15,8 @@ Usage:
   - long functions: over 60 lines (Python exactly with `ast`, brace languages approximately)
   - large files: over 500 non-blank lines
   - duplication: blocks of 8 or more lines that appear in two places
+  - unused dependencies: names in each package.json that no import, require, config file, or
+    `scripts` entry uses. This is approximate; when knip ran, its findings are used instead
 
 It also runs `knip` and `ruff` when they are already installed in the project or on PATH, and
 never downloads anything. It ranks files by combining the measures, writes scan.json and an
@@ -50,6 +52,9 @@ DUP_MIN_CHARS = 160
 MAX_FILE_BYTES = 1024 * 1024
 MAX_BLAME_FILES = 300
 TOP = 20
+# The version of scan.json. Version 2 added unused_dependencies, which the report reads, so
+# explain and report refuse an older scan.json instead of building a report without it.
+SCHEMA = 2
 
 SKIP_DIRS = {
     "node_modules", "vendor", "dist", "build", "out", ".next", ".nuxt", ".svelte-kit", "coverage",
@@ -152,7 +157,8 @@ def is_git(root):
     return r.returncode == 0
 
 
-def list_files(root, in_git):
+def repo_paths(root, in_git):
+    """Every file of the repository outside the skipped folders, as paths relative to root."""
     if in_git:
         r = git(root, "ls-files", "-z", "--cached", "--others", "--exclude-standard")
         paths = [p for p in r.stdout.decode("utf-8", "replace").split("\0") if p]
@@ -162,10 +168,14 @@ def list_files(root, in_git):
             dirs[:] = [x for x in dirs if x not in SKIP_DIRS and not x.startswith(".")]
             for f in files:
                 paths.append(os.path.relpath(os.path.join(d, f), root))
+    return [p for p in sorted(set(paths)) if not any(x in SKIP_DIRS for x in p.split("/")[:-1])]
+
+
+def list_files(root, in_git, paths=None):
     out = []
-    for p in sorted(set(paths)):
+    for p in repo_paths(root, in_git) if paths is None else paths:
         parts = p.split("/")
-        if any(x in SKIP_DIRS for x in parts[:-1]) or parts[-1] in SKIP_FILES:
+        if parts[-1] in SKIP_FILES:
             continue
         name = parts[-1]
         if name.endswith((".min.js", ".min.css", ".map", ".snap", ".pb.go", "_pb2.py")):
@@ -520,7 +530,8 @@ def run_knip(root):
             for item in issue.get(key, []) or []:
                 name = item.get("name", "") if isinstance(item, dict) else str(item)
                 line = item.get("line", 0) if isinstance(item, dict) else 0
-                found.append({"file": f, "line": line or 0, "rule": rule, "message": "%s: %s" % (rule.replace("-", " "), name)})
+                found.append({"file": f, "line": line or 0, "rule": rule, "name": name,
+                              "message": "%s: %s" % (rule.replace("-", " "), name)})
     return {"tool": "knip", "ran": True, "reason": "", "findings": found}
 
 
@@ -552,12 +563,154 @@ def run_ruff(root, has_python):
 
 
 # ---------------------------------------------------------------------------
+# Unused dependencies
+
+
+JS_EXTS = {".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".mts", ".cts", ".vue", ".svelte", ".astro"}
+DEP_KINDS = ("dependencies", "devDependencies")
+# A module named by import, export ... from, import(), require(), or require.resolve().
+SPECIFIER = re.compile(r"""(?:\bfrom|\bimport|\brequire(?:\.resolve)?)\s*\(?\s*["']([^"'\s]+)["']""")
+# Config files that name packages as strings: *.config.*, .eslintrc, .babelrc.json, tsconfig.json.
+CONFIG_FILE = re.compile(r"(?:^|\.)config\.[a-z]+$|^\.[\w-]+rc(?:\.[a-z]+)?$|^[jt]sconfig[\w.-]*\.json$")
+NODE_BUILTINS = {
+    "assert", "async_hooks", "buffer", "child_process", "cluster", "console", "crypto", "dgram", "dns",
+    "events", "fs", "http", "http2", "https", "inspector", "module", "net", "os", "path", "perf_hooks",
+    "process", "querystring", "readline", "repl", "stream", "string_decoder", "timers", "tls", "tty",
+    "url", "util", "v8", "vm", "wasi", "worker_threads", "zlib",
+}
+NODE_GLOBALS = re.compile(r"\bprocess\.|\b__dirname\b|\b__filename\b|\bBuffer\.|\brequire\(")
+
+
+def package_of(spec):
+    """The package a module specifier comes from: `lodash/fp` is lodash, `@a/b/c` is @a/b."""
+    if spec.startswith((".", "/", "#", "~", "http:", "https:", "data:", "virtual:")):
+        return None
+    if spec.startswith("node:"):
+        return "node:"
+    parts = spec.split("/")
+    name = "/".join(parts[:2]) if spec.startswith("@") and len(parts) > 1 else parts[0]
+    return "node:" if name in NODE_BUILTINS else name
+
+
+def short_names(name):
+    """Names a config may use for a plugin or shared config, such as `react` for eslint-plugin-react."""
+    out = {name}
+    scope, _, base = name.rpartition("/") if name.startswith("@") else ("", "", name)
+    for prefix in ("eslint-plugin-", "eslint-config-", "babel-plugin-", "babel-preset-", "plugin-", "preset-"):
+        if base.startswith(prefix) and len(base) > len(prefix):
+            out.add((scope + "/" if scope else "") + base[len(prefix):])
+    if scope and base in ("eslint-plugin", "eslint-config"):
+        out.add(scope)
+    return out
+
+
+def installed(root, folder, name):
+    """The package.json of an installed package, looked up from the folder towards root."""
+    d = folder
+    while True:
+        path = os.path.join(root, d, "node_modules", name, "package.json")
+        if os.path.isfile(path):
+            try:
+                with open(path, encoding="utf-8") as fh:
+                    data = json.load(fh)
+                return data if isinstance(data, dict) else {}
+            except (OSError, ValueError):
+                return {}
+        if not d:
+            return None
+        d = os.path.dirname(d)
+
+
+def find_unused_dependencies(root, paths):
+    """Each package.json's dependencies that nothing in its folder uses, by name. Approximate."""
+    manifests = [p for p in paths if os.path.basename(p) == "package.json"]
+    if not manifests:
+        return None
+    texts = {}
+
+    def text(p):
+        if p not in texts:
+            try:
+                with open(os.path.join(root, p), "rb") as fh:
+                    data = fh.read(MAX_FILE_BYTES)
+                texts[p] = "" if b"\0" in data[:4096] else data.decode("utf-8", "replace")
+            except OSError:
+                texts[p] = ""
+        return texts[p]
+
+    items = []
+    for manifest in manifests:
+        try:
+            pkg = json.loads(text(manifest) or "{}")
+        except ValueError:
+            continue
+        if not isinstance(pkg, dict):
+            continue
+        declared = [(n, k) for k in DEP_KINDS for n in sorted(pkg.get(k) or {}) if isinstance(pkg.get(k), dict)]
+        if not declared:
+            continue
+        folder = os.path.dirname(manifest)
+        inside = [p for p in paths if not folder or p.startswith(folder + "/")]
+        imported, uses_node = set(), False
+        for p in inside:
+            if os.path.splitext(p)[1].lower() in JS_EXTS:
+                body = text(p)
+                for spec in SPECIFIER.findall(body):
+                    imported.add(package_of(spec))
+                uses_node = uses_node or bool(NODE_GLOBALS.search(body))
+        configs = [text(p) for p in inside if CONFIG_FILE.search(os.path.basename(p))]
+        rest = {k: v for k, v in pkg.items() if k not in DEP_KINDS + ("peerDependencies", "optionalDependencies", "scripts", "name")}
+        configs.append(json.dumps(rest))
+        scripts = " ".join(v for v in (pkg.get("scripts") or {}).values() if isinstance(v, str))
+
+        def in_configs(names):
+            return any(re.search(r"""["'`]%s(?:/[^"'`]*)?["'`]""" % re.escape(n), c) for c in configs for n in names)
+
+        def in_scripts(name):
+            meta = installed(root, folder, name) or {}
+            bins = meta.get("bin")
+            names = set(bins) if isinstance(bins, dict) else {name.rpartition("/")[2]}
+            return any(re.search(r"(?<![\w@/.-])%s(?![\w-])" % re.escape(b), scripts) for b in names)
+
+        used = {n for n, _ in declared if n in imported or in_configs(short_names(n)) or in_scripts(n)}
+        # A package that a used package lists in peerDependencies is used too.
+        todo = list(used)
+        while todo:
+            meta = installed(root, folder, todo.pop()) or {}
+            for peer in meta.get("peerDependencies") or {}:
+                if peer not in used:
+                    used.add(peer)
+                    todo.append(peer)
+        for n, kind in declared:
+            if n in used:
+                continue
+            if n.startswith("@types/"):
+                base = n[len("@types/"):]
+                base = "@" + base.replace("__", "/", 1) if "__" in base else base
+                if base in used or base in imported or (base == "node" and ("node:" in imported or uses_node)) \
+                        or in_configs({base}):
+                    continue
+            items.append({"package": manifest, "name": n, "kind": kind})
+    return {"source": "search", "approximate": True, "packages": len(manifests), "items": items}
+
+
+def knip_dependencies(knip):
+    """Moves knip's unused dependency findings out of its tool entry into the measure."""
+    rules = {"unused-dependency": "dependencies", "unused-devDependency": "devDependencies"}
+    items = [{"package": f["file"], "name": f.get("name", ""), "kind": rules[f["rule"]]}
+             for f in knip["findings"] if f["rule"] in rules]
+    knip["findings"] = [f for f in knip["findings"] if f["rule"] not in rules]
+    return {"source": "knip", "approximate": False, "packages": len({i["package"] for i in items}), "items": items}
+
+
+# ---------------------------------------------------------------------------
 # Scan
 
 
 def scan(root, months):
     in_git = is_git(root)
-    files = list_files(root, in_git)
+    paths = repo_paths(root, in_git)
+    files = list_files(root, in_git, paths)
     counts, commits = churn(root, months) if in_git else ({}, 0)
     now = time.time()
     per = {}
@@ -630,12 +783,14 @@ def scan(root, months):
     hotspots = sorted((v for v in per.values() if v["changes"] >= 2 and not v["test"]),
                       key=lambda v: -(v["changes"] * v["lines"]))
     untested = sorted((v for v in per.values() if v["untested"]), key=lambda v: -(v["changes"] * v["lines"] + v["lines"]))
-    tools = [t for t in (run_knip(root), run_ruff(root, any(v["lang"] == "python" for v in per.values()))) if t]
+    knip = run_knip(root)
+    tools = [t for t in (knip, run_ruff(root, any(v["lang"] == "python" for v in per.values()))) if t]
+    unused_deps = knip_dependencies(knip) if knip and knip["ran"] else find_unused_dependencies(root, paths)
     ranked = rank(per)
     head = git(root, "rev-parse", "--short", "HEAD") if in_git else None
     branch = git(root, "rev-parse", "--abbrev-ref", "HEAD") if in_git else None
     return {
-        "schema": 1,
+        "schema": SCHEMA,
         "root": root,
         "project": os.path.basename(root),
         "generated_at": dt.datetime.now(dt.timezone.utc).astimezone().isoformat(timespec="seconds"),
@@ -656,6 +811,7 @@ def scan(root, months):
         "functions": functions,
         "large_files": large,
         "duplication": dups,
+        "unused_dependencies": unused_deps,
         "tools": tools,
         "thresholds": {"long_function": LONG_FUNCTION, "large_file": LARGE_FILE, "duplicate_lines": DUP_WINDOW},
     }
@@ -734,6 +890,10 @@ def print_summary(data, sdir):
     print("Long functions: %d over %d lines" % (len(data["functions"]), LONG_FUNCTION))
     print("Large files:    %d over %d lines" % (len(data["large_files"]), LARGE_FILE))
     print("Duplication:    %d blocks, %d lines" % (len(data["duplication"]), sum(d["lines"] for d in data["duplication"])))
+    deps = data["unused_dependencies"]
+    if deps is not None:
+        how = "approximate: names not found in imports, configs, or scripts" if deps["source"] == "search" else "from knip"
+        print("Unused deps:    %d (%s)" % (len(deps["items"]), how))
     for t in data["tools"]:
         print("Tool %-10s %s" % (t["tool"] + ":", "%d findings" % len(t["findings"]) if t["ran"] else "not run, " + t["reason"]))
     if data["unmeasured_languages"]:
@@ -832,6 +992,12 @@ def main(argv):
     sdir = state_dir(root)
     if not os.path.isfile(os.path.join(sdir, "scan.json")):
         print("no scan for %s yet; run scan first" % root, file=sys.stderr)
+        return 2
+    with open(os.path.join(sdir, "scan.json"), encoding="utf-8") as fh:
+        schema = json.load(fh).get("schema")
+    if schema != SCHEMA:
+        print("the last scan of %s was made by another version of techdebt (schema %s); run scan again" % (root, schema),
+              file=sys.stderr)
         return 2
     if args.cmd == "explain":
         with open(os.path.join(sdir, "scan.json"), encoding="utf-8") as fh:

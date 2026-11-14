@@ -30,6 +30,7 @@ gitのリポジトリの外では、隠しフォルダを飛ばしながらフ�
 | 長い関数 | Pythonは`ast`で各関数の範囲と分岐を正確に測ります。JavaScript、TypeScript、Go、Rust、Java、Kotlin、C、C++、C#、Swift、PHP、Solidityは、関数の頭を見つけ、文字列とコメントの外で波括弧を数えて閉じるまでを測ります。分岐として数えるのは`if`、`for`、`while`、`case`、`catch`、`&&`、`||`、`?`です | 60行を超える関数 |
 | 大きいファイル | 空行を除いた行数 | 500行を超えるファイル |
 | 重複 | 空白、空行、import、コメント、括弧だけの行を除いて行を比べます。続けて8行が2か所に現れたら、一致する範囲をつないで一番長い部分にします | テストファイル以外で8行以上 |
+| 使っていない依存 | 名前で探す概算です。`package.json`ごとに、`dependencies`と`devDependencies`の名前を、そのフォルダーの下のファイルで探します。探すのは、`import`、`export ... from`、`import()`、`require()`、`require.resolve()`のモジュール名(`lodash/fp`は`lodash`と数えます)、設定のファイル(`*.config.*`、`.*rc`、`tsconfig*.json`)と`package.json`のほかの欄にある引用符の中の名前、`scripts`の命令の名前です。命令の名前には、`node_modules`に入っている依存の`bin`の名前(`typescript`に対する`tsc`など)も含めます。使っている依存が`peerDependencies`に挙げる依存、設定に短い名前で書かれた依存(`eslint-plugin-react`に対する`react`)、使っている`<名前>`に対する`@types/<名前>`も、使っている物と数えます。`knip`が動いた時は`knip`の結果を並べ、名前では探しません | 使っている所が見つからない依存 |
 
 Ruby、Lua、シェル、Elixir、Clojure、Haskellでは関数の長さを測りません。これらの言語が含まれる時は、要約に名前を出します。
 
@@ -37,7 +38,7 @@ Ruby、Lua、シェル、Elixir、Clojure、Haskellでは関数の長さを測�
 
 | 道具 | 探す場所 | 残す結果 |
 |---|---|---|
-| `knip` | `package.json`がある時に`node_modules/.bin/knip` | 使われていないファイル、export、型、依存と、使っているのに書かれていない依存 |
+| `knip` | `package.json`がある時に`node_modules/.bin/knip` | 使われていないファイル、export、型と、使っているのに書かれていない依存。使っていない依存は、ここではなく使っていない依存の項目に並べます |
 | `ruff` | Pythonのファイルがある時に`.venv/bin/ruff`、無ければ`PATH` | 規則`C901`、`PLR0911`、`PLR0912`、`PLR0913`、`PLR0915`(複雑さ、returnの数、分岐の数、引数の数、文の数) |
 
 入っていない道具は、理由を添えて「動かしていない」と報告します。
@@ -75,6 +76,8 @@ Ruby、Lua、シェル、Elixir、Clojure、Haskellでは関数の長さを測�
 | `scan.json` | すべての項目、順位、調べたフォルダのパス |
 | `notes.json` | エージェントの説明 |
 | `report.html` | 報告のページ。データはページの中にあり、ネットワークから何も読み込みません |
+
+`scan.json`は形式の版を持ちます。`explain`と`report`は、別の版のプラグインが書いた`scan.json`を断り、`scan`のやり直しを求めます。読めないデータから報告を作らないためです。
 
 ### 目印の行で隠す物
 

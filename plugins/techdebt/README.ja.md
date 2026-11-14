@@ -54,6 +54,7 @@ Untested:       15 source files have no test file with a matching name
 Long functions: 7 over 60 lines
 Large files:    1 over 500 lines
 Duplication:    2 blocks, 20 lines
+Unused deps:    2 (approximate: names not found in imports, configs, or scripts)
 Tool ruff:      not run, ruff is not installed in .venv/bin or on PATH
 
 Start here
@@ -67,6 +68,7 @@ Start here
 順位は20位まで続き、最後の2行にデータと報告のページの置き場が出ます。
 
 報告のページには、順位のタブと項目ごとのタブがあり、英語と日本語を切り替えられます。
+使っていない依存は、knipが無い時も、import、設定のファイル、`scripts`で名前を探して見つけるので、その数は概算です。knipが入っている時は、knipの結果を使います。
 
 ## 必要な物
 
