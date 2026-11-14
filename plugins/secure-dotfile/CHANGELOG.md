@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-14
+
 - `scan` and `move` take `--store pass`, which moves each picked value into your `pass` password store on any system: `pass insert -e` gets the value on standard input, `pass show` reads it back, and the line becomes `"$(pass show NAME 2>/dev/null)"`, or the same inside `( )` in fish. A name that already holds a different value is skipped, and so is a value that cannot be read back because the GPG key is locked, with the first line `pass` printed
 - `scan` prints where the move would store values and the other stores that can be used here, such as `Also available: pass (add --store pass)`, and the agent asks which one to use when there is more than one
 - The docs say that KWallet from KDE Frameworks 6 serves the secret service, so `secret-tool` reaches it, and how to turn that on again when it is off
@@ -37,7 +39,8 @@ First public release.
 - Moves a secret in the chezmoi source file instead of the file chezmoi generates
 - Starts when you mention a secret in your shell configuration, or when you call it, in Claude Code and in Codex
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/secure-dotfile--v0.4.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/secure-dotfile--v0.5.0...HEAD
+[0.5.0]: https://github.com/cardene777/agent-shuriken/releases/tag/secure-dotfile--v0.5.0
 [0.4.0]: https://github.com/cardene777/agent-shuriken/releases/tag/secure-dotfile--v0.4.0
 [0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/secure-dotfile--v0.3.0
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/secure-dotfile--v0.2.0
