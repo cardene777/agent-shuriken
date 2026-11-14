@@ -1,15 +1,15 @@
 # Secure Dotfile
 
-Move the API keys and tokens written into your shell startup files into the macOS Keychain, the Linux secret service, or `pass`, without your agent ever seeing a value.
+Move the API keys and tokens written into your shell startup files into the macOS Keychain, the Linux secret service, `pass`, or 1Password, without your agent ever seeing a value.
 
 English · [日本語](README.ja.md)
 
 A line such as `export OPENAI_API_KEY="sk-..."` in `~/.zshrc` puts the key in every backup, every dotfile repository, and every agent session that reads the file.
 Moving it by hand means pasting the key into a terminal, where it lands in the shell history, and editing each line without a typo.
 This plugin finds those lines and moves the ones you pick into the Keychain on macOS, or on Linux into the secret service that GNOME Keyring, KWallet, or KeePassXC with its secret service turned on, provides.
-If you keep your secrets in `pass`, they can go into your password store instead, on any system.
+If you keep your secrets in `pass` or 1Password, they can go into your password store or your 1Password vault instead, on any system.
 Each moved line then reads the value from there when the shell starts, so your programs see the same environment variable as before.
-The value leaves the file, not the shell's environment: every program the shell starts still receives it, so a key with wide access is safer read only for the command that needs it, and a key your team shares belongs in the team's password manager, such as 1Password, not in one person's Keychain.
+The value leaves the file, not the shell's environment: every program the shell starts still receives it, so a key with wide access is safer read only for the command that needs it, and a key your team shares belongs in a vault your team shares, not in one person's Keychain or personal vault.
 Scripts read, store, and check the values, so the agent only ever sees names, locations, kinds, and lengths.
 
 ```
@@ -41,8 +41,8 @@ You can also call it: run `/secure-dotfile:secure-dotfile` in Claude Code, or ty
 In GitHub Copilot CLI, write `/secure-dotfile` in your request, and in Gemini CLI, describe the task.
 
 1. The agent scans your shell startup files and lists each secret by name, location, kind, and length, and whether its value is in the file's git history. A password under a name such as `DB_PASSWORD`, `PGPASSWORD`, or `MYSQL_PWD` is listed at any length, and one shorter than 8 characters has the kind `short password`, so you know to make it longer
-2. You pick the secrets to move. When your password store is set up too, you also pick whether they go into `pass`
-3. The agent stores each one in the Keychain on macOS, in the secret service through `secret-tool` on Linux, or in `pass`, reads it back, and changes its line to load the value from there. macOS may ask for your login password to unlock the Keychain, the keyring on Linux may ask you to unlock it, and `pass` may ask for your GPG key's passphrase
+2. You pick the secrets to move. When your password store is set up or the 1Password CLI `op` is installed too, you also pick which store they go into
+3. The agent stores each one in the Keychain on macOS, in the secret service through `secret-tool` on Linux, in `pass`, or in 1Password through `op`, reads it back, and changes its line to load the value from there. macOS may ask for your login password to unlock the Keychain, the keyring on Linux may ask you to unlock it, `pass` may ask for your GPG key's passphrase, and the 1Password app may ask you to approve `op`
 4. The agent reports what it moved and what it skipped and why, and tells you which keys to rotate because their values are in git history
 
 The scan looks like this.
@@ -63,8 +63,10 @@ Found 2 secrets written into them.
 ```
 
 On Linux the same line becomes `export GH_TOKEN="$(secret-tool lookup service GH_TOKEN account "$USER" 2>/dev/null)"`, and in `pass` it becomes `export GH_TOKEN="$(pass show GH_TOKEN 2>/dev/null)"`.
+In 1Password it becomes `export GH_TOKEN="$(op read 'op://Personal/GH_TOKEN/password' 2>/dev/null)"`, where `Personal` is the name of the vault `op` stores new items in: Private, Personal, or Employee, depending on your account type.
+The 1Password move was checked with a stand-in `op` that follows the help of op 2.42, not against a real 1Password account.
 
-When an agent's sandbox asks, as Codex can, approve the commands, because they read files in your home folder and use the Keychain, the secret service, or `pass`.
+When an agent's sandbox asks, as Codex can, approve the commands, because they read files in your home folder and use the Keychain, the secret service, `pass`, or `op`.
 
 ## Requirements
 
@@ -73,6 +75,7 @@ When an agent's sandbox asks, as Codex can, approve the commands, because they r
 | macOS and its `security` command | To move secrets on macOS |
 | `secret-tool` from libsecret, and a running secret service such as GNOME Keyring or KWallet | To move secrets on Linux. Debian and Ubuntu ship `secret-tool` in the `libsecret-tools` package. The scan works without it |
 | `pass` and GnuPG, with a password store set up by `pass init` | Only to move secrets into `pass` |
+| The 1Password CLI `op`, signed in or connected to the 1Password app, and one vault named Private, Personal, or Employee | Only to move secrets into 1Password |
 | `python3` | Always. The one that ships with macOS works |
 | `git` | To tell whether a value is in a file's git history |
 | `zsh`, `bash`, or `fish` | To check the syntax of an edited file. A file whose shell is missing is edited but not checked |
@@ -84,10 +87,10 @@ When an agent's sandbox asks, as Codex can, approve the commands, because they r
 In short:
 
 - It reads your shell startup files and the files they source, and asks `git` for their history and `chezmoi` for their source files
-- It never prints any part of a value. The values stay inside the script and reach `security`, `secret-tool`, or `pass` on its standard input, never on its command line
-- It stores only the values you pick, in your default keychain on macOS, your default secret service collection on Linux, or your password store, and never overwrites a different value stored under the same name. When the password store is a git repository, `pass` commits each new entry there, encrypted, and pushing it is up to you
+- It never prints any part of a value. The values stay inside the script and reach `security`, `secret-tool`, `pass`, or `op` on its standard input, never on its command line
+- It stores only the values you pick, in your default keychain on macOS, your default secret service collection on Linux, your password store, or your 1Password vault named Private, Personal, or Employee, and never overwrites a different value stored under the same name. When the password store is a git repository, `pass` commits each new entry there, encrypted, and pushing it is up to you
 - It edits only the lines of the values it moved, keeps each file's permissions and symlinks, and checks the edited file's syntax
-- It connects to nothing on the network and keeps no files of its own. On Linux, `secret-tool` reaches the secret service over your login session's local message bus (D-Bus)
+- It connects to nothing on the network itself and keeps no files of its own. On Linux, `secret-tool` reaches the secret service over your login session's local message bus (D-Bus). With `--store 1password`, `op` talks to the 1Password app or to 1Password's servers to read and store the items in your account, and only a scan or move that picks 1Password runs `op`
 
 ## License
 
