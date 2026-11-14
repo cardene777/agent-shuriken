@@ -5,6 +5,10 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- When the portman plugin is installed, its registry is the one record of ports: `plan` skips every port portman holds for another folder, including the git worktrees of the same repository, uses the port portman holds for this folder, and `apply` registers new ports with portman's `add` command instead of `ports.json`. Before, the two plugins did not read each other, so two projects could get the same port
+- `ports --move` shows the move of the ports recorded before portman was installed into the portman registry, and `ports --move --confirm` does it. A port portman gives to another project stays, with the reason
+- When the portman registry cannot be read, `plan` prints one warning and picks from `ports.json` alone
+
 ## [0.1.1] - 2026-11-13
 
 - The README says that its sample plan is for a project whose `.gitignore` already ignores `.env*`, which is why the plan adds `!.env.tpl`

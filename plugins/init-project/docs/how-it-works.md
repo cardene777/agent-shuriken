@@ -11,9 +11,9 @@ Everything here is done by `skills/init-project/scripts/init_project.py`, which 
 |---|---|
 | `detect` | Prints what kind of project the folder is, and what is already there. Writes nothing |
 | `plan` | Prints every change it would make and saves the plan. Writes nothing into the project |
-| `apply <plan id>` | Checks each change again and writes it, then records the port |
+| `apply <plan id>` | Checks each change again and writes it, then records the port, or registers it with portman when portman is installed |
 | `discard <plan id>` | Removes a plan without writing |
-| `ports` | Lists the ports it assigned. `--forget <folder>` removes a folder's ports |
+| `ports` | Lists the ports it recorded. `--forget <folder>` removes a folder's ports. `--move` shows the move of the recorded ports into the portman registry, and `--move --confirm` does it |
 | `wait --port <n>` | Waits up to 30 seconds (`--timeout`) for `http://127.0.0.1:<n>/` to answer |
 
 Every command works on the folder given with `--dir`, or the current folder.
@@ -60,6 +60,18 @@ A port is free when nothing answers a connection on `127.0.0.1` or `::1`, and th
 
 The ports are recorded in `ports.json` in the plugin's folder, as a list of folder, service, and port, with a format version.
 A record with another format version is refused rather than read, so the script never picks a port on wrong information.
+
+## With portman
+
+When the portman plugin is installed, its registry is the one record of ports.
+The script looks for portman at `INIT_PROJECT_PORTMAN`, then in `~/.claude/plugins/cache`, then in `~/.codex/plugins/cache`, and uses the newest version it finds.
+It reads the registry with `portman.py list --json` and registers a port with `portman.py add <project> <service> <port> --dir <folder>`, so portman's own lock and checks apply, and it never opens portman's files.
+
+- A project belongs to this folder when portman recorded the same folder for it, or, when portman recorded no folder, when its name is the folder's name. Its port with the service's name is "this project's port" in step 3 above, shown as `registered in portman`
+- Every other port in the registry counts as assigned to another project. A git worktree is a folder of its own, so the worktree and its checkout get different ports
+- The ports in `ports.json` from before portman was installed are still skipped, and the plan notes how many there are. `ports --move` lists each one with the portman project it would join, and `ports --move --confirm` registers them and removes them from `ports.json`. A port portman already gives to another project, and a port of a folder that is gone, stay in `ports.json` with the reason
+- `apply` checks the registry again right before writing, and registers the port before it writes the override file. When portman refuses the port, the override file is skipped
+- When portman cannot read its registry, for example after an update to a format this script does not know, the plan prints one warning and picks from `ports.json` alone
 
 ## The Docker files
 
@@ -147,7 +159,7 @@ An env file that git already tracks stays tracked; the plan names it and suggest
 
 | What | Where | Until |
 |---|---|---|
-| The ports it assigned, with the project folder and service | `~/.local/share/init-project/ports.json`, or under `INIT_PROJECT_HOME`, in a folder readable only by you | You remove them with `ports --forget <folder>` or delete the file |
+| The ports it assigned, with the project folder and service, when portman is not installed | `~/.local/share/init-project/ports.json`, or under `INIT_PROJECT_HOME`, in a folder readable only by you | You remove them with `ports --forget <folder>`, move them with `ports --move --confirm`, or delete the file |
 | Plans waiting to be applied: the planned file contents, hashes of existing files, the port, and the next steps | `~/.local/share/init-project/plans/<plan id>.json`, readable only by you | `apply` or `discard`, a newer plan for the same folder, or one day |
 
 The files it writes into your project are listed in each plan, and are written only by `apply`.
@@ -158,7 +170,8 @@ The files it writes into your project are listed in each plan, and are written o
 - Run `op`, or ask you to paste a value
 - Replace or extend a file that changed after the plan, replace an existing file you did not name, or replace an env file
 - Delete a file in your project
-- Connect to anything but `127.0.0.1` and `::1`. It runs only `git rev-parse`, `git check-ignore`, and `git ls-files` to read the repository
+- Connect to anything but `127.0.0.1` and `::1`. It runs only `git rev-parse`, `git check-ignore`, and `git ls-files` to read the repository, and portman's `list` and `add` commands when portman is installed
+- Edit portman's registry itself
 
 ## Environment variables
 
@@ -167,3 +180,4 @@ The files it writes into your project are listed in each plan, and are written o
 | `INIT_PROJECT_HOME` | Where the ports and plans are kept |
 | `INIT_PROJECT_OP` | A path checked instead of `op` on the `PATH`, for tests |
 | `INIT_PROJECT_DOCKER` | A path checked instead of `docker` on the `PATH`, for tests |
+| `INIT_PROJECT_PORTMAN` | The path of `portman.py` to use instead of the one in the plugin folders |

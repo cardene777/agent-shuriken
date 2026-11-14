@@ -10,18 +10,24 @@ Nothing is written into the project until a plan is shown and applied:
                           [--env --vault NAME [--item NAME] [--env-file FILE]...]
   init_project.py apply   PLAN_ID
   init_project.py discard PLAN_ID
-  init_project.py ports   [--forget DIR]
+  init_project.py ports   [--forget DIR | --move [--confirm]]
   init_project.py wait    --port N [--timeout SECONDS]
 
 State lives in ~/.local/share/init-project/ (or INIT_PROJECT_HOME): the local ports this script
 assigned, and plans waiting to be applied. Env files are read only to find the names before "=";
 no part of a value is printed, kept, or sent.
 
+When the portman plugin is installed (INIT_PROJECT_PORTMAN, or the Claude Code or Codex plugin
+folders), its registry is the one record of ports: this script reads it with portman's list command
+and registers ports with portman's add command, and never opens portman's files itself. The ports
+recorded here before portman was installed are still kept away from, until ports --move moves them.
+
 Exit codes: 0 done, 1 nothing found, 2 bad input, 3 op is not installed, 4 some items changed after
 the plan and were skipped, 5 no Docker template for this kind of project, 6 the port is taken.
 """
 import argparse
 import difflib
+import glob
 import hashlib
 import http.client
 import json
@@ -144,6 +150,123 @@ def load_record():
 def save_record(entries):
     entries = sorted(entries, key=lambda e: (e["port"], e["folder"], e["service"]))
     write_private(record_path(), json.dumps({"version": RECORD_VERSION, "ports": entries}, indent=2) + "\n")
+
+
+# ------------------------------------------------------------------ the portman registry
+
+def version_key(path):
+    """Sort key for .../portman/<version>/skills/portman/scripts/portman.py, so the newest sorts last."""
+    version = path.split(os.sep)[-5]
+    return tuple(int(part) if part.isdigit() else -1 for part in re.split(r"[.+-]", version))
+
+
+def find_portman():
+    """The portman script: INIT_PROJECT_PORTMAN, or the newest copy in the Claude Code or Codex plugin folders."""
+    given = os.environ.get("INIT_PROJECT_PORTMAN")
+    if given:
+        return given if os.path.isfile(given) else None
+    home = os.path.expanduser("~")
+    for tool in (".claude", ".codex"):
+        pattern = os.path.join(home, tool, "plugins", "cache", "*", "portman", "*", "skills", "portman", "scripts",
+                               "portman.py")
+        found = [path for path in glob.glob(pattern) if os.path.isfile(path)]
+        if found:
+            return max(found, key=version_key)
+    return None
+
+
+def run_portman(script, *args):
+    """Run a portman command. Returns its exit code (None when it could not run), stdout, and first stderr line."""
+    try:
+        done = subprocess.run([sys.executable, script, *args], capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        return None, "", str(e)
+    first = next((line.strip() for line in done.stderr.splitlines() if line.strip()), "")
+    return done.returncode, done.stdout, first
+
+
+def portman_entries(script):
+    """The registry rows that portman's list --json prints. Raises ValueError with the reason when unreadable."""
+    code, out, err = run_portman(script, "list", "--json")
+    if code == 1 and not out.strip():
+        return []
+    if code != 0:
+        raise ValueError(err or "portman list exited with %s" % code)
+    entries = []
+    for line in out.splitlines():
+        if not line.startswith("{"):
+            continue
+        row = json.loads(line)
+        if not (isinstance(row, dict) and isinstance(row.get("project"), str) and isinstance(row.get("name"), str)
+                and isinstance(row.get("port"), int) and isinstance(row.get("dir"), (str, type(None)))):
+            raise ValueError("portman list printed a row this version does not read")
+        services = {row["name"]} | ({row["service"]} if isinstance(row.get("service"), str) else set())
+        entries.append({"port": row["port"], "folder": os.path.realpath(row["dir"]) if row["dir"] else None,
+                        "project": row["project"], "service": row["name"], "services": services,
+                        "source": "portman"})
+    return entries
+
+
+_PORTS = []
+
+
+def load_ports():
+    """Every port to keep away from, and the portman script when portman holds the record of ports.
+
+    Returns (entries, script). Each entry has port, folder (None for a portman project without one),
+    project, service, services (the names it answers to), and source ("portman" or "record"). The
+    portman rows come first, so they win over the ports recorded here before portman was installed.
+    A registry that cannot be read gives one warning, and then only the record here is used.
+    """
+    if not _PORTS:
+        record = [dict(e, project=None, services={e["service"]}, source="record") for e in load_record()]
+        script = find_portman()
+        entries = []
+        if script:
+            try:
+                entries = portman_entries(script)
+            except ValueError as e:
+                print("Warning: cannot read the portman registry (%s), so only the ports init-project recorded "
+                      "are used." % e, file=sys.stderr)
+                script = None
+        _PORTS.append((entries + record, script))
+    return _PORTS[0]
+
+
+def same_place(entry, folder):
+    """True when the entry is this folder's: by its folder, or for a portman project without one, by its name."""
+    if entry["folder"]:
+        return entry["folder"] == folder
+    return entry["project"] == os.path.basename(folder)
+
+
+def holds(entry, folder, service):
+    return same_place(entry, folder) and service in entry["services"]
+
+
+def portman_project(ports, folder):
+    """The portman project for this folder: the one it already has, or the folder name made unique."""
+    for e in ports:
+        if e["source"] == "portman" and same_place(e, folder):
+            return e["project"]
+    base = re.sub(r"[^A-Za-z0-9._-]+", "-", os.path.basename(folder)).strip("-._")[:60] or "project"
+    taken = {e["project"] for e in ports if e["source"] == "portman"}
+    name, n = base, 2
+    while name in taken:
+        name, n = "%s-%d" % (base, n), n + 1
+    return name
+
+
+def portman_add(script, ports, folder, service, port):
+    """Register the port with portman. Returns (project, name, None), or (project, name, the reason it was refused)."""
+    project = portman_project(ports, folder)
+    name = re.sub(r"[^A-Za-z0-9_-]+", "-", service).strip("-_")[:60] or "app"
+    code, _, err = run_portman(script, "add", project, name, str(port), "--dir", folder)
+    if code != 0:
+        return project, name, err or "portman add exited with %s" % code
+    ports.insert(0, {"port": port, "folder": folder, "project": project, "service": name, "services": {name, service},
+                     "source": "portman"})
+    return project, name, None
 
 
 def plans_dir():
@@ -444,7 +567,7 @@ def detect(folder):
                          for rel in find_env_files(folder)]
     info["op"] = tool_installed("INIT_PROJECT_OP", "op")
     info["docker"] = tool_installed("INIT_PROJECT_DOCKER", "docker")
-    info["ports"] = [{"service": e["service"], "port": e["port"]} for e in load_record() if e["folder"] == folder]
+    info["ports"] = [{"service": e["service"], "port": e["port"]} for e in load_ports()[0] if same_place(e, folder)]
     return info
 
 
@@ -474,10 +597,11 @@ def port_in_use(port):
     return False
 
 
-def choose_port(folder, service, requested, start, record, fixed=None):
+def choose_port(folder, service, requested, start, ports, fixed=None):
     """Return (port, why, check). check says whether apply must check the port is still free."""
-    others = {e["port"] for e in record if not (e["folder"] == folder and e["service"] == service)}
-    mine = next((e["port"] for e in record if e["folder"] == folder and e["service"] == service), None)
+    others = {e["port"] for e in ports if not holds(e, folder, service)}
+    held = next((e for e in ports if holds(e, folder, service)), None)
+    mine = held["port"] if held else None
     if requested is not None:
         if requested in others:
             raise Stop(6, "Port %d is already assigned to another project. See: init_project.py ports" % requested)
@@ -487,7 +611,7 @@ def choose_port(folder, service, requested, start, record, fixed=None):
     if fixed is not None:
         return fixed[0], "set in %s" % fixed[1], False
     if mine is not None:
-        return mine, "assigned to this project before", False
+        return mine, "registered in portman" if held["source"] == "portman" else "assigned to this project before", False
     port = start
     while port <= 65535:
         if port not in BUSY_PORTS and port not in others and not port_in_use(port):
@@ -749,9 +873,14 @@ def cmd_plan(args):
     assign = args.assign_port or args.port is not None
     if not (args.docker or args.env or assign):
         raise Stop(2, "Nothing to plan: pass --docker, --assign-port, or --env.")
-    record = load_record()
+    ports, portman = load_ports()
     plan = {"version": PLAN_VERSION, "id": secrets.token_hex(4), "folder": folder, "items": [], "port": None,
             "notes": list(info["notes"]), "next": []}
+    unmoved = sum(1 for e in ports if e["source"] == "record")
+    if portman and unmoved:
+        plan["notes"].append("%d port%s recorded by init-project before portman was installed. To move %s into "
+                             "the portman registry, run: init_project.py ports --move"
+                             % (unmoved, "" if unmoved == 1 else "s", "it" if unmoved == 1 else "them"))
     keep_out = []
 
     # Env files first, so the compose file can pass their names through to the container.
@@ -854,7 +983,7 @@ def cmd_plan(args):
             found = override_port(read_text(os.path.join(folder, override_name)))
             fixed = (found, override_name) if found else None
         if fixed or not override_existing or override_name in overwrite:
-            port, why, check = choose_port(folder, service, args.port, args.start, record, fixed)
+            port, why, check = choose_port(folder, service, args.port, args.start, ports, fixed)
             plan["port"] = {"service": service, "port": port, "why": why, "check": check}
         else:
             plan["notes"].append("%s exists and sets no port this script can read, so no port is recorded."
@@ -887,7 +1016,7 @@ def cmd_plan(args):
         if args.service or args.container_port:
             raise Stop(2, "--service and --container-port are for --docker.")
         service = tpl["service"] if tpl else "app"
-        port, why, check = choose_port(folder, service, args.port, args.start, record)
+        port, why, check = choose_port(folder, service, args.port, args.start, ports)
         plan["port"] = {"service": service, "port": port, "why": why, "check": check}
         hint = port_hint(info, port)
         if hint:
@@ -909,8 +1038,10 @@ def cmd_plan(args):
                             "values until you delete them.")
 
     p = plan["port"]
-    port_known = p is None or any(e["folder"] == folder and e["service"] == p["service"] and e["port"] == p["port"]
-                                  for e in record)
+    # A port is in place once the record that holds the ports has it: portman's when it is installed.
+    home = "portman" if portman else "record"
+    port_known = p is None or any(holds(e, folder, p["service"]) and e["port"] == p["port"] and e["source"] == home
+                                  for e in ports)
     clean_plans(folder)
     if not any(i["action"] != "skip" for i in plan["items"]) and port_known:
         print_plan(plan, info)
@@ -1030,16 +1161,29 @@ def cmd_apply(args):
     if not os.path.isdir(folder):
         os.remove(path)
         raise Stop(1, "The project folder %s is gone." % folder)
-    record = load_record()
+    ports, portman = load_ports()
     skipped = 0
     port = plan.get("port")
     port_problem = None
+    registered = None
     if port:
-        others = {e["port"] for e in record if not (e["folder"] == folder and e["service"] == port["service"])}
+        others = {e["port"] for e in ports if not holds(e, folder, port["service"])}
         if port["port"] in others:
             port_problem = "port %d was assigned to another project after the plan" % port["port"]
         elif port["check"] and port_in_use(port["port"]):
             port_problem = "port %d came into use after the plan" % port["port"]
+        elif portman:
+            # Registered before any file is written, so a refused port leaves the override file unwritten.
+            held = next((e for e in ports if e["source"] == "portman" and holds(e, folder, port["service"])
+                         and e["port"] == port["port"]), None)
+            if held:
+                registered = (held["project"], held["service"], False)
+            else:
+                project, name, refused = portman_add(portman, ports, folder, port["service"], port["port"])
+                if refused:
+                    port_problem = "portman did not register port %d (%s)" % (port["port"], refused)
+                else:
+                    registered = (project, name, True)
     for item in plan["items"]:
         if item["action"] == "skip":
             print("Kept %s: %s" % (item["path"], item["reason"]))
@@ -1060,13 +1204,21 @@ def cmd_apply(args):
         print("%s %s" % ("Replaced" if item["action"] == "overwrite" else
                          "Added lines to" if item["action"] == "append" else "Wrote", item["path"]))
     if port:
+        record = load_record()
+        rest = [e for e in record if not (e["folder"] == folder and e["service"] == port["service"])]
         if port_problem:
             skipped += 1
             print("Did not record a port: %s. Run plan again to pick another." % port_problem)
+        elif registered:
+            # portman now holds this port, so the line recorded here before portman is no longer needed.
+            if len(rest) != len(record):
+                save_record(rest)
+            print("%s port %d for the %s service in portman as %s/%s"
+                  % ("Registered" if registered[2] else "Kept", port["port"], port["service"], registered[0],
+                     registered[1]))
         else:
-            record = [e for e in record if not (e["folder"] == folder and e["service"] == port["service"])]
-            record.append({"folder": folder, "service": port["service"], "port": port["port"]})
-            save_record(record)
+            rest.append({"folder": folder, "service": port["service"], "port": port["port"]})
+            save_record(rest)
             print("Recorded port %d for the %s service in %s" % (port["port"], port["service"], record_path()))
     os.remove(path)
     if plan["next"]:
@@ -1130,7 +1282,62 @@ def cmd_detect(args):
     return 0
 
 
+def move_ports(confirm):
+    """Show, or with confirm do, the move of the ports recorded here into the portman registry."""
+    record = load_record()
+    script = find_portman()
+    if not script:
+        raise Stop(1, "portman is not installed, so there is no registry to move the ports into.")
+    try:
+        ports = portman_entries(script)
+    except ValueError as e:
+        raise Stop(2, "Cannot read the portman registry: %s" % e)
+    if not record:
+        print("No ports recorded yet, so there is nothing to move.")
+        return 0
+    moved, kept = [], []
+    for e in sorted(record, key=lambda e: e["port"]):
+        holder = next((p for p in ports if p["port"] == e["port"]), None)
+        line = "%5d  %-8s %s" % (e["port"], e["service"], e["folder"])
+        if holder and not same_place(holder, e["folder"]):
+            kept.append((e, "%s: port %d is registered to %s/%s in portman"
+                         % (line, e["port"], holder["project"], holder["service"])))
+        elif not os.path.isdir(e["folder"]):
+            kept.append((e, "%s: the folder is gone; remove it with: init_project.py ports --forget %s"
+                         % (line, shlex.quote(e["folder"]))))
+        elif holder:
+            moved.append((e, "%s: already in portman as %s/%s" % (line, holder["project"], holder["service"])))
+        elif not confirm:
+            moved.append((e, "%s as %s/%s" % (line, portman_project(ports, e["folder"]), e["service"])))
+        else:
+            project, name, refused = portman_add(script, ports, e["folder"], e["service"], e["port"])
+            if refused:
+                kept.append((e, "%s: portman did not register it (%s)" % (line, refused)))
+            else:
+                moved.append((e, "%s as %s/%s" % (line, project, name)))
+    for e, text in moved:
+        print("%s  %s" % ("Moved" if confirm else "Move ", text))
+    for e, text in kept:
+        print("Kept   %s" % text)
+    if not confirm:
+        print()
+        print("Nothing has been changed. To move them, run: init_project.py ports --move --confirm")
+        return 0
+    if moved:
+        save_record([e for e, _ in kept])
+    print()
+    print("Moved %d port%s into the portman registry; %d stay in %s."
+          % (len(moved), "" if len(moved) == 1 else "s", len(kept), record_path()))
+    return 0
+
+
 def cmd_ports(args):
+    if args.confirm and not args.move:
+        raise Stop(2, "--confirm goes with --move.")
+    if args.move and args.forget:
+        raise Stop(2, "Pass --move or --forget, not both.")
+    if args.move:
+        return move_ports(args.confirm)
     record = load_record()
     if args.forget:
         target = {os.path.realpath(os.path.expanduser(args.forget)), os.path.abspath(os.path.expanduser(args.forget))}
@@ -1198,6 +1405,8 @@ def main(argv):
         p.add_argument("plan_id")
     p = sub.add_parser("ports", help="list the local ports this script assigned")
     p.add_argument("--forget", metavar="DIR", help="remove the ports recorded for a folder")
+    p.add_argument("--move", action="store_true", help="show the move of the recorded ports into the portman registry")
+    p.add_argument("--confirm", action="store_true", help="with --move, register them with portman and remove them here")
     p = sub.add_parser("wait", help="wait until a local port answers HTTP")
     p.add_argument("--port", type=int, required=True)
     p.add_argument("--timeout", type=int, default=30)

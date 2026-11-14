@@ -701,6 +701,17 @@ def cmd_doctor(args):
             for line in lines:
                 print("  " + line)
 
+    # A project whose folder is gone, such as a removed git worktree, still holds its ports.
+    gone = ["%s/%s  %d  %s" % (project, e["name"], e["port"], shown(data["projects"][project]["dir"]))
+            for project, e in entries(data)
+            if data["projects"][project].get("dir") and not os.path.isdir(data["projects"][project]["dir"])]
+    if gone:
+        print()
+        print("[Folders gone] %d. Remove them with: portman.py remove PROJECT" % len(gone))
+        for line in gone:
+            print("  " + line)
+    problems += len(gone)
+
     registered = {e["port"] for _, e in entries(data)}
     loose = sorted(p for p in machine.listeners if p not in registered and 1024 <= p <= SUGGEST_MAX)
     print()

@@ -96,6 +96,7 @@ S=<skill folder>/scripts; python3 "$S/portman.py" doctor
 | `Collisions` | Registered ports held by another program, with a free port to move to |
 | `In use, owner unclear` | Registered ports in use whose owner cannot be told, because the project has no folder recorded or `lsof` cannot see the program |
 | `In use by its own project` | Registered ports held by the project's own server or containers |
+| `Folders gone` | Registered ports of projects whose folder no longer exists, such as a removed git worktree. Offer to remove them with `remove`, after the user approves |
 | `Unregistered` | Ports from 1024 to 32767 in use by programs outside the registry, so you know to avoid them |
 
 The lines above the sections say how the ports were read and whether Docker answered.

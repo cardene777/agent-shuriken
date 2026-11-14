@@ -5,6 +5,9 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- `doctor` lists under `[Folders gone]` the ports of projects whose recorded folder no longer exists, such as a removed git worktree, and counts them as problems
+- The README says that the init-project plugin registers its ports in this registry
+
 ## [0.1.0] - 2026-11-12
 
 First public release.

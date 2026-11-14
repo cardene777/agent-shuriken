@@ -137,7 +137,9 @@ The plugin picks a port from 3100 up that nothing on your machine is listening o
 It records the port so the next project gets another one, and reuses it when you run the plugin on the same project again.
 You can ask for a port or for a first port to try.
 The port is bound to `127.0.0.1` only, so other machines on your network cannot reach the dev server.
-The record covers projects set up with this plugin; the portman plugin keeps a registry of ports across all your projects.
+When the portman plugin is installed, its registry is the one record of ports: the plugin skips every port portman holds for another folder, uses the port portman holds for this one, and registers a new port with portman's own `add` command, so two projects never get the same port.
+A git worktree is a folder of its own, so it gets its own port.
+Ports this plugin recorded before portman was installed are still skipped, and `ports --move` moves them into the portman registry after you approve.
 
 ## Docker templates
 
@@ -170,6 +172,7 @@ In short:
 - When you agree to start the project, the agent runs `docker compose up -d --build`, which downloads the base image and the dependencies
 - The commands for 1Password are run by you, in your own terminal, and send your values to 1Password with your own sign-in
 - It keeps only the ports it assigned with their project folders, and plans waiting for approval for at most a day, in `~/.local/share/init-project/`, readable only by you
+- When the portman plugin is installed, it runs portman's `list` command to read the registry and its `add` command to register a port, and never edits portman's files itself
 
 ## License
 

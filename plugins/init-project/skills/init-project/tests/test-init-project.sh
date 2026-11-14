@@ -384,6 +384,130 @@ check "wait reports the status once the server answers" '[ "$rc" = 0 ] && printf
 r wait --port $((BASE + 11)) --timeout 1
 check "wait exits 1 when nothing answers in time" '[ "$rc" = 1 ]'
 
+# --- with portman installed, its registry is the one record of ports
+# The checks run the portman script of this repository against a throwaway registry. portman reads
+# listeners through stand-ins here, so it never looks at the real machine, docker, or registry.
+PORTMAN_SRC="$HERE/../../../../portman/skills/portman/scripts/portman.py"
+if [ -f "$PORTMAN_SRC" ]; then
+  OUTER_STATE="$INIT_PROJECT_HOME"
+  export INIT_PROJECT_HOME="$T/state-pm"
+  export PORTMAN_HOME="$T/portman"
+  export PORTMAN_NO_PROBE=1 PORTMAN_PROC_NET="$T/no-proc" PORTMAN_LSOF="$T/bin/no-lsof" PORTMAN_DOCKER="$T/bin/no-docker"
+  for tool in no-lsof no-docker; do printf '#!/bin/sh\nexit 1\n' > "$T/bin/$tool"; chmod +x "$T/bin/$tool"; done
+  PM="$T/bin/portman.py"
+  cp "$PORTMAN_SRC" "$PM" && chmod +x "$PM"
+  export INIT_PROJECT_PORTMAN="$PM"
+  REG="$PORTMAN_HOME/registry.json"
+  REC="$INIT_PROJECT_HOME/ports.json"
+  pm() { python3 "$PM" "$@" > "$T/pm-out" 2>&1; }
+  hash_of() { if [ -f "$1" ]; then cksum < "$1"; else echo none; fi; }
+  picked() { printf '%s\n' "$out" | sed -nE 's/^  port     ([0-9]+) .*/\1/p'; }
+  real() { python3 -c 'import os, sys; print(os.path.realpath(sys.argv[1]))' "$1"; }
+  # registered <project> <port> <folder>: the registry lists that port for that project and folder.
+  registered() { python3 "$PM" list --json 2>/dev/null | python3 -c 'import json, sys
+want = (sys.argv[1], int(sys.argv[2]), sys.argv[3])
+rows = [json.loads(l) for l in sys.stdin if l.startswith("{")]
+sys.exit(0 if any((r["project"], r["port"], r["dir"]) == want for r in rows) else 1)' "$1" "$2" "$3"; }
+  docs_say() { local f; for f in README.md README.ja.md docs/how-it-works.md docs/how-it-works.ja.md; do
+    grep -qF -- "$1" "$HERE/../../../$f" || return 1; done; }
+  # A second base with 12 free ports, away from the ones above.
+  PB="$(python3 - "$SCRIPTS" "$((BASE + 200))" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+import init_project as m
+for base in range(int(sys.argv[2]), 60000, 37):
+    span = range(base, base + 12)
+    if not any(p in m.BUSY_PORTS or m.port_in_use(p) for p in span):
+        print(base)
+        break
+PY
+)"
+  for name in pm-other pm-site pm-blog pm-shop pm-new pm-legacy pm-clash pm-far pm-find; do
+    mkdir -p "$T/$name"; printf '{"scripts": {"dev": "node server.js"}}\n' > "$T/$name/package.json"
+  done
+
+  pm add other app "$PB" --dir "$T/pm-other"
+  before="$(hash_of "$REG")"
+  r plan --dir "$T/pm-site" --assign-port --from "$PB"
+  check "with portman, plan skips a port portman holds for another folder" \
+    '[ "$rc" = 0 ] && [ -n "$(picked)" ] && [ "$(picked)" != "$PB" ]'
+  check "with portman, plan leaves the registry unchanged" '[ "$before" = "$(hash_of "$REG")" ]'
+
+  pm add site app $((PB + 3)) --dir "$T/pm-site"
+  r plan --dir "$T/pm-site" --assign-port --from "$PB"
+  check "with portman, plan uses the port portman holds for this folder" \
+    '[ "$rc" = 0 ] && [ "$(picked)" = $((PB + 3)) ] && printf "%s\n" "$out" | grep -q "registered in portman"'
+
+  pm add pm-blog app $((PB + 4))
+  r plan --dir "$T/pm-blog" --assign-port --from "$PB"
+  check "with portman, a project without a folder is matched by the folder name" '[ "$rc" = 0 ] && [ "$(picked)" = $((PB + 4)) ]'
+
+  r plan --dir "$T/pm-shop" --assign-port --from "$PB"
+  shop_port="$(picked)"
+  r apply "$(plan_id)"
+  check "with portman, apply registers the port in portman and not in the ports record" \
+    '[ "$rc" = 0 ] && [ -n "$shop_port" ] && registered pm-shop "$shop_port" "$(real "$T/pm-shop")" &&
+     ! grep -qF "$(real "$T/pm-shop")" "$REC" 2>/dev/null'
+
+  K="$T/pm-repo"
+  mkdir -p "$K"; printf '{"scripts": {"dev": "node server.js"}}\n' > "$K/package.json"
+  git init -q "$K"; git -C "$K" add package.json; git -C "$K" commit -qm init
+  git -C "$K" worktree add -q -b wt "$T/pm-repo-wt"
+  pm add pm-repo app $((PB + 5)) --dir "$K"
+  r plan --dir "$T/pm-repo-wt" --assign-port --from $((PB + 5))
+  check "with portman, a worktree gets a port of its own" '[ "$rc" = 0 ] && [ -n "$(picked)" ] && [ "$(picked)" != $((PB + 5)) ]'
+
+  # Ports recorded by init-project before portman was installed, one of them on a port portman gives to another project.
+  mkdir -p "$INIT_PROJECT_HOME"
+  python3 - "$REC" "$(real "$T/pm-legacy")" "$(real "$T/pm-clash")" $((PB + 6)) "$PB" <<'PY'
+import json, sys
+path, legacy, clash, legacy_port, clash_port = sys.argv[1:]
+ports = [{"port": int(legacy_port), "folder": legacy, "service": "app"}, {"port": int(clash_port), "folder": clash, "service": "app"}]
+open(path, "w").write(json.dumps({"version": 1, "ports": ports}, indent=2) + "\n")
+PY
+  r plan --dir "$T/pm-new" --assign-port --from $((PB + 6))
+  check "with portman, plan skips the ports not yet moved and names ports --move" \
+    '[ "$rc" = 0 ] && [ -n "$(picked)" ] && [ "$(picked)" != $((PB + 6)) ] && [ "$(printf "%s\n%s\n" "$out" "$err" | grep -c "ports --move")" = 1 ]'
+
+  cp "$REG" "$T/registry.saved"
+  printf '{"version": 99, "projects": {}}\n' > "$REG"
+  r plan --dir "$T/pm-new" --assign-port --from $((PB + 6))
+  check "an unreadable registry gives one warning and plan uses the ports record" \
+    '[ "$rc" = 0 ] && [ "$(printf "%s\n" "$err" | grep -c .)" = 1 ] && printf "%s\n" "$err" | grep -q portman && [ "$(picked)" = $((PB + 7)) ]'
+  cp "$T/registry.saved" "$REG"
+
+  before_reg="$(hash_of "$REG")"; before_rec="$(hash_of "$REC")"
+  r ports --move
+  check "ports --move without --confirm changes neither record" \
+    '[ "$rc" = 0 ] && printf "%s\n" "$out" | grep -q pm-legacy && [ "$before_reg" = "$(hash_of "$REG")" ] && [ "$before_rec" = "$(hash_of "$REC")" ]'
+  r ports --move --confirm
+  check "ports --move --confirm moves every port into portman" \
+    'registered pm-legacy $((PB + 6)) "$(real "$T/pm-legacy")" && ! grep -qF "$(real "$T/pm-legacy")" "$REC"'
+  check "ports --move keeps a port portman holds for another project" \
+    'grep -qF "$(real "$T/pm-clash")" "$REC" && printf "%s\n%s\n" "$out" "$err" | grep "pm-clash" | grep -q "$PB"'
+
+  # Without INIT_PROJECT_PORTMAN, portman is found where Claude Code and Codex install plugins.
+  unset INIT_PROJECT_PORTMAN
+  pm add far app $((PB + 8)) --dir "$T/pm-far"
+  mkdir -p "$HOME/.claude/plugins/cache/agent-shuriken/portman/0.1.0/skills/portman/scripts"
+  cp "$PM" "$HOME/.claude/plugins/cache/agent-shuriken/portman/0.1.0/skills/portman/scripts/portman.py"
+  r plan --dir "$T/pm-find" --assign-port --from $((PB + 8))
+  check "portman is found in the Claude Code plugins folder" '[ "$rc" = 0 ] && [ -n "$(picked)" ] && [ "$(picked)" != $((PB + 8)) ]'
+  rm -rf "$HOME/.claude/plugins"
+  mkdir -p "$HOME/.codex/plugins/cache/agent-shuriken/portman/0.1.0/skills/portman/scripts"
+  cp "$PM" "$HOME/.codex/plugins/cache/agent-shuriken/portman/0.1.0/skills/portman/scripts/portman.py"
+  r plan --dir "$T/pm-find" --assign-port --from $((PB + 8))
+  check "portman is found in the Codex plugins folder" '[ "$rc" = 0 ] && [ -n "$(picked)" ] && [ "$(picked)" != $((PB + 8)) ]'
+  rm -rf "$HOME/.codex/plugins"
+
+  export INIT_PROJECT_HOME="$OUTER_STATE"
+  unset PORTMAN_HOME PORTMAN_NO_PROBE PORTMAN_PROC_NET PORTMAN_LSOF PORTMAN_DOCKER
+else
+  ng "portman.py is found next to this plugin for the registry checks"
+fi
+check "the script never names the registry file" '! grep -q "registry\.json" "$SCRIPT"'
+check "the README and How it works say the ports go to portman" 'docs_say "ports --move"'
+
 check "no output ever held a value from an env file" '! grep -q SECRETVALUE "$ALL"'
 
 printf '%d passed, %d failed\n' "$PASS" "$FAIL"

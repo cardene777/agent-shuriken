@@ -143,6 +143,7 @@ Right before writing, it checks each file again: a new file must still be missin
 A port that was picked must still be free and not assigned to another project.
 Whatever changed is skipped with the reason, and the command exits 4; tell the user and offer to plan again.
 The port is recorded in `~/.local/share/init-project/ports.json`, readable only by the user, so later projects get other ports.
+When the portman plugin is installed, the port is registered in portman's registry with portman's own `add` command instead, and the plan skips every port portman holds for other folders, including the git worktrees of the same repository.
 
 ## 7. Check that it starts
 
@@ -195,4 +196,6 @@ From the output of `apply`, tell the user these things.
 ## Other commands
 
 - `python3 "$S/init_project.py" ports` lists the ports this skill assigned, with their folders. After the user removes a project, `ports --forget <folder>` frees its ports; ask before running it
-- The ports record covers projects set up with this skill. The portman plugin keeps a registry of ports across all projects; when the user uses it, pass its port with `--port`
+- When the portman plugin is installed, its registry is the one record of ports: the plan reads it, uses the port portman holds for this folder, and `apply` registers new ports there. The script finds portman in the Claude Code and Codex plugin folders, or at `INIT_PROJECT_PORTMAN`
+- When a plan notes ports recorded before portman was installed, `ports --move` shows the move into the portman registry, and `ports --move --confirm` does it and removes them from `ports.json`. Show the user the list and ask before running it with `--confirm`. A port portman gives to another project stays in `ports.json`, with the reason
+- When the plan warns that it cannot read the portman registry, it picks from `ports.json` only. Tell the user, and suggest updating portman
