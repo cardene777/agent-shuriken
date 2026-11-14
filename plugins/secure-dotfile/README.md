@@ -1,19 +1,19 @@
 # Secure Dotfile
 
-Move the API keys and tokens written into your shell startup files into the macOS Keychain, without your agent ever seeing a value.
+Move the API keys and tokens written into your shell startup files into the macOS Keychain or the Linux secret service, without your agent ever seeing a value.
 
 English · [日本語](README.ja.md)
 
 A line such as `export OPENAI_API_KEY="sk-..."` in `~/.zshrc` puts the key in every backup, every dotfile repository, and every agent session that reads the file.
 Moving it by hand means pasting the key into a terminal, where it lands in the shell history, and editing each line without a typo.
-This plugin finds those lines and moves the ones you pick into the Keychain.
-Each moved line then reads the value from the Keychain when the shell starts, so your programs see the same environment variable as before.
+This plugin finds those lines and moves the ones you pick into the Keychain on macOS, or on Linux into the secret service that GNOME Keyring, or KeePassXC with its secret service turned on, provides.
+Each moved line then reads the value from there when the shell starts, so your programs see the same environment variable as before.
 The value leaves the file, not the shell's environment: every program the shell starts still receives it, so a key with wide access is safer read only for the command that needs it, and a key your team shares belongs in the team's password manager, such as 1Password, not in one person's Keychain.
 Scripts read, store, and check the values, so the agent only ever sees names, locations, kinds, and lengths.
 
 ```
-Scan the startup files ──> Pick what to move ──> Store in the Keychain and edit the lines ──> Report and suggest rotation
- (agent)                    (you)                 (agent)                                     (agent)
+Scan the startup files ──> Pick what to move ──> Store the values and edit the lines ──> Report and suggest rotation
+ (agent)                    (you)                 (agent)                                (agent)
 ```
 
 ## Install
@@ -41,7 +41,7 @@ In GitHub Copilot CLI, write `/secure-dotfile` in your request, and in Gemini CL
 
 1. The agent scans your shell startup files and lists each secret by name, location, kind, and length, and whether its value is in the file's git history. A password under a name such as `DB_PASSWORD`, `PGPASSWORD`, or `MYSQL_PWD` is listed at any length, and one shorter than 8 characters has the kind `short password`, so you know to make it longer
 2. You pick the secrets to move
-3. The agent stores each one in the Keychain, reads it back, and changes its line to load the value from the Keychain. macOS may ask for your login password to unlock the Keychain
+3. The agent stores each one in the Keychain on macOS, or in the secret service through `secret-tool` on Linux, reads it back, and changes its line to load the value from there. macOS may ask for your login password to unlock the Keychain, and on Linux the keyring may ask you to unlock it
 4. The agent reports what it moved and what it skipped and why, and tells you which keys to rotate because their values are in git history
 
 The scan looks like this.
@@ -60,13 +60,16 @@ Found 2 secrets written into them.
    becomes  export OPENAI_API_KEY="$(security find-generic-password -a "$USER" -s OPENAI_API_KEY -w 2>/dev/null)"
 ```
 
-When an agent's sandbox asks, as Codex can, approve the commands, because they read files in your home folder and use the Keychain.
+On Linux the same line becomes `export GH_TOKEN="$(secret-tool lookup service GH_TOKEN account "$USER" 2>/dev/null)"`.
+
+When an agent's sandbox asks, as Codex can, approve the commands, because they read files in your home folder and use the Keychain or the secret service.
 
 ## Requirements
 
 | Tool | When it's needed |
 |---|---|
-| macOS and its `security` command | To move secrets. The scan also works on Linux |
+| macOS and its `security` command | To move secrets on macOS |
+| `secret-tool` from libsecret, and a running secret service such as GNOME Keyring | To move secrets on Linux. Debian and Ubuntu ship `secret-tool` in the `libsecret-tools` package. The scan works without it |
 | `python3` | Always. The one that ships with macOS works |
 | `git` | To tell whether a value is in a file's git history |
 | `zsh`, `bash`, or `fish` | To check the syntax of an edited file. A file whose shell is missing is edited but not checked |
@@ -78,10 +81,10 @@ When an agent's sandbox asks, as Codex can, approve the commands, because they r
 In short:
 
 - It reads your shell startup files and the files they source, and asks `git` for their history and `chezmoi` for their source files
-- It never prints any part of a value. The values stay inside the script and reach the `security` command on its standard input, never on its command line
-- It stores only the values you pick, in your default keychain, and never overwrites a different value stored under the same name
+- It never prints any part of a value. The values stay inside the script and reach `security` or `secret-tool` on its standard input, never on its command line
+- It stores only the values you pick, in your default keychain on macOS or your default secret service collection on Linux, and never overwrites a different value stored under the same name
 - It edits only the lines of the values it moved, keeps each file's permissions and symlinks, and checks the edited file's syntax
-- It connects to nothing on the network and keeps no files of its own
+- It connects to nothing on the network and keeps no files of its own. On Linux, `secret-tool` reaches the secret service over your login session's local message bus (D-Bus)
 
 ## License
 
