@@ -219,7 +219,7 @@ check "author.sh rejects a name with a line break" '[ "$rc" = 2 ] && grep -q "on
 long="$(python3 -c 'print("x" * 101)')"
 author --set "$long" >/dev/null 2>"$T/err"; rc=$?
 check "author.sh rejects a name over 100 characters" '[ "$rc" = 2 ] && [ "$(author)" = "name: Jane Doe" ]'
-wide="$(python3 -c 'print("山" * 100)')"
+wide="$(python3 -c 'print(chr(0x5c71) * 100)')"
 out="$(COMPARE_REPORT_HOME="$T/wide" author --set "$wide")"; rc=$?
 check "author.sh counts characters, not bytes" '[ "$rc" = 0 ] && [ "$out" = "name: $wide" ]'
 author --set Jane extra >/dev/null 2>"$T/err"; rc=$?

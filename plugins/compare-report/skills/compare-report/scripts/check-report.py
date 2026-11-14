@@ -12,6 +12,7 @@ A report passes when:
 - every score is one of S, A, B, C, and D, with the matching class
 - every bar's fill sets a width between 0% and 100%
 - the sources section links at least one http or https page
+- the author line on the cover is either empty or holds a name, not only spaces
 """
 import re
 import sys
@@ -32,6 +33,7 @@ class Report(HTMLParser):
         self.tables = []           # one dict per table
         self.score = None          # the class of the score being read, and its text
         self.source_links = 0
+        self.author = None         # the stack depth of the open author line, its text, and its line
 
     def classes(self, attrs):
         return set((dict(attrs).get("class") or "").split())
@@ -75,6 +77,8 @@ class Report(HTMLParser):
                 self.problems.append(f"line {self.getpos()[0]}: a bar fill needs style=\"width: N%\" with N from 0 to 100")
         if tag == "a" and self.inside("sources") and re.match(r"(?i)https?://", a.get("href") or ""):
             self.source_links += 1
+        if "cover-author" in cls and self.author is None:
+            self.author = [len(self.stack), "", self.getpos()[0]]
         if tag not in ("br", "hr", "img", "meta", "link", "input", "col", "source", "wbr"):
             self.stack.append((tag, cls, a.get("id")))
 
@@ -91,10 +95,17 @@ class Report(HTMLParser):
             if self.stack[i][0] == tag:
                 del self.stack[i:]
                 break
+        if self.author is not None and len(self.stack) <= self.author[0]:
+            depth, text, line = self.author
+            if text and not text.strip():
+                self.problems.append(f"line {line}: the author line on the cover holds only spaces; put the name in it or leave it empty")
+            self.author = None
 
     def handle_data(self, data):
         if self.score is not None:
             self.score[1] += data
+        if self.author is not None:
+            self.author[1] += data
         for entry in self.stack:
             if entry[0] == "section" and entry[2] in self.sections:
                 self.sections[entry[2]] += len(data.strip())

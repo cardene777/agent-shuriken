@@ -15,6 +15,7 @@ Replace every placeholder in the template. `scripts/check-report.py` fails while
 | `{{SUBTITLE}}` | One sentence on what was compared and for whom |
 | `{{STATS}}` | Three `<div><dt>label</dt><dd>value</dd></div>` items: candidates, axes, and sources |
 | `{{DATE}}` | The date the research was done |
+| `{{AUTHOR}}` | The name the user gave for the cover after a short label in the report's language, such as "Prepared by Jane Doe", with `&`, `<`, and `>` escaped. When the user chose no name, replace it with nothing, leaving no space between the tags, and the line is hidden |
 | `{{CONTENTS_HEADING}}` | The heading of the contents list |
 | `{{TOC}}` | One `<li><a href="#id">title</a></li>` per section, in order |
 | `{{SUMMARY}}` | The summary section's content, starting with its `<h2>` |

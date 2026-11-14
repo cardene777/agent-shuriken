@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The cover can show the author's name under the date. The agent asks for it together with the candidates, puts on the cover only a name you gave, never one from `git config` or your system, and keeps your answer in `author.txt` next to the reports to offer it first next time. With no name, the line is left out
+
 ## [0.2.1] - 2026-11-13
 
 - The PDF is written readable only by you, like the HTML report. Before, it could be read by other users once copied out of the report's folder
