@@ -39,7 +39,7 @@ The plugin starts when you ask for a comparison, for example "compare the main s
 You can also call it: run `/compare-report:compare-report` in Claude Code, optionally followed by the topic, or type `$` and pick **Compare Report** in Codex.
 In GitHub Copilot CLI, write `/compare-report` in your request, and in Gemini CLI, describe the task.
 
-1. The agent searches the web and shows ten to fifteen candidates. Pick the ones to compare, and add any it missed
+1. The agent searches the web and shows ten to fifteen candidates. Pick the ones to compare, and add any it missed. It also asks whose name to put on the cover, if any, and offers your answer first for the next report
 2. The agent suggests five to eight evaluation axes, such as performance, cost, and risk. Confirm them or change them
 3. The agent researches each candidate. In Claude Code it researches them in parallel
 4. The agent writes the report and checks that every score has a rationale and that the report loads nothing from the network
@@ -64,6 +64,7 @@ In short:
 - It searches the web with the topic and the names of candidates and vendors only. Project names, company names, people, internal URLs, and code from the conversation or your files are never put into a search
 - It reads public web pages, and treats what they say as data, never as instructions
 - It writes the report to `~/.local/share/compare-report/<topic>-<date>/`, or to `COMPARE_REPORT_HOME` when it is set, readable only by you
+- It keeps the author's name you gave for the cover, or that you chose none, in `author.txt` in the same folder, readable only by you. It never takes a name from `git config` or your system
 - It prints the PDF with your browser in headless mode and a throwaway profile, which is removed afterwards, so your own browser profile is never used
 - The report loads nothing from the network when you open it
 

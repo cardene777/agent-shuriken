@@ -10,7 +10,7 @@ The procedure is in `skills/compare-report/SKILL.md`, and the pages it points to
 | Step | Who | What happens |
 |---|---|---|
 | List candidates | Agent | Searches the web for the topic and lists ten to fifteen candidates with one line each |
-| Agree on candidates | You | Keep, add, or drop candidates. Usually three to eight are compared |
+| Agree on candidates | You | Keep, add, or drop candidates. Usually three to eight are compared. In the same question, give the name to put on the cover, or choose none |
 | Choose axes | Agent | Suggests five to eight evaluation axes that fit the topic, such as performance, cost, reliability, ease of use, ecosystem, and risk |
 | Agree on axes | You | Confirm or change the axes |
 | Research | Agent | Collects official information, figures, adopters, and risks for each candidate, with a source and a date for every claim. Claude Code researches the candidates in parallel |
@@ -23,7 +23,7 @@ The procedure is in `skills/compare-report/SKILL.md`, and the pages it points to
 
 | Section | Contents |
 |---|---|
-| Cover | Title, what was compared, the number of candidates, axes, and sources, and the date |
+| Cover | Title, what was compared, the number of candidates, axes, and sources, the date, and the author's name when you gave one |
 | Summary | Why the comparison was needed, the top three picks, and five to seven findings |
 | Candidates | A table of every candidate, and a card per candidate with a strength and a weakness |
 | One section per axis | A table with a score and a rationale for every candidate, a bar chart when there are numbers, and a note on where the data came from |
@@ -51,12 +51,18 @@ A candidate that cannot be judged fairly on an axis, because no comparable figur
 - Every table with a score or a risk label has a rationale column
 - Every score letter matches its grade, every risk label has a level, and every bar has a width from 0% to 100%
 - The sources section links at least one page
+- The author line on the cover is either empty, and so hidden, or holds a name, not only spaces
 
 ## Where files are kept
 
 Each report has its own folder, `~/.local/share/compare-report/<topic>-<date>/`, holding `report.html` and `report.pdf`.
 Set `COMPARE_REPORT_HOME` to keep reports somewhere else, or ask the agent to put a report in a folder you name.
 The folder is readable only by you, and an existing report is never overwritten.
+
+The author's name you gave for the cover is kept in `author.txt` in the same place, `~/.local/share/compare-report/` or `COMPARE_REPORT_HOME`, readable only by you.
+An empty file means you chose no name.
+The agent offers the saved answer first for the next report, and removes the file when you ask it to forget the name.
+The name comes only from your answer, never from `git config`, your system's user name, or your account.
 
 ## What it runs and connects to
 

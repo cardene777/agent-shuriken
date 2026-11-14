@@ -56,6 +56,9 @@ a { color: var(--accent); }
 .cover .stats dt { color: #9ca3af; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
 .cover .stats dd { margin: 4px 0 0; font-size: 28px; font-weight: 700; }
 .cover .cover-foot { margin: 48px 0 0; color: #9ca3af; font-size: 13px; }
+.cover .cover-foot p { margin: 0; }
+.cover .cover-foot .cover-author { margin-top: 6px; color: #d1d5db; font-size: 14px; }
+.cover .cover-foot .cover-author:empty { display: none; }
 
 /* Body */
 main { max-width: 980px; margin: 0 auto; padding: 56px 40px 72px; counter-reset: chapter; }
@@ -185,7 +188,10 @@ tbody tr:last-child td { border-bottom: 1px solid #d1d5db; }
     <p class="subtitle">{{SUBTITLE}}</p>
     <dl class="stats">{{STATS}}</dl>
   </div>
-  <p class="cover-foot">{{DATE}}</p>
+  <div class="cover-foot">
+    <p>{{DATE}}</p>
+    <p class="cover-author">{{AUTHOR}}</p>
+  </div>
 </section>
 <div class="page-break"></div>
 

@@ -137,8 +137,102 @@ fails "sources without a web link" "the sources section links no http or https p
 
 out="$(check_report "$TEMPLATE")"; rc=$?
 check "the unfilled template fails on its placeholders" '[ "$rc" = 1 ] && printf "%s\n" "$out" | grep -qF "the placeholder {{SUMMARY}} is still in the report"'
+check "the unfilled template names {{AUTHOR}}" 'printf "%s\n" "$out" | grep -qF "the placeholder {{AUTHOR}} is still in the report"'
 check_report >/dev/null 2>&1; rc=$?
 check "check-report.py without a file exits 2" '[ "$rc" = 2 ]'
+
+# --- the author line on the cover
+# fill_template <file> <author>: the real template with every placeholder filled
+fill_template() {
+  python3 - "$TEMPLATE" "$T/$1" "$2" <<'PY'
+import re, sys
+src, dst, author = sys.argv[1:]
+values = {
+    "LANG": "en", "TITLE": "Static site generators", "EYEBROW": "Comparison report",
+    "SUBTITLE": "Hugo and Eleventy for a documentation site", "DATE": "2026-11-14",
+    "STATS": "<div><dt>Candidates</dt><dd>2</dd></div>",
+    "CONTENTS_HEADING": "Contents", "TOC": '<li><a href="#summary">Summary</a></li>',
+    "SUMMARY": "<h2>Summary</h2><p>Pick Hugo for large sites.</p>",
+    "CANDIDATES": "<h2>Candidates</h2><p>Hugo and Eleventy.</p>",
+    "AXES": '<section id="axis-speed" class="chapter axis"><h2>Build speed</h2><p>Hugo builds fastest.</p></section>',
+    "RISKS": "<h2>Risks</h2><p>Eleventy has one maintainer.</p>",
+    "RANKING": "<h2>Ranking</h2><ol><li>Hugo</li><li>Eleventy</li></ol>",
+    "SOURCES": '<h2>Sources</h2><ol><li><a href="https://example.org/benchmark">Benchmark</a></li></ol>',
+    "FOOTER": "2026-11-14", "AUTHOR": author,
+}
+text = open(src, encoding="utf-8").read()
+text = re.sub(r"\{\{([A-Z_]+)\}\}", lambda m: values[m.group(1)], text)
+open(dst, "w", encoding="utf-8").write(text)
+PY
+}
+
+cover="$(sed -n '/<section class="cover">/,/<\/section>/p' "$TEMPLATE")"
+check "the template has the author line under the date and hides it when empty" \
+  'printf "%s\n" "$cover" | grep -A1 -F "{{DATE}}" | tail -n 1 | grep -qF "<p class=\"cover-author\">{{AUTHOR}}</p>" && grep -qE "cover-author:empty[^{]*\{[^}]*display: *none" "$TEMPLATE"'
+
+fill_template with-author.html "Prepared by Jane Doe" && out="$(check_report "$T/with-author.html")"; rc=$?
+check "the filled template with an author prints ok" \
+  '[ "$rc" = 0 ] && [ "$out" = ok ] && grep -qF "<p class=\"cover-author\">Prepared by Jane Doe</p>" "$T/with-author.html"'
+fill_template no-author.html "" && out="$(check_report "$T/no-author.html")"; rc=$?
+check "the filled template with an empty author prints ok" \
+  '[ "$rc" = 0 ] && [ "$out" = ok ] && grep -qF "<p class=\"cover-author\"></p>" "$T/no-author.html"'
+fill_template blank-author.html "   " && out="$(check_report "$T/blank-author.html")"; rc=$?
+check "a blank author line is reported" \
+  '[ "$rc" = 1 ] && printf "%s\n" "$out" | grep -qF "the author line on the cover holds only spaces"'
+
+skill="$HERE/../SKILL.md"
+check "SKILL.md asks for the author with the candidates and never reads git config or the system" \
+  'grep -qF "In the same question as the candidates, ask for the author" "$skill" && grep -qF "scripts/author.sh" "$skill" && grep -qF "Never take the name from \`git config\`, the system" "$skill"'
+
+structure="$HERE/../references/report-structure.md"
+missing=""
+for p in $(grep -oE '\{\{[A-Z_]+\}\}' "$TEMPLATE" | sort -u); do
+  grep -qF "| \`$p\` |" "$structure" || missing="$missing $p"
+done
+check "report-structure.md lists every placeholder in the template" \
+  '[ -z "$missing" ] && grep -qF "{{AUTHOR}}" "$TEMPLATE" && grep -qF "| \`{{AUTHOR}}\` |" "$structure"'
+
+plugin="$HERE/../../.."
+undocumented=""
+for f in README.md README.ja.md docs/how-it-works.md docs/how-it-works.ja.md; do
+  grep -qF "author.txt" "$plugin/$f" || undocumented="$undocumented $f"
+done
+check "the docs say where the author's name is kept" '[ -z "$undocumented" ]'
+
+# --- author.sh
+author() { bash "$SCRIPTS/author.sh" "$@"; }
+af="$HOME/.local/share/compare-report/author.txt"
+
+out="$(author)"; rc=$?
+check "author.sh prints not saved before the first answer" '[ "$rc" = 0 ] && [ "$out" = "not saved" ]'
+printf '[user]\n\tname = Jane Git\n' > "$HOME/.gitconfig"
+out="$(author)"
+check "author.sh does not fall back to git config user.name" '[ "$out" = "not saved" ] && [ ! -e "$af" ]'
+rm -f "$HOME/.gitconfig"
+
+out="$(author --set '  Jane Doe ')"; rc=$?
+check "author.sh --set saves the name" '[ "$rc" = 0 ] && [ "$out" = "name: Jane Doe" ] && [ "$(author)" = "name: Jane Doe" ]'
+check "the author file is readable only by the user" '[ "$(mode "$af")" = 600 ] && [ "$(mode "$(dirname "$af")")" = 700 ]'
+
+author --set "$(printf 'Jane\nDoe')" >/dev/null 2>"$T/err"; rc=$?
+check "author.sh rejects a name with a line break" '[ "$rc" = 2 ] && grep -q "one line" "$T/err" && [ "$(author)" = "name: Jane Doe" ]'
+long="$(python3 -c 'print("x" * 101)')"
+author --set "$long" >/dev/null 2>"$T/err"; rc=$?
+check "author.sh rejects a name over 100 characters" '[ "$rc" = 2 ] && [ "$(author)" = "name: Jane Doe" ]'
+wide="$(python3 -c 'print(chr(0x5c71) * 100)')"
+out="$(COMPARE_REPORT_HOME="$T/wide" author --set "$wide")"; rc=$?
+check "author.sh counts characters, not bytes" '[ "$rc" = 0 ] && [ "$out" = "name: $wide" ]'
+author --set Jane extra >/dev/null 2>"$T/err"; rc=$?
+check "author.sh with extra arguments exits 2 with the usage" '[ "$rc" = 2 ] && grep -q "^usage: author.sh" "$T/err"'
+
+out="$(COMPARE_REPORT_HOME="$T/elsewhere" author --set 'Jane Doe')"
+check "author.sh follows COMPARE_REPORT_HOME" '[ -f "$T/elsewhere/author.txt" ] && [ "$(COMPARE_REPORT_HOME="$T/elsewhere" author)" = "name: Jane Doe" ]'
+
+out="$(author --set '')"; rc=$?
+check "author.sh --set with an empty name saves no name" '[ "$rc" = 0 ] && [ "$out" = "no name" ] && [ -f "$af" ] && [ "$(author)" = "no name" ]'
+out="$(author --forget)"; rc=$?
+check "author.sh --forget removes the saved answer" '[ "$rc" = 0 ] && [ "$out" = "not saved" ] && [ ! -e "$af" ]'
+check "author.sh leaves no temporary file" '[ -z "$(find "$HOME/.local/share/compare-report" "$T/elsewhere" -maxdepth 1 -name ".author*")" ]'
 
 # --- to-pdf.sh
 cat > "$T/bin/browser" <<'SH'
