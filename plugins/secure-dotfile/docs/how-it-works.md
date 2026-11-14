@@ -39,7 +39,7 @@ These lines are not listed.
 The agent runs the script and reads its output, and the output never holds any part of a value.
 For each secret it prints the name, the file and line, the kind, the length, and whether the value is in git history.
 When the script stops on an unexpected error, it prints only the error's type and the script line, because an error message could quote a line of your file.
-On macOS the script stores a value by sending the `security` command its instruction on standard input (`security -i`), and on Linux by sending the value itself to `secret-tool store` on standard input, so the value never appears on a command line, where other processes could read it.
+On macOS the script stores a value by sending the `security` command its instruction on standard input (`security -i`), on Linux by sending the value itself to `secret-tool store` on standard input, and in `pass` by sending it to `pass insert -e` on standard input, so the value never appears on a command line, where other processes could read it.
 It checks the syntax of an edited file by sending the text to the shell on standard input, so no copy of the file is written elsewhere.
 
 ## Where values are stored
@@ -47,9 +47,14 @@ It checks the syntax of an edited file by sending the text to the shell on stand
 | System | Store | Command |
 |---|---|---|
 | macOS | Your default keychain | `security` |
-| Linux | Your default collection in the secret service, which GNOME Keyring, or KeePassXC with its secret service turned on, provides over your login session's D-Bus | `secret-tool` from libsecret, in the `libsecret-tools` package on Debian and Ubuntu |
+| Linux | Your default collection in the secret service, which GNOME Keyring, KWallet, or KeePassXC with its secret service turned on, provides over your login session's D-Bus | `secret-tool` from libsecret, in the `libsecret-tools` package on Debian and Ubuntu |
+| Any system, with `--store pass` | Your password store, `~/.password-store` or the folder in `PASSWORD_STORE_DIR`, with each entry encrypted to your GPG key | `pass`, with GnuPG |
 
-`SECURE_DOTFILE_STORE` picks `keychain` or `secret-service` instead of the system's default, and `SECURE_DOTFILE_KEYCHAIN` names a keychain file to use instead of the default keychain.
+The scan prints where the move would store values, such as `Moves into the secret service`, and names the other stores that can be used here, such as `Also available: pass (add --store pass)`.
+`pass` is listed when the `pass` command exists and the password store has been set up with `pass init`.
+`--store` picks the store for one scan or move.
+KWallet from KDE Frameworks 6 serves the secret service unless that is turned off, so `secret-tool` reaches it. When it is off, turn it on again by removing `apiEnabled=false` from the `[org.freedesktop.secrets]` group in `~/.config/kwalletrc`.
+`SECURE_DOTFILE_STORE` picks the store instead of the system's default when `--store` is not given, and `SECURE_DOTFILE_KEYCHAIN` names a keychain file to use instead of the default keychain.
 Both are meant for tests against a throwaway store.
 
 ## How a move works
@@ -57,9 +62,9 @@ Both are meant for tests against a throwaway store.
 The agent passes the items you picked, and the script does these steps for each one.
 
 1. Reads the line again, and skips the item if the line no longer sets that variable to a literal value
-2. Looks up the variable's name in the store. When a different value is stored there, it skips the item and stores nothing. When the same value is stored, it keeps it. `secret-tool store` replaces an item without asking, so this lookup is what keeps it from overwriting one
-3. Stores the value with service `NAME` and account `$USER`, then reads it back and compares. In the secret service the item's label is `NAME (added by secure-dotfile)`
-4. Replaces only the value on that line with `"$(security find-generic-password -a "$USER" -s NAME -w 2>/dev/null)"` on macOS, or `"$(secret-tool lookup service NAME account "$USER" 2>/dev/null)"` on Linux, keeping the rest of the line, such as a comment. In fish the command goes inside `( )` instead of `"$( )"`
+2. Looks up the variable's name in the store. When a different value is stored there, it skips the item and stores nothing. When the same value is stored, it keeps it. `secret-tool store` and `pass insert` replace an item without asking, so this lookup is what keeps them from overwriting one. In `pass`, an entry whose file does not exist is known to be missing without decrypting anything
+3. Stores the value, then reads it back and compares. The Keychain and the secret service use service `NAME` and account `$USER`, and the secret service labels the item `NAME (added by secure-dotfile)`. `pass` stores the entry `NAME` with `pass insert -e`
+4. Replaces only the value on that line with `"$(security find-generic-password -a "$USER" -s NAME -w 2>/dev/null)"` on macOS, `"$(secret-tool lookup service NAME account "$USER" 2>/dev/null)"` on Linux, or `"$(pass show NAME 2>/dev/null)"` in `pass`, keeping the rest of the line, such as a comment. In fish the command goes inside `( )` instead of `"$( )"`
 5. Writes each file in one step, through a temporary file in the same folder that replaces the original. It keeps the file's permissions, and when the path is a symlink, it edits the file the link points to
 6. Runs the shell's syntax check on the edited file: `zsh -n` for zsh files, `fish --no-execute` for fish files, and `bash -n` for the rest. If the original passed and the edited file fails, the file is written back as it was
 
@@ -77,6 +82,7 @@ The agent passes the items you picked, and the script does these steps for each 
 | The file is generated by chezmoi | `chezmoi apply` would bring the old line back. The source file is moved instead |
 | The Keychain did not answer | It is locked or waiting for a password. Unlock it and run the move again |
 | The secret service could not be reached | No D-Bus session or keyring is running, or the keyring is locked. The reason ends with `secret-tool`'s own message. Unlock or start the keyring and run the move again |
+| `pass` could not read the entry, or read it back | The GPG key is locked and no passphrase prompt could be shown, or the key is missing. The reason ends with the first line `pass` printed. `pass insert` encrypts with the public key, so the value may already be stored. Unlock the key and run the move again, and it finds the same value and edits the line |
 
 ## chezmoi
 
@@ -94,17 +100,17 @@ For each file with secrets inside a git repository, the script reads `git log --
 ## What it never does
 
 - Print, log, or send any part of a value
-- Overwrite a value already stored in the Keychain or the secret service
+- Overwrite a value already stored in the Keychain, the secret service, or `pass`
 - Edit any line other than the lines of the values it moved
 - Write a backup of a file, since a backup would hold the secret
-- Rotate keys, or ask for the new value. You run `security add-generic-password -a "$USER" -s NAME -U -w` on macOS, or `secret-tool store --label=NAME service NAME account "$USER"` on Linux, in your own terminal, which asks for the value without showing it
-- Connect to the network, or keep files of its own. On Linux, `secret-tool` talks to the secret service only over your login session's D-Bus
+- Rotate keys, or ask for the new value. You run `security add-generic-password -a "$USER" -s NAME -U -w` on macOS, `secret-tool store --label=NAME service NAME account "$USER"` on Linux, or `pass insert -f NAME` for `pass`, in your own terminal, which asks for the value without showing it
+- Connect to the network, or keep files of its own. On Linux, `secret-tool` talks to the secret service only over your login session's D-Bus. When the password store is a git repository, `pass` commits each new entry there, encrypted, and never pushes it
 
 ## Limits
 
-- Moving needs macOS with its `security` command, or Linux with `secret-tool`. Elsewhere, or without that command, the scan works and the move stops with exit code 3 and names what is missing
-- A moved line reads the value when the shell starts, so the store has to be reachable then. On Linux, a shell started over SSH or before the keyring is unlocked can get an empty variable, because `secret-tool` prints nothing when it cannot reach an unlocked keyring
-- Stores other than the Keychain and the secret service, such as `pass` or KWallet without its secret service, are not supported
+- Moving needs macOS with its `security` command, Linux with `secret-tool`, or, with `--store pass`, the `pass` command and a password store. Elsewhere, or without that command, the scan works and the move stops with exit code 3 and names what is missing
+- A moved line reads the value when the shell starts, so the store has to be reachable then. On Linux, a shell started over SSH or before the keyring is unlocked can get an empty variable, because `secret-tool` prints nothing when it cannot reach an unlocked keyring. A line that reads `pass` decrypts with your GPG key, so each new shell asks for the key's passphrase until gpg-agent holds it, and a shell with no way to ask gets an empty variable
+- Stores other than the Keychain, the secret service, and `pass`, such as 1Password or Bitwarden, are not supported
 - Files that tools read on their own, such as project `.env` files, `~/.npmrc`, `~/.netrc`, `~/.aws/credentials`, and SSH keys, are not scanned
 - Assignments without `export` (or fish `set -x`), and values that span several lines, are not found
 - Copies of an old value in shell history, backups, or Time Machine stay where they are. Rotating the key makes them useless

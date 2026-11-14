@@ -1,12 +1,13 @@
 # Secure Dotfile
 
-シェルの起動ファイルに書いたAPIキーやトークンを、エージェントに値を一度も見せずに、macOSのキーチェーンかLinuxのSecret Serviceへ移します。
+シェルの起動ファイルに書いたAPIキーやトークンを、エージェントに値を一度も見せずに、macOSのキーチェーン、LinuxのSecret Service、`pass`のどれかへ移します。
 
 [English](README.md) · 日本語
 
 `~/.zshrc`に`export OPENAI_API_KEY="sk-..."`のような行があると、キーはバックアップにも、dotfileのリポジトリにも、そのファイルを読むエージェントの会話にも入ります。
 手で移すには、キーをターミナルに貼ってシェルの履歴に残し、行を1つずつ打ち間違えずに書き換えることになります。
-このプラグインはそうした行を見つけ、選んだ物だけを、macOSではキーチェーンへ、LinuxではSecret Serviceへ移します。Secret Serviceは、GNOME Keyringや、Secret Serviceを有効にしたKeePassXCが受け持つ、秘密の値の置き場です。
+このプラグインはそうした行を見つけ、選んだ物だけを、macOSではキーチェーンへ、LinuxではSecret Serviceへ移します。Secret Serviceは、GNOME Keyring、KWallet、Secret Serviceを有効にしたKeePassXCが受け持つ、秘密の値の置き場です。
+秘密の値を`pass`で管理しているなら、どのシステムでも、代わりにその置き場へ移せます。
 移した行はシェルの起動時にその置き場から値を読むので、プログラムからは前と同じ環境変数が見えます。
 値が無くなるのはファイルからで、シェルの環境からではありません。シェルが起動するプログラムは前と同じ値を受け取るので、強い権限のキーは要るコマンドの時だけ読む方が安全です。チームで共有するキーは、一人のキーチェーンではなく、1Passwordのようなチームのパスワード管理に置きます。
 値を読み、保存し、確かめるのはスクリプトなので、エージェントに届くのは名前と場所と種類と長さだけです。
@@ -41,14 +42,15 @@ gemini skills install https://github.com/cardene777/agent-shuriken.git --path pl
 GitHub Copilot CLIでは依頼の中に`/secure-dotfile`と書き、Gemini CLIではやりたいことを伝えます。
 
 1. エージェントがシェルの起動ファイルを調べ、秘密の値を名前と場所と種類と長さで並べ、値がファイルのgitの履歴にあるかを示します。`DB_PASSWORD`、`PGPASSWORD`、`MYSQL_PWD`のような名前のパスワードは長さを問わず並べ、8文字より短い物は種類を`short password`にするので、長くするべきだと分かります
-2. 移す物をあなたが選びます
-3. エージェントが1つずつ、macOSではキーチェーンへ、Linuxでは`secret-tool`でSecret Serviceへ保存して読み戻し、その行をそこから値を読む形に書き換えます。キーチェーンの鍵を開けるために、macOSがログインのパスワードを尋ねることがあります。Linuxでも、鍵束が鍵を開けるよう求めることがあります
+2. 移す物をあなたが選びます。`pass`の置き場も用意してある時は、`pass`へ移すかどうかも選びます
+3. エージェントが1つずつ、macOSではキーチェーンへ、Linuxでは`secret-tool`でSecret Serviceへ、または`pass`へ保存して読み戻し、その行をそこから値を読む形に書き換えます。キーチェーンの鍵を開けるために、macOSがログインのパスワードを尋ねることがあります。Linuxでは鍵束が鍵を開けるよう求め、`pass`はGPGの鍵のパスフレーズを尋ねることがあります
 4. エージェントが、移した物と、移さなかった物とその理由を報告します。値がgitの履歴にあるキーは作り直すよう伝えます
 
 調べた結果は次の形です。
 
 ```text
 Scanned 4 files: ~/.zprofile, ~/.zshrc, ~/.bashrc, ~/.secrets.sh
+Moves into the keychain. Also available: pass (add --store pass)
 Found 2 secrets written into them.
 
 1  GH_TOKEN  ~/.zshrc:12
@@ -61,16 +63,17 @@ Found 2 secrets written into them.
    becomes  export OPENAI_API_KEY="$(security find-generic-password -a "$USER" -s OPENAI_API_KEY -w 2>/dev/null)"
 ```
 
-Linuxでは、同じ行が`export GH_TOKEN="$(secret-tool lookup service GH_TOKEN account "$USER" 2>/dev/null)"`になります。
+Linuxでは、同じ行が`export GH_TOKEN="$(secret-tool lookup service GH_TOKEN account "$USER" 2>/dev/null)"`に、`pass`では`export GH_TOKEN="$(pass show GH_TOKEN 2>/dev/null)"`になります。
 
-Codexのように、エージェントのサンドボックスが尋ねた時は命令を承認してください。ホームフォルダのファイルを読み、キーチェーンかSecret Serviceを使うためです。
+Codexのように、エージェントのサンドボックスが尋ねた時は命令を承認してください。ホームフォルダのファイルを読み、キーチェーン、Secret Service、`pass`のどれかを使うためです。
 
 ## 必要な物
 
 | 道具 | 要る時 |
 |---|---|
 | macOSと`security`コマンド | macOSで秘密の値を移す時 |
-| libsecretの`secret-tool`と、GNOME KeyringのようなSecret Serviceが動いていること | Linuxで秘密の値を移す時。DebianとUbuntuでは`libsecret-tools`パッケージに`secret-tool`が入っています。調べるだけなら無くても動きます |
+| libsecretの`secret-tool`と、GNOME KeyringやKWalletのようなSecret Serviceが動いていること | Linuxで秘密の値を移す時。DebianとUbuntuでは`libsecret-tools`パッケージに`secret-tool`が入っています。調べるだけなら無くても動きます |
+| `pass`とGnuPGと、`pass init`で用意した置き場 | `pass`へ秘密の値を移す時だけ |
 | `python3` | 常に。macOSに入っている物で動きます |
 | `git` | 値がファイルのgitの履歴にあるかを調べる時 |
 | `zsh`、`bash`、`fish` | 書き換えたファイルの文法を確かめる時。シェルが無いファイルは、書き換えますが確かめません |
@@ -82,8 +85,8 @@ Codexのように、エージェントのサンドボックスが尋ねた時は
 要点は次のとおりです。
 
 - シェルの起動ファイルと、そこから読み込むファイルを読みます。`git`にそれらの履歴を、`chezmoi`に元のファイルを尋ねます
-- 値は一部も表示しません。値はスクリプトの中にとどまり、`security`か`secret-tool`には標準入力で渡すので、コマンドラインには載りません
-- 選んだ値だけを、macOSでは既定のキーチェーンに、LinuxではSecret Serviceの既定のコレクションに保存し、同じ名前で別の値が入っている時は上書きしません
+- 値は一部も表示しません。値はスクリプトの中にとどまり、`security`、`secret-tool`、`pass`には標準入力で渡すので、コマンドラインには載りません
+- 選んだ値だけを、macOSでは既定のキーチェーンに、LinuxではSecret Serviceの既定のコレクションに、または`pass`の置き場に保存し、同じ名前で別の値が入っている時は上書きしません。`pass`の置き場がgitのリポジトリの時は、`pass`が新しい項目を暗号化したままコミットします。pushするかはあなたが決めます
 - 書き換えるのは移した値の行だけです。ファイルの権限とシンボリックリンクを保ち、書き換えた後に文法を確かめます
 - ネットワークにはつながず、自分用のファイルも残しません。Linuxの`secret-tool`は、ログインしたセッションの中だけで使うメッセージの通り道(D-Bus)でSecret Serviceにつなぎます
 
