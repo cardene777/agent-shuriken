@@ -10,7 +10,8 @@ Usage:
 they source, and every PATH given with `--file`. It lists each `export NAME=value` (or fish
 `set -x NAME value`) whose value is written as a literal and looks like a secret: the name ends
 in a word such as `_TOKEN`, `_API_KEY`, or `_PASSWORD`, or the value has the shape of a known
-key (GitHub, OpenAI, Anthropic, Slack, AWS, and others).
+key (GitHub, OpenAI, Anthropic, Slack, AWS, and others). Values shorter than 8 characters are
+listed only under a password name, such as `PGPASSWORD` or `MYSQL_PWD`, as a `short password`.
 
 `move` stores each picked value in the Keychain, reads it back, and replaces the literal with a
 command that reads the Keychain when the shell starts. It runs the shell's syntax check on the
@@ -41,13 +42,19 @@ MIN_LENGTH = 8
 MAX_INCLUDE_DEPTH = 5
 HISTORY_LIMIT = 64 * 1024 * 1024
 
-# A name ending in one of these words marks the value as a secret.
-NAME_RE = re.compile(r"(?:^|_)(API_KEY|ACCESS_KEY|SECRET_KEY|PRIVATE_KEY|KEY|TOKEN|SECRET|PASSWORD|PASSWD|PAT)$")
+# A name ending in one of these words marks the value as a secret. PASSWORD and PASSWD count
+# without an underscore too, as in PGPASSWORD, which the PostgreSQL clients read.
+NAME_RE = re.compile(r"(?:^|_)(API_KEY|ACCESS_KEY|SECRET_KEY|PRIVATE_KEY|KEY|TOKEN|SECRET|PASSWORD|PASSWD|PASS|PWD|PIN|PAT)$"
+                     r"|(PASSWORD|PASSWD)$")
 NAME_KIND = {
     "API_KEY": "API key", "ACCESS_KEY": "access key", "SECRET_KEY": "secret key",
     "PRIVATE_KEY": "private key", "KEY": "key", "TOKEN": "token", "SECRET": "secret",
-    "PASSWORD": "password", "PASSWD": "password", "PAT": "personal access token",
+    "PASSWORD": "password", "PASSWD": "password", "PASS": "password", "PWD": "password", "PIN": "PIN",
+    "PAT": "personal access token",
 }
+# Values under these names are listed at any length, since a short password is still a password.
+# Shorter than MIN_LENGTH, their kind is "short password".
+PASSWORD_WORDS = {"PASSWORD", "PASSWD", "PASS", "PWD", "PIN"}
 
 # Values with these shapes are secrets whatever the variable is called.
 VALUE_KINDS = [
@@ -202,7 +209,9 @@ def parse_line(line, fish):
 
 def kind_of(name, value):
     """The kind of secret, or None when the line does not look like one."""
-    if len(value) < MIN_LENGTH:
+    m = NAME_RE.search(name)
+    word = (m.group(1) or m.group(2)) if m else None
+    if not value or (len(value) < MIN_LENGTH and word not in PASSWORD_WORDS):
         return None
     low = value.lower()
     if low in PLACEHOLDERS or len(set(low)) == 1 or (value.startswith("<") and value.endswith(">")):
@@ -212,10 +221,9 @@ def kind_of(name, value):
     for rx, kind in VALUE_KINDS:
         if rx.fullmatch(value):
             return kind
-    m = NAME_RE.search(name)
-    if m:
-        return NAME_KIND[m.group(1)]
-    return None
+    if word in PASSWORD_WORDS and len(value) < MIN_LENGTH:
+        return "short password"
+    return NAME_KIND[word] if word else None
 
 
 def lookup(name, fish):

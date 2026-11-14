@@ -23,7 +23,7 @@ A line is listed when it sets an exported variable to a literal value, as `expor
 
 | Rule | Examples |
 |---|---|
-| The name ends in `_API_KEY`, `_ACCESS_KEY`, `_SECRET_KEY`, `_PRIVATE_KEY`, `_KEY`, `_TOKEN`, `_SECRET`, `_PASSWORD`, `_PASSWD`, or `_PAT` | `GH_TOKEN`, `DB_PASSWORD` |
+| The name ends in `_API_KEY`, `_ACCESS_KEY`, `_SECRET_KEY`, `_PRIVATE_KEY`, `_KEY`, `_TOKEN`, `_SECRET`, `_PASSWORD`, `_PASSWD`, `_PASS`, `_PWD`, `_PIN`, or `_PAT`, or in `PASSWORD` or `PASSWD` without an underscore | `GH_TOKEN`, `DB_PASSWORD`, `PGPASSWORD`, `MYSQL_PWD` |
 | The value has the shape of a known key | GitHub, GitLab, OpenAI, Anthropic, Slack, AWS access key IDs, Google API keys, npm, Hugging Face, Stripe, SendGrid, DigitalOcean, xAI, Groq, Perplexity |
 
 These lines are not listed.
@@ -31,7 +31,7 @@ These lines are not listed.
 - Values read when the shell runs: `$(...)`, backquotes, and `$VAR` inside double quotes or without quotes
 - Placeholders such as `REPLACE_ME`, `changeme`, `your_api_key`, or a value made of one repeated character
 - Paths that start with `/`, `~`, `./`, or `../`
-- Values shorter than 8 characters
+- Values shorter than 8 characters, except under a password name: one ending in `PASSWORD`, `PASSWD`, `_PASS`, `_PWD`, or `_PIN`. Those are listed at any length, and a value shorter than 8 characters has the kind `short password`
 - `export NAME= value`, which sets `NAME` to an empty value
 
 ## How values stay away from the agent

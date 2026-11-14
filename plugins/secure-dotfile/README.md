@@ -39,7 +39,7 @@ The plugin starts when you mention a secret in your shell configuration, for exa
 You can also call it: run `/secure-dotfile:secure-dotfile` in Claude Code, or type `$` and pick **Secure Dotfile** in Codex.
 In GitHub Copilot CLI, write `/secure-dotfile` in your request, and in Gemini CLI, describe the task.
 
-1. The agent scans your shell startup files and lists each secret by name, location, kind, and length, and whether its value is in the file's git history
+1. The agent scans your shell startup files and lists each secret by name, location, kind, and length, and whether its value is in the file's git history. A password under a name such as `DB_PASSWORD`, `PGPASSWORD`, or `MYSQL_PWD` is listed at any length, and one shorter than 8 characters has the kind `short password`, so you know to make it longer
 2. You pick the secrets to move
 3. The agent stores each one in the Keychain, reads it back, and changes its line to load the value from the Keychain. macOS may ask for your login password to unlock the Keychain
 4. The agent reports what it moved and what it skipped and why, and tells you which keys to rotate because their values are in git history

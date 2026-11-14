@@ -23,7 +23,7 @@
 
 | 条件 | 例 |
 |---|---|
-| 名前が`_API_KEY`、`_ACCESS_KEY`、`_SECRET_KEY`、`_PRIVATE_KEY`、`_KEY`、`_TOKEN`、`_SECRET`、`_PASSWORD`、`_PASSWD`、`_PAT`で終わる | `GH_TOKEN`、`DB_PASSWORD` |
+| 名前が`_API_KEY`、`_ACCESS_KEY`、`_SECRET_KEY`、`_PRIVATE_KEY`、`_KEY`、`_TOKEN`、`_SECRET`、`_PASSWORD`、`_PASSWD`、`_PASS`、`_PWD`、`_PIN`、`_PAT`で終わるか、`_`の無い`PASSWORD`か`PASSWD`で終わる | `GH_TOKEN`、`DB_PASSWORD`、`PGPASSWORD`、`MYSQL_PWD` |
 | 値が知られたキーの形をしている | GitHub、GitLab、OpenAI、Anthropic、Slack、AWSのアクセスキーID、GoogleのAPIキー、npm、Hugging Face、Stripe、SendGrid、DigitalOcean、xAI、Groq、Perplexity |
 
 次の行は並べません。
@@ -31,7 +31,7 @@
 - シェルが動く時に読む値。`$(...)`、バッククォート、二重引用符の中か引用符の無い`$VAR`
 - `REPLACE_ME`、`changeme`、`your_api_key`のような仮の値と、同じ1文字を繰り返した値
 - `/`、`~`、`./`、`../`で始まるパス
-- 8文字より短い値
+- 8文字より短い値。ただし`PASSWORD`、`PASSWD`、`_PASS`、`_PWD`、`_PIN`で終わるパスワードの名前は長さを問わず並べ、8文字より短い値は種類を`short password`にします
 - `export NAME= value`。これは`NAME`を空の値にする書き方です
 
 ## 値をエージェントから遠ざける方法
