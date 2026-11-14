@@ -24,7 +24,7 @@
 | プラグイン | できること | 呼び出し方 | 最新バージョン |
 |---|---|---|---|
 | [account-cleanup](plugins/account-cleanup) | パスワードを一切読まずに、使っていないWebアカウントを見つけます。あなたが承認したアカウントは、サブスクリプションを解約してからアカウントを削除します | Claude Codeでは`/account-cleanup:account-cleanup`を実行し、Codexでは`$`を入力して**Account Cleanup**を選びます。やりたいことを言葉で頼んでも始まります | [0.2.1](plugins/account-cleanup/CHANGELOG.md) |
-| [compare-report](plugins/compare-report) | 選ぶ時の候補を調べ、すべての主張に出典を、すべての点数に判定の根拠を付けた比較のレポートをHTMLとPDFで作ります | Claude Codeでは`/compare-report:compare-report`を実行し、Codexでは`$`を入力して**Compare Report**を選びます。比較を言葉で頼んでも始まります | [0.3.0](plugins/compare-report/CHANGELOG.md) |
+| [compare-report](plugins/compare-report) | 選ぶ時の候補を調べ、すべての主張に出典を、すべての点数に判定の根拠を付けた比較のレポートをHTMLとPDFで作ります | Claude Codeでは`/compare-report:compare-report`を実行し、Codexでは`$`を入力して**Compare Report**を選びます。比較を言葉で頼んでも始まります | [0.4.0](plugins/compare-report/CHANGELOG.md) |
 | [diagram-explainer](plugins/diagram-explainer) | すべての節に図を描いた説明資料を、JSONから組んで確かめ、1つのHTMLファイルにします | Claude Codeでは`/diagram-explainer:diagram-explainer`を実行し、Codexでは`$`を入力して**Diagram Explainer**を選びます。説明資料を言葉で頼んでも始まります | [0.2.1](plugins/diagram-explainer/CHANGELOG.md) |
 | [docs-publish](plugins/docs-publish) | オープンソースのプロジェクトの公開ドキュメントを、Quickstart、Concepts、APIリファレンス、Cookbook、FAQの5つの部に分けて、英語とあなたが選ぶもう1つの言語で書きます。すべてのページに翻訳があり、すべてのリンクが切れていないかを確かめます | Claude Codeでは`/docs-publish:docs-publish`を実行し、Codexでは`$`を入力して**Docs Publish**を選びます。プロジェクトのドキュメントを頼んでも始まります | [0.1.1](plugins/docs-publish/CHANGELOG.md) |
 | [excalidraw-diagram](plugins/excalidraw-diagram) | アーキテクチャ図、フロー図、シーケンス図、ER図を、スクリプトが配置して重なり、詰まった間隔、線に重なるラベルを確かめたExcalidrawのファイルとして描きます。SVGとPNGの写しも作ります | Claude Codeでは`/excalidraw-diagram:excalidraw-diagram`を実行し、Codexでは`$`を入力して**Excalidraw Diagram**を選びます。図を言葉で頼んでも始まります | [0.2.0](plugins/excalidraw-diagram/CHANGELOG.md) |
@@ -35,7 +35,7 @@
 | [repo-progress](plugins/repo-progress) | 作業しているリポジトリ全部を、worktree、開いたIssueとプルリクエスト、コミットしていない変更とともに1つの表にし、止まっている物から並べます。何も変えません | Claude Codeでは`/repo-progress:repo-progress`を実行し、Codexでは`$`を入力して**Repo Progress**を選びます。何をやりかけだったか尋ねても始まります | [0.1.1](plugins/repo-progress/CHANGELOG.md) |
 | [secure-dotfile](plugins/secure-dotfile) | シェルの起動ファイルに書いたAPIキーやトークンを見つけ、選んだ物だけを、エージェントに値を見せずにmacOSのキーチェーンへ移します | Claude Codeでは`/secure-dotfile:secure-dotfile`を実行し、Codexでは`$`を入力して**Secure Dotfile**を選びます。シェルの設定にある秘密の値の話をしても始まります | [0.3.0](plugins/secure-dotfile/CHANGELOG.md) |
 | [session-handoff](plugins/session-handoff) | 新しいセッションに貼り付ける短いメッセージを書き、却下した案、今の段階、任せた作業、してはいけないことをプロジェクトごとに保存します。秘密の値に見える物は保存しません | Claude Codeでは`/session-handoff:session-handoff`を実行し、Codexでは`$`を入力して**Session Handoff**を選びます。呼び出した時だけ始まります | [0.1.0](plugins/session-handoff/CHANGELOG.md) |
-| [techdebt](plugins/techdebt) | ファイルごとの変更の回数に、大きさ、古いTODOのコメント、テストの有無、長い関数、重複を合わせて直す価値の高いファイルに順位を付け、上位のファイルを説明します | Claude Codeでは`/techdebt:techdebt`を実行し、Codexでは`$`を入力して**Tech Debt**を選びます。技術的負債について尋ねても始まります | [0.2.2](plugins/techdebt/CHANGELOG.md) |
+| [techdebt](plugins/techdebt) | ファイルごとの変更の回数に、大きさ、古いTODOのコメント、テストの有無、長い関数、重複を合わせて直す価値の高いファイルに順位を付け、上位のファイルを説明します | Claude Codeでは`/techdebt:techdebt`を実行し、Codexでは`$`を入力して**Tech Debt**を選びます。技術的負債について尋ねても始まります | [0.3.0](plugins/techdebt/CHANGELOG.md) |
 
 各プラグインのREADMEに、何をするか、何を読んで何を送るか、何が必要かを書いています。
 

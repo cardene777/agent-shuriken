@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-14
+
 - `scan` lists unused dependencies without knip: names in the `dependencies` and `devDependencies` of each `package.json` that no import, require, config file, or `scripts` entry uses. A package that a used package needs as a peer, a plugin named by its short name, and `@types/<name>` of a used name count as used. The measure is marked approximate, and when knip ran, its unused dependencies are listed instead, once. Before, unused dependencies were found only when knip was installed
 - `scan` lists deprecated calls found by tools that are already installed: ruff with its rules for deprecated APIs, semgrep with the project's own rule files, `--metrics off`, and no registry rules, and ESLint when its config turns on a deprecation rule. semgrep findings of security rules are left out, and its other findings are listed under the tools. The summary has a "Deprecated calls" line and the report a tab and a card, each listing the tools that did not run and why
 - A ruff that stops with an error is reported as not run, with its exit code and the first line it wrote. Before, it was reported as having run with no findings
@@ -33,7 +35,8 @@ First public release.
 - Writes one HTML report with a tab per measure, an English and Japanese switch, and pages of 50 rows, which loads nothing from the network
 - Starts when you ask about technical debt, or when you call it, in Claude Code and in Codex
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/techdebt--v0.2.2...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/techdebt--v0.3.0...HEAD
+[0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/techdebt--v0.3.0
 [0.2.2]: https://github.com/cardene777/agent-shuriken/releases/tag/techdebt--v0.2.2
 [0.2.1]: https://github.com/cardene777/agent-shuriken/releases/tag/techdebt--v0.2.1
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/techdebt--v0.2.0
