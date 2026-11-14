@@ -31,6 +31,7 @@ gitのリポジトリの外では、隠しフォルダを飛ばしながらフ�
 | 大きいファイル | 空行を除いた行数 | 500行を超えるファイル |
 | 重複 | 空白、空行、import、コメント、括弧だけの行を除いて行を比べます。続けて8行が2か所に現れたら、一致する範囲をつないで一番長い部分にします | テストファイル以外で8行以上 |
 | 使っていない依存 | 名前で探す概算です。`package.json`ごとに、`dependencies`と`devDependencies`の名前を、そのフォルダーの下のファイルで探します。探すのは、`import`、`export ... from`、`import()`、`require()`、`require.resolve()`のモジュール名(`lodash/fp`は`lodash`と数えます)、設定のファイル(`*.config.*`、`.*rc`、`tsconfig*.json`)と`package.json`のほかの欄にある引用符の中の名前、`scripts`の命令の名前です。命令の名前には、`node_modules`に入っている依存の`bin`の名前(`typescript`に対する`tsc`など)も含めます。使っている依存が`peerDependencies`に挙げる依存、設定に短い名前で書かれた依存(`eslint-plugin-react`に対する`react`)、使っている`<名前>`に対する`@types/<名前>`も、使っている物と数えます。`knip`が動いた時は`knip`の結果を並べ、名前では探しません | 使っている所が見つからない依存 |
+| 非推奨の呼び出し | 次の節のすでに入っている道具で探します。`ruff`は非推奨の規則で、`semgrep`はプロジェクトの規則のfileで、`eslint`は設定が有効にしている非推奨の規則で探します。動かなかった道具は理由と一緒に挙げ、どの道具も動かなかった時は調べていないと扱います | 道具が非推奨のAPIの呼び出しを挙げた所 |
 
 Ruby、Lua、シェル、Elixir、Clojure、Haskellでは関数の長さを測りません。これらの言語が含まれる時は、要約に名前を出します。
 
@@ -39,9 +40,12 @@ Ruby、Lua、シェル、Elixir、Clojure、Haskellでは関数の長さを測�
 | 道具 | 探す場所 | 残す結果 |
 |---|---|---|
 | `knip` | `package.json`がある時に`node_modules/.bin/knip` | 使われていないファイル、export、型と、使っているのに書かれていない依存。使っていない依存は、ここではなく使っていない依存の項目に並べます |
-| `ruff` | Pythonのファイルがある時に`.venv/bin/ruff`、無ければ`PATH` | 規則`C901`、`PLR0911`、`PLR0912`、`PLR0913`、`PLR0915`(複雑さ、returnの数、分岐の数、引数の数、文の数) |
+| `ruff` | Pythonのファイルがある時に`.venv/bin/ruff`、無ければ`PATH` | 規則`C901`、`PLR0911`、`PLR0912`、`PLR0913`、`PLR0915`(複雑さ、returnの数、分岐の数、引数の数、文の数)。非推奨のAPIの規則は、非推奨の呼び出しの項目に並べます。`UP005`、`UP019`、`UP021`、`UP023`、`UP026`、`UP035`(標準ライブラリの別名とimport)、`NPY001`、`NPY003`、`NPY201`(numpy)、`PT020`(pytest)、`PD007`(pandas)、`PYI057`(typing)、`G010`(logging)、`AIR301`、`AIR302`、`AIR311`、`AIR312`(Airflow 3)、`TID251`(プロジェクトがruffの設定で禁じたAPI)がこれに当たります。セキュリティの規則`S306`は使いません |
+| `semgrep` | `.semgrep.yml`、`.semgrep.yaml`、`.semgrep/`のどれかがある時に`.venv/bin/semgrep`、無ければ`PATH` | `semgrep scan --json --quiet --metrics off --disable-version-check`に、その規則のfileごとの`--config`を付けて回します。`auto`や`p/...`のような登録所の規則は使いません。規則のidか`category`がセキュリティを示す結果は捨てます。規則のid、文、metadataが非推奨に触れる結果は、非推奨の呼び出しの項目に並べます。残りをここに並べます。semgrepの設定、匿名のid、記録は一時のフォルダーに書かせて回した後に消すので、`~/.semgrep`には書かず、semgrepのログインも使いません |
+| `eslint` | `package.json`がある時に`node_modules/.bin/eslint` | まずJavaScriptかTypeScriptのファイル1つに`eslint --print-config`を回します。設定が`@typescript-eslint/no-deprecated`、`react/no-deprecated`、`import/no-deprecated`、`deprecation/deprecation`のような非推奨の規則を有効にしている時だけ、プロジェクトの設定のまま`eslint --format json .`を回し、その規則の結果を非推奨の呼び出しの項目に並べます |
 
 入っていない道具は、理由を添えて「動かしていない」と報告します。
+誤りで止まった道具も、終了コードと最初に書いた行を添えて「動かしていない」と報告し、結果を0件と数えません。
 プラグインが道具を取り寄せたり入れたりすることはありません。
 
 ## 順位の付け方
@@ -77,7 +81,7 @@ Ruby、Lua、シェル、Elixir、Clojure、Haskellでは関数の長さを測�
 | `notes.json` | エージェントの説明 |
 | `report.html` | 報告のページ。データはページの中にあり、ネットワークから何も読み込みません |
 
-`scan.json`は形式の版を持ちます。`explain`と`report`は、別の版のプラグインが書いた`scan.json`を断り、`scan`のやり直しを求めます。読めないデータから報告を作らないためです。
+`scan.json`は形式の版を持ち、今の版は非推奨の呼び出しを足した3です。`explain`と`report`は、別の版のプラグインが書いた`scan.json`を断り、`scan`のやり直しを求めます。読めないデータから報告を作らないためです。
 
 ### 目印の行で隠す物
 

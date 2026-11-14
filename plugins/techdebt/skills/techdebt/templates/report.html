@@ -29,14 +29,14 @@ header .meta { color: var(--muted); font-size: 13px; }
 .lang button { border: 0; background: transparent; color: var(--fg); padding: 6px 14px; font: inherit; cursor: pointer; }
 .lang button[aria-pressed="true"] { background: var(--accent); color: #fff; }
 main { max-width: 1200px; margin: 0 auto; padding: 20px 16px 48px; }
-.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 12px; margin-bottom: 20px; }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px;
   text-align: left; font: inherit; color: inherit; cursor: pointer; }
 .card:hover { border-color: var(--accent); }
 .card .n { font-size: 26px; font-weight: 700; }
 .card .l { color: var(--muted); font-size: 13px; }
 .tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
-.tabs button { border: 0; background: transparent; color: var(--muted); padding: 10px 14px; font: inherit;
+.tabs button { border: 0; background: transparent; color: var(--muted); padding: 10px 10px; font: inherit;
   cursor: pointer; white-space: nowrap; border-bottom: 3px solid transparent; }
 .tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); font-weight: 600; }
 .lead { color: var(--muted); margin: 0 0 14px; }
@@ -75,6 +75,8 @@ td code, .mono { font-family: var(--mono); font-size: 13px; word-break: break-al
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
 .tool { margin-bottom: 20px; }
 .tool h3 { margin: 0 0 6px; font-size: 16px; }
+.status { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 4px; font-size: 14px; }
+.status b { font-family: var(--mono); font-weight: 600; }
 .empty { background: var(--card); border: 1px dashed var(--line); border-radius: var(--radius); padding: 16px; color: var(--muted); }
 @media (max-width: 640px) {
   header { padding: 12px 16px; }
@@ -107,9 +109,9 @@ const I18N = {
     meta: "{head} on {branch}, {files} source files, {commits} commits in the last {months} months, generated {at}",
     metaNoGit: "Not a git repository, {files} source files, generated {at}",
     start: "Start here", hotspots: "Hotspots", markers: "Markers", untested: "Untested", functions: "Long functions",
-    large: "Large files", dup: "Duplication", deps: "Unused dependencies", tools: "Tools",
+    large: "Large files", dup: "Duplication", deps: "Unused dependencies", deprecated: "Deprecated calls", tools: "Tools",
     cStart: "files ranked", cHot: "hotspots", cMarkers: "markers", cUntested: "untested files",
-    cFunctions: "long functions", cLarge: "large files", cDup: "duplicated lines", cDeps: "unused dependencies",
+    cFunctions: "long functions", cLarge: "large files", cDup: "duplicated lines", cDeps: "unused dependencies", cDeprecated: "deprecated calls",
     leadStart: "Files ranked by how often they change, their size, long functions, markers, duplication, and missing tests. Fixing the top files pays off first, because people keep working in them.",
     leadHot: "Files changed 2 or more times in the last {months} months, ranked by changes multiplied by non-blank lines.",
     leadMarkers: "TODO, FIXME, HACK, XXX, and deprecation markers in comments, oldest first. The age comes from git blame.",
@@ -121,6 +123,8 @@ const I18N = {
     leadDepsKnip: "Dependencies in package.json that knip found unused.",
     noPackage: "There is no package.json, so dependencies were not checked.",
     manifest: "package.json", depName: "Dependency", depKind: "Listed under",
+    leadDeprecated: "Calls to APIs that a library or the language marks as deprecated, found by tools already installed in the project. ruff uses its rules for deprecated imports, aliases, and functions. semgrep runs only the project's own rules, with metrics off, and its findings about deprecation are listed here. ESLint runs when its config turns on a deprecation rule. A tool that did not run is listed with the reason.",
+    noCallTool: "No tool looked for deprecated calls, for the reasons above.", toolName: "Tool",
     leadTools: "Tools that were already installed in the project or on PATH. Nothing is downloaded.",
     what: "What", why: "Why it costs", action: "First step",
     rChanges: "changed {v} times", rChangesOne: "changed once", rLines: "{v} lines", rLong: "{v} long functions", rLongOne: "1 long function", rMarkers: "marker weight {v}",
@@ -138,9 +142,9 @@ const I18N = {
     meta: "{branch}の{head}、ソースファイル{files}個、直近{months}か月のコミット{commits}件、{at}に作成",
     metaNoGit: "gitのリポジトリではありません、ソースファイル{files}個、{at}に作成",
     start: "最初に直す物", hotspots: "変更の集中", markers: "目印", untested: "テストの無いファイル", functions: "長い関数",
-    large: "大きいファイル", dup: "重複", deps: "使っていない依存", tools: "道具",
+    large: "大きいファイル", dup: "重複", deps: "使っていない依存", deprecated: "非推奨の呼び出し", tools: "道具",
     cStart: "順位付け", cHot: "変更の集中", cMarkers: "目印", cUntested: "テスト無し",
-    cFunctions: "長い関数", cLarge: "大きいファイル", cDup: "重複した行", cDeps: "使っていない依存",
+    cFunctions: "長い関数", cLarge: "大きいファイル", cDup: "重複した行", cDeps: "使っていない依存", cDeprecated: "非推奨の呼び出し",
     leadStart: "変更の回数、大きさ、長い関数、目印、重複、テストの有無を合わせて順位を付けたファイルです。人がよく手を入れるファイルなので、上から直すほど効き目が大きくなります。",
     leadHot: "直近{months}か月に2回以上変更したファイルを、変更の回数と空行を除いた行数の積の順に並べています。",
     leadMarkers: "コメントにあるTODO、FIXME、HACK、XXXと、非推奨の目印です。古い順に並べ、古さはgit blameで調べています。",
@@ -152,6 +156,8 @@ const I18N = {
     leadDepsKnip: "package.jsonの依存のうち、knipが使っていないと判定した物です。",
     noPackage: "package.jsonが無いので、依存は調べていません。",
     manifest: "package.json", depName: "依存", depKind: "書かれた欄",
+    leadDeprecated: "ライブラリや言語が非推奨とするAPIを呼んでいる所です。プロジェクトにすでに入っている道具で探しています。ruffは非推奨のimport、別名、関数の規則を使います。semgrepはプロジェクトの規則だけを送信を切って回し、非推奨に関わる結果をここに出します。ESLintは設定が非推奨の規則を有効にしている時だけ回します。動かなかった道具は理由と一緒に挙げています。",
+    noCallTool: "上の理由で、非推奨の呼び出しを探せた道具がありません。", toolName: "道具",
     leadTools: "プロジェクトかPATHにすでに入っていた道具の結果です。何も取り寄せていません。",
     what: "何か", why: "負担になる理由", action: "最初の一手",
     rChanges: "変更{v}回", rChangesOne: "変更1回", rLines: "{v}行", rLong: "長い関数{v}個", rLongOne: "長い関数1個", rMarkers: "目印の重み{v}",
@@ -214,6 +220,7 @@ const TABS = [
   ["large", "large", () => D.large_files.length],
   ["dup", "dup", () => D.duplication.length],
   ["deps", "deps", () => D.unused_dependencies ? D.unused_dependencies.items.length : 0],
+  ["deprecated", "deprecated", () => D.deprecated_calls.items.length],
   ["tools", "tools", () => D.tools.length],
 ];
 const CARDS = [
@@ -225,6 +232,7 @@ const CARDS = [
   ["large", "cLarge", () => D.large_files.length],
   ["dup", "cDup", () => D.duplication.reduce((a, b) => a + b.lines, 0)],
   ["deps", "cDeps", () => D.unused_dependencies ? D.unused_dependencies.items.length : 0],
+  ["deprecated", "cDeprecated", () => D.deprecated_calls.items.length],
 ];
 
 function paged(id, rows, head, row) {
@@ -339,6 +347,16 @@ const PANELS = {
     return el("div", null, el("p", {class: "lead"}, t(u.source === "knip" ? "leadDepsKnip" : "leadDepsSearch")),
       paged("deps", u.items, [["manifest"], ["depName"], ["depKind"]],
         d => el("tr", null, tdc(d.package), tdc(d.name), tdc(d.kind))));
+  },
+  deprecated() {
+    const c = D.deprecated_calls;
+    const box = el("div", null, el("p", {class: "lead"}, t("leadDeprecated")),
+      el("ul", {class: "status"}, c.tools.map(s => el("li", null, el("b", null, s.tool), " — ",
+        s.ran ? t("ran", {n: c.items.filter(i => i.tool === s.tool).length}) : t("notRun", {r: s.reason})))));
+    if (!c.tools.some(s => s.ran)) return box.appendChild(el("div", {class: "empty"}, t("noCallTool"))) && box;
+    box.append(paged("deprecated", c.items, [["file"], ["toolName"], ["rule"], ["message"]],
+      i => el("tr", null, tdc(i.file + (i.line ? ":" + i.line : "")), td(i.tool), tdc(i.rule), td(i.message))));
+    return box;
   },
   tools() {
     const box = el("div", null, el("p", {class: "lead"}, t("leadTools")));

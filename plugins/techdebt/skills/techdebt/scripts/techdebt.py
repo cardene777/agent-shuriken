@@ -17,9 +17,12 @@ Usage:
   - duplication: blocks of 8 or more lines that appear in two places
   - unused dependencies: names in each package.json that no import, require, config file, or
     `scripts` entry uses. This is approximate; when knip ran, its findings are used instead
+  - deprecated calls: calls to deprecated APIs found by ruff's deprecation rules, by semgrep with
+    the project's own rule files, and by ESLint when its config turns on a deprecation rule
 
-It also runs `knip` and `ruff` when they are already installed in the project or on PATH, and
-never downloads anything. It ranks files by combining the measures, writes scan.json and an
+It also runs `knip`, `ruff`, `semgrep`, and `eslint` when they are already installed in the
+project or on PATH, and never downloads anything. semgrep runs with `--metrics off` and only the
+project's rule files, and its findings of security rules are left out. It ranks files by combining the measures, writes scan.json and an
 HTML report to the state folder, and prints a summary.
 
 `explain` attaches the agent's notes to ranked files and rebuilds the report. The notes file is
@@ -40,6 +43,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -52,9 +56,10 @@ DUP_MIN_CHARS = 160
 MAX_FILE_BYTES = 1024 * 1024
 MAX_BLAME_FILES = 300
 TOP = 20
-# The version of scan.json. Version 2 added unused_dependencies, which the report reads, so
-# explain and report refuse an older scan.json instead of building a report without it.
-SCHEMA = 2
+# The version of scan.json. Version 2 added unused_dependencies and version 3 deprecated_calls,
+# which the report reads, so explain and report refuse another version instead of building a report
+# without them.
+SCHEMA = 3
 
 SKIP_DIRS = {
     "node_modules", "vendor", "dist", "build", "out", ".next", ".nuxt", ".svelte-kit", "coverage",
@@ -507,6 +512,39 @@ def duplication(texts):
 # Tools that are already installed
 
 
+COMPLEXITY_RULES = ("C901", "PLR0911", "PLR0912", "PLR0913", "PLR0915")
+# ruff rules whose name or message says the code uses a deprecated or removed API, and TID251 for
+# the APIs a project bans in its own ruff config. S306 also says deprecated but is a security rule.
+RUFF_DEPRECATED = {
+    "UP005", "UP019", "UP021", "UP023", "UP026", "UP035",  # aliases and imports of the standard library
+    "NPY001", "NPY003", "NPY201", "PT020", "PD007", "PYI057", "G010",  # numpy, pytest, pandas, typing, logging
+    "AIR301", "AIR302", "AIR311", "AIR312", "TID251",  # Airflow 3, and the project's banned APIs
+}
+# Whole linters are selected so that a ruff older than one of the rules above still runs; findings of
+# the other rules in them are dropped.
+RUFF_SELECT = ",".join(COMPLEXITY_RULES + ("UP", "NPY", "PT", "PD", "PYI", "G", "AIR", "TID"))
+SEMGREP_RULES = (".semgrep.yml", ".semgrep.yaml", ".semgrep")
+# An ESLint rule about deprecated APIs: @typescript-eslint/no-deprecated, react/no-deprecated,
+# import/no-deprecated, n/no-deprecated-api, vue/no-deprecated-..., or deprecation/deprecation.
+ESLINT_DEPRECATED = re.compile(r"(?:^|/)(?:no-deprecated(?:-[\w-]+)?|deprecation)$")
+ESLINT_EXTS = (".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs")
+
+
+def installed_tool(root, name):
+    exe = os.path.join(root, ".venv", "bin", name)
+    return exe if os.access(exe, os.X_OK) else shutil.which(name)
+
+
+def relative(root, path):
+    return os.path.relpath(os.path.realpath(path), root) if os.path.isabs(path) else path
+
+
+def stopped(tool, r, detail=""):
+    """Why a tool did not run: its exit code and the first line it wrote, with secrets hidden."""
+    text = detail or (r.stderr.decode("utf-8", "replace").strip().splitlines() or [""])[0]
+    return "%s stopped with exit code %d%s" % (tool, r.returncode, ": " + mask(text)[:200] if text else "")
+
+
 def run_knip(root):
     exe = os.path.join(root, "node_modules", ".bin", "knip")
     if not os.path.isfile(os.path.join(root, "package.json")):
@@ -536,30 +574,160 @@ def run_knip(root):
 
 
 def run_ruff(root, has_python):
+    """Runs an installed ruff once. Returns its tool entry with the complexity findings (None without
+    Python files), its status for the deprecated calls, and the deprecated calls."""
+    def not_run(reason):
+        return {"tool": "ruff", "ran": False, "reason": reason, "findings": []}, {"tool": "ruff", "ran": False, "reason": reason}, []
     if not has_python:
-        return None
-    exe = os.path.join(root, ".venv", "bin", "ruff")
-    if not os.access(exe, os.X_OK):
-        exe = shutil.which("ruff")
+        return None, {"tool": "ruff", "ran": False, "reason": "there are no Python files"}, []
+    exe = installed_tool(root, "ruff")
     if not exe:
-        return {"tool": "ruff", "ran": False, "reason": "ruff is not installed in .venv/bin or on PATH", "findings": []}
+        return not_run("ruff is not installed in .venv/bin or on PATH")
     try:
-        r = subprocess.run([exe, "check", "--select", "C901,PLR0911,PLR0912,PLR0913,PLR0915",
-                            "--output-format", "json", "--exit-zero", "--no-cache", "."],
+        r = subprocess.run([exe, "check", "--select", RUFF_SELECT, "--output-format", "json", "--exit-zero", "--no-cache", "."],
                            cwd=root, capture_output=True, timeout=600)
-        data = json.loads(r.stdout.decode("utf-8", "replace") or "[]")
     except subprocess.TimeoutExpired:
-        return {"tool": "ruff", "ran": False, "reason": "ruff did not finish within 10 minutes", "findings": []}
-    except (OSError, ValueError) as e:
-        return {"tool": "ruff", "ran": False, "reason": "ruff output could not be read (%s)" % type(e).__name__, "findings": []}
-    found = []
+        return not_run("ruff did not finish within 10 minutes")
+    except OSError as e:
+        return not_run("ruff could not be started (%s)" % type(e).__name__)
+    if r.returncode != 0:
+        return not_run(stopped("ruff", r))
+    try:
+        data = json.loads(r.stdout.decode("utf-8", "replace") or "[]")
+    except ValueError as e:
+        return not_run("ruff output could not be read (%s)" % type(e).__name__)
+    found, calls = [], []
     for d in data:
-        f = d.get("filename", "")
-        if os.path.isabs(f):
-            f = os.path.relpath(os.path.realpath(f), root)
-        found.append({"file": f, "line": (d.get("location") or {}).get("row", 0), "rule": d.get("code", ""),
-                      "message": d.get("message", "")})
-    return {"tool": "ruff", "ran": True, "reason": "", "findings": found}
+        code = d.get("code") or ""
+        item = {"file": relative(root, d.get("filename", "")), "line": (d.get("location") or {}).get("row", 0),
+                "rule": code, "message": d.get("message", "")}
+        if code in RUFF_DEPRECATED:
+            calls.append(dict(item, tool="ruff", message=mask(item["message"])))
+        elif code in COMPLEXITY_RULES or not code:
+            found.append(item)
+    return {"tool": "ruff", "ran": True, "reason": "", "findings": found}, {"tool": "ruff", "ran": True, "reason": ""}, calls
+
+
+def semgrep_kind(result):
+    """"security" for a rule whose id or category says security, "deprecated" for one whose id,
+    message, or metadata mentions deprecation, and "other" for the rest."""
+    check = str(result.get("check_id") or "")
+    extra = result.get("extra") or {}
+    meta = extra.get("metadata") or {}
+    category = str(meta.get("category") or "").lower() if isinstance(meta, dict) else ""
+    if "security" in re.split(r"[^a-z0-9]+", check.lower()) or category == "security":
+        return "security"
+    text = " ".join((check, str(extra.get("message") or ""), json.dumps(meta, ensure_ascii=False))).lower()
+    return "deprecated" if "deprecat" in text else "other"
+
+
+def run_semgrep(root):
+    """Runs an installed semgrep with the project's own rule files only, metrics off, and no registry
+    rules. Returns its tool entry with the findings that are neither about deprecation nor security
+    (None without rule files), its status for the deprecated calls, and the deprecated calls."""
+    def not_run(reason):
+        return {"tool": "semgrep", "ran": False, "reason": reason, "findings": []}, {"tool": "semgrep", "ran": False, "reason": reason}, []
+    configs = [n for n in SEMGREP_RULES if (os.path.isdir if n == ".semgrep" else os.path.isfile)(os.path.join(root, n))]
+    if not configs:
+        return None, {"tool": "semgrep", "ran": False,
+                      "reason": "the project has no semgrep rules of its own (.semgrep.yml, .semgrep.yaml, or .semgrep/)"}, []
+    exe = installed_tool(root, "semgrep")
+    if not exe:
+        return not_run("semgrep is not installed in .venv/bin or on PATH")
+    cmd = [exe, "scan", "--json", "--quiet", "--metrics", "off", "--disable-version-check"]
+    for c in configs:
+        cmd += ["--config", c]
+    try:
+        # semgrep keeps its settings, an anonymous id, and a log in ~/.semgrep. Pointing them at a
+        # temporary folder keeps the home folder unchanged and leaves any semgrep login out of the run.
+        with tempfile.TemporaryDirectory(prefix="techdebt-semgrep-") as tmp:
+            env = dict(os.environ, SEMGREP_SETTINGS_FILE=os.path.join(tmp, "settings.yml"),
+                       SEMGREP_LOG_FILE=os.path.join(tmp, "semgrep.log"), SEMGREP_VERSION_CACHE_PATH=os.path.join(tmp, "version"))
+            r = subprocess.run(cmd + ["."], cwd=root, capture_output=True, timeout=600, env=env)
+    except subprocess.TimeoutExpired:
+        return not_run("semgrep did not finish within 10 minutes")
+    except OSError as e:
+        return not_run("semgrep could not be started (%s)" % type(e).__name__)
+    try:
+        data = json.loads(r.stdout.decode("utf-8", "replace") or "null")
+    except ValueError:
+        data = None
+    if r.returncode not in (0, 1) or not isinstance(data, dict) or not isinstance(data.get("results"), list):
+        errors = data.get("errors") if isinstance(data, dict) else None
+        first = errors[0] if isinstance(errors, list) and errors and isinstance(errors[0], dict) else {}
+        return not_run(stopped("semgrep", r, str(first.get("message") or "").strip().split("\n")[0]))
+    found, calls = [], []
+    for res in data["results"]:
+        kind = semgrep_kind(res)
+        if kind == "security":
+            continue
+        item = {"file": relative(root, str(res.get("path") or "")), "line": (res.get("start") or {}).get("line", 0),
+                "rule": str(res.get("check_id") or ""), "message": mask(str((res.get("extra") or {}).get("message") or ""))}
+        if kind == "deprecated":
+            calls.append(dict(item, tool="semgrep"))
+        else:
+            found.append(item)
+    return {"tool": "semgrep", "ran": True, "reason": "", "findings": found}, {"tool": "semgrep", "ran": True, "reason": ""}, calls
+
+
+def eslint_on(setting):
+    """Whether a rule setting printed by `eslint --print-config` turns the rule on."""
+    level = setting[0] if isinstance(setting, list) and setting else setting
+    return level not in (0, "0", "off", None, [])
+
+
+def run_eslint(root, files):
+    """Runs the project's ESLint when its config turns on a deprecation rule, and keeps only the
+    findings of those rules. Returns its status for the deprecated calls and the deprecated calls."""
+    def not_run(reason):
+        return {"tool": "eslint", "ran": False, "reason": reason}, []
+    if not os.path.isfile(os.path.join(root, "package.json")):
+        return not_run("there is no package.json")
+    exe = os.path.join(root, "node_modules", ".bin", "eslint")
+    if not os.access(exe, os.X_OK):
+        return not_run("ESLint is not installed in node_modules/.bin")
+    samples = sorted((p for p in files if os.path.splitext(p)[1].lower() in ESLINT_EXTS), key=lambda p: (is_test(p), p))[:5]
+    if not samples:
+        return not_run("there are no JavaScript or TypeScript files")
+    rules, why = None, ""
+    for p in samples:
+        try:
+            r = subprocess.run([exe, "--print-config", p], cwd=root, capture_output=True, timeout=120)
+            config = json.loads(r.stdout.decode("utf-8", "replace") or "null")
+        except subprocess.TimeoutExpired:
+            return not_run("ESLint did not print its config within 2 minutes")
+        except OSError as e:
+            return not_run("ESLint could not be started (%s)" % type(e).__name__)
+        except ValueError:
+            config = None
+        if isinstance(config, dict) and isinstance(config.get("rules"), dict):
+            rules = config["rules"]
+            break
+        why = why or (stopped("ESLint", r) if r.returncode else "")
+    if rules is None:
+        return not_run(why or "ESLint printed no config for %s" % samples[0])
+    on = {name for name, setting in rules.items() if ESLINT_DEPRECATED.search(name) and eslint_on(setting)}
+    if not on:
+        return not_run("the ESLint config turns on no deprecation rule (such as @typescript-eslint/no-deprecated or react/no-deprecated)")
+    try:
+        r = subprocess.run([exe, "--format", "json", "."], cwd=root, capture_output=True, timeout=600)
+    except subprocess.TimeoutExpired:
+        return not_run("ESLint did not finish within 10 minutes")
+    except OSError as e:
+        return not_run("ESLint could not be started (%s)" % type(e).__name__)
+    try:
+        data = json.loads(r.stdout.decode("utf-8", "replace") or "null")
+    except ValueError:
+        data = None
+    if r.returncode not in (0, 1) or not isinstance(data, list):
+        return not_run(stopped("ESLint", r))
+    calls = []
+    for f in data:
+        for m in (f.get("messages") or []) if isinstance(f, dict) else []:
+            if m.get("ruleId") in on:
+                calls.append({"file": relative(root, str(f.get("filePath") or "")), "line": m.get("line") or 0,
+                              "tool": "eslint", "rule": m["ruleId"], "message": mask(str(m.get("message") or ""))})
+    return {"tool": "eslint", "ran": True, "reason": ""}, calls
 
 
 # ---------------------------------------------------------------------------
@@ -784,7 +952,12 @@ def scan(root, months):
                       key=lambda v: -(v["changes"] * v["lines"]))
     untested = sorted((v for v in per.values() if v["untested"]), key=lambda v: -(v["changes"] * v["lines"] + v["lines"]))
     knip = run_knip(root)
-    tools = [t for t in (knip, run_ruff(root, any(v["lang"] == "python" for v in per.values()))) if t]
+    ruff, ruff_status, ruff_calls = run_ruff(root, any(v["lang"] == "python" for v in per.values()))
+    semgrep, semgrep_status, semgrep_calls = run_semgrep(root)
+    eslint_status, eslint_calls = run_eslint(root, list(per))
+    tools = [t for t in (knip, ruff, semgrep) if t]
+    deprecated = {"tools": [ruff_status, semgrep_status, eslint_status],
+                  "items": sorted(ruff_calls + semgrep_calls + eslint_calls, key=lambda c: (c["file"], c["line"], c["tool"]))}
     unused_deps = knip_dependencies(knip) if knip and knip["ran"] else find_unused_dependencies(root, paths)
     ranked = rank(per)
     head = git(root, "rev-parse", "--short", "HEAD") if in_git else None
@@ -812,6 +985,7 @@ def scan(root, months):
         "large_files": large,
         "duplication": dups,
         "unused_dependencies": unused_deps,
+        "deprecated_calls": deprecated,
         "tools": tools,
         "thresholds": {"long_function": LONG_FUNCTION, "large_file": LARGE_FILE, "duplicate_lines": DUP_WINDOW},
     }
@@ -894,6 +1068,14 @@ def print_summary(data, sdir):
     if deps is not None:
         how = "approximate: names not found in imports, configs, or scripts" if deps["source"] == "search" else "from knip"
         print("Unused deps:    %d (%s)" % (len(deps["items"]), how))
+    calls = data["deprecated_calls"]
+    ran = [s["tool"] for s in calls["tools"] if s["ran"]]
+    idle = [s["tool"] for s in calls["tools"] if not s["ran"]]
+    if ran:
+        counts = ", ".join("%s %d" % (t, sum(1 for c in calls["items"] if c["tool"] == t)) for t in ran)
+        print("Deprecated calls: %d (%s%s)" % (len(calls["items"]), counts, "; not run: " + ", ".join(idle) if idle else ""))
+    else:
+        print("Deprecated calls: not checked (not run: %s)" % ", ".join(idle))
     for t in data["tools"]:
         print("Tool %-10s %s" % (t["tool"] + ":", "%d findings" % len(t["findings"]) if t["ran"] else "not run, " + t["reason"]))
     if data["unmeasured_languages"]:

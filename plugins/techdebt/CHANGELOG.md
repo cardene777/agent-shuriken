@@ -6,7 +6,9 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 ## [Unreleased]
 
 - `scan` lists unused dependencies without knip: names in the `dependencies` and `devDependencies` of each `package.json` that no import, require, config file, or `scripts` entry uses. A package that a used package needs as a peer, a plugin named by its short name, and `@types/<name>` of a used name count as used. The measure is marked approximate, and when knip ran, its unused dependencies are listed instead, once. Before, unused dependencies were found only when knip was installed
-- `scan.json` has schema 2. `explain` and `report` refuse a `scan.json` from another version and ask for a new scan
+- `scan` lists deprecated calls found by tools that are already installed: ruff with its rules for deprecated APIs, semgrep with the project's own rule files, `--metrics off`, and no registry rules, and ESLint when its config turns on a deprecation rule. semgrep findings of security rules are left out, and its other findings are listed under the tools. The summary has a "Deprecated calls" line and the report a tab and a card, each listing the tools that did not run and why
+- A ruff that stops with an error is reported as not run, with its exit code and the first line it wrote. Before, it was reported as having run with no findings
+- `scan.json` has schema 3. `explain` and `report` refuse a `scan.json` from another version and ask for a new scan
 
 ## [0.2.2] - 2026-11-14
 

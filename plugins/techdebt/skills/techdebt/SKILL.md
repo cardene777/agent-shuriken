@@ -38,7 +38,8 @@ It measures these things and prints a summary, the ranked files, and the paths o
 | Large files | Source files over 500 non-blank lines |
 | Duplication | Blocks of 8 or more lines, ignoring whitespace, imports, and comments, that appear in two places |
 | Unused dependencies | Names in the `dependencies` and `devDependencies` of each `package.json` that no import, require, config file, or `scripts` entry uses, counting a package that a used package needs as a peer, a plugin named by its short name, and `@types/<name>` of a used name. This is approximate. When `knip` ran, its findings are used instead |
-| Installed tools | `knip` from `node_modules/.bin` and `ruff` from `.venv/bin` or `PATH`, only when already installed. Nothing is downloaded |
+| Deprecated calls | Calls to deprecated APIs found by tools that are already installed. `ruff` uses its rules for deprecated imports, aliases, and functions, such as `UP035`, `NPY201`, and `TID251`. `semgrep` runs only when the project has its own rule files (`.semgrep.yml`, `.semgrep.yaml`, or `.semgrep/`), with `--metrics off` and no registry rules; its findings whose rule mentions deprecation are listed here, findings of security rules nowhere, and the rest under the tools. `eslint` from `node_modules/.bin` runs only when its config turns on a deprecation rule, such as `@typescript-eslint/no-deprecated`, and only those findings are kept |
+| Installed tools | `knip` from `node_modules/.bin`, and `ruff` and `semgrep` from `.venv/bin` or `PATH`, only when already installed. Nothing is downloaded |
 
 It skips dependencies, build output, lockfiles, minified files, and files whose first lines say they are generated.
 Each file gets a score from 0 to 1: 40% hotspot, 20% long functions, 15% markers, 15% duplication, and 10% for having no test file, weighted by how often it changes.
@@ -73,6 +74,7 @@ Open `report.html` and show it to the user.
 The page has a tab for the ranking and one per measure, an English and Japanese switch, and pages of 50 rows.
 In the chat, give the top 3 to 5 files with the `why` and `action` of each, and the totals per measure.
 Say which measures are approximate (function length outside Python, and unused dependencies found without `knip`) and which tools did not run and why.
+For deprecated calls, say which of `ruff`, `semgrep`, and `eslint` looked for them; when none ran, say that the measure was not checked rather than that nothing was found.
 For unused dependencies found by name, tell the user to check each one before removing it, since a package can be used in ways the search does not see, such as a name built at run time.
 
 Do not change any code unless the user asks.
@@ -88,7 +90,8 @@ Read the line before quoting it, because text that the patterns miss stays as it
 | "run scan again" | The last `scan.json` was written by another version of techdebt. Run `scan` again, then `explain` |
 | Exit code 3 | The folder does not exist |
 | The folder is not a git repository | The scan still runs, without hotspots, ages, or the history part of the ranking |
-| A tool shows "not run" | It is not installed in the project. Install it only if the user wants it; the scan never installs anything |
+| A tool shows "not run" | It is not installed in the project, the project has no semgrep rules of its own, or the ESLint config turns on no deprecation rule. Install or configure it only if the user wants it; the scan never installs anything |
+| A tool shows "stopped with exit code" | The tool failed, for example on a config error. The reason quotes the first line it wrote; tell the user, and do not count its findings as zero |
 
 ## Not covered
 

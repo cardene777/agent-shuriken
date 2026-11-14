@@ -55,6 +55,7 @@ Long functions: 7 over 60 lines
 Large files:    1 over 500 lines
 Duplication:    2 blocks, 20 lines
 Unused deps:    2 (approximate: names not found in imports, configs, or scripts)
+Deprecated calls: 3 (eslint 3; not run: ruff, semgrep)
 Tool ruff:      not run, ruff is not installed in .venv/bin or on PATH
 
 Start here
@@ -69,6 +70,7 @@ Start here
 
 報告のページには、順位のタブと項目ごとのタブがあり、英語と日本語を切り替えられます。
 使っていない依存は、knipが無い時も、import、設定のファイル、`scripts`で名前を探して見つけるので、その数は概算です。knipが入っている時は、knipの結果を使います。
+非推奨の呼び出しは、すでに入っている道具で探します。ruffは非推奨の規則で、semgrepはプロジェクトの規則のfileだけを`--metrics off`で、ESLintは設定が非推奨の規則を有効にしている時だけ回します。semgrepのセキュリティの規則の結果は出しません。
 
 ## 必要な物
 
@@ -78,6 +80,8 @@ Start here
 | `git` | ファイルごとの変更の回数、TODOのコメントの古さ、順位付けに使います。無くてもほかの項目は測れます |
 | `knip` | 任意です。プロジェクトの`node_modules/.bin`に入っている時に使います |
 | `ruff` | 任意です。`.venv/bin`か`PATH`に入っている時に使います |
+| `semgrep` | 任意です。`.venv/bin`か`PATH`に入っていて、プロジェクトが規則のfile(`.semgrep.yml`、`.semgrep.yaml`、`.semgrep/`)を持つ時に使います |
+| `eslint` | 任意です。プロジェクトの`node_modules/.bin`に入っていて、設定が非推奨の規則を有効にしている時に使います |
 
 ## 読む物、動かす物、送る物
 
@@ -85,7 +89,8 @@ Start here
 要点は次のとおりです。
 
 - 調べるフォルダのソースファイルと、gitの履歴(`git log`、`git blame`)を読みます
-- `knip`と`ruff`は、すでに入っている時だけ動かします。何も取り寄せず、何も入れません
+- `knip`、`ruff`、`semgrep`、`eslint`は、すでに入っている時だけ動かします。何も取り寄せず、何も入れません
+- semgrepは`--metrics off`と`--disable-version-check`を付け、プロジェクトの規則のfileだけで回します。登録所の規則は読みません。semgrepの設定と記録は一時のフォルダーに書かせ、回した後に消します
 - プロジェクトのファイルは一切書き換えません
 - ネットワークにはつなぎません
 - `scan.json`、エージェントの説明、`report.html`を`~/.local/share/techdebt/<project>/`に置き、あなただけが読めるようにします。消すまで残ります

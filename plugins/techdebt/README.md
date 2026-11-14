@@ -54,6 +54,7 @@ Long functions: 7 over 60 lines
 Large files:    1 over 500 lines
 Duplication:    2 blocks, 20 lines
 Unused deps:    2 (approximate: names not found in imports, configs, or scripts)
+Deprecated calls: 3 (eslint 3; not run: ruff, semgrep)
 Tool ruff:      not run, ruff is not installed in .venv/bin or on PATH
 
 Start here
@@ -68,6 +69,7 @@ The ranking goes on to 20 files, and the last two lines give the folders of the 
 
 The report has a tab for the ranking and one per measure, and switches between English and Japanese.
 Unused dependencies are found without knip by searching for each name in imports, config files, and `scripts`, so that count is approximate. When knip is installed, its findings are used instead.
+Deprecated calls are listed by tools that are already installed: ruff with its deprecation rules, semgrep with the project's own rule files and `--metrics off`, and ESLint when its config turns on a deprecation rule. semgrep findings of security rules are left out.
 
 ## Requirements
 
@@ -77,6 +79,8 @@ Unused dependencies are found without knip by searching for each name in imports
 | `git` | For changes per file, the age of TODO comments, and the ranking. Without it the other measures still run |
 | `knip` | Optional. Used when installed in the project's `node_modules/.bin` |
 | `ruff` | Optional. Used when installed in `.venv/bin` or on `PATH` |
+| `semgrep` | Optional. Used when installed in `.venv/bin` or on `PATH` and the project has its own rule files (`.semgrep.yml`, `.semgrep.yaml`, or `.semgrep/`) |
+| `eslint` | Optional. Used when installed in the project's `node_modules/.bin` and its config turns on a deprecation rule |
 
 ## What it reads, runs, and sends
 
@@ -84,7 +88,8 @@ Unused dependencies are found without knip by searching for each name in imports
 In short:
 
 - It reads the source files of the folder you scan and its git history (`git log`, `git blame`)
-- It runs `knip` and `ruff` only when they are already installed, and never downloads or installs anything
+- It runs `knip`, `ruff`, `semgrep`, and `eslint` only when they are already installed, and never downloads or installs anything
+- It runs semgrep with `--metrics off` and `--disable-version-check`, only with the project's rule files, never with registry rules, and keeps semgrep's settings and log in a temporary folder that it removes
 - It never changes a file in your project
 - It connects to nothing on the network
 - It keeps `scan.json`, the agent's notes, and `report.html` in `~/.local/share/techdebt/<project>/`, readable only by you, until you delete them
