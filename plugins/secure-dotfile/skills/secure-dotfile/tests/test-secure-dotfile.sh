@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# Tests for secure_dotfile.py against a throwaway HOME and a throwaway keychain.
+# Tests for secure_dotfile.py against a throwaway HOME, a throwaway keychain, and a stand-in
+# secret-tool that keeps its values in a temporary folder.
 #
 # The test secrets are generated when the test runs, so no key-shaped text is kept in the
 # repository. Every check prints only its name and the result, never a value.
-# The move checks need macOS; elsewhere only the scan checks run.
+# The keychain move checks need macOS. The secret service checks use the stand-in and run on
+# any system.
 set -u
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -58,8 +60,14 @@ export S_DBPASS="$(rand Qz 1)"
 export S_PIN="$(rand Qz9 1)"
 export S_LOCAL="Q$((RANDOM % 10))"
 export S_MYPASSWD="$(rand Qz9 20)"
+# Values moved into the stand-in secret service.
+export S_LXA="$(rand Qz9 27)"
+export S_LXC="$(rand Qz9 23)"
+export S_LXC_OTHER="$(rand Qz9 23)"
+export S_LXD="$(rand Qz9 21)"
+export S_LXF="$(rand Qz9 29)"
 ALL_SECRETS=(S_GH S_OAI S_NAME S_AWS S_SPACE S_SOURCED S_GIT S_FISH S_ENVD S_CONFLICT S_CONFLICT_OTHER S_SHARED S_CZ S_BACKSLASH S_NONASCII
-  S_PG S_MYSQL S_DBPASS S_PIN S_LOCAL S_MYPASSWD)
+  S_PG S_MYSQL S_DBPASS S_PIN S_LOCAL S_MYPASSWD S_LXA S_LXC S_LXC_OTHER S_LXD S_LXF)
 
 H="$T/home"
 mkdir -p "$H/.config/fish" "$H/.config/direnv/env.d" "$H/dotfiles" "$H/.local/share/chezmoi"
@@ -252,6 +260,121 @@ PY
   same_keychains() { [ "$(HOME="$REAL_HOME" security list-keychains -d user)" = "$KEYCHAINS_BEFORE" ]; }
   check "the keychain search list is unchanged" "same_keychains"
 fi
+
+# ---------------------------------------------------------------------------
+# move into the secret service, through a stand-in secret-tool
+#
+# The stand-in records its arguments, keeps each value in FAKE_SECRET_DIR/NAME.ACCOUNT, and
+# answers like the real one: a missing value exits 1 with no output, and FAKE_SECRET_DOWN=1
+# makes it fail the way it does when no D-Bus session is running. SECURE_DOTFILE_KEYCHAIN
+# still names the throwaway keychain, so nothing can reach the default keychain.
+
+: "${USER:=$(id -un)}"
+export USER
+LH="$T/linux/home"
+LS="$T/linux/store"
+FAKEBIN="$T/linux/bin"
+NOST="$T/linux/no-secret-tool"
+mkdir -p "$LH/.config/fish" "$LS" "$FAKEBIN" "$NOST"
+cat > "$FAKEBIN/secret-tool" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$FAKE_SECRET_DIR/args"
+if [ "${FAKE_SECRET_DOWN:-}" = 1 ]; then
+  printf '%s\n' 'secret-tool: Cannot autolaunch D-Bus without X11 $DISPLAY' >&2
+  exit 1
+fi
+cmd="$1"
+shift
+case "${1:-}" in --label=*) shift ;; esac
+if [ "$#" -ne 4 ] || [ "$1" != service ] || [ "$3" != account ]; then
+  echo "secret-tool: unexpected arguments" >&2
+  exit 2
+fi
+f="$FAKE_SECRET_DIR/$2.$4"
+case "$cmd" in
+  store) cat > "$f" ;;
+  lookup) [ -f "$f" ] || exit 1; cat "$f" ;;
+  *) exit 2 ;;
+esac
+SH
+chmod 755 "$FAKEBIN/secret-tool"
+for c in bash zsh git; do
+  p="$(command -v "$c")" && ln -s "$p" "$NOST/$c"
+done
+PY3="$(command -v python3)"
+printf 'export LX_TOKEN="%s"\nexport LX_CONFLICT_TOKEN=%s\nexport LX_DOWN_TOKEN=%s\n' "$S_LXA" "$S_LXC" "$S_LXD" > "$LH/.bashrc"
+printf 'set -gx LX_FISH_TOKEN %s\n' "$S_LXF" > "$LH/.config/fish/config.fish"
+printf '%s' "$S_LXC_OTHER" > "$LS/LX_CONFLICT_TOKEN.$USER"
+lx() { HOME="$LH" PATH="$FAKEBIN:$PATH" FAKE_SECRET_DIR="$LS" SECURE_DOTFILE_STORE=secret-service SECURE_DOTFILE_KEYCHAIN="$KC" "$@"; }
+jfield() { python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(next(str(i[sys.argv[3]]) for i in d["items"] if i["name"]==sys.argv[2]))' "$@" 2>/dev/null; }
+jnote() { python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(" ".join(r["status"]+" "+r["note"] for r in d["results"] if r["name"]==sys.argv[2]))' "$@" 2>/dev/null; }
+stored() { printf '%s' "$2" | cmp -s - "$LS/$1.$USER"; }
+lookups() { local n; n="$(grep -c "^lookup service $1 " "$LS/args" 2>/dev/null)"; echo "${n:-0}"; }
+want_bash='export LX_TOKEN="$(secret-tool lookup service LX_TOKEN account "$USER" 2>/dev/null)"'
+want_fish='set -gx LX_FISH_TOKEN (secret-tool lookup service LX_FISH_TOKEN account "$USER" 2>/dev/null)'
+
+LJ="$OUT/lx-scan.json"
+lx python3 "$SCRIPT" scan --json > "$LJ" 2>> "$OUT/scan.err"
+lx_scan() { [ "$(jfield "$LJ" LX_TOKEN movable)" = True ] && [ "$(jfield "$LJ" LX_TOKEN becomes)" = "$want_bash" ]; }
+check "on Linux, scan shows the secret-tool line as what the line becomes" "lx_scan"
+
+lx_before="$(cksum < "$LH/.bashrc")"
+lx env FAKE_SECRET_DOWN=1 python3 "$SCRIPT" move --json --item "$(jfield "$LJ" LX_DOWN_TOKEN item)" > "$OUT/lx-down.json" 2>> "$OUT/lx-move.err"
+lx_after_down="$(cksum < "$LH/.bashrc")"
+lx_down() {
+  jnote "$OUT/lx-down.json" LX_DOWN_TOKEN | grep -q '^skipped .*Cannot autolaunch D-Bus' &&
+    [ "$lx_after_down" = "$lx_before" ] && [ ! -e "$LS/LX_DOWN_TOKEN.$USER" ]
+}
+check "on Linux, an unreachable secret service skips the item and leaves the file as it was" "lx_down"
+
+lx python3 "$SCRIPT" move --json --item "$(jfield "$LJ" LX_TOKEN item)" --item "$(jfield "$LJ" LX_CONFLICT_TOKEN item)" \
+  --item "$(jfield "$LJ" LX_FISH_TOKEN item)" > "$OUT/lx-move.json" 2>> "$OUT/lx-move.err"
+lx_moved() {
+  jnote "$OUT/lx-move.json" LX_TOKEN | grep -q '^moved stored in the secret service as LX_TOKEN' &&
+    stored LX_TOKEN "$S_LXA" && [ "$(sed -n 1p "$LH/.bashrc")" = "$want_bash" ] &&
+    awk '/^store .*service LX_TOKEN /{s=1} s && /^lookup service LX_TOKEN /{f=1} END{exit !f}' "$LS/args"
+}
+check "on Linux, move stores the value in the secret service, reads it back, and rewrites the line" "lx_moved"
+lx_stdin_only() {
+  [ -s "$LS/args" ] && stored LX_TOKEN "$S_LXA" && stored LX_FISH_TOKEN "$S_LXF" &&
+    python3 -c 'import os,sys; t=open(sys.argv[1]).read(); sys.exit(1 if any(os.environ[n] in t or os.environ[n][:4] in t for n in sys.argv[2:]) else 0)' \
+      "$LS/args" S_LXA S_LXC S_LXC_OTHER S_LXD S_LXF
+}
+check "on Linux, the value reaches secret-tool only on standard input" "lx_stdin_only"
+lx_fish() { [ "$(sed -n 1p "$LH/.config/fish/config.fish")" = "$want_fish" ] && stored LX_FISH_TOKEN "$S_LXF"; }
+check "on Linux, a fish line reads the value with fish command substitution" "lx_fish"
+lx_conflict() {
+  jnote "$OUT/lx-move.json" LX_CONFLICT_TOKEN | grep -q '^skipped a different value is already stored as LX_CONFLICT_TOKEN' &&
+    stored LX_CONFLICT_TOKEN "$S_LXC_OTHER" && grep -qF "$S_LXC" "$LH/.bashrc"
+}
+check "on Linux, a name that holds a different value is skipped and not overwritten" "lx_conflict"
+lx_loaded() {
+  local before
+  before="$(lookups LX_TOKEN)"
+  HOME="$LH" PATH="$FAKEBIN:$PATH" FAKE_SECRET_DIR="$LS" bash --norc -c 'source ~/.bashrc; [ "$LX_TOKEN" = "$S_LXA" ]' &&
+    [ "$(lookups LX_TOKEN)" -gt "$before" ]
+}
+check "on Linux, a new bash loads the moved value through secret-tool" "lx_loaded"
+
+# Without secret-tool on PATH. Only the commands the scan runs are linked into it.
+HOME="$LH" PATH="$NOST" SECURE_DOTFILE_STORE=secret-service SECURE_DOTFILE_KEYCHAIN="$KC" \
+  "$PY3" "$SCRIPT" move --item "~/.bashrc:3:LX_DOWN_TOKEN" > "$OUT/lx-none.txt" 2> "$OUT/lx-none.err"
+lx_none_rc=$?
+HOME="$LH" PATH="$NOST" SECURE_DOTFILE_STORE=secret-service SECURE_DOTFILE_KEYCHAIN="$KC" \
+  "$PY3" "$SCRIPT" scan --json > "$OUT/lx-none.json" 2>> "$OUT/scan.err"
+lx_none() {
+  [ "$lx_none_rc" -eq 3 ] && grep -q secret-tool "$OUT/lx-none.err" &&
+    [ "$(jfield "$OUT/lx-none.json" LX_DOWN_TOKEN movable)" = False ] &&
+    jfield "$OUT/lx-none.json" LX_DOWN_TOKEN reason | grep -q secret-tool
+}
+check "without secret-tool, move exits 3 and names it, and scan says why it cannot move" "lx_none"
+docs_linux() {
+  local f
+  for f in skills/secure-dotfile/SKILL.md README.md README.ja.md docs/how-it-works.md docs/how-it-works.ja.md; do
+    grep -q "secret-tool" "$HERE/../../../$f" || return 1
+  done
+}
+check "the docs describe moving on Linux with secret-tool" "docs_linux"
 
 # ---------------------------------------------------------------------------
 # No output holds a value or its first 4 characters.
