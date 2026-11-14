@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-14
+
 - The PDF contents give the page each section starts on, joined to the title by a dot leader, and every page but the cover shows its page number at the bottom. Pages are counted from the cover. The HTML keeps the contents without numbers. When the pages cannot be found, the PDF keeps titles only and `to-pdf.sh` prints one line saying why
 
 ## [0.3.0] - 2026-11-14
@@ -30,7 +32,8 @@ First public release.
 - Checks that every score has a rationale and that the report loads nothing from the network, then prints it to PDF with a browser already installed
 - Starts when you ask for a comparison, or when you call it, in Claude Code and in Codex
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/compare-report--v0.3.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/compare-report--v0.4.0...HEAD
+[0.4.0]: https://github.com/cardene777/agent-shuriken/releases/tag/compare-report--v0.4.0
 [0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/compare-report--v0.3.0
 [0.2.1]: https://github.com/cardene777/agent-shuriken/releases/tag/compare-report--v0.2.1
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/compare-report--v0.2.0
