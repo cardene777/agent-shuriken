@@ -163,8 +163,12 @@ tbody tr:last-child td { border-bottom: 1px solid #d1d5db; }
   .bar { grid-template-columns: 96px 1fr 80px; }
 }
 
-@page { size: A4; margin: 16mm 14mm; }
-@page :first { margin: 0; }
+@page {
+  size: A4;
+  margin: 16mm 14mm;
+  @bottom-center { content: counter(page); color: #6b7280; font: 9pt system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif; }
+}
+@page :first { margin: 0; @bottom-center { content: none; } }
 @media print {
   body { font-size: 10.5pt; }
   .cover { min-height: 297mm; padding: 34mm 22mm 20mm; }

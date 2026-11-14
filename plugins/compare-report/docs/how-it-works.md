@@ -16,7 +16,7 @@ The procedure is in `skills/compare-report/SKILL.md`, and the pages it points to
 | Research | Agent | Collects official information, figures, adopters, and risks for each candidate, with a source and a date for every claim. Claude Code researches the candidates in parallel |
 | Write | Agent | Fills the report template |
 | Check | Agent | Runs the report check and fixes everything it reports, then rereads the report for fairness and consistency |
-| Print | Agent | Prints the PDF and opens the report |
+| Print | Agent | Prints the PDF, with the page of each section in the contents, and opens the report |
 | Revise | You and the agent | You ask for changes, and the agent updates the HTML and the PDF |
 
 ## What is in the report
@@ -30,6 +30,10 @@ The procedure is in `skills/compare-report/SKILL.md`, and the pages it points to
 | Risks | Each risk with its severity, a mitigation, and a rationale |
 | Ranking | A scorecard of every score with an overall comment, and the first choice, alternative, and fallback with the conditions for each |
 | Sources | Every source, numbered in the order it is cited, with the date it was read |
+
+In the PDF, each contents entry is joined by a dot leader to the page its section starts on, and every page but the cover shows its page number at the bottom.
+Pages are counted from the cover, which is page 1, the same way a PDF viewer counts them.
+The HTML keeps the contents without numbers.
 
 Scores run from S (outstanding) to D (weak).
 A candidate that cannot be judged fairly on an axis, because no comparable figure exists, is marked as not scored instead of guessed.
@@ -69,6 +73,7 @@ The name comes only from your answer, never from `git config`, your system's use
 - Your agent's web search and web page reading, with only the topic and the names of candidates and vendors in searches
 - `python3` to check the report
 - A Chromium-based browser already on your computer (Chrome, Chromium, Edge, or Brave), in headless mode with a throwaway profile that is removed afterwards, to print the PDF. Set `COMPARE_REPORT_BROWSER` to choose one
+- `python3` to find the page numbers. `scripts/toc-pages.py` reads the page of each section from the destinations the browser writes into the first PDF, then writes a hidden copy of the report with the numbers, `.print-*.html`, next to it. The copy is printed and removed, and the new PDF replaces the first only when every section is still on the same page. When the pages cannot be found, the first PDF is kept with titles only, and one line says why
 - `open` on macOS or `xdg-open` on Linux to show you the report
 
 The plugin installs nothing, and the report it writes loads nothing from the network.

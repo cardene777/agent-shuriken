@@ -263,7 +263,8 @@ for a in "$@"; do
   esac
 done
 [ -d "${profile:-}" ] && printf '%s\n' "$profile" > "$BROWSER_LOG.profile"
-[ "${BROWSER_WRITES:-1}" = 1 ] && printf '%%PDF-1.4\n' > "$out"
+# a PDF with one page and no named destinations
+[ "${BROWSER_WRITES:-1}" = 1 ] && printf '%%PDF-1.4\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n3 0 obj << /Type /Page /Parent 2 0 R >> endobj\n%%%%EOF\n' > "$out"
 exit 0
 SH
 chmod +x "$T/bin/browser"
@@ -297,10 +298,6 @@ check "a COMPARE_REPORT_BROWSER that is not a program exits 3" '[ "$rc" = 3 ] &&
 BROWSER_WRITES=0 to_pdf "$T/good.html" >/dev/null 2>"$T/err"; rc=$?
 check "a browser that writes nothing exits 4" '[ "$rc" = 4 ] && grep -q "did not write" "$T/err" && [ ! -e "$T/good.pdf" ]'
 check "no profile is left behind after a failure" '[ -z "$(ls -A "$TMPDIR")" ]'
-
-out="$(to_pdf "$T/my reports/report.html" 2>"$T/err")"; rc=$?
-check "a PDF without page destinations keeps titles only and says why" \
-  '[ "$rc" = 0 ] && [ "$out" = "$T/my reports/report.pdf" ] && [ "$(head -c 8 "$out")" = "%PDF-1.4" ] && [ "$(wc -l < "$T/err" | tr -d " ")" = 1 ] && grep -q "^The PDF contents show titles only" "$T/err"'
 
 plugin="$HERE/../../.."
 ja_pages="$(python3 -c 'print("".join(map(chr, (0x30da, 0x30fc, 0x30b8, 0x756a, 0x53f7))))')"
@@ -355,6 +352,13 @@ for n, lines in enumerate(pages, 1):
     print(f"bottom {n}: {last}")
 '
 }
+
+# The stand-in browser writes a PDF without destinations, so the contents keep titles only
+mkdir -p "$T/stand-in"
+long_report "$T/stand-in/report.html"
+out="$(to_pdf "$T/stand-in/report.html" 2>"$T/err")"; rc=$?
+check "a PDF without page destinations keeps titles only and says why" \
+  '[ "$rc" = 0 ] && [ "$out" = "$T/stand-in/report.pdf" ] && [ "$(head -c 8 "$out")" = "%PDF-1.4" ] && [ "$(wc -l < "$T/err" | tr -d " ")" = 1 ] && grep -q "^The PDF contents show titles only: the browser wrote no page destinations" "$T/err" && [ "$(ls -A "$T/stand-in" | tr "\n" " ")" = "report.html report.pdf " ]'
 
 dump_dom() {
   "$real_browser" --headless --disable-gpu --no-first-run --user-data-dir="$T/dom-profile" --dump-dom "$1" 2>/dev/null

@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The PDF contents give the page each section starts on, joined to the title by a dot leader, and every page but the cover shows its page number at the bottom. Pages are counted from the cover. The HTML keeps the contents without numbers. When the pages cannot be found, the PDF keeps titles only and `to-pdf.sh` prints one line saying why
+
 ## [0.3.0] - 2026-11-14
 
 - The cover can show the author's name under the date. The agent asks for it together with the candidates, puts on the cover only a name you gave, never one from `git config` or your system, and keeps your answer in `author.txt` next to the reports to offer it first next time. With no name, the line is left out
