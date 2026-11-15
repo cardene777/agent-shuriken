@@ -1,0 +1,7 @@
+interface:
+  display_name: "Skill Tune"
+  short_description: "Measure a skill with eval cases, shorten its SKILL.md, and check that no case scores lower"
+  default_prompt: "Use $skill-tune to measure this plugin's skill with evals and shorten its SKILL.md."
+
+policy:
+  allow_implicit_invocation: true
