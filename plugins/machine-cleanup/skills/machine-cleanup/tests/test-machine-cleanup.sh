@@ -14,6 +14,8 @@ SHEET="$SKILL_DIR/templates/sheet.html"
 REPO="$(git -C "$HERE" rev-parse --show-toplevel 2>/dev/null || true)"
 PY="$(python3 -c 'import sys; print(sys.executable)')"
 REAL_DU="$(command -v du)"
+# Node.js runs the page's own functions in one check; that check is skipped when it is missing.
+NODE="$(command -v node 2>/dev/null || true)"
 PASS=0
 FAIL=0
 T="$(cd "$(mktemp -d)" && pwd -P)"
@@ -329,6 +331,25 @@ assert re.search(r'id="lang"[^>]*>', html) and 'data-lang="ja"' in html and 'dat
 PY
 }
 check "the sheet opens in English and switches to Japanese from one dictionary" 'sheet_ok'
+
+# confirm_texts: runs the page's own t, human, and sumText in Node.js and prints the confirm dialog's
+# lines for 4 disk items of 807.4 MB and for 1 process, in English and then Japanese.
+confirm_texts() {
+  "$PY" - "$SHEET" <<'PY' | "$NODE" -
+import re, sys
+html = open(sys.argv[1], encoding="utf-8").read()
+words = re.search(r'<script id="i18n" type="application/json">(.*?)</script>', html, re.S).group(1)
+code = "".join(re.search(r"^function %s\(.*?^}\n" % name, html, re.S | re.M).group(0) for name in ("t", "human", "sumText"))
+print("const I18N = %s;\nlet lang;\n%s" % (words, code))
+print('for (const l of ["en", "ja"]) { lang = l; console.log(sumText(4, 807400000, true)); console.log(sumText(1, 0, false)); }')
+PY
+}
+if [ -n "$NODE" ]; then
+  check "the confirm dialog shows each count apart from its size" \
+    '[ "$(confirm_texts 2>&1 | tr "\n" "|")" = "4 items, 807.4 MB|1 item|4件、807.4 MB|1件|" ]'
+else
+  printf 'skip  %s (node is not installed)\n' "the confirm dialog shows each count apart from its size"
+fi
 
 # The copied text is built without the dictionary, and apply reads it as it is.
 copy_ok() {
