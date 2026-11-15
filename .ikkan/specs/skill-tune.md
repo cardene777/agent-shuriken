@@ -1,0 +1,15 @@
+# skill-tune
+
+| 条件 | 確かめ方 | 出元 |
+|---|---|---|
+| `skill_tune.py size <SKILL.md>`は、本文の語数(空白で区切った数)と説明文の字数を出す | `bash plugins/skill-tune/skills/skill-tune/tests/test-skill-tune.sh`の検査`"size prints the body words and the description characters"`が通る | #154 |
+| `skill_tune.py list <folder>`は、その下の全pluginのスキルを本文の語数の多い順に並べ、説明文の字数と評価の案件の数を添える | `bash plugins/skill-tune/skills/skill-tune/tests/test-skill-tune.sh`の検査`"list ranks the skills by body words and counts their eval cases"`が通る | #154 |
+| `skill_tune.py copy <plugin>`は、pluginを本人だけが読める作業の場所へ写し、評価の結果と`__pycache__`を写さない。`skill_tune.py clean`は、写した物と、評価が残した一時のフォルダを消す | `bash plugins/skill-tune/skills/skill-tune/tests/test-skill-tune.sh`の検査`"copy leaves out results and caches and is readable only by the user"`と`"clean removes the copies and the kept eval folders"`が通る | #154 |
+| `skill_tune.py run`は、`claude plugin eval`に写した物のpath、`--scaffold`、`--trust-plugin`、`--no-publish`、`--keep-temp`、結果のJSONの置き場、渡した`--max-cost-usd`を渡す | `bash plugins/skill-tune/skills/skill-tune/tests/test-skill-tune.sh`の検査`"run passes the copy, the cost limit, and the result path to claude plugin eval"`が通る | #154 |
+| `skill_tune.py summary <JSON>`は、案件と回(スキルが有る時と無い時)ごとの点を、名指した印の採点とwith-onlyの採点を除いて出し、スキルが起動した回の平均の費用と秒数と手数と、採点の費用を含む合計の費用を出す | `bash plugins/skill-tune/skills/skill-tune/tests/test-skill-tune.sh`の検査`"summary scores each case without the indicator graders"`と`"summary averages the runs where the skill fired and adds up the cost"`が通る | #154 |
+| `skill_tune.py compare`は、削る前と後のJSONを案件ごとに比べ、どれかの案件の点が下がった時は1で終わる。同じ側に複数のJSONを渡すと、案件ごとに後に渡したfileの回を使う | `bash plugins/skill-tune/skills/skill-tune/tests/test-skill-tune.sh`の検査`"compare fails when a case scores lower after"`と`"compare takes each case from the last file that holds it"`が通る | #154 |
+| `skill_tune.py estimate <試しのJSON>`は、各案件1回の費用から、削る前の回(両方の回)と削った後の回(スキルが有る時だけ)の見込みの費用を出す | `bash plugins/skill-tune/skills/skill-tune/tests/test-skill-tune.sh`の検査`"estimate projects the cost of the baseline and the after runs from the preflight"`が通る | #154 |
+| `skill_tune.py trace <JSON> --case <案件>`は、その案件の回が使った道具と結果の先頭を、回ごとに出す | `bash plugins/skill-tune/skills/skill-tune/tests/test-skill-tune.sh`の検査`"trace prints the tool calls of each run"`が通る | #154 |
+| `SKILL.md`は、評価の囲いの落とし穴(Writeの道具は作業の場所の外へ書けない、ネットワークとブラウザが無い、`git`が動かない)と、採点の決まり(記録に出たscriptの行より作業の場所に残ったfileの中身で採点する、LLMの採点が条件を満たす返事を落とすことがある)と、測る前に費用の見込みを聞くことと、Claude Code以外では測る手前で止まることと、`--scaffold`は本人が信頼するpluginにだけ使うことを書く | `bash plugins/skill-tune/skills/skill-tune/tests/test-skill-tune.sh`の検査`"the SKILL.md keeps its rules on the sandbox, graders, cost, and other agents"`が通る | #154 |
+| `SKILL.md`の本文の語数と説明文の字数は、検査が持つ上限を超えない | `bash plugins/skill-tune/skills/skill-tune/tests/test-skill-tune.sh`の検査`"the SKILL.md stays within its size limits"`が通る | #154 |
+| `plugins/skill-tune/`は2つのmanifest、`README.md`と`README.ja.md`、`docs/how-it-works.md`と`docs/how-it-works.ja.md`、`CHANGELOG.md`、`LICENSE`、`assets/icon.svg`、`skills/skill-tune/agents/openai.yaml`を持ち、`.claude-plugin/marketplace.json`と根の`README.md`と`README.ja.md`の表がpluginを載せる | `bash scripts/check.sh` | #154 |
