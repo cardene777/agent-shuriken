@@ -10,6 +10,7 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - The skill no longer asks how much to spend. It shows the cost estimate and measures, and `run` passes `--max-cost-usd` only when you name a limit
 - `run` refuses a second `--case` instead of silently running only the last one, since `claude plugin eval` filters by one glob
 - The rules for writing cases say that `tool_used` matches `input_match` against the input as JSON text, where a quote in a command arrives as `\"`
+- The rules for writing cases say that a plugin script that runs `git` stops in the eval sandbox, where the macOS `/usr/bin/git` cannot create its cache file
 
 ## [0.1.0] - 2026-11-15
 

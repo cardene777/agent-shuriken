@@ -1,0 +1,41 @@
+# A correction to a chat reply that changed no file: the agent answers again with the fix, changes no
+# file, and records nothing.
+schema_version: "1.1"
+name: chat-only-correction
+plugins: ["../.."]
+execution:
+  prompt: |
+    Your last answer said that Python lists are immutable. That is wrong. Correct your answer.
+  max_turns: 12
+  timeout_seconds: 300
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: nothing-opened
+    type: tool_used
+    tool: Bash
+    input_match: 'feedback_loop\.py\\?"?\s+open'
+    min: 0
+    max: 0
+    arm: both
+  - name: no-file-written
+    type: tool_used
+    tool: Write
+    input_match: '.'
+    min: 0
+    max: 0
+    arm: both
+  - name: no-file-edited
+    type: tool_used
+    tool: Edit
+    input_match: '.'
+    min: 0
+    max: 0
+    arm: both
+  - name: answered-again
+    type: llm
+    criteria: |
+      PASS if the reply says that Python lists are mutable, that is, they can be changed in place (for example with append or by assigning to an index).
+      Mentioning that tuples are the immutable sequence, or saying it has no earlier answer in view, is not a failure.
+      FAIL if the reply says lists are immutable, or does not say they are mutable.

@@ -151,7 +151,7 @@ The words of your correction are never stored; the record keeps their SHA-256 ha
 | Tool | When it's needed |
 |---|---|
 | `python3` | Always |
-| `git` | Always. Corrections are recorded per git repository; outside one, the agent fixes the output and records nothing |
+| `git` | Usually. Corrections are recorded per git repository; outside one, the agent fixes the output and records nothing. When `git` cannot run, as in some sandboxes, the script finds the repository by reading `.git` |
 
 The checks use whatever your project already has, such as its tests or linter.
 
@@ -161,7 +161,7 @@ The checks use whatever your project already has, such as its tests or linter.
 In short:
 
 - It reads the files you corrected and the rules and cases kept for the repository
-- It runs `git rev-parse` to find the repository, and the check commands the agent picks, such as your tests, inside the repository, recording only each command and its exit code
+- It runs `git rev-parse` to find the repository, or reads `.git` when `git` cannot run, and the check commands the agent picks, such as your tests, inside the repository, recording only each command and its exit code
 - It keeps the hash of your correction, the subject, the criteria, the reviews, and the file hashes in `~/.local/share/feedback-loop/`, readable only by you, or in the project folder you choose, until you delete them
 - It changes your project's agent instructions, a skill, or your user-level instruction file only after you agree
 - It sends nothing over the network

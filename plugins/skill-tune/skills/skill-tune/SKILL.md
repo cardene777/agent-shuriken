@@ -68,7 +68,7 @@ What the eval sandbox allows decides what a case can test.
 - The Write tool cannot write outside the workspace, even with a permission for that path. A skill that writes to a data folder with the Write tool stops or falls back to the shell; a script that takes the data on standard input avoids this
 - There is no network and no browser. A step that needs either takes the path the skill gives for when they are missing
 - A process cannot listen on a local port (Operation not permitted), so a step that checks or serves a port fails there. Test what the skill does when that step is refused, and leave the rest to the plugin's test
-- `git` fails inside the sandbox. A fixture that needs a repository creates it in `fixture.sh`
+- `git` fails inside the sandbox (on macOS, `/usr/bin/git` cannot create its cache file). A fixture that needs a repository creates it in `fixture.sh`, and a script that runs `git` stops there unless it can find the repository another way, such as by reading `.git`
 - Fixture files hold no real secrets, and no fake key that a secret scanner flags
 
 How to grade:

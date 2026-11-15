@@ -1,0 +1,37 @@
+# The same correction comes back after it was closed once: the agent reads the history, fixes the guide,
+# and changes or moves the earlier lesson instead of keeping a second copy of it, then closes the record.
+schema_version: "1.1"
+name: earlier-lesson-revised
+plugins: ["../.."]
+execution:
+  prompt: |
+    docs/guide.md says `npm install -g shop-cli` again. I already told you once: we only use npx. Fix it.
+  max_turns: 40
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'feedback-loop'
+  - name: global-install-gone
+    type: regex
+    target: {source: file, path: docs/guide.md}
+    pattern: 'npm install -g'
+    match: not_contains
+  - name: history-read
+    type: tool_used
+    tool: Bash
+    input_match: 'feedback_loop\.py\\?"?\s+history'
+    arm: with-only
+  - name: one-copy-of-the-lesson
+    type: regex
+    target: {source: file, path: .feedback/cases/docs-guide.md-07fdd026.json}
+    pattern: 'npm install -g[\s\S]*npm install -g'
+    match: not_contains
+  - name: closed-again
+    type: regex
+    target: {source: file, path: .feedback/events.jsonl}
+    pattern: '"status":"resolved"[\s\S]*"status":"resolved"'

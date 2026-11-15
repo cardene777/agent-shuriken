@@ -1,0 +1,35 @@
+# A correction the user wants kept for the whole repository: the agent fixes the guide, writes a rule
+# in the repository's rules.md, and closes the record with the repository scope.
+schema_version: "1.1"
+name: repeat-becomes-rule
+plugins: ["../.."]
+execution:
+  prompt: |
+    You wrote `npm install -g` in docs/guide.md again. In this repository, never tell people to install anything globally; always use npx. Fix it, and make sure it does not happen again anywhere in this repository. Keep that rule in the feedback records for this repository only; do not change AGENTS.md or other instruction files.
+  max_turns: 40
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'feedback-loop'
+  - name: global-install-gone
+    type: regex
+    target: {source: file, path: docs/guide.md}
+    pattern: 'npm install -g'
+    match: not_contains
+  - name: npx-written
+    type: regex
+    target: {source: file, path: docs/guide.md}
+    pattern: 'npx'
+  - name: rule-written
+    type: regex
+    target: {source: file, path: .feedback/rules.md}
+    pattern: '(^|\n)[^#\n]*([Nn]px|[Gg]lobal)'
+  - name: closed-for-the-repository
+    type: regex
+    target: {source: file, path: .feedback/events.jsonl}
+    pattern: '(?=[\s\S]*"scope":"repository")(?=[\s\S]*"status":"resolved")'

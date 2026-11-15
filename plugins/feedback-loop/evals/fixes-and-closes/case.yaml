@@ -1,0 +1,35 @@
+# A correction to a file the agent wrote earlier: the agent fixes the install step, leaves the rest of
+# the guide alone, has the fix reviewed, keeps the lesson, and closes the record.
+schema_version: "1.1"
+name: fixes-and-closes
+plugins: ["../.."]
+execution:
+  prompt: |
+    Earlier you wrote docs/guide.md for me. The install step is wrong: we never install the CLI globally. It must say to run it with `npx shop-cli`. Fix it.
+  max_turns: 40
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'feedback-loop'
+  - name: global-install-gone
+    type: regex
+    target: {source: file, path: docs/guide.md}
+    pattern: 'npm install -g'
+    match: not_contains
+  - name: npx-written
+    type: regex
+    target: {source: file, path: docs/guide.md}
+    pattern: 'npx shop-cli'
+  - name: rest-kept
+    type: regex
+    target: {source: file, path: docs/guide.md}
+    pattern: '(?=[\s\S]*## Usage)(?=[\s\S]*shop-cli show <id>)(?=[\s\S]*## FAQ)'
+  - name: record-closed
+    type: regex
+    target: {source: file, path: .feedback/events.jsonl}
+    pattern: '"status":"resolved"'

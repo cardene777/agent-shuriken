@@ -199,6 +199,7 @@ skill_rules() {
     '`regex` patterns are JavaScript regular expressions' \
     '`tool_used` matches `input_match` against the input as JSON text' \
     '`git` fails' \
+    'a script that runs `git` stops there' \
     "Grade the files the run leaves in the workspace" \
     "An LLM judge can fail a reply that meets every condition" \
     "Spend nothing before the user agrees" \
@@ -210,7 +211,7 @@ skill_rules() {
 }
 check "the SKILL.md keeps its rules on the sandbox, graders, cost, and other agents" "skill_rules"
 
-SKILL_WORDS_MAX=1627
+SKILL_WORDS_MAX=1656
 SKILL_DESCRIPTION_MAX=357
 skill_size() {
   [ -f "$SKILL" ] || return 1
