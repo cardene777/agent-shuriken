@@ -36,8 +36,21 @@ JA_ALLOWED=(
   plugins/excalidraw-diagram/skills/excalidraw-diagram/tests/test-excalidraw-diagram.sh
   plugins/techdebt/skills/techdebt/templates/report.html
   plugins/techdebt/skills/techdebt/tests/test-techdebt.sh
+  plugins/japanese-writing/README.md
+  plugins/japanese-writing/skills/japanese-writing/references/rules.md
+  plugins/japanese-writing/skills/japanese-writing/references/ai-smell.md
+  plugins/japanese-writing/skills/japanese-writing/references/asking.md
+  plugins/japanese-writing/skills/japanese-writing/references/explaining.md
+  plugins/japanese-writing/skills/japanese-writing/references/natural-explanation.md
+  plugins/japanese-writing/skills/japanese-writing/references/sentence-forms.md
+  plugins/japanese-writing/skills/japanese-writing/references/subject-and-verb.md
+  plugins/japanese-writing/skills/japanese-writing/references/terminology.md
+  plugins/japanese-writing/skills/japanese-writing/references/metaphor-words.tsv
+  plugins/japanese-writing/skills/japanese-writing/scripts/suspects.py
+  plugins/japanese-writing/skills/japanese-writing/tests/test-japanese-writing.sh
 )
-# Third-party files copied unmodified; they are checked only for valid syntax.
+# Third-party files copied unmodified; they are checked only for valid syntax. Besides these, every
+# file that a skill's upstream-manifest.txt fingerprints counts as a copied file (vendored_files).
 VENDORED=(plugins/account-cleanup/skills/account-cleanup/data/sites.json)
 # Files allowed over the directories' 256 KiB limit. Each one makes Anthropic's directory hold
 # the plugin for a reviewer, as docs/publishing.md says.
@@ -51,9 +64,19 @@ all_files() {
     [ -f "$f" ] && printf '%s\n' "$f"
   done
 }
+# Third-party files copied unmodified: VENDORED and the files each upstream-manifest.txt fingerprints.
+vendored_files() {
+  local manifest dir
+  printf '%s\n' "${VENDORED[@]}"
+  for manifest in plugins/*/skills/*/upstream-manifest.txt; do
+    [ -f "$manifest" ] || continue
+    dir="$(dirname "$manifest")"
+    grep -E '^[0-9a-f]{64}  ' "$manifest" | cut -c67- | sed "s|^|$dir/|"
+  done
+}
 # Text files written in this repository (no vendored data, no images, no fonts).
 own_text_files() {
-  all_files | grep -vE '\.(png|jpg|jpeg|gif|webp|svg|ico|zip|woff2?|ttf|otf)$' | grep -vxF -f <(printf '%s\n' "${VENDORED[@]}")
+  all_files | grep -vE '\.(png|jpg|jpeg|gif|webp|svg|ico|zip|woff2?|ttf|otf)$' | grep -vxF -f <(vendored_files)
 }
 plugin_names() {
   for d in plugins/*/; do basename "$d"; done
@@ -401,6 +424,27 @@ check_notices() {
   return "$bad"
 }
 
+# A plugin script that asks for packages beyond the Python standard library (PEP 723 `dependencies`)
+# is allowed only when the dependency rule in AGENTS.md names its plugin as an exception.
+check_script_dependencies() {
+  local f plugin rule bad=0
+  rule="$(grep -m1 'Keep runtime dependencies small' AGENTS.md)"
+  for f in $(all_files | grep -E '^plugins/[^/]+/skills/[^/]+/scripts/.*\.py$' | python3 -c '
+import re, sys
+block = re.compile(r"^# /// script$(.*?)^# ///$", re.S | re.M)
+for path in sys.stdin.read().split():
+    m = block.search(open(path, encoding="utf-8").read())
+    if m and re.search(r"^# dependencies = \[\n# +\"", m.group(1), re.M):
+        print(path)'); do
+    plugin="$(printf '%s\n' "$f" | cut -d/ -f2)"
+    case "$rule" in
+      *"\`$plugin\`"*) ;;
+      *) echo "$f asks for packages beyond the standard library, and AGENTS.md does not name $plugin"; bad=1 ;;
+    esac
+  done
+  return "$bad"
+}
+
 check_plugin_validate() {
   command -v claude >/dev/null || { echo "claude is not installed"; return 77; }
   local target bad=0
@@ -433,6 +477,7 @@ run "no email addresses" check_no_email
 run "English outside the Japanese pages" check_english
 run "no build output tracked" check_no_build_output
 run "bundled data is credited" check_notices
+run "script dependencies are named in AGENTS.md" check_script_dependencies
 run "claude plugin validate" check_plugin_validate
 
 printf '%d passed, %d failed, %d skipped\n' "$pass" "$fail" "$skip"

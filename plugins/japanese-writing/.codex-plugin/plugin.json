@@ -1,0 +1,33 @@
+{
+  "name": "japanese-writing",
+  "version": "0.1.0",
+  "description": "Write and fix Japanese text so that it reads naturally and adds nothing the original does not say, with the steps and scripts of coji/natural-japanese and rules for repository Markdown, metaphor verbs, explanations, and questions",
+  "author": {
+    "name": "cardene777",
+    "url": "https://github.com/cardene777"
+  },
+  "homepage": "https://github.com/cardene777/agent-shuriken/tree/main/plugins/japanese-writing",
+  "repository": "https://github.com/cardene777/agent-shuriken",
+  "license": "MIT",
+  "keywords": [
+    "japanese",
+    "writing",
+    "proofreading",
+    "style",
+    "lint"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Japanese Writing",
+    "shortDescription": "Write and fix Japanese text",
+    "longDescription": "Writes and fixes Japanese documents, issues, pull requests, READMEs, reports, minutes, notes, and blog posts so that they read naturally and mean one thing, without adding facts, numbers, names, or opinions the original does not hold. It follows the steps of coji/natural-japanese, copied unchanged, whose scripts point at translationese, phrases AI tends to use, vague endings, and paragraphs to check one by one, and adds this plugin's rules: the repository's own rules come first, Markdown kept in a repository gets one sentence per line and short paragraphs, established technical terms stay as they are, and things are not made subjects of metaphor verbs. A script of its own points at metaphor verbs and other forms the upstream lint does not count. The scripts run on your machine through uv, which downloads sudachipy and its dictionary on first use, and never send your text anywhere.",
+    "developerName": "cardene777",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": [
+      "Make this Japanese text natural without adding anything"
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
+  }
+}
