@@ -526,6 +526,42 @@ said() {
 }
 check "the script prints what the removed tables said" said
 
+# refused <args...>: runs portman.py where every socket connect and bind fails with "Operation not
+# permitted", as inside the sandbox of claude plugin eval or Codex.
+refused() {
+  (unset PORTMAN_NO_PROBE; python3 - "$SCRIPT" "$@" <<'PYEOF'
+import errno, runpy, socket, sys
+def refuse(*args, **kwargs):
+    raise PermissionError(errno.EPERM, "Operation not permitted")
+socket.socket.connect = refuse
+socket.socket.bind = refuse
+sys.argv = sys.argv[1:]
+runpy.run_path(sys.argv[0], run_name="__main__")
+PYEOF
+  )
+}
+refused_unknown() {
+  local h="$T/refused" out
+  mkdir -p "$h"
+  PORTMAN_HOME="$h" pm add shop web 21121 >/dev/null 2>&1 || return 1
+  out="$(PORTMAN_HOME="$h" refused check 21121 2>&1)"
+  printf '%s\n' "$out" | grep -q "^21121  unknown" && ! printf '%s\n' "$out" | grep -q "free" || return 1
+  printf '%s\n' "$out" | grep -qF "socket test was refused" || return 1
+  out="$(PORTMAN_HOME="$h" refused list 2>&1)"
+  printf '%s\n' "$out" | grep -q "^shop  *web  *21121  *unknown" || return 1
+  out="$(PORTMAN_HOME="$h" refused list --json 2>&1)"
+  printf '%s\n' "$out" | grep -qF '"state": "unknown"' || return 1
+  out="$(PORTMAN_HOME="$h" refused suggest 2>&1)"
+  printf '%s\n' "$out" | grep -qF "could not be tested" || return 1
+  out="$(PORTMAN_HOME="$h" refused doctor 2>&1)"
+  printf '%s\n' "$out" | grep -q "^\[Not tested\] 1" && printf '%s\n' "$out" | grep -q "^  shop/web  21121" \
+    && ! printf '%s\n' "$out" | grep -qx "No problems found." || return 1
+  # Where the socket test can run, the same port is free, as before.
+  out="$(PORTMAN_HOME="$h" pm check 21121 2>&1)"
+  printf '%s\n' "$out" | grep -q "^21121  free"
+}
+check "a refused socket test is reported as unknown, never as free" refused_unknown
+
 # --- the SKILL.md and its eval suite
 PLUGIN="$(cd "$HERE/../../.." && pwd)"
 EVALS="$PLUGIN/evals"
