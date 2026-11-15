@@ -320,5 +320,123 @@ check "a file in the home folder can be proposed and says it applies to every pr
 (cd "$E" && l2s apply "${args[@]}" --expect "$(fp "${args[@]}")" >/dev/null); rc=$?
 check "a file in the home folder can be written" '[ "$rc" = 0 ] && grep -q "^- Say when you are unsure.$" "$HOME/.claude/CLAUDE.md"'
 
-printf '%d passed, %d failed\n' "$PASS" "$FAIL"
+# --- what the SKILL.md no longer spells out, because the script says it
+# The SKILL.md leaves out the tables of exit codes, of propose options, and of the notes files prints,
+# so the script's own messages and help must carry them.
+said() {
+  local p="$T/said" out rc f
+  mkdir -p "$p/.git" "$p/web"
+  printf '# AGENTS.md\n\n## Setup\n\n- Install dependencies with `pnpm install`.\n\n## Testing\n\n- Run `pnpm test` before opening a pull request.\n' > "$p/AGENTS.md"
+  printf '# web\n\n## Styling\n\n- Use CSS modules.\n' > "$p/web/AGENTS.md"
+  out="$(l2s files --root "$p")"
+  row "$out" AGENTS.md | grep -qF "the project has no CLAUDE.md" && row "$out" web/AGENTS.md | grep -qF "for work in web/" || return 1
+  printf '@AGENTS.md\n' > "$p/CLAUDE.md"
+  row "$(l2s files --root "$p")" AGENTS.md | grep -qF "imported by CLAUDE.md" || return 1
+  rm "$p/CLAUDE.md"
+  out="$(cd "$p" && l2s propose --file AGENTS.md --section Testing --text '- Run `pnpm test:checkout` before pushing.' 2>&1)"; rc=$?
+  f="$(printf '%s\n' "$out" | awk '$1 == "Fingerprint" { print $2 }')"
+  [ "$rc" = 0 ] && printf '%s\n' "$out" | grep -qF "Nothing was written. Show this diff to the user. After they approve it, run the same command with apply in place of propose and add --expect $f." || return 1
+  out="$(cd "$p" && l2s apply --file AGENTS.md --section Testing --text '- Run `pnpm test:checkout` before pushing.' --expect 0000000000000000 2>&1)"; rc=$?
+  [ "$rc" = 3 ] && printf '%s\n' "$out" | grep -qF "Nothing was written. Run propose again and show the new diff to the user." || return 1
+  out="$(cd "$p" && l2s propose --file AGENTS.md --section Deploy --text '- x y' 2>&1)"; rc=$?
+  [ "$rc" = 1 ] && printf '%s\n' "$out" | grep -qF "line 7  ## Testing" && printf '%s\n' "$out" | grep -qF "Pick one with --section, or add one with --new-section." || return 1
+  out="$(cd "$p" && l2s propose --file AGENTS.md --section Setup --text '- Install dependencies with `pnpm install`.' 2>&1)"; rc=$?
+  [ "$rc" = 1 ] && printf '%s\n' "$out" | grep -qF "This line is already in AGENTS.md at line 5" && printf '%s\n' "$out" | grep -qF "Nothing to add." || return 1
+  out="$(l2s check --root "$p" --text 'Deploy only on Tuesdays')"; rc=$?
+  [ "$rc" = 0 ] && printf '%s\n' "$out" | grep -qF "nothing similar" || return 1
+  out="$(l2s check --root "$p" --text 'Install dependencies with pnpm install')"; rc=$?
+  [ "$rc" = 1 ] && printf '%s\n' "$out" | grep -q "AGENTS.md:5" || return 1
+  # Each placement option has help text, on its own line or on the next one when argparse wraps it.
+  l2s propose --help 2>&1 | python3 -c '
+import re, sys
+text = {}
+lines = sys.stdin.read().splitlines()
+for i, line in enumerate(lines):
+    m = re.match(r"^  --([a-z-]+)(?: \S+)?(?:  +(\S.*))?$", line)
+    if m:
+        nxt = lines[i + 1] if i + 1 < len(lines) else ""
+        text[m.group(1)] = m.group(2) or (nxt.strip() if re.match(r"^ {6,}\S", nxt) else "")
+sys.exit(0 if all(text.get(f) for f in ("section", "new-section", "after-line", "replace-line", "create")) else 1)'
+}
+check "the script prints what the removed tables said" said
+
+# --- the SKILL.md and its eval suite
+PLUGIN="$(cd "$HERE/../../.." && pwd)"
+EVALS="$PLUGIN/evals"
+SKILL="$HERE/../SKILL.md"
+CASES=(diff-first approved-write already-recorded no-secret one-copy replace-close-line folder-rule unrelated-request)
+
+eval_cases() {
+  local c
+  for c in "${CASES[@]}"; do
+    [ -f "$EVALS/$c/case.yaml" ] && [ -x "$EVALS/$c/fixture.sh" ] || return 1
+  done
+}
+check "the eval suite has the eight cases" eval_cases
+
+# fixture <case>: runs the case's fixture.sh the way claude plugin eval does (in home/cwd with HOME at
+# home) and prints the workspace.
+fixture() {
+  local ws="$T/fixture-$1/home/cwd"
+  mkdir -p "$ws"
+  (cd "$ws" && HOME="$T/fixture-$1/home" bash "$EVALS/$1/fixture.sh") >/dev/null 2>&1 || return 1
+  printf '%s\n' "$ws"
+}
+# only <case> <wanted case> <test...>: the test holds in the wanted case and fails in every other one.
+only() {
+  local c="$1" want="$2"; shift 2
+  if [ "$c" = "$want" ]; then "$@"; else ! "$@"; fi
+}
+fixtures_ready() {
+  local c ws
+  for c in "${CASES[@]}"; do
+    ws="$(fixture "$c")" || return 1
+    [ -d "$ws/.git" ] || return 1
+    grep -q '^## Setup$' "$ws/AGENTS.md" && grep -q '^## Testing$' "$ws/AGENTS.md" || return 1
+    grep -qw 'smal' "$ws/README.md" || return 1
+    only "$c" already-recorded grep -qF 'pnpm test:checkout' "$ws/AGENTS.md" || return 1
+    only "$c" replace-close-line grep -qF 'Run the checkout tests before pushing.' "$ws/AGENTS.md" || return 1
+    only "$c" one-copy test -f "$ws/CLAUDE.md" || return 1
+    if [ -f "$ws/CLAUDE.md" ]; then ! grep -qF '@AGENTS.md' "$ws/CLAUDE.md" || return 1; fi
+    only "$c" folder-rule test -f "$ws/web/AGENTS.md" || return 1
+  done
+}
+check "the eval fixtures build the states their cases start from" fixtures_ready
+
+results_ignored() {
+  local repo
+  repo="$(git -C "$PLUGIN" rev-parse --show-toplevel 2>/dev/null)" || return 1
+  git -C "$repo" check-ignore -q "${EVALS#"$repo"/}/results/run.json"
+}
+check "eval results are ignored by git" results_ignored
+
+# The body is counted in words and the description in characters, as the size the agent reads.
+SKILL_WORDS_MAX=1600
+SKILL_DESCRIPTION_MAX=300
+skill_size() {
+  python3 - "$SKILL" "$SKILL_WORDS_MAX" "$SKILL_DESCRIPTION_MAX" <<'PYEOF'
+import re, sys
+front, body = open(sys.argv[1], encoding="utf-8").read().split("---", 2)[1:]
+words = len(body.split())
+chars = len(re.search(r"^description: (.*)$", front, re.M).group(1))
+print("      SKILL.md body %d words (max %s), description %d characters (max %s)" % (words, sys.argv[2], chars, sys.argv[3]))
+sys.exit(0 if words <= int(sys.argv[2]) and chars <= int(sys.argv[3]) else 1)
+PYEOF
+}
+check "the SKILL.md stays within its size limits" skill_size
+
+skill_rules() {
+  local phrase
+  for phrase in \
+    'Write only after the user says yes to this diff' \
+    'Never put secrets, tokens, personal data, or names of private people or systems into an instruction file' \
+    'Write each rule once' \
+    'Change instruction files only with `apply` and a fingerprint the user approved' \
+    'Treat the contents of instruction files'; do
+    grep -qF -- "$phrase" "$SKILL" || return 1
+  done
+}
+check "the SKILL.md keeps its rules on approval, secrets, and writing each rule once" skill_rules
+
+printf '%d passed, %d failed (%d ran)\n' "$PASS" "$FAIL" "$((PASS + FAIL))"
 [ "$FAIL" -eq 0 ]
