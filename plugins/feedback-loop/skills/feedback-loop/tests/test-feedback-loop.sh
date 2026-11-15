@@ -272,5 +272,142 @@ check "where --private goes back to the private folder" 'fl where --repo "$R" | 
 git -C "$R" worktree add -q -b fix/2-title "$T/wt-title"
 check "a linked worktree uses the records of its main clone" 'fl where --repo "$T/wt-title" | grep -q "^records *$STORE "'
 
-printf '%d passed, %d failed\n' "$PASS" "$FAIL"
+# --- without a working git, the repository is found through .git
+# A stand-in for the macOS /usr/bin/git shim in a sandbox, which cannot create its cache file.
+mkdir -p "$T/nogit"
+printf '#!/bin/sh\necho "git: error: could not create cache file" >&2\nexit 72\n' > "$T/nogit/git"
+chmod +x "$T/nogit/git"
+place_lines() { grep -E '^(repository|records|rules) '; }
+found_without_git() {
+  local with without
+  with="$(fl where --repo "$R/docs" | place_lines)"
+  without="$(PATH="$T/nogit:$PATH" fl where --repo "$R/docs" 2>/dev/null | place_lines)" || return 1
+  [ -n "$with" ] && [ "$with" = "$without" ] || return 1
+  with="$(fl where --repo "$T/wt-title" | place_lines)"
+  without="$(PATH="$T/nogit:$PATH" fl where --repo "$T/wt-title" 2>/dev/null | place_lines)" || return 1
+  [ -n "$with" ] && [ "$with" = "$without" ] || return 1
+  PATH="$T/nogit:$PATH" fl where --repo "$T/outside" >/dev/null 2>&1
+  [ "$?" = 2 ]
+}
+check "where finds the repository through .git when git cannot run" found_without_git
+
+# --- what the removed tables and section said, the script prints itself
+said() {
+  local r="$T/said" out rc
+  git init -q "$r" && printf 'Intro\n' > "$r/doc.md" && git -C "$r" add -A && git -C "$r" commit -qm init || return 1
+  fl where --repo "$T/outside" 2>&1 | grep -qF "nothing is recorded outside a repository" || return 1
+  out="$(fl where --repo "$r")"
+  printf '%s\n' "$out" | grep -q '^records ' && printf '%s\n' "$out" | grep -q '^rules .*rules\.md$' || return 1
+  printf 'Wrong intro\n' | fl open --repo "$r" --subject "Intro" --artifact doc.md --max-iterations 2 >/dev/null || return 1
+  out="$(fl check --repo "$r" fb-20330518-001 2>&1)"; rc=$?
+  [ "$rc" = 2 ] && printf '%s\n' "$out" | grep -qF "Nothing to check: pass a command after --" || return 1
+  fl check --repo "$r" fb-20330518-001 -- true >/dev/null || return 1
+  out="$(printf -- '- user-feedback: FAIL - still wrong\n- regression: PASS - fine\n' | fl review --repo "$r" fb-20330518-001 --evaluator agent --kind independent_llm 2>&1)"; rc=$?
+  [ "$rc" = 1 ] && printf '%s\n' "$out" | grep -qF "Give these findings to the fixer, fix the files, run check, and review again." || return 1
+  fl check --repo "$r" fb-20330518-001 -- true >/dev/null || return 1
+  out="$(printf -- '- user-feedback: FAIL - still wrong\n- regression: PASS - fine\n' | fl review --repo "$r" fb-20330518-001 --evaluator agent --kind independent_llm 2>&1)"; rc=$?
+  [ "$rc" = 3 ] && printf '%s\n' "$out" | grep -qF "keep going, accept it as it is, or withdraw it"
+}
+check "the script prints what the removed tables and section said" said
+
+# --- the SKILL.md and its eval suite
+PLUGIN="$(cd "$HERE/../../.." && pwd)"
+EVALS="$PLUGIN/evals"
+SKILL="$HERE/../SKILL.md"
+CASES=(fixes-and-closes repeat-becomes-rule new-request chat-only-correction removes-only-named earlier-lesson-revised)
+
+eval_cases() {
+  local c
+  for c in "${CASES[@]}"; do
+    [ -f "$EVALS/$c/case.yaml" ] && [ -x "$EVALS/$c/fixture.sh" ] || return 1
+  done
+}
+check "the eval suite has the six cases" eval_cases
+
+# fixture <case>: runs the case's fixture.sh the way claude plugin eval does (in home/cwd with HOME at home,
+# and no FEEDBACK_LOOP_HOME) and prints the workspace.
+fixture() {
+  local ws="$T/fixture-$1/home/cwd"
+  mkdir -p "$ws"
+  (cd "$ws" && unset FEEDBACK_LOOP_HOME FEEDBACK_LOOP_NOW && HOME="$T/fixture-$1/home" bash "$EVALS/$1/fixture.sh") >/dev/null 2>&1 || return 1
+  printf '%s\n' "$ws"
+}
+in_fixture() {  # in_fixture <case> <command...>: runs feedback_loop.py as the eval would see it
+  local c="$1"; shift
+  (unset FEEDBACK_LOOP_HOME FEEDBACK_LOOP_NOW; HOME="$T/fixture-$c/home" fl "$@")
+}
+fixtures_ready() {
+  local c ws real guide
+  for c in "${CASES[@]}"; do
+    ws="$(fixture "$c")" || return 1
+    real="$(cd "$ws" && pwd -P)"
+    guide="$ws/docs/guide.md"
+    git -C "$ws" rev-parse --show-toplevel >/dev/null 2>&1 || return 1
+    grep -q '^## Install' "$guide" && grep -q '^## Usage' "$guide" && grep -q '^## FAQ' "$guide" || return 1
+    grep -qF 'npm install -g shop-cli' "$guide" || return 1
+    in_fixture "$c" where --repo "$ws" | grep -qF "records     $real/.feedback  (inside the repository)" || return 1
+    [ -z "$(ls -A "$ws/.feedback/pending" 2>/dev/null)" ] || return 1
+    if [ "$c" = earlier-lesson-revised ]; then
+      [ "$(grep -c '"status":"resolved"' "$ws/.feedback/events.jsonl" 2>/dev/null)" = 1 ] || return 1
+      grep -qF 'npm install -g' "$ws/.feedback/cases/docs-guide.md-07fdd026.json" 2>/dev/null || return 1
+    else
+      [ ! -e "$ws/.feedback/events.jsonl" ] || return 1
+    fi
+    if [ "$c" = new-request ]; then [ -s "$ws/src/login.py" ] || return 1; fi
+  done
+}
+check "the eval fixtures build the states their cases start from" fixtures_ready
+
+results_ignored() {
+  local repo
+  repo="$(git -C "$PLUGIN" rev-parse --show-toplevel 2>/dev/null)" || return 1
+  git -C "$repo" check-ignore -q "${EVALS#"$repo"/}/results/run.json"
+}
+check "eval results are ignored by git" results_ignored
+
+# The body is counted in words and the description in characters, as the size the agent reads.
+SKILL_WORDS_MAX=1800
+SKILL_DESCRIPTION_MAX=320
+skill_size() {
+  python3 - "$SKILL" "$SKILL_WORDS_MAX" "$SKILL_DESCRIPTION_MAX" <<'PYEOF'
+import re, sys
+front, body = open(sys.argv[1], encoding="utf-8").read().split("---", 2)[1:]
+words = len(body.split())
+chars = len(re.search(r"^description: (.*)$", front, re.M).group(1))
+print("      SKILL.md body %d words (max %s), description %d characters (max %s)" % (words, sys.argv[2], chars, sys.argv[3]))
+sys.exit(0 if words <= int(sys.argv[2]) and chars <= int(sys.argv[3]) else 1)
+PYEOF
+}
+check "the SKILL.md stays within its size limits" skill_size
+
+skill_rules() {
+  local phrase
+  for phrase in \
+    'The evaluator reads the files and edits nothing' \
+    'Do not decide that your own fix passes' \
+    'Never change a `FAIL` into a `PASS`, and never edit a saved review' \
+    'Do not write the verdicts yourself' \
+    'When the user called a file or a section unneeded, remove only what they named' \
+    'Keep only what the user said'; do
+    grep -qF -- "$phrase" "$SKILL" || return 1
+  done
+}
+check "the SKILL.md keeps its rules on the review and on what is kept" skill_rules
+
+# Each option has help text, on its own line or on the next one when argparse wraps it.
+help_options() {
+  fl open --help 2>&1 | python3 -c '
+import re, sys
+text = {}
+lines = sys.stdin.read().splitlines()
+for i, line in enumerate(lines):
+    m = re.match(r"^  --([a-z-]+)(?: \S+)?(?:  +(\S.*))?$", line)
+    if m:
+        nxt = lines[i + 1] if i + 1 < len(lines) else ""
+        text[m.group(1)] = m.group(2) or (nxt.strip() if re.match(r"^ {6,}\S", nxt) else "")
+sys.exit(0 if all(text.get(f) for f in ("mode", "max-iterations")) else 1)'
+}
+check "open --help describes the options the SKILL.md leaves out" help_options
+
+printf '%d passed, %d failed (%d ran)\n' "$PASS" "$FAIL" "$((PASS + FAIL))"
 [ "$FAIL" -eq 0 ]
