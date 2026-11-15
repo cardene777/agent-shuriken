@@ -6,6 +6,7 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 ## [Unreleased]
 
 - `check` says how to fix each kind of problem it lists, in a `How to fix:` section before its last line
+- The skill's instructions are shorter, so starting the skill reads less. An eval suite under `evals/` measures it with `claude plugin eval`, and every case kept its score
 
 ## [0.2.0] - 2026-11-14
 
