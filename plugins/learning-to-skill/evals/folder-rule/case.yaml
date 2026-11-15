@@ -1,0 +1,32 @@
+# A lesson about the web/ folder, which has its own AGENTS.md: the agent writes it there, not in the
+# root AGENTS.md.
+schema_version: "1.1"
+name: folder-rule
+plugins: ["../.."]
+execution:
+  prompt: |
+    Remember this for future sessions: in the web/ folder, take colors from the variables in `web/src/tokens.css` and never write hex colors in components. I approve the change, so write it without asking me again.
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'learning-to-skill'
+  - name: applied
+    type: tool_used
+    tool: Bash
+    input_match: 'learning_to_skill\.py\\?"?\s+apply'
+    arm: with-only
+  - name: in-web-agents
+    type: regex
+    target: {source: file, path: web/AGENTS.md}
+    pattern: 'tokens\.css'
+  - name: not-in-root-agents
+    type: regex
+    target: {source: file, path: AGENTS.md}
+    pattern: 'tokens\.css'
+    match: not_contains

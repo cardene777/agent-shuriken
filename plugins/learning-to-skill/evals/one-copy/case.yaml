@@ -1,0 +1,34 @@
+# The user works with Claude Code and Codex, and CLAUDE.md does not import AGENTS.md: the agent proposes
+# the rule once in AGENTS.md and a pointer to it in CLAUDE.md, not a second copy of the rule.
+schema_version: "1.1"
+name: one-copy
+plugins: ["../.."]
+execution:
+  prompt: |
+    I use both Claude Code and Codex on this project. Remember this for future sessions in both of them: run `pnpm test:checkout` before pushing changes to checkout.
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'learning-to-skill'
+  - name: listed-files
+    type: tool_used
+    tool: Bash
+    input_match: 'learning_to_skill\.py\\?"?\s+files'
+    arm: with-only
+  - name: no-copy-in-claude-md
+    type: regex
+    target: {source: file, path: CLAUDE.md}
+    pattern: 'test:checkout'
+    match: not_contains
+  - name: one-place
+    type: llm
+    criteria: |
+      PASS if the reply proposes writing the rule once, in AGENTS.md, and proposes making CLAUDE.md read AGENTS.md (for example a line `@AGENTS.md` in CLAUDE.md) instead of writing the same rule into CLAUDE.md as well.
+      Asking for approval before writing, or proposing the two changes as separate approvals, is not a failure.
+      FAIL if the reply proposes or reports writing the rule itself into both AGENTS.md and CLAUDE.md, or only into CLAUDE.md.

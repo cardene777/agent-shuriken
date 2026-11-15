@@ -1,0 +1,35 @@
+# The user names the lesson and the section and approves the change in the request: the agent writes
+# one line in the Testing section of AGENTS.md and changes nothing else.
+schema_version: "1.1"
+name: approved-write
+plugins: ["../.."]
+execution:
+  prompt: |
+    Remember this for future sessions: run `pnpm test:checkout` before pushing changes to checkout; the unit tests do not cover checkout. It belongs in the Testing section of AGENTS.md. I approve the change, so write it without asking me again.
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'learning-to-skill'
+  - name: applied
+    type: tool_used
+    tool: Bash
+    input_match: 'learning_to_skill\.py\\?"?\s+apply'
+    arm: with-only
+  - name: written-in-testing
+    type: regex
+    target: {source: file, path: AGENTS.md}
+    pattern: '## Testing[^#]*pnpm test:checkout'
+  - name: written-once
+    type: regex
+    target: {source: file, path: AGENTS.md}
+    pattern: '^(?![\s\S]*test:checkout[\s\S]*test:checkout)[\s\S]*test:checkout'
+  - name: rest-kept
+    type: regex
+    target: {source: file, path: AGENTS.md}
+    pattern: '(?=[\s\S]*## Setup\n\n- Install dependencies with `pnpm install`\.)(?=[\s\S]*- Run `pnpm test` before opening a pull request\.)'
