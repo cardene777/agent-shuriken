@@ -12,7 +12,7 @@
   --accent: #2f5bd3; --accent-text: #ffffff; --pick: #e8eefc; --rebuilt: #2e7d4f; --rebuilt-bg: #e7f5ec;
   --trash: #8a5a00; --trash-bg: #fff4dc; --gone: #c8342b; --gone-bg: #fdecea; --run: #5b3fb5; --run-bg: #efeafd;
   --lock: #6b7280; --lock-bg: #f1f2f4; --go: #2f5bd3; --check: #8a5a00; --care: #c8342b;
-  --c1: #2f5bd3; --c2: #2e9d8f; --c3: #d08a1c; --c4: #9b59d0; --c5: #d0506e; --c-other: #aab2c0; --c-free: #e3e7ee; --c-pick: #17357f;
+  --c1: #2f5bd3; --c2: #2e9d8f; --c3: #d08a1c; --c4: #9b59d0; --c5: #d0506e; --c6: #5b7f1e; --c7: #7a5c3e; --c-other: #aab2c0; --c-free: #e3e7ee; --c-pick: #17357f;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -20,7 +20,7 @@
     --accent: #6d8ff0; --accent-text: #0d1117; --pick: #1f2a44; --rebuilt: #56d38a; --rebuilt-bg: #16301f;
     --trash: #e3b341; --trash-bg: #33290f; --gone: #ff7b72; --gone-bg: #3a1d1b; --run: #b9a6ff; --run-bg: #2a2342;
     --lock: #9aa3b2; --lock-bg: #232833; --go: #6d8ff0; --check: #e3b341; --care: #ff7b72;
-    --c1: #6d8ff0; --c2: #4cc3b3; --c3: #e3b341; --c4: #b98ef0; --c5: #f0788f; --c-other: #5d6676; --c-free: #2c3340; --c-pick: #c9d6ff;
+    --c1: #6d8ff0; --c2: #4cc3b3; --c3: #e3b341; --c4: #b98ef0; --c5: #f0788f; --c6: #9cc95a; --c7: #c9a27e; --c-other: #5d6676; --c-free: #2c3340; --c-pick: #c9d6ff;
   }
 }
 * { box-sizing: border-box; }
@@ -212,7 +212,7 @@ h1 { font-size: 24px; margin: 0; }
     <button type="button" class="close" data-close data-i18n-aria="close" aria-label="Close">&times;</button>
     <h2 id="help-title" data-i18n="helpTitle">About this page</h2>
     <h3 data-i18n="helpWhatTitle">What is listed</h3>
-    <p data-i18n="helpWhat">Caches that tools rebuild, build output that git ignores, the Trash, old logs and installers, large and duplicate files, apps you have not opened for 90 days, dev servers left running after their session ended, heavy processes, login items, and running containers.</p>
+    <p data-i18n="helpWhat">Caches that tools rebuild, build output that git ignores, the Trash, old logs and installers, large and duplicate files, git projects nobody has used for 30 days, apps you have not opened for 90 days and files left behind by removed apps, tool versions no project uses, downloaded AI models, dev servers left running after their session ended, heavy processes, login items, and running containers.</p>
     <h3 data-i18n="helpLockTitle">Why some rows cannot be picked</h3>
     <p data-i18n="helpLock">A row is in use when a live agent session or an open terminal runs it, when a live agent session runs inside it or inside its app, or when a live agent session or another running program works in the same project. Close that session or program, and ask the agent to scan again.</p>
     <h3 data-i18n="helpLevelTitle">What the groups mean</h3>
@@ -288,6 +288,11 @@ h1 { font-size: 24px; margin: 0; }
     "d_image": "Image",
     "d_runningFor": "Running for",
     "d_project": "Compose project",
+    "d_places": "Places",
+    "d_newest": "Newest file",
+    "d_lastTouched": "Last commit or checkout",
+    "d_tool": "Tool and version",
+    "d_downloaded": "Downloaded",
     "helpOverviewTitle": "What the overview shows",
     "helpOverview": "What can be freed by kind and by group, the whole disk and memory, the largest items, and the processes using the most memory and CPU. Press a part of a chart to open its tab, or a bar to see that row. Each row's i button shows its reason, location, and command.",
     "level_recommended": "Recommended",
@@ -309,6 +314,10 @@ h1 { font-size: 24px; margin: 0; }
     "why_app_unused": "Not opened for {days} days",
     "why_app_unused_unknown": "macOS does not know when it was last opened",
     "why_flatpak": "An app you installed for yourself with Flatpak",
+    "why_project_idle": "No commit or checkout for {days} days, nothing uncommitted, and every commit is on the remote. You can put it back from the Trash",
+    "why_leftover": "No installed app is from this company, and its newest file is {days} days old",
+    "why_tool_unused": "Neither the default nor named by a project. The tool can install it again",
+    "why_model": "Downloaded {days} days ago. Downloading it again takes time",
     "why_session_ended": "Still running after the session that started it ended",
     "why_next_server": "next start also runs as next-server, so it may be a server you use",
     "why_login_item": "Only turned off, so restore can turn it back on",
@@ -332,7 +341,7 @@ h1 { font-size: 24px; margin: 0; }
     "sent": "The agent is freeing them now and will report the result in the chat. You can close this page.",
     "helpTitle": "About this page",
     "helpWhatTitle": "What is listed",
-    "helpWhat": "Caches that tools rebuild, build output that git ignores, the Trash, old logs and installers, large and duplicate files, apps you have not opened for 90 days, dev servers left running after their session ended, heavy processes, login items, and running containers.",
+    "helpWhat": "Caches that tools rebuild, build output that git ignores, the Trash, old logs and installers, large and duplicate files, git projects nobody has used for 30 days, apps you have not opened for 90 days and files left behind by removed apps, tool versions no project uses, downloaded AI models, dev servers left running after their session ended, heavy processes, login items, and running containers.",
     "helpLockTitle": "Why some rows cannot be picked",
     "helpLock": "A row is in use when a live agent session or an open terminal runs it, when a live agent session runs inside it or inside its app, or when a live agent session or another running program works in the same project. Close that session or program, and ask the agent to scan again.",
     "helpNeverTitle": "What is never touched",
@@ -347,12 +356,16 @@ h1 { font-size: 24px; margin: 0; }
     "tab_process": "Processes",
     "tab_login": "Login items",
     "tab_container": "Containers",
+    "tab_project": "Projects",
+    "tab_tools": "Tools and models",
     "tab_skipped": "Not measured",
     "lead_cache": "Package managers, Docker, Xcode, and apps download or build these again the next time they need them. Where a tool has its own clean command, the agent runs that command.",
     "lead_build": "Folders such as node_modules and .next that git ignores and that hold no tracked file. Your next install or build makes them again.",
     "lead_trash": "Emptying the Trash and deleting old logs cannot be undone. Installers older than 30 days in Downloads move to the Trash.",
     "lead_files": "Files of 500 MB or more, and files of 10 MB or more with the same content in several places. Picked files move to the Trash. Keep at least one copy of each duplicate.",
-    "lead_app": "Apps not opened for 90 days. The app and its support files move to the Trash together.",
+    "lead_app": "Apps not opened for 90 days, and files that removed apps left in your Library. An app moves to the Trash with its support files, and leftovers move to the Trash.",
+    "lead_project": "git projects with no commit or checkout for 30 days, nothing uncommitted, and every commit on the remote as of the last fetch. Picked projects move to the Trash.",
+    "lead_tools": "Versions kept by nvm, fnm, pyenv, rbenv, asdf, mise, and rustup that are neither the default nor named by a project, and models downloaded by Ollama, Hugging Face, and LM Studio. Both are deleted for good, and the tool can download them again.",
     "lead_process": "Dev servers and watchers left running after the session that started them ended, and the processes that use the most memory or CPU. Picked processes get the end signal, so they can save their work first.",
     "lead_login": "Programs that start each time you log in. Stopped items are kept, and the agent can turn them back on.",
     "lead_container": "Docker containers that are running now. Stopping a container keeps its data.",
@@ -379,6 +392,10 @@ h1 { font-size: 24px; margin: 0; }
     "lock_project": "A running program works in this project ({1}, pid {2})",
     "lock_app": "The app is running",
     "lock_tool": "{1} is running",
+    "lock_toolInUse": "A running program uses this version",
+    "lock_defaultUnknown": "Could not tell which version is the default ({1})",
+    "lock_projectSpec": "Could not tell which version a project names ({1})",
+    "lock_walkCut": "The scan stopped before it read every project's version file",
     "r_time": "The time limit was reached before this place was measured",
     "r_sync": "Sync folder, so deleting here would also delete it in the cloud",
     "r_windows": "Windows drive under WSL",
@@ -386,7 +403,8 @@ h1 { font-size: 24px; margin: 0; }
     "r_missing": "Not found",
     "r_measure": "Could not be measured",
     "r_docker": "Docker is not running",
-    "r_fda": "macOS needs Full Disk Access for the terminal app to read the Trash"
+    "r_fda": "macOS needs Full Disk Access for the terminal app to read the Trash",
+    "r_tooMany": "Too many files to tell how old it is"
   },
   "ja": {
     "title": "このコンピューターを軽くする",
@@ -446,6 +464,11 @@ h1 { font-size: 24px; margin: 0; }
     "d_image": "イメージ",
     "d_runningFor": "動いている期間",
     "d_project": "Composeのプロジェクト",
+    "d_places": "場所",
+    "d_newest": "最新のファイル",
+    "d_lastTouched": "最後のcommitかcheckout",
+    "d_tool": "道具と版",
+    "d_downloaded": "落とした日",
     "helpOverviewTitle": "全体のタブ",
     "helpOverview": "空けられる分を種類ごとと推奨度ごとに、ディスクとメモリの全体を、大きい物と、メモリとCPUを多く使うプロセスの上位を図にします。図の色を押すとそのタブへ、棒を押すとその行の詳しい情報へ移ります。行ごとのiのボタンで、理由と場所とコマンドを見られます。",
     "level_recommended": "おすすめ",
@@ -467,6 +490,10 @@ h1 { font-size: 24px; margin: 0; }
     "why_app_unused": "{days}日開いていません",
     "why_app_unused_unknown": "最後に開いた日をmacOSが持っていません",
     "why_flatpak": "自分用にFlatpakで入れたアプリです",
+    "why_project_idle": "{days}日commitもcheckoutも無く、未commitの変更が無く、全てのcommitがremoteに在ります。ゴミ箱から戻せます",
+    "why_leftover": "この会社のアプリは入っておらず、最新のファイルは{days}日前の物です",
+    "why_tool_unused": "既定の版でも、プロジェクトが指定する版でもありません。道具で入れ直せます",
+    "why_model": "{days}日前に落としました。落とし直すには時間がかかります",
     "why_session_ended": "始めた会話が終わった後も動いています",
     "why_next_server": "next startで動かしたサーバーも同じ名前になるため、使っている物かもしれません",
     "why_login_item": "止めるだけなので、restoreで戻せます",
@@ -490,7 +517,7 @@ h1 { font-size: 24px; margin: 0; }
     "sent": "エージェントが空けていて、結果をチャットで知らせます。このページは閉じて構いません。",
     "helpTitle": "このページについて",
     "helpWhatTitle": "並ぶ物",
-    "helpWhat": "道具が作り直すキャッシュ、gitが無視するビルドの出力、ゴミ箱、古いログとインストーラー、大きいファイルと重複、90日開いていないアプリ、始めた会話が終わったのに残っている開発用のサーバー、重いプロセス、ログイン項目、動いているコンテナです。",
+    "helpWhat": "道具が作り直すキャッシュ、gitが無視するビルドの出力、ゴミ箱、古いログとインストーラー、大きいファイルと重複、30日使っていないgitのプロジェクト、90日開いていないアプリと消したアプリの残り、どのプロジェクトも使わない道具の版、落としたAIモデル、始めた会話が終わったのに残っている開発用のサーバー、重いプロセス、ログイン項目、動いているコンテナです。",
     "helpLockTitle": "選べない行がある理由",
     "helpLock": "動いているエージェントの会話か開いている端末が動かしている物、中かそのアプリの中で動いているエージェントの会話がある物、動いているエージェントの会話かほかのプログラムが同じプロジェクトで作業している物は、使用中として選べません。その会話かプログラムを閉じてから、エージェントにもう一度調べさせてください。",
     "helpNeverTitle": "触らない物",
@@ -505,12 +532,16 @@ h1 { font-size: 24px; margin: 0; }
     "tab_process": "プロセス",
     "tab_login": "ログイン項目",
     "tab_container": "コンテナ",
+    "tab_project": "プロジェクト",
+    "tab_tools": "道具とモデル",
     "tab_skipped": "測らなかった場所",
     "lead_cache": "パッケージ管理、Docker、Xcode、アプリが、次に要る時にもう一度取ってくるか作り直す物です。道具が自分の消す命令を持つ時は、エージェントがその命令を使います。",
     "lead_build": "gitが無視し、追跡するファイルを1つも持たないnode_modulesや.nextなどのフォルダです。次のインストールかビルドで作り直されます。",
     "lead_trash": "ゴミ箱を空にすることと古いログを消すことは、元に戻せません。ダウンロードの30日より古いインストーラーはゴミ箱へ移します。",
     "lead_files": "500MB以上のファイルと、同じ中身が複数の場所にある10MB以上のファイルです。選んだファイルはゴミ箱へ移します。重複は少なくとも1つ残してください。",
-    "lead_app": "90日開いていないアプリです。アプリと付属のファイルを一緒にゴミ箱へ移します。",
+    "lead_app": "90日開いていないアプリと、消したアプリがライブラリに残したファイルです。アプリは付属のファイルと一緒に、残りはそのままゴミ箱へ移します。",
+    "lead_project": "30日commitもcheckoutも無く、未commitの変更が無く、最後に取り込んだ時点で全てのcommitがremoteに在るgitのプロジェクトです。選んだプロジェクトはゴミ箱へ移します。",
+    "lead_tools": "nvm、fnm、pyenv、rbenv、asdf、mise、rustupの版のうち既定でもプロジェクトの指定でもない物と、Ollama、Hugging Face、LM Studioで落としたモデルです。どちらも完全に消し、道具で落とし直せます。",
     "lead_process": "始めた会話が終わったのに残っている開発用のサーバーと監視と、メモリかCPUを最も多く使うプロセスです。選んだプロセスには終了の合図を送るので、作業を保存してから終われます。",
     "lead_login": "ログインするたびに起動するプログラムです。止めた物は取っておき、エージェントが元に戻せます。",
     "lead_container": "いま動いているDockerのコンテナです。止めてもデータは残ります。",
@@ -537,6 +568,10 @@ h1 { font-size: 24px; margin: 0; }
     "lock_project": "動いているプログラム ({1}、pid {2}) がこのプロジェクトで作業しています",
     "lock_app": "アプリが動いています",
     "lock_tool": "{1}が動いています",
+    "lock_toolInUse": "動いているプログラムがこの版を使っています",
+    "lock_defaultUnknown": "既定の版がどれか分かりませんでした ({1})",
+    "lock_projectSpec": "プロジェクトが指定する版がどれか分かりませんでした ({1})",
+    "lock_walkCut": "全てのプロジェクトの版の指定を読む前に走査が止まりました",
     "r_time": "時間の上限に達し、測る前に止めました",
     "r_sync": "同期フォルダです。ここで消すとクラウド側からも消えます",
     "r_windows": "WSLから見たWindowsのドライブです",
@@ -544,7 +579,8 @@ h1 { font-size: 24px; margin: 0; }
     "r_missing": "見つかりませんでした",
     "r_measure": "測れませんでした",
     "r_docker": "Dockerが動いていません",
-    "r_fda": "ゴミ箱を読むには、端末のアプリにmacOSのフルディスクアクセスが要ります"
+    "r_fda": "ゴミ箱を読むには、端末のアプリにmacOSのフルディスクアクセスが要ります",
+    "r_tooMany": "ファイルが多すぎて、古さを確かめられませんでした"
   }
 }
 </script>
@@ -555,12 +591,13 @@ const I18N = JSON.parse(document.getElementById("i18n").textContent);
 const DATA = JSON.parse(document.getElementById("data").textContent);
 const TABS = [
   ["overview", []], ["cache", ["cache"]], ["build", ["build"]], ["trash", ["trash", "log", "installer"]], ["files", ["large", "duplicate"]],
-  ["app", ["app"]], ["process", ["dev-process", "heavy-process"]], ["login", ["login-item"]], ["container", ["container"]]
+  ["project", ["project"]], ["app", ["app"]], ["tools", ["tool", "model"]], ["process", ["dev-process", "heavy-process"]],
+  ["login", ["login-item"]], ["container", ["container"]]
 ];
 const LEVELS = ["recommended", "check", "careful", "inuse"];
 // The colour of each part of a chart and each group, by its key.
 const COLORS = {
-  cache: "var(--c1)", build: "var(--c2)", trash: "var(--c3)", files: "var(--c4)", app: "var(--c5)",
+  cache: "var(--c1)", build: "var(--c2)", trash: "var(--c3)", files: "var(--c4)", app: "var(--c5)", project: "var(--c6)", tools: "var(--c7)",
   recommended: "var(--go)", check: "var(--check)", careful: "var(--care)", inuse: "var(--lock)",
   picked: "var(--c-pick)", freeable: "var(--c1)", canEnd: "var(--c1)", inUse: "var(--lock)", other: "var(--c-other)", free: "var(--c-free)"
 };
@@ -616,6 +653,10 @@ function lockText(s) {
     [/^part of the operating system$/, "lock_os"],
     [/^a running program works in this project \((.+), pid (\d+)\)$/, "lock_project"],
     [/^the app is running$/, "lock_app"],
+    [/^a running program uses this version$/, "lock_toolInUse"],
+    [/^could not tell which version is the default \((.+)\)$/, "lock_defaultUnknown"],
+    [/^could not tell which version a project names \((.+)\)$/, "lock_projectSpec"],
+    [/^the scan stopped before it read every project's version file$/, "lock_walkCut"],
     [/^(.+) is running$/, "lock_tool"]
   ];
   for (const [rx, key] of rules) { const m = s.match(rx); if (m) return t(key, { 1: m[1], 2: m[2], 3: m[3] }); }
@@ -623,7 +664,8 @@ function lockText(s) {
 }
 function reasonText(s) {
   const map = { "time limit": "r_time", "sync folder": "r_sync", "Windows drive": "r_windows", "symbolic link": "r_link",
-    "not found": "r_missing", "could not be measured": "r_measure", "Docker is not running": "r_docker" };
+    "not found": "r_missing", "could not be measured": "r_measure", "Docker is not running": "r_docker",
+    "too many files to tell its age": "r_tooMany" };
   if (map[s]) return t(map[s]);
   if (/Full Disk Access/.test(s)) return t("r_fda");
   return s;
@@ -657,7 +699,7 @@ function overviewCharts(items, m, pickedIds) {
   const disk = items.filter(function (it) { return it.group === "disk"; });
   const procs = items.filter(isProc);
   const free = num(m.disk_free), whole = num(m.disk_total), used = num(m.memory_used), memTotal = num(m.memory_total);
-  const kinds = ["cache", "build", "trash", "files", "app"].map(function (key) {
+  const kinds = ["cache", "build", "trash", "files", "project", "app", "tools"].map(function (key) {
     return { key: key, label: "tab_" + key, tab: key, value: freeableSize(disk.filter(function (it) { return cats(key).indexOf(it.category) >= 0; })) };
   });
   const freeable = kinds.reduce(function (s, p) { return s + p.value; }, 0);
@@ -708,9 +750,15 @@ function detailPairs(it) {
     return out;
   }
   if (it.group === "disk") out.push(["d_size", human(it.size)]);
-  if (it.path) out.push(["d_path", tilde(it.path), "mono"]);
+  // A leftover lists every place the removed app left files in; other rows have one location.
+  if (it.kind === "leftover") out.push(["d_places", [it.path].concat(d.support || []).map(tilde).join("\n"), "mono"]);
+  else if (it.path) out.push(["d_path", tilde(it.path), "mono"]);
   if (it.category === "login-item" && (d.program || d.unit)) out.push(["d_program", d.program || d.unit, "mono"]);
-  if (it.category === "app") out.push(["d_lastUsed", day(d.last_used)]);
+  if (it.category === "app" && it.kind !== "leftover") out.push(["d_lastUsed", day(d.last_used)]);
+  if (it.kind === "leftover") out.push(["d_newest", day(d.last_used)]);
+  if (it.category === "project") out.push(["d_lastTouched", day(d.last_used)]);
+  if (it.category === "tool") out.push(["d_tool", d.tool + " " + d.version + " (" + d.manager + ")"]);
+  if (it.category === "model") out.push(["d_downloaded", day(d.downloaded)]);
   if (it.category === "duplicate") out.push(["d_copies", (d.copies || []).map(tilde).join("\n"), "mono"]);
   if (it.category === "log") out.push(["d_contents", t("oldFiles", { n: d.file_count || 0, days: d.older_than_days || 30 })]);
   return out;

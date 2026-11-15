@@ -12,15 +12,19 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - The page opens on an Overview tab with seven charts: what can be freed by kind, size by level, the whole disk with what is picked, memory, the largest items, and the processes using the most memory and CPU. Pressing a part of a chart opens its tab, and pressing a bar opens that row's details
 - The list tabs can be searched by name or location, filtered by group, and sorted largest first, smallest first, or by name
 - The scan records the whole disk size next to the free space
+- A Projects tab lists git projects with no commit or checkout for 30 days, nothing uncommitted, and every commit on the remote as of the last fetch. Picked projects move to the Trash, and restore puts them back
+- The Apps tab also lists, on macOS, files that removed apps left in the eight Library folders, one row per bundle id, when no installed or running app is from the same company and the newest file is older than 30 days. They move to the Trash
+- A Tools and models tab lists versions kept by nvm, fnm, pyenv, rbenv, asdf, mise, and rustup that are neither the default nor named by a project's version file, and models downloaded by Ollama, Hugging Face, and LM Studio. Tool versions are deleted, with `rustup toolchain uninstall` for Rust. Ollama models are removed with `ollama rm` while Ollama runs, and otherwise by deleting the manifest and the blobs no other model uses
 
 ### Changed
 
-- A scan made by a previous version is refused with a request to scan again, since it has no levels or no disk size
+- A scan made by a previous version is refused with a request to scan again, since it has no levels, no disk size, or no projects, tool versions, and models
 - A row shows only its name, its size, and for a process its CPU share. The reason, location, command, and measurements moved to a dialog that the row's i button opens, where the row can also be picked
 
 ### Fixed
 
 - The confirm dialog shows the number of items apart from their size, such as `4 items, 807.4 MB`, instead of running them together as `4 807.4 MB`
+- On Linux, the Hugging Face and LM Studio folders in `~/.cache` are no longer recommended as app caches that come back on their own
 
 ## [0.1.0] - 2026-11-15
 

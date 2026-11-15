@@ -41,7 +41,7 @@ import time
 import urllib.parse
 
 FORMAT_VERSION = 1  # restore.json
-SCAN_VERSION = 3  # scan.json; 2 added each item's level and reason, 3 the whole disk size
+SCAN_VERSION = 4  # scan.json; 2 added each item's level and reason, 3 the whole disk size, 4 work folders, app leftovers, tool versions, and models
 MIB = 1024 * 1024
 LARGE_FILE = 500 * MIB
 DUPLICATE_MIN = 10 * MIB
@@ -71,6 +71,24 @@ BUILD_NAMES = {
 # Folders in the cache folder that a cache entry of its own already covers.
 COVERED_CACHES = {"Homebrew", "Yarn", "yarn", "pip", "CocoaPods", "go-build", "uv", "pnpm"}
 # Places whose contents a sync service mirrors to the cloud and to other devices.
+# Folders under the cache folder that hold downloaded AI models, which take long to download again.
+MODEL_CACHES = {"huggingface", "lm-studio"}
+# The Library folders where macOS apps keep files, and the name forms of a bundle id there.
+LEFTOVER_PLACES = ("Application Support", "Caches", "Preferences", "Containers", "Saved Application State",
+                   "HTTPStorages", "WebKit", "Logs")
+# A bundle id starts with a top-level domain of 2 to 4 letters (com, io, dev, info). A part that looks
+# generated, such as a UUID or a long random token, marks storage an app or a test made per run.
+BUNDLE_ID_RE = re.compile(r"^[a-z]{2,4}\.[A-Za-z0-9-]+(\.[A-Za-z0-9_-]+)+$")
+GENERATED_PART_RE = re.compile(r"^([0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-.*|[0-9A-Fa-f]{16,}|(?=.*[0-9])[A-Za-z0-9_-]{20,})$")
+LEFTOVER_WALK_MAX = 5000
+# Files where a project names the tool versions it uses, and the version managers that read each.
+VERSION_FILES = {
+    ".nvmrc": ("node", ("nvm", "fnm", "mise")), ".node-version": ("node", ("nvm", "fnm", "mise")),
+    ".python-version": ("python", ("pyenv", "mise")), ".ruby-version": ("ruby", ("rbenv", "mise", "asdf")),
+    ".tool-versions": (None, ("asdf", "mise")), "mise.toml": (None, ("mise",)), ".mise.toml": (None, ("mise",)),
+    "rust-toolchain": ("rust", ("rustup",)), "rust-toolchain.toml": ("rust", ("rustup",)),
+}
+TOOL_NAMES = {"nodejs": "node", "golang": "go"}
 SYNC_DIRS = ("Library/Mobile Documents", "Library/CloudStorage", "Dropbox", "OneDrive", "Google Drive",
              "iCloud Drive", "Box", "pCloud Drive", "Nextcloud", "ownCloud", "MEGA")
 SECRET_ARG = re.compile(r"(?i)(--?[a-z0-9_-]*(token|secret|password|passwd|api[-_]?key|auth)[a-z0-9_-]*)(=|\s+)(\S+)")
@@ -144,11 +162,11 @@ class Ctx:
         return os.environ.get("XDG_DATA_HOME") or self.h(".local", "share")
 
 
-def run(cmd, timeout=60):
+def run(cmd, timeout=60, env=None):
     """Runs a command and returns (exit code, stdout). A missing command returns 127."""
     try:
         p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout,
-                           universal_newlines=True, errors="replace")
+                           universal_newlines=True, errors="replace", env=env)
         return p.returncode, p.stdout, p.stderr
     except FileNotFoundError:
         return 127, "", "%s is not installed" % cmd[0]
@@ -156,6 +174,14 @@ def run(cmd, timeout=60):
         return 124, "", "%s took longer than %d seconds" % (cmd[0], timeout)
     except OSError as e:
         return 126, "", str(e)
+
+
+def git(repo, *args, deadline=None):
+    """Runs a read-only git command in a repository, for at most 60 seconds or the time left.
+    GIT_OPTIONAL_LOCKS=0 keeps git status from rewriting the index, so reading a project never
+    makes it look used."""
+    timeout = 60 if deadline is None else max(1, min(60, deadline - time.time()))
+    return run(["git", "-C", repo] + list(args), timeout=timeout, env=dict(os.environ, GIT_OPTIONAL_LOCKS="0"))
 
 
 def lowest_priority():
@@ -250,7 +276,9 @@ def du_sizes(ctx, paths, deadline=None):
         if deadline is not None and time.time() > deadline:
             break
         chunk = paths[i:i + 40]
-        _, stdout, _ = run(prefix + ["du", "-sk"] + chunk, timeout=600)
+        # One du over a large tree can outlast the time limit, so it gets only the time left.
+        timeout = 600 if deadline is None else max(1, deadline - time.time())
+        _, stdout, _ = run(prefix + ["du", "-sk"] + chunk, timeout=timeout)
         for line in stdout.splitlines():
             kb, _, p = line.partition("\t")
             if p and kb.strip().isdigit():
@@ -557,7 +585,8 @@ def scan_app_caches(ctx, procs, running_ids, deadline, skipped):
         return []
     candidates = []
     for e in entries:
-        if e.name in COVERED_CACHES or e.name.startswith(("com.apple.", ".")):
+        # Models are listed on their own, since they take long to download again.
+        if e.name in COVERED_CACHES or e.name in MODEL_CACHES or e.name.startswith(("com.apple.", ".")):
             continue
         if e.is_symlink():
             skipped.append({"path": e.path, "reason": "symbolic link"})
@@ -785,8 +814,11 @@ def scan_apps(ctx, procs, apps_dirs, deadline, skipped):
     return items
 
 
-def scan_home(ctx, roots, procs, cwds, deadline, skipped):
-    """Walks the roots for build output in git projects, large files, and duplicates."""
+def scan_home(ctx, roots, procs, cwds, deadline, skipped, found):
+    """Walks the roots for build output in git projects, large files, and duplicates. It also fills
+    found with the git repositories it met, the files where projects name tool versions, and whether
+    the walk ended before the time limit."""
+    found.update({"repos": [], "version_files": [], "complete": False})
     build, files = [], []
     stack = []
     for r in roots:
@@ -800,9 +832,11 @@ def scan_home(ctx, roots, procs, cwds, deadline, skipped):
             continue
         stack.append((r, 0, None, 0))
     skip_top = {"Library", "Applications"} if ctx.mac else set()
+    cut = False
     while stack:
         if time.time() > deadline:
             skipped.extend({"path": s[0], "reason": "time limit"} for s in stack[:50])
+            cut = True
             break
         path, depth, repo, repo_depth = stack.pop()
         try:
@@ -811,6 +845,7 @@ def scan_home(ctx, roots, procs, cwds, deadline, skipped):
             continue
         if repo is None and any(e.name == ".git" for e in entries):
             repo, repo_depth = path, 0
+            found["repos"].append(path)
         for e in entries:
             if e.is_symlink():
                 continue
@@ -829,12 +864,15 @@ def scan_home(ctx, roots, procs, cwds, deadline, skipped):
                 if depth + 1 <= WALK_DEPTH:
                     stack.append((e.path, depth + 1, repo, repo_depth + 1 if repo else 0))
             elif e.is_file(follow_symlinks=False):
+                if e.name in VERSION_FILES:
+                    found["version_files"].append(e.path)
                 try:
                     st = e.stat(follow_symlinks=False)
                 except OSError:
                     continue
                 if st.st_size >= DUPLICATE_MIN:
                     files.append((e.path, st.st_size, st.st_dev, st.st_ino, repo))
+    found["complete"] = not cut
     items = []
     # Build output counts only when git ignores it and it holds no tracked file.
     keep = []
@@ -902,6 +940,486 @@ def scan_home(ctx, roots, procs, cwds, deadline, skipped):
         if size >= LARGE_FILE and path not in dup_paths:
             items.append(disk_item("large", "large-file", os.path.basename(path), path, size, False, "trash", None,
                                    folder_lock(repo, cwds, procs)))
+    return items
+
+
+# --- unused projects, app leftovers, tool versions, and models -------------------------------
+
+def project_state(repo, now, deadline=None):
+    """Returns (why the repository is not an idle project or None, when it was last used or None).
+    It reads only what git keeps on disk: whether a branch is on the remote is judged from the
+    remote-tracking refs of the last fetch, and nothing connects to the remote."""
+    gitdir = os.path.join(repo, ".git")
+    if not os.path.isdir(gitdir) or os.path.islink(gitdir):
+        return "a worktree of another repository", None
+    try:
+        if os.listdir(os.path.join(gitdir, "worktrees")):
+            return "has another worktree", None
+    except OSError:
+        pass
+    touched = [st.st_mtime for st in (stat_or_none(os.path.join(gitdir, "HEAD")), stat_or_none(os.path.join(gitdir, "logs", "HEAD"))) if st]
+    rc, out, _ = git(repo, "log", "-1", "--branches", "--format=%ct", deadline=deadline)
+    if not touched or rc != 0 or not out.strip().isdigit():
+        return "git could not tell when it was last used", None
+    last = max(touched + [int(out.strip())])
+    if now - last <= OLD_DAYS * 86400:
+        return "a commit or checkout in the last %d days" % OLD_DAYS, last
+    rc, out, _ = git(repo, "status", "--porcelain", "--untracked-files=normal", deadline=deadline)
+    if rc != 0 or out.strip():
+        return "uncommitted changes or untracked files", last
+    rc, out, _ = git(repo, "remote", deadline=deadline)
+    if rc != 0 or not out.strip():
+        return "no remote", last
+    rc, out, _ = git(repo, "rev-list", "-1", "HEAD", "--branches", "--not", "--remotes", deadline=deadline)
+    if rc != 0 or out.strip():
+        return "commits that are not on the remote", last
+    return None, last
+
+
+def scan_projects(ctx, repos, procs, cwds, deadline, skipped):
+    """Git projects whose last commit and checkout are older than 30 days, with nothing uncommitted
+    and every commit on the remote."""
+    idle = []
+    for repo in repos:
+        if time.time() > deadline:
+            skipped.append({"path": repo, "reason": "time limit"})
+            continue
+        why, last = project_state(repo, ctx.now, deadline)
+        if why is None:
+            idle.append((repo, last))
+    sizes = du_sizes(ctx, [r for r, _ in idle], deadline)
+    items = []
+    for repo, last in idle:
+        size = sizes.get(repo)
+        if size is None:
+            skipped.append({"path": repo, "reason": "time limit"})
+            continue
+        items.append(disk_item("project", "git-project", os.path.basename(repo), repo, size, False, "trash", None,
+                               folder_lock(repo, cwds, procs), {"project": repo, "last_used": iso(last)}))
+    return items
+
+
+def newest_mtime(path):
+    """The newest modification time of a file, or of the files in a folder, or None when the folder
+    holds more files than LEFTOVER_WALK_MAX and its age cannot be told."""
+    st = stat_or_none(path)
+    if st is None or not os.path.isdir(path) or os.path.islink(path):
+        return st.st_mtime if st else None
+    newest, n = None, 0
+    for dirpath, dirnames, filenames in os.walk(path):
+        dirnames[:] = [d for d in dirnames if not os.path.islink(os.path.join(dirpath, d))]
+        n += len(dirnames)
+        for fn in filenames:
+            n += 1
+            if n > LEFTOVER_WALK_MAX:
+                return None
+            fst = stat_or_none(os.path.join(dirpath, fn))
+            if fst and (newest is None or fst.st_mtime > newest):
+                newest = fst.st_mtime
+    return newest if newest is not None else st.st_mtime
+
+
+def installed_apps(apps_dirs, procs):
+    """The bundle ids and lowercase names of the apps in the app folders, one level of subfolders,
+    and the running apps."""
+    ids, names = set(), set()
+
+    def add(app):
+        bid, name = app_info(app)
+        if bid:
+            ids.add(bid.lower())
+        if name:
+            names.add(name.lower())
+        names.add(os.path.splitext(os.path.basename(app))[0].lower())
+    for d in apps_dirs:
+        try:
+            entries = list(os.scandir(d))
+        except OSError:
+            continue
+        for e in entries:
+            if e.name.endswith(".app"):
+                add(e.path)
+            elif e.is_dir(follow_symlinks=False) and not e.name.startswith("."):
+                try:
+                    for sub in os.scandir(e.path):
+                        if sub.name.endswith(".app"):
+                            add(sub.path)
+                except OSError:
+                    pass
+    for app in running_apps(procs):
+        add(app)
+    return ids, names
+
+
+def company(bundle_id):
+    return ".".join(bundle_id.lower().split(".")[:2])
+
+
+def scan_leftovers(ctx, procs, apps_dirs, listed, deadline, skipped):
+    """Files that removed apps left in the Library folders on macOS: one row per bundle id whose
+    company matches no installed or running app, whose other parts match no running process, and
+    whose newest file is older than 30 days. Names that are not bundle ids are left out, since they
+    cannot be told apart from the system's own folders and command-line tools."""
+    if not ctx.mac:
+        return []
+    ids, names = installed_apps(apps_dirs, procs)
+    companies = {company(b) for b in ids}
+    words = names | {p["base"].lower() for p in procs.values()}
+    cutoff = ctx.now - OLD_DAYS * 86400
+    groups, order, unknown = {}, [], set()
+    cut = False
+    for place in LEFTOVER_PLACES:
+        root = ctx.h("Library", place)
+        if cut or time.time() > deadline:
+            # A bundle id's files in a place not read may be recent, so nothing is listed.
+            if os.path.isdir(root):
+                skipped.append({"path": root, "reason": "time limit"})
+            cut = True
+            continue
+        try:
+            entries = sorted(os.scandir(root), key=lambda e: e.name)
+        except OSError:
+            continue
+        for e in entries:
+            name = e.name
+            for suffix in (".plist", ".savedState"):
+                if name.endswith(suffix):
+                    name = name[:-len(suffix)]
+            key = name.lower()
+            if (not BUNDLE_ID_RE.match(name) or any(GENERATED_PART_RE.match(part) for part in name.split("."))
+                    or key.startswith("com.apple.") or e.is_symlink() or e.path in listed):
+                continue
+            if company(name) in companies or any(part in words for part in key.split(".")[2:]):
+                continue
+            if time.time() > deadline:
+                skipped.append({"path": root, "reason": "time limit"})
+                cut = True
+                break
+            newest = newest_mtime(e.path)
+            if newest is None:
+                skipped.append({"path": e.path, "reason": "too many files to tell its age"})
+                unknown.add(key)
+                continue
+            if key not in groups:
+                groups[key] = {"name": name, "paths": [], "newest": newest}
+                order.append(key)
+            groups[key]["paths"].append(e.path)
+            groups[key]["newest"] = max(groups[key]["newest"], newest)
+    if cut:
+        return []
+    keep = [groups[k] for k in order if k not in unknown and groups[k]["newest"] <= cutoff]
+    sizes = du_sizes(ctx, [p for g in keep for p in g["paths"]], deadline)
+    items = []
+    for g in keep:
+        first, rest = g["paths"][0], g["paths"][1:]
+        if any(sizes.get(p) is None for p in g["paths"]):
+            skipped.append({"path": first, "reason": "time limit"})
+            continue
+        it = disk_item("app", "leftover", g["name"], first, sum(sizes[p] for p in g["paths"]), False, "trash-app", None, None,
+                       {"bundle_id": g["name"], "last_used": iso(g["newest"]), "support": rest})
+        # The check before acting measures the first place alone.
+        it["fingerprint"]["size"] = sizes[first]
+        items.append(it)
+    return items
+
+
+def version_roots(ctx):
+    """Where each version manager keeps its versions: (manager, folder of versions or of tools, how
+    the folder is laid out)."""
+    env, h = os.environ.get, ctx.h
+    fnm = env("FNM_DIR") or (h("Library", "Application Support", "fnm") if ctx.mac else os.path.join(ctx.data_root(), "fnm"))
+    return [
+        ("nvm", os.path.join(env("NVM_DIR") or h(".nvm"), "versions", "node"), "node"),
+        ("fnm", os.path.join(fnm, "node-versions"), "node"),
+        ("pyenv", os.path.join(env("PYENV_ROOT") or h(".pyenv"), "versions"), "python"),
+        ("rbenv", os.path.join(env("RBENV_ROOT") or h(".rbenv"), "versions"), "ruby"),
+        ("asdf", os.path.join(env("ASDF_DATA_DIR") or h(".asdf"), "installs"), None),
+        ("mise", os.path.join(env("MISE_DATA_DIR") or os.path.join(ctx.data_root(), "mise"), "installs"), None),
+        ("rustup", os.path.join(env("RUSTUP_HOME") or h(".rustup"), "toolchains"), "rust"),
+    ]
+
+
+def real_dirs(path):
+    """The folders in a folder, by name, without links and hidden folders."""
+    try:
+        return sorted((e for e in os.scandir(path) if e.is_dir(follow_symlinks=False) and not e.name.startswith(".")),
+                      key=lambda e: e.name)
+    except OSError:
+        return []
+
+
+def tool_key(name):
+    """The folder name a tool's versions live under, from the name a version file uses. mise keeps
+    "npm:@pen.dev/cli" in npm-pen-dev-cli and "core:node" in node; asdf calls Node.js nodejs."""
+    name = name.strip()
+    if name.startswith("core:"):
+        name = name[len("core:"):]
+    if ":" in name:
+        name = re.sub(r"[:/.]", "-", name).replace("@", "")
+    return TOOL_NAMES.get(name, name)
+
+
+def installed_versions(ctx):
+    """Yields (manager, tool, version, path) for each version folder. Links are aliases, not versions."""
+    for manager, root, tool in version_roots(ctx):
+        if tool:
+            for e in real_dirs(root):
+                version = e.name[1:] if manager in ("nvm", "fnm") and e.name.startswith("v") else e.name
+                yield manager, tool, version, e.path
+        else:
+            for t in real_dirs(root):
+                for e in real_dirs(t.path):
+                    yield manager, tool_key(t.name), e.name, e.path
+
+
+def toml_values(path):
+    """{section: {key: [strings]}} from a TOML file, read with a small parser that knows only the
+    forms version files use (key = "v", key = ["a", "b"], key = { version = "v" })."""
+    out, section = {}, ""
+    try:
+        lines = open(path, encoding="utf-8", errors="replace").read().splitlines()
+    except OSError:
+        return out
+    for line in lines:
+        line = line.split("#", 1)[0].strip()
+        m = re.match(r"^\[\s*([^\]]+?)\s*\]$", line)
+        if m:
+            section = m.group(1)
+            continue
+        m = re.match(r"^(\"[^\"]+\"|'[^']+'|[A-Za-z0-9_.:/@-]+)\s*=\s*(.+)$", line)
+        if m:
+            values = [a or b for a, b in re.findall(r"\"([^\"]*)\"|'([^']*)'", m.group(2))]
+            out.setdefault(section, {})[m.group(1).strip("\"'")] = values
+    return out
+
+
+def first_lines(path):
+    try:
+        text = open(path, encoding="utf-8", errors="replace").read()
+    except OSError:
+        return []
+    return [l.split("#", 1)[0].strip() for l in text.splitlines() if l.split("#", 1)[0].strip()]
+
+
+def file_specs(path):
+    """{tool: [specs]} that one version file names."""
+    name = os.path.basename(path)
+    tool = VERSION_FILES[name][0]
+    specs = {}
+    if name == ".tool-versions":
+        for line in first_lines(path):
+            parts = line.split()
+            if len(parts) > 1:
+                specs.setdefault(tool_key(parts[0]), []).extend(parts[1:])
+    elif name in ("mise.toml", ".mise.toml"):
+        for key, values in toml_values(path).get("tools", {}).items():
+            specs.setdefault(tool_key(key), []).extend(values)
+    elif name == "rust-toolchain.toml" or (name == "rust-toolchain" and "[toolchain]" in "".join(first_lines(path))):
+        specs["rust"] = toml_values(path).get("toolchain", {}).get("channel", [])
+    elif name == ".python-version":
+        specs[tool] = [w for l in first_lines(path) for w in l.split()]
+    else:
+        specs[tool] = first_lines(path)[:1]
+    return specs
+
+
+def default_specs(ctx):
+    """{(manager, tool): [specs]} of the versions each manager uses by default, and
+    {(manager, tool): [paths]} of the versions a default link points at."""
+    env, h = os.environ.get, ctx.h
+    specs, linked = {}, {}
+    nvm = env("NVM_DIR") or h(".nvm")
+    specs[("nvm", "node")] = first_lines(os.path.join(nvm, "alias", "default"))[:1]
+    fnm_root = os.path.dirname(version_roots(ctx)[1][1])
+    alias = os.path.join(fnm_root, "aliases", "default")
+    if os.path.islink(alias):
+        target = os.path.realpath(alias)
+        linked[("fnm", "node")] = [os.path.dirname(target) if os.path.basename(target) == "installation" else target]
+    for manager, root in (("pyenv", env("PYENV_ROOT") or h(".pyenv")), ("rbenv", env("RBENV_ROOT") or h(".rbenv"))):
+        tool = "python" if manager == "pyenv" else "ruby"
+        specs[(manager, tool)] = [w for l in first_lines(os.path.join(root, "version")) for w in l.split()]
+    tool_versions = env("ASDF_DEFAULT_TOOL_VERSIONS_FILENAME") or h(".tool-versions")
+    if os.path.exists(tool_versions):
+        for tool, values in file_specs(tool_versions).items():
+            specs.setdefault(("asdf", tool), []).extend(values)
+            specs.setdefault(("mise", tool), []).extend(values)
+    config = env("MISE_GLOBAL_CONFIG_FILE") or os.path.join(env("MISE_CONFIG_DIR") or os.path.join(env("XDG_CONFIG_HOME") or h(".config"), "mise"), "config.toml")
+    for key, values in toml_values(config).get("tools", {}).items():
+        specs.setdefault(("mise", tool_key(key)), []).extend(values)
+    settings = toml_values(os.path.join(env("RUSTUP_HOME") or h(".rustup"), "settings.toml"))
+    specs[("rustup", "rust")] = settings.get("", {}).get("default_toolchain", []) + [v for vs in settings.get("overrides", {}).values() for v in vs]
+    return specs, linked
+
+
+def spec_matches(spec, manager, version, path):
+    """Whether a version spec names this version: the same name, a leading part of it (20 for
+    20.11.1, stable for stable-aarch64-apple-darwin), or a link beside it with the spec's name."""
+    s = spec.strip()
+    for prefix in ("python-", "ruby-", "node-"):
+        if s.startswith(prefix):
+            s = s[len(prefix):]
+    if s[:1] == "v" and s[1:2].isdigit():
+        s = s[1:]
+    if not s:
+        return False
+    if version == s or version.startswith(s + ".") or (manager == "rustup" and version.startswith(s + "-")):
+        return True
+    link = os.path.join(os.path.dirname(path), s)
+    return os.path.islink(link) and os.path.realpath(link) == os.path.realpath(path)
+
+
+def resolves(spec, manager, versions):
+    """Whether a spec names a version or is a version number (which may name one not installed).
+    A word such as lts or latest that names no installed version cannot be told."""
+    s = spec.strip()
+    if s in ("system", ""):
+        return True
+    if any(spec_matches(spec, manager, v, p) for v, p in versions):
+        return True
+    return bool(re.match(r"^(v|python-|ruby-|node-)?[0-9]", s))
+
+
+def scan_tools(ctx, procs, version_files, complete, deadline, skipped):
+    """Versions kept by nvm, fnm, pyenv, rbenv, asdf, mise, and rustup that are neither a default nor
+    named by a project's version file. A version is locked when a running program uses it, when the
+    default cannot be told, or when the walk ended before it read every project."""
+    found = list(installed_versions(ctx))
+    if not found:
+        return []
+    defaults, linked = default_specs(ctx)
+    named = []     # (tool, spec) from projects, which keep a version of that tool in every manager
+    unclear = {}   # (manager, tool) -> spec a project names that cannot be told
+    for path in version_files:
+        managers = VERSION_FILES[os.path.basename(path)][1]
+        for tool, specs in file_specs(path).items():
+            for spec in specs:
+                named.append((tool, spec))
+                for m in managers:
+                    unclear.setdefault((m, tool), []).append(spec)
+    by_key = {}
+    for manager, tool, version, path in found:
+        by_key.setdefault((manager, tool), []).append((version, path))
+    rows = []
+    for manager, tool, version, path in found:
+        key = (manager, tool)
+        if path in linked.get(key, []) or any(spec_matches(s, manager, version, path) for s in defaults.get(key, [])):
+            continue
+        if any(t == tool and spec_matches(s, manager, version, path) for t, s in named):
+            continue
+        lock = None
+        if not complete:
+            lock = "the scan stopped before it read every project's version file"
+        elif any((path + "/") in p["args"] for p in procs.values()):
+            lock = "a running program uses this version"
+        else:
+            bad = [s for s in defaults.get(key, []) if not resolves(s, manager, by_key[key])]
+            if bad:
+                lock = "could not tell which version is the default (%s)" % bad[0]
+            else:
+                bad = [s for s in unclear.get(key, []) if not resolves(s, manager, by_key[key])]
+                if bad:
+                    lock = "could not tell which version a project names (%s)" % bad[0]
+        rows.append((manager, tool, version, path, lock))
+    sizes = du_sizes(ctx, [r[3] for r in rows], deadline) if time.time() <= deadline else {}
+    items = []
+    for manager, tool, version, path, lock in rows:
+        # A row that can be picked needs its size, which the check before acting compares with.
+        if sizes.get(path) is None and lock is None:
+            skipped.append({"path": path, "reason": "time limit"})
+            continue
+        command = ["rustup", "toolchain", "uninstall", version] if manager == "rustup" else None
+        it = disk_item("tool", "tool-version", "%s %s (%s)" % (tool, version, manager), path, sizes.get(path), False,
+                       "tool" if command else "delete", command, lock, {"manager": manager, "tool": tool, "version": version})
+        items.append(it)
+    return items
+
+
+def ollama_root(ctx):
+    return os.environ.get("OLLAMA_MODELS") or ctx.h(".ollama", "models")
+
+
+def ollama_manifests(root):
+    """{manifest path: (model name, [blob paths])} for every Ollama manifest under the root."""
+    out = {}
+    base = os.path.join(root, "manifests")
+    for dirpath, dirnames, filenames in os.walk(base):
+        dirnames[:] = [d for d in dirnames if not os.path.islink(os.path.join(dirpath, d))]
+        for fn in filenames:
+            path = os.path.join(dirpath, fn)
+            parts = os.path.relpath(path, base).split(os.sep)
+            if len(parts) != 4 or os.path.islink(path):
+                continue
+            data = read_json(path)
+            if not isinstance(data, dict):
+                continue
+            registry, ns, model, tag = parts
+            if registry == "registry.ollama.ai":
+                name = ("%s:%s" % (model, tag)) if ns == "library" else ("%s/%s:%s" % (ns, model, tag))
+            else:
+                name = "%s/%s/%s:%s" % (registry, ns, model, tag)
+            digests = [(data.get("config") or {}).get("digest")] + [(l or {}).get("digest") for l in data.get("layers") or []]
+            blobs = []
+            for d in digests:
+                if isinstance(d, str) and re.match(r"^sha256:[0-9a-f]{64}$", d):
+                    for candidate in (d.replace(":", "-"), d):
+                        p = os.path.join(root, "blobs", candidate)
+                        if os.path.lexists(p):
+                            blobs.append(p)
+                            break
+            out[path] = (name, blobs)
+    return out
+
+
+def scan_models(ctx, procs, deadline, skipped):
+    """Models downloaded by Ollama, into the Hugging Face cache, and by LM Studio. An Ollama model's
+    size counts only the blobs no other model uses, since only those are freed."""
+    env = os.environ.get
+    cache = env("XDG_CACHE_HOME") or ctx.h(".cache")
+    hub = env("HF_HUB_CACHE") or (os.path.join(env("HF_HOME"), "hub") if env("HF_HOME") else os.path.join(cache, "huggingface", "hub"))
+    lms_roots = [ctx.h(".lmstudio", "models"), os.path.join(cache, "lm-studio", "models")]
+    items, wanted = [], []
+    running = {p["base"].lower() for p in procs.values()}
+    o_root = ollama_root(ctx)
+    for root in [o_root, hub] + lms_roots:
+        if not os.path.isdir(root):
+            continue
+        if os.path.islink(root):
+            skipped.append({"path": root, "reason": "symbolic link"})
+            continue
+        if time.time() > deadline:
+            skipped.append({"path": root, "reason": "time limit"})
+            continue
+        if root == o_root:
+            manifests = ollama_manifests(root)
+            uses = {}
+            for name, blobs in manifests.values():
+                for b in set(blobs):
+                    uses[b] = uses.get(b, 0) + 1
+            for path, (name, blobs) in sorted(manifests.items()):
+                own = sorted({b for b in blobs if uses[b] == 1})
+                size = sum(st.st_size for st in map(stat_or_none, own) if st)
+                it = disk_item("model", "ollama-model", name, path, size, False, "ollama", ["ollama", "rm", name], None,
+                               {"downloaded": iso(os.stat(path).st_mtime), "blobs": own, "root": root})
+                items.append(it)
+        elif root == hub:
+            for e in real_dirs(root):
+                if e.name.startswith("models--"):
+                    snaps = [s.stat(follow_symlinks=False).st_mtime for s in real_dirs(os.path.join(e.path, "snapshots"))]
+                    wanted.append(("hf-model", e.name[len("models--"):].replace("--", "/"), e.path, max(snaps) if snaps else e.stat().st_mtime, None))
+        else:
+            lock = "LM Studio is running" if running & {"lm studio", "lms"} else None
+            for pub in real_dirs(root):
+                for e in real_dirs(pub.path):
+                    wanted.append(("lmstudio-model", "%s/%s" % (pub.name, e.name), e.path, newest_mtime(e.path) or e.stat().st_mtime, lock))
+    sizes = du_sizes(ctx, [w[2] for w in wanted], deadline)
+    for kind, name, path, downloaded, lock in wanted:
+        size = sizes.get(path)
+        if size is None:
+            skipped.append({"path": path, "reason": "time limit"})
+            continue
+        if size < BUILD_MIN:
+            continue
+        items.append(disk_item("model", kind, name, path, size, False, "delete", None, lock, {"downloaded": iso(downloaded)}))
     return items
 
 
@@ -1133,13 +1651,20 @@ def cmd_scan(ctx, args):
     items = scan_processes(ctx, procs, first, elapsed, cwds)
     items += scan_login_items(ctx)
     items += scan_containers(ctx, procs, cwds)
+    # Models read a few known folders, so they come before the caches, whose sizes take longest.
+    items += scan_models(ctx, procs, deadline, skipped)
     items += scan_caches(ctx, procs, deadline, skipped)
     items += scan_app_caches(ctx, procs, running_ids, deadline, skipped)
     items += scan_docker(ctx, deadline, skipped)
     items += scan_trash_logs_installers(ctx, deadline, skipped)
     apps_dirs = args.apps_dir or (["/Applications", ctx.h("Applications")] if ctx.mac else [])
     items += scan_apps(ctx, procs, apps_dirs, deadline, skipped)
-    items += scan_home(ctx, args.root or [ctx.home], procs, cwds, deadline, skipped)
+    listed = {it["path"] for it in items if it.get("path")} | {p for it in items for p in (it.get("detail") or {}).get("support", [])}
+    items += scan_leftovers(ctx, procs, args.apps_dir or apps_dirs + ["/System/Applications"], listed, deadline, skipped)
+    found = {}
+    items += scan_home(ctx, args.root or [ctx.home], procs, cwds, deadline, skipped, found)
+    items += scan_projects(ctx, found["repos"], procs, cwds, deadline, skipped)
+    items += scan_tools(ctx, procs, found["version_files"], found["complete"], deadline, skipped)
     seen, unique = set(), []
     for it in items:
         if it["id"] not in seen:
@@ -1200,6 +1725,17 @@ def rank(ctx, it, last_commits):
         return "check", {"code": "own_file"}
     if cat == "duplicate":
         return "check", {"code": "duplicate"}
+    if cat == "project":
+        used = parse_iso((it.get("detail") or {}).get("last_used"))
+        return "check", {"code": "project_idle", "days": days_since(used, ctx.now) if used else 0}
+    if cat == "app" and it["kind"] == "leftover":
+        used = parse_iso((it.get("detail") or {}).get("last_used"))
+        return "check", {"code": "leftover", "days": days_since(used, ctx.now) if used else 0}
+    if cat == "tool":
+        return "check", {"code": "tool_unused"}
+    if cat == "model":
+        got = parse_iso((it.get("detail") or {}).get("downloaded"))
+        return "check", {"code": "model", "days": days_since(got, ctx.now) if got else 0}
     if cat == "app" and it["kind"] == "mac-app":
         used = parse_iso((it.get("detail") or {}).get("last_used"))
         return "check", ({"code": "app_unused", "days": days_since(used, ctx.now)} if used else {"code": "app_unused_unknown"})
@@ -1234,7 +1770,7 @@ def print_summary(ctx, result):
         elif it["group"] == "disk":
             c[1] += it["size"] or 0
     print("Scanned in %.0f seconds." % result["seconds"])
-    for cat in ("cache", "build", "trash", "log", "installer", "large", "duplicate", "app",
+    for cat in ("cache", "build", "trash", "log", "installer", "large", "duplicate", "project", "app", "tool", "model",
                 "dev-process", "heavy-process", "login-item", "container"):
         if cat in by:
             n, size, locked = by[cat]
@@ -1470,6 +2006,11 @@ def changed(ctx, item):
         return "changed after the scan (now a symbolic link)"
     if fp.get("ino") is not None and st.st_ino != fp["ino"]:
         return "changed after the scan (replaced)"
+    if item["category"] == "project":
+        why, _ = project_state(path, time.time())
+        return ("changed after the scan (%s)" % why) if why else None
+    if item["kind"] == "ollama-model":
+        return "changed after the scan" if st.st_mtime != fp.get("mtime") else None
     if item["category"] in ("installer", "large", "duplicate"):
         if st.st_size != fp.get("size") or st.st_mtime != fp.get("mtime"):
             return "changed after the scan"
@@ -1486,8 +2027,10 @@ def changed(ctx, item):
 
 
 def disk_lock_now(ctx, item, procs, cwds):
-    if item["category"] in ("build", "large", "duplicate"):
+    if item["category"] in ("build", "large", "duplicate", "project"):
         return folder_lock((item.get("detail") or {}).get("project") or find_repo(ctx, item["path"]), cwds, procs)
+    if item["category"] == "tool" and any((item["path"] + "/") in p["args"] for p in procs.values()):
+        return "a running program uses this version"
     if item["category"] == "app" and item["kind"] == "mac-app" and item["path"] in running_apps(procs):
         return "the app is running"
     return None
@@ -1502,9 +2045,56 @@ def find_repo(ctx, path):
     return None
 
 
-def free_disk_item(ctx, item, records):
+def remove_ollama_files(ctx, item):
+    """Removes what `ollama rm` removes while Ollama is not running: the manifest, and the blobs that
+    no other manifest uses now. Returns how many blobs it removed."""
+    root = (item.get("detail") or {}).get("root") or ollama_root(ctx)
+    path = item["path"]
+    used = {b for p, (_, blobs) in ollama_manifests(root).items() if p != path for b in blobs}
+    os.remove(path)
+    n = 0
+    for b in (item.get("detail") or {}).get("blobs", []):
+        if b not in used and os.path.lexists(b) and not os.path.islink(b) and safe_target(ctx, b, item):
+            os.remove(b)
+            n += 1
+    d = os.path.dirname(path)
+    while d.startswith(os.path.join(root, "manifests") + "/"):
+        try:
+            os.rmdir(d)
+        except OSError:
+            break
+        d = os.path.dirname(d)
+    return n
+
+
+def remove_version_links(path):
+    """Removes the links beside a deleted version that pointed at it, such as mise's 21 and 21.7."""
+    parent = os.path.dirname(path)
+    try:
+        names = os.listdir(parent)
+    except OSError:
+        return
+    for name in names:
+        link = os.path.join(parent, name)
+        if os.path.islink(link) and os.path.normpath(os.path.join(parent, os.readlink(link))) == os.path.normpath(path):
+            os.remove(link)
+
+
+def free_disk_item(ctx, item, records, procs):
     """Frees one disk item. Returns (status, note)."""
     action = item["action"]
+    if action == "ollama":
+        if any(p["base"].lower() == "ollama" for p in procs.values()):
+            if not shutil.which("ollama"):
+                return "failed", "Ollama is running, but the ollama command is not installed"
+            rc, _, err = run(item["command"], timeout=300)
+            if rc != 0:
+                return "failed", "%s exited %d: %s" % (" ".join(item["command"]), rc, (err.strip().splitlines() or [""])[-1][:200])
+            return "done", "ran %s" % " ".join(item["command"])
+        if not safe_target(ctx, item["path"], item):
+            return "skipped", "outside the places this plugin may change"
+        n = remove_ollama_files(ctx, item)
+        return "done", "Ollama is not running, so deleted the model's manifest and %d blobs no other model uses" % n
     if action == "tool":
         tool = item["command"][0]
         if shutil.which(tool):
@@ -1519,6 +2109,8 @@ def free_disk_item(ctx, item, records):
         return "skipped", "outside the places this plugin may change"
     if action == "delete":
         remove_tree(item["path"])
+        if item["category"] == "tool":
+            remove_version_links(item["path"])
         return "done", "deleted"
     if action == "empty-trash":
         root = item["path"]
@@ -1664,7 +2256,7 @@ def cmd_apply(ctx, args):
             if why:
                 line("skipped", it["id"], it["name"], why)
                 continue
-            status, note = free_disk_item(ctx, it, records)
+            status, note = free_disk_item(ctx, it, records, procs)
             failed = failed or status == "failed"
             docker_done = docker_done or (status == "done" and it["kind"].startswith("docker-"))
             line(status, it["id"], it["name"], note)

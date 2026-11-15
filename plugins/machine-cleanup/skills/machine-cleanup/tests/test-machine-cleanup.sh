@@ -53,7 +53,9 @@ export GIT_CONFIG_NOSYSTEM=1 GIT_AUTHOR_NAME=tester GIT_AUTHOR_EMAIL=tester GIT_
 # Variables that move a cache elsewhere would point the scan at this machine's real caches.
 unset XDG_CACHE_HOME XDG_DATA_HOME XDG_CONFIG_HOME XDG_STATE_HOME npm_config_cache NPM_CONFIG_CACHE \
   PNPM_HOME PNPM_STORE_DIR YARN_CACHE_FOLDER BUN_INSTALL BUN_INSTALL_CACHE_DIR PIP_CACHE_DIR UV_CACHE_DIR \
-  HOMEBREW_CACHE CARGO_HOME GOPATH GOMODCACHE GOCACHE GRADLE_USER_HOME CP_HOME_DIR DOCKER_HOST DOCKER_CONTEXT
+  HOMEBREW_CACHE CARGO_HOME GOPATH GOMODCACHE GOCACHE GRADLE_USER_HOME CP_HOME_DIR DOCKER_HOST DOCKER_CONTEXT \
+  NVM_DIR FNM_DIR PYENV_ROOT RBENV_ROOT ASDF_DATA_DIR ASDF_DEFAULT_TOOL_VERSIONS_FILENAME MISE_DATA_DIR MISE_CONFIG_DIR \
+  MISE_GLOBAL_CONFIG_FILE RUSTUP_HOME OLLAMA_MODELS HF_HUB_CACHE HF_HOME
 mkdir -p "$H"
 U="$(id -un)"
 UID_NOW="$(id -u)"
@@ -311,9 +313,12 @@ mkdir -p "$GONE_AS" "$LIB/Caches/com.oldvendor.gone" "$LIB/Saved Application Sta
 for f in "$GONE_AS/data" "$LIB/Caches/com.oldvendor.gone/blob" "$LIB/Saved Application State/com.oldvendor.gone.savedState/windows.plist" \
   "$LIB/Preferences/com.oldvendor.gone.plist" "$LIB/Application Support/com.gonevendor.app2/data" \
   "$LIB/Application Support/com.example.helper/data" "$LIB/Application Support/com.browserco.browser/data" \
-  "$LIB/Application Support/com.newvendor.tool/data" "$LIB/Application Support/OldThing/data" "$LIB/Preferences/com.apple.finder.plist"; do
+  "$LIB/Application Support/com.newvendor.tool/data" "$LIB/Application Support/OldThing/data" "$LIB/Preferences/com.apple.finder.plist" \
+  "$LIB/Preferences/futari.preferences.test.plist" "$LIB/Preferences/com.randomsdk.storage.ezeEu4UqtErfpKf9TpbuQ4UvWgqYL9Ik.plist"; do
   printf 'x' > "$f"
 done
+# A first part that is not a top-level domain, and a generated part, are not bundle ids of an app.
+old "$LIB/Preferences/futari.preferences.test.plist" "$LIB/Preferences/com.randomsdk.storage.ezeEu4UqtErfpKf9TpbuQ4UvWgqYL9Ik.plist"
 old "$GONE_AS/data" "$GONE_AS" "$LIB/Caches/com.oldvendor.gone/blob" "$LIB/Caches/com.oldvendor.gone" \
   "$LIB/Saved Application State/com.oldvendor.gone.savedState/windows.plist" "$LIB/Saved Application State/com.oldvendor.gone.savedState" \
   "$LIB/Preferences/com.oldvendor.gone.plist" "$LIB/Application Support/com.gonevendor.app2/data" \
@@ -338,7 +343,9 @@ MISE="$H/.local/share/mise/installs"
 for v in 21.7.3 24.22.1 26.12.1; do ver "$MISE/node/$v"; done
 ln -s ./21.7.3 "$MISE/node/21"; ln -s ./21.7.3 "$MISE/node/21.7"; ln -s ./24.22.1 "$MISE/node/24"; ln -s ./26.12.1 "$MISE/node/lts"
 ver "$MISE/python/3.10.13"
-mkdir -p "$H/.config/mise"; printf '[tools]\nnode = "24"\npython = "latest"\n' > "$H/.config/mise/config.toml"
+# mise keeps a command-line tool from npm, "npm:@pen.dev/cli" in its config, in npm-pen-dev-cli.
+ver "$MISE/npm-pen-dev-cli/0.3.12"; ln -s ./0.3.12 "$MISE/npm-pen-dev-cli/latest"
+mkdir -p "$H/.config/mise"; printf '[tools]\nnode = "24"\npython = "latest"\n"npm:@pen.dev/cli" = "latest"\n' > "$H/.config/mise/config.toml"
 for v in stable-aarch64-apple-darwin 1.70.0-aarch64-apple-darwin nightly-2024-01-01-aarch64-apple-darwin; do ver "$H/.rustup/toolchains/$v"; done
 printf 'version = "12"\ndefault_toolchain = "stable-aarch64-apple-darwin"\n' > "$H/.rustup/settings.toml"
 printf 'v22\n' > "$BLOG/.nvmrc"
@@ -480,23 +487,24 @@ no_leftover_named() {
   for n in "$@"; do ! leftover_named "$n" || { echo "  listed $n"; return 1; }; done
 }
 check "scan never lists a leftover that matches an installed app or process, changed recently, belongs to Apple, or has no bundle id name" \
-  'leftover_named com.oldvendor.gone && no_leftover_named com.example.helper com.browserco.browser com.newvendor.tool com.apple.finder OldThing && ! has ".items | any(.kind == \"leftover\" and ((.path | test(\"com.example|OldThing|com.apple\")) or ((.detail.support // []) | any(test(\"com.example|OldThing|com.apple\")))))"'
+  'leftover_named com.oldvendor.gone && no_leftover_named com.example.helper com.browserco.browser com.newvendor.tool com.apple.finder OldThing futari.preferences.test com.randomsdk.storage.ezeEu4UqtErfpKf9TpbuQ4UvWgqYL9Ik && ! has ".items | any(.kind == \"leftover\" and ((.path | test(\"com.example|OldThing|com.apple\")) or ((.detail.support // []) | any(test(\"com.example|OldThing|com.apple\")))))"'
 check "scan lists no app leftovers on Linux" \
   'leftover_named com.oldvendor.gone && jq -e ".items | all(.kind != \"leftover\")" "$LINUX_SCAN" > /dev/null 2>&1'
 
 tool_at() { cat_at tool "$1"; }
-UNUSED_TOOLS="$H/.nvm/versions/node/v18.20.4 $H/.pyenv/versions/3.9.18 $FNM/node-versions/v16.20.2 $H/.asdf/installs/nodejs/18.19.0 $MISE/node/21.7.3 $H/.rustup/toolchains/1.70.0-aarch64-apple-darwin"
-NAMED_TOOLS="$H/.nvm/versions/node/v20.11.1 $H/.nvm/versions/node/v22.1.0 $H/.pyenv/versions/3.12.1 $H/.pyenv/versions/3.11.7 $H/.rbenv/versions/3.3.0 $FNM/node-versions/v20.11.1 $H/.asdf/installs/nodejs/20.11.1 $MISE/node/24.22.1 $MISE/node/26.12.1 $H/.rustup/toolchains/stable-aarch64-apple-darwin $H/.rustup/toolchains/nightly-2024-01-01-aarch64-apple-darwin"
+# Arrays, since the fnm folder on macOS has a space in its path.
+UNUSED_TOOLS=("$H/.nvm/versions/node/v18.20.4" "$H/.pyenv/versions/3.9.18" "$FNM/node-versions/v16.20.2" "$H/.asdf/installs/nodejs/18.19.0" "$MISE/node/21.7.3" "$H/.rustup/toolchains/1.70.0-aarch64-apple-darwin")
+NAMED_TOOLS=("$H/.nvm/versions/node/v20.11.1" "$H/.nvm/versions/node/v22.1.0" "$H/.pyenv/versions/3.12.1" "$H/.pyenv/versions/3.11.7" "$H/.rbenv/versions/3.3.0" "$FNM/node-versions/v20.11.1" "$H/.asdf/installs/nodejs/20.11.1" "$MISE/node/24.22.1" "$MISE/node/26.12.1" "$MISE/npm-pen-dev-cli/0.3.12" "$H/.rustup/toolchains/stable-aarch64-apple-darwin" "$H/.rustup/toolchains/nightly-2024-01-01-aarch64-apple-darwin")
 unused_tools_listed() {
   local p
-  for p in $UNUSED_TOOLS; do
+  for p in "${UNUSED_TOOLS[@]}"; do
     has ".items | any(.category == \"tool\" and .path == \"$p\" and .locked == null and (.detail.tool | type) == \"string\" and (.detail.version | type) == \"string\" and (.size | type) == \"number\")" || { echo "  not listed $p"; return 1; }
   done
 }
 check "scan lists tool versions that are neither the default nor named by a project" 'unused_tools_listed'
 no_named_tool_listed() {
   local p
-  for p in $NAMED_TOOLS; do [ -z "$(tool_at "$p")" ] || { echo "  listed $p"; return 1; }; done
+  for p in "${NAMED_TOOLS[@]}"; do [ -z "$(tool_at "$p")" ] || { echo "  listed $p"; return 1; }; done
 }
 check "scan never lists a default version or one a project names, even by prefix or alias" \
   'unused_tools_listed > /dev/null && no_named_tool_listed'
@@ -521,7 +529,7 @@ check "scan ranks projects, app leftovers, tool versions, and models as check fi
 check "tool versions are locked when the default is unknown or the scan did not read every project" \
   'has ".items | any(.category == \"tool\" and .path == \"$MISE/python/3.10.13\" and (.locked // \"\" | test(\"default\")))" && jq -e "[.items[] | select(.category == \"tool\")] | length > 0 and all(.locked // \"\" | test(\"every project\"))" "$T/state-limit/scan.json" > /dev/null 2>&1'
 check "the new kinds stop at the time limit" \
-  'jq -e "(.items | all(.category != \"project\" and .category != \"model\")) and (.skipped | any(.reason == \"time limit\" and (.path | test(\"ollama|huggingface|lmstudio|lm-studio\"))))" "$T/state-limit/scan.json" > /dev/null 2>&1 && listed_project "$IDLE"'
+  'jq -e "(.items | all(.category != \"project\" and .category != \"model\" and .kind != \"leftover\")) and (.skipped | any(.reason == \"time limit\" and (.path | test(\"ollama|huggingface|lmstudio|lm-studio\"))))" "$T/state-limit/scan.json" > /dev/null 2>&1 && listed_project "$IDLE"'
 
 # --- the page -------------------------------------------------------------------------------
 sheet_ok() {
