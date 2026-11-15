@@ -149,7 +149,7 @@ mkdir -p "$BLOG/src"
 NOTES="$H/projects/notes"
 gitrepo "$NOTES"
 mkdir -p "$NOTES/web"
-printf 'p4242\nfcwd\nn%s\np1100\nfcwd\nn%s\np1101\nfcwd\nn%s\n' "$BLOG/src" "$NOTES" "$NOTES/web" > "$MOCK/lsof"
+printf 'p4242\nfcwd\nn%s\np1100\nfcwd\nn%s\np1101\nfcwd\nn%s\np1000\nfcwd\nn/\n' "$BLOG/src" "$NOTES" "$NOTES/web" > "$MOCK/lsof"
 
 # Trash, logs, and installers, old and new.
 mkdir -p "$H/.Trash"; printf 'old note' > "$H/.Trash/old-note.txt"
@@ -238,6 +238,10 @@ write_ps() {
     psline 1002 1000 "$U" '??' 700000 0:40.00 "$LSTART" '/Applications/Host.app/Contents/Resources/codex app-server'
     psline 1100 1 "$U" '??' 20000 0:01.00 "$LSTART" 'claude'
     psline 1101 1 "$U" '??' 90000 0:02.00 "$LSTART" 'node /work/notes/node_modules/.bin/vite'
+    # A helper whose path has spaces and starts with an agent's name, and a tool shipped inside an app.
+    psline 1200 1 "$U" '??' 650000 0:10.00 "$LSTART" '/Applications/Codex.app/Contents/Frameworks/Codex (Renderer).app/Contents/MacOS/Codex (Renderer) --type=renderer'
+    psline 1201 1 "$U" '??' 600000 0:10.00 "$LSTART" '/Applications/Xcode.app/Contents/Developer/usr/bin/git status'
+    psline 1202 1 "$U" '??' 600000 0:10.00 "$LSTART" '/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python -B job.py'
     psline "$P_TERM" 1 "$U" '??' 60000 0:01.00 "$LSTART" 'node /work/a/node_modules/.bin/vite'
     psline "$P_STUBBORN" 1 "$U" '??' 60000 0:01.00 "$LSTART" 'node /work/b/node_modules/.bin/nodemon'
     psline "$P_REUSED" 1 "$U" '??' 60000 0:01.00 "${2:-$LSTART}" 'node /work/c/node_modules/.bin/webpack serve'
@@ -298,6 +302,8 @@ check "a process under a live agent session or terminal is locked with a reason"
   'has "(.items | any(.pid == 501 and (.locked | type) == \"string\" and (.locked | test(\"agent\")))) and (.items | any(.pid == 700 and (.locked | type) == \"string\" and (.locked | test(\"terminal\"))))"'
 check "an app a live agent session runs in and a dev server in an agent's project are locked" \
   'has "(.items | any(.pid == 1000 and (.locked // \"\" | test(\"runs under it\")))) and (.items | any(.pid == 1001 and (.locked // \"\" | test(\"belongs to Host\")))) and (.items | any(.pid == 1002 and .name == \"codex\" and .locked == \"is a live agent session\")) and (.items | any(.pid == 1101 and .category == \"dev-process\" and (.locked // \"\" | test(\"project\"))))"'
+check "a process is named after its app or its own file, even when the path has spaces" \
+  'has "(.items | any(.pid == 1200 and .name == \"Codex\" and .locked == null)) and (.items | any(.pid == 1201 and .name == \"git\")) and (.items | any(.pid == 1202 and .name == \"Python\")) and (.items | any(.pid == 1001 and .name == \"Host\")) and (.items | any(.pid == 1000 and .detail.folder == null)) and (.items | any(.pid == 1101 and .detail.folder == \"$NOTES/web\" and (.detail.started | test(\"^2026-11-1[45]T\"))))"'
 check "build output in a folder a running process works in is locked" \
   'has ".items | any(.path == \"$BLOG/node_modules\" and (.locked | type) == \"string\")" && has ".items | any(.path == \"$SHOP/node_modules\" and .locked == null)"'
 

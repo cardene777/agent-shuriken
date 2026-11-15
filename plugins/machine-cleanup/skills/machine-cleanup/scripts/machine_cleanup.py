@@ -284,20 +284,41 @@ def read_procs():
         pid, ppid, user, tty, rss, cpu = parts[:6]
         args = parts[11].strip()
         tty = None if tty in ("??", "?", "-") else tty
-        first = args.split()[0] if args.split() else ""
         procs[int(pid)] = {
             "pid": int(pid), "ppid": int(ppid), "user": user, "tty": tty,
             "rss": int(rss) * 1024 if rss.isdigit() else 0, "cpu_time": cputime(cpu),
-            "lstart": " ".join(parts[6:11]), "args": args, "base": os.path.basename(first),
+            "lstart": " ".join(parts[6:11]), "args": args, "base": exe_name(args),
         }
     return procs
+
+
+def exe_name(args):
+    """The executable's file name. ps prints the command line with spaces unquoted, so a path such
+    as "/Applications/T3 Code.app/Contents/MacOS/T3 Code --flag" is cut at its first space. When the
+    first word stops before /Contents/MacOS/, the name is read from there up to the first option."""
+    tokens = args.split()
+    if not tokens:
+        return ""
+    mark = "/Contents/MacOS/"
+    if mark in args and mark not in tokens[0]:
+        rest = args[args.index(mark) + len(mark):]
+        return re.split(r"\s+-", rest, 1)[0].strip()
+    # A process that sets its own title, such as a PostgreSQL backend ("postgres: user db"), ends the name with a colon.
+    return os.path.basename(tokens[0]).rstrip(":")
+
+
+def started_at(lstart):
+    try:
+        return iso(time.mktime(time.strptime(lstart, "%a %b %d %H:%M:%S %Y")))
+    except ValueError:
+        return lstart
 
 
 def is_agent(proc):
     tokens = proc["args"].split()
     if not tokens:
         return False
-    first = os.path.basename(tokens[0]).lower()
+    first = proc["base"].lower()
     if first in AGENTS:
         return True
     if first in ("node", "bun", "deno") and len(tokens) > 1:
@@ -326,6 +347,18 @@ def self_chain(procs):
 def app_bundle(args):
     m = re.match(r"(/.+?\.app)/Contents/", args)
     return m.group(1) if m else None
+
+
+def app_name(args):
+    """The app a process's row is named after: the bundle that holds its executable, or the outer app
+    when that bundle is a helper inside the app's Contents/Frameworks (an Electron renderer)."""
+    i = args.find("/Contents/MacOS/")
+    if i < 0:
+        return None
+    bundle, outer = args[:i], app_bundle(args)
+    if outer and bundle.startswith(outer + "/Contents/Frameworks/"):
+        bundle = outer
+    return os.path.splitext(os.path.basename(bundle))[0]
 
 
 class AgentUse:
@@ -885,13 +918,13 @@ def file_hash(path, limit=None):
     return h.hexdigest()
 
 
-def proc_item(category, kind, proc, label, lock, cpu):
+def proc_item(category, kind, proc, label, lock, cpu, folder):
     args = redact(proc["args"])[:300]
     return {
         "id": item_id("p", category, proc["pid"], proc["lstart"]), "group": "process", "category": category, "kind": kind,
         "name": label, "path": None, "pid": proc["pid"], "size": proc["rss"], "cpu": round(cpu, 1), "rebuilt": False,
         "action": "terminate", "command": None, "locked": lock,
-        "detail": {"command": args, "started": proc["lstart"], "terminal": proc["tty"]},
+        "detail": {"command": args, "started": started_at(proc["lstart"]), "terminal": proc["tty"], "folder": folder},
         # The full command can hold a secret, so only its hash is kept to recognize the process later.
         "fingerprint": {"lstart": proc["lstart"], "args": args_hash(proc["args"])},
     }
@@ -912,13 +945,16 @@ def scan_processes(ctx, procs, first, elapsed, cwds):
         if pid in first and elapsed > 0 and first[pid]["lstart"] == p["lstart"]:
             cpu = max(0.0, (p["cpu_time"] - first[pid]["cpu_time"]) / elapsed * 100.0)
         label = dev_label(p["args"])
+        # Apps run from "/", which says nothing about what they work on.
+        folder = use.cwd.get(pid) if use.cwd.get(pid) != "/" else None
         if label:
-            items.append(proc_item("dev-process", "dev-process", p, label, process_lock(procs, p, use), cpu))
+            items.append(proc_item("dev-process", "dev-process", p, label, process_lock(procs, p, use), cpu, folder))
         elif p["rss"] >= HEAVY_RSS or cpu >= HEAVY_CPU:
-            # An agent bundled inside an app (Codex in ChatGPT) is named as the agent, not the app.
-            app = app_bundle(p["args"])
-            name = p["base"] if is_agent(p) or not app else os.path.basename(app)[:-4]
-            heavy.append(proc_item("heavy-process", "heavy-process", p, name, process_lock(procs, p, use), cpu))
+            # An agent bundled in an app (Codex in ChatGPT) and a tool shipped in one (git in Xcode)
+            # are named after their own file, not the app.
+            app = app_name(p["args"])
+            name = p["base"] if is_agent(p) or not app else app
+            heavy.append(proc_item("heavy-process", "heavy-process", p, name, process_lock(procs, p, use), cpu, folder))
     heavy.sort(key=lambda i: (i["size"] or 0) + (i["cpu"] or 0) * MIB, reverse=True)
     return items + heavy[:HEAVY_TOP]
 
