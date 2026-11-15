@@ -151,7 +151,7 @@ If yours does not, pass the port on the command line, for example `--port $PORT_
 In short:
 
 - It reads its registry, the listening TCP ports from `lsof` (or `/proc/net`), the running containers from `docker ps`, and, when you write ports into a project, that project's `.env.local` and Compose file
-- It opens and closes local sockets on the ports it tests, without sending any data
+- It opens and closes local sockets on the ports it tests, without sending any data. When a sandbox refuses the sockets, it shows those ports as `unknown` instead of free
 - It writes its registry, and in a project only `.env.local` and the Compose override, after you approve the change it shows
 - It never stops a program or a container, and sends nothing over the network
 - It keeps the registry in `~/.local/share/portman/`, readable only by you, until you delete it
