@@ -363,14 +363,14 @@ outside_code() {
       c = substr(t, 1, 1); n = (c == "`" || c == "~") ? run(t, c) : 0
       if (open == 0) {
         if (n >= 3) { open = n; mark = c; next }
-        print
+        line = $0; gsub(/`[^`]+`/, "", line); print line
       } else if (c == mark && n >= open && substr(t, n + 1) ~ /^[ \t]*$/) {
         open = 0
       }
     }' "$1"
 }
 
-# Links inside code are examples, not links, so only the text outside fences is read.
+# Links inside code are examples, not links, so only the text outside fences and inline code spans is read.
 check_links() {
   local f link target bad=0
   for f in $(all_files | grep '\.md$'); do
