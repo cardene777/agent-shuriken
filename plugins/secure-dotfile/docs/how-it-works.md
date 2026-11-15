@@ -120,6 +120,7 @@ Template source files (`.tmpl`) are edited the same way, without the syntax chec
 For each file with secrets inside a git repository, the script reads `git log --all -p` for that file and looks for each value inside its own process, reading at most 64 MB.
 `yes` means the value was committed to that file at some point, so it may already be on a remote; rotate that key.
 `no` means the value is not in that file's history, but it may still be in other files, in backups, or in the shell history.
+`unknown` means the history could not be read: git is not installed, git could not run, as the macOS `/usr/bin/git` cannot inside a sandbox that hides Xcode, or the history is larger than 64 MB. The value says which, and what to do, such as scanning again where git works.
 
 ## What it never does
 
