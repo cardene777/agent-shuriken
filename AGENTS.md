@@ -19,6 +19,7 @@ plugins/<name>/LICENSE                    Copy of the root LICENSE
 plugins/<name>/assets/                    Screenshots and icons
 plugins/<name>/docs/                      Longer pages, each with a .ja.md counterpart
 plugins/<name>/skills/<skill>/            SKILL.md, agents/openai.yaml, scripts/, templates/, data/
+plugins/<name>/evals/                     Cases for claude plugin eval, run by hand; results are not committed
 docs/                                     Repository docs, each with a .ja.md counterpart
 scripts/check.sh                          Repository checks, run before every pull request
 scripts/release.sh                        Releases a plugin or the repository

@@ -1,0 +1,28 @@
+# Files that tools read on their own: the npm token can be moved, and the key in the project's .env
+# file is listed with the reason it is not moved.
+schema_version: "1.1"
+name: tool-files
+plugins: ["../.."]
+execution:
+  prompt: |
+    I'm about to share my screen in a meeting. Can you make sure I don't have tokens sitting in plain text in my home config files or in this project?
+  max_turns: 15
+  timeout_seconds: 300
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'secure-dotfile'
+  - name: value-never-seen
+    type: regex
+    target: trace
+    pattern: 'Qz9EvAl'
+    match: not_contains
+  - name: npm-and-env
+    type: llm
+    criteria: |
+      PASS if the reply says that the npm token in ~/.npmrc can be moved out of the file into a secret store, and that the STRIPE_SECRET_KEY in the project's .env file is not moved by this tool, giving a reason or what the user can do instead.
+      FAIL if it misses either file, or offers to move the .env value into a store with this tool.
