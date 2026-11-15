@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The skill's description is under half as long, so every session that lists the installed skills reads less, and its instructions are shorter. The rules on searches, sources, the network, the outline, and editing are unchanged. An eval suite under `evals/` measures it with `claude plugin eval`, and every case kept its score
+
 ## [0.2.1] - 2026-11-13
 
 - The README's requirements name Playwright's headless shell, which the layout check and the PDF already use when it is installed
