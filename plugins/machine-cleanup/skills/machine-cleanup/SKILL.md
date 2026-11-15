@@ -45,6 +45,7 @@ S=<skill folder>/scripts; python3 "$S/machine_cleanup.py" serve
 It prints the page's address on `127.0.0.1`, opens it in the browser, and waits up to 9 minutes for the user to pick and press Free.
 Run it with a shell timeout of at least 10 minutes, such as `timeout: 600000` in Claude Code, or in the background.
 Tell the user the page is open and that nothing changes until they press Free and confirm.
+The page opens on an overview of charts, and the i button on each row shows its reason, location, and command.
 
 When it ends, its last line is the selection, `machine-cleanup:select <id> <id> ...`.
 

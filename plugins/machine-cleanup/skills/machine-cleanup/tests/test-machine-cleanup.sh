@@ -465,18 +465,18 @@ El.prototype.all = function () { return this.children.reduce(function (a, c) { r
 const document = { createElement: function (tag) { return new El(tag); } };
 function buttons(el) { return el.all().filter(function (e) { return e.tagName === "BUTTON"; }).length; }
 function texts(el) { return el.all().filter(function (e) { return !e.children.length && e.textContent !== ""; }).map(function (e) { return String(e.textContent); }); }
-const DATA = { home: "/home/u" };
+const DATA = { home: "/h" };
 const picked = new Set();
 """
 print("const I18N = %s;\nlet lang = \"en\";\n%s%s%s" % (words, dom, "".join(code), sys.argv[3]))
 PY
 }
 ROW_FNS="t human tilde when day effect lockText whyText isProc levelOf rowEl detailPairs detailEl"
-ROW_JS='const disk = { id: "d1", group: "disk", category: "build", name: "node_modules in app", path: "/home/u/projects/app/node_modules",
+ROW_JS='const disk = { id: "d1", group: "disk", category: "build", name: "node_modules in app", path: "/h/projects/app/node_modules",
   size: 1000000, level: "recommended", reason: { code: "build_idle", days: 42 }, rebuilt: true, locked: null };
 const proc = { id: "p1", group: "process", category: "dev-process", name: "Vite dev server", size: 52000000, cpu: 12,
   level: "recommended", reason: { code: "session_ended" }, locked: null,
-  detail: { command: "node vite --port 5173", folder: "/home/u/projects/app", started: "2026-11-15T01:02:00Z" } };
+  detail: { command: "node vite --port 5173", folder: "/h/projects/app", started: "2026-11-15T01:02:00Z" } };
 const busy = Object.assign({}, proc, { id: "p2", locked: "runs under a live agent session (codex, pid 9)" });
 function show(it) { return detailPairs(it).map(function (p) { return /^(d_reason|d_effect|d_started)$/.test(p[0]) ? p[0] : p[0] + "=" + p[1]; }).join(","); }
 const reason = detailPairs(disk)[0][1];
@@ -523,12 +523,12 @@ console.log("keys:" + keys.length + ":missing=" + missing.join(","));'
 chart_line() { printf '%s\n' "$CHART_OUT" | grep "^$1:" | head -1; }
 LIST_FNS="groupRows viewGroups"
 LIST_JS='const list = [
-  { id: "a", name: "Alpha cache", path: "/home/u/.cache/alpha", size: 300, level: "recommended", locked: null, group: "disk" },
-  { id: "b", name: "beta", path: "/home/u/Archive/beta", size: 100, level: "recommended", locked: null, group: "disk" },
-  { id: "c", name: "Gamma", path: "/home/u/x", size: 200, level: "recommended", locked: null, group: "disk" },
-  { id: "g", name: "golf", path: "/home/u/g", size: 150, level: "check", locked: null, group: "disk" },
-  { id: "d", name: "delta", path: "/home/u/archive/d", size: 50, level: "careful", locked: null, group: "disk" },
-  { id: "e", name: "Epsilon", path: "/home/u/e", size: 999, level: "recommended", locked: "in use", group: "disk" }];
+  { id: "a", name: "Alpha cache", path: "/h/.cache/alpha", size: 300, level: "recommended", locked: null, group: "disk" },
+  { id: "b", name: "beta", path: "/h/Archive/beta", size: 100, level: "recommended", locked: null, group: "disk" },
+  { id: "c", name: "Gamma", path: "/h/x", size: 200, level: "recommended", locked: null, group: "disk" },
+  { id: "g", name: "golf", path: "/h/g", size: 150, level: "check", locked: null, group: "disk" },
+  { id: "d", name: "delta", path: "/h/archive/d", size: 50, level: "careful", locked: null, group: "disk" },
+  { id: "e", name: "Epsilon", path: "/h/e", size: 999, level: "recommended", locked: "in use", group: "disk" }];
 const all = ["recommended", "check", "careful", "inuse"];
 function ids(gs) { return gs.map(function (g) { return g.key + ":" + g.items.map(function (i) { return i.id; }).join(""); }).join("|"); }
 console.log("path=" + ids(viewGroups(list, { query: "ARCHIVE", levels: all, sort: "size-desc" })) + " name=" + ids(viewGroups(list, { query: "gam", levels: all, sort: "size-desc" })));
