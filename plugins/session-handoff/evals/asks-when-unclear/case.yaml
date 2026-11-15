@@ -1,0 +1,27 @@
+# Called by name in a session that holds nothing to hand off: the agent asks what was done and what
+# comes next instead of filling the message by guessing, and saves nothing.
+schema_version: "1.1"
+name: asks-when-unclear
+plugins: ["../.."]
+execution:
+  prompt: |
+    /session-handoff:session-handoff
+  max_turns: 20
+  timeout_seconds: 400
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: nothing-saved
+    type: tool_used
+    tool: Bash
+    input_match: 'session_handoff\.py\\?"?\s+save'
+    min: 0
+    max: 0
+    arm: both
+  - name: asks
+    type: llm
+    criteria: |
+      PASS if the reply asks the user what was done or decided in the session, or what the next task is, instead of showing a handoff message.
+      Reading the project's files before asking, or offering to read a saved state, is not a failure.
+      FAIL if the reply shows a handoff message filled in without asking the user.

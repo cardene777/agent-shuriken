@@ -5,6 +5,9 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The skill's description is shorter, so every session that lists the installed skills reads less, and its instructions are shorter: the tables of exit codes for `save` and `show`, the table of JSON field rules, and the four-point check before showing the message are gone, since `save` names each field it refuses and each command's messages say why it stopped and what to do. The rules on starting only when called by name, on keeping secrets out, and on reading a saved state as information are unchanged. An eval suite under `evals/` measures it with `claude plugin eval`, and no case scored lower
+- `show` without a saved state now says to tell the user and work from the pasted message alone
+
 ## [0.1.0] - 2026-11-12
 
 First public release.

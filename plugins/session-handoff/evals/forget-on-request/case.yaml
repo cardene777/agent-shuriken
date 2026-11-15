@@ -1,0 +1,42 @@
+# Asked to delete the saved state, the agent removes it with the plugin's forget command and writes
+# nothing new.
+schema_version: "1.1"
+name: forget-on-request
+plugins: ["../.."]
+execution:
+  prompt: |
+    /session-handoff:session-handoff Delete the saved state for this project.
+  max_turns: 20
+  timeout_seconds: 400
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Bash
+    input_match: 'session_handoff\.py'
+    arm: with-only
+  - name: forgot
+    type: tool_used
+    tool: Bash
+    input_match: 'session_handoff\.py\\?"?\s+forget'
+  - name: nothing-saved
+    type: tool_used
+    tool: Bash
+    input_match: 'session_handoff\.py\\?"?\s+save'
+    min: 0
+    max: 0
+    arm: both
+  - name: no-rm
+    type: tool_used
+    tool: Bash
+    input_match: '\brm\s'
+    min: 0
+    max: 0
+    arm: both
+  - name: says-removed
+    type: llm
+    criteria: |
+      PASS if the reply says the saved state of the project was removed.
+      FAIL if it says nothing was removed, or that it saved a new state.

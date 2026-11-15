@@ -332,16 +332,22 @@ eval_cases() {
 check "the eval suite has the eight cases" eval_cases
 
 # fixture <case>: runs the case's fixture.sh the way claude plugin eval does (in home/cwd with HOME at
-# home, and none of this test's SESSION_HANDOFF_ settings) and prints the workspace.
+# home, which is a git repository, and none of this test's SESSION_HANDOFF_ settings) and prints the
+# workspace.
 fixture() {
   local ws="$T/fixture-$1/home/cwd"
   mkdir -p "$ws"
+  git init -q "$T/fixture-$1/home"
   (cd "$ws" && unset SESSION_HANDOFF_HOME SESSION_HANDOFF_NOW && HOME="$T/fixture-$1/home" bash "$EVALS/$1/fixture.sh") >/dev/null 2>&1 || return 1
   printf '%s\n' "$ws"
 }
-in_fixture() {  # in_fixture <case> <command...>: runs session_handoff.py as the eval would see it
+# in_fixture <case> <command...>: runs session_handoff.py as the agent in the eval would, where git
+# cannot run.
+PYTHON="$(command -v python3)"
+mkdir -p "$T/no-git"
+in_fixture() {
   local c="$1"; shift
-  (unset SESSION_HANDOFF_HOME SESSION_HANDOFF_NOW; HOME="$T/fixture-$c/home" run "$@")
+  (unset SESSION_HANDOFF_HOME SESSION_HANDOFF_NOW; HOME="$T/fixture-$c/home" PATH="$T/no-git" "$PYTHON" "$SCRIPT" "$@")
 }
 fixtures_ready() {
   local c ws out rc
@@ -374,8 +380,8 @@ results_ignored() {
 check "eval results are ignored by git" results_ignored
 
 # The body is counted in words and the description in characters, as the size the agent reads.
-SKILL_WORDS_MAX=1500
-SKILL_DESCRIPTION_MAX=300
+SKILL_WORDS_MAX=1485
+SKILL_DESCRIPTION_MAX=282
 skill_size() {
   python3 - "$SKILL" "$SKILL_WORDS_MAX" "$SKILL_DESCRIPTION_MAX" <<'PYEOF'
 import re, sys
