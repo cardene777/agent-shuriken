@@ -3,3 +3,5 @@
 __pycache__/
 *.pyc
 node_modules/
+# Eval runs write transcripts and scores here; they are never committed.
+plugins/*/evals/results/

@@ -484,14 +484,15 @@ def store_problem(store):
     if store == "keychain":
         if sys.platform == "darwin" and shutil.which("security"):
             return None
-        return "moving needs macOS and its security command"
+        return "moving needs macOS and its security command; use --store pass or --store 1password on other systems"
     if store == "secret-service":
         if shutil.which("secret-tool"):
             return None
-        return "moving on Linux needs secret-tool from libsecret, such as the libsecret-tools package"
+        return "moving on Linux needs secret-tool from libsecret; install it, such as the libsecret-tools package " \
+               "on Debian and Ubuntu, and run the move again"
     if store == "pass":
         if not shutil.which("pass"):
-            return "moving into pass needs the pass command"
+            return "moving into pass needs the pass command; install pass, or move into another store"
         if not os.path.isfile(os.path.join(PASS_DIR, ".gpg-id")):
             return "moving into pass needs a password store; set one up with `pass init` and your GPG key ID first"
         return None
@@ -499,10 +500,12 @@ def store_problem(store):
         # Only the command is looked for here: running op may ask the 1Password app for approval.
         if shutil.which("op"):
             return None
-        return "moving into 1Password needs the op command (1Password CLI)"
+        return "moving into 1Password needs the op command (1Password CLI); install it and sign in, or move into " \
+               "another store"
     if store:
         return "SECURE_DOTFILE_STORE must be keychain, secret-service, pass, or 1password"
-    return "moving needs macOS, Linux with secret-tool, pass, or the 1Password CLI"
+    return "moving needs macOS, Linux with secret-tool, pass, or the 1Password CLI; install one of them and " \
+           "run the move again"
 
 
 _op_vault = None
@@ -519,7 +522,8 @@ def op_vault():
         try:
             r = subprocess.run(["op", "vault", "list", "--format", "json"], capture_output=True, timeout=TIMEOUT)
         except subprocess.TimeoutExpired:
-            _op_vault = None, "1Password did not answer within %d s; it may be waiting for approval" % TIMEOUT
+            _op_vault = None, "1Password did not answer within %d s; approve the request in the 1Password app " \
+                                "and run the move again" % TIMEOUT
             return _op_vault
         names = None
         if r.returncode == 0:
@@ -530,12 +534,13 @@ def op_vault():
         hits = [n for n in names or [] if n in OP_DEFAULT_VAULTS]
         if r.returncode != 0:
             _op_vault = None, "could not reach 1Password (op exited with %d%s); sign in with op or turn on " \
-                              "the 1Password app integration" % (r.returncode, first_line(r.stderr))
+                              "the 1Password app integration, then run the move again" % (r.returncode, first_line(r.stderr))
         elif names is None:
-            _op_vault = None, "could not read the vault list that op printed"
+            _op_vault = None, "could not read the vault list that op printed; check that `op vault list` works, then run the move again"
         elif len(hits) != 1:
             _op_vault = None, "could not tell which vault op stores new items in: %s of your vaults is named " \
-                              "Private, Personal, or Employee" % ("none" if not hits else "more than one")
+                              "Private, Personal, or Employee; move the values by hand into the vault you choose" % (
+                                  "none" if not hits else "more than one")
         else:
             _op_vault = hits[0], None
     return _op_vault
@@ -605,13 +610,21 @@ def git_history(path, values):
     Returns (state, {value: bool}) where state is `repo`, `untracked`, `none`, or `unknown: ...`."""
     real = os.path.realpath(path)
     d = os.path.dirname(real)
+    # A git that cannot run, such as the macOS /usr/bin/git inside a sandbox that hides Xcode, is
+    # told apart from a folder outside any repository by git's own message, read in English.
     try:
-        r = subprocess.run(["git", "-C", d, "rev-parse", "--show-toplevel"], capture_output=True, text=True, timeout=20)
-    except (OSError, subprocess.TimeoutExpired):
-        return "none", {}
+        r = subprocess.run(["git", "-C", d, "rev-parse", "--show-toplevel"], capture_output=True, timeout=20,
+                           env=dict(os.environ, LC_ALL="C", LANGUAGE=""))
+    except OSError:
+        return "unknown: git is not installed, so the history was not checked", {}
+    except subprocess.TimeoutExpired:
+        return "unknown: git did not answer within 20 s; scan again", {}
     if r.returncode != 0:
-        return "none", {}
-    top = r.stdout.strip()
+        if b"not a git repository" in r.stderr:
+            return "none", {}
+        return "unknown: git could not run%s; scan again where git works, such as outside a sandbox" % (
+            first_line(r.stderr)), {}
+    top = r.stdout.decode("utf-8", "surrogateescape").strip()
     rel = os.path.relpath(real, top)
     t = subprocess.run(["git", "-C", top, "ls-files", "--error-unmatch", "--", rel], capture_output=True, text=True)
     if t.returncode != 0:
@@ -648,7 +661,7 @@ def git_history(path, values):
 def scan(extra):
     for f in extra:
         if not os.path.isfile(expand(f)):
-            print("no such file: %s" % f, file=sys.stderr)
+            print("no such file: %s; check the path given with --file" % f, file=sys.stderr)
             sys.exit(2)
     queue = [(f, 0) for f in startup_files()] + [(expand(f), 0) for f in extra]
     cannot_move = moving_problem()
@@ -792,9 +805,10 @@ def quote(s):
 def first_line(err):
     """The first line of a command's error output, as `: line`, or "" when it wrote none.
 
-    Only errors of `secret-tool`, `pass`, and the `op` commands that are given no value are passed
-    here. They describe the D-Bus session, the keyring, the GPG key, or the 1Password sign-in and
-    never repeat the value, which reaches the command on standard input."""
+    Only errors of `secret-tool`, `pass`, the `op` commands that are given no value, and
+    `git rev-parse` are passed here. They describe the D-Bus session, the keyring, the GPG key, the
+    1Password sign-in, or why git cannot run, and never repeat a value: a value reaches a store on
+    standard input, and `git rev-parse` reads no file content."""
     lines = err.decode("utf-8", "replace").strip().splitlines()
     if not lines:
         return ""
@@ -893,41 +907,50 @@ def store(name, value):
         if state == "found":
             if have == want:
                 return None
-            return "a different value is already stored as %s; remove or rename that item first" % name
+            return "a different value is already stored as %s; remove or rename that item in the store first, then run the " \
+                   "move again" % name
         if state == "many":
-            return "more than one item in the 1Password vault %s is named %s; remove or rename the others first" % (
+            return "more than one item in the 1Password vault %s is named %s; remove or rename the others in the " \
+                   "1Password app, then run the move again" % (
                 op_vault()[0], name)
         if state == "error":
             if STORE == "1password":
-                return "could not read 1Password (op exited with %d%s); sign in with op or unlock the 1Password app" % (
+                return "could not read 1Password (op exited with %d%s); sign in with op or unlock the 1Password app, " \
+                       "then run the move again" % (
                     code, err)
             if STORE == "secret-service":
                 return "could not reach the secret service (secret-tool exited with %d%s); " \
-                       "it may be locked or not running" % (code, err)
+                       "unlock the keyring in your desktop session and run the move again; over SSH it is often out of reach" % (
+                           code, err)
             if STORE == "pass":
-                return "could not read pass (pass exited with %d%s); the GPG key may be locked or missing" % (code, err)
-            return "could not read the keychain (security exited with %d); it may be locked" % code
+                return "could not read pass (pass exited with %d%s); unlock the GPG key in your own terminal, for example by " \
+                       "opening any entry with pass, and run the move again" % (code, err)
+            return "could not read the keychain (security exited with %d); unlock it and run the move again" % code
         added, added_err = add_secret(name, value)
         state, have, code, err = read_secret(name)
     except subprocess.TimeoutExpired:
-        return "%s did not answer within %d s; it may be waiting for a password" % (WHERE[STORE], TIMEOUT)
+        return "%s did not answer within %d s; answer its password prompt and run the move again" % (WHERE[STORE], TIMEOUT)
     if state == "found" and have == want:
         return None
     if STORE == "keychain":
-        return "the value could not be stored and read back (security exited with %d)" % code
+        return "the value could not be stored and read back (security exited with %d); unlock the keychain and run the " \
+               "move again" % code
     if STORE == "1password":
         if added != 0:
-            return "the value could not be stored in 1Password (op exited with %d)" % added
+            return "the value could not be stored in 1Password (op exited with %d); sign in with op and run the move " \
+                   "again" % added
         return "the value was stored in the 1Password vault %s as %s but could not be read back " \
                "(op exited with %d%s); check that item and run the move again" % (op_vault()[0], name, code, err)
     tool = "secret-tool" if STORE == "secret-service" else "pass"
     if added != 0:
-        return "the value could not be stored in %s (%s exited with %d%s)" % (WHERE[STORE], tool, added, added_err)
+        return "the value could not be stored in %s (%s exited with %d%s); unlock it and run the move again" % (
+            WHERE[STORE], tool, added, added_err)
     if STORE == "pass":
         # `pass insert` encrypts with the public key, so it succeeds while the private key is locked.
         return "the value was stored in pass as %s but could not be read back (pass exited with %d%s); " \
                "unlock the GPG key and run the move again" % (name, code, err)
-    return "the value could not be stored and read back (secret-tool exited with %d%s)" % (code, err)
+    return "the value could not be stored and read back (secret-tool exited with %d%s); unlock the keyring and run " \
+           "the move again" % (code, err)
 
 
 # ---------------------------------------------------------------------------
@@ -1060,7 +1083,7 @@ def move(specs, dry_run):
     for spec in specs:
         parsed = parse_item(spec)
         if not parsed or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", parsed[2]):
-            print("bad item: %s (expected PATH:LINE:NAME)" % spec, file=sys.stderr)
+            print("bad item: %s (expected PATH:LINE:NAME); pass each item as the scan printed it" % spec, file=sys.stderr)
             sys.exit(2)
         by_file.setdefault(parsed[0], []).append(parsed)
     for path, picks in by_file.items():
@@ -1069,7 +1092,7 @@ def move(specs, dry_run):
 
         if not os.path.isfile(path):
             for _, line, name in picks:
-                result(name, line, "skipped", "the file no longer exists")
+                result(name, line, "skipped", "the file no longer exists; scan again")
             continue
         kind = tool_kind(path)
         source = chezmoi_source(path)

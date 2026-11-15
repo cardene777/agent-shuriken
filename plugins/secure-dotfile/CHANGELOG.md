@@ -5,6 +5,9 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- Every error and skip reason says what to do next, such as `unlock the keyring in your desktop session and run the move again`, so the agent passes it on instead of reading a table of reasons. The skill's instructions are less than half as long, and the agent reads them each time the skill starts
+- When git cannot run, such as the macOS `/usr/bin/git` inside a sandbox that hides Xcode, `scan` says the git history is `unknown: git could not run`, with git's message and what to do, instead of `not in a git repository`. Without git it says `unknown: git is not installed`
+
 ## [0.7.0] - 2026-11-15
 
 - `scan` also reads files that tools read on their own: `~/.npmrc`, `~/.aws/credentials`, `~/.netrc`, and the `.env` and `.env.*` files of the folder it runs in
