@@ -225,6 +225,9 @@ h1 { font-size: 24px; margin: 0; }
     "eff_end": "Ends the process",
     "eff_login": "Stops at login",
     "eff_stop": "Stops the container",
+    "countOne": "1 item",
+    "countMany": "{n} items",
+    "countSize": "{count}, {size}",
     "eff_uninstall": "Uninstalled",
     "inUse": "In use",
     "lastUsed": "Last opened {date}",
@@ -316,6 +319,9 @@ h1 { font-size: 24px; margin: 0; }
     "eff_end": "プロセスを終了する",
     "eff_login": "ログイン時に起動しなくなる",
     "eff_stop": "コンテナを止める",
+    "countOne": "1件",
+    "countMany": "{n}件",
+    "countSize": "{count}、{size}",
     "eff_uninstall": "アンインストールする",
     "inUse": "使用中",
     "lastUsed": "最後に開いた日 {date}",
@@ -575,6 +581,11 @@ function openModal(id) { document.getElementById(id).hidden = false; }
 function closeModals() { document.querySelectorAll(".modal").forEach(function (m) { if (m.id !== "finished") m.hidden = true; }); }
 function showNote(key) { const n = document.getElementById("note"); n.textContent = t(key); n.hidden = false; }
 
+// One line of the confirm dialog: how many items an effect covers and, for disk items, their size.
+function sumText(n, size, disk) {
+  const count = n === 1 ? t("countOne") : t("countMany", { n: n });
+  return disk ? t("countSize", { count: count, size: human(size) }) : count;
+}
 function confirmFree() {
   const groups = {};
   pickedItems().forEach(function (it) {
@@ -590,7 +601,7 @@ function confirmFree() {
     const a = document.createElement("span");
     a.textContent = t(e);
     const b = document.createElement("b");
-    b.textContent = groups[e].n + (groups[e].disk ? "  " + human(groups[e].size) : "");
+    b.textContent = sumText(groups[e].n, groups[e].size, groups[e].disk);
     row.appendChild(a); row.appendChild(b);
     sum.appendChild(row);
   });
