@@ -33,6 +33,7 @@ Files of 500 MB or more that have no duplicate are large files.
 
 The result goes to `scan.json` in the state folder.
 Each item has an id (`d-` and eight hex digits for disk items, `p-` for processes, login items, and containers), a category, a kind, a size or memory use, whether it comes back on its own, how it is freed, the reason it is in use when it is, and a fingerprint for the check before acting.
+The file also keeps the free and whole disk from `df`, the memory in use and in all, and the load, which the overview tab draws.
 
 ## How rows are ranked
 
@@ -48,9 +49,36 @@ The level only orders the rows and explains them; `apply` checks every pick the 
 The headings of the recommended and check-first groups have a button that picks every row in the group except duplicates, which are picked one copy at a time so that one copy always stays.
 The careful and in-use groups have no such button, and the page opens with nothing picked.
 
+## The overview tab
+
+The page opens on the overview tab, which draws the scan as seven charts.
+Pressing a part of a ring or a legend row that leads to a tab opens that tab, and pressing a bar opens the details of that row.
+A value the scan could not measure is shown as "Not measured", never as zero.
+
+| Chart | What it shows |
+|---|---|
+| What can be freed | The disk each kind of row gives back, without rows in use and keeping one copy of each set of duplicates. The line below is how much of it is rebuilt on next use |
+| Size by level | The same disk split into recommended, check first, and careful, with the rows in use apart. The line below is the free disk after freeing every recommended row |
+| Disk | The whole disk as what you picked, what can be freed but is not picked, other use, and free space. The line below is the free disk after freeing what you picked |
+| Memory | Memory used by processes that can end, by processes in use, by everything else, and free memory. Containers are left out, since the process that runs them already counts their memory. The line below is the load over the last minute |
+| Largest items | The 8 largest rows on disk, coloured by their group |
+| Processes using the most memory | The 6 processes that use the most memory |
+| Processes using the most CPU | The 6 processes with the highest CPU share between the two `ps` samples |
+
+A row in the other tabs shows only its name, its size, and for a process or container its CPU share.
+The i button at the end of the row opens a dialog with the reason, what happens when it is freed, and the location, or for a process its memory, CPU share, start time, working folder, and command.
+A row that can be picked can also be picked or unpicked in that dialog.
+Above the rows, three tools change what the tab shows; they never change what is picked.
+
+| Tool | What it does |
+|---|---|
+| Search | Shows only the rows whose name or location holds the typed text, ignoring case |
+| Groups | One button per group. Turning a group off hides its rows |
+| Sort | Orders the rows inside each group largest first, smallest first, or by name |
+
 ## What counts as in use
 
-An item that is in use is listed with the reason and cannot be picked, on the page or in `apply`.
+An item that is in use is listed, its details give the reason, and it cannot be picked, on the page or in `apply`.
 
 | Reason | When |
 |---|---|

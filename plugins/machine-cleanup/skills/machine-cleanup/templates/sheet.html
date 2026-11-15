@@ -12,6 +12,7 @@
   --accent: #2f5bd3; --accent-text: #ffffff; --pick: #e8eefc; --rebuilt: #2e7d4f; --rebuilt-bg: #e7f5ec;
   --trash: #8a5a00; --trash-bg: #fff4dc; --gone: #c8342b; --gone-bg: #fdecea; --run: #5b3fb5; --run-bg: #efeafd;
   --lock: #6b7280; --lock-bg: #f1f2f4; --go: #2f5bd3; --check: #8a5a00; --care: #c8342b;
+  --c1: #2f5bd3; --c2: #2e9d8f; --c3: #d08a1c; --c4: #9b59d0; --c5: #d0506e; --c-other: #aab2c0; --c-free: #e3e7ee; --c-pick: #17357f;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -19,6 +20,7 @@
     --accent: #6d8ff0; --accent-text: #0d1117; --pick: #1f2a44; --rebuilt: #56d38a; --rebuilt-bg: #16301f;
     --trash: #e3b341; --trash-bg: #33290f; --gone: #ff7b72; --gone-bg: #3a1d1b; --run: #b9a6ff; --run-bg: #2a2342;
     --lock: #9aa3b2; --lock-bg: #232833; --go: #6d8ff0; --check: #e3b341; --care: #ff7b72;
+    --c1: #6d8ff0; --c2: #4cc3b3; --c3: #e3b341; --c4: #b98ef0; --c5: #f0788f; --c-other: #5d6676; --c-free: #2c3340; --c-pick: #c9d6ff;
   }
 }
 * { box-sizing: border-box; }
@@ -38,10 +40,6 @@ h1 { font-size: 24px; margin: 0; }
 .seg button + button { border-left: 1px solid var(--line); }
 .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); font-weight: 600; }
 .lead { margin: 6px 0 16px; color: var(--sub); }
-.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 18px; }
-.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; }
-.stat small { display: block; color: var(--sub); font-size: 13px; }
-.stat b { font-size: 22px; }
 .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin-bottom: 10px; overflow-x: auto; }
 .tabs button { font-weight: 600; color: var(--sub); background: none; border: 0; border-bottom: 3px solid transparent; padding: 10px 12px; cursor: pointer; white-space: nowrap; }
 .tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
@@ -66,7 +64,6 @@ h1 { font-size: 24px; margin: 0; }
 .group.lvl-check b { color: var(--check); }
 .group.lvl-careful b { color: var(--care); }
 .group.lvl-inuse b { color: var(--lock); }
-.why { font-size: 13px; overflow-wrap: anywhere; }
 .row[aria-disabled="true"] { cursor: default; background: var(--lock-bg); }
 .row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .mark { flex: none; width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--line); display: grid; place-items: center; font-size: 14px; font-weight: 700; color: var(--accent-text); }
@@ -75,14 +72,58 @@ h1 { font-size: 24px; margin: 0; }
 .main { flex: 1; min-width: 0; }
 .name { font-weight: 600; overflow-wrap: anywhere; }
 .where { color: var(--sub); font-size: 13px; overflow-wrap: anywhere; }
-.where.cmd { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
-.chip { font-size: 12px; padding: 1px 8px; border-radius: 999px; font-weight: 600; }
-.chip.rebuilt { color: var(--rebuilt); background: var(--rebuilt-bg); }
-.chip.trash { color: var(--trash); background: var(--trash-bg); }
-.chip.gone { color: var(--gone); background: var(--gone-bg); }
-.chip.run { color: var(--run); background: var(--run-bg); }
-.chip.lock { color: var(--lock); background: var(--soft); }
+.row .one { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cpu { flex: none; color: var(--sub); font-size: 13px; font-variant-numeric: tabular-nums; min-width: 72px; text-align: right; }
+.info { flex: none; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); color: var(--sub); font: italic 700 14px Georgia, serif; cursor: pointer; }
+.info:hover, .info:focus-visible { color: var(--accent); border-color: var(--accent); }
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 10px; }
+.toolbar[hidden], .overview[hidden], .list[hidden] { display: none; }
+.search { flex: 1 1 180px; min-width: 0; padding: 7px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--text); font: inherit; font-size: 14px; }
+.levels { display: flex; flex-wrap: wrap; gap: 6px; }
+.levels button { padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--sub); font-size: 13px; font-weight: 600; cursor: pointer; }
+.levels button[aria-pressed="true"] { color: var(--lv); border-color: var(--lv); background: var(--soft); }
+.sort { padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--text); font: inherit; font-size: 14px; }
+.overview { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; min-width: 0; }
+.card h3 { margin: 0 0 10px; font-size: 15px; }
+.overview .card:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.pie { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 14px 18px; }
+.donut { position: relative; flex: none; width: 156px; height: 156px; }
+.donut svg { width: 156px; height: 156px; transform: rotate(-90deg); overflow: visible; }
+.donut circle { fill: none; stroke-width: 20; transition: stroke-width .15s; }
+.donut circle.go { cursor: pointer; }
+.donut circle.go:hover { stroke-width: 26; }
+.anim .donut circle { animation: grow .8s ease-out both; }
+@keyframes grow { from { stroke-dasharray: 0 400; } }
+.mid { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; line-height: 1.25; }
+.mid small { color: var(--sub); font-size: 11px; }
+.mid b { font-size: 17px; }
+.legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; flex: 1 1 180px; min-width: 0; font-size: 13px; }
+.legend li { display: flex; align-items: center; gap: 8px; padding: 2px 6px; border-radius: 6px; }
+.legend li.go { cursor: pointer; }
+.legend li.go:hover, .legend li.go:focus-visible { background: var(--soft); }
+.legend i { flex: none; width: 10px; height: 10px; border-radius: 3px; }
+.legend span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.legend b, .foot b, .bars b { flex: none; font-weight: 600; font-variant-numeric: tabular-nums; }
+.foot { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--sub); }
+.foot b { color: var(--text); }
+.bars { display: grid; gap: 4px; }
+.bar-row { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(48px, 1fr) auto; align-items: center; gap: 10px; font-size: 13px; padding: 3px 6px; border-radius: 6px; cursor: pointer; }
+.bar-row:hover, .bar-row:focus-visible { background: var(--soft); }
+.bar-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.track { height: 12px; border-radius: 4px; background: var(--c-free); overflow: hidden; }
+.track i { display: block; height: 100%; border-radius: 4px; }
+.anim .track i { animation: widen .8s ease-out both; }
+@keyframes widen { from { width: 0; } }
+.bars b { min-width: 64px; text-align: right; }
+@media (prefers-reduced-motion: reduce) { .anim .donut circle, .anim .track i { animation: none; } }
+.lv { display: inline-block; font-size: 12px; font-weight: 700; }
+.lv-recommended { color: var(--go); } .lv-check { color: var(--check); } .lv-careful { color: var(--care); } .lv-inuse { color: var(--lock); }
+.det h2 { padding-right: 40px; overflow-wrap: anywhere; margin-bottom: 2px; }
+.det dl { margin: 4px 0 0; }
+.det dt { color: var(--sub); font-size: 12px; margin-top: 12px; }
+.det dd { margin: 2px 0 0; overflow-wrap: anywhere; white-space: pre-line; }
+.det dd.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; max-height: 168px; overflow: auto; background: var(--soft); padding: 6px 8px; border-radius: 8px; }
 .size { flex: none; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; min-width: 92px; }
 .size small { display: block; color: var(--sub); font-weight: 400; font-size: 12px; }
 .empty { padding: 28px; text-align: center; color: var(--sub); }
@@ -123,16 +164,20 @@ h1 { font-size: 24px; margin: 0; }
     </div>
   </div>
   <p class="lead" data-i18n="lead">Pick what to free. Nothing changes until you press Free and confirm.</p>
-  <div class="stats">
-    <div class="stat"><small data-i18n="statFree">Free disk</small><b id="stat-free">-</b></div>
-    <div class="stat"><small data-i18n="statMem">Memory used</small><b id="stat-mem">-</b></div>
-    <div class="stat"><small data-i18n="statLoad">Load over the last minute</small><b id="stat-load">-</b></div>
-    <div class="stat"><small data-i18n="statRebuilt">Rebuilt on next use</small><b id="stat-rebuilt">-</b></div>
-  </div>
   <div class="tabs" id="tabs" role="tablist"></div>
   <div class="tabhead">
     <p id="tab-lead"></p>
     <button type="button" class="tool" id="clear" data-i18n="clear">Clear</button>
+  </div>
+  <div class="overview" id="overview" hidden></div>
+  <div class="toolbar" id="toolbar">
+    <input type="search" class="search" id="search" data-i18n-ph="search" data-i18n-aria="search" placeholder="Search by name or location" aria-label="Search by name or location">
+    <div class="levels" id="levels" role="group" data-i18n-aria="levelGroup" aria-label="Groups to show"></div>
+    <select class="sort" id="sort" data-i18n-aria="sortLabel" aria-label="Sort">
+      <option value="size-desc" data-i18n="sortSizeDesc">Largest first</option>
+      <option value="size-asc" data-i18n="sortSizeAsc">Smallest first</option>
+      <option value="name" data-i18n="sortName">By name</option>
+    </select>
   </div>
   <div class="list" id="rows" role="list"></div>
 </main>
@@ -156,6 +201,12 @@ h1 { font-size: 24px; margin: 0; }
     </div>
   </div>
 </div>
+<div class="modal" id="detail" hidden>
+  <div class="dialog det" role="dialog" aria-modal="true" aria-labelledby="detail-title">
+    <button type="button" class="close" data-close data-i18n-aria="close" aria-label="Close">&times;</button>
+    <div id="detail-body"></div>
+  </div>
+</div>
 <div class="modal" id="help" hidden>
   <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="help-title">
     <button type="button" class="close" data-close data-i18n-aria="close" aria-label="Close">&times;</button>
@@ -166,6 +217,8 @@ h1 { font-size: 24px; margin: 0; }
     <p data-i18n="helpLock">A row is in use when a live agent session or an open terminal runs it, when a live agent session runs inside it or inside its app, or when a live agent session or another running program works in the same project. Close that session or program, and ask the agent to scan again.</p>
     <h3 data-i18n="helpLevelTitle">What the groups mean</h3>
     <p data-i18n="helpLevel">Recommended rows are rebuilt the next time they are needed, or were already thrown away or left unused for 30 days. Check first rows are your own files, apps, and login items, which you can put back. Careful rows are running programs and containers, whose work stops when they end.</p>
+    <h3 data-i18n="helpOverviewTitle">What the overview shows</h3>
+    <p data-i18n="helpOverview">What can be freed by kind and by group, the whole disk and memory, the largest items, and the processes using the most memory and CPU. Press a part of a chart to open its tab, or a bar to see that row. Each row's i button shows its reason, location, and command.</p>
     <h3 data-i18n="helpNeverTitle">What is never touched</h3>
     <p data-i18n="helpNever">Sync folders such as iCloud Drive, Dropbox, Google Drive, and OneDrive, Windows drives under WSL, files git tracks, Docker volumes, and anything that needs an administrator password.</p>
     <h3 data-i18n="helpNextTitle">What happens next</h3>
@@ -185,10 +238,58 @@ h1 { font-size: 24px; margin: 0; }
     "statusOn": "Connected to the agent",
     "statusOff": "The agent is not waiting",
     "lead": "Pick what to free. Nothing changes until you press Free and confirm.",
-    "statFree": "Free disk",
-    "statMem": "Memory used",
     "statLoad": "Load over the last minute",
     "statRebuilt": "Rebuilt on next use",
+    "search": "Search by name or location",
+    "levelGroup": "Groups to show",
+    "sortLabel": "Sort",
+    "sortSizeDesc": "Largest first",
+    "sortSizeAsc": "Smallest first",
+    "sortName": "By name",
+    "details": "Details",
+    "pick": "Pick",
+    "unpick": "Unpick",
+    "cpuShort": "CPU {cpu}%",
+    "notMeasured": "Not measured",
+    "ofTotal": "of {size}",
+    "tab_overview": "Overview",
+    "lead_overview": "What can be freed, and how the disk, memory, and CPU are used. Press a part of a chart to open its tab, or a bar to see that row.",
+    "ch_freeable": "What can be freed",
+    "ch_total": "In all",
+    "ch_levels": "Size by level",
+    "ch_afterRecommended": "Free disk after freeing the recommended rows",
+    "ch_disk": "Disk",
+    "ch_free": "Free",
+    "ch_picked": "Picked",
+    "ch_freeableLeft": "Can be freed, not picked",
+    "ch_other": "Other use",
+    "ch_afterPicked": "Free disk after freeing what you picked",
+    "ch_memory": "Memory",
+    "ch_used": "In use",
+    "ch_canEnd": "Processes that can end",
+    "ch_procInUse": "Processes in use",
+    "ch_largest": "Largest items",
+    "ch_memoryTop": "Processes using the most memory",
+    "ch_cpuTop": "Processes using the most CPU",
+    "d_reason": "Reason",
+    "d_inUse": "Why it is in use",
+    "d_effect": "When freed",
+    "d_size": "Size",
+    "d_path": "Location",
+    "d_memory": "Memory",
+    "d_cpu": "CPU",
+    "d_started": "Started",
+    "d_folder": "Working folder",
+    "d_command": "Command",
+    "d_program": "Program",
+    "d_lastUsed": "Last opened",
+    "d_copies": "Copies with the same content",
+    "d_contents": "Contents",
+    "d_image": "Image",
+    "d_runningFor": "Running for",
+    "d_project": "Compose project",
+    "helpOverviewTitle": "What the overview shows",
+    "helpOverview": "What can be freed by kind and by group, the whole disk and memory, the largest items, and the processes using the most memory and CPU. Press a part of a chart to open its tab, or a bar to see that row. Each row's i button shows its reason, location, and command.",
     "level_recommended": "Recommended",
     "level_check": "Check first",
     "level_careful": "Careful",
@@ -266,14 +367,7 @@ h1 { font-size: 24px; margin: 0; }
     "countMany": "{n} items",
     "countSize": "{count}, {size}",
     "eff_uninstall": "Uninstalled",
-    "inUse": "In use",
-    "lastUsed": "Last opened {date}",
-    "copies": "{n} copies with the same content",
     "oldFiles": "{n} files older than {days} days",
-    "started": "Started {date}",
-    "folder": "Working folder {path}",
-    "sep": ", ",
-    "memoryCpu": "{mem} memory, {cpu}% CPU",
     "empty": "Nothing found here.",
     "lock_agent": "A live agent session ({1}, pid {2}) runs this",
     "lock_isAgent": "This is a live agent session",
@@ -302,10 +396,58 @@ h1 { font-size: 24px; margin: 0; }
     "statusOn": "エージェントとつながっています",
     "statusOff": "エージェントが待っていません",
     "lead": "空ける物を選びます。「空ける」を押して確かめるまで、何も変わりません。",
-    "statFree": "ディスクの空き",
-    "statMem": "使用中のメモリ",
     "statLoad": "直近1分の負荷",
     "statRebuilt": "次に使う時に作り直される分",
+    "search": "名前か場所で探す",
+    "levelGroup": "出す段",
+    "sortLabel": "並べ替え",
+    "sortSizeDesc": "大きい順",
+    "sortSizeAsc": "小さい順",
+    "sortName": "名前順",
+    "details": "詳しく見る",
+    "pick": "選ぶ",
+    "unpick": "選択を外す",
+    "cpuShort": "CPU {cpu}%",
+    "notMeasured": "測れませんでした",
+    "ofTotal": "{size}のうち",
+    "tab_overview": "全体",
+    "lead_overview": "空けられる分と、ディスクとメモリとCPUの使われ方です。図の色を押すとそのタブへ、棒を押すとその行の詳しい情報へ移ります。",
+    "ch_freeable": "空けられる分の内訳",
+    "ch_total": "合計",
+    "ch_levels": "推奨度ごとの大きさ",
+    "ch_afterRecommended": "おすすめを空けた後の空き",
+    "ch_disk": "ディスク",
+    "ch_free": "空き",
+    "ch_picked": "選んだ分",
+    "ch_freeableLeft": "空けられる分 (選んでいない)",
+    "ch_other": "そのほかの使用中",
+    "ch_afterPicked": "選んだ分を空けた後の空き",
+    "ch_memory": "メモリ",
+    "ch_used": "使用中",
+    "ch_canEnd": "終わらせられるプロセス",
+    "ch_procInUse": "使用中のプロセス",
+    "ch_largest": "大きい物の上位",
+    "ch_memoryTop": "メモリを多く使うプロセス",
+    "ch_cpuTop": "CPUを多く使うプロセス",
+    "d_reason": "理由",
+    "d_inUse": "使用中の理由",
+    "d_effect": "空けると",
+    "d_size": "大きさ",
+    "d_path": "場所",
+    "d_memory": "メモリ",
+    "d_cpu": "CPU",
+    "d_started": "開始",
+    "d_folder": "作業フォルダ",
+    "d_command": "コマンド",
+    "d_program": "動かす物",
+    "d_lastUsed": "最後に開いた日",
+    "d_copies": "同じ中身のファイル",
+    "d_contents": "中身",
+    "d_image": "イメージ",
+    "d_runningFor": "動いている期間",
+    "d_project": "Composeのプロジェクト",
+    "helpOverviewTitle": "全体のタブ",
+    "helpOverview": "空けられる分を種類ごとと推奨度ごとに、ディスクとメモリの全体を、大きい物と、メモリとCPUを多く使うプロセスの上位を図にします。図の色を押すとそのタブへ、棒を押すとその行の詳しい情報へ移ります。行ごとのiのボタンで、理由と場所とコマンドを見られます。",
     "level_recommended": "おすすめ",
     "level_check": "確かめて選ぶ",
     "level_careful": "慎重に",
@@ -383,14 +525,7 @@ h1 { font-size: 24px; margin: 0; }
     "countMany": "{n}件",
     "countSize": "{count}、{size}",
     "eff_uninstall": "アンインストールする",
-    "inUse": "使用中",
-    "lastUsed": "最後に開いた日 {date}",
-    "copies": "同じ中身が{n}か所",
     "oldFiles": "{days}日より古いファイル{n}件",
-    "started": "開始 {date}",
-    "folder": "作業フォルダ {path}",
-    "sep": "、",
-    "memoryCpu": "メモリ{mem}、CPU{cpu}%",
     "empty": "ここには見つかりませんでした。",
     "lock_agent": "動いているエージェントの会話 ({1}、pid {2}) が動かしています",
     "lock_isAgent": "動いているエージェントの会話そのものです",
@@ -419,12 +554,22 @@ h1 { font-size: 24px; margin: 0; }
 const I18N = JSON.parse(document.getElementById("i18n").textContent);
 const DATA = JSON.parse(document.getElementById("data").textContent);
 const TABS = [
-  ["cache", ["cache"]], ["build", ["build"]], ["trash", ["trash", "log", "installer"]], ["files", ["large", "duplicate"]],
+  ["overview", []], ["cache", ["cache"]], ["build", ["build"]], ["trash", ["trash", "log", "installer"]], ["files", ["large", "duplicate"]],
   ["app", ["app"]], ["process", ["dev-process", "heavy-process"]], ["login", ["login-item"]], ["container", ["container"]]
 ];
+const LEVELS = ["recommended", "check", "careful", "inuse"];
+// The colour of each part of a chart and each group, by its key.
+const COLORS = {
+  cache: "var(--c1)", build: "var(--c2)", trash: "var(--c3)", files: "var(--c4)", app: "var(--c5)",
+  recommended: "var(--go)", check: "var(--check)", careful: "var(--care)", inuse: "var(--lock)",
+  picked: "var(--c-pick)", freeable: "var(--c1)", canEnd: "var(--c1)", inUse: "var(--lock)", other: "var(--c-other)", free: "var(--c-free)"
+};
 const picked = new Set();
+// What the list tabs show: rows whose name or location holds the query, in the groups switched on, in this order.
+const view = { query: "", levels: LEVELS.slice(), sort: "size-desc" };
 let lang = "en";
-let tab = "cache";
+let tab = "overview";
+let animate = true;
 let online = null;
 try { const saved = localStorage.getItem("machine-cleanup-lang"); if (saved === "ja" || saved === "en") lang = saved; } catch (e) { /* storage may be blocked */ }
 
@@ -483,20 +628,152 @@ function reasonText(s) {
   if (/Full Disk Access/.test(s)) return t("r_fda");
   return s;
 }
-function detailText(it) {
+// Processes the page can end: the rows of the processes tab. Containers are left out, since their
+// memory is already counted in the process that runs them.
+function isProc(it) { return it.category === "dev-process" || it.category === "heavy-process"; }
+function levelOf(it) { return it.locked ? "inuse" : (it.level || "check"); }
+// The disk that freeing these rows gives back: rows in use count for nothing, and of each set of
+// duplicates one copy always stays.
+function freeableSize(list) {
+  const sets = {};
+  return list.reduce(function (s, it) {
+    if (it.locked) return s;
+    const set = it.category === "duplicate" && it.detail && it.detail.set;
+    if (!set) return s + (it.size || 0);
+    const g = sets[set] || (sets[set] = { n: 0, total: (it.detail.copies || []).length ||
+      list.filter(function (x) { return x.detail && x.detail.set === set; }).length });
+    g.n += 1;
+    return g.n < g.total ? s + (it.size || 0) : s;
+  }, 0);
+}
+// A measured value, or the words for one that could not be measured (never shown as zero).
+function partText(v) { return v === null || v === undefined ? t("notMeasured") : human(v); }
+// The seven charts of the overview tab, as data: titles and labels are dictionary keys, values are
+// bytes (CPU in percent), and a value that could not be measured is null.
+function overviewCharts(items, m, pickedIds) {
+  const num = function (v) { return typeof v === "number" ? v : null; };
+  const sum = function (list) { return list.reduce(function (s, it) { return s + (it.size || 0); }, 0); };
+  const cats = function (key) { return (TABS.find(function (x) { return x[0] === key; }) || [key, []])[1]; };
+  const disk = items.filter(function (it) { return it.group === "disk"; });
+  const procs = items.filter(isProc);
+  const free = num(m.disk_free), whole = num(m.disk_total), used = num(m.memory_used), memTotal = num(m.memory_total);
+  const kinds = ["cache", "build", "trash", "files", "app"].map(function (key) {
+    return { key: key, label: "tab_" + key, tab: key, value: freeableSize(disk.filter(function (it) { return cats(key).indexOf(it.category) >= 0; })) };
+  });
+  const freeable = kinds.reduce(function (s, p) { return s + p.value; }, 0);
+  const levels = ["recommended", "check", "careful"].map(function (key) {
+    return { key: key, label: "level_" + key, value: freeableSize(disk.filter(function (it) { return !it.locked && levelOf(it) === key; })) };
+  }).concat([{ key: "inuse", label: "level_inuse", value: sum(disk.filter(function (it) { return it.locked; })) }]);
+  const chosen = sum(disk.filter(function (it) { return pickedIds.has(it.id) && !it.locked; }));
+  const other = whole === null || free === null ? null : Math.max(whole - free - freeable, 0);
+  const canEnd = sum(procs.filter(function (it) { return !it.locked; }));
+  const busy = sum(procs.filter(function (it) { return it.locked; }));
+  const top = function (list, by, n) { return list.slice().sort(function (a, b) { return (b[by] || 0) - (a[by] || 0); }).slice(0, n).map(function (it) { return { item: it, value: it[by] || 0 }; }); };
+  return [
+    { key: "freeable", kind: "pie", title: "ch_freeable", parts: kinds, center: { label: "ch_total", value: freeable },
+      foot: { label: "statRebuilt", value: sum(disk.filter(function (it) { return it.rebuilt && !it.locked; })) } },
+    { key: "levels", kind: "pie", title: "ch_levels", parts: levels, center: { label: "level_recommended", value: levels[0].value },
+      foot: { label: "ch_afterRecommended", value: free === null ? null : free + levels[0].value } },
+    { key: "disk", kind: "pie", title: "ch_disk", unknown: other === null,
+      parts: [{ key: "picked", label: "ch_picked", value: chosen }, { key: "freeable", label: "ch_freeableLeft", value: Math.max(freeable - chosen, 0) },
+        { key: "other", label: "ch_other", value: other }, { key: "free", label: "ch_free", value: free }],
+      center: { label: "ch_free", value: free, sub: whole }, foot: { label: "ch_afterPicked", value: free === null ? null : free + chosen } },
+    { key: "memory", kind: "pie", title: "ch_memory",
+      parts: [{ key: "canEnd", label: "ch_canEnd", tab: "process", value: canEnd }, { key: "inUse", label: "ch_procInUse", tab: "process", value: busy },
+        { key: "other", label: "ch_other", value: used === null ? null : Math.max(used - canEnd - busy, 0) },
+        { key: "free", label: "ch_free", value: used === null || memTotal === null ? null : Math.max(memTotal - used, 0) }],
+      center: { label: "ch_used", value: used, sub: memTotal }, foot: { label: "statLoad", value: m.load ? m.load[0] : null } },
+    { key: "largest", kind: "bars", title: "ch_largest", bars: top(disk, "size", 8) },
+    { key: "memoryTop", kind: "bars", title: "ch_memoryTop", bars: top(procs, "size", 6) },
+    { key: "cpuTop", kind: "bars", title: "ch_cpuTop", bars: top(procs, "cpu", 6) }
+  ];
+}
+// What the details dialog lists for a row: [dictionary key of the label, value, "mono" for paths and commands].
+function detailPairs(it) {
   const d = it.detail || {};
+  const out = [];
+  if (it.locked) out.push(["d_inUse", lockText(it.locked)]);
+  else if (whyText(it)) out.push(["d_reason", whyText(it)]);
+  out.push(["d_effect", t(effect(it)[0])]);
+  // Processes and containers have a memory size and a CPU share; login items have neither.
   if (it.group === "process" && it.category !== "login-item") {
-    const parts = [t("memoryCpu", { mem: human(it.size), cpu: it.cpu || 0 })];
-    if (d.started) parts.push(t("started", { date: when(d.started) }));
-    if (d.folder) parts.push(t("folder", { path: tilde(d.folder) }));
-    const command = d.command ? "\n" + d.command.split(DATA.home + "/").join("~/") : "";
-    return parts.join(t("sep")) + command;
+    out.push(["d_memory", human(it.size)]);
+    out.push(["d_cpu", (it.cpu || 0) + "%"]);
+    if (d.started) out.push(["d_started", when(d.started)]);
+    if (d.folder) out.push(["d_folder", tilde(d.folder), "mono"]);
+    if (d.command) out.push(["d_command", d.command.split(DATA.home + "/").join("~/"), "mono"]);
+    if (d.image) out.push(["d_image", d.image, "mono"]);
+    if (d.running_for) out.push(["d_runningFor", d.running_for]);
+    if (d.project) out.push(["d_project", d.project]);
+    return out;
   }
-  if (it.category === "login-item") return d.program || d.unit || "";
-  if (it.category === "app") return t("lastUsed", { date: day(d.last_used) });
-  if (it.category === "duplicate") return t("copies", { n: (d.copies || []).length });
-  if (it.category === "log") return t("oldFiles", { n: d.file_count || 0, days: d.older_than_days || 30 });
-  return "";
+  if (it.group === "disk") out.push(["d_size", human(it.size)]);
+  if (it.path) out.push(["d_path", tilde(it.path), "mono"]);
+  if (it.category === "login-item" && (d.program || d.unit)) out.push(["d_program", d.program || d.unit, "mono"]);
+  if (it.category === "app") out.push(["d_lastUsed", day(d.last_used)]);
+  if (it.category === "duplicate") out.push(["d_copies", (d.copies || []).map(tilde).join("\n"), "mono"]);
+  if (it.category === "log") out.push(["d_contents", t("oldFiles", { n: d.file_count || 0, days: d.older_than_days || 30 })]);
+  return out;
+}
+// The body of the details dialog. A row that can be picked gets one button that picks or unpicks it;
+// a row in use gets none.
+function detailEl(it) {
+  const box = document.createElement("div");
+  const h = document.createElement("h2");
+  h.id = "detail-title";
+  h.textContent = it.name;
+  box.appendChild(h);
+  const lv = document.createElement("span");
+  const levelKey = "level_" + levelOf(it);
+  lv.className = "lv lv-" + levelOf(it);
+  lv.textContent = t(levelKey);
+  box.appendChild(lv);
+  const dl = document.createElement("dl");
+  detailPairs(it).forEach(function (p) {
+    const dt = document.createElement("dt");
+    dt.textContent = t(p[0]);
+    dl.appendChild(dt);
+    const dd = document.createElement("dd");
+    dd.textContent = p[1];
+    if (p[2]) dd.className = p[2];
+    dl.appendChild(dd);
+  });
+  box.appendChild(dl);
+  if (!it.locked) {
+    const act = document.createElement("div");
+    act.className = "actions";
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "primary";
+    b.textContent = picked.has(it.id) ? t("unpick") : t("pick");
+    b.addEventListener("click", function () {
+      if (picked.has(it.id)) picked.delete(it.id); else picked.add(it.id);
+      closeModals();
+      render();
+    });
+    act.appendChild(b);
+    box.appendChild(act);
+  }
+  return box;
+}
+function openDetail(it) {
+  const body = document.getElementById("detail-body");
+  body.textContent = "";
+  body.appendChild(detailEl(it));
+  openModal("detail");
+}
+// The groups of a list tab after the search, the group switches, and the sort order of `view`.
+function viewGroups(list, v) {
+  const q = (v.query || "").trim().toLowerCase();
+  const rows = q ? list.filter(function (it) { return (String(it.name || "") + "\n" + String(it.path || "")).toLowerCase().indexOf(q) >= 0; }) : list;
+  const orders = {
+    "size-asc": function (a, b) { return (a.size || 0) - (b.size || 0); },
+    "name": function (a, b) { return String(a.name).localeCompare(String(b.name), lang, { sensitivity: "base", numeric: true }); }
+  };
+  return groupRows(rows).filter(function (g) { return v.levels.indexOf(g.key) >= 0; }).map(function (g) {
+    if (orders[v.sort]) g.items.sort(orders[v.sort]);
+    return g;
+  });
 }
 function itemsOf(key) {
   const cats = (TABS.find(function (x) { return x[0] === key; }) || [null, []])[1];
@@ -507,6 +784,7 @@ function applyLang() {
   document.documentElement.lang = lang;
   document.querySelectorAll("[data-i18n]").forEach(function (el) { el.textContent = t(el.getAttribute("data-i18n")); });
   document.querySelectorAll("[data-i18n-aria]").forEach(function (el) { el.setAttribute("aria-label", t(el.getAttribute("data-i18n-aria"))); });
+  document.querySelectorAll("[data-i18n-ph]").forEach(function (el) { el.placeholder = t(el.getAttribute("data-i18n-ph")); });
   document.querySelectorAll("#lang button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.lang === lang)); });
   document.title = t("title");
   renderStatus();
@@ -518,14 +796,7 @@ function renderStatus() {
   el.textContent = t(online === true ? "statusOn" : online === false ? "statusOff" : "statusWait");
   document.getElementById("copy").hidden = online !== false;
 }
-function renderStats() {
-  const m = DATA.measure || {};
-  document.getElementById("stat-free").textContent = human(m.disk_free);
-  document.getElementById("stat-mem").textContent = m.memory_used ? human(m.memory_used) + (m.memory_total ? " / " + human(m.memory_total) : "") : "-";
-  document.getElementById("stat-load").textContent = m.load ? m.load[0].toFixed(2) : "-";
-  const rebuilt = DATA.items.filter(function (it) { return it.rebuilt && !it.locked; }).reduce(function (s, it) { return s + (it.size || 0); }, 0);
-  document.getElementById("stat-rebuilt").textContent = human(rebuilt);
-}
+function goTab(key) { tab = key; animate = key === "overview"; render(); }
 function render() {
   const tabs = document.getElementById("tabs");
   tabs.textContent = "";
@@ -537,32 +808,167 @@ function render() {
     b.setAttribute("aria-selected", String(key === tab));
     const label = "tab_" + key;
     b.textContent = t(label);
-    const n = document.createElement("span");
-    n.textContent = key === "skipped" ? DATA.skipped.length : itemsOf(key).length;
-    b.appendChild(n);
-    b.addEventListener("click", function () { tab = key; render(); });
+    if (key !== "overview") {
+      const n = document.createElement("span");
+      n.textContent = key === "skipped" ? DATA.skipped.length : itemsOf(key).length;
+      b.appendChild(n);
+    }
+    b.addEventListener("click", function () { goTab(key); });
     tabs.appendChild(b);
   });
   const leadKey = "lead_" + tab;
   document.getElementById("tab-lead").textContent = t(leadKey);
-  document.getElementById("clear").hidden = tab === "skipped";
+  const overview = tab === "overview";
+  document.getElementById("clear").hidden = overview || tab === "skipped";
+  document.getElementById("toolbar").hidden = overview || tab === "skipped";
+  document.getElementById("overview").hidden = !overview;
   const rows = document.getElementById("rows");
+  rows.hidden = overview;
   rows.textContent = "";
-  if (tab === "skipped") {
-    DATA.skipped.forEach(function (s) { rows.appendChild(rowEl(tilde(s.path), reasonText(s.reason), null, null)); });
+  renderLevels();
+  if (overview) {
+    renderOverview();
+  } else if (tab === "skipped") {
+    DATA.skipped.forEach(function (s) { rows.appendChild(rowEl(tilde(s.path), reasonText(s.reason), null)); });
   } else {
-    groupRows(itemsOf(tab)).forEach(function (g) {
+    viewGroups(itemsOf(tab), view).forEach(function (g) {
       rows.appendChild(groupHead(g));
-      g.items.forEach(function (it) { rows.appendChild(rowEl(it.name, tilde(it.path) || "", it, detailText(it))); });
+      g.items.forEach(function (it) { rows.appendChild(rowEl(it.name, "", it)); });
     });
   }
-  if (!rows.children.length) {
+  if (!overview && !rows.children.length) {
     const e = document.createElement("div");
     e.className = "empty";
     e.textContent = t("empty");
     rows.appendChild(e);
   }
   renderTally();
+}
+// The group switches above the list: one button per group, pressed while its rows are shown.
+function renderLevels() {
+  const box = document.getElementById("levels");
+  box.textContent = "";
+  LEVELS.forEach(function (key) {
+    const b = document.createElement("button");
+    const levelKey = "level_" + key;
+    b.type = "button";
+    b.textContent = t(levelKey);
+    b.style.setProperty("--lv", COLORS[key]);
+    b.setAttribute("aria-pressed", String(view.levels.indexOf(key) >= 0));
+    b.addEventListener("click", function () {
+      view.levels = view.levels.indexOf(key) >= 0 ? view.levels.filter(function (k) { return k !== key; }) : view.levels.concat([key]);
+      render();
+    });
+    box.appendChild(b);
+  });
+}
+function renderOverview() {
+  const box = document.getElementById("overview");
+  box.textContent = "";
+  box.classList.toggle("anim", animate);
+  animate = false;
+  overviewCharts(DATA.items, DATA.measure || {}, picked).forEach(function (c) {
+    box.appendChild(c.kind === "bars" ? barCard(c) : pieCard(c));
+  });
+}
+function node(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+// Makes an element act as a button: it can be focused and pressed with Enter or Space.
+function pressable(el, label, act) {
+  el.tabIndex = 0;
+  el.setAttribute("role", "button");
+  el.setAttribute("aria-label", label);
+  el.addEventListener("click", act);
+  el.addEventListener("keydown", function (ev) { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); act(); } });
+}
+function card(c) {
+  const box = node("div", "card");
+  box.appendChild(node("h3", "", t(c.title)));
+  return box;
+}
+// A pie chart card: a ring of the measured parts, the legend with every part, and the line below it.
+function pieCard(c) {
+  const box = card(c);
+  const pie = node("div", "pie");
+  const ns = "http://www.w3.org/2000/svg";
+  const ring = node("div", "donut");
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", "0 0 136 136");
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", t(c.title));
+  const r = 52, round = 2 * Math.PI * r;
+  const shown = c.parts.filter(function (p) { return typeof p.value === "number" && p.value > 0; });
+  const total = shown.reduce(function (s, p) { return s + p.value; }, 0) || 1;
+  let offset = 0;
+  shown.forEach(function (p) {
+    const len = p.value / total * round;
+    const arc = document.createElementNS(ns, "circle");
+    arc.setAttribute("cx", 68); arc.setAttribute("cy", 68); arc.setAttribute("r", r);
+    arc.setAttribute("stroke", COLORS[p.key] || "var(--c-other)");
+    arc.setAttribute("stroke-dasharray", Math.max(len - 1.5, 0.8) + " " + round);
+    arc.setAttribute("stroke-dashoffset", -offset);
+    const tip = document.createElementNS(ns, "title");
+    tip.textContent = t(p.label) + " " + human(p.value);
+    arc.appendChild(tip);
+    if (p.tab) { arc.classList.add("go"); arc.addEventListener("click", function () { goTab(p.tab); }); }
+    svg.appendChild(arc);
+    offset += len;
+  });
+  ring.appendChild(svg);
+  const mid = node("div", "mid");
+  mid.appendChild(node("small", "", t(c.center.label)));
+  mid.appendChild(node("b", "", partText(c.center.value)));
+  if (c.center.sub !== undefined) mid.appendChild(node("small", "", c.center.sub === null ? t("notMeasured") : t("ofTotal", { size: human(c.center.sub) })));
+  ring.appendChild(mid);
+  pie.appendChild(ring);
+  const legend = node("ul", "legend");
+  c.parts.forEach(function (p) {
+    if (p.value === 0 && c.key !== "levels") return;
+    const li = node("li", p.tab ? "go" : "");
+    const dot = node("i");
+    dot.style.background = COLORS[p.key] || "var(--c-other)";
+    li.appendChild(dot);
+    li.appendChild(node("span", "", t(p.label)));
+    li.appendChild(node("b", "", partText(p.value)));
+    const tabKey = "tab_" + p.tab;
+    if (p.tab) pressable(li, t(tabKey), function () { goTab(p.tab); });
+    legend.appendChild(li);
+  });
+  pie.appendChild(legend);
+  box.appendChild(pie);
+  const foot = node("div", "foot");
+  foot.appendChild(node("span", "", t(c.foot.label)));
+  const v = c.foot.value;
+  foot.appendChild(node("b", "", c.foot.label === "statLoad" ? (v === null ? t("notMeasured") : v.toFixed(2)) : partText(v)));
+  box.appendChild(foot);
+  return box;
+}
+// A bar chart card: one bar per row, coloured by its group; pressing a bar opens that row's details.
+function barCard(c) {
+  const box = card(c);
+  const list = node("div", "bars");
+  const max = Math.max.apply(null, c.bars.map(function (b) { return b.value; }).concat([1]));
+  c.bars.forEach(function (b) {
+    const row = node("div", "bar-row");
+    row.title = b.item.name;
+    row.appendChild(node("span", "", b.item.name));
+    const track = node("div", "track");
+    const fill = node("i");
+    fill.style.width = (b.value / max * 100) + "%";
+    fill.style.background = COLORS[levelOf(b.item)];
+    track.appendChild(fill);
+    row.appendChild(track);
+    row.appendChild(node("b", "", c.key === "cpuTop" ? b.value + "%" : human(b.value)));
+    pressable(row, b.item.name, function () { openDetail(b.item); });
+    list.appendChild(row);
+  });
+  if (!c.bars.length) list.appendChild(node("div", "empty", t("empty")));
+  box.appendChild(list);
+  return box;
 }
 // The groups of one tab in the order the page shows them: recommended, check first, careful, and the
 // rows in use last. Within a group the largest comes first. Only the first two can be picked at once.
@@ -610,7 +1016,10 @@ function whyText(it) {
   const key = "why_" + r.code;
   return r.code ? t(key, { days: r.days }) : "";
 }
-function rowEl(name, where, it, extra) {
+// One row of a list tab: the name, the size, and for a process its CPU share. The reason, location,
+// and command are in the details dialog behind the i button. A row of the skipped tab has no item
+// and shows its reason under the place instead.
+function rowEl(name, where, it) {
   const row = document.createElement("div");
   row.className = it && !it.locked ? "row lvl-" + it.level : "row";
   row.setAttribute("role", "listitem");
@@ -619,42 +1028,31 @@ function rowEl(name, where, it, extra) {
   const main = document.createElement("div");
   main.className = "main";
   const n = document.createElement("div");
-  n.className = "name";
+  n.className = "name one";
   n.textContent = name;
   main.appendChild(n);
-  if (where) { const w = document.createElement("div"); w.className = "where"; w.textContent = where; main.appendChild(w); }
-  if (it && !it.locked && whyText(it)) { const w = document.createElement("div"); w.className = "why"; w.textContent = whyText(it); main.appendChild(w); }
-  // A process's command, on the line after its summary, is clipped to two lines; hovering shows all of it.
-  if (extra) extra.split("\n").forEach(function (x, i) {
-    const w = document.createElement("div");
-    w.className = i > 0 ? "where cmd" : "where";
-    if (i > 0) w.title = x;
-    w.textContent = x;
-    main.appendChild(w);
-  });
-  if (it) {
-    const chips = document.createElement("div");
-    chips.className = "chips";
-    const e = effect(it);
-    const c = document.createElement("span");
-    c.className = "chip " + e[1];
-    c.textContent = t(e[0]);
-    chips.appendChild(c);
-    if (it.locked) {
-      const l = document.createElement("span");
-      l.className = "chip lock";
-      l.textContent = t("inUse") + " — " + lockText(it.locked);
-      chips.appendChild(l);
-    }
-    main.appendChild(chips);
-  }
+  if (!it && where) { const w = document.createElement("div"); w.className = "where"; w.textContent = where; main.appendChild(w); }
   row.appendChild(it ? mark : document.createElement("span"));
   row.appendChild(main);
   if (it) {
+    if (it.group === "process" && it.category !== "login-item") {
+      const c = document.createElement("div");
+      c.className = "cpu";
+      c.textContent = t("cpuShort", { cpu: it.cpu || 0 });
+      row.appendChild(c);
+    }
     const s = document.createElement("div");
     s.className = "size";
     s.textContent = human(it.size);
     row.appendChild(s);
+    const info = document.createElement("button");
+    info.type = "button";
+    info.className = "info";
+    info.textContent = "i";
+    info.setAttribute("aria-label", t("details"));
+    info.addEventListener("click", function (ev) { ev.stopPropagation(); openDetail(it); });
+    info.addEventListener("keydown", function (ev) { ev.stopPropagation(); });
+    row.appendChild(info);
     if (it.locked) {
       row.setAttribute("aria-disabled", "true");
     } else {
@@ -760,7 +1158,8 @@ document.getElementById("free").addEventListener("click", function () { if (onli
 document.getElementById("send").addEventListener("click", send);
 document.getElementById("copy").addEventListener("click", copySelection);
 document.getElementById("clear").addEventListener("click", function () { itemsOf(tab).forEach(function (it) { picked.delete(it.id); }); render(); });
-renderStats();
+document.getElementById("search").addEventListener("input", function (ev) { view.query = ev.target.value; render(); });
+document.getElementById("sort").addEventListener("change", function (ev) { view.sort = ev.target.value; render(); });
 applyLang();
 ping();
 setInterval(ping, 4000);

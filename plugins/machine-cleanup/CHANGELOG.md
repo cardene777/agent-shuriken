@@ -9,10 +9,14 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 - Every row has a level, Recommended, Check first, or Careful, with the reason, and the page groups each tab by level with the count and size of each group and the rows in use last. The recommended and check-first groups have a button that picks the whole group, which replaces the tab's button that also picked careful rows
 - The scan summary says how many items are recommended and how much disk they hold
+- The page opens on an Overview tab with seven charts: what can be freed by kind, size by level, the whole disk with what is picked, memory, the largest items, and the processes using the most memory and CPU. Pressing a part of a chart opens its tab, and pressing a bar opens that row's details
+- The list tabs can be searched by name or location, filtered by group, and sorted largest first, smallest first, or by name
+- The scan records the whole disk size next to the free space
 
 ### Changed
 
-- A scan made by the previous version is refused with a request to scan again, since it has no levels
+- A scan made by a previous version is refused with a request to scan again, since it has no levels or no disk size
+- A row shows only its name, its size, and for a process its CPU share. The reason, location, command, and measurements moved to a dialog that the row's i button opens, where the row can also be picked
 
 ### Fixed
 

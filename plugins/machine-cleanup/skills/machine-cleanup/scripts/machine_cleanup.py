@@ -41,7 +41,7 @@ import time
 import urllib.parse
 
 FORMAT_VERSION = 1  # restore.json
-SCAN_VERSION = 2  # scan.json; 2 added each item's level and reason
+SCAN_VERSION = 3  # scan.json; 2 added each item's level and reason, 3 the whole disk size
 MIB = 1024 * 1024
 LARGE_FILE = 500 * MIB
 DUPLICATE_MIN = 10 * MIB
@@ -1072,13 +1072,16 @@ def scan_containers(ctx, procs, cwds):
 
 
 def measure(ctx):
-    free = None
+    # disk_total and disk_free are None when df cannot tell; the page then says "not measured".
+    free = total_disk = None
     _, stdout, _ = run(["df", "-k", ctx.home], timeout=20)
     lines = stdout.splitlines()
     if len(lines) >= 2:
         cols = lines[-1].split()
         if len(cols) >= 4 and cols[3].isdigit():
             free = int(cols[3]) * 1024
+        if len(cols) >= 4 and cols[1].isdigit():
+            total_disk = int(cols[1]) * 1024
     used = total = None
     if ctx.mac:
         _, vm, _ = run(["vm_stat"], timeout=20)
@@ -1102,7 +1105,7 @@ def measure(ctx):
         load = [round(x, 2) for x in os.getloadavg()]
     except OSError:
         load = None
-    return {"disk_free": free, "memory_used": used, "memory_total": total, "load": load}
+    return {"disk_free": free, "disk_total": total_disk, "memory_used": used, "memory_total": total, "load": load}
 
 
 # --- scan -----------------------------------------------------------------------------------
