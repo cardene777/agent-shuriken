@@ -220,7 +220,7 @@ types_guide() {
   "$PY" - "$SKILL_DIR/references/types.md" <<'PY'
 import re, sys
 text = open(sys.argv[1], encoding="utf-8").read()
-sections = dict(re.findall(r"^## (.+)\n(.*?)(?=^## |\Z)", text, re.M | re.S))
+sections = dict(re.findall(r"^## ([^\n]+)\n(.*?)(?=^## |\Z)", text, re.M | re.S))
 names = ["Progress", "Decision", "Request", "Incident", "Findings", "Announcement", "Question"]
 for name in names:
     body = sections.get(name)

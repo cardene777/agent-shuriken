@@ -16,6 +16,11 @@
       "description": "Research the candidates for a choice and write an HTML and PDF comparison report, with a source for every claim and a rationale for every score"
     },
     {
+      "name": "convey",
+      "source": "./plugins/convey",
+      "description": "Write messages that tell people what they need, with the conclusion first and nothing the reader does not need, for Slack, Discord, email, or GitHub, checked for length, formatting, and private details before they are copied"
+    },
+    {
       "name": "diagram-explainer",
       "source": "./plugins/diagram-explainer",
       "description": "Write an explainer as one HTML file with a figure drawn in every section, built from JSON and checked before you share it"

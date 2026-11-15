@@ -1,0 +1,43 @@
+# Release notes in Markdown become a Slack message without the formats Slack shows as typed: # headings,
+# **bold**, tables, and [text](url) links. The version and the date stay.
+schema_version: "1.1"
+name: slack-format
+plugins: ["../.."]
+execution:
+  prompt: |
+    Turn notes.md into a message I can paste into our team's Slack channel, and save it to message.md.
+  max_turns: 16
+  timeout_seconds: 400
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'convey'
+    arm: with-only
+  - name: facts-kept
+    type: regex
+    target: {source: file, path: message.md}
+    pattern: '(?=[\s\S]*2\.4\.0)(?=[\s\S]*(11月20日|11/20))'
+  - name: no-double-asterisks
+    type: regex
+    target: {source: file, path: message.md}
+    pattern: '\*\*'
+    match: not_contains
+  - name: no-headings
+    type: regex
+    target: {source: file, path: message.md}
+    pattern: '(^|\n) {0,3}#{1,6} '
+    match: not_contains
+  - name: no-table
+    type: regex
+    target: {source: file, path: message.md}
+    pattern: '(^|\n) *\|.*\|'
+    match: not_contains
+  - name: no-markdown-links
+    type: regex
+    target: {source: file, path: message.md}
+    pattern: '\[[^\]\n]+\]\([^)\s]+\)'
+    match: not_contains

@@ -1,0 +1,36 @@
+# A review request names the person on its first line, keeps the deadline and the pull request number, and
+# mentions no one else.
+schema_version: "1.1"
+name: request-with-deadline
+plugins: ["../.."]
+execution:
+  prompt: |
+    Write a Slack message asking @sato to review the pull request described in pr.md. I need the review by November 20. Save the message to message.md.
+  max_turns: 16
+  timeout_seconds: 400
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'convey'
+    arm: with-only
+  - name: mention-on-first-line
+    type: regex
+    target: {source: file, path: message.md}
+    pattern: '^\s*[^\n]*@sato'
+  - name: deadline-kept
+    type: regex
+    target: {source: file, path: message.md}
+    pattern: '11月20日|11/20|November 20|Nov\.? 20'
+  - name: pull-request-named
+    type: regex
+    target: {source: file, path: message.md}
+    pattern: '482'
+  - name: no-broadcast
+    type: regex
+    target: {source: file, path: message.md}
+    pattern: '@(here|channel|everyone)'
+    match: not_contains

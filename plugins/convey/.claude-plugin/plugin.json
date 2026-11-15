@@ -1,0 +1,20 @@
+{
+  "name": "convey",
+  "displayName": "Convey",
+  "version": "0.1.0",
+  "description": "Write messages that tell people what they need, with the conclusion first and nothing the reader does not need, for Slack, Discord, email, or GitHub, checked for length, formatting, and private details before they are copied",
+  "author": {
+    "name": "cardene777",
+    "url": "https://github.com/cardene777"
+  },
+  "homepage": "https://github.com/cardene777/agent-shuriken/tree/main/plugins/convey",
+  "repository": "https://github.com/cardene777/agent-shuriken",
+  "license": "MIT",
+  "keywords": [
+    "writing",
+    "communication",
+    "slack",
+    "discord",
+    "summary"
+  ]
+}
