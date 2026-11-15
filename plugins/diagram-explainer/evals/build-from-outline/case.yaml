@@ -1,0 +1,46 @@
+# With the outline already agreed, the agent writes the content, builds one self-contained HTML file
+# with the agreed sections, runs the check until it reports no problems, and hands over the file.
+schema_version: "1.1"
+name: build-from-outline
+plugins: ["../.."]
+execution:
+  prompt: |
+    Write an explainer of how the job queue in this project works, as one HTML file for my team. We already agreed on the outline, so build it without asking me again: one page in English, slug queue-lite, with four sections in this order.
+    1. What the queue does, with a figure of the parts and how they connect.
+    2. A job's states, with a figure of how a job moves between waiting, running, done, and failed.
+    3. Retries, with a figure of when each retry runs.
+    4. Terms, a glossary with no figure.
+  max_turns: 40
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'diagram-explainer'
+  - name: built
+    type: regex
+    target: {source: file, path: docs/explainers/queue-lite/queue-lite.html}
+    pattern: '<html lang="en"'
+  - name: self-contained
+    type: regex
+    target: {source: file, path: docs/explainers/queue-lite/queue-lite.html}
+    pattern: '<(script|link|img|iframe)\b[^>]*\b(src|href)="(https?:)?//'
+    match: not_contains
+  - name: checked-clean
+    type: regex
+    target: trace
+    pattern: '---- no problems'
+  - name: sections-as-agreed
+    type: llm
+    focus: {source: file, path: docs/explainers/queue-lite/queue-lite.html}
+    criteria: |
+      PASS if the document has these four sections in this order: what the queue does, a job's states, retries, and terms. The first three each have a figure with a caption that shows what the section is about, and the terms section is a glossary.
+      FAIL if a section is missing, out of order, or one of the first three has no figure.
+  - name: handed-over
+    type: llm
+    criteria: |
+      PASS if the reply gives the path of the finished HTML file and says whether the page layout was measured in a browser.
+      FAIL if it gives no path, or says the document was published or sent somewhere.

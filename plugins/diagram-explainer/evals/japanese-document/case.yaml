@@ -1,0 +1,40 @@
+# Asked in Japanese with the outline agreed, the agent writes a Japanese document: lang is ja, no
+# space stands between Japanese and ASCII in the text between tags, and the check, which applies the
+# Japanese wording rules, passes.
+schema_version: "1.1"
+name: japanese-document
+plugins: ["../.."]
+execution:
+  prompt: |
+    このprojectのジョブキューの仕組みを、チームに渡せる1つのHTMLの説明資料にしてください。構成は合意済みなので、もう聞かずに作ってください。ページは1つで日本語、slugはqueue-lite、節はこの順の3つです。
+    1. キューがすること。部品のつながりの図を付ける。
+    2. ジョブの状態。待ち、実行中、完了、失敗の間をジョブが動く図を付ける。
+    3. 用語。図の無い用語集。
+  max_turns: 40
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'diagram-explainer'
+  - name: built-in-japanese
+    type: regex
+    target: {source: file, path: docs/explainers/queue-lite/queue-lite.html}
+    pattern: '<html lang="ja"'
+  - name: no-space-between-japanese-and-ascii
+    type: regex
+    target: {source: file, path: docs/explainers/queue-lite/queue-lite.html}
+    pattern: '>[^<]*([぀-ヿ一-鿿] [A-Za-z0-9]|[A-Za-z0-9] [぀-ヿ一-鿿])[^<]*<'
+    match: not_contains
+  - name: checked-clean
+    type: regex
+    target: trace
+    pattern: '---- no problems'
+  - name: reply-in-japanese
+    type: llm
+    criteria: |
+      PASS if the reply is written in Japanese and gives the path of the finished HTML file.
+      FAIL if the reply is in English or gives no path.
