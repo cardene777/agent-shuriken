@@ -401,6 +401,27 @@ check_notices() {
   return "$bad"
 }
 
+# A plugin script that asks for packages beyond the Python standard library (PEP 723 `dependencies`)
+# is allowed only when the dependency rule in AGENTS.md names its plugin as an exception.
+check_script_dependencies() {
+  local f plugin rule bad=0
+  rule="$(grep -m1 'Keep runtime dependencies small' AGENTS.md)"
+  for f in $(all_files | grep -E '^plugins/[^/]+/skills/[^/]+/scripts/.*\.py$' | python3 -c '
+import re, sys
+block = re.compile(r"^# /// script$(.*?)^# ///$", re.S | re.M)
+for path in sys.stdin.read().split():
+    m = block.search(open(path, encoding="utf-8").read())
+    if m and re.search(r"^# dependencies = \[\n# +\"", m.group(1), re.M):
+        print(path)'); do
+    plugin="$(printf '%s\n' "$f" | cut -d/ -f2)"
+    case "$rule" in
+      *"\`$plugin\`"*) ;;
+      *) echo "$f asks for packages beyond the standard library, and AGENTS.md does not name $plugin"; bad=1 ;;
+    esac
+  done
+  return "$bad"
+}
+
 check_plugin_validate() {
   command -v claude >/dev/null || { echo "claude is not installed"; return 77; }
   local target bad=0
@@ -433,6 +454,7 @@ run "no email addresses" check_no_email
 run "English outside the Japanese pages" check_english
 run "no build output tracked" check_no_build_output
 run "bundled data is credited" check_notices
+run "script dependencies are named in AGENTS.md" check_script_dependencies
 run "claude plugin validate" check_plugin_validate
 
 printf '%d passed, %d failed, %d skipped\n' "$pass" "$fail" "$skip"
