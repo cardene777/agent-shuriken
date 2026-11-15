@@ -5,6 +5,9 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The rules for writing cases say that the eval sandbox does not let a process listen on a local port, and that `regex` graders are JavaScript regular expressions, without `(?m)`, `\A`, or `\Z`. Both cost a rerun when measuring init-project
+- After a failed try, the skill tries again on a copy with a new label, since `copy --replace` also removes the earlier result
+
 ## [0.1.0] - 2026-11-15
 
 First public release.

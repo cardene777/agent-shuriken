@@ -1,6 +1,6 @@
 ---
 name: init-project
-description: Sets up a project for local work. It tells what kind of project a folder is, picks a free local port that no other project set up with it uses, writes a Docker setup (Dockerfile, compose file, and a local override with the port), and links the project's env files to 1Password by writing op:// references, so no value passes through the agent. Every file is shown first and written only after the user approves, and existing files are kept unless the user names one to replace. Use when the user starts a new project, wants to add Docker to an existing one, or wants to move environment variables into 1Password.
+description: Sets up a project for local work with a free local port, a Docker setup, and env files linked to 1Password by op:// references, writing each file only after the user approves the plan. Use when the user starts a new project, wants to add Docker to one, or wants to move environment variables into 1Password.
 ---
 
 # Init project
@@ -56,19 +56,8 @@ In a monorepo, use the folder of the package that installs and runs on its own.
 S=<skill folder>/scripts; python3 "$S/init_project.py" detect --dir <project folder>
 ```
 
-It prints the kind of project and why, the runtime and package manager, the dev command, whether a Docker template fits, the Docker files that already exist, the env files with their number of names, whether `op` (the 1Password CLI) and `docker` are installed, and any port already assigned.
-The first rule that matches decides the kind.
-
-| Kind | When |
-|---|---|
-| `smart-contract` | `foundry.toml`, or a Hardhat config such as `hardhat.config.ts` |
-| `cli` | `package.json` with a `bin` field, or `Cargo.toml` that builds a binary |
-| `web-app` | `package.json` with a `dev` or `start` script, or Python dependencies on Django, FastAPI, Flask, or uvicorn |
-| `library` | Any other `package.json`, `Cargo.toml`, `pyproject.toml`, `requirements.txt`, or `setup.py` |
-| `unknown` | None of these files |
-
 Docker templates exist for Node and Python web apps and for local chains with Foundry (anvil) and Hardhat.
-Tell the user the kind and the reason in one sentence, and which parts can be set up.
+Tell the user the kind and the reason `detect` prints in one sentence, and which parts can be set up.
 
 ## 3. Ask what to set up
 
@@ -91,17 +80,7 @@ In other agents, ask in the chat in one message.
 S=<skill folder>/scripts; python3 "$S/init_project.py" plan --dir <project folder> <flags>
 ```
 
-| Flag | Use |
-|---|---|
-| `--docker` | The Docker files and their local port |
-| `--assign-port` | Only the local port, for a web app or local chain that will run without Docker |
-| `--env --vault <vault>` | A `.tpl` file of references for each env file, and the commands that put the values into 1Password |
-| `--item <name>` | The 1Password item, instead of the folder name |
-| `--env-file <file>` | Link only this env file. Repeatable |
-| `--port <n>` | Use this local port. It must be free and not assigned to another project |
-| `--from <n>` | The first port to try when picking one (default 3100) |
-| `--overwrite <file>` | Replace this existing Docker file. Use it only after the user asked to replace that file |
-| `--service <name>`, `--container-port <n>` | For a compose file the project already has: the service that gets the local port, and the port it listens on inside its container |
+`plan --help` describes every flag.
 
 | Mode | Flags |
 |---|---|
@@ -111,14 +90,6 @@ S=<skill folder>/scripts; python3 "$S/init_project.py" plan --dir <project folde
 
 The plan writes nothing into the project.
 It prints a plan id and every change.
-
-| Mark | Meaning |
-|---|---|
-| `[create]` | A new file, shown in full |
-| `[overwrite]` | An existing file to replace, shown as a diff. Only with `--overwrite` |
-| `[append]` | Lines to add at the end of an existing file, such as `.gitignore` or a `.tpl` file |
-| `[skip]` | A file that is kept, with the reason |
-
 Under `After writing` it prints how to start the project and, for 1Password, the commands for the user's terminal.
 When an existing compose file has several services, the plan stops and names them; ask the user which one gets the port and pass `--service`.
 
@@ -184,14 +155,8 @@ From the output of `apply`, tell the user these things.
 
 ## When something fails
 
-| Exit code | Meaning | What to do |
-|---|---|---|
-| 1 | Nothing found: no env file with variables, an unknown plan id, or a project folder that is gone | Explain, or run `plan` again |
-| 2 | Bad input, such as a vault name with characters references cannot hold, `--overwrite` on an env file, or a compose file with several services and no `--service` | Fix the flags as the message says. A vault can be named by the ID that `op vault list` shows |
-| 3 | `op` is not installed | Linking needs the 1Password CLI. The other parts still work |
-| 4 | `apply` skipped items that changed after the plan | Tell the user which, and plan again |
-| 5 | No Docker template for this kind of project | Say which templates exist. The port and 1Password parts still work |
-| 6 | The port is in use or assigned to another project | Pick another port, or leave out `--port` to pick a free one |
+Each command's message says why it stopped and what to do; follow it, and tell the user.
+When `op` is missing or no Docker template fits, the other parts still work.
 
 ## Other commands
 
