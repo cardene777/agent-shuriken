@@ -6,6 +6,7 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 ## [Unreleased]
 
 - The skill's description is half as long, so every session that lists the installed skills reads less, and its instructions are shorter: the tables of project kinds, `plan` flags, plan marks, and exit codes are gone, since `detect`, `plan --help`, and each command's own messages say the same. The rules that keep env values away from the agent, ask before writing, and keep existing files are unchanged. An eval suite under `evals/` measures it with `claude plugin eval`, and no case scored lower
+- With an existing `.tpl` file, the 1Password commands copy only the variables whose line reads from the plan's item. Before, they also copied a variable whose kept line read from another item or held a value, so its value was stored in one more place than the template uses. The plan now names the variables it left out, without showing their lines
 
 ## [0.2.0] - 2026-11-14
 
