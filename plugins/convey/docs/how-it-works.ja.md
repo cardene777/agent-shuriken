@@ -41,6 +41,7 @@
 - エージェントはスキルのフォルダから`python3 convey.py`を動かします。読み込むのはPythonの標準ライブラリだけです
 - `copy --to <貼る先> [--lines A-B] [ファイル]`は、文か、A行目からB行目までに同じ確かめを回し、直す行があれば1で断ります。無ければ`PATH`から`pbcopy`、`wl-copy`、`xclip`、`xsel`、`clip.exe`の順に探し、最初に成功した道具へ文を渡します。`clip.exe`にはUTF-16で渡します。1つも見つからない時と全て失敗した時は、`not copied`を出して3で終わります
 - エージェントが`gh issue view`、`gh pr view`、`git log`、`git show`を動かすのは、Issue、PR、commitを指した時だけです。`gh`はあなたのサインインを使います
+- 日本語の文を書く時に`japanese-writing`のスキルが入っていれば、エージェントはそのスキルの決まりと`references/connecting.md`を読みます。`references/connecting.md`は、長い文を区切って短い文を接続詞で結ぶ手引きです。ほかのプラグインからはこれ以外を読みません
 - どこへも送らず、プラグインが投稿することはありません。道具は文を1つ読み、端末に出すだけです
 
 ## 残す物

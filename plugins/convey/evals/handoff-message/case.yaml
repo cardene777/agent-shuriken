@@ -1,7 +1,8 @@
 # A designer's long message about uploaded screens becomes a short Discord message that keeps what the
 # developer cannot get by opening the files (how to unzip, what pen can edit, the two undecided points) and
 # leaves out what the files already explain (why the zip is split, what each zip holds, what the labels mean),
-# with no line written as a label and a colon.
+# with no line written as a label and a colon, and with at least two sentences that start with a
+# conjunction, so that the short sentences read as connected.
 schema_version: "1.1"
 name: handoff-message
 plugins: ["../.."]
@@ -47,3 +48,7 @@ graders:
     type: regex
     target: {source: file, path: message.md}
     pattern: '^[\s\S]{1,500}$'
+  - name: connected
+    type: regex
+    target: {source: file, path: message.md}
+    pattern: '(?:(?:^|[。！？\n])[ \t　]*(?:[-*•・][ \t]*)?(?:しかし|ところが|ただし|でも|そのため|だから|したがって|なので|ですので|そこで|ついては|また|さらに|そして|それから|加えて|まず|次に|最後に|なお|つまり|例えば|一方|ちなみに)[\s\S]*?){2}'

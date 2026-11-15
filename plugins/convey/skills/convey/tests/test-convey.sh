@@ -297,6 +297,8 @@ check "the SKILL.md writes every line as a sentence" \
   'has_phrases "$SKILL_DIR/SKILL.md" "including list items" "particles" "spaces, colons" "its own sentence" "no headings"'
 check "the type guide leaves to the linked material what the reader can read there" \
   'has_phrases "$SKILL_DIR/references/types.md" "leave the part to that material"'
+check "the SKILL.md shows how sentences relate with connecting words" \
+  'has_phrases "$SKILL_DIR/SKILL.md" "connecting word" "a reason" "a contrast" "an order" "an addition" "references/connecting.md"'
 
 # --- the eval suite
 
@@ -334,6 +336,32 @@ fixtures_build() {
   done
 }
 check "the eval fixtures build the texts their cases start from" "fixtures_build"
+
+# The `connected` grader passes a message in which at least two sentences start with a conjunction and
+# fails one with fewer. Its pattern uses only syntax that Python and JavaScript read the same way.
+connected_grader() {
+  "$PY" - "$PLUGIN_DIR/evals/handoff-message/case.yaml" "$PLUGIN_DIR/evals/long-report-to-discord/case.yaml" <<'PY'
+import re, sys
+two = "@ken 新しい画面を上げました。\nまず、2つのzipを同じフォルダに置いてから解凍してください。\nただし、penで直せるのは文字だけです。\n"
+one = "@ken 新しい画面を上げました。\nまず、2つのzipを同じフォルダに置いてから解凍してください。\npenで直せるのは文字だけです。\n"
+none = "@ken 新しい画面を上げました。\n2つのzipを同じフォルダに置いて解凍してください。\npenで直せるのは文字だけです。\n"
+for path in sys.argv[1:]:
+    try:
+        text = open(path, encoding="utf-8").read()
+    except OSError:
+        sys.exit(1)
+    block = re.search(r"- name: connected\n((?:    .*\n)+)", text)
+    if not block or "type: regex" not in block.group(1) or "path: message.md" not in block.group(1):
+        sys.exit(1)
+    quoted = re.search(r"^    pattern: '((?:[^']|'')*)'$", block.group(1), re.M)
+    if not quoted:
+        sys.exit(1)
+    pattern = re.compile(quoted.group(1).replace("''", "'"))
+    if not pattern.search(two) or pattern.search(one) or pattern.search(none):
+        sys.exit(1)
+PY
+}
+check "the handoff and long-report cases grade that sentences are connected" "connected_grader"
 
 printf '\n%d passed, %d failed, 0 skipped (%d ran)\n' "$PASS" "$FAIL" "$((PASS + FAIL))"
 [ "$FAIL" = 0 ]

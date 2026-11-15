@@ -48,7 +48,7 @@ In GitHub Copilot CLI, write `/convey` in your request, and in Gemini CLI, descr
 2. It decides who the message is for from your request, the destination, and the content, and says so in one line outside the message
 3. It picks one of seven types: progress, decision, request, incident, findings, announcement, or question. Each starts with the conclusion and lists the parts its reader needs, such as the deadline of a request or the impact of an incident
 4. It chooses what the message carries: what arrived or changed, what to do first, where the reader may get stuck, and what is undecided or asked. What the reader can get by opening the files, screens, or links the message points to is left to them
-5. It writes the message with every line, list items included, as a full sentence, mentioning only the people and channels you named, and using at most one emoji, at the start of a heading, in Slack and Discord. Japanese follows the japanese-writing skill when it is installed
+5. It writes the message with every line, list items included, as a full sentence, and starts a sentence with a connecting word such as "so", "but", "first", or "also" where the reader would otherwise have to guess how it follows from the one before. It mentions only the people and channels you named, and uses at most one emoji, at the start of a heading, in Slack and Discord. Japanese follows the japanese-writing skill and its guide to connecting sentences when that skill is installed
 6. `convey.py check` reports each line to change, and the agent fixes them and checks again
 7. `convey.py copy` copies the message to your clipboard, and the agent shows it in a code block. Posting it is your step
 

@@ -40,3 +40,21 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## Agency for Cultural Affairs documents
+
+| Item | Value |
+|---|---|
+| Files in this plugin | `skills/japanese-writing/references/connecting.md` |
+| Sources | 「公用文作成の考え方」, a proposal of the Council for Cultural Affairs (2022), and 「分かり合うための言語コミュニケーション（報告）」, a report of the Council's Japanese Language Subdivision (2018), both published by the Agency for Cultural Affairs, Government of Japan, at https://www.bunka.go.jp/seisaku/bunkashingikai/kokugo/hokoku/pdf/93731901_01.pdf and https://www.bunka.go.jp/koho_hodo_oshirase/hodohappyo/__icsFiles/afieldfile/2018/04/09/a1401904_03.pdf |
+| Read on | 2026-11-15 |
+| License | The Terms of Use of the website of the Ministry of Education, Culture, Sports, Science and Technology, which cover the agency's website, follow the Public Data License, Version 1.0 (公共データ利用規約 第1.0版), and are compatible with CC BY 4.0 |
+
+`references/connecting.md` is not a copy.
+It selects the advice on short messages from the two documents and rewrites it for this plugin, so it is edited material (加工).
+It is not the agency's text, and the agency does not endorse it.
+The terms ask for the credit below, which names each source and says that the file was made by editing it.
+
+出典：「公用文作成の考え方」（文化庁）（https://www.bunka.go.jp/seisaku/bunkashingikai/kokugo/hokoku/pdf/93731901_01.pdf）を加工して作成
+
+出典：「分かり合うための言語コミュニケーション（報告）」（文化庁）（https://www.bunka.go.jp/koho_hodo_oshirase/hodohappyo/__icsFiles/afieldfile/2018/04/09/a1401904_03.pdf）を加工して作成

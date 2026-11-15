@@ -77,6 +77,7 @@ L5 [比喩の動詞] 立ち: `config.json` は二つの置き場の隣に立ち�
 | repoに置くMarkdown (README、docs、IssueやPRの文) は、「。」ごとに改行し、1段落を4文以内にし、`ラベル: 値`の2項の列挙と抽象的な語尾を使わず、日本語と英数字の間に空白を入れません。note、ブログ、エッセイには当てず、上流の文書の種類ごとの手引きに従います | `references/rules.md`の2節 |
 | 技術分野で定着した語はそのまま使い、物を比喩の動詞の主語に立てません | `references/rules.md`の3節と`references/subject-and-verb.md` |
 | 説明は要点を先に置いて一度に渡す量を絞り、問いは数を入れた場面から書きます | `references/explaining.md`と`references/asking.md` |
+| チャットの投稿、引き継ぎ、報告、依頼のように人に伝える文は、長い文を短い文に区切り、前の文との関係 (理由、逆接、補足、順序) を接続詞で示し、結論を先に置きます | `references/connecting.md` |
 
 ## 必要なもの
 
@@ -100,6 +101,11 @@ L5 [比喩の動詞] 立ち: `config.json` は二つの置き場の隣に立ち�
 
 `UPSTREAM-SKILL.md`、`suspects.py`以外の道具、上流の参照は、`coji/natural-japanese` v2.0.0からMITライセンスのもとで手を入れずに写した物です。
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)に、写した物と取り込み元のcommitとライセンスを載せています。
+
+`references/connecting.md`は、文化庁の「公用文作成の考え方」と「分かり合うための言語コミュニケーション（報告）」を、このプラグインが加工して作成した要約です。
+2つの資料が載るサイトの利用規約はCC BY 4.0と互換で、その規約に従っています。
+文化庁が書いた文ではありません。
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)に、出典と、規約が求める出典の書き方を載せています。
 
 ## ライセンス
 

@@ -41,6 +41,7 @@ The limits are 4,000 for Slack, the length Slack advises a message to stay under
 - The agent runs `python3 convey.py` from the skill folder, and imports only the Python standard library
 - `copy --to <destination> [--lines A-B] [file]` runs the same check on the message, or on lines A to B only, and refuses with exit 1 when a line must change. Otherwise it looks for `pbcopy`, `wl-copy`, `xclip`, `xsel`, and `clip.exe` on `PATH` in that order, and gives the text to the first one that succeeds; `clip.exe` gets it as UTF-16. When none is found or every one fails, it prints `not copied` and exits 3
 - The agent runs `gh issue view`, `gh pr view`, `git log`, and `git show` only when you point to an issue, a pull request, or commits. `gh` uses your own sign-in
+- For a message in Japanese, when the japanese-writing skill is installed, the agent reads that skill's rules and its `references/connecting.md`, a guide to cutting long sentences and connecting the short ones with conjunctions. It reads nothing else from other plugins
 - Nothing is sent anywhere, and the plugin never posts a message. The script reads one message and prints to the terminal
 
 ## What it keeps

@@ -77,6 +77,7 @@ L5 [比喩の動詞] 立ち: `config.json` は二つの置き場の隣に立ち�
 | Markdown kept in a repository (READMEs, docs, issues, pull requests) gets one sentence per line, at most four sentences per paragraph, no `label: value` pairs, no abstract endings, and no space between Japanese and Latin letters or digits. Notes, blog posts, and essays follow the upstream guide for their kind instead | `references/rules.md`, section 2 |
 | Established technical terms stay as they are, and things are not made subjects of metaphor verbs | `references/rules.md`, section 3, and `references/subject-and-verb.md` |
 | Explanations put the point first and narrow what they give at once, and questions start from a situation with a number in it | `references/explaining.md` and `references/asking.md` |
+| Messages for people, such as chat posts, handoffs, reports, and requests, cut a long sentence into short ones, show how each follows from the one before with a conjunction (a reason, a contrast, an addition, an order), and put the conclusion first | `references/connecting.md` |
 
 ## Requirements
 
@@ -100,6 +101,10 @@ In short:
 
 `UPSTREAM-SKILL.md`, the scripts other than `suspects.py`, and the upstream references come from `coji/natural-japanese` v2.0.0 under the MIT License, copied without changes.
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) lists them with the source commit and the license.
+
+`references/connecting.md` is this plugin's own summary, edited from two documents of Japan's Agency for Cultural Affairs, 「公用文作成の考え方」 and 「分かり合うための言語コミュニケーション（報告）」, under the terms of use of their website, which are compatible with CC BY 4.0.
+It is not the agency's text.
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) gives the sources and the credit the terms ask for.
 
 ## License
 

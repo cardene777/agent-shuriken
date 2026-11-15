@@ -48,9 +48,10 @@ Keep a fact the reader needs to act or decide even when it is short, such as a b
 - Write every line as a sentence with its subject and particles, including list items. Never join items with spaces, colons, or the Japanese middle dot, and never write a line as a label and a colon followed by a value
 - Put an aside in its own sentence instead of in parentheses in the middle of a sentence
 - Use short sentences with one point each, a list for three or more parallel items, and numbers instead of words such as "many" or "much faster"
+- Start a sentence with a connecting word when the reader would otherwise have to guess how it follows from the one before: a reason or result ("so", "because of this"), a contrast ("but", "however"), an order ("first", "then"), or an addition ("also", "note that"). Leave it out where the relation is plain, and do not start every sentence with one
 - A message with three parts or fewer gets no headings; separate its parts with blank lines
 - Slack: `*bold*` with one asterisk, `-` lists, and URLs pasted as they are. Discord: Markdown without tables. Email: a `Subject:` line, a blank line, then plain text. GitHub: Markdown
-- For Japanese, follow the rules of the `japanese-writing` skill when it is installed
+- For Japanese, follow the rules of the `japanese-writing` skill when it is installed, and read `references/connecting.md` in that skill's folder before writing; it shows how to cut a long sentence and connect the short ones with conjunctions
 
 ## 5. Check, copy, and show
 
