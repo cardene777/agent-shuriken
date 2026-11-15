@@ -1,0 +1,30 @@
+# A vague request to delete unused accounts starts the skill, which first asks where to collect from,
+# where the user lives, and whether it may read the browser history, and collects nothing yet.
+schema_version: "1.1"
+name: trigger-asks-first
+plugins: ["../.."]
+execution:
+  prompt: |
+    I've signed up for a lot of websites over the years and hardly use most of them. Can you find the ones I don't use and delete them?
+  max_turns: 10
+  timeout_seconds: 300
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'account-cleanup'
+  - name: nothing-collected
+    type: tool_used
+    tool: Bash
+    input_match: 'prepare\.sh|inventory-|sqlite3|Login Data|op item|bw list'
+    min: 0
+    max: 0
+    arm: both
+  - name: asks-first
+    type: llm
+    criteria: |
+      PASS if, before collecting anything, the reply asks the user in one message all three of these: which places to collect accounts from (such as 1Password, Bitwarden, passwords saved in Chrome, or sign-ins with Google, Apple, or GitHub), where the user lives or which region's privacy law applies, and whether it may read the browser history to see when each site was last opened.
+      FAIL if it leaves out any of the three, or says it already collected, listed, or deleted accounts.
