@@ -5,6 +5,10 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- Before writing, the agent lists the facts in the source and keeps only what the reader cannot get by opening the files, screens, or links the message points to: what arrived or changed, what to do first, where the reader may get stuck, and what is undecided or asked. Every line, list items included, is a full sentence, and a short message has no headings
+- `convey.py check` warns about lines written as a label and a colon, and about a space between Japanese and a Latin letter or digit
+- A new eval case, `handoff-message`, measures whether a long handoff becomes a short message that keeps what the developer needs and leaves out what the files explain
+
 ## [0.1.0] - 2026-11-15
 
 First public release.

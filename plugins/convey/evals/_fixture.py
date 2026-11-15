@@ -5,6 +5,8 @@
   python3 _fixture.py incident   incident.md, notes on an outage that hold a local path and an email address
   python3 _fixture.py pr         pr.md, the description of a pull request that needs a review
   python3 _fixture.py typos      notes.md, a short English note with spelling mistakes
+  python3 _fixture.py handoff    handoff.md, a designer's long message about uploaded screens, which holds
+                                 details the files already explain besides the few the developer needs
 
 The names, numbers, and addresses are made up. The local path and the email address in incident.md are put
 together at run time, so this file holds neither.
@@ -153,6 +155,44 @@ The help desk will definately be open from 9 to 5.
 """
 
 
+HANDOFF = """@ken
+
+けんさん、ノートアプリのはじめての人向けの画面をDriveに上げました。前回のpenには、登録してから最初のノートを作るまでの画面がなかったので、その分を足しています。
+
+■置き場所
+共有ドライブの「開発の引き継ぎ」の中にある「はじめての人向け_20261114」です。
+
+■中身
+・画面は全部で12枚です。どれもスマホとPCの組になっています。
+・N-01〜08は、アプリを開いてから、登録して、最初のノートを作るまでの流れです。
+・N-09〜12は、ノートの画面に初めて入ったときの案内です。キャラが1か所ずつ照らしながら説明します。共有の画面は、初めて開いたときに1回だけ案内します。
+・案内にはどれも、飛ばすための小さな「あとで」ボタンを付けています。
+
+■zipが2つある理由
+1つにまとめると100MBを超えて、Driveに上げられませんでした。
+・zip 1/2：sp、pair、説明のmd
+・zip 2/2：grid
+2つを同じフォルダに展開すると、元の一式と同じ並びになります。.penは、フォルダの中身を動かさずに開いてください。
+
+■最初に読んでほしいもの
+・README.md：全体の説明
+・画面一覧.md：各画面で何をするか
+・仮未決一覧.md：まだ決まっていない言葉の一覧
+・overview.jpg：全体を1枚にした画像
+
+■札の意味
+・札のない文は、決まった言葉です。
+・〔仮〕は、仮の言葉です。後で変わることがあります。
+・〔例〕は、見本として入れた中身です。
+・〔未決〕は、まだ決めていないことです。いまは次の2つです。
+　1. N-05の「30日間」という言葉
+　2. 「あとで」で閉じた案内を、もう一度見られるようにするか
+
+■気をつけてほしいこと
+N-09〜12の案内の下にある画面は、絵として重ねてあります。そのため、penの中で直せるのは案内の文字だけです。
+"""
+
+
 def incident():
     home = "/" + "Users" + "/tanaka"
     mail = "tanaka" + "@" + "example.com"
@@ -173,6 +213,7 @@ TEXTS = {
     "incident": ("incident.md", incident),
     "pr": ("pr.md", lambda: PR),
     "typos": ("notes.md", lambda: TYPOS),
+    "handoff": ("handoff.md", lambda: HANDOFF),
 }
 
 

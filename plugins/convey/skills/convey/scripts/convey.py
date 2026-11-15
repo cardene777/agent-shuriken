@@ -83,6 +83,16 @@ EMOJI = ("\U0001F000-\U0001FAFF\u2600-\u27bf\u2b50\u2b55\u2b1b\u2b1c\u231a\u231b
 EMOJI_CHAR = re.compile("[" + EMOJI + "]")
 LEADING_EMOJI = re.compile(r"^\s*(?:[#>*_~-]+\s*)*[" + EMOJI + r"](?:\ufe0f|[\U0001F3FB-\U0001F3FF]|\u200d[" + EMOJI + r"]\ufe0f?)*")
 
+# A line that starts with a short label and a colon, such as "影響: 340件" or "- *Impact:* 340". Markup is
+# dropped before matching; an ASCII colon counts only before a space, so times and URLs do not match.
+LABEL_PAIR = re.compile(r"^\s*(?:[-•・]\s*)?(?:[^\s:：]+ ){0,3}[^\s:：]+(?::\s|：)")
+MARKUP = re.compile(r"[*_]")
+# A space between Japanese and a Latin letter or digit. Code spans, URLs, paths, file names, and mentions are
+# dropped first, since the space around them is not counted.
+JAPANESE = "".join(f"{chr(a)}-{chr(b)}" for a, b in ((0x3040, 0x30FF), (0x3400, 0x4DBF), (0x4E00, 0x9FFF), (0xFF66, 0xFF9F)))
+JP_LATIN_SPACE = re.compile(f"[{JAPANESE}] [A-Za-z0-9]|[A-Za-z0-9] [{JAPANESE}]")
+NOT_PROSE = re.compile(r"`[^`]*`|https?://\S+|\S*/\S*|[\w.-]+\.[A-Za-z][A-Za-z0-9]{0,4}\b|<[@#]!?\d+>|@[\w.-]+")
+
 CLIPBOARD_TOOLS = [
     ("pbcopy", []),
     ("wl-copy", []),
@@ -198,6 +208,10 @@ def inspect(text, dest, offset=0):
             # "Hope this helps" inside "I hope this helps" is one phrase, reported once.
             if not any(phrase.lower() in other.lower() and phrase != other for other, _ in found):
                 warn.append((n, f'warn: filler phrase "{phrase}" ({hint})'))
+        if LABEL_PAIR.match(MARKUP.sub("", line)) and not SUBJECT.match(line.strip()):
+            warn.append((n, "warn: label and colon; write the line as a sentence"))
+        if JP_LATIN_SPACE.search(NOT_PROSE.sub("", line)):
+            warn.append((n, "warn: space between Japanese and Latin letters; remove it"))
         if dest in EMOJI_AT_HEADINGS:
             rest = LEADING_EMOJI.sub("", line, count=1)
             if EMOJI_CHAR.search(rest):
