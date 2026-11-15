@@ -1,0 +1,38 @@
+# A report fails check-report.py three ways. The agent fixes every line the check prints and runs it
+# until it prints ok.
+schema_version: "1.1"
+name: fixes-check
+plugins: ["../.."]
+execution:
+  prompt: |
+    The comparison report at reports/ssg-2026-11-10/report.html doesn't pass the report check yet. Fix it so it passes. I don't need the PDF.
+  max_turns: 40
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'compare-report'
+    arm: with-only
+  - name: checked
+    type: tool_used
+    tool: Bash
+    input_match: 'check-report\.py'
+    arm: with-only
+  - name: no-placeholder
+    type: regex
+    target: {source: file, path: reports/ssg-2026-11-10/report.html}
+    pattern: '\{\{[A-Z_]+\}\}'
+    match: not_contains
+  - name: no-network-stylesheet
+    type: regex
+    target: {source: file, path: reports/ssg-2026-11-10/report.html}
+    pattern: 'href="https?://[^"]*\.css'
+    match: not_contains
+  - name: build-table-has-rationale
+    type: regex
+    target: {source: file, path: reports/ssg-2026-11-10/report.html}
+    pattern: 'id="axis-build"[^>]*>(?:(?!</section>)[\s\S])*<th class="rationale"'
