@@ -1,5 +1,6 @@
 # A weekly report longer than a Discord message becomes one message within 2,000 characters that keeps the
-# numbers and the deadline, with no table and none of the report's filler phrases.
+# numbers and the deadline, with no table and none of the report's filler phrases. The prompt is in English,
+# so the message may be too, and the deadline is graded in Japanese and English forms.
 schema_version: "1.1"
 name: long-report-to-discord
 plugins: ["../.."]
@@ -28,7 +29,7 @@ graders:
   - name: numbers-kept
     type: regex
     target: {source: file, path: message.md}
-    pattern: '(?=[\s\S]*0\.8 ?%)(?=[\s\S]*310 ?ms)(?=[\s\S]*(11月28日|11/28))'
+    pattern: '(?=[\s\S]*0\.8 ?%)(?=[\s\S]*310 ?ms)(?=[\s\S]*(11月28日|11/28|November 28|Nov\.? 28))'
   - name: no-table
     type: regex
     target: {source: file, path: message.md}

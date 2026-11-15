@@ -20,7 +20,7 @@ graders:
   - name: facts-kept
     type: regex
     target: {source: file, path: message.md}
-    pattern: '(?=[\s\S]*2\.4\.0)(?=[\s\S]*(11月20日|11/20))'
+    pattern: '(?=[\s\S]*2\.4\.0)(?=[\s\S]*(11月20日|11/20|November 20|Nov\.? 20))'
   - name: no-double-asterisks
     type: regex
     target: {source: file, path: message.md}
