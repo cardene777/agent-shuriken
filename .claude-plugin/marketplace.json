@@ -46,6 +46,11 @@
       "description": "Write the lessons from a session into the instruction files your agents read, such as AGENTS.md, CLAUDE.md, GEMINI.md, Copilot's instructions, or a skill's SKILL.md, in the right place and without duplicates, only after you approve the diff"
     },
     {
+      "name": "machine-cleanup",
+      "source": "./plugins/machine-cleanup",
+      "description": "Free disk space, memory, and CPU on your computer: find caches tools rebuild, build output git ignores, large and duplicate files, unused apps, and dev servers left running, pick on a local page, and free only your picks, with anything another session uses kept out of reach"
+    },
+    {
       "name": "portman",
       "source": "./plugins/portman",
       "description": "Keep a registry of the localhost ports each project uses, so dev servers never collide: see what holds each port right now, get free ports that avoid common defaults, find collisions, and write a project's ports to .env.local and a Docker Compose override after you approve"

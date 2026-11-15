@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; img-src data:; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Free up this computer</title>
+<style>
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --soft: #eef1f6; --text: #1d2330; --sub: #5b6475; --line: #dfe3ea;
+  --accent: #2f5bd3; --accent-text: #ffffff; --pick: #e8eefc; --rebuilt: #2e7d4f; --rebuilt-bg: #e7f5ec;
+  --trash: #8a5a00; --trash-bg: #fff4dc; --gone: #c8342b; --gone-bg: #fdecea; --run: #5b3fb5; --run-bg: #efeafd;
+  --lock: #6b7280; --lock-bg: #f1f2f4;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12151b; --panel: #1b2029; --soft: #232a36; --text: #e7eaf0; --sub: #a3abba; --line: #2c3340;
+    --accent: #6d8ff0; --accent-text: #0d1117; --pick: #1f2a44; --rebuilt: #56d38a; --rebuilt-bg: #16301f;
+    --trash: #e3b341; --trash-bg: #33290f; --gone: #ff7b72; --gone-bg: #3a1d1b; --run: #b9a6ff; --run-bg: #2a2342;
+    --lock: #9aa3b2; --lock-bg: #232833;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif; }
+button { font: inherit; color: inherit; }
+main { max-width: 1200px; margin: 0 auto; padding: 20px 16px 120px; }
+.head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+h1 { font-size: 24px; margin: 0; }
+.icon { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); font-weight: 700; cursor: pointer; }
+.right { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.status { font-size: 13px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--sub); }
+.status::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--lock); }
+.status.on::before { background: var(--rebuilt); }
+.status.off::before { background: var(--gone); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { background: var(--panel); border: 0; padding: 4px 12px; cursor: pointer; font-size: 14px; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); font-weight: 600; }
+.lead { margin: 6px 0 16px; color: var(--sub); }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; }
+.stat small { display: block; color: var(--sub); font-size: 13px; }
+.stat b { font-size: 22px; }
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin-bottom: 10px; overflow-x: auto; }
+.tabs button { font-weight: 600; color: var(--sub); background: none; border: 0; border-bottom: 3px solid transparent; padding: 10px 12px; cursor: pointer; white-space: nowrap; }
+.tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
+.tabs button span { display: inline-block; min-width: 20px; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: var(--soft); font-size: 12px; font-weight: 600; }
+.tabhead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 6px 0 10px; }
+.tabhead p { margin: 0; flex: 1 1 320px; color: var(--sub); }
+.tool { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+.list { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.row { display: flex; align-items: center; gap: 14px; padding: 10px 14px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.row:last-child { border-bottom: 0; }
+.row:hover { background: var(--soft); }
+.row[aria-pressed="true"] { background: var(--pick); box-shadow: inset 4px 0 0 var(--accent); }
+.row[aria-disabled="true"] { cursor: default; background: var(--lock-bg); }
+.row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.mark { flex: none; width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--line); display: grid; place-items: center; font-size: 14px; font-weight: 700; color: var(--accent-text); }
+.row[aria-pressed="true"] .mark { background: var(--accent); border-color: var(--accent); }
+.row[aria-disabled="true"] .mark { border-style: dashed; }
+.main { flex: 1; min-width: 0; }
+.name { font-weight: 600; overflow-wrap: anywhere; }
+.where { color: var(--sub); font-size: 13px; overflow-wrap: anywhere; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.chip { font-size: 12px; padding: 1px 8px; border-radius: 999px; font-weight: 600; }
+.chip.rebuilt { color: var(--rebuilt); background: var(--rebuilt-bg); }
+.chip.trash { color: var(--trash); background: var(--trash-bg); }
+.chip.gone { color: var(--gone); background: var(--gone-bg); }
+.chip.run { color: var(--run); background: var(--run-bg); }
+.chip.lock { color: var(--lock); background: var(--soft); }
+.size { flex: none; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; min-width: 92px; }
+.size small { display: block; color: var(--sub); font-weight: 400; font-size: 12px; }
+.empty { padding: 28px; text-align: center; color: var(--sub); }
+.bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--panel); border-top: 1px solid var(--line); }
+.bar > div { max-width: 1200px; margin: 0 auto; padding: 12px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.tally { flex: 1; }
+.tally b { font-size: 18px; }
+.primary { background: var(--accent); color: var(--accent-text); border: 0; border-radius: 10px; padding: 10px 22px; font-weight: 700; cursor: pointer; }
+.primary[disabled] { opacity: .45; cursor: default; }
+.secondary { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; cursor: pointer; }
+.note { width: 100%; margin: 0; color: var(--gone); font-size: 14px; }
+.modal { position: fixed; inset: 0; background: rgba(10, 14, 22, .55); display: grid; place-items: center; padding: 16px; }
+.modal[hidden] { display: none; }
+.dialog { position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; max-width: 620px; width: 100%; max-height: 86vh; overflow: auto; padding: 22px 24px; }
+.dialog h2 { margin: 0 0 12px; font-size: 20px; }
+.dialog h3 { margin: 16px 0 4px; font-size: 15px; }
+.dialog p { margin: 4px 0; }
+.close { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); cursor: pointer; font-size: 18px; line-height: 1; }
+.sum { display: grid; gap: 8px; margin: 12px 0; }
+.sum div { display: flex; justify-content: space-between; gap: 12px; padding: 8px 12px; border-radius: 10px; background: var(--soft); }
+.actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+.done { text-align: center; padding: 40px 16px; }
+.done b { display: block; font-size: 20px; margin-bottom: 6px; }
+@media (max-width: 640px) { .row { gap: 10px; } .size { min-width: 72px; } h1 { font-size: 20px; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="head">
+    <h1 data-i18n="title">Free up this computer</h1>
+    <button type="button" class="icon" id="help-open" data-i18n-aria="help" aria-label="About this page">?</button>
+    <div class="right">
+      <span class="status" id="status" data-i18n="statusWait">Checking the connection</span>
+      <div class="seg" id="lang" role="group" data-i18n-aria="langGroup" aria-label="Language">
+        <button type="button" data-lang="en" aria-pressed="true">English</button>
+        <button type="button" data-lang="ja" aria-pressed="false">日本語</button>
+      </div>
+    </div>
+  </div>
+  <p class="lead" data-i18n="lead">Pick what to free. Nothing changes until you press Free and confirm.</p>
+  <div class="stats">
+    <div class="stat"><small data-i18n="statFree">Free disk</small><b id="stat-free">-</b></div>
+    <div class="stat"><small data-i18n="statMem">Memory used</small><b id="stat-mem">-</b></div>
+    <div class="stat"><small data-i18n="statLoad">Load over the last minute</small><b id="stat-load">-</b></div>
+    <div class="stat"><small data-i18n="statRebuilt">Rebuilt on next use</small><b id="stat-rebuilt">-</b></div>
+  </div>
+  <div class="tabs" id="tabs" role="tablist"></div>
+  <div class="tabhead">
+    <p id="tab-lead"></p>
+    <button type="button" class="tool" id="pick-all" data-i18n="pickAll">Pick all that can be picked</button>
+    <button type="button" class="tool" id="clear" data-i18n="clear">Clear</button>
+  </div>
+  <div class="list" id="rows" role="list"></div>
+</main>
+<div class="bar">
+  <div>
+    <div class="tally"><b id="count">0</b> <span data-i18n="picked">picked</span> <span id="to-free"></span></div>
+    <button type="button" class="secondary" id="copy" data-i18n="copy" hidden>Copy the selection</button>
+    <button type="button" class="primary" id="free" data-i18n="free" disabled>Free</button>
+    <p class="note" id="note" hidden></p>
+  </div>
+</div>
+<div class="modal" id="confirm" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+    <button type="button" class="close" data-close data-i18n-aria="close" aria-label="Close">&times;</button>
+    <h2 id="confirm-title" data-i18n="confirmTitle">Free these items?</h2>
+    <div class="sum" id="confirm-sum"></div>
+    <p data-i18n="confirmCheck">The agent checks each item again right before acting and skips any that changed or came into use.</p>
+    <div class="actions">
+      <button type="button" class="secondary" data-close data-i18n="back">Back</button>
+      <button type="button" class="primary" id="send" data-i18n="send">Send to the agent</button>
+    </div>
+  </div>
+</div>
+<div class="modal" id="help" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="help-title">
+    <button type="button" class="close" data-close data-i18n-aria="close" aria-label="Close">&times;</button>
+    <h2 id="help-title" data-i18n="helpTitle">About this page</h2>
+    <h3 data-i18n="helpWhatTitle">What is listed</h3>
+    <p data-i18n="helpWhat">Caches that tools rebuild, build output that git ignores, the Trash, old logs and installers, large and duplicate files, apps you have not opened for 90 days, dev servers left running after their session ended, heavy processes, login items, and running containers.</p>
+    <h3 data-i18n="helpLockTitle">Why some rows cannot be picked</h3>
+    <p data-i18n="helpLock">A row is in use when a live agent session or an open terminal runs it, or when a running program works in the same project. Close that session or program, and ask the agent to scan again.</p>
+    <h3 data-i18n="helpNeverTitle">What is never touched</h3>
+    <p data-i18n="helpNever">Sync folders such as iCloud Drive, Dropbox, Google Drive, and OneDrive, Windows drives under WSL, files git tracks, Docker volumes, and anything that needs an administrator password.</p>
+    <h3 data-i18n="helpNextTitle">What happens next</h3>
+    <p data-i18n="helpNext">The agent frees only what you picked, then reports the free disk space, memory, and load before and after, measured on this computer.</p>
+  </div>
+</div>
+<div class="modal" id="finished" hidden>
+  <div class="dialog done"><b data-i18n="sentTitle">Sent to the agent</b><p data-i18n="sent">The agent is freeing them now and will report the result in the chat. You can close this page.</p></div>
+</div>
+<script id="i18n" type="application/json">
+{
+  "en": {
+    "title": "Free up this computer",
+    "help": "About this page",
+    "langGroup": "Language",
+    "statusWait": "Checking the connection",
+    "statusOn": "Connected to the agent",
+    "statusOff": "The agent is not waiting",
+    "lead": "Pick what to free. Nothing changes until you press Free and confirm.",
+    "statFree": "Free disk",
+    "statMem": "Memory used",
+    "statLoad": "Load over the last minute",
+    "statRebuilt": "Rebuilt on next use",
+    "pickAll": "Pick all that can be picked",
+    "clear": "Clear",
+    "picked": "picked",
+    "toFree": "{size} of disk",
+    "copy": "Copy the selection",
+    "copied": "Copied. Paste it into the chat.",
+    "copyFailed": "Select the text below and copy it.",
+    "free": "Free",
+    "offline": "The agent is not waiting for this page. Press Copy the selection and paste it into the chat.",
+    "sendFailed": "The agent did not accept the selection. Press Copy the selection and paste it into the chat.",
+    "close": "Close",
+    "back": "Back",
+    "send": "Send to the agent",
+    "confirmTitle": "Free these items?",
+    "confirmCheck": "The agent checks each item again right before acting and skips any that changed or came into use.",
+    "sentTitle": "Sent to the agent",
+    "sent": "The agent is freeing them now and will report the result in the chat. You can close this page.",
+    "helpTitle": "About this page",
+    "helpWhatTitle": "What is listed",
+    "helpWhat": "Caches that tools rebuild, build output that git ignores, the Trash, old logs and installers, large and duplicate files, apps you have not opened for 90 days, dev servers left running after their session ended, heavy processes, login items, and running containers.",
+    "helpLockTitle": "Why some rows cannot be picked",
+    "helpLock": "A row is in use when a live agent session or an open terminal runs it, or when a running program works in the same project. Close that session or program, and ask the agent to scan again.",
+    "helpNeverTitle": "What is never touched",
+    "helpNever": "Sync folders such as iCloud Drive, Dropbox, Google Drive, and OneDrive, Windows drives under WSL, files git tracks, Docker volumes, and anything that needs an administrator password.",
+    "helpNextTitle": "What happens next",
+    "helpNext": "The agent frees only what you picked, then reports the free disk space, memory, and load before and after, measured on this computer.",
+    "tab_cache": "Caches",
+    "tab_build": "Build output",
+    "tab_trash": "Trash and logs",
+    "tab_files": "Large and duplicate files",
+    "tab_app": "Apps",
+    "tab_process": "Processes",
+    "tab_login": "Login items",
+    "tab_container": "Containers",
+    "tab_skipped": "Not measured",
+    "lead_cache": "Package managers, Docker, Xcode, and apps download or build these again the next time they need them. Where a tool has its own clean command, the agent runs that command.",
+    "lead_build": "Folders such as node_modules and .next that git ignores and that hold no tracked file. Your next install or build makes them again.",
+    "lead_trash": "Emptying the Trash and deleting old logs cannot be undone. Installers older than 30 days in Downloads move to the Trash.",
+    "lead_files": "Files of 500 MB or more, and files of 10 MB or more with the same content in several places. Picked files move to the Trash. Keep at least one copy of each duplicate.",
+    "lead_app": "Apps not opened for 90 days. The app and its support files move to the Trash together.",
+    "lead_process": "Dev servers and watchers left running after the session that started them ended, and the processes that use the most memory or CPU. Picked processes get the end signal, so they can save their work first.",
+    "lead_login": "Programs that start each time you log in. Stopped items are kept, and the agent can turn them back on.",
+    "lead_container": "Docker containers that are running now. Stopping a container keeps its data.",
+    "lead_skipped": "These places were not measured, so they are not in the lists.",
+    "eff_rebuilt": "Rebuilt on next use",
+    "eff_trash": "Moves to the Trash",
+    "eff_gone": "Deleted for good",
+    "eff_end": "Ends the process",
+    "eff_login": "Stops at login",
+    "eff_stop": "Stops the container",
+    "eff_uninstall": "Uninstalled",
+    "inUse": "In use",
+    "lastUsed": "Last opened {date}",
+    "copies": "{n} copies with the same content",
+    "oldFiles": "{n} files older than {days} days",
+    "started": "Started {date}",
+    "memoryCpu": "{mem} memory, {cpu}% CPU",
+    "empty": "Nothing found here.",
+    "lock_agent": "A live agent session ({1}, pid {2}) runs this",
+    "lock_isAgent": "This is a live agent session",
+    "lock_terminal": "It runs in an open terminal ({1})",
+    "lock_os": "Part of the operating system",
+    "lock_project": "A running program works in this project ({1}, pid {2})",
+    "lock_app": "The app is running",
+    "lock_tool": "{1} is running",
+    "r_time": "The time limit was reached before this place was measured",
+    "r_sync": "Sync folder, so deleting here would also delete it in the cloud",
+    "r_windows": "Windows drive under WSL",
+    "r_link": "Symbolic link, which is not followed",
+    "r_missing": "Not found",
+    "r_measure": "Could not be measured",
+    "r_docker": "Docker is not running",
+    "r_fda": "macOS needs Full Disk Access for the terminal app to read the Trash"
+  },
+  "ja": {
+    "title": "このコンピューターを軽くする",
+    "help": "このページについて",
+    "langGroup": "言語",
+    "statusWait": "つながりを確かめています",
+    "statusOn": "エージェントとつながっています",
+    "statusOff": "エージェントが待っていません",
+    "lead": "空ける物を選びます。「空ける」を押して確かめるまで、何も変わりません。",
+    "statFree": "ディスクの空き",
+    "statMem": "使用中のメモリ",
+    "statLoad": "直近1分の負荷",
+    "statRebuilt": "次に使う時に作り直される分",
+    "pickAll": "選べる物を全部選ぶ",
+    "clear": "選択を外す",
+    "picked": "件を選択",
+    "toFree": "ディスク{size}",
+    "copy": "選択を写す",
+    "copied": "写しました。チャットに貼ってください。",
+    "copyFailed": "下の文を選んで写してください。",
+    "free": "空ける",
+    "offline": "エージェントがこのページを待っていません。「選択を写す」を押して、チャットに貼ってください。",
+    "sendFailed": "エージェントが選択を受け取りませんでした。「選択を写す」を押して、チャットに貼ってください。",
+    "close": "閉じる",
+    "back": "戻る",
+    "send": "エージェントに渡す",
+    "confirmTitle": "これらを空けますか",
+    "confirmCheck": "エージェントは消す直前に1件ずつ確かめ直し、変わった物と使われ始めた物は飛ばします。",
+    "sentTitle": "エージェントに渡しました",
+    "sent": "エージェントが空けていて、結果をチャットで知らせます。このページは閉じて構いません。",
+    "helpTitle": "このページについて",
+    "helpWhatTitle": "並ぶ物",
+    "helpWhat": "道具が作り直すキャッシュ、gitが無視するビルドの出力、ゴミ箱、古いログとインストーラー、大きいファイルと重複、90日開いていないアプリ、始めた会話が終わったのに残っている開発用のサーバー、重いプロセス、ログイン項目、動いているコンテナです。",
+    "helpLockTitle": "選べない行がある理由",
+    "helpLock": "動いているエージェントの会話か開いている端末が動かしている物と、動いているプログラムが同じプロジェクトで作業している物は、使用中として選べません。その会話かプログラムを閉じてから、エージェントにもう一度調べさせてください。",
+    "helpNeverTitle": "触らない物",
+    "helpNever": "iCloud Drive、Dropbox、Google Drive、OneDriveなどの同期フォルダ、WSLから見たWindowsのドライブ、gitが追跡するファイル、Dockerのボリューム、管理者のパスワードが要る物です。",
+    "helpNextTitle": "この後に起きること",
+    "helpNext": "エージェントは選んだ物だけを空け、このコンピューターで測ったディスクの空き、メモリ、負荷の前後を知らせます。",
+    "tab_cache": "キャッシュ",
+    "tab_build": "ビルドの出力",
+    "tab_trash": "ゴミ箱とログ",
+    "tab_files": "大きいファイルと重複",
+    "tab_app": "アプリ",
+    "tab_process": "プロセス",
+    "tab_login": "ログイン項目",
+    "tab_container": "コンテナ",
+    "tab_skipped": "測らなかった場所",
+    "lead_cache": "パッケージ管理、Docker、Xcode、アプリが、次に要る時にもう一度取ってくるか作り直す物です。道具が自分の消す命令を持つ時は、エージェントがその命令を使います。",
+    "lead_build": "gitが無視し、追跡するファイルを1つも持たないnode_modulesや.nextなどのフォルダです。次のインストールかビルドで作り直されます。",
+    "lead_trash": "ゴミ箱を空にすることと古いログを消すことは、元に戻せません。ダウンロードの30日より古いインストーラーはゴミ箱へ移します。",
+    "lead_files": "500MB以上のファイルと、同じ中身が複数の場所にある10MB以上のファイルです。選んだファイルはゴミ箱へ移します。重複は少なくとも1つ残してください。",
+    "lead_app": "90日開いていないアプリです。アプリと付属のファイルを一緒にゴミ箱へ移します。",
+    "lead_process": "始めた会話が終わったのに残っている開発用のサーバーと監視と、メモリかCPUを最も多く使うプロセスです。選んだプロセスには終了の合図を送るので、作業を保存してから終われます。",
+    "lead_login": "ログインするたびに起動するプログラムです。止めた物は取っておき、エージェントが元に戻せます。",
+    "lead_container": "いま動いているDockerのコンテナです。止めてもデータは残ります。",
+    "lead_skipped": "次の場所は測らなかったので、一覧に入っていません。",
+    "eff_rebuilt": "次に使う時に作り直される",
+    "eff_trash": "ゴミ箱へ移す",
+    "eff_gone": "完全に消える",
+    "eff_end": "プロセスを終了する",
+    "eff_login": "ログイン時に起動しなくなる",
+    "eff_stop": "コンテナを止める",
+    "eff_uninstall": "アンインストールする",
+    "inUse": "使用中",
+    "lastUsed": "最後に開いた日 {date}",
+    "copies": "同じ中身が{n}か所",
+    "oldFiles": "{days}日より古いファイル{n}件",
+    "started": "開始 {date}",
+    "memoryCpu": "メモリ{mem}、CPU{cpu}%",
+    "empty": "ここには見つかりませんでした。",
+    "lock_agent": "動いているエージェントの会話 ({1}、pid {2}) が動かしています",
+    "lock_isAgent": "動いているエージェントの会話そのものです",
+    "lock_terminal": "開いている端末 ({1}) で動いています",
+    "lock_os": "OSの一部です",
+    "lock_project": "動いているプログラム ({1}、pid {2}) がこのプロジェクトで作業しています",
+    "lock_app": "アプリが動いています",
+    "lock_tool": "{1}が動いています",
+    "r_time": "時間の上限に達し、測る前に止めました",
+    "r_sync": "同期フォルダです。ここで消すとクラウド側からも消えます",
+    "r_windows": "WSLから見たWindowsのドライブです",
+    "r_link": "シンボリックリンクなので、先をたどりません",
+    "r_missing": "見つかりませんでした",
+    "r_measure": "測れませんでした",
+    "r_docker": "Dockerが動いていません",
+    "r_fda": "ゴミ箱を読むには、端末のアプリにmacOSのフルディスクアクセスが要ります"
+  }
+}
+</script>
+<script id="data" type="application/json">__DATA__</script>
+<script>
+"use strict";
+const I18N = JSON.parse(document.getElementById("i18n").textContent);
+const DATA = JSON.parse(document.getElementById("data").textContent);
+const TABS = [
+  ["cache", ["cache"]], ["build", ["build"]], ["trash", ["trash", "log", "installer"]], ["files", ["large", "duplicate"]],
+  ["app", ["app"]], ["process", ["dev-process", "heavy-process"]], ["login", ["login-item"]], ["container", ["container"]]
+];
+const picked = new Set();
+let lang = "en";
+let tab = "cache";
+let online = null;
+try { const saved = localStorage.getItem("machine-cleanup-lang"); if (saved === "ja" || saved === "en") lang = saved; } catch (e) { /* storage may be blocked */ }
+
+function t(key, vars) {
+  let s = (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key;
+  Object.keys(vars || {}).forEach(function (k) { s = s.split("{" + k + "}").join(String(vars[k])); });
+  return s;
+}
+function human(n) {
+  if (n === null || n === undefined) return "-";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let i = 0;
+  while (Math.abs(n) >= 1000 && i < units.length - 1) { n /= 1000; i += 1; }
+  return i === 0 ? n + " B" : n.toFixed(1) + " " + units[i];
+}
+function tilde(p) {
+  if (!p) return "";
+  return p === DATA.home || p.indexOf(DATA.home + "/") === 0 ? "~" + p.slice(DATA.home.length) : p;
+}
+function day(s) { return s ? String(s).slice(0, 10) : "-"; }
+function effect(it) {
+  if (it.category === "login-item") return ["eff_login", "run"];
+  if (it.category === "container") return ["eff_stop", "run"];
+  if (it.group === "process") return ["eff_end", "run"];
+  if (it.kind === "flatpak") return ["eff_uninstall", "trash"];
+  if (it.rebuilt) return ["eff_rebuilt", "rebuilt"];
+  if (it.action === "trash" || it.action === "trash-app") return ["eff_trash", "trash"];
+  return ["eff_gone", "gone"];
+}
+function lockText(s) {
+  const rules = [
+    [/^runs under a live agent session \((.+), pid (\d+)\)$/, "lock_agent"],
+    [/^is a live agent session$/, "lock_isAgent"],
+    [/^runs in an open terminal \((.+)\)$/, "lock_terminal"],
+    [/^part of the operating system$/, "lock_os"],
+    [/^a running program works in this project \((.+), pid (\d+)\)$/, "lock_project"],
+    [/^the app is running$/, "lock_app"],
+    [/^(.+) is running$/, "lock_tool"]
+  ];
+  for (const [rx, key] of rules) { const m = s.match(rx); if (m) return t(key, { 1: m[1], 2: m[2] }); }
+  return s;
+}
+function reasonText(s) {
+  const map = { "time limit": "r_time", "sync folder": "r_sync", "Windows drive": "r_windows", "symbolic link": "r_link",
+    "not found": "r_missing", "could not be measured": "r_measure", "Docker is not running": "r_docker" };
+  if (map[s]) return t(map[s]);
+  if (/Full Disk Access/.test(s)) return t("r_fda");
+  return s;
+}
+function detailText(it) {
+  const d = it.detail || {};
+  if (it.group === "process" && it.category !== "login-item") {
+    const parts = [t("memoryCpu", { mem: human(it.size), cpu: it.cpu || 0 })];
+    if (d.started) parts.push(t("started", { date: d.started }));
+    return parts.join(", ") + (d.command ? "\n" + d.command : "");
+  }
+  if (it.category === "login-item") return d.program || d.unit || "";
+  if (it.category === "app") return t("lastUsed", { date: day(d.last_used) });
+  if (it.category === "duplicate") return t("copies", { n: (d.copies || []).length });
+  if (it.category === "log") return t("oldFiles", { n: d.file_count || 0, days: d.older_than_days || 30 });
+  return "";
+}
+function itemsOf(key) {
+  const cats = (TABS.find(function (x) { return x[0] === key; }) || [null, []])[1];
+  return DATA.items.filter(function (it) { return cats.indexOf(it.category) >= 0; });
+}
+
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-i18n]").forEach(function (el) { el.textContent = t(el.getAttribute("data-i18n")); });
+  document.querySelectorAll("[data-i18n-aria]").forEach(function (el) { el.setAttribute("aria-label", t(el.getAttribute("data-i18n-aria"))); });
+  document.querySelectorAll("#lang button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.lang === lang)); });
+  document.title = t("title");
+  renderStatus();
+  render();
+}
+function renderStatus() {
+  const el = document.getElementById("status");
+  el.className = "status" + (online === true ? " on" : online === false ? " off" : "");
+  el.textContent = t(online === true ? "statusOn" : online === false ? "statusOff" : "statusWait");
+  document.getElementById("copy").hidden = online !== false;
+}
+function renderStats() {
+  const m = DATA.measure || {};
+  document.getElementById("stat-free").textContent = human(m.disk_free);
+  document.getElementById("stat-mem").textContent = m.memory_used ? human(m.memory_used) + (m.memory_total ? " / " + human(m.memory_total) : "") : "-";
+  document.getElementById("stat-load").textContent = m.load ? m.load[0].toFixed(2) : "-";
+  const rebuilt = DATA.items.filter(function (it) { return it.rebuilt && !it.locked; }).reduce(function (s, it) { return s + (it.size || 0); }, 0);
+  document.getElementById("stat-rebuilt").textContent = human(rebuilt);
+}
+function render() {
+  const tabs = document.getElementById("tabs");
+  tabs.textContent = "";
+  const keys = TABS.map(function (x) { return x[0]; }).concat(DATA.skipped.length ? ["skipped"] : []);
+  keys.forEach(function (key) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.setAttribute("role", "tab");
+    b.setAttribute("aria-selected", String(key === tab));
+    const label = "tab_" + key;
+    b.textContent = t(label);
+    const n = document.createElement("span");
+    n.textContent = key === "skipped" ? DATA.skipped.length : itemsOf(key).length;
+    b.appendChild(n);
+    b.addEventListener("click", function () { tab = key; render(); });
+    tabs.appendChild(b);
+  });
+  const leadKey = "lead_" + tab;
+  document.getElementById("tab-lead").textContent = t(leadKey);
+  document.getElementById("pick-all").hidden = tab === "skipped";
+  document.getElementById("clear").hidden = tab === "skipped";
+  const rows = document.getElementById("rows");
+  rows.textContent = "";
+  if (tab === "skipped") {
+    DATA.skipped.forEach(function (s) { rows.appendChild(rowEl(tilde(s.path), reasonText(s.reason), null, null)); });
+  } else {
+    const list = itemsOf(tab).slice().sort(function (a, b) { return (!!a.locked - !!b.locked) || ((b.size || 0) - (a.size || 0)); });
+    list.forEach(function (it) { rows.appendChild(rowEl(it.name, tilde(it.path) || "", it, detailText(it))); });
+  }
+  if (!rows.children.length) {
+    const e = document.createElement("div");
+    e.className = "empty";
+    e.textContent = t("empty");
+    rows.appendChild(e);
+  }
+  renderTally();
+}
+function rowEl(name, where, it, extra) {
+  const row = document.createElement("div");
+  row.className = "row";
+  row.setAttribute("role", "listitem");
+  const mark = document.createElement("span");
+  mark.className = "mark";
+  const main = document.createElement("div");
+  main.className = "main";
+  const n = document.createElement("div");
+  n.className = "name";
+  n.textContent = name;
+  main.appendChild(n);
+  if (where) { const w = document.createElement("div"); w.className = "where"; w.textContent = where; main.appendChild(w); }
+  if (extra) extra.split("\n").forEach(function (x) { const w = document.createElement("div"); w.className = "where"; w.textContent = x; main.appendChild(w); });
+  if (it) {
+    const chips = document.createElement("div");
+    chips.className = "chips";
+    const e = effect(it);
+    const c = document.createElement("span");
+    c.className = "chip " + e[1];
+    c.textContent = t(e[0]);
+    chips.appendChild(c);
+    if (it.locked) {
+      const l = document.createElement("span");
+      l.className = "chip lock";
+      l.textContent = t("inUse") + " — " + lockText(it.locked);
+      chips.appendChild(l);
+    }
+    main.appendChild(chips);
+  }
+  row.appendChild(it ? mark : document.createElement("span"));
+  row.appendChild(main);
+  if (it) {
+    const s = document.createElement("div");
+    s.className = "size";
+    s.textContent = human(it.size);
+    row.appendChild(s);
+    if (it.locked) {
+      row.setAttribute("aria-disabled", "true");
+    } else {
+      row.tabIndex = 0;
+      row.setAttribute("role", "button");
+      row.setAttribute("aria-pressed", String(picked.has(it.id)));
+      mark.textContent = picked.has(it.id) ? "✓" : "";
+      const toggle = function () {
+        if (picked.has(it.id)) picked.delete(it.id); else picked.add(it.id);
+        row.setAttribute("aria-pressed", String(picked.has(it.id)));
+        mark.textContent = picked.has(it.id) ? "✓" : "";
+        renderTally();
+      };
+      row.addEventListener("click", toggle);
+      row.addEventListener("keydown", function (ev) { if (ev.key === " " || ev.key === "Enter") { ev.preventDefault(); toggle(); } });
+    }
+  }
+  return row;
+}
+function pickedItems() { return DATA.items.filter(function (it) { return picked.has(it.id); }); }
+function renderTally() {
+  const items = pickedItems();
+  document.getElementById("count").textContent = items.length;
+  const disk = items.filter(function (it) { return it.group === "disk"; }).reduce(function (s, it) { return s + (it.size || 0); }, 0);
+  document.getElementById("to-free").textContent = disk ? t("toFree", { size: human(disk) }) : "";
+  document.getElementById("free").disabled = items.length === 0;
+}
+function selectionText(ids) {
+  return "machine-cleanup:select " + ids.join(" ");
+}
+function openModal(id) { document.getElementById(id).hidden = false; }
+function closeModals() { document.querySelectorAll(".modal").forEach(function (m) { if (m.id !== "finished") m.hidden = true; }); }
+function showNote(key) { const n = document.getElementById("note"); n.textContent = t(key); n.hidden = false; }
+
+function confirmFree() {
+  const groups = {};
+  pickedItems().forEach(function (it) {
+    const e = effect(it)[0];
+    const g = groups[e] || (groups[e] = { n: 0, size: 0, disk: it.group === "disk" });
+    g.n += 1; g.size += it.size || 0;
+  });
+  const sum = document.getElementById("confirm-sum");
+  sum.textContent = "";
+  ["eff_rebuilt", "eff_trash", "eff_gone", "eff_uninstall", "eff_end", "eff_login", "eff_stop"].forEach(function (e) {
+    if (!groups[e]) return;
+    const row = document.createElement("div");
+    const a = document.createElement("span");
+    a.textContent = t(e);
+    const b = document.createElement("b");
+    b.textContent = groups[e].n + (groups[e].disk ? "  " + human(groups[e].size) : "");
+    row.appendChild(a); row.appendChild(b);
+    sum.appendChild(row);
+  });
+  openModal("confirm");
+}
+function send() {
+  const ids = pickedItems().map(function (it) { return it.id; });
+  fetch("/select", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ t: DATA.token, ids: ids }) })
+    .then(function (r) {
+      closeModals();
+      if (r.ok) { online = false; renderStatus(); document.getElementById("copy").hidden = true; openModal("finished"); }
+      else { showNote("sendFailed"); online = false; renderStatus(); }
+    })
+    .catch(function () { closeModals(); online = false; renderStatus(); showNote("offline"); });
+}
+function copySelection() {
+  const text = selectionText(pickedItems().map(function (it) { return it.id; }));
+  const done = function () { showNote("copied"); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function () { fallbackCopy(text); });
+  } else {
+    fallbackCopy(text);
+  }
+}
+function fallbackCopy(text) {
+  const n = document.getElementById("note");
+  n.hidden = false;
+  n.textContent = t("copyFailed") + " " + text;
+}
+function ping() {
+  fetch("/ping?t=" + encodeURIComponent(DATA.token), { cache: "no-store" })
+    .then(function (r) { online = r.status === 204; renderStatus(); })
+    .catch(function () { online = false; renderStatus(); });
+}
+
+document.querySelectorAll("#lang button").forEach(function (b) {
+  b.addEventListener("click", function () {
+    lang = b.dataset.lang;
+    try { localStorage.setItem("machine-cleanup-lang", lang); } catch (e) { /* storage may be blocked */ }
+    applyLang();
+  });
+});
+document.getElementById("help-open").addEventListener("click", function () { openModal("help"); });
+document.querySelectorAll("[data-close]").forEach(function (b) { b.addEventListener("click", closeModals); });
+document.querySelectorAll(".modal").forEach(function (m) { m.addEventListener("click", function (ev) { if (ev.target === m && m.id !== "finished") closeModals(); }); });
+document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") closeModals(); });
+document.getElementById("free").addEventListener("click", function () { if (online === false) { showNote("offline"); return; } confirmFree(); });
+document.getElementById("send").addEventListener("click", send);
+document.getElementById("copy").addEventListener("click", copySelection);
+document.getElementById("pick-all").addEventListener("click", function () {
+  itemsOf(tab).forEach(function (it) { if (!it.locked && it.category !== "duplicate") picked.add(it.id); });
+  render();
+});
+document.getElementById("clear").addEventListener("click", function () { itemsOf(tab).forEach(function (it) { picked.delete(it.id); }); render(); });
+renderStats();
+applyLang();
+ping();
+setInterval(ping, 4000);
+</script>
+</body>
+</html>

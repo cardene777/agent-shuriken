@@ -7,6 +7,10 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ## [Unreleased]
 
+### Added
+
+- The machine-cleanup plugin, which finds caches tools rebuild, build output git ignores, large and duplicate files, unused apps, dev servers left running, heavy processes, login items, and running containers on macOS, Linux, and WSL, lets you pick on a local page, and frees only your picks, with anything another session uses kept out of reach
+
 ## [0.14.0] - 2026-11-15
 
 ### Plugins

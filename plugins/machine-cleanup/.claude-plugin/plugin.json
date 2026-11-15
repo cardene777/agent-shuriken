@@ -1,0 +1,20 @@
+{
+  "name": "machine-cleanup",
+  "displayName": "Machine Cleanup",
+  "version": "0.1.0",
+  "description": "Free disk space, memory, and CPU on your computer: find caches tools rebuild, build output git ignores, large and duplicate files, unused apps, and dev servers left running, pick on a local page, and free only your picks, with anything another session uses kept out of reach",
+  "author": {
+    "name": "cardene777",
+    "url": "https://github.com/cardene777"
+  },
+  "homepage": "https://github.com/cardene777/agent-shuriken/tree/main/plugins/machine-cleanup",
+  "repository": "https://github.com/cardene777/agent-shuriken",
+  "license": "MIT",
+  "keywords": [
+    "disk-space",
+    "cache",
+    "memory",
+    "cpu",
+    "cleanup"
+  ]
+}
