@@ -37,6 +37,7 @@ JA_ALLOWED=(
   plugins/techdebt/skills/techdebt/templates/report.html
   plugins/techdebt/skills/techdebt/tests/test-techdebt.sh
   plugins/japanese-writing/README.md
+  plugins/convey/skills/convey/tests/test-convey.sh
   plugins/japanese-writing/skills/japanese-writing/references/rules.md
   plugins/japanese-writing/skills/japanese-writing/references/ai-smell.md
   plugins/japanese-writing/skills/japanese-writing/references/asking.md
