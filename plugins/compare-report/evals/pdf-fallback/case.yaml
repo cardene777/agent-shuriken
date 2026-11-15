@@ -1,0 +1,29 @@
+# Asked to print a finished report to PDF, the agent runs to-pdf.sh, and gives the path of the PDF when
+# the browser wrote it, or the path of the HTML to print from any browser when it did not.
+schema_version: "1.1"
+name: pdf-fallback
+plugins: ["../.."]
+execution:
+  prompt: |
+    Print the comparison report at reports/ssg-2026-11-10/report.html to PDF so I can send it around.
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'compare-report'
+    arm: with-only
+  - name: printed
+    type: tool_used
+    tool: Bash
+    input_match: 'to-pdf\.sh'
+    arm: with-only
+  - name: gives-a-file
+    type: llm
+    criteria: |
+      PASS if the reply gives the path of a PDF that was written, or says the PDF could not be made and gives the path of the HTML report for the user to print or open in a browser.
+      FAIL if the reply says a PDF was written without giving its path, or gives no path at all.

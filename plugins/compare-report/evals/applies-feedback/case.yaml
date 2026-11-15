@@ -1,0 +1,38 @@
+# Asked to drop a candidate from a finished report, the agent removes Brisk from every section, keeps
+# the other two, and runs the check again.
+schema_version: "1.1"
+name: applies-feedback
+plugins: ["../.."]
+execution:
+  prompt: |
+    Feedback on the comparison report at reports/ssg-2026-11-10/report.html: drop Brisk from the comparison, because its license terms rule it out for us. Keep everything else. I don't need the PDF.
+  max_turns: 40
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'compare-report'
+    arm: with-only
+  - name: checked
+    type: tool_used
+    tool: Bash
+    input_match: 'check-report\.py'
+    arm: with-only
+  - name: brisk-gone
+    type: regex
+    target: {source: file, path: reports/ssg-2026-11-10/report.html}
+    pattern: '>Brisk<'
+    match: not_contains
+  - name: others-kept
+    type: regex
+    target: {source: file, path: reports/ssg-2026-11-10/report.html}
+    pattern: '>Quarry<[\s\S]*>Lumen<'
+  - name: no-placeholder
+    type: regex
+    target: {source: file, path: reports/ssg-2026-11-10/report.html}
+    pattern: '\{\{[A-Z_]+\}\}'
+    match: not_contains

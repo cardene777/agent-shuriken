@@ -22,5 +22,5 @@ if [ -e "$dir/report.html" ]; then
   echo "$dir/report.html already exists. Edit it, or pass another slug" >&2
   exit 3
 fi
-cp "$here/templates/report.html" "$dir/report.html"
+cp "$here/templates/base.html" "$dir/report.html"
 printf '%s\n' "$dir/report.html"

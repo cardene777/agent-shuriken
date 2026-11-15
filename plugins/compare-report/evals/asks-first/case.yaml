@@ -1,0 +1,37 @@
+# Asked for a comparison report with nothing agreed yet, the agent lists candidates and asks the user
+# which to keep, and the author's name, before researching: it creates no report folder.
+schema_version: "1.1"
+name: asks-first
+plugins: ["../.."]
+execution:
+  prompt: |
+    I have to pick a static site generator for our product documentation site. Compare the options and write me a report I can share with my team.
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'compare-report'
+    arm: with-only
+  - name: author-read
+    type: tool_used
+    tool: Bash
+    input_match: 'author\.sh'
+    arm: with-only
+  - name: no-report-yet
+    type: tool_used
+    tool: Bash
+    input_match: 'new-report\.sh'
+    min: 0
+    max: 0
+    arm: both
+  - name: asks-candidates
+    type: llm
+    criteria: |
+      PASS if the reply lists candidate static site generators and asks the user which to keep, add, or drop, or to confirm them, before any research or report.
+      Asking about the evaluation axes or the author's name in the same message is not a failure.
+      FAIL if the reply says a report was written, or presents a finished comparison without asking about the candidates.
