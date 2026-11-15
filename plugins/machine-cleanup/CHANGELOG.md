@@ -5,6 +5,15 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+### Added
+
+- Every row has a level, Recommended, Check first, or Careful, with the reason, and the page groups each tab by level with the count and size of each group and the rows in use last. The recommended and check-first groups have a button that picks the whole group, which replaces the tab's button that also picked careful rows
+- The scan summary says how many items are recommended and how much disk they hold
+
+### Changed
+
+- A scan made by the previous version is refused with a request to scan again, since it has no levels
+
 ### Fixed
 
 - The confirm dialog shows the number of items apart from their size, such as `4 items, 807.4 MB`, instead of running them together as `4 807.4 MB`

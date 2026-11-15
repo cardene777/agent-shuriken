@@ -37,7 +37,7 @@ You can also call it: run `/machine-cleanup:machine-cleanup` in Claude Code, or 
 In GitHub Copilot CLI, write `/machine-cleanup` in your request, and in Gemini CLI, describe the task.
 
 1. The agent scans, which takes up to 90 seconds at the lowest priority, and tells you the totals
-2. A page opens in your browser. Pick the rows you want to free, press **Free**, check the summary, and press **Send to the agent**
+2. A page opens in your browser, with each tab grouped into **Recommended**, **Check first**, and **Careful**, and a reason on every row. Pick the rows you want to free, or press **Pick all in this group** on a recommended or check-first group, press **Free**, check the summary, and press **Send to the agent**
 3. The agent checks each pick again, skips any that changed or came into use, frees the rest, and reports free disk, memory, and load before and after
 4. When a process ignores the end signal, the agent asks you before ending it at once
 

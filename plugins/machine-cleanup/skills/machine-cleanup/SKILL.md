@@ -30,8 +30,9 @@ S=<skill folder>/scripts; python3 "$S/machine_cleanup.py" scan
 ```
 
 It runs at the lowest CPU and disk priority and stops after 90 seconds, listing what it did not reach.
-It prints a count and a size for each kind of item, the free disk and memory now, and how many places it did not measure.
-Tell the user the totals in two or three lines.
+It prints a count and a size for each kind of item, how many items are recommended and how much disk they hold, the free disk and memory now, and how many places it did not measure.
+Tell the user the totals in two or three lines, starting with the recommended ones.
+Each item has a level, recommended, check first, or careful, which the page groups by. The level never replaces the user's pick.
 
 Add `--root <folder>` (repeatable) to look for build output and large files somewhere other than the home folder, and `--time-limit <seconds>` to give it longer.
 

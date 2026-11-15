@@ -11,14 +11,14 @@
   --bg: #f6f7f9; --panel: #ffffff; --soft: #eef1f6; --text: #1d2330; --sub: #5b6475; --line: #dfe3ea;
   --accent: #2f5bd3; --accent-text: #ffffff; --pick: #e8eefc; --rebuilt: #2e7d4f; --rebuilt-bg: #e7f5ec;
   --trash: #8a5a00; --trash-bg: #fff4dc; --gone: #c8342b; --gone-bg: #fdecea; --run: #5b3fb5; --run-bg: #efeafd;
-  --lock: #6b7280; --lock-bg: #f1f2f4;
+  --lock: #6b7280; --lock-bg: #f1f2f4; --go: #2f5bd3; --check: #8a5a00; --care: #c8342b;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #12151b; --panel: #1b2029; --soft: #232a36; --text: #e7eaf0; --sub: #a3abba; --line: #2c3340;
     --accent: #6d8ff0; --accent-text: #0d1117; --pick: #1f2a44; --rebuilt: #56d38a; --rebuilt-bg: #16301f;
     --trash: #e3b341; --trash-bg: #33290f; --gone: #ff7b72; --gone-bg: #3a1d1b; --run: #b9a6ff; --run-bg: #2a2342;
-    --lock: #9aa3b2; --lock-bg: #232833;
+    --lock: #9aa3b2; --lock-bg: #232833; --go: #6d8ff0; --check: #e3b341; --care: #ff7b72;
   }
 }
 * { box-sizing: border-box; }
@@ -54,6 +54,19 @@ h1 { font-size: 24px; margin: 0; }
 .row:last-child { border-bottom: 0; }
 .row:hover { background: var(--soft); }
 .row[aria-pressed="true"] { background: var(--pick); box-shadow: inset 4px 0 0 var(--accent); }
+.row.lvl-recommended { border-left: 4px solid var(--go); padding-left: 10px; }
+.row.lvl-check { border-left: 4px solid var(--check); padding-left: 10px; }
+.row.lvl-careful { border-left: 4px solid var(--care); padding-left: 10px; }
+.row[class*="lvl-"][aria-pressed="true"] { box-shadow: none; }
+.group { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 8px 14px; background: var(--soft); border-bottom: 1px solid var(--line); }
+.group b { font-size: 14px; }
+.group span { color: var(--sub); font-size: 13px; }
+.group .pick-group { margin-left: auto; padding: 4px 10px; font-size: 13px; }
+.group.lvl-recommended b { color: var(--go); }
+.group.lvl-check b { color: var(--check); }
+.group.lvl-careful b { color: var(--care); }
+.group.lvl-inuse b { color: var(--lock); }
+.why { font-size: 13px; overflow-wrap: anywhere; }
 .row[aria-disabled="true"] { cursor: default; background: var(--lock-bg); }
 .row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .mark { flex: none; width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--line); display: grid; place-items: center; font-size: 14px; font-weight: 700; color: var(--accent-text); }
@@ -119,7 +132,6 @@ h1 { font-size: 24px; margin: 0; }
   <div class="tabs" id="tabs" role="tablist"></div>
   <div class="tabhead">
     <p id="tab-lead"></p>
-    <button type="button" class="tool" id="pick-all" data-i18n="pickAll">Pick all that can be picked</button>
     <button type="button" class="tool" id="clear" data-i18n="clear">Clear</button>
   </div>
   <div class="list" id="rows" role="list"></div>
@@ -152,6 +164,8 @@ h1 { font-size: 24px; margin: 0; }
     <p data-i18n="helpWhat">Caches that tools rebuild, build output that git ignores, the Trash, old logs and installers, large and duplicate files, apps you have not opened for 90 days, dev servers left running after their session ended, heavy processes, login items, and running containers.</p>
     <h3 data-i18n="helpLockTitle">Why some rows cannot be picked</h3>
     <p data-i18n="helpLock">A row is in use when a live agent session or an open terminal runs it, when a live agent session runs inside it or inside its app, or when a live agent session or another running program works in the same project. Close that session or program, and ask the agent to scan again.</p>
+    <h3 data-i18n="helpLevelTitle">What the groups mean</h3>
+    <p data-i18n="helpLevel">Recommended rows are rebuilt the next time they are needed, or were already thrown away or left unused for 30 days. Check first rows are your own files, apps, and login items, which you can put back. Careful rows are running programs and containers, whose work stops when they end.</p>
     <h3 data-i18n="helpNeverTitle">What is never touched</h3>
     <p data-i18n="helpNever">Sync folders such as iCloud Drive, Dropbox, Google Drive, and OneDrive, Windows drives under WSL, files git tracks, Docker volumes, and anything that needs an administrator password.</p>
     <h3 data-i18n="helpNextTitle">What happens next</h3>
@@ -175,7 +189,30 @@ h1 { font-size: 24px; margin: 0; }
     "statMem": "Memory used",
     "statLoad": "Load over the last minute",
     "statRebuilt": "Rebuilt on next use",
-    "pickAll": "Pick all that can be picked",
+    "level_recommended": "Recommended",
+    "level_check": "Check first",
+    "level_careful": "Careful",
+    "level_inuse": "In use",
+    "pickGroup": "Pick all in this group",
+    "helpLevelTitle": "What the groups mean",
+    "helpLevel": "Recommended rows are rebuilt the next time they are needed, or were already thrown away or left unused for 30 days. Check first rows are your own files, apps, and login items, which you can put back. Careful rows are running programs and containers, whose work stops when they end.",
+    "why_rebuilt": "Rebuilt the next time it is needed",
+    "why_build_idle": "The project has had no commit for {days} days. The next install or build makes it again",
+    "why_build_recent": "The project's last commit was {days} days ago. The next install or build makes it again, which takes time",
+    "why_build_unknown": "git could not tell when the project last changed",
+    "why_trash": "Things you already moved to the Trash",
+    "why_old_logs": "Logs older than {days} days",
+    "why_old_installer": "An installer older than {days} days",
+    "why_own_file": "Your own file. You can put it back from the Trash",
+    "why_duplicate": "Another copy with the same contents stays",
+    "why_app_unused": "Not opened for {days} days",
+    "why_app_unused_unknown": "macOS does not know when it was last opened",
+    "why_flatpak": "An app you installed for yourself with Flatpak",
+    "why_session_ended": "Still running after the session that started it ended",
+    "why_next_server": "next start also runs as next-server, so it may be a server you use",
+    "why_login_item": "Only turned off, so restore can turn it back on",
+    "why_running_program": "A running program. Ending it stops its work",
+    "why_container": "Stopping it stops what it serves. Its data stays",
     "clear": "Clear",
     "picked": "picked",
     "toFree": "{size} of disk",
@@ -269,7 +306,30 @@ h1 { font-size: 24px; margin: 0; }
     "statMem": "使用中のメモリ",
     "statLoad": "直近1分の負荷",
     "statRebuilt": "次に使う時に作り直される分",
-    "pickAll": "選べる物を全部選ぶ",
+    "level_recommended": "おすすめ",
+    "level_check": "確かめて選ぶ",
+    "level_careful": "慎重に",
+    "level_inuse": "使用中",
+    "pickGroup": "この段を全部選ぶ",
+    "helpLevelTitle": "段の意味",
+    "helpLevel": "おすすめは、次に要る時に作り直される物か、すでに捨てた物か、30日使っていない物です。確かめて選ぶは、自分のファイル、アプリ、ログイン項目で、後から戻せます。慎重には、動いているプログラムとコンテナで、終わらせるとその作業が止まります。",
+    "why_rebuilt": "次に要る時に作り直されます",
+    "why_build_idle": "プロジェクトは{days}日commitされていません。次のインストールかビルドで作り直されます",
+    "why_build_recent": "プロジェクトの最後のcommitは{days}日前です。次のインストールかビルドで作り直されますが、時間がかかります",
+    "why_build_unknown": "プロジェクトが最後に変わった日をgitから読めませんでした",
+    "why_trash": "すでにゴミ箱へ移した物です",
+    "why_old_logs": "{days}日より古いログです",
+    "why_old_installer": "{days}日より古いインストーラーです",
+    "why_own_file": "自分のファイルです。ゴミ箱から戻せます",
+    "why_duplicate": "同じ中身の写しがほかに残ります",
+    "why_app_unused": "{days}日開いていません",
+    "why_app_unused_unknown": "最後に開いた日をmacOSが持っていません",
+    "why_flatpak": "自分用にFlatpakで入れたアプリです",
+    "why_session_ended": "始めた会話が終わった後も動いています",
+    "why_next_server": "next startで動かしたサーバーも同じ名前になるため、使っている物かもしれません",
+    "why_login_item": "止めるだけなので、restoreで戻せます",
+    "why_running_program": "動いているプログラムです。終わらせると作業が止まります",
+    "why_container": "止めるとそのサービスが止まります。データは残ります",
     "clear": "選択を外す",
     "picked": "件を選択",
     "toFree": "ディスク{size}",
@@ -485,15 +545,16 @@ function render() {
   });
   const leadKey = "lead_" + tab;
   document.getElementById("tab-lead").textContent = t(leadKey);
-  document.getElementById("pick-all").hidden = tab === "skipped";
   document.getElementById("clear").hidden = tab === "skipped";
   const rows = document.getElementById("rows");
   rows.textContent = "";
   if (tab === "skipped") {
     DATA.skipped.forEach(function (s) { rows.appendChild(rowEl(tilde(s.path), reasonText(s.reason), null, null)); });
   } else {
-    const list = itemsOf(tab).slice().sort(function (a, b) { return (!!a.locked - !!b.locked) || ((b.size || 0) - (a.size || 0)); });
-    list.forEach(function (it) { rows.appendChild(rowEl(it.name, tilde(it.path) || "", it, detailText(it))); });
+    groupRows(itemsOf(tab)).forEach(function (g) {
+      rows.appendChild(groupHead(g));
+      g.items.forEach(function (it) { rows.appendChild(rowEl(it.name, tilde(it.path) || "", it, detailText(it))); });
+    });
   }
   if (!rows.children.length) {
     const e = document.createElement("div");
@@ -503,9 +564,55 @@ function render() {
   }
   renderTally();
 }
+// The groups of one tab in the order the page shows them: recommended, check first, careful, and the
+// rows in use last. Within a group the largest comes first. Only the first two can be picked at once.
+function groupRows(list) {
+  const groups = { recommended: [], check: [], careful: [], inuse: [] };
+  list.forEach(function (it) { (it.locked ? groups.inuse : groups[it.level] || groups.check).push(it); });
+  return ["recommended", "check", "careful", "inuse"].filter(function (key) { return groups[key].length; }).map(function (key) {
+    const items = groups[key].sort(function (a, b) { return (b.size || 0) - (a.size || 0); });
+    return {
+      key: key, items: items, pickAll: key === "recommended" || key === "check",
+      disk: items.every(function (it) { return it.group === "disk"; }),
+      total: items.reduce(function (s, it) { return s + (it.size || 0); }, 0)
+    };
+  });
+}
+function groupHeadText(g) { return sumText(g.items.length, g.total, g.disk); }
+// A group's heading: its level, how many rows and how much disk it holds, and for the recommended
+// and check-first groups a button that picks every row in it (duplicates stay one by one, since
+// picking every copy of a set is refused).
+function groupHead(g) {
+  const head = document.createElement("div");
+  head.className = "group lvl-" + g.key;
+  const title = document.createElement("b");
+  const titleKey = "level_" + g.key;
+  title.textContent = t(titleKey);
+  head.appendChild(title);
+  const count = document.createElement("span");
+  count.textContent = groupHeadText(g);
+  head.appendChild(count);
+  if (g.pickAll) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "tool pick-group";
+    b.textContent = t("pickGroup");
+    b.addEventListener("click", function () {
+      g.items.forEach(function (it) { if (!it.locked && it.category !== "duplicate") picked.add(it.id); });
+      render();
+    });
+    head.appendChild(b);
+  }
+  return head;
+}
+function whyText(it) {
+  const r = it.reason || {};
+  const key = "why_" + r.code;
+  return r.code ? t(key, { days: r.days }) : "";
+}
 function rowEl(name, where, it, extra) {
   const row = document.createElement("div");
-  row.className = "row";
+  row.className = it && !it.locked ? "row lvl-" + it.level : "row";
   row.setAttribute("role", "listitem");
   const mark = document.createElement("span");
   mark.className = "mark";
@@ -516,6 +623,7 @@ function rowEl(name, where, it, extra) {
   n.textContent = name;
   main.appendChild(n);
   if (where) { const w = document.createElement("div"); w.className = "where"; w.textContent = where; main.appendChild(w); }
+  if (it && !it.locked && whyText(it)) { const w = document.createElement("div"); w.className = "why"; w.textContent = whyText(it); main.appendChild(w); }
   // A process's command, on the line after its summary, is clipped to two lines; hovering shows all of it.
   if (extra) extra.split("\n").forEach(function (x, i) {
     const w = document.createElement("div");
@@ -651,10 +759,6 @@ document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") cl
 document.getElementById("free").addEventListener("click", function () { if (online === false) { showNote("offline"); return; } confirmFree(); });
 document.getElementById("send").addEventListener("click", send);
 document.getElementById("copy").addEventListener("click", copySelection);
-document.getElementById("pick-all").addEventListener("click", function () {
-  itemsOf(tab).forEach(function (it) { if (!it.locked && it.category !== "duplicate") picked.add(it.id); });
-  render();
-});
 document.getElementById("clear").addEventListener("click", function () { itemsOf(tab).forEach(function (it) { picked.delete(it.id); }); render(); });
 renderStats();
 applyLang();
