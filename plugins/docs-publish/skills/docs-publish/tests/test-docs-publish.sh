@@ -578,7 +578,19 @@ fixtures_ready() {
   w="$(fixture check-and-fix)" || return 1
   out="$(cd "$w" && dp check)"
   [ "$(printf '%s\n' "$out" | grep -cE '^(link|stale) ')" -ge 2 ] &&
-    ! printf '%s\n' "$out" | grep -qE '^(missing|unmapped|todo|content|structure|untranslated|crosslink|switch|orphan) '
+    ! printf '%s\n' "$out" | grep -qE '^(missing|unmapped|todo|content|structure|untranslated|crosslink|switch|orphan) ' ||
+    return 1
+  # The translations are in Japanese, so the only work the case leaves is the two problems: a page
+  # left in English would have the agent translate the whole set instead.
+  python3 - "$w/docs/ja" <<'PY'
+import os, re, sys
+kana = re.compile("[%s-%s]" % (chr(0x3040), chr(0x30FF)))
+pages = [os.path.join(d, f) for d, _, files in os.walk(sys.argv[1]) for f in files if f.endswith(".md")]
+def first_text(path):
+    """The page before its first code block, without the title and the language switch."""
+    return "\n".join(open(path, encoding="utf-8").read().split("```")[0].splitlines()[3:])
+sys.exit(0 if len(pages) == 10 and all(kana.search(first_text(p)) for p in pages) else 1)
+PY
 }
 check "the eval fixtures build the states their cases start from" "fixtures_ready"
 

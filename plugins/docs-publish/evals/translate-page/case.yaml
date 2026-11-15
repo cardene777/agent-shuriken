@@ -1,0 +1,38 @@
+# The agent translates a finished English page into Japanese with the same sections and the code kept
+# as it is, and records the translation.
+schema_version: "1.1"
+name: translate-page
+plugins: ["../.."]
+execution:
+  prompt: |
+    docs/en/quickstart.md is finished. Translate it into Japanese at docs/ja/quickstart.md.
+  max_turns: 25
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'docs-publish'
+  - name: recorded
+    type: tool_used
+    tool: Bash
+    input_match: 'docs_publish\.py[^|;&]*translated'
+    arm: with-only
+  - name: code-kept
+    type: regex
+    target: {source: file, path: docs/ja/quickstart.md}
+    pattern: 'npm install tiny-slug[\s\S]*node slug\.js[\s\S]*hello-world'
+  - name: no-todo-left
+    type: regex
+    target: {source: file, path: docs/ja/quickstart.md}
+    pattern: 'docs-publish:todo'
+    match: not_contains
+  - name: japanese-with-the-same-sections
+    type: llm
+    focus: {source: file, path: docs/ja/quickstart.md}
+    criteria: |
+      PASS if the prose is in Japanese, the page keeps the English page's sections in the same order (requirements, install, first run, next steps), keeps every code block as it is in English, keeps the language switch line under the title with a link to ../en/quickstart.md, and its other links point to pages in the Japanese folder rather than ../en/.
+      FAIL if the prose is left in English, a section or a code block is missing or changed, or other links point into ../en/.
