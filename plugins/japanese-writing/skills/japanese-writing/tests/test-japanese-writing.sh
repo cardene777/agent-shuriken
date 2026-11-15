@@ -113,6 +113,42 @@ notices_complete() {
 }
 check "the notices name the source, commit, date, and MIT license" "notices_complete"
 
+# The guide to connecting sentences is adapted from two documents of Japan's Agency for Cultural Affairs.
+# Their terms (the Public Data License 1.0, compatible with CC BY 4.0) ask for the title, the agency, the
+# address, and a note that the text was edited.
+CONNECTING="$SKILL_DIR/references/connecting.md"
+KOYOBUN='公用文作成の考え方'
+WAKARIAU='分かり合うための言語コミュニケーション'
+
+connecting_sources() {
+  [ -f "$CONNECTING" ] || return 1
+  local head
+  head="$(head -12 "$CONNECTING")"
+  printf '%s' "$head" | grep -qF "$KOYOBUN" && printf '%s' "$head" | grep -qF "$WAKARIAU" \
+    && printf '%s' "$head" | grep -qF '文化庁' && printf '%s' "$head" | grep -qF '加工して作成'
+}
+check "the guide to connecting sentences names its two sources and says it was edited" "connecting_sources"
+
+connecting_body() {
+  [ -f "$CONNECTING" ] || return 1
+  local word
+  for word in 理由 逆接 補足 順序 そのため しかし なお まず 接続助詞 中止法 結論 直す前 直した後; do
+    grep -qF "$word" "$CONNECTING" || return 1
+  done
+}
+check "the guide to connecting sentences lists connectives by relation and shows a rewrite" "connecting_body"
+
+connecting_notices() {
+  local n="$PLUGIN_DIR/THIRD_PARTY_NOTICES.md" want
+  [ -f "$n" ] || return 1
+  for want in "$KOYOBUN" "$WAKARIAU" '`skills/japanese-writing/references/connecting.md`' '公共データ利用規約' '加工' \
+    'https://www.bunka.go.jp/seisaku/bunkashingikai/kokugo/hokoku/pdf/93731901_01.pdf' \
+    'https://www.bunka.go.jp/koho_hodo_oshirase/hodohappyo/__icsFiles/afieldfile/2018/04/09/a1401904_03.pdf'; do
+    grep -qF -- "$want" "$n" || return 1
+  done
+}
+check "the notices name the Agency for Cultural Affairs documents, their terms, and the edit" "connecting_notices"
+
 # --- the scripts, run the way SKILL.md says
 
 run_line() {  # the first line of SKILL.md that runs a script with uv
