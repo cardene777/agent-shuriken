@@ -1,0 +1,47 @@
+# An explainer whose Retries section has no figure gets a figure in its content JSON and is built
+# again, so the check passes, without hand edits to the finished HTML.
+schema_version: "1.1"
+name: fix-missing-figure
+plugins: ["../.."]
+execution:
+  prompt: |
+    The check of the explainer in docs/explainers/queue-lite/ fails because its Retries section has no figure. Fix it so the check passes.
+  max_turns: 30
+  timeout_seconds: 700
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'diagram-explainer'
+  - name: html-not-edited
+    type: tool_used
+    tool: Edit
+    input_match: 'queue-lite\.html'
+    min: 0
+    max: 0
+    arm: both
+  - name: html-not-written
+    type: tool_used
+    tool: Write
+    input_match: 'queue-lite\.html'
+    min: 0
+    max: 0
+    arm: both
+  - name: rebuilt-with-the-figure
+    type: regex
+    target: {source: file, path: docs/explainers/queue-lite/queue-lite.html}
+    pattern: 'id="a-s3"(?![^>]*data-nofig)[^>]*>(?:(?!</section>)[\s\S])*<figure'
+  - name: every-section-has-a-figure
+    type: regex
+    target: trace
+    pattern: 'OK all [0-9]+ sections have a figure'
+    arm: with-only
+  - name: retries-figure
+    type: llm
+    focus: {source: file, path: docs/explainers/queue-lite/content.json}
+    criteria: |
+      PASS if the Retries section now has a figure, an html block with a caption or a chart, that shows how retries work, such as the delay before each new attempt and when the job is marked failed.
+      FAIL if the section was given a nofigure reason instead, or its figure does not show retries.

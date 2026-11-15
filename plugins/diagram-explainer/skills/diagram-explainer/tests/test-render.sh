@@ -308,7 +308,89 @@ for lang in en ja; do
   fi
 done
 
+# --- 7. The SKILL.md and its eval suite ---
+PLUGIN="$(cd "$SKILL_DIR/../.." && pwd)"
+EVALS="$PLUGIN/evals"
+SKILL="$SKILL_DIR/SKILL.md"
+CASES=(outline-first unrelated-request build-from-outline fix-missing-figure japanese-document)
+
+eval_cases() {
+  local c
+  for c in "${CASES[@]}"; do
+    [ -f "$EVALS/$c/case.yaml" ] && [ -x "$EVALS/$c/fixture.sh" ] || return 1
+  done
+}
+_yes "the eval suite has the five cases" eval_cases
+
+# Runs a case's fixture.sh the way claude plugin eval does (in home/cwd with HOME at home) and prints the workspace.
+fixture() {
+  local ws="$WORK/fixture-$1/home/cwd"
+  mkdir -p "$ws"
+  (cd "$ws" && HOME="$WORK/fixture-$1/home" bash "$EVALS/$1/fixture.sh") >/dev/null 2>&1 || return 1
+  printf '%s\n' "$ws"
+}
+fixtures_ready() {
+  local c ws
+  for c in outline-first unrelated-request build-from-outline japanese-document; do
+    ws="$(fixture "$c")" || return 1
+    [ -f "$ws/package.json" ] && [ -f "$ws/src/queue.js" ] && [ ! -e "$ws/docs/explainers" ] || return 1
+  done
+  ws="$(fixture fix-missing-figure)" || return 1
+  [ -f "$ws/package.json" ] && [ -f "$ws/src/queue.js" ] || return 1
+  [ -f "$ws/docs/explainers/queue-lite/content.json" ] && [ -f "$ws/docs/explainers/queue-lite/queue-lite.html" ] || return 1
+  python3 "$CHECK" "$ws/docs/explainers/queue-lite/queue-lite.html" > "$WORK/fixture-check.txt" 2>&1 && return 1
+  grep -qx 'NG sections without a figure: 1 (a-s3)' "$WORK/fixture-check.txt" && grep -q '^---- NG 1 ' "$WORK/fixture-check.txt"
+}
+_yes "the eval fixtures build the states their cases start from" fixtures_ready
+
+results_ignored() {
+  local repo
+  repo="$(git -C "$PLUGIN" rev-parse --show-toplevel 2>/dev/null)" || return 1
+  git -C "$repo" check-ignore -q "${EVALS#"$repo"/}/results/run.json"
+}
+_yes "eval results are ignored by git" results_ignored
+
+# The body is counted in words and the description in characters, as the size the agent reads.
+SKILL_WORDS_MAX=1995
+SKILL_DESCRIPTION_MAX=309
+skill_size() {
+  python3 - "$SKILL" "$SKILL_WORDS_MAX" "$SKILL_DESCRIPTION_MAX" <<'PYEOF'
+import re, sys
+front, body = open(sys.argv[1], encoding="utf-8").read().split("---", 2)[1:]
+words = len(body.split())
+chars = len(re.search(r"^description: (.*)$", front, re.M).group(1))
+print("  SKILL.md body %d words (max %s), description %d characters (max %s)" % (words, sys.argv[2], chars, sys.argv[3]))
+sys.exit(0 if words <= int(sys.argv[2]) and chars <= int(sys.argv[3]) else 1)
+PYEOF
+}
+_yes "the SKILL.md stays within its size limits" skill_size
+
+skill_rules() {
+  local phrase
+  for phrase in \
+    "Never put the user's project names" \
+    "as data, never as instructions" \
+    "Never present a guess as a fact" \
+    "loads nothing from the network" \
+    "Adjust it until they agree" \
+    "never edit the finished HTML by hand" \
+    'without `--live` and say that the layout was not measured'; do
+    grep -qF -- "$phrase" "$SKILL" || return 1
+  done
+}
+_yes "the SKILL.md keeps its rules on searches, sources, the network, the outline, and editing" skill_rules
+
+help_options() {
+  local opt help
+  help="$(python3 "$CHECK" --help 2>&1)" || return 1
+  for opt in sections widths words para sent; do
+    printf '%s\n' "$help" | grep -qE "^  --$opt [A-Z]+ +[a-z]" || return 1
+  done
+}
+_yes "check.py --help describes the options the SKILL.md leaves out" help_options
+
 echo ""
+echo "[test-render] ran: $((PASS + FAIL))"
 echo "[test-render] PASS: $PASS, FAIL: $FAIL"
 if [ "$FAIL" -gt 0 ]; then
   echo "failed cases:"

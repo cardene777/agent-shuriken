@@ -1,6 +1,6 @@
 ---
 name: diagram-explainer
-description: Writes an explainer of a system, a piece of research, or a setup as one self-contained HTML file with a figure in every section. Keeps the content as JSON (pages, sections, blocks) and builds a document with a contents list that shows one section at a time, header tabs when there are several topics, a slide-in contents list on phones, and a print and PDF layout. Every figure is drawn inside the page, as an HTML figure for parts and flows, a chart for times, amounts, numbers, and periods, or a step ladder for steps that carry several items. Checks the result for network use, structure, captions, and the text, with full wording rules for Japanese documents. Use when the user asks for an explainer, a document with figures, an overview of how something works, or a one-file HTML guide to share.
+description: Writes an explainer of a system, a piece of research, or a setup as one self-contained HTML file with a figure in every section, and checks the file before handing it over. Use when the user asks for an explainer, a document with figures, an overview of how something works, or a one-file HTML guide to share.
 ---
 
 # Diagram explainer
@@ -13,26 +13,7 @@ Where it says to ask the user, use AskUserQuestion in Claude Code, and ask in th
 All files are next to this `SKILL.md`.
 Below, the absolute path of that folder is written as `D`.
 When you run a command, put `D=<folder that contains this SKILL.md>` at the start of the same shell command.
-
-| Path | Contents |
-|---|---|
-| `references/document-shape.md` | The content JSON: top-level fields, every block, the rendered skeleton, colors, print |
-| `references/content.schema.json` | JSON Schema of the content |
-| `references/chart-shape.md` | The four chart kinds and their fields |
-| `references/ladder-shape.md` | Step ladders: when to use one and its JSON |
-| `references/tab-shape.md` | Pages with header tabs, narrow screens, printing |
-| `references/research-plan.md` | Research order and claim ledger for standards, APIs, and protocols |
-| `references/prose-check.md` | The text checks, term tables, and the rereading steps |
-| `references/prose-words.txt`, `words-plain.txt`, `metaphor-words.tsv` | Word lists used for Japanese documents |
-| `templates/starter-doc.html` | The document template |
-| `assets/` | CSS and JavaScript that `build.py` puts into the document |
-| `examples/` | A complete sample in English and in Japanese, with its step ladders |
-| `scripts/render.py` | Builds the body from the content JSON |
-| `scripts/despace.py` | Japanese documents only: removes spaces between Japanese and ASCII |
-| `scripts/ladder.py` | Draws step ladders into their slots |
-| `scripts/build.py` | Puts the assets in and refuses unfinished documents |
-| `scripts/check.py` | Checks the finished document (runs `prose.py` and `figure.py` too) |
-| `scripts/to-pdf.py` | Prints the document to PDF |
+`references/` holds the shapes of the content JSON and the text checks, `examples/` a complete sample in English and in Japanese, and `scripts/` the commands below; `build.py` puts `templates/` and `assets/` into the document.
 
 ## Rules
 
@@ -43,16 +24,6 @@ When you run a command, put `D=<folder that contains this SKILL.md>` at the star
 - Write files only in the output folder
 
 ## Steps
-
-```
-1. Research the topic (standards, APIs, protocols)
-2. Decide the pages, the sections, and the figure of each section   → the user agrees on the outline
-3. Write the content JSON
-4. Build the document
-5. Check it and fix what fails
-6. Reread the text
-7. Hand it over (HTML, and a PDF when asked)                         → the user reviews the document
-```
 
 ### 1. Research
 
@@ -91,7 +62,7 @@ Order the sections by the kind of topic.
 
 Within a topic, the basic order is concept → main flow → demo → production → detailed specification (leave out demo and production when there is no implementation); put long specifications in `details` blocks.
 When several standards work together, first say in one paragraph which boundary each one owns and what it passes on (inputs, outputs, who decides, who signs or verifies), then show the overall flow.
-When there are two or more topics (for example how it works and how it is set up), make one page (`tabs` entry) per topic. With one topic there is no header.
+When there are two or more topics (for example how it works and how it is set up), make one page (`tabs` entry) per topic, as `references/tab-shape.md` shows. With one topic there is no header.
 
 Pick a figure for every section.
 
@@ -105,7 +76,7 @@ A section without a figure states why in `nofigure` (for example a section that 
 Do not use `nofigure` to save the work of drawing.
 
 Show the outline to the user: the pages, the sections in order, and the figure of each section in one line each.
-Adjust it until they agree.
+Adjust it until they agree, and write nothing before they do.
 
 ### 3. Write the content JSON
 
@@ -164,8 +135,7 @@ python3 "$D/scripts/build.py" --in "$X/body.html" --out "$X/<slug>.html"
 rm "$X/body.html"
 ```
 
-`build.py` writes nothing when the document is unfinished (an empty ladder slot, an `<iframe>`, a leftover asset marker, ...).
-Fix the content and build again.
+When a script refuses the content, or `build.py` refuses an unfinished document (an empty ladder slot, an `<iframe>`, a leftover asset marker, ...), it names the block, field, or slot; fix the content and build again.
 To change any text, edit `content.json` and rebuild; never edit the finished HTML by hand.
 
 ### 5. Check
@@ -176,9 +146,9 @@ python3 "$D/scripts/check.py" "$X/<slug>.html" --live --words "$X/words.txt"
 ```
 
 Leave out `--words` when there is no term table, and repeat it to pass several tables.
-`--live` opens the document in a Chromium-based browser already on the machine (Google Chrome, Chromium, Microsoft Edge, Brave, or Playwright's headless shell; `DIAGRAM_EXPLAINER_BROWSER` points at another one) with a throwaway profile, and checks at several widths that the page height does not move while it loads and that nothing overflows sideways.
-Add `--widths 390,768,1024,1440,1920` to look at other widths (Playwright's headless shell measures a phone width such as 390 correctly; a full browser may not open a window that narrow), and `--sections <n>` to fix the number of sections.
-Long paragraphs and sentences are only counted; `--para` and `--sent` change the lengths that count as long.
+`--live` opens the document in a Chromium-based browser already on the machine with a throwaway profile, and checks at several widths that the page height does not move while it loads and that nothing overflows sideways.
+When it finds no browser, ask the user which Chromium-based browser they use and set `DIAGRAM_EXPLAINER_BROWSER`, or run `check.py` without `--live` and say that the layout was not measured.
+`check.py --help` lists the other options.
 
 `NG` lines fail and name what to fix; `--` lines only count.
 Fix every `NG` in `content.json` (or the ladder JSON) and build again until `check.py` exits 0.
@@ -192,7 +162,6 @@ Look at the counted lists too: the longest paragraphs and sentences, repeated se
 
 Look at every section yourself, at a desktop width and a phone width, before showing it.
 Opening `<slug>.html#<section id>` (for example `#a-s2`) shows that section, also on another page.
-To take a screenshot without a window, run the browser that `check.py --live` reports with `--headless=new --screenshot=<file>.png --window-size=<width>,<height> --virtual-time-budget=3000` and a throwaway `--user-data-dir` that you delete afterwards.
 A step ladder keeps its width on a phone and scrolls sideways inside its frame.
 
 ### 7. Hand it over
@@ -207,15 +176,6 @@ python3 "$D/scripts/to-pdf.py" "$X/<slug>.html"
 ```
 
 When the user asks for changes, change `content.json`, then build and check again.
-
-## When a script fails
-
-| Message | What to do |
-|---|---|
-| `render.py`: a block or field is not accepted | Compare the block with `references/content.schema.json` and fix it |
-| `build.py`: unfinished document | Fill the named slot or remove the named leftover, then build again |
-| `check.py`: no Chromium-based browser found | Ask the user which Chromium-based browser they use and set `DIAGRAM_EXPLAINER_BROWSER`, or run `check.py` without `--live` and say that the layout was not measured |
-| `check.py`: NG lines | Fix each one in the content and build again |
 
 ## Not covered
 
