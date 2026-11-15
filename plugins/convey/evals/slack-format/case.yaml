@@ -5,7 +5,7 @@ name: slack-format
 plugins: ["../.."]
 execution:
   prompt: |
-    Turn notes.md into a message I can paste into our team's Slack channel, and save it to message.md.
+    Turn notes.md into a message in Japanese that I can paste into our team's Slack channel, and save it to message.md.
   max_turns: 16
   timeout_seconds: 400
   allowed_tools: [Read, Glob, Grep, Skill]
