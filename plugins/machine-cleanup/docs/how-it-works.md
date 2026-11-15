@@ -34,6 +34,20 @@ Files of 500 MB or more that have no duplicate are large files.
 The result goes to `scan.json` in the state folder.
 Each item has an id (`d-` and eight hex digits for disk items, `p-` for processes, login items, and containers), a category, a kind, a size or memory use, whether it comes back on its own, how it is freed, the reason it is in use when it is, and a fingerprint for the check before acting.
 
+## How rows are ranked
+
+The scan gives every item one of three levels and a reason, and the page groups each tab by level, with the rows in use last.
+The level only orders the rows and explains them; `apply` checks every pick the same way whatever its level.
+
+| Level | Items | Reason shown |
+|---|---|---|
+| Recommended | Caches that tools rebuild, build output of a project with no commit for more than 30 days, the Trash, logs and installers older than 30 days, and dev servers still running after their session ended | Rebuilt the next time it is needed, how many days the project has had no commit, or how old the files are |
+| Check first | Build output of a project with a commit in the last 30 days, large files, duplicates, unused apps, login items, and a `next-server` process, since `next start` runs under the same name | How many days since the last commit or since the app was opened, or that the item can be put back |
+| Careful | Heavy processes and running containers | Ending it stops its work |
+
+The headings of the recommended and check-first groups have a button that picks every row in the group except duplicates, which are picked one copy at a time so that one copy always stays.
+The careful and in-use groups have no such button, and the page opens with nothing picked.
+
 ## What counts as in use
 
 An item that is in use is listed with the reason and cannot be picked, on the page or in `apply`.

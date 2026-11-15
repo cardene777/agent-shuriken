@@ -34,3 +34,15 @@
 | pluginのscriptは、127.0.0.1の待つ命令の他に、外への接続を開く処理を持たない | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"no script connects outside the machine"`が通る | #141 |
 | marketplaceは`machine-cleanup`の項目を持ち、repo直下の`README.md`と`README.ja.md`の一覧が`machine-cleanup`の行を持つ | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"the marketplace and the root READMEs list machine-cleanup"`が通る | #141 |
 | repoの検査が全部通る | `bash scripts/check.sh`が終了0 | #141 |
+| 走査は、作り直されるキャッシュ、ゴミ箱、30日より古いログとインストーラー、始めた会話が終わった後も残る開発用のプロセスを、推奨度おすすめとして返す | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"scan ranks rebuilt caches, the Trash, old logs and installers, and leftover dev processes as recommended"`が通る | #152 |
+| 走査は、大きいファイル、重複、使っていないアプリ、ログイン項目、next-serverの名前で動くプロセスを、推奨度確かめて選ぶとして返す | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"scan ranks large and duplicate files, unused apps, login items, and next-server as check first"`が通る | #152 |
+| 走査は、重いプロセスと動いているコンテナを、推奨度慎重にとして返す | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"scan ranks heavy processes and running containers as careful"`が通る | #152 |
+| 走査は、ビルドの出力をプロジェクトの最後のcommitが30日より前の時だけおすすめとして返し、30日以内の時は確かめて選ぶとして返す | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"build output is recommended only when its project has had no commit for 30 days"`が通る | #152 |
+| 走査は、全ての項目に推奨度と理由の記号を返す | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"every scanned item has a level and a reason"`が通る | #152 |
+| ページは、タブの中の行をおすすめ、確かめて選ぶ、慎重に、使用中の順の段に分け、段の見出しに件数と、ディスクの段には合計の大きさを出す | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"the page groups rows by level with counts and totals, and in-use rows last"`が通る | #152 |
+| ページは、おすすめと確かめて選ぶの段にだけ、その段の選べる行を全部選ぶボタンを出す | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"only the recommended and check-first groups can be picked all at once"`が通る | #152 |
+| ページは、慎重にの行と使用中の行をまとめて選ぶ手段を持たず、タブの選べる物を全部選ぶボタンを持たない | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"the page has no way to pick careful or in-use rows all at once"`が通る | #152 |
+| ページは、行ごとの理由を英語と日本語の辞書の文で出す | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"the page shows each row's reason from the English and Japanese dictionaries"`が通る | #152 |
+| 仕組みのページ (英語と日本語) は、3つの推奨度とその規則を表で持つ | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"how-it-works lists the three levels and their rules in both languages"`が通る | #152 |
+| 適用は、推奨度にかかわらず使用中の項目を拒む | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"apply refuses unknown and locked ids"`が通る | #152 |
+| 適用は、推奨度にかかわらず走査の後に変わった項目を理由を添えて飛ばす | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"apply skips an item that changed after the scan"`が通る | #152 |

@@ -40,7 +40,8 @@ import sys
 import time
 import urllib.parse
 
-FORMAT_VERSION = 1
+FORMAT_VERSION = 1  # restore.json
+SCAN_VERSION = 2  # scan.json; 2 added each item's level and reason
 MIB = 1024 * 1024
 LARGE_FILE = 500 * MIB
 DUPLICATE_MIN = 10 * MIB
@@ -1141,8 +1142,11 @@ def cmd_scan(ctx, args):
         if it["id"] not in seen:
             seen.add(it["id"])
             unique.append(it)
+    last_commits = {}
+    for it in unique:
+        it["level"], it["reason"] = rank(ctx, it, last_commits)
     result = {
-        "version": FORMAT_VERSION, "platform": ctx.platform, "home": ctx.home, "scanned_at": iso(time.time()),
+        "version": SCAN_VERSION, "platform": ctx.platform, "home": ctx.home, "scanned_at": iso(time.time()),
         "seconds": round(time.time() - started, 1), "time_limit": args.time_limit, "measure": measure(ctx),
         "items": unique, "skipped": skipped,
     }
@@ -1152,6 +1156,69 @@ def cmd_scan(ctx, args):
     else:
         print_summary(ctx, result)
     return 0
+
+
+def days_since(ts, now):
+    return max(0, int((now - ts) // 86400))
+
+
+def last_commit(repo, cache):
+    """Unix time of the repository's last commit, or None when git cannot tell."""
+    if repo not in cache:
+        rc, stdout, _ = run(["git", "-C", repo, "log", "-1", "--format=%ct"], timeout=30)
+        cache[repo] = int(stdout.strip()) if rc == 0 and stdout.strip().isdigit() else None
+    return cache[repo]
+
+
+def rank(ctx, it, last_commits):
+    """Returns (level, reason) for one item. The level is recommended, check, or careful, and the
+    reason is {"code": ..., "days": ...} for the page to put into words. The rules, in order:
+    rebuilt or already discarded and unused for 30 days is recommended; your own files, apps, login
+    items, and anything that cannot be told apart from something in use is check; a running
+    program or container, whose work stops when it is ended, is careful."""
+    cat = it["category"]
+    if cat == "cache":
+        return "recommended", {"code": "rebuilt"}
+    if cat == "build":
+        ts = last_commit((it.get("detail") or {}).get("project") or "", last_commits)
+        if ts is None:
+            return "check", {"code": "build_unknown"}
+        days = days_since(ts, ctx.now)
+        if days > OLD_DAYS:
+            return "recommended", {"code": "build_idle", "days": days}
+        return "check", {"code": "build_recent", "days": days}
+    if cat == "trash":
+        return "recommended", {"code": "trash"}
+    if cat == "log":
+        return "recommended", {"code": "old_logs", "days": OLD_DAYS}
+    if cat == "installer":
+        return "recommended", {"code": "old_installer", "days": OLD_DAYS}
+    if cat == "large":
+        return "check", {"code": "own_file"}
+    if cat == "duplicate":
+        return "check", {"code": "duplicate"}
+    if cat == "app" and it["kind"] == "mac-app":
+        used = parse_iso((it.get("detail") or {}).get("last_used"))
+        return "check", ({"code": "app_unused", "days": days_since(used, ctx.now)} if used else {"code": "app_unused_unknown"})
+    if cat == "app":
+        return "check", {"code": "flatpak"}
+    if cat == "dev-process":
+        if it["name"] == "Next.js server":
+            return "check", {"code": "next_server"}
+        return "recommended", {"code": "session_ended"}
+    if cat == "login-item":
+        return "check", {"code": "login_item"}
+    if cat == "container":
+        return "careful", {"code": "container"}
+    # heavy-process: a running program, whose work stops when it ends.
+    return "careful", {"code": "running_program"}
+
+
+def parse_iso(text):
+    try:
+        return datetime.datetime.strptime(text, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc).timestamp()
+    except (TypeError, ValueError):
+        return None
 
 
 def print_summary(ctx, result):
@@ -1171,6 +1238,9 @@ def print_summary(ctx, result):
             extra = (", %s to free" % human(size)) if size else ""
             extra += (", %d in use" % locked) if locked else ""
             print("%-14s %3d%s" % (cat, n, extra))
+    rec = [it for it in result["items"] if it["level"] == "recommended" and not it["locked"]]
+    rec_size = sum(it["size"] or 0 for it in rec if it["group"] == "disk")
+    print("Recommended: %d items, %s of disk." % (len(rec), human(rec_size)))
     m = result["measure"]
     print("Free disk now %s, memory used %s of %s." % (human(m["disk_free"]), human(m["memory_used"]), human(m["memory_total"])))
     if result["skipped"]:
@@ -1180,8 +1250,12 @@ def print_summary(ctx, result):
 
 def load_scan(ctx):
     scan = read_json(os.path.join(ctx.state, "scan.json"))
-    if not scan or scan.get("version") != FORMAT_VERSION:
+    if not scan:
         print("No scan found. Run scan first.", file=sys.stderr)
+        return None
+    if scan.get("version") != SCAN_VERSION:
+        # An older scan has no recommendation levels, and its items may have changed since.
+        print("The last scan was made by an older version of machine-cleanup. Run scan again.", file=sys.stderr)
         return None
     return scan
 

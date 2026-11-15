@@ -153,6 +153,14 @@ gitrepo "$NOTES"
 mkdir -p "$NOTES/web"
 printf 'p4242\nfcwd\nn%s\np1100\nfcwd\nn%s\np1101\nfcwd\nn%s\np1000\nfcwd\nn/\n' "$BLOG/src" "$NOTES" "$NOTES/web" > "$MOCK/lsof"
 
+# archive's last commit is 40 days old, so its ignored build output is recommended; shop's is new.
+ARCHIVE="$H/projects/archive"
+gitrepo "$ARCHIVE"
+printf 'node_modules/\n' > "$ARCHIVE/.gitignore"
+fill "$ARCHIVE/node_modules/lodash"; size "$ARCHIVE/node_modules" 102400
+OLD_COMMIT="@$(( $(date +%s) - 40 * 86400 )) +0000"
+git -C "$ARCHIVE" add .gitignore && GIT_AUTHOR_DATE="$OLD_COMMIT" GIT_COMMITTER_DATE="$OLD_COMMIT" git -C "$ARCHIVE" commit -qm init
+
 # Trash, logs, and installers, old and new.
 mkdir -p "$H/.Trash"; printf 'old note' > "$H/.Trash/old-note.txt"
 mkdir -p "$H/Library/Logs/Editor" "$H/Library/Logs/DiagnosticReports" "$H/Downloads"
@@ -244,6 +252,8 @@ write_ps() {
     psline 1200 1 "$U" '??' 650000 0:10.00 "$LSTART" '/Applications/Codex.app/Contents/Frameworks/Codex (Renderer).app/Contents/MacOS/Codex (Renderer) --type=renderer'
     psline 1201 1 "$U" '??' 600000 0:10.00 "$LSTART" '/Applications/Xcode.app/Contents/Developer/usr/bin/git status'
     psline 1202 1 "$U" '??' 600000 0:10.00 "$LSTART" '/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python -B job.py'
+    # next-server is also what `next start` is renamed to, so it may be a server in use.
+    psline 1300 1 "$U" '??' 80000 0:01.00 "$LSTART" 'next-server (v15.5.29)'
     psline "$P_TERM" 1 "$U" '??' 60000 0:01.00 "$LSTART" 'node /work/a/node_modules/.bin/vite'
     psline "$P_STUBBORN" 1 "$U" '??' 60000 0:01.00 "$LSTART" 'node /work/b/node_modules/.bin/nodemon'
     psline "$P_REUSED" 1 "$U" '??' 60000 0:01.00 "${2:-$LSTART}" 'node /work/c/node_modules/.bin/webpack serve'
@@ -306,6 +316,18 @@ check "an app a live agent session runs in and a dev server in an agent's projec
   'has "(.items | any(.pid == 1000 and (.locked // \"\" | test(\"runs under it\")))) and (.items | any(.pid == 1001 and (.locked // \"\" | test(\"belongs to Host\")))) and (.items | any(.pid == 1002 and .name == \"codex\" and .locked == \"is a live agent session\")) and (.items | any(.pid == 1101 and .category == \"dev-process\" and (.locked // \"\" | test(\"project\"))))"'
 check "a process is named after its app or its own file, even when the path has spaces" \
   'has "(.items | any(.pid == 1200 and .name == \"Codex\" and .locked == null)) and (.items | any(.pid == 1201 and .name == \"git\")) and (.items | any(.pid == 1202 and .name == \"Python\")) and (.items | any(.pid == 1001 and .name == \"Host\")) and (.items | any(.pid == 1000 and .detail.folder == null)) and (.items | any(.pid == 1101 and .detail.folder == \"$NOTES/web\" and (.detail.started | test(\"^2026-11-1[45]T\"))))"'
+# level_is <jq filter for one item> <level> <reason code>: the item exists with that level and reason.
+level_is() { has "[.items[] | select($1)] | length > 0 and all(.level == \"$2\" and .reason.code == \"$3\")"; }
+check "scan ranks rebuilt caches, the Trash, old logs and installers, and leftover dev processes as recommended" \
+  'level_is ".kind == \"npm\"" recommended rebuilt && level_is ".kind == \"docker-images\"" recommended rebuilt && level_is ".kind == \"app-cache\"" recommended rebuilt && level_is ".category == \"trash\"" recommended trash && level_is ".category == \"log\"" recommended old_logs && level_is ".category == \"installer\"" recommended old_installer && level_is ".pid == 600" recommended session_ended'
+check "scan ranks large and duplicate files, unused apps, login items, and next-server as check first" \
+  'level_is ".category == \"large\"" check own_file && level_is ".category == \"duplicate\"" check duplicate && level_is ".category == \"app\" and .kind == \"mac-app\"" check app_unused && has "[.items[] | select(.category == \"app\" and .kind == \"mac-app\")][0].reason.days >= 199" && level_is ".category == \"login-item\"" check login_item && level_is ".pid == 1300" check next_server'
+check "scan ranks heavy processes and running containers as careful" \
+  'level_is ".pid == 800" careful running_program && level_is ".category == \"container\"" careful container'
+check "build output is recommended only when its project has had no commit for 30 days" \
+  'level_is ".path == \"$ARCHIVE/node_modules\"" recommended build_idle && has "[.items[] | select(.path == \"$ARCHIVE/node_modules\")][0].reason.days >= 39" && level_is ".path == \"$SHOP/node_modules\"" check build_recent && has "[.items[] | select(.path == \"$SHOP/node_modules\")][0].reason.days <= 1"'
+check "every scanned item has a level and a reason" \
+  'has "(.items | length) > 20 and (.items | all((.level | IN(\"recommended\", \"check\", \"careful\")) and (.reason.code | type) == \"string\"))"'
 check "build output in a folder a running process works in is locked" \
   'has ".items | any(.path == \"$BLOG/node_modules\" and (.locked | type) == \"string\")" && has ".items | any(.path == \"$SHOP/node_modules\" and .locked == null)"'
 
@@ -350,6 +372,84 @@ if [ -n "$NODE" ]; then
 else
   printf 'skip  %s (node is not installed)\n' "the confirm dialog shows each count apart from its size"
 fi
+
+# page_run <function names> <code>: runs the page's own functions with those names, its dictionary,
+# and a small stand-in for the DOM in Node.js, then the given code.
+page_run() {
+  "$PY" - "$SHEET" "$1" "$2" <<'PY' | "$NODE" -
+import re, sys
+html = open(sys.argv[1], encoding="utf-8").read()
+words = re.search(r'<script id="i18n" type="application/json">(.*?)</script>', html, re.S).group(1)
+code = []
+for name in sys.argv[2].split():
+    m = re.search(r"^function %s\(.*?^}\n" % re.escape(name), html, re.S | re.M)
+    if not m:
+        print('console.log("the page has no function %s");' % name)
+        sys.exit(0)
+    code.append(m.group(0))
+dom = """function El(tag) { this.tagName = tag.toUpperCase(); this.children = []; this.className = ""; this.textContent = ""; }
+El.prototype.appendChild = function (c) { this.children.push(c); return c; };
+El.prototype.setAttribute = function () {};
+El.prototype.addEventListener = function () {};
+El.prototype.all = function () { return this.children.reduce(function (a, c) { return a.concat([c], c.all()); }, []); };
+const document = { createElement: function (tag) { return new El(tag); } };
+function buttons(el) { return el.all().filter(function (e) { return e.tagName === "BUTTON"; }).length; }
+"""
+print("const I18N = %s;\nlet lang = \"en\";\n%s%s%s" % (words, dom, "".join(code), sys.argv[3]))
+PY
+}
+GROUP_FNS="t human sumText groupRows groupHeadText groupHead whyText"
+GROUPS_JS='lang = "ja";
+const g = groupRows([
+  { id: "a", group: "disk", level: "recommended", size: 300, locked: null },
+  { id: "b", group: "disk", level: "careful", size: 900, locked: null },
+  { id: "c", group: "disk", level: "recommended", size: 500, locked: null },
+  { id: "d", group: "disk", level: "check", size: 100, locked: null },
+  { id: "e", group: "disk", level: "recommended", size: 999, locked: "in use" }]);
+console.log(g.map(function (x) { return x.key + ":" + x.items.map(function (i) { return i.id; }).join("") + ":" + groupHeadText(x); }).join("|"));'
+PICK_JS='function one(level, locked) { return groupRows([{ id: "x", group: "disk", level: level, size: 1, locked: locked }])[0]; }
+console.log(["recommended", "check", "careful"].map(function (l) { return l + "=" + buttons(groupHead(one(l, null))); }).join(" ") + " inuse=" + buttons(groupHead(one("recommended", "busy"))));'
+WHY_CODES="$(jq -r '[.items[].reason.code // empty] | unique | join(" ")' "$SCAN" 2>/dev/null)"
+WHY_JS="const codes = \"$WHY_CODES\".split(\" \").filter(Boolean);
+const bad = [];
+codes.forEach(function (c) {
+  const it = { reason: { code: c, days: 42 } };
+  lang = \"en\"; const en = whyText(it);
+  lang = \"ja\"; const ja = whyText(it);
+  if (!en || !ja || en === ja || /why_|[{}]/.test(en + ja)) bad.push(c);
+});
+lang = \"en\"; const enIdle = whyText({ reason: { code: \"build_idle\", days: 42 } });
+lang = \"ja\"; const jaIdle = whyText({ reason: { code: \"build_idle\", days: 42 } });
+console.log(codes.length + \" codes, bad: \" + bad.join(\",\") + \"|\" + enIdle + \"|\" + jaIdle);"
+if [ -n "$NODE" ]; then
+  check "the page groups rows by level with counts and totals, and in-use rows last" \
+    '[ "$(page_run "$GROUP_FNS" "$GROUPS_JS" 2>&1)" = "recommended:ca:2件、800 B|check:d:1件、100 B|careful:b:1件、900 B|inuse:e:1件、999 B" ]'
+  check "only the recommended and check-first groups can be picked all at once" \
+    '[ "$(page_run "$GROUP_FNS" "$PICK_JS" 2>&1)" = "recommended=1 check=1 careful=0 inuse=0" ]'
+  check "the page has no way to pick careful or in-use rows all at once" \
+    '! grep -q "id=\"pick-all\"" "$SHEET" && [ "$(page_run "$GROUP_FNS" "$PICK_JS" 2>&1 | grep -o "careful=[0-9]* inuse=[0-9]*")" = "careful=0 inuse=0" ]'
+  check "the page shows each row's reason from the English and Japanese dictionaries" \
+    'out="$(page_run "$GROUP_FNS" "$WHY_JS" 2>&1)"; case "$out" in [1-9][0-9]" codes, bad: |The project has had no commit for 42 days. The next install or build makes it again|プロジェクトは42日commitされていません。次のインストールかビルドで作り直されます") true;; *) echo "  $out"; false;; esac'
+else
+  for name in "the page groups rows by level with counts and totals, and in-use rows last" \
+    "only the recommended and check-first groups can be picked all at once" \
+    "the page has no way to pick careful or in-use rows all at once" \
+    "the page shows each row's reason from the English and Japanese dictionaries"; do
+    printf 'skip  %s (node is not installed)\n' "$name"
+  done
+fi
+
+# A scan written by the previous format has no levels, so serve and apply ask for a new scan.
+mkdir -p "$T/state-old"
+jq '.version = 1' "$SCAN" > "$T/state-old/scan.json" 2>/dev/null
+MACHINE_CLEANUP_HOME="$T/state-old" mc apply --select "machine-cleanup:select d-00000000" > "$T/old-apply.out" 2>&1; OLD_APPLY_RC=$?
+MACHINE_CLEANUP_HOME="$T/state-old" mc serve --no-open --wait 1 > "$T/old-serve.out" 2>&1; OLD_SERVE_RC=$?
+check "serve and apply refuse a scan from an older version and ask for a new one" \
+  '[ "$OLD_APPLY_RC" = 2 ] && [ "$OLD_SERVE_RC" = 2 ] && grep -q "older version" "$T/old-apply.out" && grep -q "older version" "$T/old-serve.out"'
+
+PLUGIN_DIR="$(cd "$SKILL_DIR/../.." && pwd)"
+check "how-it-works lists the three levels and their rules in both languages" \
+  'grep -qx "## How rows are ranked" "$PLUGIN_DIR/docs/how-it-works.md" && grep -q "^| Recommended |" "$PLUGIN_DIR/docs/how-it-works.md" && grep -q "^| Check first |" "$PLUGIN_DIR/docs/how-it-works.md" && grep -q "^| Careful |" "$PLUGIN_DIR/docs/how-it-works.md" && grep -qx "## 行の推奨度" "$PLUGIN_DIR/docs/how-it-works.ja.md" && grep -q "^| おすすめ |" "$PLUGIN_DIR/docs/how-it-works.ja.md" && grep -q "^| 確かめて選ぶ |" "$PLUGIN_DIR/docs/how-it-works.ja.md" && grep -q "^| 慎重に |" "$PLUGIN_DIR/docs/how-it-works.ja.md"'
 
 # The copied text is built without the dictionary, and apply reads it as it is.
 copy_ok() {
