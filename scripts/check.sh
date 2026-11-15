@@ -37,6 +37,13 @@ JA_ALLOWED=(
   plugins/techdebt/skills/techdebt/templates/report.html
   plugins/techdebt/skills/techdebt/tests/test-techdebt.sh
   plugins/japanese-writing/README.md
+  plugins/convey/skills/convey/scripts/convey.py
+  plugins/convey/skills/convey/references/filler-phrases.tsv
+  plugins/convey/skills/convey/tests/test-convey.sh
+  plugins/convey/evals/_fixture.py
+  plugins/convey/evals/long-report-to-discord/case.yaml
+  plugins/convey/evals/slack-format/case.yaml
+  plugins/convey/evals/request-with-deadline/case.yaml
   plugins/japanese-writing/skills/japanese-writing/references/rules.md
   plugins/japanese-writing/skills/japanese-writing/references/ai-smell.md
   plugins/japanese-writing/skills/japanese-writing/references/asking.md

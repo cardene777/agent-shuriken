@@ -1,0 +1,53 @@
+# Phrases that add words without telling the reader anything. convey.py check prints a warning for each line
+# that holds one, with the hint after the tab. A warning is advice: the agent decides whether the line needs it.
+# Matching ignores case and finds the phrase anywhere in a line outside code fences.
+以下の通り	preamble; start with the content
+以下のとおり	preamble; start with the content
+下記の通り	preamble; start with the content
+下記のとおり	preamble; start with the content
+以下の通りです	preamble; start with the content
+以下のとおりです	preamble; start with the content
+下記の通りです	preamble; start with the content
+下記のとおりです	preamble; start with the content
+ご存じの通り	preamble; cut it, or say the fact itself
+ご存知の通り	preamble; cut it, or say the fact itself
+ご存じのとおり	preamble; cut it, or say the fact itself
+結論から言うと	preamble; state the conclusion itself
+結論から申し上げますと	preamble; state the conclusion itself
+共有させていただきます	wordy; write 共有します or start with the content
+させていただきます	wordy; use the plain form
+していきます	wordy; use the plain form
+簡単にまとめると	restatement; keep the summary or the body, not both
+改めてまとめると	restatement; keep the summary or the body, not both
+要するに	restatement; keep the summary or the body, not both
+ご確認ください	closing; say what to check and by when, or cut it
+ご不明点があれば	closing; cut it
+ご不明な点がございましたら	closing; cut it
+何かあればお気軽に	closing; cut it
+お気軽にご連絡ください	closing; cut it
+参考になれば幸いです	closing; cut it
+お役に立てれば幸いです	closing; cut it
+ぜひ	filler; cut it
+重要なポイントは	preamble; state the point itself
+注目すべきは	preamble; state the point itself
+I hope this helps	closing; cut it
+Hope this helps	closing; cut it
+Let me know if you have any questions	closing; cut it
+Feel free to reach out	closing; cut it
+Don't hesitate to	closing; cut it
+Here is a summary	preamble; start with the content
+Here's a summary	preamble; start with the content
+Here's a quick	preamble; start with the content
+as follows	preamble; start with the content
+As you may know	preamble; cut it, or say the fact itself
+I wanted to share	preamble; start with the content
+Just wanted to	preamble; start with the content
+Great question	preamble; cut it
+In summary	restatement; keep the summary or the body, not both
+To summarize	restatement; keep the summary or the body, not both
+In conclusion	restatement; keep the summary or the body, not both
+It's worth noting	hedge; state the point itself
+It is worth noting	hedge; state the point itself
+It's important to note	hedge; state the point itself
+Please note that	hedge; state the point itself
+delve into	wordy; use look at or read

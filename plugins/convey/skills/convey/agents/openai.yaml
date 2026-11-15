@@ -1,0 +1,7 @@
+interface:
+  display_name: "Convey"
+  short_description: "Write a clear message that tells people what they need, checked before you paste it"
+  default_prompt: "Use $convey to share this work with my team on Slack."
+
+policy:
+  allow_implicit_invocation: true
