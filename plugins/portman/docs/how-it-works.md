@@ -64,6 +64,7 @@ A port that none of these list is tested directly: the script tries to connect t
 The port is in use when a connection succeeds or a bind fails because the address is in use.
 These sockets are opened and closed at once on this machine; no data is sent.
 This finds programs that `lsof` cannot see, such as ones run by another user, and shows them as "a program that could not be named".
+When the machine refuses the test, as a sandbox does with "Operation not permitted", and no bind succeeds, the port is not called free: `list` and `check` show it as `unknown`, `doctor` lists it under `[Not tested]`, `suggest` says its ports could not be tested, and each says to run portman where it can open local sockets.
 
 ## Whose a port is
 
@@ -103,6 +104,7 @@ The defaults it skips are 1433 (SQL Server), 3000 and 3001 (Node.js, React, Next
 | `[Collisions]` | Registered ports held by another program, with a free port to move to. Counted as problems |
 | `[In use, owner unclear]` | Registered ports in use whose owner cannot be told |
 | `[In use by its own project]` | Registered ports held by the project's own process or container |
+| `[Not tested]` | Registered ports that no source lists and that could not be tested, because the socket test was refused, as in a sandbox. Shown only when there are some. The last line then says it found no problems only among the ports it could test |
 | `[Folders gone]` | Registered ports of projects whose recorded folder no longer exists, such as a removed git worktree, with the command to remove them. Shown only when there are some. Counted as problems |
 | `[Unregistered]` | Ports from 1024 to 32767 that `lsof`, `/proc/net`, or `docker` list and that are not registered. When neither `lsof` nor `/proc/net` can be read, it says `unknown`, never `none` |
 

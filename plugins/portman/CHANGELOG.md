@@ -5,6 +5,11 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- When the socket test is refused, as inside a sandbox, `list` and `check` show the ports that `lsof` does not see as `unknown` instead of `free`, `doctor` lists them under `[Not tested]`, and `suggest` says that its ports could not be tested
+- The refusal for a registry written by a newer portman says to update the plugin instead of editing the file, and the refusal for a port that is already registered names `suggest`
+- The `SKILL.md` is shorter: the tables of arguments, exit codes, notes, and failures that the script's help and messages already give are gone, and the description says only what the skill does and when to use it
+- The plugin has `claude plugin eval` cases under `evals/` that measure the skill, run by hand
+
 ## [0.2.0] - 2026-11-14
 
 - `doctor` lists under `[Folders gone]` the ports of projects whose recorded folder no longer exists, such as a removed git worktree, and counts them as problems

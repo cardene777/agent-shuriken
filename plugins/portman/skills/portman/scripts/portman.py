@@ -247,10 +247,13 @@ def save_registry(data):
 # ------------------------------------------------------------------ what is using a port
 
 def probe(port):
-    """Return True when something holds the TCP port on this machine, by connecting and binding."""
+    """Return True when something holds the TCP port on this machine, by connecting and binding, False when
+    nothing does, and None when the machine refused the test, as a sandbox does with "Operation not
+    permitted", so the port could not be tested."""
     # Tests turn the socket test off so that only the stand-ins for lsof and docker decide.
     if os.environ.get("PORTMAN_NO_PROBE") == "1":
         return False
+    refused = bound = False
     for host, family in (("127.0.0.1", socket.AF_INET), ("::1", socket.AF_INET6)):
         try:
             s = socket.socket(family, socket.SOCK_STREAM)
@@ -262,8 +265,8 @@ def probe(port):
             return True
         except socket.timeout:
             return True
-        except OSError:
-            pass
+        except OSError as e:
+            refused = refused or e.errno == errno.EPERM
         finally:
             s.close()
     for host, family in (("0.0.0.0", socket.AF_INET), ("::", socket.AF_INET6)):
@@ -275,13 +278,15 @@ def probe(port):
             if family == socket.AF_INET6:
                 s.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 1)
             s.bind((host, port))
+            bound = True
         except OSError as e:
             if e.errno == errno.EADDRINUSE:
                 return True
             # EACCES for ports below 1024 and EADDRNOTAVAIL without IPv6 say nothing about the port.
+            refused = refused or e.errno == errno.EPERM
         finally:
             s.close()
-    return False
+    return None if refused and not bound else False
 
 
 class Machine:
@@ -291,6 +296,7 @@ class Machine:
         self.listeners = {}
         self.source = None
         self.docker = "not installed"
+        self.refused = False
         self._cwds = {}
         if not self._read_lsof():
             self._read_proc()
@@ -370,13 +376,18 @@ class Machine:
             held.append(holder)
 
     def holders(self, port):
-        """Return who holds the port: [] when it is free, a list of holders when it is in use."""
+        """Return who holds the port: [] when it is free, a list of holders when it is in use, and None when
+        nothing seen holds it and the socket test was refused, so whether it is free is unknown."""
         held = list(self.listeners.get(port, []))
         if any(h["kind"] == "container" for h in held):
             held = [h for h in held if not (h["kind"] == "process" and h["command"].startswith(DOCKER_FORWARDERS))]
         if held:
             return held
-        return [{"kind": "unnamed"}] if probe(port) else []
+        found = probe(port)
+        if found is None:
+            self.refused = True
+            return None
+        return [{"kind": "unnamed"}] if found else []
 
     def cwd(self, pid):
         """Return the working folder of a process, or None when lsof cannot tell."""
@@ -424,7 +435,14 @@ def owner(holder, project, info, machine):
     return "unclear"
 
 
+UNTESTED = "unknown (the socket test was refused, as in a sandbox)"
+REFUSED_NOTE = ("The socket test was refused, as inside a sandbox, so the ports that lsof does not show could not "
+                "be tested. Run portman where it can open local sockets, or ask to run it outside the sandbox.")
+
+
 def state_text(holders, project=None, info=None, machine=None):
+    if holders is None:
+        return UNTESTED
     if not holders:
         return "free"
     parts = []
@@ -477,13 +495,15 @@ def cmd_list(args):
         if args.json:
             print(json.dumps({"project": project, "name": e["name"], "port": e["port"], "variable": env_var(e["name"]),
                               "service": e.get("service"), "target": e.get("target"), "dir": info.get("dir"),
-                              "state": "in use" if holders else "free",
-                              "holders": [dict(h, owner=owner(h, project, info, machine)) for h in holders]},
+                              "state": "unknown" if holders is None else "in use" if holders else "free",
+                              "holders": [dict(h, owner=owner(h, project, info, machine)) for h in holders or []]},
                              ensure_ascii=False))
         else:
             rows.append((project, e["name"], str(e["port"]), state_text(holders, project, info, machine)))
     if not args.json:
         print_rows(("project", "name", "port", "state"), rows)
+    if machine.refused:
+        print(REFUSED_NOTE, file=sys.stderr if args.json else sys.stdout)
     return 0
 
 
@@ -537,7 +557,9 @@ def cmd_add(args):
     if port < 1024:
         print("Note: ports below 1024 need administrator rights on most systems.")
     holders = Machine().holders(port)
-    if holders:
+    if holders is None:
+        print("Note: port %d could not be tested, because the socket test was refused, as in a sandbox." % port)
+    elif holders:
         print("Note: port %d is in use right now by %s." % (port, "; ".join(describe(h) for h in holders)))
     return 0
 
@@ -607,13 +629,15 @@ def cmd_check(args):
         rows = []
         for project, e in entries(data):
             holders = machine.holders(e["port"])
-            if holders:
+            if holders or holders is None:
                 info = data["projects"][project]
                 rows.append(("%s/%s" % (project, e["name"]), str(e["port"]), state_text(holders, project, info, machine)))
         if rows:
             print_rows(("entry", "port", "state"), rows)
         else:
             print("No registered port is in use right now.")
+        if machine.refused:
+            print(REFUSED_NOTE)
         return 0
     ports = [check_port_arg(value) for value in args.ports]
     for port in ports:
@@ -625,6 +649,8 @@ def cmd_check(args):
         if port < 1024:
             parts.append("needs administrator rights on most systems")
         print("%-6d %s" % (port, "; ".join(parts)))
+    if machine.refused:
+        print(REFUSED_NOTE)
     return 0
 
 
@@ -635,9 +661,17 @@ def cmd_suggest(args):
     if not 1 <= args.count <= 50:
         raise Refused("--count must be from 1 to 50.", 2)
     data = load_registry()
-    found = find_free(start, data, Machine(), args.count, args.allow_common)
+    machine = Machine()
+    found = find_free(start, data, machine, args.count, args.allow_common)
     if not found:
         raise Refused("No free port from %d to %d." % (max(start, 1024), SUGGEST_MAX))
+    if machine.refused:
+        what = "not registered" if args.allow_common else "not registered and not a common default"
+        print("Ports from %d (%s). They could not be tested, because the socket test was refused, as in a sandbox. "
+              "Run suggest where it can open local sockets to see which are free:" % (max(start, 1024), what))
+        for port in found:
+            print("  %d" % port)
+        return 0
     what = "not registered and not in use" if args.allow_common else "not registered, not in use, and not a common default"
     print("Free ports from %d (%s):" % (max(start, 1024), what))
     for port in found:
@@ -677,10 +711,13 @@ def cmd_doctor(args):
         print("  " + d)
     problems += len(dups)
 
-    others, unclear, own = [], [], []
+    others, unclear, own, untested = [], [], [], []
     offered = set()
     for project, e in entries(data):
         holders = machine.holders(e["port"])
+        if holders is None:
+            untested.append("%s/%s  %d" % (project, e["name"], e["port"]))
+            continue
         if not holders:
             continue
         info = data["projects"][project]
@@ -689,7 +726,8 @@ def cmd_doctor(args):
         if "another program" in kinds:
             free = find_free(e["port"] + 1, data, machine, 1, skip=offered)
             offered.update(free)
-            others.append(line + (". Free instead: %d" % free[0] if free else ""))
+            others.append(line + (". Free instead: %d%s" % (free[0], " (not tested)" if machine.refused else "")
+                                  if free else ""))
         elif "unclear" in kinds:
             unclear.append(line + ("" if info.get("dir") else ". No folder is recorded for %s" % project))
         else:
@@ -702,6 +740,12 @@ def cmd_doctor(args):
             print("[%s] %s" % (title, len(lines) or "none"))
             for line in lines:
                 print("  " + line)
+    if untested:
+        print()
+        print("[Not tested] %d. The socket test was refused, as in a sandbox. Run doctor where it can open local "
+              "sockets to test them" % len(untested))
+        for line in untested:
+            print("  " + line)
 
     # A project whose folder is gone, such as a removed git worktree, still holds its ports.
     gone = ["%s/%s  %d  %s" % (project, e["name"], e["port"], shown(data["projects"][project]["dir"]))
@@ -725,7 +769,10 @@ def cmd_doctor(args):
     for port in loose:
         print("  %-6d %s" % (port, "; ".join(describe(h) for h in machine.holders(port))))
     print()
-    print("No problems found." if not problems else "%s found." % plural(problems, "problem", "problems"))
+    if problems:
+        print("%s found." % plural(problems, "problem", "problems"))
+    else:
+        print("No problems found among the ports that could be tested." if untested else "No problems found.")
     return 0
 
 
