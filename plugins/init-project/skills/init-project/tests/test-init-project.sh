@@ -510,5 +510,125 @@ check "the README and How it works say the ports go to portman" 'docs_say "ports
 
 check "no output ever held a value from an env file" '! grep -q SECRETVALUE "$ALL"'
 
-printf '%d passed, %d failed\n' "$PASS" "$FAIL"
+# --- the SKILL.md and its eval suite
+# A state folder of its own, since the checks above leave a ports.json in a format the script refuses.
+export INIT_PROJECT_HOME="$T/eval-state"
+PLUGIN="$(cd "$HERE/../../.." && pwd)"
+EVALS="$PLUGIN/evals"
+SKILL="$HERE/../SKILL.md"
+CASES=(plan-first approved-docker env-values-stay-out keeps-existing-dockerfile unrelated-request)
+
+eval_cases() {
+  local c
+  for c in "${CASES[@]}"; do
+    [ -f "$EVALS/$c/case.yaml" ] && [ -x "$EVALS/$c/fixture.sh" ] || return 1
+  done
+}
+check "the eval suite has the five cases" eval_cases
+
+# fixture <case>: runs the case's fixture.sh the way claude plugin eval does (in home/cwd with HOME at home)
+# and prints the workspace.
+fixture() {
+  local ws="$T/fixture-$1/home/cwd"
+  mkdir -p "$ws"
+  (cd "$ws" && HOME="$T/fixture-$1/home" bash "$EVALS/$1/fixture.sh") >/dev/null 2>&1 || return 1
+  printf '%s\n' "$ws"
+}
+# Each workspace is a web app with a dev script and two names in its env file; only keeps-existing-dockerfile
+# has a Dockerfile, and none has a compose file.
+fixtures_ready() {
+  local c ws env_file names
+  for c in "${CASES[@]}"; do
+    ws="$(fixture "$c")" || return 1
+    env_file="$ws/.env"
+    grep -q '"dev"' "$ws/package.json" 2>/dev/null || return 1
+    names="$(grep -cE '^[A-Z][A-Z0-9_]*=' "$env_file" 2>/dev/null)"
+    [ "$names" = 2 ] || return 1
+    [ "$(kind_of "$ws")" = web-app ] || return 1
+    [ ! -e "$ws/docker-compose.yml" ] && [ ! -e "$ws/compose.yaml" ] || return 1
+    if [ "$c" = keeps-existing-dockerfile ]; then
+      [ -f "$ws/Dockerfile" ] || return 1
+    else
+      [ ! -e "$ws/Dockerfile" ] || return 1
+    fi
+  done
+}
+check "the eval fixtures build the states their cases start from" fixtures_ready
+
+results_ignored() {
+  local repo
+  repo="$(git -C "$PLUGIN" rev-parse --show-toplevel 2>/dev/null)" || return 1
+  git -C "$repo" check-ignore -q "${EVALS#"$repo"/}/results/run.json"
+}
+check "eval results are ignored by git" results_ignored
+
+# The body is counted in words and the description in characters, as the size the agent reads.
+SKILL_WORDS_MAX=1735
+SKILL_DESCRIPTION_MAX=300
+skill_size() {
+  python3 - "$SKILL" "$SKILL_WORDS_MAX" "$SKILL_DESCRIPTION_MAX" <<'PYEOF'
+import re, sys
+front, body = open(sys.argv[1], encoding="utf-8").read().split("---", 2)[1:]
+words = len(body.split())
+chars = len(re.search(r"^description: (.*)$", front, re.M).group(1))
+print("      SKILL.md body %d words (max %s), description %d characters (max %s)" % (words, sys.argv[2], chars, sys.argv[3]))
+sys.exit(0 if words <= int(sys.argv[2]) and chars <= int(sys.argv[3]) else 1)
+PYEOF
+}
+check "the SKILL.md stays within its size limits" skill_size
+
+skill_rules() {
+  local phrase
+  for phrase in \
+    'Never open, print, or search env files' \
+    'Never run `op read`, `op inject`, `op run`, or `op item get` with `--reveal`' \
+    'Never ask the user to paste a value into the chat' \
+    'Never write without a clear yes for this plan' \
+    'A file that already exists is kept unless the user asks to replace that file by name'; do
+    grep -qF -- "$phrase" "$SKILL" || return 1
+  done
+}
+check "the SKILL.md keeps its rules on env values, approval, and existing files" skill_rules
+
+# Each flag has help text, on its own line or on the next one when argparse wraps it.
+help_flags() {
+  python3 "$SCRIPT" plan --help 2>&1 | python3 -c '
+import re, sys
+text = {}
+lines = sys.stdin.read().splitlines()
+for i, line in enumerate(lines):
+    m = re.match(r"^  --([a-z-]+)(?: [A-Z_]+)?(?:  +(\S.*))?$", line)
+    if m:
+        nxt = lines[i + 1] if i + 1 < len(lines) else ""
+        text[m.group(1)] = m.group(2) or (nxt.strip() if re.match(r"^ {6,}\S", nxt) else "")
+flags = "docker assign-port port from service container-port overwrite env vault item env-file".split()
+sys.exit(0 if all(text.get(f) for f in flags) else 1)'
+}
+check "plan --help describes the flags the SKILL.md leaves out" help_flags
+
+# What the tables of kinds, plan marks, and exit codes said, the script prints itself.
+removed_tables() {
+  local ws held
+  ws="$T/tables"
+  mkdir -p "$ws"
+  printf '{"name": "tables", "scripts": {"dev": "next dev"}, "dependencies": {"next": "15.0.0"}}\n' > "$ws/package.json"
+  printf 'FROM node:20\n' > "$ws/Dockerfile"
+  printf 'TABLES_MODE=plain\n' > "$ws/.env"
+  r detect --dir "$ws"
+  printf '%s\n' "$out" | grep -qE '^kind +web-app \(package\.json has a dev script\)$' || return 1
+  r plan --dir "$ws" --docker
+  printf '%s\n' "$out" | grep -qx '\[skip\] Dockerfile: already exists; add --overwrite Dockerfile to replace it' || return 1
+  printf '%s\n' "$out" | grep -qx '\[create\] docker-compose.yml' || return 1
+  r plan --dir "$ws" --env --vault 'bad/vault'
+  [ "$rc" = 2 ] && printf '%s\n%s\n' "$out" "$err" | grep -qF 'op vault list' || return 1
+  r apply deadbeef
+  [ "$rc" = 1 ] && printf '%s\n%s\n' "$out" "$err" | grep -qF 'Run plan again' || return 1
+  held="$(python3 -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')"
+  listen "$held" || return 1
+  r plan --dir "$ws" --docker --port "$held"
+  [ "$rc" = 6 ] && printf '%s\n%s\n' "$out" "$err" | grep -qF 'Pick another one' || return 1
+}
+check "the script prints what the removed tables said" removed_tables
+
+printf '\n%d passed, %d failed (%d ran)\n' "$PASS" "$FAIL" "$((PASS + FAIL))"
 [ "$FAIL" -eq 0 ]
