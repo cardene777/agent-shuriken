@@ -547,6 +547,7 @@ refused_unknown() {
   out="$(PORTMAN_HOME="$h" refused check 21121 2>&1)"
   printf '%s\n' "$out" | grep -q "^21121  unknown" && ! printf '%s\n' "$out" | grep -q "free" || return 1
   printf '%s\n' "$out" | grep -qF "socket test was refused" || return 1
+  printf '%s\n' "$out" | grep -qF "Run portman where it can open local sockets" || return 1
   out="$(PORTMAN_HOME="$h" refused list 2>&1)"
   printf '%s\n' "$out" | grep -q "^shop  *web  *21121  *unknown" || return 1
   out="$(PORTMAN_HOME="$h" refused list --json 2>&1)"
