@@ -5,6 +5,9 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The skill's instructions are shorter, so starting the skill reads less, and its rules on passwords, approval, and the browser are unchanged. An eval suite under `evals/` measures it with `claude plugin eval`, and every case kept its score
+- The agent passes its descriptions of the candidates to `annotate.sh -` on standard input. Before, it first wrote them to a file in the data folder, which asked for one more approval and was refused where the agent may not write outside the project
+
 ## [0.2.1] - 2026-11-13
 
 - The README's screenshot is the candidate sheet the scripts built from a sample list of real services, and its details panel shows a reason and a date

@@ -11,7 +11,9 @@
 #   previous     {"round": round number, "label": short label, "detail": why it stopped and what to do next}
 # Candidates without a description are left as they are.
 #
-# Usage: annotate.sh <descriptions file> [matched.json]
+# Usage: annotate.sh <descriptions file | -> [matched.json]
+# With -, the descriptions are read from standard input, so the agent passes them in one shell
+# command and no descriptions file is left in the data directory.
 
 . "$(dirname "$0")/common.sh"
 need jq "Install jq."
@@ -21,8 +23,14 @@ CATEGORIES='["email","bank","brokerage","card","government","work","domain","clo
 
 desc=${1:-}
 target=${2:-$MATCHED_FILE}
+if [ "$desc" = "-" ]; then
+  ensure_data_dir
+  desc=$(mktemp "$DATA_DIR/descriptions-new.XXXXXX")
+  trap 'rm -f "$desc"' EXIT
+  cat > "$desc"
+fi
 if [ -z "$desc" ] || [ ! -f "$desc" ]; then
-  echo "Usage: annotate.sh <descriptions file> [matched.json]" >&2
+  echo "Usage: annotate.sh <descriptions file | -> [matched.json]" >&2
   exit 2
 fi
 if [ ! -f "$target" ]; then

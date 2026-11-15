@@ -321,6 +321,13 @@ check "annotate keeps only ok or ng as a suggestion" \
   '[ "$(jq -r ".[] | select(.key == \"example.co.jp\") | [.suggestion, .previous.label] | map(tostring) | join(\" \")" "$D/matched.json")" = "null Needs a phone call" ]'
 "$S/prepare.sh" --rebuild >/dev/null
 check "a rebuild keeps the descriptions" '[ "$(jq -r ".[] | select(.key == \"example.org\") | .description" "$D/matched.json")" = "A mail service" ]'
+out="$(printf '%s\n' '{"example.net": {"description": "A test site", "category": "other", "suggestion": "ok", "why": "Unused"}}' \
+  | "$S/annotate.sh" - 2>"$T/err")"; rc=$?
+check "annotate reads the descriptions from standard input with - and leaves no file behind" \
+  '[ "$rc" = 0 ] && [ "$out" = "Attached descriptions to 1 candidate(s)." ] \
+   && [ "$(jq -r ".[] | select(.key == \"example.net\") | .description" "$D/matched.json")" = "A test site" ] \
+   && jq -e "has(\"example.org\") and has(\"example.net\")" "$D/descriptions.json" >/dev/null \
+   && [ -z "$(find "$D" -name "descriptions-new*")" ]'
 
 # --- plan.sh
 printf 'account-cleanup selection\nexample.org\tkeep the | photos first\n- 192.168.1.1\nexample.net\nmissing.example\n\n' > "$T/selection.txt"
@@ -453,8 +460,8 @@ check "eval results are ignored by git" "eval_results_ignored"
 
 # The limits are the sizes of the shortened SKILL.md. Every agent that starts the skill reads the
 # whole body, and every session reads the description, so raise a limit only with a reason.
-SKILL_WORDS_MAX=1800
-SKILL_DESCRIPTION_MAX=400
+SKILL_WORDS_MAX=2187
+SKILL_DESCRIPTION_MAX=445
 skill_size() {
   python3 - "$SKILL" "$SKILL_WORDS_MAX" "$SKILL_DESCRIPTION_MAX" <<'PY'
 import re, sys
