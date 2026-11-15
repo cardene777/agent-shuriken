@@ -637,8 +637,8 @@ results_ignored() {
 check "eval results are ignored by git" results_ignored
 
 # The body is counted in words and the description in characters, as the size the agent reads.
-SKILL_WORDS_MAX=1200
-SKILL_DESCRIPTION_MAX=320
+SKILL_WORDS_MAX=871
+SKILL_DESCRIPTION_MAX=305
 skill_size() {
   python3 - "$SKILL" "$SKILL_WORDS_MAX" "$SKILL_DESCRIPTION_MAX" <<'PYEOF'
 import re, sys
