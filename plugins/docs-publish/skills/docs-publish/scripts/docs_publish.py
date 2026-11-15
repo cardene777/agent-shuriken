@@ -69,6 +69,21 @@ SCHEME_RE = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*:")
 
 KIND_ORDER = ("missing", "unmapped", "todo", "content", "structure", "untranslated", "stale",
               "link", "crosslink", "switch", "orphan")
+# What to do about each kind of problem. check prints the line for every kind it lists, so the agent
+# and the user learn the fix from the output.
+FIXES = {
+    "missing": "Write the page, or run drop when the page should go",
+    "unmapped": "Run add for the page, or ask the user whether to delete it",
+    "todo": "Write the section and remove its to-do note",
+    "content": "Add the Mermaid diagram or the code example the page lacks",
+    "structure": "Give the translation the same headings, code blocks, and table rows as its source",
+    "untranslated": "Compare the translation with its source, then run translated",
+    "stale": "Update the translation to match its source, then run translated",
+    "link": "Fix the path, relative to the page's own folder, in the file's exact letter case",
+    "crosslink": "Point the link at the page in the same language",
+    "switch": "Put the language switch line back under the title",
+    "orphan": "Link the page from its part's README.md",
+}
 
 
 class Usage(Exception):
@@ -745,6 +760,11 @@ def cmd_check(args):
         print()
         for kind, message in sorted(problems, key=lambda p: (KIND_ORDER.index(p[0]), p[1])):
             print("%-12s %s" % (kind, message))
+        print()
+        print("How to fix:")
+        for kind in KIND_ORDER:
+            if any(k == kind for k, _ in problems):
+                print("  %-12s %s" % (kind, FIXES[kind]))
         print()
     links = "Links: %d checked, %d broken" % (checked, broken)
     if absolute:

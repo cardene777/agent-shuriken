@@ -1,0 +1,100 @@
+{
+  "titles": {
+    "README.md": "tiny-slugのドキュメント",
+    "quickstart.md": "クイックスタート",
+    "concepts/README.md": "概念",
+    "concepts/slugs.md": "スラッグ",
+    "api/README.md": "APIリファレンス",
+    "api/slugify.md": "slugify",
+    "api/unslug.md": "unslug",
+    "cookbook/README.md": "クックブック",
+    "cookbook/make-url-slugs.md": "URLのスラッグを作る",
+    "faq.md": "よくある質問"
+  },
+  "headings": {
+    "API reference": "APIリファレンス",
+    "Before you start": "始める前に",
+    "Check the result": "結果を確かめる",
+    "Concepts": "概念",
+    "Cookbook": "クックブック",
+    "Errors": "エラー",
+    "Example": "例",
+    "FAQ": "よくある質問",
+    "First run": "初めて動かす",
+    "Get started": "はじめに",
+    "How it works": "仕組み",
+    "Install": "インストール",
+    "Next steps": "次に読む",
+    "Parameters": "引数",
+    "Related": "関連",
+    "Requirements": "必要なもの",
+    "Returns": "戻り値",
+    "Signature": "シグネチャ",
+    "Steps": "手順",
+    "Why": "なぜ要るか"
+  },
+  "labels": {
+    "[API reference]": "[APIリファレンス]",
+    "[Concepts]": "[概念]",
+    "[Cookbook]": "[クックブック]",
+    "[FAQ]": "[よくある質問]",
+    "[Make URL slugs]": "[URLのスラッグを作る]",
+    "[Quickstart]": "[クイックスタート]",
+    "[Slugs]": "[スラッグ]"
+  },
+  "pages": {
+    "README.md": [
+      "tiny-slugは、テキストをURLのスラッグに変え、元に戻すライブラリです。記事の題名からリンクを作るNode.jsのアプリで使えます。"
+    ],
+    "quickstart.md": [
+      "5分ほどで、tiny-slugが題名をURLのスラッグに変えるところまで進みます。",
+      "- Node.js 18以降",
+      "```bash\nnpm install tiny-slug\n```",
+      "次の内容を`slug.js`として保存します。\n\n```js\nconst { slugify } = require('tiny-slug');\n\nconsole.log(slugify('Hello World'));\n```\n\n実行します。\n\n```bash\nnode slug.js\n```\n\nスラッグが表示されます。\n\n```text\nhello-world\n```"
+    ],
+    "concepts/README.md": [
+      "最初にスラッグのページを読んでください。"
+    ],
+    "concepts/slugs.md": [
+      "スラッグは、URLの中でページを言葉で表す部分です。たとえば`hello-world`です。",
+      "題名には、URLに向かない空白や大文字やアクセント記号が入っています。",
+      "```mermaid\nflowchart LR\n  A[Title] --> B[Strip accents] --> C[Keep ASCII letters and digits] --> D[Join] --> E[Slug]\n```\n\n`slugify`は、ASCIIの英字と数字の並びを残し、区切り文字でつなぎます。",
+      "```js\nconst { slugify } = require('tiny-slug');\n\nslugify('Hello World Again'); // 'hello-world-again'\n```",
+      "- [slugify](../api/slugify.md)\n- [unslug](../api/unslug.md)"
+    ],
+    "api/README.md": [
+      "1つのページで1つの関数を説明します。"
+    ],
+    "api/slugify.md": [
+      "テキストをURLのスラッグに変えます。スラッグを言葉に戻すには`unslug`を使います。",
+      "```js\nslugify(text, options)\n```",
+      "| 名前 | 型 | 必須 | 既定値 | 説明 |\n|---|---|---|---|---|\n| `text` | string | はい | | スラッグに変えるテキスト |\n| `options.separator` | string | いいえ | `'-'` | 単語をつなぐ文字 |\n| `options.lower` | boolean | いいえ | `true` | スラッグを小文字にする |",
+      "スラッグを文字列で返します。テキストにASCIIの英字も数字も無い時は空の文字列を返します。",
+      "`text`が文字列でない時は`TypeError: slugify expects a string`を投げます。",
+      "```js\nconst { slugify } = require('tiny-slug');\n\nconsole.log(slugify('Hello World', { separator: '_' })); // hello_world\n```",
+      "- [unslug](unslug.md)\n- [URLのスラッグを作る](../cookbook/make-url-slugs.md)"
+    ],
+    "api/unslug.md": [
+      "スラッグを、空白で区切った言葉に戻します。",
+      "```js\nunslug(slug, options)\n```",
+      "| 名前 | 型 | 必須 | 既定値 | 説明 |\n|---|---|---|---|---|\n| `slug` | string | はい | | スラッグ |\n| `options.separator` | string | いいえ | `'-'` | 単語を分ける文字 |",
+      "言葉を文字列で返します。",
+      "`slug`が文字列でない時は`TypeError: unslug expects a string`を投げます。",
+      "```js\nconst { unslug } = require('tiny-slug');\n\nconsole.log(unslug('hello-world')); // hello world\n```",
+      "- [slugify](slugify.md)"
+    ],
+    "cookbook/README.md": [
+      "1つのレシピで1つの作業を説明します。"
+    ],
+    "cookbook/make-url-slugs.md": [
+      "ブログの記事ごとに、題名からURLのスラッグを作ります。",
+      "[クイックスタート](../quickstart.md)の通りにtiny-slugをインストールします。",
+      "1. 次の内容を`posts.js`として保存します。\n\n```js\nconst { slugify } = require('tiny-slug');\n\nfor (const title of ['First Post', 'Second Post']) {\n  console.log(slugify(title));\n}\n```",
+      "```bash\nnode posts.js\n```\n\n1行に1つずつスラッグが表示されます。\n\n```text\nfirst-post\nsecond-post\n```",
+      "- [slugify](../api/slugify.md)"
+    ],
+    "faq.md": [
+      "## スラッグが空になるのはなぜですか\n\n`slugify`はASCIIの英字と数字だけを残すため、どちらも含まないテキストは空の文字列になります。日本語だけのテキストがその例です。[slugify](api/slugify.md)を見てください。\n\n## どこから始めればよいですか\n\n[クイックスタート](quickstart.md)に沿って進めてください。"
+    ]
+  }
+}

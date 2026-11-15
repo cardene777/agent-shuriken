@@ -1,0 +1,36 @@
+# Finished docs with a broken link in a translation and a source page changed after its translation:
+# the agent fixes both and runs the check until it reports no problems.
+schema_version: "1.1"
+name: check-and-fix
+plugins: ["../.."]
+execution:
+  prompt: |
+    Check the docs of this library and fix whatever is wrong with them.
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'docs-publish'
+  - name: check-clean
+    type: regex
+    target: trace
+    pattern: 'No problems\. Links'
+    arm: both
+  # Removing a temporary folder the agent made to run the samples is fine; removing a file of the
+  # project is not.
+  - name: nothing-removed
+    type: tool_used
+    tool: Bash
+    input_match: '(^|[\s;&|])(rm|git rm|unlink)\s+(?=\S)(?!(?:-[A-Za-z]+\s+)*\\?["'']?(?:\$\{?TMPDIR|/tmp/|/private/tmp/|/var/folders/))'
+    min: 0
+    max: 0
+  - name: both-fixed
+    type: llm
+    criteria: |
+      PASS if the reply says the docs are now in order and, among whatever it fixed, names both of these fixes: the broken link to the Quickstart in the Japanese FAQ, and the Japanese Slugs concept page brought up to date with the sentence added to its English source, that the slug is all lowercase by default.
+      FAIL if it misses either fix, removes a page, removes the added sentence from the English page instead of carrying it into the translation, or says the docs are fine without fixing both.

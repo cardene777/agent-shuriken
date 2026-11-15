@@ -1,0 +1,28 @@
+# Asked to write the docs, the agent reads the library and shows a plan of languages and pages for the
+# user to confirm, before it writes any page.
+schema_version: "1.1"
+name: plan-first
+plugins: ["../.."]
+execution:
+  prompt: |
+    Write the public documentation for this library, in English and Japanese.
+  max_turns: 20
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'docs-publish'
+  - name: no-page-before-agreeing
+    type: regex
+    target: files
+    pattern: '(^|/)docs/'
+    match: not_contains
+  - name: shows-the-plan
+    type: llm
+    criteria: |
+      PASS if the reply proposes a plan before writing: English and Japanese, a Quickstart, concept pages, one API page for each of slugify and unslug, task pages, and an FAQ, and asks the user to confirm or change it.
+      FAIL if it says it already wrote the documentation, lists API functions the library does not export, or does not ask the user to confirm a plan.

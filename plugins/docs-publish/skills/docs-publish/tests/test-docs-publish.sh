@@ -528,5 +528,89 @@ ja_agree="$(python3 -c 'print("".join(map(chr, (0x540c, 0x610f))))')"
 check "the READMEs say the docs of other projects are read only with the user's agreement" \
   'grep -i "projects you name" "$PLUGIN/README.md" | grep -q "agreement" && grep -F "$ja_named" "$PLUGIN/README.ja.md" | grep -qF "$ja_agree"'
 
+# --- check says how to fix what it lists, so the SKILL.md does not need a table of problems
+case_copy fixlines
+python3 - "$C/docs/de/faq.md" <<'PY'
+import sys
+p = sys.argv[1]
+text = open(p, encoding="utf-8").read()
+open(p, "w", encoding="utf-8").write(text.replace("(quickstart.md)", "(quickstart-gone.md)"))
+PY
+printf '\nOne more line.\n' >> "$C/docs/en/faq.md"
+out="$(run_check)"
+fix_lines() {
+  python3 - "$out" <<'PY'
+import re, sys
+KINDS = {"missing", "unmapped", "todo", "content", "structure", "untranslated", "stale", "link", "crosslink",
+         "switch", "orphan"}
+head, _, tail = sys.argv[1].partition("\nHow to fix:\n")
+listed = {m.group(1) for m in re.finditer(r"^([a-z]+) +\S", head, re.M)} & KINDS
+fixed = {m.group(1) for m in re.finditer(r"^  ([a-z]+) +\S", tail, re.M)}
+sys.exit(0 if {"link", "stale"} <= listed and listed <= fixed else 1)
+PY
+}
+check "check says how to fix each kind of problem it lists" "fix_lines"
+
+# --- the eval suite that measures the SKILL.md (plugins/docs-publish/evals)
+EVALS="$PLUGIN/evals"
+eval_cases() {
+  local c
+  for c in plan-first api-page translate-page check-and-fix unrelated-request; do
+    [ -f "$EVALS/$c/case.yaml" ] || return 1
+  done
+}
+check "the eval suite has the five cases" "eval_cases"
+
+# Each fixture runs in an empty folder with its own HOME, as claude plugin eval runs it, and leaves
+# the state its case starts from.
+fixture() {
+  local d="$T/fixture-$1"
+  rm -rf "$d"
+  mkdir -p "$d/home" "$d/work"
+  (cd "$d/work" && HOME="$d/home" bash "$EVALS/$1/fixture.sh") >/dev/null 2>&1 && printf '%s\n' "$d/work"
+}
+fixtures_ready() {
+  local w out
+  w="$(fixture plan-first)" && [ -f "$w/package.json" ] && [ ! -e "$w/docs" ] || return 1
+  w="$(fixture api-page)" && grep -q 'docs-publish:todo' "$w/docs/en/api/slugify.md" || return 1
+  w="$(fixture translate-page)" && ! grep -q 'docs-publish:todo' "$w/docs/en/quickstart.md" &&
+    grep -q 'docs-publish:todo' "$w/docs/ja/quickstart.md" || return 1
+  w="$(fixture check-and-fix)" || return 1
+  out="$(cd "$w" && dp check)"
+  [ "$(printf '%s\n' "$out" | grep -cE '^(link|stale) ')" -ge 2 ] &&
+    ! printf '%s\n' "$out" | grep -qE '^(missing|unmapped|todo|content|structure|untranslated|crosslink|switch|orphan) ' ||
+    return 1
+  # The translations are in Japanese, so the only work the case leaves is the two problems: a page
+  # left in English would have the agent translate the whole set instead.
+  python3 - "$w/docs/ja" <<'PY'
+import os, re, sys
+kana = re.compile("[%s-%s]" % (chr(0x3040), chr(0x30FF)))
+pages = [os.path.join(d, f) for d, _, files in os.walk(sys.argv[1]) for f in files if f.endswith(".md")]
+def first_text(path):
+    """The page before its first code block, without the title and the language switch."""
+    return "\n".join(open(path, encoding="utf-8").read().split("```")[0].splitlines()[3:])
+sys.exit(0 if len(pages) == 10 and all(kana.search(first_text(p)) for p in pages) else 1)
+PY
+}
+check "the eval fixtures build the states their cases start from" "fixtures_ready"
+
+eval_results_ignored() { git -C "$PLUGIN" check-ignore -q evals/results/run.json; }
+check "eval results are ignored by git" "eval_results_ignored"
+
+# The limits are the sizes of the shortened SKILL.md. Every agent that starts the skill reads the
+# whole body, and every session reads the description, so raise a limit only with a reason.
+SKILL_WORDS_MAX=1972
+SKILL_DESCRIPTION_MAX=317
+skill_size() {
+  python3 - "$SKILL" "$SKILL_WORDS_MAX" "$SKILL_DESCRIPTION_MAX" <<'PY'
+import re, sys
+text = open(sys.argv[1], encoding="utf-8").read()
+m = re.match(r"---\n(.*?)\n---\n(.*)", text, re.S)
+desc = re.search(r"^description:\s*(.*)$", m.group(1), re.M).group(1).strip()
+sys.exit(0 if len(m.group(2).split()) <= int(sys.argv[2]) and len(desc) <= int(sys.argv[3]) else 1)
+PY
+}
+check "the SKILL.md stays within its size limits" "skill_size"
+
 printf '%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

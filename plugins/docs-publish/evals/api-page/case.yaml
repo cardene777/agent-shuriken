@@ -1,0 +1,29 @@
+# With the docs laid out, the agent writes one API page from the code: the real signature, options,
+# defaults, and error, and nothing the code does not have.
+schema_version: "1.1"
+name: api-page
+plugins: ["../.."]
+execution:
+  prompt: |
+    The docs plan is agreed and the folders are laid out. Write the English API page for slugify, docs/en/api/slugify.md, and no other page.
+  max_turns: 25
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'docs-publish'
+  - name: no-todo-left
+    type: regex
+    target: {source: file, path: docs/en/api/slugify.md}
+    pattern: 'docs-publish:todo'
+    match: not_contains
+  - name: page-follows-the-code
+    type: llm
+    focus: {source: file, path: docs/en/api/slugify.md}
+    criteria: |
+      PASS if the page gives the signature slugify(text, options), a parameters table with the columns Name, Type, Required, Default, and Description that lists text, options.separator with the default '-', and options.lower with the default true, says it returns the slug as a string, says it throws a TypeError when text is not a string, and has a complete example that loads tiny-slug with require.
+      FAIL if any of these is missing, or the page describes an option, parameter, or return value that the code does not have.
