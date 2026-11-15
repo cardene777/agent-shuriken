@@ -1,12 +1,12 @@
 # A weekly report longer than a Discord message becomes one message within 2,000 characters that keeps the
-# numbers and the deadline, with no table and none of the report's filler phrases. The prompt is in English,
-# so the message may be too, and the deadline is graded in Japanese and English forms.
+# numbers and the deadline, with no table and none of the report's filler phrases. The prompt asks for the
+# message in Japanese, the report's language, so the length cap measures how short it is, not its language.
 schema_version: "1.1"
 name: long-report-to-discord
 plugins: ["../.."]
 execution:
   prompt: |
-    report.md is my weekly report on the login migration. Write a message that shares it with the team in our Discord channel, and save the message to message.md.
+    report.md is my weekly report on the login migration. Write a message in Japanese that shares it with the team in our Discord channel, and save the message to message.md.
   max_turns: 16
   timeout_seconds: 400
   allowed_tools: [Read, Glob, Grep, Skill]
