@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- `check` says how to fix each kind of problem it lists, in a `How to fix:` section before its last line
+
 ## [0.2.0] - 2026-11-14
 
 - The docs can follow the docs of projects you name, such as a sibling library. Only with your agreement, the agent reads each one's table of contents and up to five pages, through `gh api` for a GitHub repository or its own tool for reading web pages for another site, takes only their structure, and never copies their text

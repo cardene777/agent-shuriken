@@ -148,6 +148,7 @@ It writes the map only when it recorded at least one page.
 `orphan` is checked for a language only once none of its pages has to-do notes, since starter pages do not link everything yet.
 
 The output starts with a line naming the docs folder, the number of pages, and the languages, and ends with the number of problems and a count of the links checked and broken.
+When it lists problems, a `How to fix:` section before that last line gives one line per kind it listed, saying what to do about that kind.
 
 ### How pages are read
 
