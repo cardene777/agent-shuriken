@@ -47,9 +47,10 @@ In GitHub Copilot CLI, write `/convey` in your request, and in Gemini CLI, descr
 1. The agent gathers the content from what you point to
 2. It decides who the message is for from your request, the destination, and the content, and says so in one line outside the message
 3. It picks one of seven types: progress, decision, request, incident, findings, announcement, or question. Each starts with the conclusion and lists the parts its reader needs, such as the deadline of a request or the impact of an incident
-4. It writes the message, mentioning only the people and channels you named, and using at most one emoji, at the start of a heading, in Slack and Discord. Japanese follows the japanese-writing skill when it is installed
-5. `convey.py check` reports each line to change, and the agent fixes them and checks again
-6. `convey.py copy` copies the message to your clipboard, and the agent shows it in a code block. Posting it is your step
+4. It chooses what the message carries: what arrived or changed, what to do first, where the reader may get stuck, and what is undecided or asked. What the reader can get by opening the files, screens, or links the message points to is left to them
+5. It writes the message with every line, list items included, as a full sentence, mentioning only the people and channels you named, and using at most one emoji, at the start of a heading, in Slack and Discord. Japanese follows the japanese-writing skill when it is installed
+6. `convey.py check` reports each line to change, and the agent fixes them and checks again
+7. `convey.py copy` copies the message to your clipboard, and the agent shows it in a code block. Posting it is your step
 
 A report written for the record becomes a message that leads with the outcome.
 
@@ -63,10 +64,10 @@ Hi team! I wanted to share a quick update on the login migration. As you may kno
 Let me know if you have any questions!
 
 After:
-Login migration: on track to finish by November 28. 12,400 of 15,000 users are moved.
+The login migration is on track to finish by November 28, with 12,400 of 15,000 users moved.
 - Login failures fell from 4.2% to 0.8%, and p95 response time from 820 ms to 310 ms
-- Next: 500 users a day for the remaining 2,600
-- Blocked: two internal tools still use the old login, and their owners have not replied yet
+- The remaining 2,600 users move at 500 a day
+- Two internal tools still use the old login, and their owners have not replied yet
 ```
 
 For the message before the fix, `check --to slack` prints one line per thing to change.

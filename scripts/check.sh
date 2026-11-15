@@ -44,6 +44,7 @@ JA_ALLOWED=(
   plugins/convey/evals/long-report-to-discord/case.yaml
   plugins/convey/evals/slack-format/case.yaml
   plugins/convey/evals/request-with-deadline/case.yaml
+  plugins/convey/evals/handoff-message/case.yaml
   plugins/japanese-writing/skills/japanese-writing/references/rules.md
   plugins/japanese-writing/skills/japanese-writing/references/ai-smell.md
   plugins/japanese-writing/skills/japanese-writing/references/asking.md

@@ -4,6 +4,8 @@ Pick the one type that matches what the reader must do with the message.
 Each type lists its parts in order; write the parts that have content and leave out the rest.
 Every type starts with the conclusion, so a reader who stops after the first line still knows the outcome or the ask.
 
+When the reader will open material that holds a part, such as a README, a spec, or the files themselves, leave the part to that material instead of repeating it.
+The part names are for you to order the message; write each part as a sentence, never as a line that starts with the part's name and a colon.
 A part is a sentence or two, or a short list, never a paragraph of background.
 Numbers, dates, names, and links from the source stay exact.
 When a part has nothing new, leave it out instead of writing that nothing changed.

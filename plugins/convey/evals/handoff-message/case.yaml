@@ -1,0 +1,49 @@
+# A designer's long message about uploaded screens becomes a short Discord message that keeps what the
+# developer cannot get by opening the files (how to unzip, what pen can edit, the two undecided points) and
+# leaves out what the files already explain (why the zip is split, what each zip holds, what the labels mean),
+# with no line written as a label and a colon.
+schema_version: "1.1"
+name: handoff-message
+plugins: ["../.."]
+execution:
+  prompt: |
+    handoff.md is a message I wrote to tell our developer @ken that I uploaded new screens. Rewrite it in Japanese so it is easy to read on Discord, and save it to message.md.
+  max_turns: 16
+  timeout_seconds: 400
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'convey'
+    arm: with-only
+  - name: needed-facts-kept
+    type: regex
+    target: {source: file, path: message.md}
+    pattern: '(?=[\s\S]*@ken)(?=[\s\S]*同じフォルダ)(?=[\s\S]*文字だけ)(?=[\s\S]*30日間)(?=[\s\S]*もう一度)'
+  - name: zip-reason-left-out
+    type: regex
+    target: {source: file, path: message.md}
+    pattern: '100 ?MB'
+    match: not_contains
+  - name: zip-contents-left-out
+    type: regex
+    target: {source: file, path: message.md}
+    pattern: 'pair|grid'
+    match: not_contains
+  - name: label-meanings-left-out
+    type: regex
+    target: {source: file, path: message.md}
+    pattern: '〔仮〕は|〔例〕は|札のない'
+    match: not_contains
+  - name: no-label-and-colon-lines
+    type: regex
+    target: {source: file, path: message.md}
+    pattern: '(^|\n)[ \t]*(?:[-•・][ \t]*)?[*_]*(?:[^\s:：*_]+ ){0,3}[^\s:：*_]+[*_]*(?::[*_]*[ \t]|：)'
+    match: not_contains
+  - name: concise
+    type: regex
+    target: {source: file, path: message.md}
+    pattern: '^[\s\S]{1,500}$'

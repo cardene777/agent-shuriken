@@ -11,7 +11,7 @@
 
 | パス | 中身 |
 |---|---|
-| `SKILL.md` | 決まりと、内容を集めてから文を見せるまでの4つの手順 |
+| `SKILL.md` | 決まりと、内容を集めて文に載せる事を選び、文を見せるまでの5つの手順 |
 | `references/types.md` | 7つの型と、結論から始まる各型の項目の順 |
 | `references/filler-phrases.tsv` | `check`が注意として出す日本語と英語の決まり文句と、それぞれの直し方 |
 | `scripts/convey.py` | `check`、`copy`、`formats`の3つのコマンド |
@@ -29,7 +29,7 @@
 | `format` | 1 | 貼る先で書いた記号がそのまま見える書式か、最初の行が`Subject:`の件名の行でないメール |
 | `secret` | 1 | GitHub、AWS、Slack、OpenAI、Anthropic、Googleの鍵、webhookのURL、秘密鍵、JSON Web Token、パスワード入りのURL、`password=`のような名前の後に書いたパスワードかトークンに見える値 |
 | `private` | 1 | `/home/`の下のような利用者のホームフォルダの下のパス、メールアドレス、電話番号 |
-| `warn` | 0 | `references/filler-phrases.tsv`の決まり文句か、貼る先で普通は使わない絵文字 |
+| `warn` | 0 | `references/filler-phrases.tsv`の決まり文句、短い項目名とコロンで書いた行、コードとURLとパスとメンションの外の和文と英字や数字の間の空白、貼る先で普通は使わない絵文字 |
 
 見つけた物は、行と種類だけを出し、値そのものは出しません。
 字数は、末尾の空行を除いた後のUTF-16の単位で数えます。絵文字には2と数える物があり、数え方は安全な側に寄ります。

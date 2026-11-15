@@ -31,16 +31,28 @@ Read what the user points to: the work done in this conversation, pasted text or
 - The destination is Slack, Discord, an email, a GitHub comment, or plain text when it is unknown. `python3 "$S/convey.py" formats` lists each limit and what each does not render
 - Read `references/types.md` and pick one of its seven types: progress, decision, request, incident, findings, announcement, or question
 
-## 3. Write
+## 3. Choose what the message carries
+
+List the facts in the source before writing anything.
+For each fact, ask whether the reader would do anything differently if the message left it out, and keep it only when they would and cannot get it by opening the files, screens, pages, or links the message points to.
+What stays is usually what arrived or changed, what to do first, where they may get stuck, what is undecided or asked of them, and any deadline.
+What goes is usually background, why a file was split or a workaround was needed, what each archive or folder holds, what marks or labels mean when they explain themselves, and a list of files the material already lists.
+Name a file only when the reader needs to know where to look.
+Keep a fact the reader needs to act or decide even when it is short, such as a behavior the screens alone do not show.
+
+## 4. Write
 
 - The first line is the conclusion: what the reader must know or do
-- Then only what the reader needs to act on it, in the order of the type
+- Then the facts you kept, in the order of the type
 - Leave out how the work went, what was tried and dropped, restatements of the conclusion, greetings and sign-offs, and hedges, unless the type asks for one of them
+- Write every line as a sentence with its subject and particles, including list items. Never join items with spaces, colons, or the Japanese middle dot, and never write a line as a label and a colon followed by a value
+- Put an aside in its own sentence instead of in parentheses in the middle of a sentence
 - Use short sentences with one point each, a list for three or more parallel items, and numbers instead of words such as "many" or "much faster"
+- A message with three parts or fewer gets no headings; separate its parts with blank lines
 - Slack: `*bold*` with one asterisk, `-` lists, and URLs pasted as they are. Discord: Markdown without tables. Email: a `Subject:` line, a blank line, then plain text. GitHub: Markdown
 - For Japanese, follow the rules of the `japanese-writing` skill when it is installed
 
-## 4. Check, copy, and show
+## 5. Check, copy, and show
 
 Save the message to the file the user names, or else to a temporary file outside the project that you delete at the end.
 

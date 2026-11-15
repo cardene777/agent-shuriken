@@ -151,6 +151,47 @@ emoji_warns() {
 }
 check "check warns about emoji outside the start of a line and in emails" "emoji_warns"
 
+cat > "$T/colons.md" <<'MD'
+*請求メールの遅れ*
+影響: 340件が遅れました
+- *Impact:* 340 emails were late
+・原因：一時の場所がいっぱいになった
+9:10に直りました。
+詳しくはhttp://localhost:4100/statusにあります。
+MD
+printf 'Subject: 請求メールの遅れ\n\n影響は340件です。\n' > "$T/colons-email.md"
+colon_pairs_warn() {
+  local out status
+  out="$(convey check --to slack "$T/colons.md")"; status=$?
+  [ "$status" = 0 ] || return 1
+  printf '%s\n' "$out" | grep -q '^L2 warn: label and colon' && printf '%s\n' "$out" | grep -q '^L3 warn: label and colon' \
+    && printf '%s\n' "$out" | grep -q '^L4 warn: label and colon' || return 1
+  ! printf '%s\n' "$out" | grep -qE '^L(1|5|6) ' || return 1
+  out="$(convey check --to email "$T/colons-email.md")"; status=$?
+  [ "$status" = 0 ] && ! printf '%s\n' "$out" | grep -q 'label and colon'
+}
+check "check warns about label-and-colon pairs without failing" "colon_pairs_warn"
+
+cat > "$T/spaces.md" <<'MD'
+リリースは 11月20日です。
+PR #482 をレビューしてください。
+Login migration is on track.
+`npm run build` を回します。
+詳しくは http://localhost:4100/status を見てください。
+```
+echo 日本語 test
+```
+MD
+jp_latin_spaces_warn() {
+  local out status
+  out="$(convey check --to slack "$T/spaces.md")"; status=$?
+  [ "$status" = 0 ] || return 1
+  printf '%s\n' "$out" | grep -q '^L1 warn: space between Japanese and Latin' \
+    && printf '%s\n' "$out" | grep -q '^L2 warn: space between Japanese and Latin' || return 1
+  ! printf '%s\n' "$out" | grep -qE '^L(3|4|5|6|7|8) '
+}
+check "check warns about spaces between Japanese and Latin letters without failing" "jp_latin_spaces_warn"
+
 stdin_read() {
   local a b
   a="$(convey check --to discord < "$T/short.md")"
@@ -244,9 +285,22 @@ PY
 }
 check "the SKILL.md keeps its rules on readers, mentions, emoji, japanese-writing, sending, and source text" "skill_rules"
 
+has_phrases() {  # <file> <phrase>...: every phrase appears in the file
+  local f="$1"; shift
+  [ -f "$f" ] || return 1
+  local phrase
+  for phrase in "$@"; do grep -qF -- "$phrase" "$f" || return 1; done
+}
+check "the SKILL.md chooses what the message carries before writing it" \
+  'has_phrases "$SKILL_DIR/SKILL.md" "Choose what the message carries" "by opening" "what to do first" "get stuck" "undecided"'
+check "the SKILL.md writes every line as a sentence" \
+  'has_phrases "$SKILL_DIR/SKILL.md" "including list items" "particles" "spaces, colons" "its own sentence" "no headings"'
+check "the type guide leaves to the linked material what the reader can read there" \
+  'has_phrases "$SKILL_DIR/references/types.md" "leave the part to that material"'
+
 # --- the eval suite
 
-CASES="long-report-to-discord slack-format private-details-stay-out request-with-deadline unrelated-request"
+CASES="long-report-to-discord slack-format private-details-stay-out request-with-deadline handoff-message unrelated-request"
 eval_suite() {
   local c
   [ "$(cd "$PLUGIN_DIR/evals" 2>/dev/null && find . -mindepth 1 -maxdepth 1 -type d ! -name results | sed 's|^\./||' | LC_ALL=C sort | tr '\n' ' ')" \
@@ -256,7 +310,7 @@ eval_suite() {
     grep -qx "name: $c" "$PLUGIN_DIR/evals/$c/case.yaml" || return 1
   done
 }
-check "the eval suite has the five cases" "eval_suite"
+check "the eval suite has the six cases" "eval_suite"
 
 fixtures_build() {
   local c dir texts
@@ -270,6 +324,12 @@ fixtures_build() {
       grep -rqE '/(Users|home)/[a-z]+/' "$dir" && grep -rqE '[a-z]+@[a-z]+\.[a-z]+' "$dir" || return 1
     else
       ! grep -rqE '/(Users|home)/[a-z]+/|[a-z]+@[a-z]+\.[a-z]+' "$dir" || return 1
+    fi
+    if [ "$c" = handoff-message ]; then
+      # What the message should leave out (why the zip is split, what the labels mean) and keep (the two
+      # undecided points, what pen can edit) are all in the source.
+      grep -q '100MB' "$dir/handoff.md" && grep -q '〔例〕は' "$dir/handoff.md" && grep -q '30日間' "$dir/handoff.md" \
+        && grep -q '文字だけ' "$dir/handoff.md" || return 1
     fi
   done
 }
