@@ -34,7 +34,7 @@ JA_ALLOWED=(
   plugins/diagram-explainer/evals/japanese-document/case.yaml
   plugins/docs-publish/evals/_japanese.json
   plugins/excalidraw-diagram/skills/excalidraw-diagram/tests/test-excalidraw-diagram.sh
-  plugins/techdebt/skills/techdebt/templates/report.html
+  plugins/techdebt/skills/techdebt/templates/base.html
   plugins/techdebt/skills/techdebt/tests/test-techdebt.sh
   plugins/japanese-writing/README.md
   plugins/convey/skills/convey/scripts/convey.py

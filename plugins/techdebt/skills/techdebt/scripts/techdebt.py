@@ -47,7 +47,9 @@ import tempfile
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-TEMPLATE = os.path.join(os.path.dirname(HERE), "templates", "report.html")
+# The template is not named report.html: `claude plugin eval` keeps the agent out of a plugin folder
+# that holds a file of that name, the name of its own report.
+TEMPLATE = os.path.join(os.path.dirname(HERE), "templates", "base.html")
 
 LONG_FUNCTION = 60
 LARGE_FILE = 500
