@@ -43,8 +43,7 @@ find_browser() {
 }
 
 if ! browser="$(find_browser)"; then
-  echo "No Chromium-based browser was found. Install Chrome, Chromium, Edge, or Brave, or set COMPARE_REPORT_BROWSER to its executable." >&2
-  echo "Give the user report.html instead: any browser prints it to PDF." >&2
+  echo "No Chromium-based browser was found. Install Chrome, Chromium, Edge, or Brave, or set COMPARE_REPORT_BROWSER to its executable" >&2
   exit 3
 fi
 
@@ -66,7 +65,6 @@ print_pdf() {
 print_pdf "$in" "$out"
 if [ ! -s "$out" ]; then
   echo "The browser did not write $out. Browser used: $browser" >&2
-  echo "Give the user report.html instead: any browser prints it to PDF." >&2
   exit 4
 fi
 
