@@ -14,7 +14,7 @@ Commands
   estimate <preflight.json> [--runs N]  The cost of the baseline and the after runs, from one run per case
   trace <result.json> --case NAME [--arm with|without]
                                         The tool calls and results of each run of a case
-  clean <run name> | --all              Remove copies, their results, and the eval folders they kept
+  clean <run name> | --all              Remove copies, their results, and the eval folders they kept, except a copy run is evaluating
 
 When several result files are given, each case comes from the last file that holds it.
 A run's score is the share of its scored graders that passed, leaving out with-only graders and
@@ -36,6 +36,8 @@ import sys
 
 LABEL = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 KEPT = re.compile(r"^e-[A-Za-z0-9]{6,}$")
+# The file run writes next to a copy while claude plugin eval runs on it, holding run's process id.
+RUNNING = "running"
 
 
 def fail(message, code=2):
@@ -183,8 +185,18 @@ def cmd_run(args):
         cmd += ["--runs", str(args.runs)]
     if args.ablation:
         cmd += ["--ablation", args.ablation]
-    with open(log, "w", encoding="utf-8") as f:
-        rc = subprocess.run(cmd, cwd=os.path.dirname(copy), stdout=f, stderr=subprocess.STDOUT).returncode
+    # The mark tells clean, in this session or another one, that this copy is being evaluated.
+    mark = os.path.join(os.path.dirname(copy), RUNNING)
+    with open(mark, "w", encoding="utf-8") as f:
+        f.write("%d\n" % os.getpid())
+    try:
+        with open(log, "w", encoding="utf-8") as f:
+            rc = subprocess.run(cmd, cwd=os.path.dirname(copy), stdout=f, stderr=subprocess.STDOUT).returncode
+    finally:
+        try:
+            os.remove(mark)
+        except OSError:
+            pass
     os.chmod(log, 0o600)
     print("result: %s" % out)
     print("log: %s" % log)
@@ -222,6 +234,26 @@ def kept_folders(run_dir):
     return kept
 
 
+def running_pid(run_dir):
+    """The process id of a run that is evaluating the copy in this folder now, or None.
+
+    A mark whose process is gone, or that cannot be read, does not keep the copy."""
+    try:
+        with open(os.path.join(run_dir, RUNNING), encoding="utf-8") as f:
+            pid = int(f.read().strip())
+    except (OSError, ValueError):
+        return None
+    if pid <= 0:
+        return None
+    try:
+        os.kill(pid, 0)
+    except PermissionError:
+        return pid
+    except (OSError, OverflowError):
+        return None
+    return pid
+
+
 def remove_run(run_dir):
     removed = []
     for folder in sorted(kept_folders(run_dir)):
@@ -249,6 +281,13 @@ def cmd_clean(args):
         run_dir = os.path.join(runs, name)
         if not LABEL.match(name) or not os.path.isdir(run_dir):
             fail("no run folder %s" % run_dir, 1)
+        pid = running_pid(run_dir)
+        if pid is not None:
+            kept = "kept %s: an eval is running on it (process %d)" % (run_dir, pid)
+            if not args.all:
+                fail(kept, 1)
+            print(kept)
+            continue
         for path in remove_run(run_dir):
             print("removed %s" % path)
 
@@ -472,7 +511,7 @@ def main():
     p.add_argument("--arm", choices=["with", "without"], default="with")
     p.set_defaults(func=cmd_trace)
 
-    p = sub.add_parser("clean", help="remove copies, their results, and the eval folders they kept")
+    p = sub.add_parser("clean", help="remove copies, their results, and the eval folders they kept; a copy that run is evaluating is kept")
     p.add_argument("name", nargs="?")
     p.add_argument("--all", action="store_true")
     p.set_defaults(func=cmd_clean)

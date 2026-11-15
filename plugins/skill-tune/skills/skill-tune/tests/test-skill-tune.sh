@@ -227,13 +227,16 @@ skill_rules() {
     "Pass \`--max-cost-usd\` only when the user names a limit" \
     "In agents other than Claude Code, stop before measuring" \
     "only on plugins the user wrote or trusts" \
-    'Never run `clean --all`'; do
+    'Never run `clean --all`' \
+    'Name the grader that shows the skill started `skill-fired`' \
+    'for a skill with `disable-model-invocation: true`' \
+    'The run'"'"'s `HOME` is itself a repository'; do
     grep -qF -- "$phrase" "$SKILL" || return 1
   done
 }
 check "the SKILL.md keeps its rules on the sandbox, graders, cost, and other agents" "skill_rules"
 
-SKILL_WORDS_MAX=1674
+SKILL_WORDS_MAX=1818
 SKILL_DESCRIPTION_MAX=357
 skill_size() {
   [ -f "$SKILL" ] || return 1
