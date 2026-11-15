@@ -1,0 +1,7 @@
+interface:
+  display_name: "Machine Cleanup"
+  short_description: "Free disk space, memory, and CPU: find rebuilt caches, build output, large files, unused apps, and leftover dev servers, and free only what you pick"
+  default_prompt: "Use $machine-cleanup to find what is filling my disk and slowing my computer, and let me pick what to free."
+
+policy:
+  allow_implicit_invocation: true

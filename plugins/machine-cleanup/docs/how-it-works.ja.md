@@ -1,0 +1,172 @@
+# Machine Cleanupの仕組み
+
+[English](how-it-works.md) · 日本語
+
+このページは、調べる時に何をどう測るか、何を使用中と見るか、ページがどうエージェントとやりとりするか、選んだ項目がそれぞれどうなるかを説明します。
+命令はどれも技のフォルダの中の`scripts/machine_cleanup.py`です。
+
+## 調べ方
+
+`scan`はまず自分のCPUの優先度を最も低い値 (niceの19) に下げ、macOSでは`taskpolicy -b`、Linuxでは`ionice -c3`の下で`du`を動かしてフォルダの大きさを測ります。動いている間もコンピューターを普通に使えます。
+時間の上限 (`--time-limit`の指定が無ければ90秒) に達すると止まり、届かなかった場所を全て理由`time limit`と一緒に並べます。
+
+速くて役に立つ結果が先に出るよう、次の順に見ます。
+
+| 段 | 読む物 |
+|---|---|
+| プロセス | `--sample`秒 (既定は2秒) あけて`ps`を2回。CPUの使い方は、2回の間にプロセスごとのCPU時間がどれだけ増えたかで測ります。`ps`が出す`%cpu`は過去を少しずつ忘れる平均だからです |
+| ログイン項目 | macOSは`~/Library/LaunchAgents`。Linuxは`~/.config/autostart`と`systemctl --user list-unit-files` |
+| コンテナ | `docker ps`と`docker stats --no-stream` |
+| キャッシュ | パッケージ管理ごとの既定のフォルダ (置き場を変える変数`npm_config_cache`、`PNPM_STORE_DIR`、`YARN_CACHE_FOLDER`、`BUN_INSTALL_CACHE_DIR`、`PIP_CACHE_DIR`、`UV_CACHE_DIR`、`HOMEBREW_CACHE`、`CARGO_HOME`、`GOPATH`、`GOMODCACHE`、`GOCACHE`、`GRADLE_USER_HOME`、`XDG_CACHE_HOME`、`XDG_DATA_HOME`に従います)、macOSのXcodeのフォルダ、`~/Library/Caches`か`~/.cache`の50MB以上のアプリのキャッシュ、`docker system df` |
+| ゴミ箱とログ | ゴミ箱、macOSは`~/Library/Logs`の30日より古いファイル、Linuxは`~/.local/state`のログのファイル、`~/Downloads`の30日より古いインストーラー |
+| アプリ | macOSは`/Applications`と`~/Applications` (か`--apps-dir`) の中で自分が変えられる`.app`のうち、`mdls`が最後に使った日を90日より前と返す物。Linuxは`flatpak list --user --app` |
+| ファイル | ホーム (か各`--root`) を8段の深さまでたどります。隠しフォルダ、macOSの`~/Library`と`~/Applications`、「入らない場所」の場所は飛ばします |
+
+たどる途中で`.git`を持つフォルダをプロジェクトと見ます。
+プロジェクトの一番上から4段以内の`node_modules`、`.next`、`.nuxt`、`.svelte-kit`、`.turbo`、`.parcel-cache`、`.vite`、`.angular`、`.expo`、`.docusaurus`、`.output`、`.vercel`、`.wrangler`、`dist`、`build`、`out`、`target`、`.venv`、`venv`、`__pycache__`、`.pytest_cache`、`.mypy_cache`、`.ruff_cache`、`.tox`、`.gradle`、`DerivedData`、`coverage`、`.cache`、`Pods`という名前のフォルダは、`git check-ignore`がgitの無視を返し、`git ls-files`が中に追跡するファイルを1つも見つけない時だけビルドの出力にします。
+1MB未満のビルドの出力は並べません。
+
+10MB以上のファイルは重複の候補です。
+大きさ、先頭の64KiBのSHA-256、中身全体のSHA-256が同じ2つのファイルを重複とし、1つのファイルへのハードリンクは1つと数えます。
+調べる時にファイルの中身を読むのはここだけで、残すのはハッシュだけです。
+重複を持たない500MB以上のファイルは大きいファイルです。
+
+結果は状態のフォルダの`scan.json`に置きます。
+各項目は、識別子 (ディスクの項目は`d-`と16進の8文字、プロセスとログイン項目とコンテナは`p-`)、分類、種類、大きさかメモリの使用量、ひとりでに戻ってくるか、空け方、使用中ならその理由、変える前の確かめに使う指紋を持ちます。
+
+## 使用中と見る物
+
+使用中の項目は理由と一緒に並び、ページでも`apply`でも選べません。
+
+| 理由 | 当たる時 |
+|---|---|
+| 動いているエージェントの会話の下で動いている | 親のプロセスを上へたどると、直接か`node`、`bun`、`deno`を通して動く`claude`、`codex`、`copilot`、`gemini`に着く |
+| 動いているエージェントの会話そのもの | プロセスがそれらのエージェントである |
+| 動いているエージェントの会話がこの下で動いている | エージェントの親のプロセスを上へたどると、会話を抱えるアプリや端末のように、このプロセスに着く |
+| 動いているエージェントの会話を抱えるアプリの一部 | アプリの描画やGPUの補助のように、エージェントの親のプロセスと同じ`.app`の中から動いている |
+| 動いているエージェントの会話と同じプロジェクトで作業している | プロセスの作業フォルダが、エージェントの作業フォルダと同じgitのプロジェクトの中にある。エージェントが裏で動かしたままにした開発用のサーバーを残すため |
+| 開いている端末で動いている | プロセスが制御端末を持つ |
+| OSの一部 | プログラムが`/System/`、`/usr/libexec/`、`/usr/sbin/`、`/sbin/`、`/usr/lib/systemd/`の下にある |
+| 動いているプログラムがこのプロジェクトで作業している | プロセスの作業フォルダ (macOSは`lsof -d cwd`、Linuxは`/proc/<pid>/cwd`) が、項目を持つプロジェクトの中か、コンテナならComposeのプロジェクトの作業フォルダの中にある |
+| アプリが動いている | アプリの中からプロセスが動いているか、アプリのキャッシュが動いているアプリの物である |
+| 道具が動いている | キャッシュの持ち主のパッケージ管理が、インストールのような開発用のサーバー以外の物を動かしている |
+
+調べているエージェントと、その親のプロセスは一覧から全て外します。
+ほかのユーザーのプロセスは並べません。
+
+## 入らない場所
+
+| 場所 | 理由 |
+|---|---|
+| `~/Library/Mobile Documents`、`~/Library/CloudStorage`と、`~/Dropbox`、`~/OneDrive`、`~/Google Drive`、`~/iCloud Drive`、`~/Box`、`~/pCloud Drive`、`~/Nextcloud`、`~/ownCloud`、`~/MEGA` | 同期フォルダです。ここで消すとクラウド側とほかの端末からも消えます |
+| WSLの`/mnt` | Windowsのドライブです |
+| シンボリックリンク | 調べる時はたどらず、`apply`もリンクとその先を変えません |
+| Dockerのボリューム | 作り直されないデータを持ちます |
+| アプリのフォルダの中のアプリを除く、ホームの外の全て | `apply`が変えるのを断ります |
+
+## ページとサーバー
+
+`serve`は`scan.json`を読み、`127.0.0.1`の空いているポートを選び、一回限りの合言葉を作り、このコンピューターのブラウザにだけページを出します。
+ポートと合言葉は`session.json`に残すので、`serve`をもう一度動かしても、開いているページの住所は変わりません。
+
+| 要求 | 受け取る時 |
+|---|---|
+| `GET /?t=<token>` | 合言葉が合い、`Host`の見出しが`127.0.0.1:<port>`の時。調べた結果を埋めたページを返します |
+| `GET /ping?t=<token>` | 同じ条件。ページが4秒ごとに聞き、エージェントが待っているかを表示します |
+| `POST /select` | `Host`と`Origin`の見出しがどちらもこのサーバーを指し、本文が合言葉を持つ64KiB以下のJSONで、全ての識別子が調べた結果にあり使用中でない時 |
+
+ほかは403か404を返すので、ブラウザで開いているほかのサイトはページを読めず、選択も送れません。
+ページと全ての応答は、外への接続を許さないContent-Security-Policyを持ちます。
+
+サーバーは選択を受け取ると`machine-cleanup:select <id> <id> ...`を出して終わります。
+`--wait`秒 (既定は540秒) 待っても届かない時は終わり方4で終わり、開いているページはエージェントが待っていないことを示して「選択を写す」を出します。これは同じ行を写します。
+この行はページの言語に依りません。
+
+## 項目ごとの空け方
+
+`apply`はその行か、識別子だけを受け取ります。
+調べた結果に無い識別子、使用中の識別子、重複の全ての写しを選ぶ選択が1つでもあると、選択の全体を断り、何も変えません。
+
+| 項目 | `apply`がすること |
+|---|---|
+| 消す命令を持つキャッシュ | `npm cache clean --force`、`pnpm store prune`、`yarn cache clean`、`bun pm cache rm`、`pip cache purge`、`uv cache clean`、`brew cleanup --prune=all`、`go clean -modcache`、`go clean -cache`、`pod cache clean --all`、`docker image prune -a -f`、`docker builder prune -a -f`、`docker container prune -f`を動かします。道具が入っていない時はフォルダを消します |
+| ほかのキャッシュとビルドの出力 | フォルダを消します |
+| ゴミ箱 | 中身を全て消します |
+| 古いログ | 調べた時に並べたファイルのうち、今も30日より古い物を消します |
+| インストーラー、大きいファイル、重複 | ゴミ箱へ移します。macOSは`~/.Trash`、Linuxはfreedesktop.orgのゴミ箱で、ファイルの管理の道具が元に戻せるよう`.trashinfo`の記録を書きます |
+| macOSのアプリ | アプリと付属のファイル (`Application Support`、`Caches`、`Preferences`、`Containers`、`Saved Application State`、`HTTPStorages`、`WebKit`、`Logs`の中の物) をゴミ箱へ移します |
+| Flatpakのアプリ | `flatpak uninstall --user -y <app>`を動かします |
+| プロセス | 終了の合図 (SIGTERM) を送り、`--term-wait`秒 (既定は5秒) 待ちます。まだ動いているプロセスは`survived`と知らせ、その識別子を渡した`apply --kill <id>`の時だけSIGKILLを送ります |
+| macOSのLaunchAgent | `launchctl bootout`を動かし、ファイルを状態のフォルダへ移します |
+| Linuxの自動起動 | ファイルを状態のフォルダへ移します |
+| systemdのユーザー単位 | `systemctl --user disable --now`を動かします |
+| コンテナ | `docker stop`を動かします |
+
+## 変える直前の確かめ
+
+`apply`は`ps`を動かして作業フォルダを読み直し、項目ごとに変える前に確かめます。
+確かめに通らない項目は`skipped`と理由を知らせ、そのまま残します。
+
+| 項目 | 飛ばす時 |
+|---|---|
+| ファイル | 大きさ、変更した日時、ファイルの番号のどれかが調べた時と違う |
+| フォルダ | フォルダが入れ替わったか、大きさが5%か1MBより大きく変わった |
+| プロジェクトの中の項目 | 動いているプログラムが今そのプロジェクトで作業している |
+| プロセス | プロセスが終わったか、開始の時刻か命令が違う (プロセスの番号が別のプログラムの物になった) |
+| ログイン項目 | ファイルが変わったか、無くなった |
+| コンテナ | コンテナがもう動いていない |
+| Dockerのキャッシュ | 空ける物が残っていない |
+
+前と後で、ディスクの空きを`df -k`、使用中のメモリをmacOSは`vm_stat`と`sysctl hw.memsize`、Linuxは`/proc/meminfo`、負荷を平均の負荷で測り、出します。
+Dockerを片付け、Docker Desktopのディスクのファイルがある時は、空きが後から増えうることを書き添えます。Docker Desktopは時間をかけてひとりでに空きを戻すからです。
+
+## 元に戻す
+
+`restore`は戻せる物を並べ、`restore <id>`で戻します。
+
+| 項目 | `restore`がすること |
+|---|---|
+| macOSのLaunchAgent | ファイルを戻し、`launchctl bootstrap`を動かします |
+| Linuxの自動起動 | ファイルを戻します |
+| systemdのユーザー単位 | `systemctl --user enable --now`を動かします |
+| ゴミ箱へ移したファイルとアプリ | まだゴミ箱にあり、元の場所に何も無い時に戻します |
+
+## 残す物
+
+全て`~/.local/share/machine-cleanup/` (か`MACHINE_CLEANUP_HOME`) に置きます。フォルダもファイルも自分だけが読めます。
+
+| ファイル | 中身 | 消す物 |
+|---|---|---|
+| `scan.json` | 最後に調べた結果 | 次の`scan`か`finish` |
+| `session.json` | ページのポートと合言葉 | `apply`か`finish` |
+| `selection.txt` | ページが最後に送った選択 | `apply`か`finish` |
+| `survivors.json` | 最後の`apply`で残ったプロセス | 次の`apply`か`finish` |
+| `restore.json` | `restore`が戻せる物 | 項目を戻した`restore` |
+| `disabled/` | 止めたログイン項目のファイル | `restore` |
+
+プロセスの命令の文は、名前にtoken、secret、password、passwd、api-key、apikey、authを含む引数と変数の値を`***`に置き換えてから残します。
+
+## しないこと
+
+- 選んでいない物と使用中の物を、消す、移す、止める
+- シンボリックリンクをたどる、同期フォルダかWindowsのドライブに入る、アプリを除くホームの外の物を変える
+- 管理者のパスワードを求める、使う、ほかのユーザーのプロセスに触れる
+- ネットワークに何かを送る、`127.0.0.1`以外でページを出す
+- OSの設定を変える、裏で動き続ける物を入れる
+
+## 環境変数
+
+| 変数 | 効果 |
+|---|---|
+| `MACHINE_CLEANUP_HOME` | `~/.local/share/machine-cleanup`の代わりに使う状態のフォルダ |
+| 「調べ方」のキャッシュの変数 | パッケージ管理ごとのキャッシュを探す場所 |
+
+## 終わり方
+
+| 番号 | 意味 |
+|---|---|
+| 0 | 終わった |
+| 1 | `apply`か`restore`が断り、何も変えていない |
+| 2 | 入力が誤っているか、まだ調べていない |
+| 3 | `apply`が空けられない項目があった |
+| 4 | `serve`が選択を受け取らずに待ち終えた |
