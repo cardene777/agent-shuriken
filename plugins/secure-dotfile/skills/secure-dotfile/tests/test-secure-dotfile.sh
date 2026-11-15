@@ -912,6 +912,73 @@ docs_tools() {
 check "the docs describe the tool files it scans and how each is moved or why not" "docs_tools"
 
 # ---------------------------------------------------------------------------
+# Every failure says what to do next, so the SKILL.md does not have to list them.
+# Both commands stop on their arguments before reading anything, and still run in a throwaway HOME.
+
+mkdir -p "$T/next-home"
+HOME="$T/next-home" SECURE_DOTFILE_KEYCHAIN="$KC" python3 "$SCRIPT" move --item 'not-an-item' > /dev/null 2> "$OUT/bad-item.err"
+HOME="$T/next-home" SECURE_DOTFILE_KEYCHAIN="$KC" python3 "$SCRIPT" scan --file "$T/no-such-file" > /dev/null 2> "$OUT/no-file.err"
+next_steps() {
+  grep -q 'pass each item as the scan printed it' "$OUT/bad-item.err" &&
+    grep -q 'check the path' "$OUT/no-file.err" &&
+    jnote "$OUT/lx-down.json" LX_DOWN_TOKEN | grep -q 'run the move again' &&
+    grep -q 'install' "$OUT/lx-none.err" &&
+    jnote "$OUT/pass-locked.json" PA_LOCKED_TOKEN | grep -q 'run the move again' &&
+    grep -q 'install' "$OUT/pass-none.err" &&
+    grep -q 'run the move again' "$OUT/op-down.err" &&
+    grep -q 'by hand' "$OUT/op-novault.err" &&
+    grep -q 'install' "$OUT/op-none.err"
+}
+check "failure messages say what to do next" "next_steps"
+
+# ---------------------------------------------------------------------------
+# The SKILL.md and the eval suite that measures it (plugins/secure-dotfile/evals).
+
+PLUGIN="$HERE/../../.."
+EVALS="$PLUGIN/evals"
+
+eval_cases() {
+  local c
+  for c in trigger-and-scan git-history tool-files value-not-shown pasted-value unrelated-request; do
+    [ -f "$EVALS/$c/case.yaml" ] || return 1
+  done
+}
+check "the eval suite has the six cases" "eval_cases"
+
+# Each case makes its fake keys when it runs, so no file of the suite holds a key-shaped value.
+eval_no_secret() {
+  python3 -B - "$SCRIPT" "$EVALS" <<'PY'
+import os, sys
+sys.path.insert(0, os.path.dirname(sys.argv[1]))
+import secure_dotfile
+files = [os.path.join(d, f) for d, _, fs in os.walk(sys.argv[2]) if "results" not in d.split(os.sep) for f in fs]
+if not files:
+    sys.exit(1)
+text = "".join(open(f, errors="replace").read() for f in files)
+sys.exit(1 if any(rx.search(text) for rx, _ in secure_dotfile.VALUE_KINDS) else 0)
+PY
+}
+check "the eval files hold no literal secret" "eval_no_secret"
+
+eval_results_ignored() { git -C "$PLUGIN" check-ignore -q evals/results/run.json; }
+check "eval results are ignored by git" "eval_results_ignored"
+
+# The limits are the sizes of the shortened SKILL.md. Every agent that starts the skill reads the
+# whole body, and every session reads the description, so raise a limit only with a reason.
+SKILL_WORDS_MAX=1500
+SKILL_DESCRIPTION_MAX=350
+skill_size() {
+  python3 - "$PLUGIN/skills/secure-dotfile/SKILL.md" "$SKILL_WORDS_MAX" "$SKILL_DESCRIPTION_MAX" <<'PY'
+import re, sys
+text = open(sys.argv[1], encoding="utf-8").read()
+m = re.match(r"---\n(.*?)\n---\n(.*)", text, re.S)
+desc = re.search(r"^description:\s*(.*)$", m.group(1), re.M).group(1).strip()
+sys.exit(0 if len(m.group(2).split()) <= int(sys.argv[2]) and len(desc) <= int(sys.argv[3]) else 1)
+PY
+}
+check "the SKILL.md stays within its size limits" "skill_size"
+
+# ---------------------------------------------------------------------------
 # No output holds a value or its first 4 characters.
 
 python3 - "$OUT" "${ALL_SECRETS[@]}" > "$OUT/../leak.txt" <<'PY'
