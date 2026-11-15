@@ -630,5 +630,53 @@ removed_tables() {
 }
 check "the script prints what the removed tables said" removed_tables
 
+# --- an existing 1Password template: only the variables it reads from the plan's item are copied there
+# tpl_project <folder> <env lines> [template lines]: a web app with an env file and, when given, a template.
+tpl_project() {
+  mkdir -p "$1"
+  printf '{"name": "tplapp", "scripts": {"dev": "next dev"}, "dependencies": {"next": "15.0.0"}}\n' > "$1/package.json"
+  printf '%b' "$2" > "$1/.env"
+  if [ -n "${3:-}" ]; then printf '%b' "$3" > "$1/.env.tpl"; fi
+}
+# edit_line: the op item edit command of the last plan or apply output.
+edit_line() { printf '%s\n' "$out" | grep -F 'op item edit' || true; }
+
+TP="$T/tpl-kept"
+tpl_project "$TP" 'TPL_DB_HOST=db.internal.example\nTPL_GREETING=hello-there\nTPL_MODE=plain\nTPL_NEW=fresh-one\n' \
+  '# hand-written\nTPL_DB_HOST=op://Dev/shared/db-host\nTPL_GREETING=op://Dev/tplapp/env/TPL_GREETING\nTPL_MODE=TPLVALUE-kept-in-template\n'
+r plan --dir "$TP" --env --vault Dev --item tplapp
+tpl_plan_out="$out$err"
+tpl_plan_edit="$(edit_line)"
+tpl_id="$(plan_id)"
+r apply "$tpl_id"
+tpl_apply_out="$out$err"
+tpl_apply_edit="$(edit_line)"
+
+check "a kept template line with another reference is left out of the 1Password commands" \
+  '[ -n "$tpl_plan_edit" ] && ! printf "%s\n" "$tpl_plan_edit" | grep -qF "env.TPL_DB_HOST[" &&
+   printf "%s\n" "$tpl_plan_edit" | grep -qF "\"env.TPL_NEW[" &&
+   [ -n "$tpl_apply_edit" ] && ! printf "%s\n" "$tpl_apply_edit" | grep -qF "env.TPL_DB_HOST["'
+check "a kept template line with the planned reference stays in the 1Password commands" \
+  'printf "%s\n" "$tpl_plan_edit" | grep -qF "\"env.TPL_GREETING[" && printf "%s\n" "$tpl_apply_edit" | grep -qF "\"env.TPL_GREETING["'
+check "a kept template line with a value is left out and its value is never printed" \
+  '[ -n "$tpl_plan_edit" ] && ! printf "%s\n" "$tpl_plan_edit" | grep -qF "env.TPL_MODE[" &&
+   ! printf "%s\n%s\n" "$tpl_plan_out" "$tpl_apply_out" | grep -qF TPLVALUE'
+check "the plan names the variables it left out, without their lines" \
+  'printf "%s\n" "$tpl_plan_out" | grep -i "left out" | grep -F TPL_DB_HOST | grep -qF TPL_MODE &&
+   ! printf "%s\n%s\n" "$tpl_plan_out" "$tpl_apply_out" | grep -qF "op://Dev/shared"'
+
+TA="$T/tpl-all"
+tpl_project "$TA" 'TPL_ONLY=one-value\n' 'TPL_ONLY=op://Dev/other-item/only\n'
+r plan --dir "$TA" --env --vault Dev --item tplapp
+check "no 1Password command is printed when every variable is left out" \
+  '[ "$rc" = 0 ] && [ -z "$(edit_line)" ] && printf "%s\n%s\n" "$out" "$err" | grep -i "left out" | grep -qF TPL_ONLY'
+
+TN="$T/tpl-none"
+tpl_project "$TN" 'TPL_ONE=first-value\nTPL_TWO=second-value\n'
+r plan --dir "$TN" --env --vault Dev --item tplapp
+check "without a template the 1Password commands copy every variable" \
+  'printf "%s\n" "$(edit_line)" | grep -qF "\"env.TPL_ONE[" && printf "%s\n" "$(edit_line)" | grep -qF "\"env.TPL_TWO[" &&
+   printf "%s\n" "$out" | grep -qx "    TPL_ONE=op://Dev/tplapp/env/TPL_ONE" && ! printf "%s\n" "$out" | grep -qi "left out"'
+
 printf '\n%d passed, %d failed (%d ran)\n' "$PASS" "$FAIL" "$((PASS + FAIL))"
 [ "$FAIL" -eq 0 ]
