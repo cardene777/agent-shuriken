@@ -392,6 +392,39 @@ def env_names(path):
     return names
 
 
+def names_reading(path, refs):
+    """Return the names whose first line in a template holds exactly the reference refs gives for them.
+
+    A value is only compared with the reference inside this function, so no part of it is returned."""
+    same, seen, quote = set(), set(), None
+    try:
+        f = open(path, encoding="utf-8", errors="replace")
+    except OSError:
+        return same
+    with f:
+        for line in f:
+            if quote:
+                if quote_closes(line, quote):
+                    quote = None
+                continue
+            m = ENV_NAME_LINE.match(line)
+            if not m:
+                continue
+            name, rest = m.group(1), m.group(2).strip()
+            if rest[:1] in ("'", '"', "`") and not quote_closes(rest[1:], rest[0]):
+                quote = rest[0]
+                seen.add(name)
+                continue
+            if name in seen:
+                continue
+            seen.add(name)
+            if len(rest) >= 2 and rest[0] == rest[-1] and rest[0] in ("'", '"'):
+                rest = rest[1:-1]
+            if name in refs and rest == refs[name]:
+                same.add(name)
+    return same
+
+
 def section_for(rel):
     """The 1Password section for an env file: its path without leading dots, "." and "/" as "_"."""
     parts = [p.lstrip(".") for p in rel.split("/")]
@@ -884,7 +917,9 @@ def cmd_plan(args):
     keep_out = []
 
     # Env files first, so the compose file can pass their names through to the container.
-    groups, templates = [], []
+    # groups holds every name of each env file, which the compose file passes through; copy_groups holds
+    # only the names whose template line reads from the plan's item, which the 1Password commands copy.
+    groups, copy_groups, templates = [], [], []
     env_plan = {"items": []}
     if args.env:
         if not info["op"]:
@@ -914,8 +949,18 @@ def cmd_plan(args):
             tpl_rel = e["path"] + ".tpl"
             refs = [(n, reference(args.vault, item, section, n)) for n in e["names"]]
             tpl_path = os.path.join(folder, tpl_rel)
+            copied = list(e["names"])
             if os.path.lexists(tpl_path):
                 have = set(env_names(tpl_path))
+                reads = names_reading(tpl_path, dict(refs))
+                copied = [n for n in e["names"] if n not in have or n in reads]
+                left = [n for n in e["names"] if n not in copied]
+                if left:
+                    plan["notes"].append("Left out of the 1Password commands: %s. %s keeps %s own line%s for %s, "
+                                         "which do%s not read from the item %s, so the line%s stay%s as written."
+                                         % (", ".join(left), tpl_rel, "its", "s" if len(left) > 1 else "",
+                                            "them" if len(left) > 1 else "it", "" if len(left) > 1 else "es",
+                                            item, "s" if len(left) > 1 else "", "" if len(left) > 1 else "s"))
                 missing = [env_line(n, r) for n, r in refs if n not in have]
                 if missing:
                     add_lines(env_plan, folder, tpl_rel, missing)
@@ -927,6 +972,8 @@ def cmd_plan(args):
                                       "content": render_template(e["path"], refs, info["dev_command"])})
             keep_out += [(e["path"], True), (tpl_rel, False)]
             groups.append((e["path"], section, e["names"]))
+            if copied:
+                copy_groups.append((e["path"], section, copied))
             templates.append(tpl_rel)
             if e["tracked"]:
                 plan["notes"].append("%s is committed to git, so its values are in the git history. Rotate "
@@ -1028,10 +1075,13 @@ def cmd_plan(args):
     if keep_out:
         plan_gitignore(plan, folder, keep_out)
     if groups:
-        plan["next"].append("Put the values into 1Password from your own terminal (bash or zsh). These commands "
-                            "read each env file in a subshell and print nothing:")
-        plan["next"] += ["  " + line for line in import_commands(folder, args.vault, plan["env"]["item"], groups)]
-        plan["next"].append("Then start the app with: op run --env-file %s -- %s" % (templates[0], info["dev_command"]))
+        if copy_groups:
+            plan["next"].append("Put the values into 1Password from your own terminal (bash or zsh). These commands "
+                                "read each env file in a subshell and print nothing:")
+            plan["next"] += ["  " + line for line in import_commands(folder, args.vault, plan["env"]["item"],
+                                                                     copy_groups)]
+        plan["next"].append("%s the app with: op run --env-file %s -- %s"
+                            % ("Then start" if copy_groups else "Start", templates[0], info["dev_command"]))
         if args.docker and port is not None:
             plan["next"].append("Or in Docker: op run --env-file %s -- docker compose up" % templates[0])
         plan["next"].append("Once that works, the plain env files are no longer needed. They still hold the "

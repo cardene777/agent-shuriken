@@ -126,6 +126,8 @@ It never prints, stores, or sends any part of a value.
 The item is named after the project folder unless `--item` is given.
 Vault and item names may hold letters, digits, spaces, `.`, `_`, and `-`, so that the references work; for any other name, use the vault's ID.
 When a `.tpl` file already exists, its names are read the same way and only the missing ones are added.
+The commands then copy only the names whose line reads from the plan's item: the lines the plan adds, and kept lines that hold the same reference.
+A kept line that reads from somewhere else or holds a value stays as written, and a note names those variables without showing their lines; when every variable of an env file is left out, the plan prints no `op item edit` line for it.
 `--env` stops with exit code 3 when `op` is not installed, because the references are useless without it, but the script itself never runs `op`.
 
 The plan prints commands for you to run in bash or zsh, starting with `cd` to the project folder.
