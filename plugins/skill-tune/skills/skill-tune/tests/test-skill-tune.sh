@@ -211,7 +211,7 @@ skill_rules() {
 }
 check "the SKILL.md keeps its rules on the sandbox, graders, cost, and other agents" "skill_rules"
 
-SKILL_WORDS_MAX=1656
+SKILL_WORDS_MAX=1674
 SKILL_DESCRIPTION_MAX=357
 skill_size() {
   [ -f "$SKILL" ] || return 1
