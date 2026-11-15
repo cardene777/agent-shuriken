@@ -1,6 +1,6 @@
 ---
 name: feedback-loop
-description: When the user corrects earlier output, records the correction for the repository, fixes the files, has an evaluator that edits nothing judge the fix against stated criteria, and repeats fix and review until every criterion passes, then keeps the lesson as a check for that file or a rule for the repository. Use when the user says something the agent produced is wrong, not needed, unclear, or should be fixed, or repeats a correction given before. Not for new requests.
+description: Fixes what the user corrected in earlier output, has an evaluator that edits nothing review the fix until it passes, and keeps the lesson as a check or a rule for the repository. Use when the user says something the agent produced is wrong, not needed, unclear, or should be fixed. Not for new requests.
 ---
 
 # Feedback loop
@@ -45,10 +45,8 @@ Do not guess, and do not touch other skills or repositories unless the files dep
 S=<skill folder>/scripts; python3 "$S/feedback_loop.py" where --repo <a corrected file>
 ```
 
-| Exit code | Meaning | What to do |
-|---|---|---|
-| 0 | It printed the repository and its records folder | Go to step 2 |
-| 2 | The files are not in a git repository | Fix the output, tell the user it was a one-time correction, and stop: nothing is recorded outside a repository |
+It prints the repository, its records folder, and its `rules.md`.
+Outside a git repository it says to fix the output as a one-time correction, and nothing is recorded.
 
 On the first correction in a repository, tell the user once that the records stay in a private folder, and that they can be kept in a folder inside the project instead, as "Where the records live" below shows.
 
@@ -67,10 +65,7 @@ Give `--artifact` once per corrected file, relative to the repository root.
 Every review judges two criteria: `user-feedback` (the correction is resolved) and `regression` (the rules and case checks that applied before still hold).
 Add `--criterion <id>=<text>` for each point the user made that those two do not cover, with an id of lowercase letters, digits, and `-`, for example `--criterion plain=Every sentence uses words a newcomer knows`.
 
-| Option | Values |
-|---|---|
-| `--mode` | `deterministic` when tests, type checks, or schema checks decide everything; `independent-review` when only reading the work can judge it, such as wording or a design choice; `hybrid` (the default) when both are needed, as for most documents, specs, and code |
-| `--max-iterations` | The rounds of fix and review before you stop and ask the user, 3 by default |
+`open --help` describes `--mode`, how the fix is judged, and `--max-iterations`, the rounds before you stop and ask the user.
 
 The script prints the new id, such as `fb-20330518-001`.
 If it prints `Already open as`, continue with that id.
@@ -141,12 +136,7 @@ S=<skill folder>/scripts; python3 "$S/feedback_loop.py" check --repo <repository
 Without `--`, it runs only the case checks.
 It runs the command in the repository and records only the command and its exit code.
 
-| Exit code | Meaning | What to do |
-|---|---|---|
-| 0 | Every check passed | Go to step 7 |
-| 1 | A check failed | Fix the files and check again |
-| 2 | Nothing to check, or a case file is malformed | Pass a command after `--`, or fix the case file it names |
-
+When a check fails, fix the files and check again.
 A check counts only for the files exactly as they were when it ran.
 After any edit, check again.
 
@@ -176,13 +166,9 @@ EOF
 
 Use `--kind human` when the user judged the work, and `--kind deterministic` only in `deterministic` mode, where the checks decide everything.
 
-| Exit code | Meaning | What to do |
-|---|---|---|
-| 0 | Every criterion passed | Go to step 8 |
-| 1 | A criterion failed, or the files changed since the last check | Give the findings to the fixer, then go back to step 5 |
-| 2 | The answer lacks a line for a criterion or has two, or `--kind deterministic` was used outside `deterministic` mode | Ask the evaluator again for one line per criterion, or use the right kind. Do not write the verdicts yourself |
-| 3 | The last allowed round failed | Stop and ask the user, as below |
-
+When a criterion fails, give the findings to the fixer and go back to step 5.
+When the answer lacks a line for a criterion or has two, ask the evaluator again for one line per criterion.
+Do not write the verdicts yourself.
 Never change a `FAIL` into a `PASS`, and never edit a saved review.
 
 When the limit is reached, keep the correction open and give the user the open points with three choices: keep going, accept the files as they are, or withdraw the correction.
@@ -208,15 +194,7 @@ Then tell the user what changed, where the lesson is kept, and how many rounds i
 
 ## Where the records live
 
-| Path in the records folder | Holds |
-|---|---|
-| `events.jsonl` | One line per closed or withdrawn correction. Read it with `history` |
-| `rules.md` | Rules for this repository |
-| `pending/<id>.json` | Corrections still open |
-| `cases/<file>-<hash>.json` | Texts a file must or must not contain, and questions for the evaluator |
-| `reviews/<id>-<round>.md` | Each saved review |
-
-The folder is `~/.local/share/feedback-loop/repos/<repository>-<hash>/`, readable only by the user, and linked worktrees share the folder of their main clone.
+The records stay in `~/.local/share/feedback-loop/repos/<repository>-<hash>/`, readable only by the user, and linked worktrees share the folder of their main clone.
 When the user wants the records in the project, for example to share the rules with their team, run `where --repo <repository> --use <folder>` with a folder inside the repository.
 `where --repo <repository> --private` goes back to the private folder; records already written stay where they are.
 

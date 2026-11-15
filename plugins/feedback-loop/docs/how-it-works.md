@@ -25,6 +25,7 @@ A failing review sends the agent back to fixing.
 ## Which repository
 
 The repository is the git work tree that holds the corrected files, found with `git rev-parse --show-toplevel` from the path given to `--repo`.
+When `git` cannot run, such as the macOS `/usr/bin/git` shim in a sandbox that cannot create its cache file, the script walks up from that path to the first `.git`: a folder is the repository's own, and a file names the git folder of a linked worktree, whose `commondir` leads to the main clone.
 Every file given with `--artifact` must be inside it, not inside `.git`, and not a folder; a path that leads outside it, including through `..` or a symbolic link, is refused.
 Outside a git repository the script records nothing and exits 2, and the agent fixes the output as a one-time correction.
 

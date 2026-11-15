@@ -149,6 +149,35 @@ def git(start, *args):
     return r.stdout.strip() if r.returncode == 0 else None
 
 
+def find_git_dir(start):
+    """Find the work tree and the common git folder by reading .git, for when git itself cannot run,
+    such as the macOS /usr/bin/git shim in a sandbox. Returns (None, None) outside a repository."""
+    folder = os.path.realpath(start)
+    while True:
+        dot_git = os.path.join(folder, ".git")
+        if os.path.isdir(dot_git):
+            return folder, dot_git
+        if os.path.isfile(dot_git):
+            try:
+                with open(dot_git, encoding="utf-8") as handle:
+                    line = handle.readline().strip()
+            except OSError:
+                return None, None
+            if not line.startswith("gitdir:"):
+                return None, None
+            git_dir = os.path.realpath(os.path.join(folder, line[len("gitdir:"):].strip()))
+            common = git_dir
+            commondir = os.path.join(git_dir, "commondir")
+            if os.path.isfile(commondir):
+                with open(commondir, encoding="utf-8") as handle:
+                    common = os.path.realpath(os.path.join(git_dir, handle.read().strip()))
+            return folder, common
+        parent = os.path.dirname(folder)
+        if parent == folder:
+            return None, None
+        folder = parent
+
+
 # ------------------------------------------------------------------ where the records live
 
 class Place:
@@ -160,12 +189,15 @@ class Place:
             stop(f"{given} does not exist.")
         start = path if os.path.isdir(path) else os.path.dirname(path)
         top = git(start, "rev-parse", "--show-toplevel")
+        if top:
+            common = git(start, "rev-parse", "--git-common-dir") or ".git"
+            common = os.path.realpath(os.path.join(start, common))
+        else:
+            top, common = find_git_dir(start)
         if not top:
             stop(f"{given} is not inside a git repository. Fix the output and report it as a one-time "
                  "correction; nothing is recorded outside a repository.")
         self.root = os.path.realpath(top)
-        common = git(start, "rev-parse", "--git-common-dir") or ".git"
-        common = os.path.realpath(os.path.join(start, common))
         # Linked worktrees share the records of their main clone.
         self.main = os.path.dirname(common) if os.path.basename(common) == ".git" else common
         name = re.sub(r"[^A-Za-z0-9._-]+", "-", os.path.basename(self.main)).strip("-") or "repo"
@@ -891,8 +923,13 @@ def main(argv=None):
     p.add_argument("--artifact", action="append", default=[],
                    help="A corrected file, relative to the repository root; repeatable")
     p.add_argument("--origin-skill", default="none", help="The skill that produced the output, or none")
-    p.add_argument("--mode", choices=MODES, default="hybrid")
-    p.add_argument("--max-iterations", type=int, default=3)
+    p.add_argument("--mode", choices=MODES, default="hybrid",
+                   help="How the fix is judged: deterministic when tests, type checks, or schema checks decide "
+                        "everything; independent-review when only reading the work can judge it, such as wording "
+                        "or a design choice; hybrid (the default) when both are needed, as for most documents, "
+                        "specs, and code")
+    p.add_argument("--max-iterations", type=int, default=3,
+                   help=f"Rounds of fix and review before stopping to ask the user (default 3, at most {MAX_ROUNDS})")
     p.add_argument("--criterion", action="append", default=[], metavar="ID=TEXT",
                    help="An extra criterion for the review; repeatable")
     p.set_defaults(func=cmd_open)

@@ -5,6 +5,9 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The skill's description is shorter, so every session that lists the installed skills reads less, and its instructions are shorter: the tables of exit codes for `where`, `check`, and `review`, the table of `open` options, and the list of files in the records folder are gone, since each command's messages say why it stopped and what to do, and `open --help` describes `--mode` and `--max-iterations`. The rules that keep the review independent are unchanged. An eval suite under `evals/` measures it with `claude plugin eval`, and no case scored lower
+- When `git` cannot run, as with the macOS `/usr/bin/git` shim inside a sandbox, the script finds the repository by reading `.git` instead of stopping with "not inside a git repository". Linked worktrees still share the records of their main clone. Where `git` runs, nothing changes
+
 ## [0.1.1] - 2026-11-13
 
 - The README shows the files a correction leaves: the case with the texts a file must and must not contain, the review of each round, and a rule in `rules.md`

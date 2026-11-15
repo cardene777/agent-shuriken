@@ -1,0 +1,31 @@
+# The user calls one section unneeded: the agent removes only that section, keeps the rest of the guide
+# as it was (including the install step nobody asked about), and closes the record.
+schema_version: "1.1"
+name: removes-only-named
+plugins: ["../.."]
+execution:
+  prompt: |
+    In docs/guide.md, which you wrote earlier, the FAQ section is not needed. Remove it.
+  max_turns: 40
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'feedback-loop'
+  - name: faq-gone
+    type: regex
+    target: {source: file, path: docs/guide.md}
+    pattern: '## FAQ|Is it free'
+    match: not_contains
+  - name: rest-kept
+    type: regex
+    target: {source: file, path: docs/guide.md}
+    pattern: '(?=[\s\S]*## Install)(?=[\s\S]*npm install -g shop-cli)(?=[\s\S]*## Usage)(?=[\s\S]*shop-cli show <id>)'
+  - name: record-closed
+    type: regex
+    target: {source: file, path: .feedback/events.jsonl}
+    pattern: '"status":"resolved"'
