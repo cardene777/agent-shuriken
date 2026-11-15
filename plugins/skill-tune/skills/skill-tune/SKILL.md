@@ -67,12 +67,14 @@ What the eval sandbox allows decides what a case can test.
 - The run's `HOME` is a temporary folder and the workspace is `HOME/cwd`. `fixture.sh` runs there before the agent, as the user and outside the sandbox
 - The Write tool cannot write outside the workspace, even with a permission for that path. A skill that writes to a data folder with the Write tool stops or falls back to the shell; a script that takes the data on standard input avoids this
 - There is no network and no browser. A step that needs either takes the path the skill gives for when they are missing
+- A process cannot listen on a local port (Operation not permitted), so a step that checks or serves a port fails there. Test what the skill does when that step is refused, and leave the rest to the plugin's test
 - `git` fails inside the sandbox. A fixture that needs a repository creates it in `fixture.sh`
 - Fixture files hold no real secrets, and no fake key that a secret scanner flags
 
 How to grade:
 
 - Grade the files the run leaves in the workspace: `regex` with `target: {source: file, path: ...}`, and `match: not_contains` for what must be absent. A line that a script prints into the trace is missed when the agent filters the output, so a grader on such a line, or on anything only the plugin can produce, gets `arm: with-only` and counts only as a sign that the skill ran
+- `regex` patterns are JavaScript regular expressions: no inline flags such as `(?m)`, and no `\A` or `\Z`. `^` and `$` match only the start and end of the whole text, so write `(^|\n)` for the start of a line
 - What the agent must not do is `tool_used` with `min: 0`, `max: 0`, and `arm: both`
 - An LLM judge can fail a reply that meets every condition, and pass one that misses a condition. Keep `llm` criteria to what only a reader can judge, say what is not a failure (for example, the date a password changed is not a password), and pair the judge with a `regex` on the result. An `llm` grader reads a file through `focus`, not `target`
 - Run the eval on a folder path. A bare plugin name runs the installed copy
@@ -91,6 +93,7 @@ python3 "$S/skill_tune.py" summary <result> --indicator skill-fired
 `run` takes minutes; run it in the background where the agent can.
 Every case should score 1.00 here.
 When one does not, read its runs with `trace` and fix the case, its fixture, or its graders, not the `SKILL.md`, until the sandbox can produce the result.
+Try again on a copy with a new label, since `--replace` also removes the earlier result.
 
 ## 5. Record the baseline
 

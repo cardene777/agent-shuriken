@@ -183,6 +183,8 @@ skill_rules() {
   for phrase in \
     "The Write tool cannot write outside the workspace" \
     "There is no network and no browser" \
+    "A process cannot listen on a local port" \
+    '`regex` patterns are JavaScript regular expressions' \
     '`git` fails' \
     "Grade the files the run leaves in the workspace" \
     "An LLM judge can fail a reply that meets every condition" \
@@ -195,7 +197,7 @@ skill_rules() {
 }
 check "the SKILL.md keeps its rules on the sandbox, graders, cost, and other agents" "skill_rules"
 
-SKILL_WORDS_MAX=1534
+SKILL_WORDS_MAX=1631
 SKILL_DESCRIPTION_MAX=357
 skill_size() {
   [ -f "$SKILL" ] || return 1
