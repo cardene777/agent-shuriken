@@ -1,29 +1,16 @@
 ---
 name: compare-report
-description: Researches the candidates for a choice, such as libraries, tools, services, or approaches, and writes a comparison report as HTML and PDF. Lists candidates from web searches and agrees on them and on five to eight evaluation axes with the user, collects data with a source for every claim, then writes a report with a summary, a card per candidate, a section per axis, risks, a ranking with a recommendation, and the sources. Every score comes with its rationale, and missing figures are marked as not disclosed instead of guessed. Use when the user asks to compare several options, choose between products, or write a comparison or selection report.
+description: Researches the candidates for a choice, such as libraries, tools, services, or approaches, and writes a comparison report as HTML and PDF, with a source for every claim and a rationale for every score. Use when the user asks to compare several options, choose between products, or write a comparison or selection report.
 ---
 
 # Compare report
 
 Research the candidates for a topic and write a comparison report as HTML and PDF.
 Talk to the user in the language they write in, and write the report in that language.
-This skill works in Claude Code, Codex, and other agents that read `SKILL.md`, such as GitHub Copilot CLI and Gemini CLI.
 Where it says to ask the user, use AskUserQuestion in Claude Code, and ask in the chat with numbered options in other agents.
 
-All files are next to this `SKILL.md`.
-Below, the absolute path of that folder is written as `D`.
+Below, `D` is the absolute path of the folder that contains this `SKILL.md`, and each step names the file it uses there.
 When you run a command, put `D=<folder that contains this SKILL.md>` at the start of the same shell command.
-
-| Path | Contents |
-|---|---|
-| `references/research-guide.md` | How to list candidates, choose axes, and collect data, and what may be searched |
-| `references/report-structure.md` | What goes in each section, and the markup of every component |
-| `templates/base.html` | The report's theme, with placeholders |
-| `scripts/new-report.sh` | Creates the report's folder from the template |
-| `scripts/author.sh` | Shows, saves, or forgets the author's name for the cover |
-| `scripts/check-report.py` | Checks a finished report |
-| `scripts/to-pdf.sh` | Prints the report to PDF, with the page of each section in the contents |
-| `scripts/toc-pages.py` | Finds those pages; `to-pdf.sh` runs it |
 
 ## Rules
 
@@ -35,15 +22,6 @@ When you run a command, put `D=<folder that contains this SKILL.md>` at the star
 - Put on the cover only a name the user gave. Never take the name from `git config`, the system's user name, the account, or the conversation's metadata
 
 ## Steps
-
-```
-1. Understand the topic and list candidates   → the user agrees on the candidates
-2. Choose the evaluation axes                 → the user agrees on the axes
-3. Research each candidate
-4. Write the HTML report
-5. Check it and print it to PDF               → the user reviews the report
-6. Apply the user's feedback
-```
 
 ### 1. List the candidates
 
@@ -117,10 +95,7 @@ Print it to PDF.
 D=<folder>; bash "$D/scripts/to-pdf.sh" <path of report.html>
 ```
 
-It uses Chrome, Chromium, Edge, or Brave if one is installed, with a throwaway profile, and prints the path of the PDF next to the HTML.
-When no such browser is found, it says so; give the user the HTML, which prints to PDF from any browser.
-The PDF contents give the page each section starts on, and every page but the cover shows its number at the bottom; the HTML keeps the contents without numbers.
-When it prints `The PDF contents show titles only:` with a reason, the PDF is still written; fix the cause it names, such as a contents link to an id that no section has, and print again, or tell the user the reason.
+When it says the PDF contents show titles only, the PDF is still written: fix the cause it names, such as a contents link to an id that no section has, and print again, or tell the user the reason.
 
 Open the HTML for the user with `open` on macOS or `xdg-open` on Linux, give the paths of both files, and ask for feedback.
 When a sandbox asks, as Codex can, approve the commands, because they write outside the project folder and start a browser.
