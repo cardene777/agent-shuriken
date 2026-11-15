@@ -218,9 +218,11 @@ own_names_exist() {
 }
 check "every file the own references name exists" "own_names_exist"
 
+# The upstream body and references only: the sample texts under scripts/fixtures/ name scripts/calibrate.py,
+# which tunes thresholds against a corpus this plugin leaves out, and are read by no step.
 upstream_names_exist() {
   local files=() f
-  for f in $(upstream_files "$SKILL_DIR" | grep -E '\.md$'); do files+=("$SKILL_DIR/$f"); done
+  for f in $(upstream_files "$SKILL_DIR" | grep -E '^(UPSTREAM-SKILL\.md|references/.*\.md)$'); do files+=("$SKILL_DIR/$f"); done
   [ "${#files[@]}" -gt 0 ] || return 1
   [ -z "$(missing_names "$SKILL_DIR" "${files[@]}" | grep -vxF 'scripts/semantic.py')" ]
 }

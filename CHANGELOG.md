@@ -9,6 +9,7 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ### Added
 
+- The japanese-writing plugin, which writes and fixes Japanese text without adding anything the original does not say, following the steps and scripts of `coji/natural-japanese` copied without changes, with a script of its own that points at metaphor verbs and rules for Markdown kept in a repository
 - The machine-cleanup plugin, which finds caches tools rebuild, build output git ignores, large and duplicate files, unused apps, dev servers left running, heavy processes, login items, and running containers on macOS, Linux, and WSL, lets you pick on a local page, and frees only your picks, with anything another session uses kept out of reach
 - The skill-tune plugin, which measures a plugin's skill with `claude plugin eval` cases kept in the plugin, shortens its `SKILL.md`, and measures again on a private copy so that no case scores lower, with the cost estimated and agreed before any run
 

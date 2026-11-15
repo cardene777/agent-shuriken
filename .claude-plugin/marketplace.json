@@ -41,6 +41,11 @@
       "description": "Set up a project for local work: pick a free local port, add a Docker setup, and link its env files to 1Password with references, writing each file only after you approve it"
     },
     {
+      "name": "japanese-writing",
+      "source": "./plugins/japanese-writing",
+      "description": "Write and fix Japanese text so that it reads naturally and adds nothing the original does not say, with the steps and scripts of coji/natural-japanese and rules for repository Markdown, metaphor verbs, explanations, and questions"
+    },
+    {
       "name": "learning-to-skill",
       "source": "./plugins/learning-to-skill",
       "description": "Write the lessons from a session into the instruction files your agents read, such as AGENTS.md, CLAUDE.md, GEMINI.md, Copilot's instructions, or a skill's SKILL.md, in the right place and without duplicates, only after you approve the diff"

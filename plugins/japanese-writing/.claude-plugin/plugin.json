@@ -1,0 +1,20 @@
+{
+  "name": "japanese-writing",
+  "displayName": "Japanese Writing",
+  "version": "0.1.0",
+  "description": "Write and fix Japanese text so that it reads naturally and adds nothing the original does not say, with the steps and scripts of coji/natural-japanese and rules for repository Markdown, metaphor verbs, explanations, and questions",
+  "author": {
+    "name": "cardene777",
+    "url": "https://github.com/cardene777"
+  },
+  "homepage": "https://github.com/cardene777/agent-shuriken/tree/main/plugins/japanese-writing",
+  "repository": "https://github.com/cardene777/agent-shuriken",
+  "license": "MIT",
+  "keywords": [
+    "japanese",
+    "writing",
+    "proofreading",
+    "style",
+    "lint"
+  ]
+}

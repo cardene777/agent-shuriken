@@ -1,0 +1,7 @@
+interface:
+  display_name: "Japanese Writing"
+  short_description: "Write and fix Japanese text so it reads naturally, with scripts that point at suspect lines"
+  default_prompt: "Use $japanese-writing to make this Japanese text natural without adding anything."
+
+policy:
+  allow_implicit_invocation: true

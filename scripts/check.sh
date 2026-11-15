@@ -36,8 +36,21 @@ JA_ALLOWED=(
   plugins/excalidraw-diagram/skills/excalidraw-diagram/tests/test-excalidraw-diagram.sh
   plugins/techdebt/skills/techdebt/templates/report.html
   plugins/techdebt/skills/techdebt/tests/test-techdebt.sh
+  plugins/japanese-writing/README.md
+  plugins/japanese-writing/skills/japanese-writing/references/rules.md
+  plugins/japanese-writing/skills/japanese-writing/references/ai-smell.md
+  plugins/japanese-writing/skills/japanese-writing/references/asking.md
+  plugins/japanese-writing/skills/japanese-writing/references/explaining.md
+  plugins/japanese-writing/skills/japanese-writing/references/natural-explanation.md
+  plugins/japanese-writing/skills/japanese-writing/references/sentence-forms.md
+  plugins/japanese-writing/skills/japanese-writing/references/subject-and-verb.md
+  plugins/japanese-writing/skills/japanese-writing/references/terminology.md
+  plugins/japanese-writing/skills/japanese-writing/references/metaphor-words.tsv
+  plugins/japanese-writing/skills/japanese-writing/scripts/suspects.py
+  plugins/japanese-writing/skills/japanese-writing/tests/test-japanese-writing.sh
 )
-# Third-party files copied unmodified; they are checked only for valid syntax.
+# Third-party files copied unmodified; they are checked only for valid syntax. Besides these, every
+# file that a skill's upstream-manifest.txt fingerprints counts as a copied file (vendored_files).
 VENDORED=(plugins/account-cleanup/skills/account-cleanup/data/sites.json)
 # Files allowed over the directories' 256 KiB limit. Each one makes Anthropic's directory hold
 # the plugin for a reviewer, as docs/publishing.md says.
@@ -51,9 +64,19 @@ all_files() {
     [ -f "$f" ] && printf '%s\n' "$f"
   done
 }
+# Third-party files copied unmodified: VENDORED and the files each upstream-manifest.txt fingerprints.
+vendored_files() {
+  local manifest dir
+  printf '%s\n' "${VENDORED[@]}"
+  for manifest in plugins/*/skills/*/upstream-manifest.txt; do
+    [ -f "$manifest" ] || continue
+    dir="$(dirname "$manifest")"
+    grep -E '^[0-9a-f]{64}  ' "$manifest" | cut -c67- | sed "s|^|$dir/|"
+  done
+}
 # Text files written in this repository (no vendored data, no images, no fonts).
 own_text_files() {
-  all_files | grep -vE '\.(png|jpg|jpeg|gif|webp|svg|ico|zip|woff2?|ttf|otf)$' | grep -vxF -f <(printf '%s\n' "${VENDORED[@]}")
+  all_files | grep -vE '\.(png|jpg|jpeg|gif|webp|svg|ico|zip|woff2?|ttf|otf)$' | grep -vxF -f <(vendored_files)
 }
 plugin_names() {
   for d in plugins/*/; do basename "$d"; done
