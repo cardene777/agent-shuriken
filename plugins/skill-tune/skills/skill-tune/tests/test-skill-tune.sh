@@ -37,6 +37,8 @@ while [ "$#" -gt 0 ]; do
   shift
 done
 [ -n "$out" ] && printf '{"cases": []}\n' > "$out"
+# CLAUDE_DURING names a script to run while this eval is running, as another session would.
+if [ -n "${CLAUDE_DURING:-}" ]; then bash "$CLAUDE_DURING" >> "$CLAUDE_DURING_LOG" 2>&1; fi
 exit 0
 SH
 chmod +x "$T/bin/claude"
@@ -187,6 +189,25 @@ tune clean alpha-before > /dev/null
 check "clean removes the copies and the kept eval folders" \
   '[ ! -e "$D/runs/alpha-before" ] && [ ! -e "$T/tmp/e-abc123" ] && [ -d "$T/tmp/e-keep99" ] && [ -d "$D" ]'
 
+# --- clean while another session's eval runs: the copy stays until the eval ends
+busy="$(tune copy "$R/plugins/alpha" --label busy)"
+stale="$(tune copy "$R/plugins/alpha" --label stale)"
+# A mark left by an eval whose process is gone does not keep its copy.
+printf '99999999\n' > "$D/runs/alpha-stale/running"
+cat > "$T/during.sh" <<SH
+python3 "$SCRIPT" clean --all
+python3 "$SCRIPT" clean alpha-busy
+echo "named clean exit \$?"
+SH
+CLAUDE_DURING="$T/during.sh" CLAUDE_DURING_LOG="$T/during.txt" tune run "$busy" --label busy > /dev/null; rc_busy=$?
+kept_after_run=1; [ -d "$busy" ] && kept_after_run=0
+tune clean --all > "$T/after.txt"
+check "clean keeps a copy while an eval runs on it, and removes it once the eval has ended" \
+  '[ "$rc_busy" = 0 ] && [ "$kept_after_run" = 0 ] && [ ! -e "$stale" ] \
+   && grep -qF "kept $D/runs/alpha-busy: an eval is running on it" "$T/during.txt" \
+   && grep -qxF "named clean exit 1" "$T/during.txt" \
+   && grep -qxF "removed $D/runs/alpha-busy" "$T/after.txt" && [ ! -e "$D/runs/alpha-busy" ]'
+
 # --- SKILL.md
 SKILL="$SKILL_DIR/SKILL.md"
 skill_rules() {
@@ -205,7 +226,8 @@ skill_rules() {
     "Spend nothing before the user agrees" \
     "Pass \`--max-cost-usd\` only when the user names a limit" \
     "In agents other than Claude Code, stop before measuring" \
-    "only on plugins the user wrote or trusts"; do
+    "only on plugins the user wrote or trusts" \
+    'Never run `clean --all`'; do
     grep -qF -- "$phrase" "$SKILL" || return 1
   done
 }
