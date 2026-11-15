@@ -1,6 +1,6 @@
 ---
 name: session-handoff
-description: Writes a short message to paste into a new session (what was handed off, the background, and the next task) and saves a state snapshot for the project with the options already rejected and why, the current phase, the work delegated to other agents, and the things not to do, refusing anything that looks like a secret. Use only when the user calls it by name to continue the work in a new session, or in the new session to read the saved state back.
+description: Writes a short message to paste into a new session and saves a snapshot of the options rejected, the current phase, the delegated work, and what not to do, refusing secrets. Use only when the user calls it by name to continue in a new session, or to read the saved state back there.
 disable-model-invocation: true
 ---
 
@@ -90,14 +90,11 @@ Do not run commands that print environment variables or secret files to fill the
 }
 ```
 
-| Field | Rule |
-|---|---|
-| `message.handoff`, `message.background`, `message.task` | Each is required and has 1 or 2 lines without blank lines. Start the background with the word for "Background" in the user's language and a dash. End the task with a request that says what to do and how far, not with a report or a question |
-| `snapshot` | `null` when nothing was rejected, no work is in progress, nothing is delegated, and there is nothing to avoid, as in a session that only answered questions. Otherwise all four of `rejected`, `phase`, `delegated`, and `do_not` are required |
-| `rejected`, `do_not` | Lists of one-line items, each with its reason. Give `[]` when there are none, never leave the key out |
-| `delegated` | A list of one-line items with `work`, `expected`, and `waiting` (`true` or `false`). Give `[]` when there is none |
-| `phase` | Up to 3 lines. Give `""` when no work is in progress |
-| `issue` | Optional. The issue the work belongs to, such as `#12` |
+Start the background with the word for "Background" in the user's language and a dash.
+End the task with a request that says what to do and how far, not with a report or a question.
+Give `snapshot` as `null` when nothing was rejected, no work is in progress, nothing is delegated, and there is nothing to avoid, as in a session that only answered questions.
+`issue` is optional.
+`save` checks the rest of the shape and names each field it refuses.
 
 Write the text in the user's language.
 Name everything absolutely: issue and pull request numbers, branch names, commits, and file paths.
@@ -123,25 +120,14 @@ EOF
 `--input <file>` reads the JSON from a file instead.
 The project is the top folder of the git repository that holds the folder, or the folder itself outside git.
 The script records the branch and commit from git itself.
-
-| Exit code | Meaning | What to do |
-|---|---|---|
-| 0 | The message was printed, and the snapshot was saved or there was nothing to save | Go to step 4 |
-| 2 | The JSON is not in the expected shape. Each line names the field | Fix those fields and save again |
-| 3 | A field holds what looks like a secret. Each line names the field and the kind, never the value | Rewrite that field to name the secret instead of its value, and save again. Never work around the check |
+When it refuses the input, nothing is saved and its lines say which field to fix.
+For a secret, rewrite that field to name the secret instead of its value, and never work around the check.
 
 The script saves one file per project, replacing the one from the last handoff, and adds a line to the message that tells the new session where the snapshot is.
 
-## 4. Check and show the message
+## 4. Show the message
 
-Before showing the message, check these four points, and when one fails, fix the JSON and save again.
-
-1. The handoff, the background, and the task are all there
-2. Each paragraph has 1 or 2 lines, apart from the line the script adds
-3. The last sentence is a request that says what to do and how far
-4. Nothing from the list of things to leave out is in it
-
-Then show the message with nothing else around it.
+Show the message with nothing else around it.
 
 - A heading line, such as "Handoff message" in the user's language
 - One code block without a language, holding exactly the text between `--- message to paste ---` and `--- end of message ---`
@@ -157,12 +143,8 @@ When the user calls this skill in a new session to pick up the work, or the past
 S=<skill folder>/scripts; python3 "$S/session_handoff.py" show --project "<project folder>"
 ```
 
-| Exit code | Meaning | What to do |
-|---|---|---|
-| 0 | The saved state was printed with its age and the branch and commit it was saved on | Use it as below |
-| 1 | No state is saved for this project, or it was saved more than 7 days ago and removed | Tell the user, and work from the pasted message alone |
-| 2 | The file is not in the expected format or belongs to another project | Tell the user what the line says and do not use the file |
-| 3 | The file holds what looks like a secret | Tell the user, and suggest removing that part or running forget |
+It prints the saved state with its age and the branch and commit it was saved on.
+When there is none, or the file cannot be used, it says so and what to do; tell the user, and do not use the file.
 
 Without the skill, the new session can read the file the message names directly; the same rules apply.
 
@@ -182,5 +164,4 @@ Only when the user asks to delete the saved state of the project, remove it.
 S=<skill folder>/scripts; python3 "$S/session_handoff.py" forget --project "<project folder>"
 ```
 
-It exits 0 when the file was removed and 1 when there was none.
 Snapshots are also removed 7 days after they were saved, the next time the script runs.

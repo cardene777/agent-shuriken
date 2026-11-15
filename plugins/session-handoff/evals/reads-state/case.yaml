@@ -1,0 +1,36 @@
+# In a new session, the agent reads the saved state, picks up the next task, asks whether the awaited
+# review has finished, and does not propose the rejected option again.
+schema_version: "1.1"
+name: reads-state
+plugins: ["../.."]
+execution:
+  prompt: |
+    /session-handoff:session-handoff Pick up where the last session left off.
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Bash
+    input_match: 'session_handoff\.py'
+    arm: with-only
+  - name: shown
+    type: tool_used
+    tool: Bash
+    input_match: 'session_handoff\.py\\?"?\s+show'
+  - name: nothing-saved
+    type: tool_used
+    tool: Bash
+    input_match: 'session_handoff\.py\\?"?\s+save'
+    min: 0
+    max: 0
+    arm: both
+  - name: picks-up
+    type: llm
+    criteria: |
+      PASS if the reply names the next task, the POST /refunds endpoint in api/refunds.py; asks the user whether the background review of db/0042_refunds.sql has finished, or says it waits for that review, instead of starting the review again; and does not propose refunding the whole order and charging the kept lines again.
+      Naming the rejected option as ruled out, starting work on the endpoint, or saying not to run the migration on staging is not a failure.
+      FAIL if the reply proposes the rejected option, starts the review of db/0042_refunds.sql again without asking, or says it ran the migration against the staging database.

@@ -69,7 +69,7 @@ What the eval sandbox allows decides what a case can test.
 - The Write tool cannot write outside the workspace, even with a permission for that path. A skill that writes to a data folder with the Write tool stops or falls back to the shell; a script that takes the data on standard input avoids this
 - There is no network and no browser. A step that needs either takes the path the skill gives for when they are missing
 - A process cannot listen on a local port (Operation not permitted), so a step that checks or serves a port fails there. Test what the skill does when that step is refused, and leave the rest to the plugin's test
-- `git` fails inside the sandbox (on macOS, `/usr/bin/git` cannot create its cache file). A fixture that needs a repository creates it in `fixture.sh`, and a script that runs `git` stops there unless it can find the repository another way, such as by reading `.git`
+- `git` fails inside the sandbox (on macOS, `/usr/bin/git` cannot create its cache file). A fixture that needs a repository creates it in `fixture.sh`, and a script that runs `git` stops there unless it can find the repository another way, such as by reading `.git`. The run's `HOME` is itself a repository, so a fixture that runs a plugin script that names things by the repository runs it without `git` on the `PATH`, the way the agent's run sees it
 - Fixture files hold no real secrets, and no fake key that a secret scanner flags
 
 How to grade:
@@ -77,7 +77,8 @@ How to grade:
 - Grade the files the run leaves in the workspace: `regex` with `target: {source: file, path: ...}`, and `match: not_contains` for what must be absent. A line that a script prints into the trace is missed when the agent filters the output, so a grader on such a line, or on anything only the plugin can produce, gets `arm: with-only` and counts only as a sign that the skill ran
 - `regex` patterns are JavaScript regular expressions: no inline flags such as `(?m)`, and no `\A` or `\Z`. `^` and `$` match only the start and end of the whole text, so write `(^|\n)` for the start of a line
 - What the agent must not do is `tool_used` with `min: 0`, `max: 0`, and `arm: both`
-- `tool_used` matches `input_match` against the input as JSON text, so a `"` in a command arrives as `\"`; write `\\?"?` where a command may quote a path
+- `tool_used` matches `input_match` against the input as JSON text, so a `"` in a command arrives as `\"` and a line break as `\n`; write `\\?"?` where a command may quote a path, and `(?:\s|\\n)*` where it may break a line
+- Name the grader that shows the skill started `skill-fired`, with `arm: with-only`: `tool_used` on `Skill` with the skill's name, or, for a skill with `disable-model-invocation: true`, which starts only from a prompt that calls it by name such as `/<plugin>:<skill>` and makes no `Skill` call, its first script call. `summary` and `compare` average the cost over the runs where it passed
 - An LLM judge can fail a reply that meets every condition, and pass one that misses a condition. Keep `llm` criteria to what only a reader can judge, say what is not a failure (for example, the date a password changed is not a password), and pair the judge with a `regex` on the result. An `llm` grader reads a file through `focus`, not `target`
 - Run the eval on a folder path. A bare plugin name runs the installed copy
 
@@ -135,4 +136,5 @@ When several results hold the same case, `summary` and `compare` take it from th
 
 Report a table of each case's score before, after, and without the plugin, the average cost and turns of the runs where the skill fired before and after, and the total cost.
 Say so when a run did not get cheaper.
-Then run `clean --all`, which removes the copies, their results, and the folders `claude plugin eval` kept for them.
+Then run `clean <name>` for each copy this run made, the folder under `runs/` that `copy` printed, such as `<plugin>-before`. It removes the copy, its results, and the folders `claude plugin eval` kept for them.
+Never run `clean --all`: other sessions may be measuring with their own copies at the same time.

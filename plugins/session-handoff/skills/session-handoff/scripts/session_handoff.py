@@ -507,7 +507,8 @@ def cmd_show(args):
     prune(now)
     path = snapshot_path(project)
     if not os.path.isfile(path):
-        fail(1, "No saved state for %s. State is kept for %d days after a handoff." % (display(project), KEEP_DAYS))
+        fail(1, "No saved state for %s. State is kept for %d days after a handoff. "
+                "Tell the user, and work from the pasted message alone." % (display(project), KEEP_DAYS))
     try:
         header, body, text = read_snapshot(path)
     except (OSError, UnicodeDecodeError, ValueError) as e:

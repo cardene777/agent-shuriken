@@ -1,0 +1,28 @@
+# A session that only answered a question has nothing to keep: the agent shows the message and says
+# that no snapshot was written.
+schema_version: "1.1"
+name: nothing-to-record
+plugins: ["../.."]
+execution:
+  prompt: |
+    /session-handoff:session-handoff In this session I only asked how Python's functools.lru_cache decides which entries to drop, and you explained it. Nothing was changed, decided, rejected, or handed to anyone else, and no work is in progress. Next I want to add caching to the price lookup in api/prices.py. It matters because every page load asks the supplier's slow price API again.
+  max_turns: 20
+  timeout_seconds: 400
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Bash
+    input_match: 'session_handoff\.py'
+    arm: with-only
+  - name: saved
+    type: tool_used
+    tool: Bash
+    input_match: 'session_handoff\.py\\?"?\s+save'
+  - name: no-snapshot
+    type: llm
+    criteria: |
+      PASS if the reply shows a handoff message to paste and says that no snapshot or saved state was written.
+      FAIL if it says a snapshot or state was saved, or shows no handoff message.

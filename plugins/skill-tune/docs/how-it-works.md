@@ -48,7 +48,7 @@ Run `python3 skill_tune.py <command> --help` for every option.
 | `compare --before <result>... --after <result>...` | Prints each case's score before and after, as `kept`, `higher`, `lower`, or `not measured`, and the averages of both sides | 0 nothing lower, 1 a case lower, 2 a result cannot be read, 3 a case measured on one side only |
 | `estimate <result>` | From a result with one run per case, prints the cost of the baseline and the after runs. `--runs` sets the runs per case, 3 by default | 0 printed, 1 no runs with the plugin |
 | `trace <result> --case NAME` | Prints each run's failing graders, tool calls with their input, tool results, and the agent's text. `--arm without` reads the runs without the plugin | 0 printed, 1 no such case |
-| `clean <name>` or `clean --all` | Removes a copy folder, or all of them, with the folders `claude plugin eval` kept for their results | 0 removed or nothing to remove, 1 no such folder, 2 neither a name nor `--all` |
+| `clean <name>` or `clean --all` | Removes a copy folder, or all of them, with the folders `claude plugin eval` kept for their results. A copy that `run` is evaluating, in this session or another one, is kept, with a line that says so | 0 removed, kept by `--all`, or nothing to remove, 1 no such folder, or the named copy is being evaluated, 2 neither a name nor `--all` |
 
 A label uses letters, digits, `.`, `_`, and `-`, and starts with a letter or digit.
 
@@ -93,6 +93,7 @@ A run without the plugin is counted at the cost of a run with it, and reruns are
 
 ## What it keeps
 
-- The copies, results, and logs in the data folder, and the run folders `claude plugin eval` kept, until `clean` removes them. The skill runs `clean --all` when it finishes
+- The copies, results, and logs in the data folder, and the run folders `claude plugin eval` kept, until `clean` removes them. When it finishes, the skill removes the copies it made with `clean <name>`, and never runs `clean --all`, since other sessions may be measuring with their own copies
+- While `run` evaluates a copy, a file `running` next to the copy, holding `run`'s process ID, which `run` removes when the eval ends
 - The eval cases in the plugin's `evals/` folder and the cuts in its `SKILL.md`, until you change them
 - Nothing is committed, pushed, or published; you review the changes and commit them yourself

@@ -1,0 +1,41 @@
+# Called by name with the state of the session, the agent saves a snapshot with the rejected option, the
+# review still awaited, and the thing not to do, and shows the three-paragraph message to paste.
+schema_version: "1.1"
+name: writes-handoff
+plugins: ["../.."]
+execution:
+  prompt: |
+    /session-handoff:session-handoff Here is where this session stands. We work on issue #12 (partial refunds) on branch feat/12-partial-refund. It matters because customers can refund only whole orders, so support refunds line items by hand. The refund calculation and its tests were merged in pull request #31. We rejected refunding the whole order and charging the kept lines again, because customers would see two charges. A background agent is reviewing db/0042_refunds.sql and we still wait for its findings. Do not run the migration against the shared staging database; I allowed only the local one. Next: add the POST /refunds endpoint in api/refunds.py until its tests pass.
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Bash
+    input_match: 'session_handoff\.py'
+    arm: with-only
+  - name: saved
+    type: tool_used
+    tool: Bash
+    input_match: 'session_handoff\.py\\?"?\s+save'
+  - name: rejected-recorded
+    type: tool_used
+    tool: Bash
+    input_match: 'rejected\\?"(?:\s|\\n)*:(?:\s|\\n)*\[(?:\s|\\n)*\{[^\]]*two charges'
+  - name: awaited-review-recorded
+    type: tool_used
+    tool: Bash
+    input_match: 'delegated\\?"(?:\s|\\n)*:(?:\s|\\n)*\[[^\]]*0042_refunds[^\]]*waiting\\?"(?:\s|\\n)*:(?:\s|\\n)*true'
+  - name: do-not-recorded
+    type: tool_used
+    tool: Bash
+    input_match: 'do_not\\?"(?:\s|\\n)*:(?:\s|\\n)*\[(?:\s|\\n)*\{[^\]]*staging'
+  - name: message-shown
+    type: llm
+    criteria: |
+      PASS if the reply shows a message to paste into a new session in one code block, with three short paragraphs: what was handed off, a background paragraph, and the next task, which ends as a request to add the POST /refunds endpoint; and says where the saved state is.
+      A heading line before the code block, and a line inside the block that says where to read the saved state, are not failures.
+      FAIL if a paragraph is missing, the message is split over several code blocks, or the reply suggests ending the session, starting a new one, or what to do after pasting.
