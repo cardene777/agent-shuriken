@@ -87,6 +87,7 @@ The preview changes nothing.
 It shows, as a diff, the lines it would write into `.env.local` between `# >>> portman >>>` and `# <<< portman <<<`, and the Compose override it would write next to the project's Compose file.
 Show the user the diff, explain every note under `Notes:`, and ask whether to write it, with "Write these changes" and "Do not write" as options.
 Only when the user approves, run the command the preview printed, which ends with `--confirm <token>`.
+When `apply` refuses because `.env.local` has a broken portman block, ask the user to fix the block by hand: never edit `.env.local` yourself.
 
 Whether a dev server reads its port from `.env.local` depends on the tool.
 If it does not, tell the user to pass the port on the command line, for example `--port $PORT_APP` after loading the file.
