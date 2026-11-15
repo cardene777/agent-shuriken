@@ -151,6 +151,14 @@ def cmd_copy(args):
     private_dir(dest_dir)
     dest = os.path.join(dest_dir, os.path.basename(plugin))
     shutil.copytree(plugin, dest, ignore=ignore_for(plugin), symlinks=True)
+    # claude plugin eval names its own report report.html and keeps the agent out of a plugin folder that
+    # holds a file of that name, so the skill there can read none of its files and run none of its scripts.
+    for root, _, files in os.walk(dest):
+        if "report.html" in files:
+            print("warning: %s is named report.html, the name of the eval's own report: claude plugin eval keeps "
+                  "the agent out of the plugin's folder, so the skill can read none of its files and run none of "
+                  "its scripts. Rename the file in the plugin before measuring."
+                  % os.path.relpath(os.path.join(root, "report.html"), dest), file=sys.stderr)
     print(dest)
 
 

@@ -70,6 +70,7 @@ What the eval sandbox allows decides what a case can test.
 - There is no network and no browser. A step that needs either takes the path the skill gives for when they are missing
 - A process cannot listen on a local port (Operation not permitted), so a step that checks or serves a port fails there. Test what the skill does when that step is refused, and leave the rest to the plugin's test
 - `git` fails inside the sandbox (on macOS, `/usr/bin/git` cannot create its cache file). A fixture that needs a repository creates it in `fixture.sh`, and a script that runs `git` stops there unless it can find the repository another way, such as by reading `.git`. The run's `HOME` is itself a repository, so a fixture that runs a plugin script that names things by the repository runs it without `git` on the `PATH`, the way the agent's run sees it
+- `claude plugin eval` keeps the agent out of a plugin folder that holds a file named `report.html`, the name of its own report, so the skill can read none of its files and run none of its scripts. `copy` warns about such a file; rename it in the plugin before measuring
 - Fixture files hold no real secrets, and no fake key that a secret scanner flags
 
 How to grade:

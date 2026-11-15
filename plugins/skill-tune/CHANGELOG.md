@@ -5,6 +5,7 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- `copy` warns when the plugin holds a file named `report.html`: `claude plugin eval` names its own report that way and keeps the agent out of such a plugin's folder, so the skill there can read none of its files. The `SKILL.md` says to rename the file before measuring
 - The rules for writing cases say that the run's `HOME` is itself a git repository, so a fixture that runs a plugin script that names things by the repository runs it without `git` on the `PATH`. Measuring session-handoff saved its fixture's state under a project that the agent's run, where `git` fails, could not find, and three cases were run again on both sides
 - The rules for writing cases say to name the grader that shows the skill started `skill-fired`, which `summary` and `compare` use to average the cost, and that for a skill that starts only when called by name it is the skill's first script call, since no `Skill` call shows in the trace. They also say that a line break in a `tool_used` input arrives as `\n`. Measuring session-handoff found both
 - `clean` keeps a copy that `run` is evaluating, in this session or another one, and says so, and the skill removes only the copies it made, by name, instead of running `clean --all`. Before, a `clean --all` in another session removed a copy in the middle of its eval, and `run` stopped with `FileNotFoundError`
