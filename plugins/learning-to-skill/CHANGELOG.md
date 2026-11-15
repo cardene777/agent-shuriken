@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The skill's description is shorter, so every session that lists the installed skills reads less, and its instructions are shorter: the tables of exit codes for `check`, `propose`, and `apply`, the table of `propose` options, and the table of the notes `files` prints are gone, since each command's messages say why it stopped and what to do, `propose --help` describes every option, and the notes are plain words such as `imported by CLAUDE.md`. The rules on approval, on keeping secrets out of instruction files, and on writing each rule once are unchanged. An eval suite under `evals/` measures it with `claude plugin eval`, and no case scored lower
+
 ## [0.1.1] - 2026-11-13
 
 - The README's sample proposal ends with the line that tells the agent to run `apply` with `--expect` and the fingerprint, so the sample shows how a change that was not approved, or a file that changed, is never written

@@ -1,0 +1,36 @@
+# The Testing section already has a vaguer line about the checkout tests: the agent replaces that line
+# with the sharper rule instead of adding a second one.
+schema_version: "1.1"
+name: replace-close-line
+plugins: ["../.."]
+execution:
+  prompt: |
+    Remember this for future sessions: run `pnpm test:checkout` before pushing changes to checkout; the unit tests do not cover checkout. It belongs in the Testing section of AGENTS.md. I approve the change, so write it without asking me again.
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'learning-to-skill'
+  - name: replaced-with-script
+    type: tool_used
+    tool: Bash
+    input_match: 'learning_to_skill\.py\\?"?\s+apply[^\n]*--replace-line'
+    arm: with-only
+  - name: vague-line-gone
+    type: regex
+    target: {source: file, path: AGENTS.md}
+    pattern: 'Run the checkout tests before pushing\.'
+    match: not_contains
+  - name: sharp-line-written
+    type: regex
+    target: {source: file, path: AGENTS.md}
+    pattern: '## Testing[^#]*pnpm test:checkout'
+  - name: other-line-kept
+    type: regex
+    target: {source: file, path: AGENTS.md}
+    pattern: '- Run `pnpm test` before opening a pull request\.'

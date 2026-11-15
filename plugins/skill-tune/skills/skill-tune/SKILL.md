@@ -60,7 +60,8 @@ Say that step 4 runs each case once first, at about 0.2 to 1 USD per case.
 
 Put each case in `<plugin>/evals/<case>/case.yaml` with a `fixture.sh` that writes the starting state, and share code between fixtures in `<plugin>/evals/_fixture.py`.
 Copy the shape from a plugin that already has cases, or from `claude plugin eval --help`.
-The prompt asks the way a user would; a case that should run to the end says the earlier answers in the prompt.
+The prompt asks the way a user would, for what the skill does rather than for an exact edit, which the agent makes without the skill.
+A case that should run to the end says the earlier answers in the prompt.
 
 What the eval sandbox allows decides what a case can test.
 
