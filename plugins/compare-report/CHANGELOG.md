@@ -5,6 +5,11 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The template is `templates/base.html`, so that no file in the plugin is named `report.html`; `new-report.sh` still writes the report as `report.html`
+- When `to-pdf.sh` finds no browser, or the browser writes no PDF, it says to give the user `report.html`, which any browser prints to PDF
+- The `SKILL.md` is shorter: the list of files, the overview of the steps, and what `to-pdf.sh` prints are gone, and the description says only what the skill does and when to use it
+- The plugin has `claude plugin eval` cases under `evals/` that measure the skill, run by hand
+
 ## [0.4.0] - 2026-11-14
 
 - The PDF contents give the page each section starts on, joined to the title by a dot leader, and every page but the cover shows its page number at the bottom. Pages are counted from the cover. The HTML keeps the contents without numbers. When the pages cannot be found, the PDF keeps titles only and `to-pdf.sh` prints one line saying why

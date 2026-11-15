@@ -6,7 +6,7 @@ set -u
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SCRIPTS="$HERE/../scripts"
-TEMPLATE="$HERE/../templates/report.html"
+TEMPLATE="$HERE/../templates/base.html"
 PASS=0
 FAIL=0
 T="$(mktemp -d)"

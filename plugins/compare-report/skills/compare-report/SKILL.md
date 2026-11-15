@@ -18,7 +18,7 @@ When you run a command, put `D=<folder that contains this SKILL.md>` at the star
 |---|---|
 | `references/research-guide.md` | How to list candidates, choose axes, and collect data, and what may be searched |
 | `references/report-structure.md` | What goes in each section, and the markup of every component |
-| `templates/report.html` | The report's theme, with placeholders |
+| `templates/base.html` | The report's theme, with placeholders |
 | `scripts/new-report.sh` | Creates the report's folder from the template |
 | `scripts/author.sh` | Shows, saves, or forgets the author's name for the cover |
 | `scripts/check-report.py` | Checks a finished report |

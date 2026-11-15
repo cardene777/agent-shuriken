@@ -75,7 +75,7 @@ def axis(section_id, title, column, rows, rationale=True):
 
 
 def report(broken=False):
-    with open(os.path.join(SKILL, "templates", "report.html"), encoding="utf-8") as f:
+    with open(os.path.join(SKILL, "templates", "base.html"), encoding="utf-8") as f:
         text = f.read()
     build = [(n, b, s, "%s on the published 1,000-page benchmark" % b) for n, b, s, _, _, _ in CANDIDATES]
     upkeep = [(n, r, m, "%s releases in the last 12 months" % r) for n, _, _, r, m, _ in CANDIDATES]

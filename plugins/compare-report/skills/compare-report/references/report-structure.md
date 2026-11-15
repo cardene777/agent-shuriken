@@ -1,7 +1,7 @@
 # Report structure
 
 What goes in each section of the report, and the markup of every component the template styles.
-`templates/report.html` holds the theme; write only the markup below inside it, and add no stylesheet or script.
+`templates/base.html` holds the theme; write only the markup below inside it, and add no stylesheet or script.
 
 ## Placeholders
 
