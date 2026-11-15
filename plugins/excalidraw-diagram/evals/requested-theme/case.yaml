@@ -1,0 +1,25 @@
+# A request for a pencil look in black and white picks the pencil theme, in the spec or with --theme.
+schema_version: "1.1"
+name: requested-theme
+plugins: ["../.."]
+execution:
+  prompt: |
+    Draw our deploy pipeline as an Excalidraw diagram for a printed handout, so it should look like a pencil sketch in black and white. A developer pushes to GitHub, the tests run, a build makes a container image, and the image is deployed to staging and then to production. Put the files in docs/images and call it deploy.
+  max_turns: 20
+  timeout_seconds: 500
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'excalidraw-diagram'
+  - name: pencil-theme
+    type: regex
+    target: trace
+    pattern: '"theme\\?": *\\?"pencil|--theme[ =]"?pencil'
+  - name: excalidraw-written
+    type: regex
+    target: {source: file, path: docs/images/deploy.excalidraw}
+    pattern: '(?=[\s\S]*"type": *"excalidraw")(?=[\s\S]*[Ss]taging)(?=[\s\S]*[Pp]roduction)'

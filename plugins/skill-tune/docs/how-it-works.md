@@ -43,7 +43,7 @@ Run `python3 skill_tune.py <command> --help` for every option.
 | `size <SKILL.md>` | Prints the body's words and the description's characters | 0 printed, 2 the file cannot be read or has no frontmatter |
 | `list <folder>` | Prints a table of every `skills/<name>/SKILL.md` under the folder, longest body first, with each plugin's eval cases | 0 printed, 1 no skill found |
 | `copy <plugin> --label L` | Copies the plugin into `runs/<plugin>-<L>/` and prints the copy's path. `--replace` replaces a copy with the same label, removing it and the folders the eval kept for it first | 0 copied, 2 not a plugin folder, a bad label, or the copy exists |
-| `run <copy> --label L --max-cost-usd U` | Runs `claude plugin eval` on the copy and prints the result, the log, and its exit code. `--case`, `--runs`, `--ablation`, and `-j` pass through | Its exit code, 2 bad input, 3 `claude` is missing |
+| `run <copy> --label L [--max-cost-usd U]` | Runs `claude plugin eval` on the copy and prints the result, the log, and its exit code. `--case`, `--runs`, `--ablation`, and `-j` pass through | Its exit code, 2 bad input, 3 `claude` is missing |
 | `summary <result>...` | Prints each case's score with and without the plugin, each grader's passes, the average cost, time, and turns of the runs where the skill fired, and the total cost and time | 0 printed, 1 no cases, 2 a result cannot be read |
 | `compare --before <result>... --after <result>...` | Prints each case's score before and after, as `kept`, `higher`, `lower`, or `not measured`, and the averages of both sides | 0 nothing lower, 1 a case lower, 2 a result cannot be read, 3 a case measured on one side only |
 | `estimate <result>` | From a result with one run per case, prints the cost of the baseline and the after runs. `--runs` sets the runs per case, 3 by default | 0 printed, 1 no runs with the plugin |
@@ -58,7 +58,7 @@ A label uses letters, digits, `.`, `_`, and `-`, and starts with a letter or dig
 
 ```bash
 claude plugin eval <copy> --scaffold --allow-tools Bash Write Edit --trust-plugin --no-publish \
-  --threshold 0 -j 3 --keep-temp --max-cost-usd <U> \
+  --threshold 0 -j 3 --keep-temp [--max-cost-usd <U>] \
   --output-dir results/<L>-out --json results/<L>.json
 ```
 
@@ -70,7 +70,7 @@ claude plugin eval <copy> --scaffold --allow-tools Bash Write Edit --trust-plugi
 | `--no-publish` | Keeps the results on your machine |
 | `--threshold 0` | Leaves the pass or fail to `compare`, which judges each case against its baseline |
 | `--keep-temp` | Keeps each run's trace for `trace` |
-| `--max-cost-usd` | Stops starting runs once the amount you allowed is spent. `claude plugin eval` exits 2 when it stops for this |
+| `--max-cost-usd` | Passed only when you name a limit. Stops starting runs once that amount is spent, and `claude plugin eval` exits 2 when it stops for this |
 
 ## How results are scored
 
@@ -89,7 +89,7 @@ A run without the plugin is counted at the cost of a run with it, and reruns are
 - The script runs only `claude plugin eval`, and only from `run`. It connects to nothing itself
 - `claude plugin eval` runs the agent on each case in a sandbox whose home folder is a temporary folder, after running the case's `fixture.sh` as you outside the sandbox
 - It sends each case's prompt, the plugin, and what the agent reads during the run to Anthropic's model through your own Claude Code sign-in, and bills the cost to your account. With `--no-publish`, it sends no results anywhere
-- The agent runs `run` only after you agree on a cost ceiling
+- The agent runs `run` only after you agree on the cases, and shows the cost estimate before measuring
 
 ## What it keeps
 

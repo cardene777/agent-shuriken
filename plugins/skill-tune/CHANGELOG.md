@@ -7,6 +7,9 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 - The rules for writing cases say that the eval sandbox does not let a process listen on a local port, and that `regex` graders are JavaScript regular expressions, without `(?m)`, `\A`, or `\Z`. Both cost a rerun when measuring init-project
 - After a failed try, the skill tries again on a copy with a new label, since `copy --replace` also removes the earlier result
+- The skill no longer asks how much to spend. It shows the cost estimate and measures, and `run` passes `--max-cost-usd` only when you name a limit
+- `run` refuses a second `--case` instead of silently running only the last one, since `claude plugin eval` filters by one glob
+- The rules for writing cases say that `tool_used` matches `input_match` against the input as JSON text, where a quote in a command arrives as `\"`
 
 ## [0.1.0] - 2026-11-15
 

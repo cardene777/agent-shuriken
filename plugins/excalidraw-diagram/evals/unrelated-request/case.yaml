@@ -1,0 +1,33 @@
+# Explaining what a Mermaid file shows draws nothing, so it does not start the skill.
+schema_version: "1.1"
+name: unrelated-request
+plugins: ["../.."]
+execution:
+  prompt: |
+    In two sentences, what does the flow in docs/flow.mmd describe? Just tell me; do not change any files.
+  max_turns: 8
+  timeout_seconds: 240
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-not-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'excalidraw-diagram'
+    min: 0
+    max: 0
+    arm: both
+  - name: nothing-built
+    type: tool_used
+    tool: Bash
+    input_match: 'excalidraw_diagram\.py'
+    min: 0
+    max: 0
+    arm: both
+  - name: explained
+    type: llm
+    criteria: |
+      PASS if the reply explains the flow: a cart goes to payment, a paid order goes to shipping, and a declined payment goes back to the cart. Other words for the same steps are not a failure.
+      Saying how the existing Mermaid file draws an arrow (for example, "drawn as a dashed arrow") is not a failure; it describes the file, not a new diagram.
+      FAIL if the reply does not describe the flow, or says it made a new diagram or wrote a file.

@@ -1,6 +1,6 @@
 ---
 name: excalidraw-diagram
-description: Draws architecture, flow, sequence, and entity-relationship diagrams as Excalidraw files. The agent writes a small JSON spec (or converts Mermaid), a script lays it out, checks it for overlapping shapes, crowded spacing, text that does not fit, labels on lines, and unbound arrows, and exports SVG and, when Playwright's chrome-headless-shell, Chrome, Chromium, or Edge is installed, PNG. Use when the user asks for an architecture, flow, sequence, or ER diagram, an Excalidraw file, or to turn a Mermaid diagram into Excalidraw.
+description: Draws architecture, flow, sequence, and entity-relationship diagrams as Excalidraw files with SVG and PNG copies, from a small JSON spec or a Mermaid diagram that a script lays out and checks. Use when the user asks for one of these diagrams, an Excalidraw file, or to turn Mermaid into Excalidraw.
 ---
 
 # Excalidraw diagram
@@ -42,21 +42,9 @@ Pick the kind of diagram.
 | Graph with `table` nodes | Entity-relationship diagrams | `"shape": "table"` |
 | Sequence | Messages between participants over time | `"type": "sequence"` |
 
-Pick a theme, the look of the lines, fonts, and fills.
-Use what the user asks for; when they say nothing about the look, leave `theme` out to get `sketch`, and name the other themes in one line of the report.
-
-| Theme | Look | Fits |
-|---|---|---|
-| `sketch` (default) | Hand-drawn lines and Excalifont, shapes filled with color, as the Excalidraw editor draws by default | Most diagrams |
-| `hatch` | `sketch` with shapes filled with hatching | A whiteboard look |
-| `pencil` | Thin black hand-drawn lines with no fill | Printing in black and white, or a quiet document |
-| `soft` | Light fills, the color carried by the outlines, zones not filled | Calm documents |
-| `marker` | Rougher lines, thick outlines, and hatching | Talks and slides |
-| `dark` | `sketch` on a dark background, as Excalidraw's dark mode shows it | Pages read in dark mode |
-| `clean` | Straight lines and system sans-serif fonts | Formal documents |
-| `friendly` | Hand-drawn lines with Nunito, a rounded font | Diagrams with a lot of text |
-
-Excalifont and Nunito cover Latin, Greek, and Cyrillic letters only; other text, such as Japanese, uses the system fonts, so a diagram written mostly in Japanese reads more evenly with `clean`.
+Pick a theme with `theme`, from what the user asks for: `sketch` (the default, hand-drawn and filled with color), `hatch` (filled with hatching), `pencil` (thin black lines and no fill, for printing in black and white), `soft` (light fills), `marker` (rough, thick lines, for slides), `dark` (dark background), `clean` (straight lines and sans-serif fonts, for formal documents), or `friendly` (the rounded Nunito font).
+When the user says nothing about the look, leave `theme` out.
+The hand-drawn fonts cover Latin, Greek, and Cyrillic letters only, so a diagram written mostly in Japanese reads more evenly with `clean`.
 
 Follow these rules for the content; the script cannot check them for you.
 
@@ -96,32 +84,15 @@ A graph spec:
 }
 ```
 
-| Key | Values |
-|---|---|
-| `title` | Optional title above the diagram |
-| `theme` | `sketch` (default), `hatch`, `pencil`, `soft`, `marker`, `dark`, `clean`, or `friendly`, from step 1 |
-| `direction` | `down` (default) or `right` |
-| `order` | `auto` (default): the script reorders the nodes in a tier when that makes fewer arrows cross. `listed`: nodes keep exactly the order you list them in |
-| `style` | Optional. `clean` makes the theme's lines straight and its text Helvetica; `sketch` makes them hand-drawn |
-| `fill` | Optional. `solid` or `hachure` (diagonal lines) replaces the theme's fill |
-| `node_gap`, `tier_gap` | Space between nodes in a tier (default 60, at least 40) and between tiers (default 80, at least 60) |
-| `nodes[].id` | Letters, digits, `_`, `.`, or `-` |
-| `nodes[].label`, `nodes[].lines` | The name, drawn bold (or thickened, in the hand-drawn fonts) in the SVG and PNG, and the lines of detail under it |
-| `nodes[].shape` | `box` (default), `ellipse` (start, end, people), `diamond` (decision), `table` (name over a list of fields) |
-| `nodes[].color`, `groups[].color` | `gray` (default), `blue`, `green`, `red`, `orange`, `yellow`, `violet`, `teal` |
-| `nodes[].group` | The id of a group; its nodes are drawn inside a dashed zone with the group's label |
-| `nodes[].tier`, `groups[].tier` | Optional tier, 0 at the top (or left). Without it, a node goes one tier below the deepest node with an arrow into it |
-| `edges[].from`, `edges[].to` | Node ids; the same id twice draws a loop |
-| `edges[].label` | Optional label beside the arrow |
-| `edges[].line` | `solid` (default), `dashed`, or `dotted` |
-| `edges[].head` | `end` (default), `both`, or `none` |
+Use `ellipse` for a start, an end, or a person, and `diamond` for a decision.
+The build refuses an unknown key or value and lists the allowed ones, so a typo costs one build.
 
 Nodes in one tier appear left to right (or top to bottom) in the order you list them, unless moving them makes fewer arrows cross; then the script moves each node toward the nodes it connects to in the neighboring tiers, inside groups too.
 List them in the order you want, and set `"order": "listed"` when that order must stay even if arrows then cross.
-Inside a group, `tier` counts from the group's own top.
+Without a `tier`, a node goes one tier below the deepest node with an arrow into it; `tier` counts from 0 at the top (or left), and inside a group from the group's own top.
 To put a side branch, such as a failure path, beside its source instead of in line with the flow, give it the same tier as its source.
 
-A sequence spec has `participants` (`id`, `label`, `lines`, `color`) and `messages` (`from`, `to`, `label`, `line` of `solid` or `dashed`, `head` of `end` or `none`), plus `title`, `theme`, `style`, and `fill`.
+A sequence spec has `"type": "sequence"`, `participants` (`id`, `label`, `lines`, `color`), and `messages` (`from`, `to`, `label`, `line`, `head`).
 Use a dashed line for replies.
 
 To start from Mermaid, convert it and then add details and colors to the spec:
@@ -130,8 +101,7 @@ To start from Mermaid, convert it and then add details and colors to the spec:
 S=<skill folder>/scripts; python3 "$S/excalidraw_diagram.py" mermaid <diagram.mmd> -o <folder>/<name>.diagram.json
 ```
 
-The converter reads flowcharts (`flowchart` or `graph` with `TD`, `TB`, or `LR`; node shapes; arrows `-->`, `---`, `-.->`, `==>`, `<-->` with labels; chains and `&`; one level of `subgraph`) and sequence diagrams (`participant`, `actor`, `->>`, `-->>`, `->`, `-->`, `autonumber`, `title`).
-It stops with the line number on anything else, such as `loop`, `alt`, notes, or other diagram types; rewrite those parts in the spec by hand.
+The converter reads flowcharts and sequence diagrams; on anything else, such as `loop`, `alt`, or notes, it stops with the line number, and you write those parts in the spec by hand.
 
 ## 3. Build
 
@@ -139,19 +109,12 @@ It stops with the line number on anything else, such as `loop`, `alt`, notes, or
 S=<skill folder>/scripts; python3 "$S/excalidraw_diagram.py" build <folder>/<name>.diagram.json
 ```
 
-The files go next to the spec.
-`--out <folder>` and `--name <name>` change that, `--theme <name>` draws the spec in another theme without editing it, `--png skip` leaves out the PNG, and `--scale 1` makes a smaller PNG (the default 2 is sharp on high-density screens).
+The files go next to the spec; `build --help` lists the options, such as `--theme` to draw the spec in another theme without editing it.
+When the build stops, its message says why and what to do, and nothing was written.
+When it names a file that exists and that this plugin did not write or that changed since, usually because the user edited it in Excalidraw, tell the user which file and ask whether to replace it. Only after they agree, build again with `--replace`. Otherwise use another `--name`.
 
-| Exit code | Meaning | What to do |
-|---|---|---|
-| 0 | The diagram passed every check and was written | Go to step 4. A line `PNG skipped:` means no browser was found or it failed; the SVG holds the same drawing. A line `Warning: crossing:` names two arrows that cross or touch; see below |
-| 1 | A check failed or a label found no room. Nothing was written | Fix the spec as below and build again |
-| 2 | The spec or Mermaid text is invalid | Fix each problem the output names |
-| 3 | An output file exists that this plugin did not write, or that changed since it wrote it, usually because the user edited it in Excalidraw. Nothing was written | Tell the user which file, and ask whether to replace it. Only after they agree, build again with `--replace`. Otherwise use another `--name` |
-| 4 | Only with `--png require`: no PNG could be made. The `.excalidraw` and SVG were written | Say why, using the `PNG skipped:` line |
-
-The script widens the spacing up to 2.25 times by itself before it gives up.
-When it still fails, fix the cause, not the rule: shorten a label, move a node to another tier, change the order of nodes in a tier, switch `direction`, raise `node_gap` or `tier_gap`, or split the diagram.
+When a check fails, the script has already widened the spacing up to 2.25 times.
+Fix the cause, not the rule: shorten a label, move a node to another tier, change the order of nodes in a tier, switch `direction`, raise `node_gap` or `tier_gap`, or split the diagram.
 If the same kind of fix does not help twice, try a different one.
 After three different approaches fail, stop and show the user the problems the script printed and what you tried.
 
@@ -183,7 +146,7 @@ For changes, edit the spec and build again.
 
 ## 6. After the user edits the file in Excalidraw
 
-`build` will not replace an edited `.excalidraw` without `--replace` (exit code 3), so their edits are never lost by accident.
+`build` will not replace an edited `.excalidraw` without `--replace`, so their edits are never lost by accident.
 To check the edited file against the same rules, or to make a new SVG and PNG from it without touching it:
 
 ```bash
@@ -191,6 +154,4 @@ S=<skill folder>/scripts; python3 "$S/excalidraw_diagram.py" check <file.excalid
 S=<skill folder>/scripts; python3 "$S/excalidraw_diagram.py" render <file.excalidraw>
 ```
 
-`check` exits 0 when it finds no problems, 1 when it does, and 2 when the file is not an Excalidraw scene.
-`render` writes `<name>.svg` and `<name>.png` next to the file, with the same exit codes as `build`.
 Lines starting with `Warning:` (arrows that cross) and `Note:` are worth telling the user, but they are not problems.

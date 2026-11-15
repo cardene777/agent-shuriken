@@ -43,7 +43,7 @@
 | `size <SKILL.md>` | 本文の語数と説明文の文字数を出します | 0 出した、2 ファイルを読めないかフロントマターが無い |
 | `list <folder>` | フォルダの下にあるすべての`skills/<name>/SKILL.md`を、本文の長い順に、プラグインごとの評価の案件の数とともに表で出します | 0 出した、1 スキルが見つからない |
 | `copy <plugin> --label L` | プラグインを`runs/<plugin>-<L>/`に写し、写しのパスを出します。`--replace`は同じラベルの写しを、それと評価がそのために残したフォルダを先に消してから置き換えます | 0 写した、2 プラグインのフォルダでない、ラベルが正しくない、写しが既にある |
-| `run <copy> --label L --max-cost-usd U` | 写しに対して`claude plugin eval`を走らせ、結果、記録、終了コードを出します。`--case`、`--runs`、`--ablation`、`-j`はそのまま渡します | その終了コード、2 入力が正しくない、3 `claude`が無い |
+| `run <copy> --label L [--max-cost-usd U]` | 写しに対して`claude plugin eval`を走らせ、結果、記録、終了コードを出します。`--case`、`--runs`、`--ablation`、`-j`はそのまま渡します | その終了コード、2 入力が正しくない、3 `claude`が無い |
 | `summary <result>...` | 各案件のプラグインありと無しの点、各判定の通った数、スキルが動いた実行の平均の費用と時間と往復の数、全体の費用と時間を出します | 0 出した、1 案件が無い、2 結果を読めない |
 | `compare --before <result>... --after <result>...` | 各案件の変える前と後の点を`kept`、`higher`、`lower`、`not measured`として出し、両側の平均も出します | 0 下がった案件が無い、1 下がった案件がある、2 結果を読めない、3 片側でしか測っていない案件がある |
 | `estimate <result>` | 案件ごとに1回走らせた結果から、基準と変えた後の実行の費用を出します。`--runs`は案件ごとの実行の数で、既定は3です | 0 出した、1 プラグインありの実行が無い |
@@ -58,7 +58,7 @@
 
 ```bash
 claude plugin eval <copy> --scaffold --allow-tools Bash Write Edit --trust-plugin --no-publish \
-  --threshold 0 -j 3 --keep-temp --max-cost-usd <U> \
+  --threshold 0 -j 3 --keep-temp [--max-cost-usd <U>] \
   --output-dir results/<L>-out --json results/<L>.json
 ```
 
@@ -70,7 +70,7 @@ claude plugin eval <copy> --scaffold --allow-tools Bash Write Edit --trust-plugi
 | `--no-publish` | 結果をあなたのマシンに留めます |
 | `--threshold 0` | 合否を`compare`に任せます。`compare`は各案件を基準と比べて判定します |
 | `--keep-temp` | `trace`のために各実行の記録を残します |
-| `--max-cost-usd` | あなたが許した額を使い切ると、それ以上の実行を始めません。これで止まった時、`claude plugin eval`は2で終わります |
+| `--max-cost-usd` | あなたが上限を言った時だけ渡します。その額を使い切ると、それ以上の実行を始めません。これで止まった時、`claude plugin eval`は2で終わります |
 
 ## 点の付け方
 
@@ -89,7 +89,7 @@ claude plugin eval <copy> --scaffold --allow-tools Bash Write Edit --trust-plugi
 - スクリプトが実行するのは`claude plugin eval`だけで、`run`からだけです。スクリプト自身はどこにもつなぎません
 - `claude plugin eval`は、案件の`fixture.sh`をサンドボックスの外であなたの権限で走らせた後、ホームフォルダが一時フォルダのサンドボックスで各案件のエージェントを走らせます
 - 各案件の依頼文、プラグイン、実行中にエージェントが読む物を、あなた自身のClaude Codeのサインインを通してAnthropicのモデルへ送り、費用をあなたのアカウントに請求します。`--no-publish`により、結果はどこにも送りません
-- エージェントは、費用の上限にあなたが同意した後にだけ`run`を実行します
+- エージェントは、案件にあなたが同意した後にだけ`run`を実行し、測る前に費用の見込みを見せます
 
 ## 保つ物
 

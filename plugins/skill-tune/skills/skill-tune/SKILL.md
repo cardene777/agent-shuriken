@@ -25,7 +25,7 @@ It keeps copies and results in `${SKILL_TUNE_HOME:-~/.local/share/skill-tune}`, 
 
 - `--scaffold` runs each case's `fixture.sh` as the user, and `--trust-plugin` skips the question that guards it, so run the eval only on plugins the user wrote or trusts
 - Run every eval on a copy made with `copy`, never on the user's folder, so the user's files do not change while it runs
-- Spend nothing before the user agrees: give the estimate and ask the user how much they allow, and pass that amount as `--max-cost-usd`
+- Spend nothing before the user agrees on the cases in step 2, where the cost per case is said, and show the estimate in step 5 without asking for a limit. Pass `--max-cost-usd` only when the user names a limit
 - In agents other than Claude Code, stop before measuring: do steps 1 to 3, then tell the user that `claude plugin eval` comes with Claude Code and that steps 4 to 8 run there. `run` exits 3 when `claude` is missing
 - Report the scores that `summary` and `compare` print. A case that scored lower is reported as lower, with its cause
 - Do not publish, release, or push anything
@@ -54,7 +54,7 @@ Propose case groups, and the parts to cut with the words each would save, and as
 - A nearby request that must not start the skill
 
 Each case is run three times with the plugin and three times without it, and some cases cost a dollar a run.
-Say that step 4 runs each case once first, at about 0.2 to 1 USD per case, and ask the user how much they allow for it.
+Say that step 4 runs each case once first, at about 0.2 to 1 USD per case.
 
 ## 3. Write the cases
 
@@ -76,6 +76,7 @@ How to grade:
 - Grade the files the run leaves in the workspace: `regex` with `target: {source: file, path: ...}`, and `match: not_contains` for what must be absent. A line that a script prints into the trace is missed when the agent filters the output, so a grader on such a line, or on anything only the plugin can produce, gets `arm: with-only` and counts only as a sign that the skill ran
 - `regex` patterns are JavaScript regular expressions: no inline flags such as `(?m)`, and no `\A` or `\Z`. `^` and `$` match only the start and end of the whole text, so write `(^|\n)` for the start of a line
 - What the agent must not do is `tool_used` with `min: 0`, `max: 0`, and `arm: both`
+- `tool_used` matches `input_match` against the input as JSON text, so a `"` in a command arrives as `\"`; write `\\?"?` where a command may quote a path
 - An LLM judge can fail a reply that meets every condition, and pass one that misses a condition. Keep `llm` criteria to what only a reader can judge, say what is not a failure (for example, the date a password changed is not a password), and pair the judge with a `regex` on the result. An `llm` grader reads a file through `focus`, not `target`
 - Run the eval on a folder path. A bare plugin name runs the installed copy
 
@@ -86,7 +87,7 @@ Add checks to the plugin's test: the suite has its cases, each fixture builds th
 ```bash
 S=<skill folder>/scripts
 python3 "$S/skill_tune.py" copy <plugin folder> --label preflight
-python3 "$S/skill_tune.py" run <copy> --label preflight --runs 1 --ablation none --max-cost-usd <allowed>
+python3 "$S/skill_tune.py" run <copy> --label preflight --runs 1 --ablation none
 python3 "$S/skill_tune.py" summary <result> --indicator skill-fired
 ```
 
@@ -97,14 +98,9 @@ Try again on a copy with a new label, since `--replace` also removes the earlier
 
 ## 5. Record the baseline
 
-Run `estimate` on the preflight result, and ask the user how much they allow, offering two choices.
-
-| Choice | Runs |
-|---|---|
-| Both arms before, the plugin only after | `--ablation none` after shortening, since the runs without the plugin do not depend on the `SKILL.md`. About two thirds of the estimate |
-| Both arms before and after | The full estimate |
-
-Make a copy with the label `before` before any cut, run it with the allowed ceiling, and show `summary` with the indicators named.
+Run `estimate` on the preflight result and show the user the cost.
+Make a copy with the label `before` before any cut, run it with and without the plugin, and show `summary` with the indicators named.
+Step 7 runs only with the plugin, since the runs without it do not depend on the `SKILL.md`.
 For eval cases only, stop here and report.
 
 ## 6. Shorten
@@ -117,7 +113,7 @@ In the plugin's test, cap the body words and the description characters at the n
 ```bash
 S=<skill folder>/scripts
 python3 "$S/skill_tune.py" copy <plugin folder> --label after
-python3 "$S/skill_tune.py" run <copy> --label after --ablation none --max-cost-usd <allowed>
+python3 "$S/skill_tune.py" run <copy> --label after --ablation none
 python3 "$S/skill_tune.py" compare --before <before result> --after <after result> --indicator skill-fired
 ```
 

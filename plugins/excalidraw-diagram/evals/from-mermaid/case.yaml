@@ -1,0 +1,34 @@
+# A Mermaid flowchart becomes an Excalidraw diagram that keeps its steps, built from the converted spec.
+schema_version: "1.1"
+name: from-mermaid
+plugins: ["../.."]
+execution:
+  prompt: |
+    Turn the Mermaid flowchart in docs/login.mmd into an Excalidraw diagram. Put the files in docs/images and call it login.
+  max_turns: 20
+  timeout_seconds: 500
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'excalidraw-diagram'
+  - name: converted-by-the-script
+    type: tool_used
+    tool: Bash
+    input_match: 'excalidraw_diagram\.py\\?"?\s+(mermaid|build)\s+\S*login\.mmd'
+    arm: with-only
+  - name: excalidraw-written
+    type: regex
+    target: {source: file, path: docs/images/login.excalidraw}
+    pattern: '"type": *"excalidraw"'
+  - name: steps-kept
+    type: regex
+    target: {source: file, path: docs/images/login.excalidraw}
+    pattern: '(?=[\s\S]*Login form)(?=[\s\S]*Check password)(?=[\s\S]*Home page)'
+  - name: svg-written
+    type: regex
+    target: {source: file, path: docs/images/login.svg}
+    pattern: '<svg'

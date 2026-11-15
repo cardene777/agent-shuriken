@@ -5,6 +5,9 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The skill's description is shorter, so every session that lists the installed skills reads less, and its instructions are shorter: the tables of themes, spec keys, and exit codes and the list of Mermaid syntax are gone, since the build lists the allowed keys and values when one is wrong and each command's messages say why it stopped and what to do. The rules on what goes in a box and on never replacing a file the user edited without asking are unchanged. An eval suite under `evals/` measures it with `claude plugin eval`, and no case scored lower
+- `--help` describes every command and option, such as `build --png`, `--scale`, `--replace`, and `--theme`
+
 ## [0.2.0] - 2026-11-13
 
 - The README, the skill's description, and the line printed when no browser is found name Playwright's `chrome-headless-shell`, which the PNG step already uses first

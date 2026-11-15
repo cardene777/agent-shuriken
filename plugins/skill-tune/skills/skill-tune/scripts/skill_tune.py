@@ -5,7 +5,7 @@ Commands
   size <SKILL.md>                       Body words and description characters
   list <folder>                         Every skill under the folder, longest body first, with its eval cases
   copy <plugin> --label L [--replace]   Copy the plugin into the data folder, without eval results and caches
-  run <copy> --label L --max-cost-usd U [--case GLOB] [--runs N] [--ablation MODE] [-j N]
+  run <copy> --label L [--max-cost-usd U] [--case GLOB] [--runs N] [--ablation MODE] [-j N]
                                         Run `claude plugin eval` on a copy; the result is results/<L>.json
   summary <result.json>... [--indicator NAME]... [--fired NAME]
                                         Scores per case and arm, grader counts, averages, and cost
@@ -23,7 +23,7 @@ the graders named with --indicator; a case's score is the mean over its runs.
 The data folder is $SKILL_TUNE_HOME, by default ~/.local/share/skill-tune, readable only by the user.
 Exit codes: 0 done; 1 a case scored lower, or nothing to show; 2 bad input; 3 `claude` is missing;
 3 also when compare finds a case measured on one side only. `run` passes on the exit code of
-`claude plugin eval` (2 when the cost ceiling stopped it).
+`claude plugin eval` (2 when a --max-cost-usd limit stopped it).
 """
 import argparse
 import glob
@@ -158,11 +158,15 @@ def cmd_run(args):
         fail("%s has no evals/ folder" % copy)
     if not LABEL.match(args.label):
         fail("a label uses letters, digits, '.', '_', and '-': %s" % args.label)
-    try:
-        if float(args.max_cost_usd) <= 0:
-            raise ValueError
-    except ValueError:
-        fail("--max-cost-usd takes a positive number of US dollars")
+    if args.max_cost_usd is not None:
+        try:
+            if float(args.max_cost_usd) <= 0:
+                raise ValueError
+        except ValueError:
+            fail("--max-cost-usd takes a positive number of US dollars")
+    if args.case and len(args.case) > 1:
+        fail("--case takes one glob, since claude plugin eval filters by one; "
+             "run the other cases in another run with a new label")
     if not shutil.which("claude"):
         fail("`claude plugin eval` comes with Claude Code; run this step in Claude Code", 3)
     results = private_dir(os.path.join(os.path.dirname(copy), "results"))
@@ -170,10 +174,11 @@ def cmd_run(args):
     log = os.path.join(results, args.label + ".log")
     cmd = ["claude", "plugin", "eval", copy, "--scaffold", "--allow-tools", "Bash", "Write", "Edit",
            "--trust-plugin", "--no-publish", "--threshold", "0", "-j", str(args.jobs), "--keep-temp",
-           "--max-cost-usd", args.max_cost_usd, "--output-dir", os.path.join(results, args.label + "-out"),
-           "--json", out]
+           "--output-dir", os.path.join(results, args.label + "-out"), "--json", out]
+    if args.max_cost_usd is not None:
+        cmd += ["--max-cost-usd", args.max_cost_usd]
     if args.case:
-        cmd += ["--case", args.case]
+        cmd += ["--case", args.case[0]]
     if args.runs:
         cmd += ["--runs", str(args.runs)]
     if args.ablation:
@@ -436,8 +441,8 @@ def main():
     p = sub.add_parser("run", help="run claude plugin eval on a copy")
     p.add_argument("copy")
     p.add_argument("--label", required=True)
-    p.add_argument("--max-cost-usd", required=True, help="stop starting runs once this many US dollars are spent")
-    p.add_argument("--case", help="only the cases whose name matches this glob")
+    p.add_argument("--max-cost-usd", help="stop starting runs once this many US dollars are spent (no limit when left out)")
+    p.add_argument("--case", action="append", help="only the cases whose name matches this glob (one glob)")
     p.add_argument("--runs", type=int, help="runs per case (claude plugin eval's default is 3)")
     p.add_argument("--ablation", choices=["none", "with-without"], help="none runs only with the plugin")
     p.add_argument("-j", "--jobs", type=int, default=3, help="runs at once (default 3)")
