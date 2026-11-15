@@ -918,9 +918,16 @@ check "the docs describe the tool files it scans and how each is moved or why no
 mkdir -p "$T/next-home"
 HOME="$T/next-home" SECURE_DOTFILE_KEYCHAIN="$KC" python3 "$SCRIPT" move --item 'not-an-item' > /dev/null 2> "$OUT/bad-item.err"
 HOME="$T/next-home" SECURE_DOTFILE_KEYCHAIN="$KC" python3 "$SCRIPT" scan --file "$T/no-such-file" > /dev/null 2> "$OUT/no-file.err"
+# A git that cannot run, like the macOS /usr/bin/git inside a sandbox, is not "not in a git repository".
+mkdir -p "$T/nogit/bin" "$T/nogit/home"
+printf '#!/bin/sh\necho "xcrun: error: cannot be used within an App Sandbox." >&2\nexit 1\n' > "$T/nogit/bin/git"
+chmod +x "$T/nogit/bin/git"
+printf 'export NOGIT_TOKEN="%s"\n' "$S_NAME" > "$T/nogit/home/.bashrc"
+HOME="$T/nogit/home" PATH="$T/nogit/bin:$PATH" SECURE_DOTFILE_KEYCHAIN="$KC" python3 "$SCRIPT" scan --json > "$OUT/nogit.json" 2>> "$OUT/scan.err"
 next_steps() {
   grep -q 'pass each item as the scan printed it' "$OUT/bad-item.err" &&
     grep -q 'check the path' "$OUT/no-file.err" &&
+    jfield "$OUT/nogit.json" NOGIT_TOKEN in_git_history | grep -q '^unknown: git could not run: xcrun.*outside a sandbox' &&
     jnote "$OUT/lx-down.json" LX_DOWN_TOKEN | grep -q 'run the move again' &&
     grep -q 'install' "$OUT/lx-none.err" &&
     jnote "$OUT/pass-locked.json" PA_LOCKED_TOKEN | grep -q 'run the move again' &&
@@ -965,8 +972,8 @@ check "eval results are ignored by git" "eval_results_ignored"
 
 # The limits are the sizes of the shortened SKILL.md. Every agent that starts the skill reads the
 # whole body, and every session reads the description, so raise a limit only with a reason.
-SKILL_WORDS_MAX=1500
-SKILL_DESCRIPTION_MAX=350
+SKILL_WORDS_MAX=1221
+SKILL_DESCRIPTION_MAX=341
 skill_size() {
   python3 - "$PLUGIN/skills/secure-dotfile/SKILL.md" "$SKILL_WORDS_MAX" "$SKILL_DESCRIPTION_MAX" <<'PY'
 import re, sys
