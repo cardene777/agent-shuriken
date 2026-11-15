@@ -33,6 +33,7 @@ graders:
     type: regex
     target: trace
     pattern: '---- no problems'
+    arm: with-only
   - name: sections-as-agreed
     type: llm
     focus: {source: file, path: docs/explainers/queue-lite/queue-lite.html}

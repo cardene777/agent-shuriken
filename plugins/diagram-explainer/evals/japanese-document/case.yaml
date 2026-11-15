@@ -33,6 +33,7 @@ graders:
     type: regex
     target: trace
     pattern: '---- no problems'
+    arm: with-only
   - name: reply-in-japanese
     type: llm
     criteria: |
