@@ -44,7 +44,7 @@ chmod +x "$T/bin/claude"
 # --- a sample repository with two plugins
 R="$T/repo"
 mkdir -p "$R/plugins/alpha/skills/alpha/scripts/__pycache__" "$R/plugins/alpha/evals/one" "$R/plugins/alpha/evals/two" \
-  "$R/plugins/alpha/evals/results" "$R/plugins/beta/skills/beta"
+  "$R/plugins/alpha/evals/results/old-run/one" "$R/plugins/beta/skills/beta"
 printf -- '---\nname: alpha\ndescription: Does a thing. Use when testing.\n---\n\n# Alpha\n\nOne two three four five.\n' \
   > "$R/plugins/alpha/skills/alpha/SKILL.md"
 printf -- '---\nname: beta\ndescription: Does another thing.\n---\n\n# Beta\n\nOne two three four five six seven eight nine ten.\n' \
@@ -52,6 +52,7 @@ printf -- '---\nname: beta\ndescription: Does another thing.\n---\n\n# Beta\n\nO
 printf 'name: one\n' > "$R/plugins/alpha/evals/one/case.yaml"
 printf 'name: two\n' > "$R/plugins/alpha/evals/two/case.yaml"
 printf '{}\n' > "$R/plugins/alpha/evals/results/old.json"
+printf 'name: one\n' > "$R/plugins/alpha/evals/results/old-run/one/case.yaml"
 printf 'x\n' > "$R/plugins/alpha/skills/alpha/scripts/__pycache__/run.cpython-312.pyc"
 printf 'print(1)\n' > "$R/plugins/alpha/skills/alpha/scripts/run.py"
 
@@ -63,7 +64,8 @@ T = sys.argv[1]
 def run(cost, judge, sec, turns, graders, trace=None):
     return {"score": 0, "passed": True, "turns": turns, "costUsd": cost, "judgeCostUsd": judge,
             "durationSeconds": sec, "error": None, "tracePath": trace,
-            "graders": [{"name": n, "passed": p, "weight": 1, "withOnly": w, "scored": not w} for n, p, w in graders]}
+            "graders": [{"name": g[0], "passed": g[1], "weight": 1, "withOnly": g[2],
+                         "scored": g[3] if len(g) > 3 else not g[2]} for g in graders]}
 
 trace = os.path.join(T, "tmp", "e-abc123", "out", "trace.jsonl")
 os.makedirs(os.path.dirname(trace))
@@ -78,11 +80,14 @@ os.makedirs(os.path.join(T, "tmp", "e-keep99", "out"))
 def case_a(with_runs, without_runs):
     return {"name": "alpha-one", "arms": {"with": with_runs, "without": without_runs}}
 
+# "only-shown" is a with-only grader that the result still marks as scored, as with --ablation none.
+# The alpha-two run has a failed skill-fired grader, so it is not one of the runs where the skill fired.
 before = {"cases": [
-    case_a([run(0.20, 0.01, 10, 4, [("skill-fired", True, True), ("check-line", False, False), ("result", True, False)], trace),
+    case_a([run(0.20, 0.01, 10, 4, [("skill-fired", True, True), ("check-line", False, False), ("result", True, False),
+                                     ("only-shown", False, True, True)], trace),
             run(0.30, 0.01, 20, 6, [("skill-fired", True, True), ("check-line", True, False), ("result", True, False)])],
            [run(0.10, 0.0, 5, 3, [("skill-fired", False, True), ("check-line", False, False), ("result", False, False)])]),
-    {"name": "alpha-two", "arms": {"with": [run(0.05, 0.0, 3, 2, [("skill-not-fired", True, False)])],
+    {"name": "alpha-two", "arms": {"with": [run(0.05, 0.0, 3, 2, [("skill-fired", False, True), ("skill-not-fired", True, False)])],
                                    "without": [run(0.05, 0.0, 3, 2, [("skill-not-fired", True, False)])]}},
 ]}
 after = {"cases": [
@@ -136,7 +141,8 @@ check "summary scores each case without the indicator graders" \
   'grep -qx "case alpha-one  with 1.00 (n=2)  without 0.00 (n=1)" "$T/summary.txt" \
    && grep -qx "case alpha-two  with 1.00 (n=1)  without 1.00 (n=1)" "$T/summary.txt" \
    && grep -qx "case alpha-one  with 0.75 (n=2)  without 0.00 (n=1)" "$T/summary-all.txt" \
-   && grep -qx "  check-line  with 1/2  without 0/1  (indicator)" "$T/summary.txt"'
+   && grep -qx "  check-line  with 1/2  without 0/1  (indicator)" "$T/summary.txt" \
+   && grep -qx "  only-shown  with 0/1  without 0/0  (indicator)" "$T/summary-all.txt"'
 check "summary averages the runs where the skill fired and adds up the cost" \
   'grep -qx "runs where the skill fired: 2, average 0.250 USD, 15 s, 5.0 turns" "$T/summary.txt" \
    && grep -qx "total cost: 0.72 USD" "$T/summary.txt"'
@@ -180,6 +186,7 @@ skill_rules() {
     '`git` fails' \
     "Grade the files the run leaves in the workspace" \
     "An LLM judge can fail a reply that meets every condition" \
+    "Spend nothing before the user agrees" \
     "ask the user how much they allow" \
     "In agents other than Claude Code, stop before measuring" \
     "only on plugins the user wrote or trusts"; do
