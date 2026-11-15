@@ -4,6 +4,8 @@ Get disk space, memory, and CPU back on your computer by freeing only what you p
 
 English · [日本語](README.ja.md)
 
+![The Overview tab of the page: rings for what can be freed by kind, size by level, the disk, and memory, and bars for the largest items and the processes using the most memory and CPU](assets/screenshot.png)
+
 Coding agents leave a lot behind: `node_modules` and build output in every project, package manager and Docker caches, Xcode's DerivedData, and dev servers and watchers that keep running after the session that started them ended.
 This plugin measures all of it at the lowest priority, shows it on a page in your browser with the size or load of each item and what freeing it does, and frees only what you pick there.
 Anything that a live agent session, an open terminal, or a running program in the same project uses is shown but cannot be picked, so a cleanup never breaks work in progress in another session.
@@ -40,6 +42,8 @@ In GitHub Copilot CLI, write `/machine-cleanup` in your request, and in Gemini C
 2. A page opens in your browser on the **Overview** tab, whose charts show what can be freed and how the disk, memory, and CPU are used. The other tabs list rows by name and size, grouped into **Recommended**, **Check first**, and **Careful**, and the **i** button on a row shows its reason, location, and command. Search, hide groups, or sort the rows, pick the rows you want to free, or press **Pick all in this group** on a recommended or check-first group, press **Free**, check the summary, and press **Send to the agent**
 3. The agent checks each pick again, skips any that changed or came into use, frees the rest, and reports free disk, memory, and load before and after
 4. When a process ignores the end signal, the agent asks you before ending it at once
+
+![The Processes tab grouped into Recommended, Check first, Careful, and In use, with the details of a Vite dev server open: its reason, memory, CPU, start time, working folder, command, and a Pick button](assets/screenshot-details.png)
 
 The page opens in English and has an English / 日本語 switch in its header.
 When the agent stopped waiting for the page, press **Copy the selection** and paste the text into the chat.
