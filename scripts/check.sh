@@ -53,7 +53,9 @@ JA_ALLOWED=(
   plugins/japanese-writing/skills/japanese-writing/references/sentence-forms.md
   plugins/japanese-writing/skills/japanese-writing/references/subject-and-verb.md
   plugins/japanese-writing/skills/japanese-writing/references/terminology.md
+  plugins/japanese-writing/skills/japanese-writing/references/connecting.md
   plugins/japanese-writing/skills/japanese-writing/references/metaphor-words.tsv
+  plugins/japanese-writing/THIRD_PARTY_NOTICES.md
   plugins/japanese-writing/skills/japanese-writing/scripts/suspects.py
   plugins/japanese-writing/skills/japanese-writing/tests/test-japanese-writing.sh
 )

@@ -8,6 +8,7 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - Before writing, the agent lists the facts in the source and keeps only what the reader cannot get by opening the files, screens, or links the message points to: what arrived or changed, what to do first, where the reader may get stuck, and what is undecided or asked. Every line, list items included, is a full sentence, and a short message has no headings
 - `convey.py check` warns about lines written as a label and a colon, and about a space between Japanese and a Latin letter or digit
 - A new eval case, `handoff-message`, measures whether a long handoff becomes a short message that keeps what the developer needs and leaves out what the files explain
+- The agent starts a sentence with a connecting word where the reader would otherwise have to guess how it follows from the one before, and for Japanese reads the japanese-writing skill's guide to connecting sentences when that skill is installed. The `handoff-message` and `long-report-to-discord` cases check that at least two sentences start with a conjunction
 
 ## [0.1.0] - 2026-11-15
 

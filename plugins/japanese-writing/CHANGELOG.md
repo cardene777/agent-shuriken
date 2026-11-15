@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- A new reference, `references/connecting.md`, shows how to cut a long sentence in a message for people and connect the short ones with conjunctions, and how to put the conclusion first. It is edited from two documents of Japan's Agency for Cultural Affairs, credited in `THIRD_PARTY_NOTICES.md`
+
 ## [0.1.0] - 2026-11-15
 
 First public release.
