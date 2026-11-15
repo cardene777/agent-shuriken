@@ -334,6 +334,9 @@ check "build output in a folder a running process works in is locked" \
 mode() { "$PY" -c 'import os, sys; print(oct(os.stat(sys.argv[1]).st_mode & 0o777))' "$1" 2>/dev/null; }
 check "scan state is readable only by the user" \
   '[ "$(mode "$T/state")" = 0o700 ] && [ "$(mode "$T/state/scan.json")" = 0o600 ]'
+# The df stand-in prints 500000000 blocks of 1 KiB in all and 10000000 free.
+check "scan records the whole disk size with the free space" \
+  'jq -e ".measure.disk_total == 512000000000 and .measure.disk_free == 10240000000" "$SCAN" > /dev/null 2>&1'
 
 # --- the page -------------------------------------------------------------------------------
 sheet_ok() {
@@ -439,6 +442,158 @@ else
   done
 fi
 
+# page_eval <names> <code>: like page_run, and a name in capitals takes the page's `const NAME = ...;`
+# statement instead of a function. texts(el) lists the text of every element without children.
+page_eval() {
+  "$PY" - "$SHEET" "$1" "$2" <<'PY' | "$NODE" -
+import re, sys
+html = open(sys.argv[1], encoding="utf-8").read()
+words = re.search(r'<script id="i18n" type="application/json">(.*?)</script>', html, re.S).group(1)
+code = []
+for name in sys.argv[2].split():
+    pattern = r"^const %s = .*?;\n" if name.isupper() else r"^function %s\(.*?^}\n"
+    m = re.search(pattern % re.escape(name), html, re.S | re.M)
+    if not m:
+        print('console.log("the page has no %s");' % name)
+        sys.exit(0)
+    code.append(m.group(0))
+dom = """function El(tag) { this.tagName = tag.toUpperCase(); this.children = []; this.className = ""; this.textContent = ""; }
+El.prototype.appendChild = function (c) { this.children.push(c); return c; };
+El.prototype.setAttribute = function () {};
+El.prototype.addEventListener = function () {};
+El.prototype.all = function () { return this.children.reduce(function (a, c) { return a.concat([c], c.all()); }, []); };
+const document = { createElement: function (tag) { return new El(tag); } };
+function buttons(el) { return el.all().filter(function (e) { return e.tagName === "BUTTON"; }).length; }
+function texts(el) { return el.all().filter(function (e) { return !e.children.length && e.textContent !== ""; }).map(function (e) { return String(e.textContent); }); }
+const DATA = { home: "/home/u" };
+const picked = new Set();
+"""
+print("const I18N = %s;\nlet lang = \"en\";\n%s%s%s" % (words, dom, "".join(code), sys.argv[3]))
+PY
+}
+ROW_FNS="t human tilde when day effect lockText whyText isProc levelOf rowEl detailPairs detailEl"
+ROW_JS='const disk = { id: "d1", group: "disk", category: "build", name: "node_modules in app", path: "/home/u/projects/app/node_modules",
+  size: 1000000, level: "recommended", reason: { code: "build_idle", days: 42 }, rebuilt: true, locked: null };
+const proc = { id: "p1", group: "process", category: "dev-process", name: "Vite dev server", size: 52000000, cpu: 12,
+  level: "recommended", reason: { code: "session_ended" }, locked: null,
+  detail: { command: "node vite --port 5173", folder: "/home/u/projects/app", started: "2026-11-15T01:02:00Z" } };
+const busy = Object.assign({}, proc, { id: "p2", locked: "runs under a live agent session (codex, pid 9)" });
+function show(it) { return detailPairs(it).map(function (p) { return /^(d_reason|d_effect|d_started)$/.test(p[0]) ? p[0] : p[0] + "=" + p[1]; }).join(","); }
+const reason = detailPairs(disk)[0][1];
+console.log(texts(rowEl(disk.name, "~/projects/app/node_modules", disk, "")).join("|") + "#" + texts(rowEl(proc.name, "", proc, "x")).join("|"));
+console.log(show(disk) + "#" + show(proc) + "#" + (reason && reason.indexOf("42") >= 0 ? "reason" : "no reason"));
+console.log("free=" + buttons(detailEl(disk)) + " busy=" + buttons(detailEl(busy)));'
+CHART_FNS="TABS t human isProc levelOf freeableSize partText overviewCharts"
+CHART_JS='const items = [
+  { id: "c1", group: "disk", category: "cache", size: 300, level: "recommended", locked: null, rebuilt: true },
+  { id: "c2", group: "disk", category: "cache", size: 200, level: "recommended", locked: "npm is running", rebuilt: true },
+  { id: "b1", group: "disk", category: "build", size: 100, level: "check", locked: null, rebuilt: true },
+  { id: "t1", group: "disk", category: "trash", size: 50, level: "recommended", locked: null },
+  { id: "l1", group: "disk", category: "log", size: 20, level: "recommended", locked: null },
+  { id: "f1", group: "disk", category: "large", size: 400, level: "check", locked: null },
+  { id: "u1", group: "disk", category: "duplicate", size: 60, level: "check", locked: null, detail: { set: "s1" } },
+  { id: "u2", group: "disk", category: "duplicate", size: 60, level: "check", locked: null, detail: { set: "s1" } },
+  { id: "a1", group: "disk", category: "app", size: 70, level: "check", locked: null },
+  { id: "p1", group: "process", category: "dev-process", size: 1000, cpu: 5, level: "recommended", locked: null },
+  { id: "p2", group: "process", category: "heavy-process", size: 3000, cpu: 80, level: "careful", locked: null },
+  { id: "p3", group: "process", category: "heavy-process", size: 2000, cpu: 90, level: "careful", locked: "runs under a live agent session (codex, pid 1)" },
+  { id: "p4", group: "process", category: "dev-process", size: 400, cpu: 1, level: "recommended", locked: null },
+  { id: "p5", group: "process", category: "heavy-process", size: 300, cpu: 2, level: "careful", locked: null },
+  { id: "p6", group: "process", category: "heavy-process", size: 200, cpu: 3, level: "careful", locked: null },
+  { id: "p7", group: "process", category: "heavy-process", size: 100, cpu: 4, level: "careful", locked: null },
+  { id: "k1", group: "process", category: "container", size: 5000, cpu: 1, level: "careful", locked: null },
+  { id: "g1", group: "process", category: "login-item", size: 0, level: "check", locked: null }];
+function line(c) {
+  if (c.kind === "bars") return c.key + ":" + c.bars.map(function (b) { return b.item.id; }).join(",");
+  return c.key + ":" + c.parts.map(function (p) { return p.key + "=" + p.value + (p.tab ? "@" + p.tab : ""); }).join(",") +
+    ";center=" + c.center.value + (c.foot ? ";foot=" + c.foot.value : "");
+}
+const charts = overviewCharts(items, { disk_free: 10000, disk_total: 50000, memory_used: 20000, memory_total: 32000, load: [1.5, 1, 1] }, new Set(["b1", "f1"]));
+charts.forEach(function (c) { console.log(line(c)); });
+const unknown = overviewCharts(items, { disk_free: 10000, memory_used: 20000, memory_total: 32000 }, new Set());
+const other = unknown[2].parts.filter(function (p) { return p.key === "other"; })[0];
+console.log("unknown:" + other.value + ":" + partText(other.value) + ":" + unknown[2].unknown);
+const keys = [];
+charts.forEach(function (c) {
+  keys.push(c.title, c.center ? c.center.label : c.title, c.foot ? c.foot.label : c.title);
+  (c.parts || []).forEach(function (p) { keys.push(p.label); });
+});
+const missing = keys.filter(function (k) { return !k || !I18N.en[k] || !I18N.ja[k]; });
+console.log("keys:" + keys.length + ":missing=" + missing.join(","));'
+chart_line() { printf '%s\n' "$CHART_OUT" | grep "^$1:" | head -1; }
+LIST_FNS="groupRows viewGroups"
+LIST_JS='const list = [
+  { id: "a", name: "Alpha cache", path: "/home/u/.cache/alpha", size: 300, level: "recommended", locked: null, group: "disk" },
+  { id: "b", name: "beta", path: "/home/u/Archive/beta", size: 100, level: "recommended", locked: null, group: "disk" },
+  { id: "c", name: "Gamma", path: "/home/u/x", size: 200, level: "recommended", locked: null, group: "disk" },
+  { id: "g", name: "golf", path: "/home/u/g", size: 150, level: "check", locked: null, group: "disk" },
+  { id: "d", name: "delta", path: "/home/u/archive/d", size: 50, level: "careful", locked: null, group: "disk" },
+  { id: "e", name: "Epsilon", path: "/home/u/e", size: 999, level: "recommended", locked: "in use", group: "disk" }];
+const all = ["recommended", "check", "careful", "inuse"];
+function ids(gs) { return gs.map(function (g) { return g.key + ":" + g.items.map(function (i) { return i.id; }).join(""); }).join("|"); }
+console.log("path=" + ids(viewGroups(list, { query: "ARCHIVE", levels: all, sort: "size-desc" })) + " name=" + ids(viewGroups(list, { query: "gam", levels: all, sort: "size-desc" })));
+console.log("levels=" + ids(viewGroups(list, { query: "", levels: ["check", "inuse"], sort: "size-desc" })));
+console.log("desc=" + ids(viewGroups(list, { query: "", levels: all, sort: "size-desc" })) + " asc=" + ids(viewGroups(list, { query: "", levels: all, sort: "size-asc" })) + " name=" + ids(viewGroups(list, { query: "", levels: all, sort: "name" })));'
+if [ -n "$NODE" ]; then
+  ROW_OUT="$(page_eval "$ROW_FNS" "$ROW_JS" 2>&1)"
+  CHART_OUT="$(page_eval "$CHART_FNS" "$CHART_JS" 2>&1)"
+  LIST_OUT="$(page_eval "$LIST_FNS" "$LIST_JS" 2>&1)"
+  check "a list row shows only the name, the size, the CPU of a process, and a details button" \
+    '[ "$(printf "%s\n" "$ROW_OUT" | sed -n 1p)" = "node_modules in app|1.0 MB|i#Vite dev server|CPU 12%|52.0 MB|i" ] || { echo "  $ROW_OUT"; false; }'
+  check "a list row shows no path, command, or reason" \
+    'r="$(printf "%s\n" "$ROW_OUT" | sed -n 1p)"; [ -n "$r" ] && case "$r" in *projects*|*5173*|*commit*|*"has no"*) false;; *) true;; esac'
+  check "the details dialog shows the reason, the effect, and the path or the process details" \
+    '[ "$(printf "%s\n" "$ROW_OUT" | sed -n 2p)" = "d_reason,d_effect,d_size=1.0 MB,d_path=~/projects/app/node_modules#d_reason,d_effect,d_memory=52.0 MB,d_cpu=12%,d_started,d_folder=~/projects/app,d_command=node vite --port 5173#reason" ] || { echo "  $ROW_OUT"; false; }'
+  check "the details dialog has a pick button for a row that can be picked" \
+    'printf "%s\n" "$ROW_OUT" | grep -qx "free=1 busy=[0-9]*"'
+  check "the details dialog has no pick button for a row in use" \
+    'printf "%s\n" "$ROW_OUT" | grep -qx "free=[0-9]* busy=0"'
+  check "the page opens on the overview tab, placed first" \
+    'grep -qx "let tab = \"overview\";" "$SHEET" && [ "$(page_eval "TABS" "console.log(TABS[0][0] + \"/\" + TABS[0][1].length);" 2>&1)" = "overview/0" ]'
+  check "the overview has the seven charts in order" \
+    '[ "$(printf "%s\n" "$CHART_OUT" | sed -n "1,7p" | cut -d: -f1 | tr "\n" " ")" = "freeable levels disk memory largest memoryTop cpuTop " ] || { echo "  $CHART_OUT"; false; }'
+  check "the freeable chart sums each kind without rows in use and links each part to its tab" \
+    '[ "$(chart_line freeable)" = "freeable:cache=300@cache,build=100@build,trash=70@trash,files=460@files,app=70@app;center=1000;foot=400" ]'
+  check "the level chart sums disk rows by level and rows in use apart" \
+    '[ "$(chart_line levels)" = "levels:recommended=370,check=630,careful=0,inuse=200;center=370;foot=10370" ]'
+  check "the disk chart splits picked, freeable, other, and free space and shows the free space after freeing the picked rows" \
+    '[ "$(chart_line disk)" = "disk:picked=500,freeable=500,other=39000,free=10000;center=10000;foot=10500" ]'
+  check "the disk chart says the whole size is unknown instead of drawing zero" \
+    '[ "$(chart_line unknown)" = "unknown:null:Not measured:true" ]'
+  check "the memory chart splits processes that can end, processes in use, other use, and free memory" \
+    '[ "$(chart_line memory)" = "memory:canEnd=5000@process,inUse=2000@process,other=13000,free=12000;center=20000;foot=1.5" ]'
+  check "the top charts list the largest disk rows and the processes using the most memory and CPU, each bar holding its row" \
+    '[ "$(chart_line largest) $(chart_line memoryTop) $(chart_line cpuTop)" = "largest:f1,c1,c2,b1,a1,u1,u2,t1 memoryTop:p2,p3,p1,p4,p5,p6 cpuTop:p3,p2,p1,p7,p6,p5" ]'
+  check "every chart title and part name comes from the English and Japanese dictionaries" \
+    'chart_line keys | grep -qx "keys:[1-9][0-9]*:missing="'
+  check "the list filters rows by a word in the name or the path" \
+    'printf "%s\n" "$LIST_OUT" | grep -qx "path=recommended:b|careful:d name=recommended:c" || { echo "  $LIST_OUT"; false; }'
+  check "the list hides the groups switched off" \
+    'printf "%s\n" "$LIST_OUT" | grep -qx "levels=check:g|inuse:e"'
+  check "the list sorts rows by size either way and by name" \
+    'printf "%s\n" "$LIST_OUT" | grep -qx "desc=recommended:acb|check:g|careful:d|inuse:e asc=recommended:bca|check:g|careful:d|inuse:e name=recommended:abc|check:g|careful:d|inuse:e"'
+else
+  for name in "a list row shows only the name, the size, the CPU of a process, and a details button" \
+    "a list row shows no path, command, or reason" \
+    "the details dialog shows the reason, the effect, and the path or the process details" \
+    "the details dialog has a pick button for a row that can be picked" \
+    "the details dialog has no pick button for a row in use" \
+    "the page opens on the overview tab, placed first" \
+    "the overview has the seven charts in order" \
+    "the freeable chart sums each kind without rows in use and links each part to its tab" \
+    "the level chart sums disk rows by level and rows in use apart" \
+    "the disk chart splits picked, freeable, other, and free space and shows the free space after freeing the picked rows" \
+    "the disk chart says the whole size is unknown instead of drawing zero" \
+    "the memory chart splits processes that can end, processes in use, other use, and free memory" \
+    "the top charts list the largest disk rows and the processes using the most memory and CPU, each bar holding its row" \
+    "every chart title and part name comes from the English and Japanese dictionaries" \
+    "the list filters rows by a word in the name or the path" \
+    "the list hides the groups switched off" \
+    "the list sorts rows by size either way and by name"; do
+    printf 'skip  %s (node is not installed)\n' "$name"
+  done
+fi
+
 # A scan written by the previous format has no levels, so serve and apply ask for a new scan.
 mkdir -p "$T/state-old"
 jq '.version = 1' "$SCAN" > "$T/state-old/scan.json" 2>/dev/null
@@ -446,10 +601,26 @@ MACHINE_CLEANUP_HOME="$T/state-old" mc apply --select "machine-cleanup:select d-
 MACHINE_CLEANUP_HOME="$T/state-old" mc serve --no-open --wait 1 > "$T/old-serve.out" 2>&1; OLD_SERVE_RC=$?
 check "serve and apply refuse a scan from an older version and ask for a new one" \
   '[ "$OLD_APPLY_RC" = 2 ] && [ "$OLD_SERVE_RC" = 2 ] && grep -q "older version" "$T/old-apply.out" && grep -q "older version" "$T/old-serve.out"'
+# A version 2 scan has no disk size for the overview, so it is refused the same way.
+mkdir -p "$T/state-v2"
+jq '.version = 2 | del(.measure.disk_total)' "$SCAN" > "$T/state-v2/scan.json" 2>/dev/null
+MACHINE_CLEANUP_HOME="$T/state-v2" mc apply --select "machine-cleanup:select d-00000000" > "$T/v2-apply.out" 2>&1; V2_APPLY_RC=$?
+MACHINE_CLEANUP_HOME="$T/state-v2" mc serve --no-open --wait 1 > "$T/v2-serve.out" 2>&1; V2_SERVE_RC=$?
+check "serve and apply refuse a version 2 scan, which has no disk size" \
+  '[ "$V2_APPLY_RC" = 2 ] && [ "$V2_SERVE_RC" = 2 ] && grep -q "older version" "$T/v2-apply.out" && grep -q "older version" "$T/v2-serve.out"'
 
 PLUGIN_DIR="$(cd "$SKILL_DIR/../.." && pwd)"
 check "how-it-works lists the three levels and their rules in both languages" \
   'grep -qx "## How rows are ranked" "$PLUGIN_DIR/docs/how-it-works.md" && grep -q "^| Recommended |" "$PLUGIN_DIR/docs/how-it-works.md" && grep -q "^| Check first |" "$PLUGIN_DIR/docs/how-it-works.md" && grep -q "^| Careful |" "$PLUGIN_DIR/docs/how-it-works.md" && grep -qx "## 行の推奨度" "$PLUGIN_DIR/docs/how-it-works.ja.md" && grep -q "^| おすすめ |" "$PLUGIN_DIR/docs/how-it-works.ja.md" && grep -q "^| 確かめて選ぶ |" "$PLUGIN_DIR/docs/how-it-works.ja.md" && grep -q "^| 慎重に |" "$PLUGIN_DIR/docs/how-it-works.ja.md"'
+# docs_rows <file> <heading> <first cells...>: the file has the heading and a table row for each cell.
+docs_rows() {
+  local f="$1" h="$2" c
+  shift 2
+  grep -qx "$h" "$f" || return 1
+  for c in "$@"; do grep -qF "| $c |" "$f" || { echo "  no row \"$c\" in $f"; return 1; }; done
+}
+check "how-it-works describes the overview charts and the list tools in both languages" \
+  'docs_rows "$PLUGIN_DIR/docs/how-it-works.md" "## The overview tab" "What can be freed" "Size by level" "Disk" "Memory" "Largest items" "Processes using the most memory" "Processes using the most CPU" "Search" "Groups" "Sort" && docs_rows "$PLUGIN_DIR/docs/how-it-works.ja.md" "## 全体のタブ" "空けられる分の内訳" "推奨度ごとの大きさ" "ディスク" "メモリ" "大きい物の上位" "メモリを多く使うプロセス" "CPUを多く使うプロセス" "探す" "段" "並べ替え"'
 
 # The copied text is built without the dictionary, and apply reads it as it is.
 copy_ok() {
