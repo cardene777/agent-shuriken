@@ -1,0 +1,37 @@
+# In a project whose 1Password template already has a hand-written line, the agent keeps that line as
+# it is and adds a reference only for the variable that has none. `op` must be on the PATH of the
+# machine that runs the eval.
+schema_version: "1.1"
+name: keeps-existing-template
+plugins: ["../.."]
+execution:
+  prompt: |
+    Link this project's .env to 1Password, in my vault called Dev. I approve the plan in advance, so write the files without asking me again. I will put the values into 1Password myself.
+  max_turns: 16
+  timeout_seconds: 400
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'init-project'
+  - name: hand-written-line-kept
+    type: regex
+    target: {source: file, path: .env.tpl}
+    pattern: '^# hand-written: the database host lives in a shared item\nPANTRY_DB_HOST=op://Dev/pantry-shared/db-host\n'
+  - name: missing-reference-added
+    type: regex
+    target: {source: file, path: .env.tpl}
+    pattern: '(^|\n)PANTRY_GREETING=op://Dev/'
+  - name: no-second-db-host-line
+    type: regex
+    target: {source: file, path: .env.tpl}
+    pattern: 'PANTRY_DB_HOST=[^\n]*\n[\s\S]*PANTRY_DB_HOST='
+    match: not_contains
+  - name: told-kept
+    type: llm
+    criteria: |
+      PASS if the reply says the existing .env.tpl or its PANTRY_DB_HOST line was kept, and that a reference was added for PANTRY_GREETING.
+      FAIL if the reply says .env.tpl was replaced or rewritten, or does not mention what happened to the existing line.

@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The skill's description is half as long, so every session that lists the installed skills reads less, and its instructions are shorter: the tables of project kinds, `plan` flags, plan marks, and exit codes are gone, since `detect`, `plan --help`, and each command's own messages say the same. The rules that keep env values away from the agent, ask before writing, and keep existing files are unchanged. An eval suite under `evals/` measures it with `claude plugin eval`, and no case scored lower
+
 ## [0.2.0] - 2026-11-14
 
 - When the portman plugin is installed, its registry is the one record of ports: `plan` skips every port portman holds for another folder, including the git worktrees of the same repository, uses the port portman holds for this folder, and `apply` registers new ports with portman's `add` command instead of `ports.json`. Before, the two plugins did not read each other, so two projects could get the same port
