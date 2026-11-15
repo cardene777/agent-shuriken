@@ -355,8 +355,9 @@ for f in docs/how-it-works.ja.md README.ja.md; do
   grep '使っていない依存' "$docs/$f" | grep -q '概算' || undocumented="$undocumented $f"
 done
 check "the docs call the unused dependencies approximate" "[ -z \"$undocumented\" ]"
+# The SKILL.md leaves how each tool runs to docs/how-it-works.md, so only the docs are read here.
 undescribed=""
-for f in skills/techdebt/SKILL.md docs/how-it-works.md README.md; do
+for f in docs/how-it-works.md README.md; do
   { grep -qi 'deprecated calls' "$docs/$f" && grep -qF -- '--metrics off' "$docs/$f"; } || undescribed="$undescribed $f"
 done
 for f in docs/how-it-works.ja.md README.ja.md; do
@@ -423,7 +424,7 @@ fixtures_ready() {
 import json, sys
 d = json.load(open(sys.argv[1]))
 tools = d["deprecated_calls"]["tools"]
-names = [u.get("name") if isinstance(u, dict) else u for u in d["unused_dependencies"]]
+names = [u["name"] for u in d["unused_dependencies"]["items"]]
 sys.exit(0 if tools and not any(t["ran"] for t in tools) and "left-pad-lite" in names else 1)
 PYEOF
       continue
@@ -439,8 +440,11 @@ ok = "ledger/billing.py" in ranked and "ledger/report.py" in ranked and "tests/t
 sys.exit(0 if ok and masked and "tiger-canary-77" not in text else 1)
 PYEOF
     if [ "$c" = fixes-notes ]; then
-      TECHDEBT_HOME="$T/fixture-$c/state" PATH="$T/nogit:$PATH" python3 "$SCRIPT" explain --notes "$ws/notes/draft.json" "$ws" > /dev/null 2>&1
+      # The case grades both repairs, so explain must refuse the draft for both reasons.
+      TECHDEBT_HOME="$T/fixture-$c/state" PATH="$T/nogit:$PATH" python3 "$SCRIPT" explain --notes "$ws/notes/draft.json" "$ws" > /dev/null 2> "$T/fixture-$c/explain.err"
       [ "$?" = 2 ] || return 1
+      grep -qF 'tests/test_util.py is not in the ranked list' "$T/fixture-$c/explain.err" || return 1
+      grep -qF 'ledger/report.py needs non-empty what, why, and action' "$T/fixture-$c/explain.err" || return 1
     else
       [ ! -e "$ws/notes/draft.json" ] || return 1
     fi
@@ -456,8 +460,8 @@ results_ignored() {
 check "eval results are ignored by git" results_ignored
 
 # The body is counted in words and the description in characters, as the size the agent reads.
-SKILL_WORDS_MAX=1272
-SKILL_DESCRIPTION_MAX=459
+SKILL_WORDS_MAX=816
+SKILL_DESCRIPTION_MAX=299
 skill_size() {
   python3 - "$SKILL" "$SKILL_WORDS_MAX" "$SKILL_DESCRIPTION_MAX" <<'PYEOF'
 import re, sys

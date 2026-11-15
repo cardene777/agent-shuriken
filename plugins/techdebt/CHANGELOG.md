@@ -5,6 +5,10 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The template is `templates/base.html`, so that no file in the plugin is named `report.html`; `scan` still writes the report as `report.html`
+- The `SKILL.md` is shorter: the table of measures and the weights of the score, which `docs/how-it-works.md` gives, the description of the report page, and the failures whose messages say what to fix are gone, and the description says only what the skill does and when to use it
+- The plugin has `claude plugin eval` cases under `evals/` that measure the skill, run by hand
+
 ## [0.3.0] - 2026-11-14
 
 - `scan` lists unused dependencies without knip: names in the `dependencies` and `devDependencies` of each `package.json` that no import, require, config file, or `scripts` entry uses. A package that a used package needs as a peer, a plugin named by its short name, and `@types/<name>` of a used name count as used. The measure is marked approximate, and when knip ran, its unused dependencies are listed instead, once. Before, unused dependencies were found only when knip was installed

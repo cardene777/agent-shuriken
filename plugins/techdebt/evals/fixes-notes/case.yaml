@@ -1,0 +1,37 @@
+# The user's draft notes name tests/test_util.py, which is not ranked, and leave the action of
+# ledger/report.py empty, so explain exits 2. The agent fixes the entries it names and attaches them.
+schema_version: "1.1"
+name: fixes-notes
+plugins: ["../.."]
+execution:
+  prompt: |
+    I drafted notes on the top tech debt files of this repository in notes/draft.json. Attach them to the techdebt report, and copy the report to out/report.html when it's done.
+  max_turns: 40
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'techdebt'
+    arm: with-only
+  - name: explained
+    type: tool_used
+    tool: Bash
+    input_match: 'techdebt\.py\\?"?(?:\s|\\n)+explain'
+    arm: with-only
+  - name: billing-note-kept
+    type: regex
+    target: {source: file, path: out/report.html}
+    pattern: '"ledger/billing\.py": \{"what": "(?:[^"\\]|\\.)+", "why": "(?:[^"\\]|\\.)+", "action": "(?:[^"\\]|\\.)+"\}'
+  - name: report-action-filled
+    type: regex
+    target: {source: file, path: out/report.html}
+    pattern: '"ledger/report\.py": \{"what": "(?:[^"\\]|\\.)+", "why": "(?:[^"\\]|\\.)+", "action": "(?:[^"\\]|\\.)+"\}'
+  - name: unranked-note-dropped
+    type: regex
+    target: {source: file, path: out/report.html}
+    pattern: '"tests/test_util\.py": \{"what"'
+    match: not_contains
