@@ -1,0 +1,29 @@
+# Messages over time become a sequence spec, with the replies drawn as dashed lines.
+schema_version: "1.1"
+name: sequence-diagram
+plugins: ["../.."]
+execution:
+  prompt: |
+    Draw the login as an Excalidraw sequence of messages. The browser sends the email and password to the API. The API asks the auth service to verify them. The auth service replies with a token. The API replies to the browser with a session cookie. Put the files in docs/images and call it login-sequence.
+  max_turns: 20
+  timeout_seconds: 500
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'excalidraw-diagram'
+  - name: sequence-spec
+    type: regex
+    target: {source: file, path: docs/images/login-sequence.diagram.json}
+    pattern: '"type": *"sequence"'
+  - name: replies-dashed
+    type: regex
+    target: {source: file, path: docs/images/login-sequence.diagram.json}
+    pattern: '"line": *"dashed"'
+  - name: excalidraw-written
+    type: regex
+    target: {source: file, path: docs/images/login-sequence.excalidraw}
+    pattern: '(?=[\s\S]*"type": *"excalidraw")(?=[\s\S]*[Tt]oken)'

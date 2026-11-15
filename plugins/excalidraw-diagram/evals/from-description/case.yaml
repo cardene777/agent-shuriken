@@ -1,0 +1,37 @@
+# A described system becomes an .excalidraw file and an SVG in the folder the user named, with the
+# details of each part inside its box, and the reply says where the files are and that they open in
+# Excalidraw. The eval sandbox starts no browser that writes an image, so the PNG is not graded.
+schema_version: "1.1"
+name: from-description
+plugins: ["../.."]
+execution:
+  prompt: |
+    Draw our checkout system as an Excalidraw diagram. A Next.js web app on port 3000 calls an API gateway over HTTPS with a JWT. The gateway calls an order service (POST /orders) and a payment service (POST /charges). The order service writes to a Postgres table orders with the columns id, user_id, and total. Put the files in docs/images and call the diagram checkout.
+  max_turns: 20
+  timeout_seconds: 500
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'excalidraw-diagram'
+  - name: excalidraw-written
+    type: regex
+    target: {source: file, path: docs/images/checkout.excalidraw}
+    pattern: '"type": *"excalidraw"'
+  - name: svg-written
+    type: regex
+    target: {source: file, path: docs/images/checkout.svg}
+    pattern: '<svg'
+  - name: boxes-hold-detail
+    type: regex
+    target: {source: file, path: docs/images/checkout.excalidraw}
+    pattern: '(?=[\s\S]*POST /orders)(?=[\s\S]*POST /charges)(?=[\s\S]*3000)'
+  - name: reported
+    type: llm
+    criteria: |
+      PASS if the reply gives the path of the Excalidraw file (docs/images/checkout.excalidraw) and says the user can open or edit it in Excalidraw.
+      A reply that also says the PNG was skipped or could not be made is not a failure, and neither is a missing PNG.
+      FAIL if the reply gives no path to the .excalidraw file, or says no diagram was made.
