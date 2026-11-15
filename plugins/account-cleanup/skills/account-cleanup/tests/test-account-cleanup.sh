@@ -321,6 +321,13 @@ check "annotate keeps only ok or ng as a suggestion" \
   '[ "$(jq -r ".[] | select(.key == \"example.co.jp\") | [.suggestion, .previous.label] | map(tostring) | join(\" \")" "$D/matched.json")" = "null Needs a phone call" ]'
 "$S/prepare.sh" --rebuild >/dev/null
 check "a rebuild keeps the descriptions" '[ "$(jq -r ".[] | select(.key == \"example.org\") | .description" "$D/matched.json")" = "A mail service" ]'
+out="$(printf '%s\n' '{"example.net": {"description": "A test site", "category": "other", "suggestion": "ok", "why": "Unused"}}' \
+  | "$S/annotate.sh" - 2>"$T/err")"; rc=$?
+check "annotate reads the descriptions from standard input with - and leaves no file behind" \
+  '[ "$rc" = 0 ] && [ "$out" = "Attached descriptions to 1 candidate(s)." ] \
+   && [ "$(jq -r ".[] | select(.key == \"example.net\") | .description" "$D/matched.json")" = "A test site" ] \
+   && jq -e "has(\"example.org\") and has(\"example.net\")" "$D/descriptions.json" >/dev/null \
+   && [ -z "$(find "$D" -name "descriptions-new*")" ]'
 
 # --- plan.sh
 printf 'account-cleanup selection\nexample.org\tkeep the | photos first\n- 192.168.1.1\nexample.net\nmissing.example\n\n' > "$T/selection.txt"
@@ -340,6 +347,11 @@ check "plan with nothing selected exits 2" '[ "$rc" = 2 ]'
 rm "$D/region"
 printf 'example.net\n' | "$S/plan.sh" > "$T/plan2.md"
 check "plan without a saved region tells the agent to ask" 'grep -qF "No region was saved." "$T/plan2.md" && grep -qxF "Erasure request (GDPR-style text)" "$T/plan2.md"'
+printf 'other\n' > "$D/region"
+printf 'example.net\n' | "$S/plan.sh" > "$T/plan3.md"
+check "plan for another region tells the agent to replace the citation" \
+  'grep -qF "replace the GDPR citation with the data protection law that applies where the user lives" "$T/plan3.md" && grep -qxF "Erasure request (GDPR-style text)" "$T/plan3.md"'
+rm "$D/region"
 
 # --- remove-item.sh
 : > "$OP_LOG"
@@ -381,6 +393,85 @@ left=""
 for f in candidates.jsonl manual.jsonl matched.json sheet.html descriptions.json region browser; do [ -e "$D/$f" ] && left="$left $f"; done
 check "cleanup removes the candidates, sheet, descriptions, region, and browser profile" '[ "$rc" = 0 ] && [ -z "$left" ]'
 check "cleanup keeps the additions list and the follow-up list" '[ -s "$D/additions.json" ] && [ -s "$D/followups.tsv" ] && printf "%s\n" "$out" | grep -q "Kept the follow-up list"'
+
+# --- the SKILL.md and the eval suite that measures it (plugins/account-cleanup/evals)
+SKILL="$HERE/../SKILL.md"
+PLUGIN="$HERE/../../.."
+EVALS="$PLUGIN/evals"
+CHROME="Library/Application Support/Google/Chrome/Default"
+
+# The rules are the guarantees in docs/safety.md, so a shorter SKILL.md keeps every one of them.
+skill_rules() {
+  local phrase
+  for phrase in "op item get" "Login Data" "two-factor" "approval" "not part of deleting the account" \
+    "card statements" "service name and domain" "outside this computer"; do
+    grep -qiF -- "$phrase" "$SKILL" || return 1
+  done
+}
+check "the SKILL.md keeps its rules on passwords, approval, and the browser" "skill_rules"
+
+eval_cases() {
+  local c
+  for c in trigger-asks-first unrelated-request collect-and-describe password-not-shown plan-before-deleting; do
+    [ -f "$EVALS/$c/case.yaml" ] || return 1
+  done
+}
+check "the eval suite has the five cases" "eval_cases"
+
+# Each fixture runs in an empty folder under its own HOME, as claude plugin eval runs it, without the
+# overrides this test sets for the scripts, so the scripts use their real data folder and site list.
+fixture_env() { env -u ACCOUNT_CLEANUP_HOME -u ACCOUNT_CLEANUP_SITES -u ACCOUNT_CLEANUP_TODAY HOME="$1" TMPDIR="$1/.tmp" "${@:2}"; }
+fixture() {
+  local d="$T/fixture-$1"
+  rm -rf "$d"
+  mkdir -p "$d/home/cwd" "$d/home/.tmp"
+  (cd "$d/home/cwd" && fixture_env "$d/home" bash "$EVALS/$1/fixture.sh") >/dev/null 2>&1 && printf '%s\n' "$d/home"
+}
+fixtures_ready() {
+  local h data=".local/share/account-cleanup"
+  h="$(fixture trigger-asks-first)" && [ -f "$h/$CHROME/Login Data" ] && [ ! -e "$h/$data" ] || return 1
+  h="$(fixture unrelated-request)" && [ -f "$h/cwd/package.json" ] && [ ! -e "$h/$data" ] || return 1
+  h="$(fixture collect-and-describe)" && [ -f "$h/$CHROME/Login Data" ] && [ -f "$h/$CHROME/History" ] &&
+    [ ! -e "$h/$data" ] || return 1
+  h="$(fixture password-not-shown)" && [ -f "$h/$CHROME/Login Data" ] && [ ! -e "$h/$data" ] || return 1
+  h="$(fixture plan-before-deleting)" && [ "$(cat "$h/$data/region" 2>/dev/null)" = japan ] || return 1
+  # One chosen service cannot be deleted, so the plan carries the erasure request for Japan.
+  printf 'account-cleanup selection\ntrailmap.example\n' | fixture_env "$h" "$S/plan.sh" 2>/dev/null |
+    grep -qxF "Erasure request (Japan APPI Article 35)"
+}
+check "the eval fixtures build the states their cases start from" "fixtures_ready"
+
+# The made-up saved passwords carry no password at all, so no case can show one even by mistake.
+fixtures_have_no_password() {
+  local c db rows=0 filled
+  for c in trigger-asks-first collect-and-describe password-not-shown plan-before-deleting; do
+    db="$T/fixture-$c/home/$CHROME/Login Data"
+    [ -f "$db" ] || return 1
+    rows=$((rows + $(sqlite3 "$db" "SELECT count(*) FROM logins")))
+    filled="$(sqlite3 "$db" "SELECT count(*) FROM logins WHERE length(password_value) > 0 OR length(username_value) > 0")"
+    [ "$filled" = 0 ] || return 1
+  done
+  [ "$rows" -gt 0 ]
+}
+check "the eval fixtures hold no password" "fixtures_have_no_password"
+
+eval_results_ignored() { git -C "$PLUGIN" check-ignore -q evals/results/run.json; }
+check "eval results are ignored by git" "eval_results_ignored"
+
+# The limits are the sizes of the shortened SKILL.md. Every agent that starts the skill reads the
+# whole body, and every session reads the description, so raise a limit only with a reason.
+SKILL_WORDS_MAX=2187
+SKILL_DESCRIPTION_MAX=445
+skill_size() {
+  python3 - "$SKILL" "$SKILL_WORDS_MAX" "$SKILL_DESCRIPTION_MAX" <<'PY'
+import re, sys
+text = open(sys.argv[1], encoding="utf-8").read()
+m = re.match(r"---\n(.*?)\n---\n(.*)", text, re.S)
+desc = re.search(r"^description:\s*(.*)$", m.group(1), re.M).group(1).strip()
+sys.exit(0 if len(m.group(2).split()) <= int(sys.argv[2]) and len(desc) <= int(sys.argv[3]) else 1)
+PY
+}
+check "the SKILL.md stays within its size limits" "skill_size"
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" = 0 ]
