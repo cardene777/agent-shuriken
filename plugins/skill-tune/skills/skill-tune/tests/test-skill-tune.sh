@@ -132,7 +132,19 @@ check "run passes the copy, the cost limit, and the result path to claude plugin
    && grep -qF -- "--scaffold" "$CLAUDE_LOG" && grep -qF -- "--trust-plugin" "$CLAUDE_LOG" && grep -qF -- "--no-publish" "$CLAUDE_LOG" \
    && grep -qF -- "--keep-temp" "$CLAUDE_LOG" && grep -qF -- "--max-cost-usd 4" "$CLAUDE_LOG" \
    && grep -qF -- "--json $D/runs/alpha-before/results/before.json" "$CLAUDE_LOG" && [ -f "$D/runs/alpha-before/results/before.json" ] \
-   && ! tune run "$copy" --label again >/dev/null 2>&1'
+   && ! tune run "$copy" --label again --max-cost-usd 0 >/dev/null 2>&1'
+: > "$CLAUDE_LOG"
+tune run "$copy" --label open > /dev/null; rc_open=$?
+check "run without --max-cost-usd passes no limit to claude plugin eval" \
+  '[ "$rc_open" = 0 ] && grep -qF "plugin eval $copy " "$CLAUDE_LOG" && ! grep -qF -- "--max-cost-usd" "$CLAUDE_LOG"'
+: > "$CLAUDE_LOG"
+tune run "$copy" --label one --case alpha-one > /dev/null; rc_one=$?
+grep -qF -- "--case alpha-one" "$CLAUDE_LOG"; logged_one=$?
+: > "$CLAUDE_LOG"
+tune run "$copy" --label two --case alpha-one --case alpha-two 2> "$T/two.err"; rc_two=$?
+check "run passes one --case on, and refuses a second one instead of dropping it" \
+  '[ "$rc_one" = 0 ] && [ "$logged_one" = 0 ] && [ "$rc_two" = 2 ] && [ ! -s "$CLAUDE_LOG" ] \
+   && grep -qF -- "--case takes one glob" "$T/two.err"'
 
 # --- summary
 tune summary "$T/before.json" --indicator check-line > "$T/summary.txt"
@@ -185,11 +197,12 @@ skill_rules() {
     "There is no network and no browser" \
     "A process cannot listen on a local port" \
     '`regex` patterns are JavaScript regular expressions' \
+    '`tool_used` matches `input_match` against the input as JSON text' \
     '`git` fails' \
     "Grade the files the run leaves in the workspace" \
     "An LLM judge can fail a reply that meets every condition" \
     "Spend nothing before the user agrees" \
-    "ask the user how much they allow" \
+    "Pass \`--max-cost-usd\` only when the user names a limit" \
     "In agents other than Claude Code, stop before measuring" \
     "only on plugins the user wrote or trusts"; do
     grep -qF -- "$phrase" "$SKILL" || return 1
@@ -197,7 +210,7 @@ skill_rules() {
 }
 check "the SKILL.md keeps its rules on the sandbox, graders, cost, and other agents" "skill_rules"
 
-SKILL_WORDS_MAX=1631
+SKILL_WORDS_MAX=1627
 SKILL_DESCRIPTION_MAX=357
 skill_size() {
   [ -f "$SKILL" ] || return 1

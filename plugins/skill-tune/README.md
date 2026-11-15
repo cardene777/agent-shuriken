@@ -7,7 +7,7 @@ English · [日本語](README.ja.md)
 A `SKILL.md` grows as a skill gains steps, and the agent reads all of it every time the skill starts.
 Much of it often says again what the skill's scripts already print or what its headings already show, but cutting by feel can drop the one sentence the agent needed.
 This plugin has your agent write `claude plugin eval` cases into the plugin, measure the skill before any change, make only the cuts you agree to, and measure again.
-A script runs every eval on a private copy of the plugin with a cost ceiling you set, scores each case without the graders that only show the skill ran, and lists each case as kept, higher, or lower.
+A script runs every eval on a private copy of the plugin, scores each case without the graders that only show the skill ran, and lists each case as kept, higher, or lower.
 
 ```
 Read the skill ──> Agree on cases and cuts ──> Write cases ──> Estimate ──> Baseline ──> Shorten ──> Compare
@@ -45,10 +45,10 @@ In GitHub Copilot CLI, write `/skill-tune` in your request, and in Gemini CLI, d
 | The longest skills in a repository | A table of every skill by length, with its eval cases, and an offer to start with one |
 
 1. The agent measures the `SKILL.md` and lists the parts that repeat what its scripts, headings, or `--help` already say, with the words each cut would save
-2. You pick the case groups and the cuts. The agent says what a run costs and asks how much you allow
+2. You pick the case groups and the cuts. The agent says what a run costs
 3. The agent writes the cases into the plugin's `evals/` folder, each with a `fixture.sh` that builds its starting state, and adds checks for them to the plugin's test
 4. The script copies the plugin and runs each case once, so a case the sandbox cannot pass is fixed before any money goes into measuring
-5. From that run, the script estimates the cost of measuring. You choose how much to spend, and the script records the baseline on a fresh copy
+5. From that run, the script estimates the cost of measuring. The agent shows it, and the script records the baseline on a fresh copy
 6. The agent makes only the agreed cuts in your `SKILL.md`, and caps its size in the plugin's test
 7. The script measures a copy of the new `SKILL.md` and compares it case by case. A case that scored lower is read run by run, and its cause is named before anything changes
 8. The agent reports each case's score before, after, and without the plugin, with the cost, and removes the copies and the folders the eval kept
@@ -93,7 +93,7 @@ In short:
 
 - The agent reads the plugin you point to, and the script reads its `SKILL.md` files, its `evals/` folder, the eval results, and the traces the eval keeps
 - It writes eval cases and the agreed cuts only in that plugin, and keeps copies and results in `~/.local/share/skill-tune/`, readable only by you
-- It runs `claude plugin eval` only after you agree on a cost ceiling, and passes that ceiling as `--max-cost-usd`. Each case's `fixture.sh` runs as you, so run it only on plugins you wrote or trust
+- It runs `claude plugin eval` only after you agree on the cases, and shows the cost estimate before measuring. It passes `--max-cost-usd` only when you name a limit. Each case's `fixture.sh` runs as you, so run it only on plugins you wrote or trust
 - The script sends nothing itself. `claude plugin eval` sends each case's prompt and what the agent reads during the run to Anthropic's model through your own Claude Code sign-in, and the cost is billed to your account. Results are not published
 - When it finishes, it removes the copies, their results, and the folders the eval kept
 
