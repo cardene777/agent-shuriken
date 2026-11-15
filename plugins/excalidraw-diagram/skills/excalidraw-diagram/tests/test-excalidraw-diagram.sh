@@ -744,8 +744,8 @@ results_ignored() {
 check "eval results are ignored by git" results_ignored
 
 # The body is counted in words and the description in characters, as the size the agent reads.
-SKILL_WORDS_MAX=1600
-SKILL_DESCRIPTION_MAX=320
+SKILL_WORDS_MAX=1583
+SKILL_DESCRIPTION_MAX=298
 skill_size() {
   python3 - "$SKILL" "$SKILL_WORDS_MAX" "$SKILL_DESCRIPTION_MAX" <<'PYEOF'
 import re, sys
@@ -779,7 +779,7 @@ import re, sys
 text = {}
 lines = sys.stdin.read().splitlines()
 for i, line in enumerate(lines):
-    m = re.match(r"^  --([a-z-]+)(?: [A-Z_{},0-9]+)?(?:  +(\S.*))?$", line)
+    m = re.match(r"^  --([a-z-]+)(?: \S+)?(?:  +(\S.*))?$", line)
     if m:
         nxt = lines[i + 1] if i + 1 < len(lines) else ""
         text[m.group(1)] = m.group(2) or (nxt.strip() if re.match(r"^ {6,}\S", nxt) else "")

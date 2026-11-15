@@ -267,22 +267,35 @@ def cmd_mermaid(args):
 def main(argv):
     parser = argparse.ArgumentParser(prog="excalidraw_diagram.py", description=__doc__.split("\n")[0])
     sub = parser.add_subparsers(dest="command")
+    helps = {
+        "build": ("lay out a spec (.diagram.json, .mmd), check it, and write .excalidraw, .svg, and .png",
+                  "the spec: a .diagram.json file, a .mmd Mermaid file, or - for standard input"),
+        "render": ("write the .svg and .png of an .excalidraw file without changing it", "the .excalidraw file"),
+    }
     for name in ("build", "render"):
-        p = sub.add_parser(name)
-        p.add_argument("input")
-        p.add_argument("--out")
-        p.add_argument("--name")
-        p.add_argument("--png", choices=("auto", "skip", "require"), default="auto")
-        p.add_argument("--scale", type=int, choices=(1, 2, 3), default=2)
-        p.add_argument("--replace", action="store_true")
+        p = sub.add_parser(name, help=helps[name][0], description=helps[name][0])
+        p.add_argument("input", help=helps[name][1])
+        p.add_argument("--out", help="folder for the files (default: the folder of the input)")
+        p.add_argument("--name", help="file name without the extension (default: the input's name)")
+        p.add_argument("--png", choices=("auto", "skip", "require"), default="auto",
+                       help="auto makes the PNG when a browser is found; skip leaves it out; "
+                            "require exits 4 when no PNG can be made")
+        p.add_argument("--scale", type=int, choices=(1, 2, 3), default=2,
+                       help="PNG pixels per SVG pixel (default 2, sharp on high-density screens)")
+        p.add_argument("--replace", action="store_true",
+                       help="replace output files this plugin did not write or that changed since, "
+                            "such as a diagram the user edited; only after the user agrees")
         if name == "build":
-            p.add_argument("--theme")
-    p = sub.add_parser("check")
-    p.add_argument("input")
-    p = sub.add_parser("mermaid")
-    p.add_argument("input")
-    p.add_argument("--output", "-o")
-    p.add_argument("--replace", action="store_true")
+            p.add_argument("--theme", help="draw in this theme instead of the spec's: sketch, hatch, pencil, "
+                                           "soft, marker, dark, clean, or friendly")
+    p = sub.add_parser("check", help="check an .excalidraw file against the layout rules",
+                       description="check an .excalidraw file against the layout rules")
+    p.add_argument("input", help="the .excalidraw file")
+    p = sub.add_parser("mermaid", help="convert a Mermaid flowchart or sequence diagram to a spec",
+                       description="convert a Mermaid flowchart or sequence diagram to a spec")
+    p.add_argument("input", help="the .mmd file, or - for standard input")
+    p.add_argument("--output", "-o", help="write the spec here instead of printing it")
+    p.add_argument("--replace", action="store_true", help="replace an existing output file")
     args = parser.parse_args(argv)
     if not args.command:
         parser.print_help()

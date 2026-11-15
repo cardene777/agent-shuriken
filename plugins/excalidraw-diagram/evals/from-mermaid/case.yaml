@@ -18,7 +18,7 @@ graders:
   - name: converted-by-the-script
     type: tool_used
     tool: Bash
-    input_match: 'excalidraw_diagram\.py"?\s+(mermaid|build)\s+\S*login\.mmd'
+    input_match: 'excalidraw_diagram\.py\\?"?\s+(mermaid|build)\s+\S*login\.mmd'
     arm: with-only
   - name: excalidraw-written
     type: regex

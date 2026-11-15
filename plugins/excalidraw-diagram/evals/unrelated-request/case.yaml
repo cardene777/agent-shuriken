@@ -29,4 +29,5 @@ graders:
     type: llm
     criteria: |
       PASS if the reply explains the flow: a cart goes to payment, a paid order goes to shipping, and a declined payment goes back to the cart. Other words for the same steps are not a failure.
-      FAIL if the reply does not describe the flow, or says it drew or wrote a diagram or a file.
+      Saying how the existing Mermaid file draws an arrow (for example, "drawn as a dashed arrow") is not a failure; it describes the file, not a new diagram.
+      FAIL if the reply does not describe the flow, or says it made a new diagram or wrote a file.
