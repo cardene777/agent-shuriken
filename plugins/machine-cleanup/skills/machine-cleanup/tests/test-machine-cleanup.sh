@@ -102,7 +102,12 @@ case "$1 $2" in
   "stats --no-stream") cat "$MOCK/docker-stats";;
 esac
 exit 0'
-for tool in brew npm pnpm yarn bun pip uv go pod; do stub "$tool" "$LOG"; done
+for tool in brew npm pnpm yarn bun pip uv go pod rustup ollama; do stub "$tool" "$LOG"; done
+# git is the real one, with each call recorded, so the tests can tell the scan never fetches.
+REAL_GIT="$(command -v git)"
+export REAL_GIT
+stub git "$LOG"'
+exec "$REAL_GIT" "$@"'
 export PATH="$BIN:$SYS"
 
 mc() { "$PY" "$SCRIPT" "$@"; }
@@ -257,15 +262,126 @@ write_ps() {
     psline "$P_TERM" 1 "$U" '??' 60000 0:01.00 "$LSTART" 'node /work/a/node_modules/.bin/vite'
     psline "$P_STUBBORN" 1 "$U" '??' 60000 0:01.00 "$LSTART" 'node /work/b/node_modules/.bin/nodemon'
     psline "$P_REUSED" 1 "$U" '??' 60000 0:01.00 "${2:-$LSTART}" 'node /work/c/node_modules/.bin/webpack serve'
+    # A Ruby server runs from an rbenv version, and Ollama runs only when OLLAMA_UP is set.
+    psline 1401 1 "$U" '??' 10000 0:00.10 "$LSTART" "$H/.rbenv/versions/3.1.4/bin/ruby server.rb"
+    [ -n "${OLLAMA_UP:-}" ] && psline 1400 1 "$U" '??' 10000 0:00.10 "$LSTART" 'ollama serve'
   } > "$MOCK/ps"
 }
 write_ps 9:50.00
 cp "$MOCK/ps" "$MOCK/ps.first"
 write_ps 10:00.00
 
+# Work folders. Each project is a clone of its own bare repository outside HOME, with one commit
+# 40 days old that is pushed, and HEAD and its log 40 days old. The variations make one thing recent,
+# changed, or missing from the remote.
+idle() { old "$1/.git/HEAD" "$1/.git/logs/HEAD"; }
+project() {
+  local r="$H/projects/$1" o="$T/remotes/$1.git"
+  git init -q --bare "$o"
+  git clone -q "$o" "$r" 2>/dev/null
+  printf 'readme\n' > "$r/README.md"
+  git -C "$r" add README.md
+  GIT_AUTHOR_DATE="$OLD_COMMIT" GIT_COMMITTER_DATE="$OLD_COMMIT" git -C "$r" commit -qm init
+  git -C "$r" push -q origin HEAD 2>/dev/null
+  idle "$r"
+}
+for p in idle idle2 recentco dirty untracked localonly withwt skipc skipch skipl; do project "$p"; done
+IDLE="$H/projects/idle"
+IDLE2="$H/projects/idle2"
+# recentco was checked out today, dirty has a changed file, untracked has a new file, and
+# localonly has a commit that was never pushed.
+touch "$H/projects/recentco/.git/HEAD" "$H/projects/recentco/.git/logs/HEAD"
+printf 'edit\n' >> "$H/projects/dirty/README.md"
+printf 'new\n' > "$H/projects/untracked/notes.txt"
+printf 'local\n' >> "$H/projects/localonly/README.md"
+GIT_AUTHOR_DATE="$OLD_COMMIT" GIT_COMMITTER_DATE="$OLD_COMMIT" git -C "$H/projects/localonly" commit -qam local
+idle "$H/projects/localonly"
+# withwt has a second worktree, which is a folder whose .git is a file.
+git -C "$H/projects/withwt" worktree add -q "$H/projects/withwt-feature" 2>/dev/null
+idle "$H/projects/withwt"
+
+# Leftovers of a removed app in four Library folders, a second removed app, and folders that must
+# not count: a company with an installed app (Editor is com.example), a name a running process has
+# (Browser), recent files, Apple's, and a name that is not a bundle id.
+LIB="$H/Library"
+GONE_AS="$LIB/Application Support/com.oldvendor.gone"
+mkdir -p "$GONE_AS" "$LIB/Caches/com.oldvendor.gone" "$LIB/Saved Application State/com.oldvendor.gone.savedState" \
+  "$LIB/Application Support/com.gonevendor.app2" "$LIB/Application Support/com.example.helper" \
+  "$LIB/Application Support/com.browserco.browser" "$LIB/Application Support/com.newvendor.tool" "$LIB/Application Support/OldThing"
+for f in "$GONE_AS/data" "$LIB/Caches/com.oldvendor.gone/blob" "$LIB/Saved Application State/com.oldvendor.gone.savedState/windows.plist" \
+  "$LIB/Preferences/com.oldvendor.gone.plist" "$LIB/Application Support/com.gonevendor.app2/data" \
+  "$LIB/Application Support/com.example.helper/data" "$LIB/Application Support/com.browserco.browser/data" \
+  "$LIB/Application Support/com.newvendor.tool/data" "$LIB/Application Support/OldThing/data" "$LIB/Preferences/com.apple.finder.plist"; do
+  printf 'x' > "$f"
+done
+old "$GONE_AS/data" "$GONE_AS" "$LIB/Caches/com.oldvendor.gone/blob" "$LIB/Caches/com.oldvendor.gone" \
+  "$LIB/Saved Application State/com.oldvendor.gone.savedState/windows.plist" "$LIB/Saved Application State/com.oldvendor.gone.savedState" \
+  "$LIB/Preferences/com.oldvendor.gone.plist" "$LIB/Application Support/com.gonevendor.app2/data" \
+  "$LIB/Application Support/com.example.helper/data" "$LIB/Application Support/com.browserco.browser/data" \
+  "$LIB/Application Support/OldThing/data" "$LIB/Preferences/com.apple.finder.plist"
+
+# Tool versions. The unused ones are nvm 18, pyenv 3.9, fnm 16, asdf 18, mise node 21, and rustup
+# 1.70. The rest are a default, named by a project, in use, or under a default nobody can resolve.
+ver() { mkdir -p "$1/bin"; printf 'x' > "$1/bin/tool"; }
+for v in v18.20.4 v20.11.1 v22.1.0; do ver "$H/.nvm/versions/node/$v"; done
+mkdir -p "$H/.nvm/alias"; printf '20\n' > "$H/.nvm/alias/default"
+for v in 3.9.18 3.11.7 3.12.1; do ver "$H/.pyenv/versions/$v"; done
+printf '3.12.1\n' > "$H/.pyenv/version"
+for v in 3.1.4 3.3.0; do ver "$H/.rbenv/versions/$v"; done
+printf '3.3.0\n' > "$H/.rbenv/version"
+FNM="$LIB/Application Support/fnm"
+for v in v16.20.2 v20.11.1; do ver "$FNM/node-versions/$v/installation"; done
+mkdir -p "$FNM/aliases"; ln -s "$FNM/node-versions/v20.11.1/installation" "$FNM/aliases/default"
+for v in 18.19.0 20.11.1; do ver "$H/.asdf/installs/nodejs/$v"; done
+printf 'nodejs 20.11.1\n' > "$H/.tool-versions"
+MISE="$H/.local/share/mise/installs"
+for v in 21.7.3 24.22.1 26.12.1; do ver "$MISE/node/$v"; done
+ln -s ./21.7.3 "$MISE/node/21"; ln -s ./21.7.3 "$MISE/node/21.7"; ln -s ./24.22.1 "$MISE/node/24"; ln -s ./26.12.1 "$MISE/node/lts"
+ver "$MISE/python/3.10.13"
+mkdir -p "$H/.config/mise"; printf '[tools]\nnode = "24"\npython = "latest"\n' > "$H/.config/mise/config.toml"
+for v in stable-aarch64-apple-darwin 1.70.0-aarch64-apple-darwin nightly-2024-01-01-aarch64-apple-darwin; do ver "$H/.rustup/toolchains/$v"; done
+printf 'version = "12"\ndefault_toolchain = "stable-aarch64-apple-darwin"\n' > "$H/.rustup/settings.toml"
+printf 'v22\n' > "$BLOG/.nvmrc"
+printf '[tools]\nnode = "lts"\n' > "$BLOG/mise.toml"
+printf '3.11\n' > "$NOTES/.python-version"
+printf '[toolchain]\nchannel = "nightly-2024-01-01"\n' > "$NOTES/rust-toolchain.toml"
+
+# AI models. Two Ollama models share one layer, Hugging Face has two models, and LM Studio has one
+# model in its folder and one in its old place under ~/.cache.
+OLLAMA="$H/.ollama/models"
+blob() { mkdir -p "$OLLAMA/blobs"; "$PY" -c 'import sys; open(sys.argv[1], "wb").write(b"x" * int(sys.argv[2]))' "$OLLAMA/blobs/sha256-$(printf "%064d" 0 | tr 0 "$1")" "$2"; }
+digest() { printf 'sha256:%s' "$(printf "%064d" 0 | tr 0 "$1")"; }
+blob a 10; blob b 1000; blob c 300; blob d 200; blob e 20
+manifest() {
+  mkdir -p "$(dirname "$1")"
+  printf '{"schemaVersion":2,"config":{"digest":"%s","size":%s},"layers":[{"digest":"%s","size":1000},{"digest":"%s","size":%s}]}\n' \
+    "$(digest "$2")" "$3" "$(digest b)" "$(digest "$4")" "$5" > "$1"
+  old "$1"
+}
+OLLAMA_LATEST="$OLLAMA/manifests/registry.ollama.ai/library/llama3/latest"
+OLLAMA_Q4="$OLLAMA/manifests/registry.ollama.ai/library/llama3/8b-q4"
+manifest "$OLLAMA_LATEST" a 10 c 300
+manifest "$OLLAMA_Q4" e 20 d 200
+hfmodel() {
+  mkdir -p "$1/blobs" "$1/snapshots/rev1" "$1/refs"
+  printf 'w' > "$1/blobs/abc"; ln -s ../../blobs/abc "$1/snapshots/rev1/model.bin"; printf 'rev1' > "$1/refs/main"
+}
+HF_TINY="$H/.cache/huggingface/hub/models--acme--tiny-model"
+HF_OTHER="$H/.cache/huggingface/hub/models--acme--other-model"
+hfmodel "$HF_TINY"; size "$HF_TINY" 204800
+hfmodel "$HF_OTHER"; size "$HF_OTHER" 102400
+size "$H/.cache/huggingface" 307200
+LMS="$H/.lmstudio/models/lmstudio-community/Qwen2-GGUF"
+mkdir -p "$LMS"; printf 'g' > "$LMS/qwen2.gguf"; size "$LMS" 102400
+LMS_OLD="$H/.cache/lm-studio/models/old-pub/Old-GGUF"
+mkdir -p "$LMS_OLD"; printf 'g' > "$LMS_OLD/old.gguf"; size "$LMS_OLD" 51200
+size "$H/.cache/lm-studio" 102400
+
 # --- scan -----------------------------------------------------------------------------------
 SCAN="$MACHINE_CLEANUP_HOME/scan.json"
+: > "$MOCK/calls.log"
 mc_as darwin scan --json --sample 0 --apps-dir "$H/Applications" > "$T/scan.out" 2> "$T/scan.err"
+cp "$MOCK/calls.log" "$T/scan-calls.log"
 [ -s "$SCAN" ] || printf '{"items": [], "skipped": []}' > "$T/empty.json"
 [ -s "$SCAN" ] || SCAN="$T/empty.json"
 
@@ -337,6 +453,75 @@ check "scan state is readable only by the user" \
 # The df stand-in prints 500000000 blocks of 1 KiB in all and 10000000 free.
 check "scan records the whole disk size with the free space" \
   'jq -e ".measure.disk_total == 512000000000 and .measure.disk_free == 10240000000" "$SCAN" > /dev/null 2>&1'
+
+# --- the four kinds of unused items ---------------------------------------------------------
+# cat_at <category> <path>: the id of the row of that category at that path, or nothing.
+cat_at() { jq -r --arg c "$1" --arg p "$2" '[.items[] | select(.category == $c and .path == $p)][0].id // empty' "$SCAN" 2>/dev/null; }
+listed_project() { [ -n "$(cat_at project "$1")" ]; }
+check "scan lists a git project idle for 30 days whose branches are all on the remote" \
+  'has ".items | any(.category == \"project\" and .path == \"$IDLE\" and (.size | type) == \"number\" and (.detail.last_used | type) == \"string\")"'
+no_project_listed() {
+  local p
+  for p in "$@"; do ! listed_project "$H/projects/$p" || { echo "  listed $p"; return 1; }; done
+}
+check "scan never lists a project with recent use, changes, or commits missing from the remote" \
+  'listed_project "$IDLE" && no_project_listed recentco dirty untracked localonly shop archive'
+check "scan never lists a repository that has another worktree, or a worktree itself" \
+  'listed_project "$IDLE" && ! listed_project "$H/projects/withwt" && ! listed_project "$H/projects/withwt-feature"'
+check "scan judges the remote from local records and never fetches" \
+  'listed_project "$IDLE" && grep -q "^git " "$T/scan-calls.log" && ! grep -qE "^git (fetch|ls-remote|pull|remote update)" "$T/scan-calls.log"'
+
+GONE_PLACES="[\"$GONE_AS\", \"$LIB/Caches/com.oldvendor.gone\", \"$LIB/Preferences/com.oldvendor.gone.plist\", \"$LIB/Saved Application State/com.oldvendor.gone.savedState\"]"
+leftover_named() { has ".items | any(.category == \"app\" and .kind == \"leftover\" and .name == \"$1\")"; }
+check "scan lists files a removed app left in the eight Library folders, one row per bundle id" \
+  'has "[.items[] | select(.kind == \"leftover\" and .name == \"com.oldvendor.gone\")] | length == 1 and (.[0] | ([.path] + (.detail.support // []) | sort) == ($GONE_PLACES | sort) and (.detail.last_used | type) == \"string\")" && leftover_named com.gonevendor.app2'
+no_leftover_named() {
+  local n
+  for n in "$@"; do ! leftover_named "$n" || { echo "  listed $n"; return 1; }; done
+}
+check "scan never lists a leftover that matches an installed app or process, changed recently, belongs to Apple, or has no bundle id name" \
+  'leftover_named com.oldvendor.gone && no_leftover_named com.example.helper com.browserco.browser com.newvendor.tool com.apple.finder OldThing && ! has ".items | any(.kind == \"leftover\" and ((.path | test(\"com.example|OldThing|com.apple\")) or ((.detail.support // []) | any(test(\"com.example|OldThing|com.apple\")))))"'
+check "scan lists no app leftovers on Linux" \
+  'leftover_named com.oldvendor.gone && jq -e ".items | all(.kind != \"leftover\")" "$LINUX_SCAN" > /dev/null 2>&1'
+
+tool_at() { cat_at tool "$1"; }
+UNUSED_TOOLS="$H/.nvm/versions/node/v18.20.4 $H/.pyenv/versions/3.9.18 $FNM/node-versions/v16.20.2 $H/.asdf/installs/nodejs/18.19.0 $MISE/node/21.7.3 $H/.rustup/toolchains/1.70.0-aarch64-apple-darwin"
+NAMED_TOOLS="$H/.nvm/versions/node/v20.11.1 $H/.nvm/versions/node/v22.1.0 $H/.pyenv/versions/3.12.1 $H/.pyenv/versions/3.11.7 $H/.rbenv/versions/3.3.0 $FNM/node-versions/v20.11.1 $H/.asdf/installs/nodejs/20.11.1 $MISE/node/24.22.1 $MISE/node/26.12.1 $H/.rustup/toolchains/stable-aarch64-apple-darwin $H/.rustup/toolchains/nightly-2024-01-01-aarch64-apple-darwin"
+unused_tools_listed() {
+  local p
+  for p in $UNUSED_TOOLS; do
+    has ".items | any(.category == \"tool\" and .path == \"$p\" and .locked == null and (.detail.tool | type) == \"string\" and (.detail.version | type) == \"string\" and (.size | type) == \"number\")" || { echo "  not listed $p"; return 1; }
+  done
+}
+check "scan lists tool versions that are neither the default nor named by a project" 'unused_tools_listed'
+no_named_tool_listed() {
+  local p
+  for p in $NAMED_TOOLS; do [ -z "$(tool_at "$p")" ] || { echo "  listed $p"; return 1; }; done
+}
+check "scan never lists a default version or one a project names, even by prefix or alias" \
+  'unused_tools_listed > /dev/null && no_named_tool_listed'
+check "a tool version a running program uses is locked" \
+  'has ".items | any(.category == \"tool\" and .path == \"$H/.rbenv/versions/3.1.4\" and (.locked // \"\" | test(\"running program\")))"'
+
+model_at() { cat_at model "$1"; }
+models_listed() {
+  local p
+  for p in "$OLLAMA_LATEST" "$OLLAMA_Q4" "$HF_TINY" "$HF_OTHER" "$LMS" "$LMS_OLD"; do
+    has ".items | any(.category == \"model\" and .path == \"$p\" and (.size | type) == \"number\" and (.detail.downloaded | type) == \"string\")" || { echo "  not listed $p"; return 1; }
+  done
+}
+check "scan lists Ollama, Hugging Face, and LM Studio models with size and download date" \
+  'models_listed && has ".items | any(.path == \"$OLLAMA_LATEST\" and .name == \"llama3:latest\")"'
+check "an Ollama model's size counts only the blobs no other model uses" \
+  'has ".items | any(.path == \"$OLLAMA_LATEST\" and .size == 310) and any(.path == \"$OLLAMA_Q4\" and .size == 220)"'
+check "scan never lists model folders under the cache folder as rebuilt caches" \
+  'jq -e "(.items | any(.category == \"model\" and .path == \"$HF_TINY\")) and (.items | all(.kind != \"app-cache\" or ((.path | endswith(\"/huggingface\")) or (.path | endswith(\"/lm-studio\")) | not)))" "$LINUX_SCAN" > /dev/null 2>&1'
+check "scan ranks projects, app leftovers, tool versions, and models as check first" \
+  'level_is ".category == \"project\"" check project_idle && level_is ".kind == \"leftover\"" check leftover && level_is ".category == \"tool\" and .locked == null" check tool_unused && level_is ".category == \"model\"" check model'
+check "tool versions are locked when the default is unknown or the scan did not read every project" \
+  'has ".items | any(.category == \"tool\" and .path == \"$MISE/python/3.10.13\" and (.locked // \"\" | test(\"default\")))" && jq -e "[.items[] | select(.category == \"tool\")] | length > 0 and all(.locked // \"\" | test(\"every project\"))" "$T/state-limit/scan.json" > /dev/null 2>&1'
+check "the new kinds stop at the time limit" \
+  'jq -e "(.items | all(.category != \"project\" and .category != \"model\")) and (.skipped | any(.reason == \"time limit\" and (.path | test(\"ollama|huggingface|lmstudio|lm-studio\"))))" "$T/state-limit/scan.json" > /dev/null 2>&1 && listed_project "$IDLE"'
 
 # --- the page -------------------------------------------------------------------------------
 sheet_ok() {
@@ -521,6 +706,42 @@ charts.forEach(function (c) {
 const missing = keys.filter(function (k) { return !k || !I18N.en[k] || !I18N.ja[k]; });
 console.log("keys:" + keys.length + ":missing=" + missing.join(","));'
 chart_line() { printf '%s\n' "$CHART_OUT" | grep "^$1:" | head -1; }
+# The freeable chart with a row of each new kind, one tool version in use.
+FREE_JS='const items = [
+  { id: "c1", group: "disk", category: "cache", size: 300, level: "recommended", locked: null, rebuilt: true },
+  { id: "c2", group: "disk", category: "cache", size: 200, level: "recommended", locked: "npm is running", rebuilt: true },
+  { id: "b1", group: "disk", category: "build", size: 100, level: "check", locked: null, rebuilt: true },
+  { id: "t1", group: "disk", category: "trash", size: 50, level: "recommended", locked: null },
+  { id: "l1", group: "disk", category: "log", size: 20, level: "recommended", locked: null },
+  { id: "f1", group: "disk", category: "large", size: 400, level: "check", locked: null },
+  { id: "u1", group: "disk", category: "duplicate", size: 60, level: "check", locked: null, detail: { set: "s1" } },
+  { id: "u2", group: "disk", category: "duplicate", size: 60, level: "check", locked: null, detail: { set: "s1" } },
+  { id: "j1", group: "disk", category: "project", size: 80, level: "check", locked: null },
+  { id: "a1", group: "disk", category: "app", size: 70, level: "check", locked: null },
+  { id: "a2", group: "disk", category: "app", kind: "leftover", size: 5, level: "check", locked: null },
+  { id: "v1", group: "disk", category: "tool", size: 30, level: "check", locked: null },
+  { id: "v2", group: "disk", category: "tool", size: 99, level: "check", locked: "a running program uses this version" },
+  { id: "m1", group: "disk", category: "model", size: 25, level: "check", locked: null }];
+const c = overviewCharts(items, { disk_free: 10000, disk_total: 50000, memory_used: 20000, memory_total: 32000, load: [1, 1, 1] }, new Set())[0];
+console.log(c.key + ":" + c.parts.map(function (p) { return p.key + "=" + p.value + (p.tab ? "@" + p.tab : ""); }).join(",") + ";center=" + c.center.value + ";foot=" + c.foot.value);'
+TAB_JS='const want = { project: 1, app: 1, tools: 1 };
+const got = TABS.filter(function (x) { return want[x[0]]; }).map(function (x) { return x[0] + "=" + x[1].join("+"); }).join(" ");
+const keys = ["tab_project", "tab_tools", "lead_project", "lead_tools", "why_project_idle", "why_leftover", "why_tool_unused", "why_model"];
+const missing = keys.filter(function (k) { return !I18N.en[k] || !I18N.ja[k] || I18N.en[k] === I18N.ja[k]; });
+console.log(got + "|" + I18N.ja.tab_project + "|" + I18N.ja.tab_tools + "|missing=" + missing.join(","));'
+NEW_ROW_JS='const rows = [
+  { id: "j1", group: "disk", category: "project", kind: "git-project", name: "old", path: "/h/projects/old", size: 1000000, level: "check",
+    reason: { code: "project_idle", days: 45 }, action: "trash", locked: null, detail: { last_used: "2026-10-01T00:00:00Z" } },
+  { id: "l1", group: "disk", category: "app", kind: "leftover", name: "com.gone.app", path: "/h/Library/Application Support/com.gone.app", size: 2000000,
+    level: "check", reason: { code: "leftover", days: 60 }, action: "trash-app", locked: null,
+    detail: { support: ["/h/Library/Preferences/com.gone.app.plist"], last_used: "2026-09-15T00:00:00Z" } },
+  { id: "v1", group: "disk", category: "tool", kind: "tool-version", name: "node 18.20.4 (nvm)", path: "/h/.nvm/versions/node/v18.20.4", size: 3000000,
+    level: "check", reason: { code: "tool_unused" }, action: "delete", locked: null, detail: { manager: "nvm", tool: "node", version: "18.20.4" } },
+  { id: "m1", group: "disk", category: "model", kind: "hf-model", name: "acme/tiny", path: "/h/.cache/huggingface/hub/models--acme--tiny", size: 4000000,
+    level: "check", reason: { code: "model" }, action: "delete", locked: null, detail: { downloaded: "2026-08-01T00:00:00Z" } }];
+console.log(rows.map(function (it) {
+  return detailPairs(it).map(function (p) { return /^(d_reason|d_effect)$/.test(p[0]) ? p[0] : p[0] + "=" + String(p[1]).split("\n").join(";"); }).join(",");
+}).join("#"));'
 LIST_FNS="groupRows viewGroups"
 LIST_JS='const list = [
   { id: "a", name: "Alpha cache", path: "/h/.cache/alpha", size: 300, level: "recommended", locked: null, group: "disk" },
@@ -553,7 +774,11 @@ if [ -n "$NODE" ]; then
   check "the overview has the seven charts in order" \
     '[ "$(printf "%s\n" "$CHART_OUT" | sed -n "1,7p" | cut -d: -f1 | tr "\n" " ")" = "freeable levels disk memory largest memoryTop cpuTop " ] || { echo "  $CHART_OUT"; false; }'
   check "the freeable chart sums each kind without rows in use and links each part to its tab" \
-    '[ "$(chart_line freeable)" = "freeable:cache=300@cache,build=100@build,trash=70@trash,files=460@files,app=70@app;center=1000;foot=400" ]'
+    'out="$(page_eval "$CHART_FNS" "$FREE_JS" 2>&1)"; [ "$out" = "freeable:cache=300@cache,build=100@build,trash=70@trash,files=460@files,project=80@project,app=75@app,tools=55@tools;center=1140;foot=400" ] || { echo "  $out"; false; }'
+  check "the page puts projects, leftovers, and tool versions with models in their tabs, named from both dictionaries" \
+    'out="$(page_eval "TABS" "$TAB_JS" 2>&1)"; [ "$out" = "project=project app=app tools=tool+model|プロジェクト|道具とモデル|missing=" ] || { echo "  $out"; false; }'
+  check "the details dialog shows each new kind's dates and places" \
+    'out="$(page_eval "$ROW_FNS" "$NEW_ROW_JS" 2>&1)"; [ "$out" = "d_reason,d_effect,d_size=1.0 MB,d_path=~/projects/old,d_lastTouched=2026-10-01#d_reason,d_effect,d_size=2.0 MB,d_places=~/Library/Application Support/com.gone.app;~/Library/Preferences/com.gone.app.plist,d_newest=2026-09-15#d_reason,d_effect,d_size=3.0 MB,d_path=~/.nvm/versions/node/v18.20.4,d_tool=node 18.20.4 (nvm)#d_reason,d_effect,d_size=4.0 MB,d_path=~/.cache/huggingface/hub/models--acme--tiny,d_downloaded=2026-08-01" ] || { echo "  $out"; false; }'
   check "the level chart sums disk rows by level and rows in use apart" \
     '[ "$(chart_line levels)" = "levels:recommended=370,check=630,careful=0,inuse=200;center=370;foot=10370" ]'
   check "the disk chart splits picked, freeable, other, and free space and shows the free space after freeing the picked rows" \
@@ -581,6 +806,8 @@ else
     "the page opens on the overview tab, placed first" \
     "the overview has the seven charts in order" \
     "the freeable chart sums each kind without rows in use and links each part to its tab" \
+    "the page puts projects, leftovers, and tool versions with models in their tabs, named from both dictionaries" \
+    "the details dialog shows each new kind's dates and places" \
     "the level chart sums disk rows by level and rows in use apart" \
     "the disk chart splits picked, freeable, other, and free space and shows the free space after freeing the picked rows" \
     "the disk chart says the whole size is unknown instead of drawing zero" \
@@ -608,6 +835,13 @@ MACHINE_CLEANUP_HOME="$T/state-v2" mc apply --select "machine-cleanup:select d-0
 MACHINE_CLEANUP_HOME="$T/state-v2" mc serve --no-open --wait 1 > "$T/v2-serve.out" 2>&1; V2_SERVE_RC=$?
 check "serve and apply refuse a version 2 scan, which has no disk size" \
   '[ "$V2_APPLY_RC" = 2 ] && [ "$V2_SERVE_RC" = 2 ] && grep -q "older version" "$T/v2-apply.out" && grep -q "older version" "$T/v2-serve.out"'
+# A version 3 scan has no work folders, tool versions, or models, so it is refused the same way.
+mkdir -p "$T/state-v3"
+jq '.version = 3 | .items |= map(select(.category | IN("project", "tool", "model") | not))' "$SCAN" > "$T/state-v3/scan.json" 2>/dev/null
+MACHINE_CLEANUP_HOME="$T/state-v3" mc apply --select "machine-cleanup:select d-00000000" > "$T/v3-apply.out" 2>&1; V3_APPLY_RC=$?
+MACHINE_CLEANUP_HOME="$T/state-v3" mc serve --no-open --wait 1 > "$T/v3-serve.out" 2>&1; V3_SERVE_RC=$?
+check "serve and apply refuse a version 3 scan, which has no project, tool, or model rows" \
+  '[ "$V3_APPLY_RC" = 2 ] && [ "$V3_SERVE_RC" = 2 ] && grep -q "older version" "$T/v3-apply.out" && grep -q "older version" "$T/v3-serve.out"'
 
 PLUGIN_DIR="$(cd "$SKILL_DIR/../.." && pwd)"
 check "how-it-works lists the three levels and their rules in both languages" \
@@ -621,6 +855,8 @@ docs_rows() {
 }
 check "how-it-works describes the overview charts and the list tools in both languages" \
   'docs_rows "$PLUGIN_DIR/docs/how-it-works.md" "## The overview tab" "What can be freed" "Size by level" "Disk" "Memory" "Largest items" "Processes using the most memory" "Processes using the most CPU" "Search" "Groups" "Sort" && docs_rows "$PLUGIN_DIR/docs/how-it-works.ja.md" "## 全体のタブ" "空けられる分の内訳" "推奨度ごとの大きさ" "ディスク" "メモリ" "大きい物の上位" "メモリを多く使うプロセス" "CPUを多く使うプロセス" "探す" "段" "並べ替え"'
+check "the READMEs and how-it-works describe the four new kinds in both languages" \
+  'docs_rows "$PLUGIN_DIR/README.md" "## What it finds" "Projects" "Apps" "Tools and models" && grep -q "left behind by removed apps" "$PLUGIN_DIR/README.md" && docs_rows "$PLUGIN_DIR/README.ja.md" "## 見つける物" "プロジェクト" "アプリ" "道具とモデル" && grep -q "消したアプリの残り" "$PLUGIN_DIR/README.ja.md" && docs_rows "$PLUGIN_DIR/docs/how-it-works.md" "## The scan" "Work folders" "App leftovers" "Tool versions" "AI models" && docs_rows "$PLUGIN_DIR/docs/how-it-works.md" "## How each item is freed" "Work folders and app leftovers" "Tool versions" "AI models" && docs_rows "$PLUGIN_DIR/docs/how-it-works.ja.md" "## 調べ方" "作業フォルダ" "消したアプリの残り" "道具の版" "AIモデル" && docs_rows "$PLUGIN_DIR/docs/how-it-works.ja.md" "## 項目ごとの空け方" "作業フォルダと消したアプリの残り" "道具の版" "AIモデル"'
 
 # The copied text is built without the dictionary, and apply reads it as it is.
 copy_ok() {
@@ -750,6 +986,54 @@ mc_as darwin apply --select "machine-cleanup:select $(id_kind docker-build-cache
 # Docker Desktop's disk image does not give the space back right away.
 check "the report shows measured free space, memory, and load before and after" \
   'grep -qE "^Free disk +10\.2 GB -> 30\.7 GB" "$T/apply1.out" && grep -qE "^Memory used +.+ -> .+" "$T/apply1.out" && grep -qE "^Load +.+ -> .+" "$T/apply1.out" && ! grep -q "Docker Desktop" "$T/apply1.out" && grep -q "Docker Desktop" "$T/apply-docker.out" && grep -q "docker builder prune" "$MOCK/calls.log"'
+
+# --- freeing the four kinds -----------------------------------------------------------------
+IDLE_ID="$(cat_at project "$IDLE")"
+GONE_ID="$(jq -r '[.items[] | select(.kind == "leftover" and .name == "com.oldvendor.gone")][0].id // empty' "$SCAN" 2>/dev/null)"
+mc_as darwin apply --select "machine-cleanup:select $IDLE_ID $GONE_ID" > "$T/apply-unused.out" 2>&1
+trashed=false
+[ -n "$IDLE_ID" ] && [ -n "$GONE_ID" ] && [ ! -e "$IDLE" ] && [ -d "$H/.Trash/idle/.git" ] && [ ! -e "$GONE_AS" ] \
+  && [ ! -e "$LIB/Preferences/com.oldvendor.gone.plist" ] && [ -e "$H/.Trash/com.oldvendor.gone.plist" ] && trashed=true
+mc_as darwin restore "$IDLE_ID" "$GONE_ID" > "$T/restore-unused.out" 2>&1
+check "apply moves picked projects and app leftovers to the Trash and restore puts them back" \
+  '$trashed && [ -d "$IDLE/.git" ] && [ -f "$GONE_AS/data" ] && [ -f "$LIB/Preferences/com.oldvendor.gone.plist" ] && [ -d "$LIB/Saved Application State/com.oldvendor.gone.savedState" ] && [ ! -e "$H/.Trash/idle" ]'
+
+# skipc gains a pushed commit today, skipch a changed file, and skipl an old commit that is not pushed.
+SKIPC_ID="$(cat_at project "$H/projects/skipc")"
+SKIPCH_ID="$(cat_at project "$H/projects/skipch")"
+SKIPL_ID="$(cat_at project "$H/projects/skipl")"
+printf 'more\n' >> "$H/projects/skipc/README.md"
+git -C "$H/projects/skipc" commit -qam more && git -C "$H/projects/skipc" push -q origin HEAD 2>/dev/null
+printf 'edit\n' >> "$H/projects/skipch/README.md"
+printf 'local\n' >> "$H/projects/skipl/README.md"
+GIT_AUTHOR_DATE="$OLD_COMMIT" GIT_COMMITTER_DATE="$OLD_COMMIT" git -C "$H/projects/skipl" commit -qam local
+idle "$H/projects/skipl"
+mc_as darwin apply --select "machine-cleanup:select $SKIPC_ID $SKIPCH_ID $SKIPL_ID" > "$T/apply-skip-projects.out" 2>&1
+skipped_all() {
+  local i
+  for i in "$@"; do [ -n "$i" ] && grep -qE "^skipped +$i " "$T/apply-skip-projects.out" || { echo "  not skipped: $i"; return 1; }; done
+}
+check "apply skips a project that gained a commit, a change, or a local-only commit after the scan" \
+  'skipped_all "$SKIPC_ID" "$SKIPCH_ID" "$SKIPL_ID" && [ -d "$H/projects/skipc/.git" ] && [ -d "$H/projects/skipch/.git" ] && [ -d "$H/projects/skipl/.git" ]'
+
+: > "$MOCK/calls.log"
+mc_as darwin apply --select "machine-cleanup:select $(tool_at "$H/.nvm/versions/node/v18.20.4") $(tool_at "$MISE/node/21.7.3") $(tool_at "$H/.rustup/toolchains/1.70.0-aarch64-apple-darwin")" > "$T/apply-tools-versions.out" 2>&1
+check "apply deletes picked tool versions, and uses rustup for a toolchain" \
+  '[ -n "$(cat_at tool "$MISE/node/21.7.3")" ] && [ ! -e "$H/.nvm/versions/node/v18.20.4" ] && [ ! -e "$MISE/node/21.7.3" ] && [ ! -L "$MISE/node/21" ] && [ ! -L "$MISE/node/21.7" ] && [ -L "$MISE/node/24" ] && grep -qx "rustup toolchain uninstall 1.70.0-aarch64-apple-darwin" "$MOCK/calls.log"'
+
+# Ollama runs for the first apply and not for the second. The ollama stand-in deletes nothing.
+OLLAMA_UP=1 write_ps 10:00.00
+: > "$MOCK/calls.log"
+mc_as darwin apply --select "machine-cleanup:select $(model_at "$OLLAMA_LATEST") $(model_at "$HF_TINY") $(model_at "$LMS")" > "$T/apply-models.out" 2>&1
+check "apply removes Ollama models with ollama rm while Ollama runs and deletes other model folders" \
+  '[ -n "$(model_at "$OLLAMA_LATEST")" ] && grep -qx "ollama rm llama3:latest" "$MOCK/calls.log" && [ -f "$OLLAMA_LATEST" ] && [ ! -e "$HF_TINY" ] && [ ! -e "$LMS" ]'
+write_ps 10:00.00
+: > "$MOCK/calls.log"
+mc_as darwin apply --select "machine-cleanup:select $(model_at "$OLLAMA_Q4")" > "$T/apply-ollama-files.out" 2>&1
+check "while Ollama is not running, apply deletes the manifest and only the blobs no other model uses" \
+  '[ -n "$(model_at "$OLLAMA_Q4")" ] && [ ! -e "$OLLAMA_Q4" ] && [ ! -e "$OLLAMA/blobs/sha256-$(printf "%064d" 0 | tr 0 d)" ] && [ ! -e "$OLLAMA/blobs/sha256-$(printf "%064d" 0 | tr 0 e)" ] && [ -f "$OLLAMA/blobs/sha256-$(printf "%064d" 0 | tr 0 b)" ] && [ -f "$OLLAMA_LATEST" ] && ! grep -q "^ollama rm" "$MOCK/calls.log"'
+check "apply leaves unpicked projects, leftovers, tool versions, and models alone" \
+  '[ -n "$(cat_at project "$IDLE2")" ] && leftover_named com.gonevendor.app2 && [ -n "$(tool_at "$H/.pyenv/versions/3.9.18")" ] && [ -n "$(model_at "$HF_OTHER")" ] && [ -d "$IDLE2/.git" ] && [ -f "$LIB/Application Support/com.gonevendor.app2/data" ] && [ -d "$H/.pyenv/versions/3.9.18" ] && [ -d "$HF_OTHER" ] && [ -d "$LMS_OLD" ]'
 
 # --- boundaries -----------------------------------------------------------------------------
 check "every path the tests touch is under the throwaway HOME" \
