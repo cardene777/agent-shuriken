@@ -138,7 +138,8 @@ def load_registry():
     if not isinstance(data, dict) or "version" not in data:
         raise Refused("%s is not a portman registry: it has no version." % path, 2)
     if data["version"] != FORMAT_VERSION:
-        raise Refused("%s has format version %r, but this portman reads version %d only."
+        raise Refused("%s has format version %r, but this portman reads version %d only. "
+                      "Update the portman plugin instead of editing the file."
                       % (path, data["version"], FORMAT_VERSION), 2)
     problems = shape_problems(data)
     if problems:
@@ -514,7 +515,8 @@ def cmd_add(args):
         data = load_registry()
         for project, e in entries(data):
             if e["port"] == port:
-                raise Refused("Port %d is already registered to %s/%s." % (port, project, e["name"]))
+                raise Refused("Port %d is already registered to %s/%s. Pick a free port with: portman.py suggest"
+                              % (port, project, e["name"]))
         info = data["projects"].setdefault(args.project, {"ports": []})
         for e in info["ports"]:
             if e["name"] == args.name:

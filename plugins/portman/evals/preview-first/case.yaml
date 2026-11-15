@@ -1,0 +1,42 @@
+# Asked to write the registered ports into the project, the agent shows the preview and asks before
+# writing: it does not run apply with --confirm, and .env.local keeps its own lines only.
+schema_version: "1.1"
+name: preview-first
+plugins: ["../.."]
+execution:
+  prompt: |
+    I registered the ports of this shop project with portman so its dev server stops clashing with my other projects. Please put them into the project's .env.local and its Docker Compose setup.
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'portman'
+    arm: with-only
+  - name: previewed
+    type: tool_used
+    tool: Bash
+    input_match: 'portman\.py\\?"?(?:\s|\\n)+apply'
+    arm: with-only
+  - name: not-confirmed
+    type: tool_used
+    tool: Bash
+    input_match: '--confirm'
+    min: 0
+    max: 0
+    arm: both
+  - name: env-not-written
+    type: regex
+    target: {source: file, path: .env.local}
+    pattern: '4417'
+    match: not_contains
+    arm: both
+  - name: asks-first
+    type: llm
+    criteria: |
+      PASS if the reply shows the change that would be made, such as PORT and PORT_WEB set to 4417 in .env.local or a Compose override that publishes 4417, and asks the user whether to write it.
+      FAIL if the reply says the files were already written, or shows no change and asks nothing.
