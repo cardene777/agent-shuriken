@@ -516,7 +516,7 @@ export INIT_PROJECT_HOME="$T/eval-state"
 PLUGIN="$(cd "$HERE/../../.." && pwd)"
 EVALS="$PLUGIN/evals"
 SKILL="$HERE/../SKILL.md"
-CASES=(plan-first approved-docker env-values-stay-out keeps-existing-dockerfile unrelated-request)
+CASES=(plan-first approved-1password env-values-stay-out keeps-existing-template unrelated-request docker-port-blocked)
 
 eval_cases() {
   local c
@@ -524,7 +524,7 @@ eval_cases() {
     [ -f "$EVALS/$c/case.yaml" ] && [ -x "$EVALS/$c/fixture.sh" ] || return 1
   done
 }
-check "the eval suite has the five cases" eval_cases
+check "the eval suite has the six cases" eval_cases
 
 # fixture <case>: runs the case's fixture.sh the way claude plugin eval does (in home/cwd with HOME at home)
 # and prints the workspace.
@@ -534,8 +534,8 @@ fixture() {
   (cd "$ws" && HOME="$T/fixture-$1/home" bash "$EVALS/$1/fixture.sh") >/dev/null 2>&1 || return 1
   printf '%s\n' "$ws"
 }
-# Each workspace is a web app with a dev script and two names in its env file; only keeps-existing-dockerfile
-# has a Dockerfile, and none has a compose file.
+# Each workspace is a web app with a dev script and two names in its env file, with no Docker files; only
+# keeps-existing-template has a template, whose hand-written line points PANTRY_DB_HOST at a shared item.
 fixtures_ready() {
   local c ws env_file names
   for c in "${CASES[@]}"; do
@@ -545,11 +545,11 @@ fixtures_ready() {
     names="$(grep -cE '^[A-Z][A-Z0-9_]*=' "$env_file" 2>/dev/null)"
     [ "$names" = 2 ] || return 1
     [ "$(kind_of "$ws")" = web-app ] || return 1
-    [ ! -e "$ws/docker-compose.yml" ] && [ ! -e "$ws/compose.yaml" ] || return 1
-    if [ "$c" = keeps-existing-dockerfile ]; then
-      [ -f "$ws/Dockerfile" ] || return 1
+    [ ! -e "$ws/Dockerfile" ] && [ ! -e "$ws/docker-compose.yml" ] && [ ! -e "$ws/compose.yaml" ] || return 1
+    if [ "$c" = keeps-existing-template ]; then
+      grep -qx 'PANTRY_DB_HOST=op://Dev/pantry-shared/db-host' "$ws/.env.tpl" 2>/dev/null || return 1
     else
-      [ ! -e "$ws/Dockerfile" ] || return 1
+      [ ! -e "$ws/.env.tpl" ] || return 1
     fi
   done
 }
