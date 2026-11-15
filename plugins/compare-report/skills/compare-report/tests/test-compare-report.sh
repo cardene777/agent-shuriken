@@ -419,6 +419,17 @@ html_fallback() {
 }
 check "to-pdf says to give the user the HTML when it cannot print" html_fallback
 
+# claude plugin eval keeps the agent out of a plugin folder that holds a file named report.html, so the
+# template has another name and new-report.sh copies it to report.html.
+template_name() {
+  local base="$HERE/../templates/base.html" out
+  [ -f "$base" ] || return 1
+  [ -z "$(find "$HERE/../../.." -name report.html -not -path '*/evals/results/*')" ] || return 1
+  out="$(COMPARE_REPORT_HOME="$T/template-name" bash "$SCRIPTS/new-report.sh" template-name)" || return 1
+  [ "$(basename "$out")" = report.html ] && cmp -s "$base" "$out"
+}
+check "the template is not named report.html, and new-report copies it to report.html" template_name
+
 # --- the SKILL.md and its eval suite
 PLUGIN="$(cd "$HERE/../../.." && pwd)"
 EVALS="$PLUGIN/evals"

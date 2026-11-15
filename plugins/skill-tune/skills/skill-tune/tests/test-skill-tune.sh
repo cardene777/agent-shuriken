@@ -127,6 +127,19 @@ check "copy leaves out results and caches and is readable only by the user" \
    && [ "$(mode "$D")" = 700 ] && [ "$(mode "$D/runs/alpha-before")" = 700 ] \
    && ! tune copy "$R/plugins/alpha" --label before >/dev/null 2>&1'
 
+# A plugin that holds a file named report.html, the name of the eval's own report: claude plugin eval then
+# keeps the agent out of the plugin's folder, so copy says so and still makes the copy.
+mkdir -p "$R/plugins/alpha/skills/alpha/templates"
+printf '<html></html>\n' > "$R/plugins/alpha/skills/alpha/templates/report.html"
+named="$(tune copy "$R/plugins/alpha" --label named 2> "$T/named.err")"; rc_named=$?
+rm -rf "$R/plugins/alpha/skills/alpha/templates"
+tune copy "$R/plugins/alpha" --label plain 2> "$T/plain.err" >/dev/null
+check "copy warns when the plugin holds a file named report.html, and still makes the copy" \
+  '[ "$rc_named" = 0 ] && [ -f "$named/skills/alpha/templates/report.html" ] \
+   && grep -qF "skills/alpha/templates/report.html" "$T/named.err" && grep -qF "claude plugin eval keeps the agent out of the plugin" "$T/named.err" \
+   && [ ! -s "$T/plain.err" ]'
+tune clean alpha-named > /dev/null; tune clean alpha-plain > /dev/null
+
 # --- run
 tune run "$copy" --label before --max-cost-usd 4 > "$T/run.txt"; rc=$?
 check "run passes the copy, the cost limit, and the result path to claude plugin eval" \
@@ -230,7 +243,8 @@ skill_rules() {
     'Never run `clean --all`' \
     'Name the grader that shows the skill started `skill-fired`' \
     'for a skill with `disable-model-invocation: true`' \
-    'The run'"'"'s `HOME` is itself a repository'; do
+    'The run'"'"'s `HOME` is itself a repository' \
+    'a file named `report.html`'; do
     grep -qF -- "$phrase" "$SKILL" || return 1
   done
 }
