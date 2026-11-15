@@ -145,7 +145,11 @@ gitrepo "$BLOG"
 printf 'node_modules/\n' > "$BLOG/.gitignore"
 fill "$BLOG/node_modules/react"; size "$BLOG/node_modules" 102400
 mkdir -p "$BLOG/src"
-printf 'p4242\nfcwd\nn%s\n' "$BLOG/src" > "$MOCK/lsof"
+# notes has a live agent working in it, and a dev server whose parent has ended.
+NOTES="$H/projects/notes"
+gitrepo "$NOTES"
+mkdir -p "$NOTES/web"
+printf 'p4242\nfcwd\nn%s\np1100\nfcwd\nn%s\np1101\nfcwd\nn%s\n' "$BLOG/src" "$NOTES" "$NOTES/web" > "$MOCK/lsof"
 
 # Trash, logs, and installers, old and new.
 mkdir -p "$H/.Trash"; printf 'old note' > "$H/.Trash/old-note.txt"
@@ -228,6 +232,12 @@ write_ps() {
     psline 800 1 "$U" '??' 2500000 "$1" "$LSTART" '/Applications/Browser.app/Contents/MacOS/Browser'
     psline 900 1 root '??' 3000000 50:00.00 "$LSTART" /usr/libexec/heavyd
     psline 4242 1 "$U" '??' 10000 0:00.10 "$LSTART" 'node /work/blog/server.js'
+    # Host.app runs an agent session; its renderer helper and the bundled agent are heavy.
+    psline 1000 1 "$U" '??' 900000 0:40.00 "$LSTART" '/Applications/Host.app/Contents/MacOS/Host'
+    psline 1001 1000 "$U" '??' 800000 0:40.00 "$LSTART" '/Applications/Host.app/Contents/Frameworks/Host Helper (Renderer).app/Contents/MacOS/Host Helper (Renderer) --type=renderer'
+    psline 1002 1000 "$U" '??' 700000 0:40.00 "$LSTART" '/Applications/Host.app/Contents/Resources/codex app-server'
+    psline 1100 1 "$U" '??' 20000 0:01.00 "$LSTART" 'claude'
+    psline 1101 1 "$U" '??' 90000 0:02.00 "$LSTART" 'node /work/notes/node_modules/.bin/vite'
     psline "$P_TERM" 1 "$U" '??' 60000 0:01.00 "$LSTART" 'node /work/a/node_modules/.bin/vite'
     psline "$P_STUBBORN" 1 "$U" '??' 60000 0:01.00 "$LSTART" 'node /work/b/node_modules/.bin/nodemon'
     psline "$P_REUSED" 1 "$U" '??' 60000 0:01.00 "${2:-$LSTART}" 'node /work/c/node_modules/.bin/webpack serve'
@@ -286,6 +296,8 @@ check "scan lists leftover dev processes, heavy processes, login items, and runn
   'has "(.items | any(.category == \"dev-process\" and .pid == 600 and .locked == null)) and (.items | any(.category == \"heavy-process\" and .pid == 800)) and (.items | all(.pid != 900)) and (.items | any(.category == \"login-item\" and .name == \"com.example.updater\")) and (.items | any(.category == \"container\" and .name == \"shop-db-1\"))"'
 check "a process under a live agent session or terminal is locked with a reason" \
   'has "(.items | any(.pid == 501 and (.locked | type) == \"string\" and (.locked | test(\"agent\")))) and (.items | any(.pid == 700 and (.locked | type) == \"string\" and (.locked | test(\"terminal\"))))"'
+check "an app a live agent session runs in and a dev server in an agent's project are locked" \
+  'has "(.items | any(.pid == 1000 and (.locked // \"\" | test(\"runs under it\")))) and (.items | any(.pid == 1001 and (.locked // \"\" | test(\"belongs to Host\")))) and (.items | any(.pid == 1002 and .name == \"codex\" and .locked == \"is a live agent session\")) and (.items | any(.pid == 1101 and .category == \"dev-process\" and (.locked // \"\" | test(\"project\"))))"'
 check "build output in a folder a running process works in is locked" \
   'has ".items | any(.path == \"$BLOG/node_modules\" and (.locked | type) == \"string\")" && has ".items | any(.path == \"$SHOP/node_modules\" and .locked == null)"'
 

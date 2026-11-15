@@ -42,6 +42,9 @@ An item that is in use is listed with the reason and cannot be picked, on the pa
 |---|---|
 | Runs under a live agent session | Following the parent processes up reaches `claude`, `codex`, `copilot`, or `gemini`, run directly or through `node`, `bun`, or `deno` |
 | Is a live agent session | The process is one of those agents |
+| A live agent session runs under it | Following an agent's parent processes up reaches this process, such as the app or terminal that hosts the session |
+| Belongs to an app a live agent session runs in | The process runs from the same `.app` bundle as a process an agent runs under, such as the app's renderer or GPU helper |
+| Works in a project a live agent session works in | The process's working folder is in the same git project as an agent's working folder, so a dev server the agent started and left to run in the background is kept |
 | Runs in an open terminal | The process has a controlling terminal |
 | Part of the operating system | The program is under `/System/`, `/usr/libexec/`, `/usr/sbin/`, `/sbin/`, or `/usr/lib/systemd/` |
 | A running program works in this project | A process's working folder (from `lsof -d cwd` on macOS, `/proc/<pid>/cwd` on Linux) is inside the project that holds the item, or inside a Compose project's working folder for a container |

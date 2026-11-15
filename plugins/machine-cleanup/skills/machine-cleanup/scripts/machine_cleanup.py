@@ -75,7 +75,9 @@ SYNC_DIRS = ("Library/Mobile Documents", "Library/CloudStorage", "Dropbox", "One
 SECRET_ARG = re.compile(r"(?i)(--?[a-z0-9_-]*(token|secret|password|passwd|api[-_]?key|auth)[a-z0-9_-]*)(=|\s+)(\S+)")
 SECRET_ENV = re.compile(r"(?i)\b([A-Z0-9_]*(TOKEN|SECRET|PASSWORD|PASSWD|API_KEY|APIKEY|AUTH)[A-Z0-9_]*)=(\S+)")
 DEV_PATTERNS = (
-    (r"(^|/)next(\s+dev\b|-server\b)|next-router-worker", "Next.js dev server"),
+    (r"(^|/)next\s+dev\b", "Next.js dev server"),
+    # Next.js renames both `next dev` and `next start` to next-server, so the title cannot tell them apart.
+    (r"(^|/)next-server\b|next-router-worker", "Next.js server"),
     (r"(^|/)vite(\s|$)", "Vite dev server"),
     (r"webpack-dev-server|(^|/)webpack\s+serve\b", "webpack dev server"),
     (r"(^|/)nodemon(\s|$)", "nodemon"),
@@ -321,12 +323,53 @@ def self_chain(procs):
     return pids
 
 
-def process_lock(procs, proc):
+def app_bundle(args):
+    m = re.match(r"(/.+?\.app)/Contents/", args)
+    return m.group(1) if m else None
+
+
+class AgentUse:
+    """What live agent sessions depend on besides their own descendants: the processes they run
+    under, the apps those processes belong to, and the git projects they work in. Ending an app's
+    helper or a dev server in such a project can end or break a session."""
+
+    def __init__(self, ctx, procs, cwds):
+        self.ctx, self.cwd = ctx, dict(cwds)
+        self.hosts, self.apps, self.projects = {}, {}, {}
+        agents = {pid: p for pid, p in procs.items() if is_agent(p)}
+        for p in agents.values():
+            for a in ancestors(procs, p["pid"]):
+                self.hosts.setdefault(a["pid"], p)
+                app = app_bundle(a["args"])
+                if app:
+                    self.apps.setdefault(app, p)
+        for pid in agents:
+            repo = self.project(pid)
+            if repo:
+                self.projects.setdefault(repo, agents[pid])
+
+    def project(self, pid):
+        cwd = self.cwd.get(pid)
+        return find_repo(self.ctx, os.path.join(cwd, ".")) if cwd else None
+
+
+def process_lock(procs, proc, use):
     if is_agent(proc):
         return "is a live agent session"
     for a in ancestors(procs, proc["pid"]):
         if is_agent(a):
             return "runs under a live agent session (%s, pid %d)" % (a["base"], a["pid"])
+    agent = use.hosts.get(proc["pid"])
+    if agent:
+        return "a live agent session runs under it (%s, pid %d)" % (agent["base"], agent["pid"])
+    app = app_bundle(proc["args"])
+    agent = use.apps.get(app) if app else None
+    if agent:
+        return "belongs to %s, which a live agent session runs in (%s, pid %d)" % (
+            os.path.basename(app)[:-4], agent["base"], agent["pid"])
+    agent = use.projects.get(use.project(proc["pid"]))
+    if agent:
+        return "works in a project a live agent session works in (%s, pid %d)" % (agent["base"], agent["pid"])
     if proc["tty"]:
         return "runs in an open terminal (%s)" % proc["tty"]
     first = proc["args"].split()[0] if proc["args"].split() else ""
@@ -858,8 +901,9 @@ def args_hash(args):
     return hashlib.sha256(args.encode("utf-8", "replace")).hexdigest()
 
 
-def scan_processes(ctx, procs, first, elapsed):
+def scan_processes(ctx, procs, first, elapsed, cwds):
     mine = self_chain(procs)
+    use = AgentUse(ctx, procs, cwds)
     items, heavy = [], []
     for pid, p in sorted(procs.items()):
         if pid in mine or p["user"] != ctx.user:
@@ -868,13 +912,13 @@ def scan_processes(ctx, procs, first, elapsed):
         if pid in first and elapsed > 0 and first[pid]["lstart"] == p["lstart"]:
             cpu = max(0.0, (p["cpu_time"] - first[pid]["cpu_time"]) / elapsed * 100.0)
         label = dev_label(p["args"])
-        lock = process_lock(procs, p)
         if label:
-            items.append(proc_item("dev-process", "dev-process", p, label, lock, cpu))
+            items.append(proc_item("dev-process", "dev-process", p, label, process_lock(procs, p, use), cpu))
         elif p["rss"] >= HEAVY_RSS or cpu >= HEAVY_CPU:
-            app = re.match(r"(/.+?)\.app/Contents/", p["args"])
-            name = os.path.basename(app.group(1)) if app else p["base"]
-            heavy.append(proc_item("heavy-process", "heavy-process", p, name, lock, cpu))
+            # An agent bundled inside an app (Codex in ChatGPT) is named as the agent, not the app.
+            app = app_bundle(p["args"])
+            name = p["base"] if is_agent(p) or not app else os.path.basename(app)[:-4]
+            heavy.append(proc_item("heavy-process", "heavy-process", p, name, process_lock(procs, p, use), cpu))
     heavy.sort(key=lambda i: (i["size"] or 0) + (i["cpu"] or 0) * MIB, reverse=True)
     return items + heavy[:HEAVY_TOP]
 
@@ -1046,7 +1090,7 @@ def cmd_scan(ctx, args):
             bid, _ = app_info(app)
             if bid:
                 running_ids.add(bid)
-    items = scan_processes(ctx, procs, first, elapsed)
+    items = scan_processes(ctx, procs, first, elapsed, cwds)
     items += scan_login_items(ctx)
     items += scan_containers(ctx, procs, cwds)
     items += scan_caches(ctx, procs, deadline, skipped)
@@ -1497,6 +1541,7 @@ def cmd_apply(ctx, args):
     before = measure(ctx)
     procs = read_procs()
     cwds = working_dirs(ctx)
+    use = AgentUse(ctx, procs, cwds)
     records, failed, docker_done = [], False, False
     targets = []
     for it in picked:
@@ -1525,7 +1570,7 @@ def cmd_apply(ctx, args):
         else:
             p, why = same_process(procs, it)
             if p is not None:
-                why = process_lock(procs, p)
+                why = process_lock(procs, p, use)
                 why = ("in use: " + why) if why else None
             if why:
                 line("skipped", it["id"], it["name"], why)
@@ -1571,10 +1616,14 @@ def kill_survivors(ctx, ids, by_id):
         print("Nothing was changed.")
         return 1
     procs = read_procs()
+    use = AgentUse(ctx, procs, working_dirs(ctx))
     for i in ids:
         it = by_id[i]
         p, why = same_process(procs, it)
-        if p is None:
+        if p is not None:
+            why = process_lock(procs, p, use)
+            why = ("in use: " + why) if why else None
+        if why:
             line("skipped", i, it["name"], why)
             continue
         try:

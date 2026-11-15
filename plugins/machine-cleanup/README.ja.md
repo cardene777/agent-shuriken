@@ -60,7 +60,7 @@ GitHub Copilot CLIでは依頼の文に`/machine-cleanup`と書き、Gemini CLI�
 
 ## 手の届かない所に置く物
 
-- 動いているエージェントの会話 (Claude Code、Codex、GitHub Copilot CLI、Gemini CLI) か開いている端末が動かす物と、動いているプログラムが作業しているプロジェクトの中の全ての項目。これらの行は理由を示し、選べません
+- 動いているエージェントの会話 (Claude Code、Codex、GitHub Copilot CLI、Gemini CLI) か開いている端末が動かす物、会話を抱えるアプリや端末、会話と同じプロジェクトで作業しているプロセスと、動いているプログラムが作業しているプロジェクトの中の全ての項目。これらの行は理由を示し、選べません
 - iCloud Drive、Dropbox、Google Drive、OneDriveなどの同期フォルダ (ここで消すとクラウド側からも消えます) と、WSLから見たWindowsのドライブ
 - シンボリックリンクとその先、gitが追跡するファイル、Dockerのボリューム
 - 管理者のパスワードが要る物と、ほかのユーザーのプロセス

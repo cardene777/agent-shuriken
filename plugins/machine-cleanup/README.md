@@ -59,7 +59,7 @@ When the agent stopped waiting for the page, press **Copy the selection** and pa
 
 ## What it keeps out of reach
 
-- Anything a live agent session (Claude Code, Codex, GitHub Copilot CLI, or Gemini CLI) or an open terminal runs, and every item in a project where a running program works. These rows show why and cannot be picked
+- Anything a live agent session (Claude Code, Codex, GitHub Copilot CLI, or Gemini CLI) or an open terminal runs, the app or terminal a session runs in, processes working in a project a session works in, and every item in a project where a running program works. These rows show why and cannot be picked
 - Sync folders such as iCloud Drive, Dropbox, Google Drive, and OneDrive, because deleting there deletes in the cloud too, and Windows drives under WSL
 - Symbolic links and what they point to, files git tracks, and Docker volumes
 - Anything that needs an administrator password, and other users' processes

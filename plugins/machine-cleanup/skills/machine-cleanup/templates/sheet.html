@@ -150,7 +150,7 @@ h1 { font-size: 24px; margin: 0; }
     <h3 data-i18n="helpWhatTitle">What is listed</h3>
     <p data-i18n="helpWhat">Caches that tools rebuild, build output that git ignores, the Trash, old logs and installers, large and duplicate files, apps you have not opened for 90 days, dev servers left running after their session ended, heavy processes, login items, and running containers.</p>
     <h3 data-i18n="helpLockTitle">Why some rows cannot be picked</h3>
-    <p data-i18n="helpLock">A row is in use when a live agent session or an open terminal runs it, or when a running program works in the same project. Close that session or program, and ask the agent to scan again.</p>
+    <p data-i18n="helpLock">A row is in use when a live agent session or an open terminal runs it, when a live agent session runs inside it or inside its app, or when a live agent session or another running program works in the same project. Close that session or program, and ask the agent to scan again.</p>
     <h3 data-i18n="helpNeverTitle">What is never touched</h3>
     <p data-i18n="helpNever">Sync folders such as iCloud Drive, Dropbox, Google Drive, and OneDrive, Windows drives under WSL, files git tracks, Docker volumes, and anything that needs an administrator password.</p>
     <h3 data-i18n="helpNextTitle">What happens next</h3>
@@ -195,7 +195,7 @@ h1 { font-size: 24px; margin: 0; }
     "helpWhatTitle": "What is listed",
     "helpWhat": "Caches that tools rebuild, build output that git ignores, the Trash, old logs and installers, large and duplicate files, apps you have not opened for 90 days, dev servers left running after their session ended, heavy processes, login items, and running containers.",
     "helpLockTitle": "Why some rows cannot be picked",
-    "helpLock": "A row is in use when a live agent session or an open terminal runs it, or when a running program works in the same project. Close that session or program, and ask the agent to scan again.",
+    "helpLock": "A row is in use when a live agent session or an open terminal runs it, when a live agent session runs inside it or inside its app, or when a live agent session or another running program works in the same project. Close that session or program, and ask the agent to scan again.",
     "helpNeverTitle": "What is never touched",
     "helpNever": "Sync folders such as iCloud Drive, Dropbox, Google Drive, and OneDrive, Windows drives under WSL, files git tracks, Docker volumes, and anything that needs an administrator password.",
     "helpNextTitle": "What happens next",
@@ -234,6 +234,9 @@ h1 { font-size: 24px; margin: 0; }
     "empty": "Nothing found here.",
     "lock_agent": "A live agent session ({1}, pid {2}) runs this",
     "lock_isAgent": "This is a live agent session",
+    "lock_hosts": "A live agent session ({1}, pid {2}) runs inside this",
+    "lock_hostApp": "Part of {1}, where a live agent session ({2}, pid {3}) runs",
+    "lock_agentProject": "A live agent session ({1}, pid {2}) works in the same project",
     "lock_terminal": "It runs in an open terminal ({1})",
     "lock_os": "Part of the operating system",
     "lock_project": "A running program works in this project ({1}, pid {2})",
@@ -281,7 +284,7 @@ h1 { font-size: 24px; margin: 0; }
     "helpWhatTitle": "並ぶ物",
     "helpWhat": "道具が作り直すキャッシュ、gitが無視するビルドの出力、ゴミ箱、古いログとインストーラー、大きいファイルと重複、90日開いていないアプリ、始めた会話が終わったのに残っている開発用のサーバー、重いプロセス、ログイン項目、動いているコンテナです。",
     "helpLockTitle": "選べない行がある理由",
-    "helpLock": "動いているエージェントの会話か開いている端末が動かしている物と、動いているプログラムが同じプロジェクトで作業している物は、使用中として選べません。その会話かプログラムを閉じてから、エージェントにもう一度調べさせてください。",
+    "helpLock": "動いているエージェントの会話か開いている端末が動かしている物、中かそのアプリの中で動いているエージェントの会話がある物、動いているエージェントの会話かほかのプログラムが同じプロジェクトで作業している物は、使用中として選べません。その会話かプログラムを閉じてから、エージェントにもう一度調べさせてください。",
     "helpNeverTitle": "触らない物",
     "helpNever": "iCloud Drive、Dropbox、Google Drive、OneDriveなどの同期フォルダ、WSLから見たWindowsのドライブ、gitが追跡するファイル、Dockerのボリューム、管理者のパスワードが要る物です。",
     "helpNextTitle": "この後に起きること",
@@ -320,6 +323,9 @@ h1 { font-size: 24px; margin: 0; }
     "empty": "ここには見つかりませんでした。",
     "lock_agent": "動いているエージェントの会話 ({1}、pid {2}) が動かしています",
     "lock_isAgent": "動いているエージェントの会話そのものです",
+    "lock_hosts": "動いているエージェントの会話 ({1}、pid {2}) がこの中で動いています",
+    "lock_hostApp": "{1}の一部で、その中で動いているエージェントの会話 ({2}、pid {3}) があります",
+    "lock_agentProject": "動いているエージェントの会話 ({1}、pid {2}) が同じプロジェクトで作業しています",
     "lock_terminal": "開いている端末 ({1}) で動いています",
     "lock_os": "OSの一部です",
     "lock_project": "動いているプログラム ({1}、pid {2}) がこのプロジェクトで作業しています",
@@ -381,13 +387,16 @@ function lockText(s) {
   const rules = [
     [/^runs under a live agent session \((.+), pid (\d+)\)$/, "lock_agent"],
     [/^is a live agent session$/, "lock_isAgent"],
+    [/^a live agent session runs under it \((.+), pid (\d+)\)$/, "lock_hosts"],
+    [/^belongs to (.+), which a live agent session runs in \((.+), pid (\d+)\)$/, "lock_hostApp"],
+    [/^works in a project a live agent session works in \((.+), pid (\d+)\)$/, "lock_agentProject"],
     [/^runs in an open terminal \((.+)\)$/, "lock_terminal"],
     [/^part of the operating system$/, "lock_os"],
     [/^a running program works in this project \((.+), pid (\d+)\)$/, "lock_project"],
     [/^the app is running$/, "lock_app"],
     [/^(.+) is running$/, "lock_tool"]
   ];
-  for (const [rx, key] of rules) { const m = s.match(rx); if (m) return t(key, { 1: m[1], 2: m[2] }); }
+  for (const [rx, key] of rules) { const m = s.match(rx); if (m) return t(key, { 1: m[1], 2: m[2], 3: m[3] }); }
   return s;
 }
 function reasonText(s) {
