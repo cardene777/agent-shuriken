@@ -5,6 +5,9 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The `SKILL.md` is shorter: the tables of columns and of one repository's sections, which `docs/how-it-works.md` gives, the table of exit codes, which is now two sentences, and the list of common root folders, which `--show-roots` prints, are gone, and the description says only what the skill does and when to use it
+- The plugin has `claude plugin eval` cases under `evals/` that measure the skill, run by hand
+
 ## [0.1.1] - 2026-11-13
 
 - The README's one-repository sample lists all 13 waiting issues, as the script prints them, instead of only the first

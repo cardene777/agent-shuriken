@@ -1,6 +1,6 @@
 ---
 name: repo-progress
-description: Shows where every repository the user works on stands, in one table, without changing anything. For each local clone with the user's commits it counts worktrees, open GitHub issues and pull requests, and uncommitted files, shows the time since the last commit, and puts stalled repositories first. For one repository it lists the branches in progress, the branches and worktrees to clean up, and the open issues nobody has started. Use when the user asks what they were working on, which repositories are active or stalled, what is left to do, or for an inventory of worktrees.
+description: Shows where every repository the user works on stands, in one table, and what is left in one repository, without changing anything. Use when the user asks what they were working on, which repositories are active or stalled, what is left to do, or which branches and worktrees to clean up.
 ---
 
 # Repo progress
@@ -16,7 +16,6 @@ All commands live in `scripts/` next to this `SKILL.md`.
 Below, `S` stands for the absolute path of that folder.
 When running a command, put `S=<folder that contains this SKILL.md>/scripts` at the start of the same shell command.
 
-This skill works in Claude Code, Codex, and other agents that read `SKILL.md`, such as GitHub Copilot CLI and Gemini CLI.
 It reads folders outside the project and `gh` uses the network, so request approval for the commands when a sandbox blocks them, as Codex can.
 
 ## 1. Scan
@@ -25,33 +24,15 @@ It reads folders outside the project and `gh` uses the network, so request appro
 S=<skill folder>/scripts; python3 "$S/repo_progress.py"
 ```
 
-The script looks for git clones directly under each root folder and one level deeper, and keeps only the ones with a commit by the user.
-It finds the user from `git config --global user.name` and `user.email`.
-Without a root folder it uses common folders that exist, such as `~/projects`, `~/code`, `~/src`, `~/Developer`, and `~/Desktop/projects`.
-
-| Exit code | Meaning | What to do |
-|---|---|---|
-| 0 | The table was printed | Go to step 2 |
-| 1 | No repository with the user's commits was found | Ask the user which folders hold their repositories, then run `python3 "$S/repo_progress.py" --root <folder> --root <folder> --save-roots` so later scans remember them |
-| 2 | The user's name is unknown | Ask the user for the name or email they commit with, and run again with `--author "<name>"` |
-
+The script keeps only the clones with a commit by the user, whom it finds from the global git name and email.
+When it exits with code 1, no repository with the user's commits was found. Ask the user which folders hold their repositories, then run `python3 "$S/repo_progress.py" --root <folder> --root <folder> --save-roots` so later scans remember them.
+When it exits with code 2, the user's name is unknown. Ask the user for the name or email they commit with, and run again with `--author "<name>"`.
 Add `--author "<name>"` when the user commits under a name other than their global git name, for example at work.
 `python3 "$S/repo_progress.py" --show-roots` prints the folders a scan would use and where that list comes from.
 
 ## 2. Report
 
-The table has one row per clone, with these columns.
-
-| Column | Meaning |
-|---|---|
-| `repo` | The folder, relative to its root folder |
-| `worktrees` | Linked worktrees, not counting the clone itself |
-| `issues`, `prs` | Open issues and open pull requests on GitHub |
-| `uncommitted` | Files with changes that are not committed |
-| `idle` | Days since the last commit times open issues. High means many open issues and no recent work |
-| `last commit` | Time since the last commit on the current branch |
-| `now` | What the current branch points at: an issue, `no issue number`, `default branch`, or an issue that is no longer open |
-
+The plugin's `docs/how-it-works.md` describes each column of the table.
 Rows are sorted by `idle`, so stalled repositories come first.
 `idle` does not say how important a repository is; it only measures how long open work has waited.
 
@@ -69,16 +50,7 @@ When the user asks about one repository, run the scan for it with the name from 
 S=<skill folder>/scripts; python3 "$S/repo_progress.py" --repo <name>
 ```
 
-| Section | Holds |
-|---|---|
-| In progress | Branches and worktrees whose name points at an open issue, or has no issue number, with the pull request opened from that branch |
-| To clean up | Branches whose issue is no longer open, and worktrees whose folder is gone |
-| Unknown | Numbered branches that could not be checked because the open issues could not be read |
-| Waiting | Open issues that no branch points at |
-
-A branch points at an issue when its name looks like `feat/12-login`, `12-login`, or `issue-12`.
-Branches named after the default branch, such as `main`, are not listed.
-
+It lists the branches and worktrees in progress, the ones to clean up, the numbered branches it could not check, and the open issues that no branch points at; `docs/how-it-works.md` says how each branch is classified.
 Present the sections as they are.
 The skill never deletes anything.
 When the user wants a branch or worktree removed, treat it as a separate request: name each item, confirm it with the user, and check that its work is merged before removing it.
