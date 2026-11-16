@@ -139,6 +139,9 @@ Its front matter holds the same four fields as the dApp service items, with thes
 
 The body says the state of the library or service when it was checked, such as a version that shut down, and what a contract design must respect.
 A contract design item counts as out of date 90 days after it was checked.
+The services that run scheduled calls, relay transactions, or watch contracts, such as Chainlink Automation and OpenZeppelin Defender, are dated in the dApp service items.
+`contract-design` therefore sends the agent to the items of `dapp-architecture` for those services and keeps no copies.
+When that skill is not installed, the agent checks those services against their official documents.
 
 ## The contract-design script
 

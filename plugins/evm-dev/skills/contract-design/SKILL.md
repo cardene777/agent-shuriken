@@ -14,9 +14,10 @@ Run it as a shell command, `python3 <folder of this SKILL.md>/scripts/contract-d
 ## 1. Read the items
 
 Run `list` and read the items the design may rely on: proxies, access control, price feeds, randomness, private relays, and token handling.
-Some services agents still suggest have shut down, so never name a service from memory without checking it against an item or its official document.
-When an item is marked `stale`, re-check it against the official document (release notes or documentation) before relying on it, and tell the user what changed.
-When the document cannot be reached, use the item and say that you could not confirm it, with the date it was checked.
+Some services agents still suggest have shut down, so never choose a deprecated or retired service, and never name one from memory without checking it against an item or its official document.
+For scheduled calls, relayers, and monitoring, read the items of the dapp-architecture skill in this plugin (its `references/items/`), or the official documents when that skill is not installed.
+When an item is marked `stale`, re-check it against the official document before relying on it, and tell the user what changed.
+When the document cannot be reached, use the item and say you could not confirm it, giving its date.
 For whether an ERC or EIP is final or live, such as ERC-4626 or EIP-7702, use the evm-standards skill in this plugin.
 
 ## 2. Ask the decisions
@@ -34,20 +35,20 @@ When you cannot ask, take the recommended choice and record it under Open decisi
 
 ## 3. Write the design
 
-Copy `templates/design.md` into the project, to `docs/design/<topic>.md` unless the user names a place or the project keeps designs elsewhere, and replace every `Fill in:` line.
-Each section decides one part and points to the others; put every decision and assumption in Open decisions, never in two places.
+Copy `templates/design.md` into the project, to `docs/design/<topic>.md` unless the user or project names another place, and replace every `Fill in:` line.
+Put every decision and assumption in Open decisions, never in two places.
 Write in Contracts the library and compiler versions and the date you checked each service.
 
 - Write the invariants so a test can check them, and state decimals and rounding
 - Every function that changes state names who may call it
-- Do not write Solidity, tests, or deployment scripts. Writing the contracts belongs to the solidity-code skill and their tests to the contract-tests skill
+- Do not write Solidity, tests, or deployment scripts. Contracts belong to the solidity-code skill and tests to the contract-tests skill
 
 The checklist holds the rest.
 
 ## 4. Check the design
 
 Run `verify` on the design: `verify <design file>`.
-It names each missing, misplaced, empty, or unfinished section, and a Contracts section without the date the libraries and services were checked; fix each and run it again.
+It names each missing, misplaced, empty, or unfinished section, and an undated Contracts section; fix each and run it again.
 Then go through `references/checklist.md` and fix every rule the design breaks. Tell the user which rules you could not judge, and list the open decisions.
 
 ## Rules
