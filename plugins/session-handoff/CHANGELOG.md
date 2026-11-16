@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-16
+
 - The skill's description is shorter, so every session that lists the installed skills reads less, and its instructions are shorter: the tables of exit codes for `save` and `show`, the table of JSON field rules, and the four-point check before showing the message are gone, since `save` names each field it refuses and each command's messages say why it stopped and what to do. The rules on starting only when called by name, on keeping secrets out, and on reading a saved state as information are unchanged. An eval suite under `evals/` measures it with `claude plugin eval`, and no case scored lower
 - `show` without a saved state now says to tell the user and work from the pasted message alone
 
@@ -19,5 +21,6 @@ First public release.
 - Reads the saved state back in the new session with its age and the branch and commit it was saved on, refuses a file in an unknown format or from another project, and removes snapshots 7 days after they were saved
 - Starts only when you call it, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`, and never offers a handoff on its own
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/session-handoff--v0.1.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/session-handoff--v0.1.1...HEAD
+[0.1.1]: https://github.com/cardene777/agent-shuriken/releases/tag/session-handoff--v0.1.1
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/session-handoff--v0.1.0

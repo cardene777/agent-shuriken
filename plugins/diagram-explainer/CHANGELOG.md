@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-11-16
+
 - The skill's description is under half as long, so every session that lists the installed skills reads less, and its instructions are shorter. The rules on searches, sources, the network, the outline, and editing are unchanged. An eval suite under `evals/` measures it with `claude plugin eval`, and every case kept its score
 
 ## [0.2.1] - 2026-11-13
@@ -28,7 +30,8 @@ First public release.
 - Prints the document to PDF with a browser already installed
 - Starts when you ask for an explainer, or when you call it, in Claude Code and in Codex
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/diagram-explainer--v0.2.1...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/diagram-explainer--v0.2.2...HEAD
+[0.2.2]: https://github.com/cardene777/agent-shuriken/releases/tag/diagram-explainer--v0.2.2
 [0.2.1]: https://github.com/cardene777/agent-shuriken/releases/tag/diagram-explainer--v0.2.1
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/diagram-explainer--v0.2.0
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/diagram-explainer--v0.1.0

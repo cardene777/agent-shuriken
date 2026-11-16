@@ -1,6 +1,6 @@
 {
   "name": "convey",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Write messages that tell people what they need, with the conclusion first and nothing the reader does not need, for Slack, Discord, email, or GitHub, checked for length, formatting, and private details before they are copied",
   "author": {
     "name": "cardene777",

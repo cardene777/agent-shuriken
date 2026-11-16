@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-16
+
 - The skill's description is shorter, so every session that lists the installed skills reads less, and its instructions are shorter: the tables of themes, spec keys, and exit codes and the list of Mermaid syntax are gone, since the build lists the allowed keys and values when one is wrong and each command's messages say why it stopped and what to do. The rules on what goes in a box and on never replacing a file the user edited without asking are unchanged. An eval suite under `evals/` measures it with `claude plugin eval`, and no case scored lower
 - `--help` describes every command and option, such as `build --png`, `--scale`, `--replace`, and `--theme`
 
@@ -32,6 +34,7 @@ First public release.
 - Downloads nothing, uses no network, and keeps no files besides the diagrams you ask for
 - Starts when you ask for a diagram, or when you call it, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/excalidraw-diagram--v0.2.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/excalidraw-diagram--v0.3.0...HEAD
+[0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/excalidraw-diagram--v0.3.0
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/excalidraw-diagram--v0.2.0
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/excalidraw-diagram--v0.1.0

@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-16
+
 - The skill's description is shorter, so every session that lists the installed skills reads less, and its instructions are shorter: the tables of exit codes for `check`, `propose`, and `apply`, the table of `propose` options, and the table of the notes `files` prints are gone, since each command's messages say why it stopped and what to do, `propose --help` describes every option, and the notes are plain words such as `imported by CLAUDE.md`. The rules on approval, on keeping secrets out of instruction files, and on writing each rule once are unchanged. An eval suite under `evals/` measures it with `claude plugin eval`, and no case scored lower
 
 ## [0.1.1] - 2026-11-13
@@ -23,6 +25,7 @@ First public release.
 - Never commits, sends nothing, and keeps no files of its own
 - Starts when you ask the agent to remember a lesson, or when you call it, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/learning-to-skill--v0.1.1...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/learning-to-skill--v0.1.2...HEAD
+[0.1.2]: https://github.com/cardene777/agent-shuriken/releases/tag/learning-to-skill--v0.1.2
 [0.1.1]: https://github.com/cardene777/agent-shuriken/releases/tag/learning-to-skill--v0.1.1
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/learning-to-skill--v0.1.0

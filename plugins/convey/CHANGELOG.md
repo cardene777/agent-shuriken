@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-16
+
 - Before writing, the agent lists the facts in the source and keeps only what the reader cannot get by opening the files, screens, or links the message points to: what arrived or changed, what to do first, where the reader may get stuck, and what is undecided or asked. Every line, list items included, is a full sentence, and a short message has no headings
 - `convey.py check` warns about lines written as a label and a colon, and about a space between Japanese and a Latin letter or digit
 - A new eval case, `handoff-message`, measures whether a long handoff becomes a short message that keeps what the developer needs and leaves out what the files explain
@@ -22,3 +24,6 @@ First public release.
 - Copies the message to the clipboard with `convey.py copy` after the same check, and never sends anything
 - Follows the japanese-writing skill for Japanese when it is installed
 - Starts when you ask to share, report, announce, or ask for something in a message, or when you call it, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
+
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/convey--v0.2.0...HEAD
+[0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/convey--v0.2.0

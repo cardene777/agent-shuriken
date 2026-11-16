@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-16
+
 - The skill's description is shorter, so every session that lists the installed skills reads less, and its instructions are shorter: the tables of exit codes for `where`, `check`, and `review`, the table of `open` options, and the list of files in the records folder are gone, since each command's messages say why it stopped and what to do, and `open --help` describes `--mode` and `--max-iterations`. The rules that keep the review independent are unchanged. An eval suite under `evals/` measures it with `claude plugin eval`, and no case scored lower
 - When `git` cannot run, as with the macOS `/usr/bin/git` shim inside a sandbox, the script finds the repository by reading `.git` instead of stopping with "not inside a git repository". Linked worktrees still share the records of their main clone. Where `git` runs, nothing changes
 
@@ -24,6 +26,7 @@ First public release.
 - Changes your project's agent instructions, a skill, or your user-level instruction file only after you agree, and sends nothing over the network
 - Starts when you correct earlier output or when you call it, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/feedback-loop--v0.1.1...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/feedback-loop--v0.1.2...HEAD
+[0.1.2]: https://github.com/cardene777/agent-shuriken/releases/tag/feedback-loop--v0.1.2
 [0.1.1]: https://github.com/cardene777/agent-shuriken/releases/tag/feedback-loop--v0.1.1
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/feedback-loop--v0.1.0

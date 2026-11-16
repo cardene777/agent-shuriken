@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-16
+
 - The template is `templates/base.html`, so that no file in the plugin is named `report.html`; `new-report.sh` still writes the report as `report.html`
 - When `to-pdf.sh` finds no browser, or the browser writes no PDF, it says to give the user `report.html`, which any browser prints to PDF
 - The `SKILL.md` is shorter: the list of files, the overview of the steps, and what `to-pdf.sh` prints are gone, and the description says only what the skill does and when to use it
@@ -37,7 +39,8 @@ First public release.
 - Checks that every score has a rationale and that the report loads nothing from the network, then prints it to PDF with a browser already installed
 - Starts when you ask for a comparison, or when you call it, in Claude Code and in Codex
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/compare-report--v0.4.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/compare-report--v0.5.0...HEAD
+[0.5.0]: https://github.com/cardene777/agent-shuriken/releases/tag/compare-report--v0.5.0
 [0.4.0]: https://github.com/cardene777/agent-shuriken/releases/tag/compare-report--v0.4.0
 [0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/compare-report--v0.3.0
 [0.2.1]: https://github.com/cardene777/agent-shuriken/releases/tag/compare-report--v0.2.1
