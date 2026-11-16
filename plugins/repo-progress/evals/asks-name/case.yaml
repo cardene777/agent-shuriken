@@ -1,0 +1,37 @@
+# git fails in the eval sandbox, so the scan cannot read the user's name and exits 2. The agent asks for
+# the name or email the user commits with instead of guessing one.
+schema_version: "1.1"
+name: asks-name
+plugins: ["../.."]
+execution:
+  prompt: |
+    What was I working on across my repositories? I want to pick up where I left off.
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'repo-progress'
+    arm: with-only
+  - name: scanned
+    type: tool_used
+    tool: Bash
+    input_match: 'repo_progress\.py'
+    arm: with-only
+  - name: no-guessed-author
+    type: tool_used
+    tool: Bash
+    input_match: '--author'
+    min: 0
+    max: 0
+    arm: both
+  - name: asks-for-name
+    type: llm
+    criteria: |
+      PASS if the reply asks the user for the name or email they commit with, so that their repositories can be found.
+      Saying that git or the user's name could not be read is not a failure.
+      FAIL if the reply lists repositories as the user's work, or says it used a name the user did not give.

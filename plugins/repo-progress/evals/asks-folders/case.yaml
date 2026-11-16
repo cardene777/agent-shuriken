@@ -1,0 +1,30 @@
+# With the name given in the prompt, the scan finds no root folder in the run's HOME and exits 1. The agent
+# asks which folders hold the user's repositories, and says they can be remembered for later scans.
+schema_version: "1.1"
+name: asks-folders
+plugins: ["../.."]
+execution:
+  prompt: |
+    I commit as Dana Kim. Which of my repositories have stalled?
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'repo-progress'
+    arm: with-only
+  - name: scanned-as-dana
+    type: tool_used
+    tool: Bash
+    input_match: 'repo_progress\.py.*--author'
+    arm: with-only
+  - name: asks-for-folders
+    type: llm
+    criteria: |
+      PASS if the reply asks the user which folders hold their repositories, and says the folders can be saved or remembered for later scans, for example with --save-roots.
+      Saying that no repository was found in the usual folders is not a failure.
+      FAIL if the reply says the user has no repositories, says none of them have stalled, or reports any repository.

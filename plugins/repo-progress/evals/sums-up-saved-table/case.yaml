@@ -1,0 +1,25 @@
+# progress.txt holds a table repo_progress.py printed with gh missing, so every row shows ? for issues and
+# prs. The agent says those counts are unknown, never 0, and suggests checking gh.
+schema_version: "1.1"
+name: sums-up-saved-table
+plugins: ["../.."]
+execution:
+  prompt: |
+    I ran the repo-progress scan on my work laptop and saved its table in progress.txt. Report it the way repo-progress does: which repositories have stalled, and what is left to do?
+  max_turns: 20
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'repo-progress'
+    arm: with-only
+  - name: unknown-not-zero
+    type: llm
+    criteria: |
+      PASS if the reply says the open issue and pull request counts could not be measured or are unknown, rather than zero, and suggests checking gh, such as running gh auth status or signing in to gh.
+      Naming billing-api as the repository with the oldest last commit is not a failure.
+      FAIL if the reply says a repository has no open issues or pull requests, or that nothing is left to do.
