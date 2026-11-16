@@ -9,6 +9,10 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 - The `contract-tests` skill writes unit, fuzz, and invariant tests for a project's contracts in Foundry and Hardhat, or has kiwa write them when the kiwa plugin's skills are installed. It first lists what each contract needs a test for (external and public functions, custom errors, events, access rules, functions that take integers, and balances that must add up), then names each point no test touches, runs the tests, and reports a bug a test shows instead of changing the contract
 - Seven items on Hardhat 3's test runners, network helpers, Chai matchers, viem assertions, Solidity tests, and coverage, and on Foundry's invariant runs that drop reverted calls, each checked on 2026-11-17
+- The `dapp-architecture` skill plans how a dApp's parts fit together. It asks the decisions one at a time, records the recommended choice as an assumption when it cannot ask, and writes one design document from a template with nine sections: purpose and users, components, transactions and gas, reading chain data, data placement, environments, keys and admin, monitoring and operations, and open decisions
+- Nine items on indexers, relayers, automation, monitoring, testnets, multisigs, and storage, each checked on 2026-11-17, such as OpenZeppelin Defender's retirement on 1 July 2026, the deprecation of Chainlink Automation, Holesky's shutdown, and the rate limits on the public IPFS gateways; `list` marks the ones checked more than 90 days ago
+- `dapp-architecture.py verify` names each section of a design that is missing, out of order, empty, still holding a `Fill in:` line, or, for Components, without the date the services were checked, and never prints the design's text
+- A checklist of the rules a dApp design must never break, such as a sender and a payer for every write path, relayer keys kept apart from admin keys, indexing that survives reorganizations, and admin roles in a multisig behind a timelock
 
 ## [0.3.0] - 2026-11-16
 
