@@ -3,7 +3,7 @@ tool: hardhat
 since: 3.0.0
 checked: 2026-11-16
 source: Hardhat migration guide from Hardhat 2
-detect: module\.exports|require\(\s*["'](hardhat|@nomicfoundation)
+detect: module\.exports|require\(\s*.(hardhat|@nomicfoundation)
 files: hardhat.config.*
 ---
 
