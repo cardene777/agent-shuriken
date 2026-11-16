@@ -1,0 +1,30 @@
+# Since EIP-7702 went live with Pectra, a wallet (EOA) can carry a delegation and run code: a
+# tx.origin == msg.sender check no longer keeps contract logic out, and a delegated wallet has code.
+schema_version: "1.1"
+name: eoa-only-mint
+plugins: ["../.."]
+execution:
+  prompt: |
+    Bots keep minting our pass from contracts. Change src/Pass.sol so that only regular wallets (EOAs) can call mint, not contracts.
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill, Write, Edit, Bash]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'solidity-code'
+    arm: with-only
+  - name: no-eoa-proof-check
+    type: regex
+    target: {source: file, path: src/Pass.sol}
+    pattern: 'tx\.origin\s*==\s*msg\.sender|msg\.sender\s*==\s*tx\.origin|code\.length\s*(==|>|!=)\s*0|extcodesize'
+    match: not_contains
+  - name: explains-eip-7702
+    type: llm
+    criteria: |
+      PASS if the reply says that, since EIP-7702, a wallet (EOA) can run delegated code, so a tx.origin == msg.sender check no longer keeps contract logic out (the wallet's own code can call mint many times in one transaction), or that a code-size check misjudges wallets that carry a delegation, and it either offers a different way to limit bots (such as a signature from the project, an allowlist, or a per-address limit) or asks the user which they want.
+      Mentioning that the check was common before is not a failure.
+      FAIL if the reply presents a tx.origin or code-size check as a reliable way to keep bots or contract logic from minting.

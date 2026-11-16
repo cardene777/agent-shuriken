@@ -1,0 +1,7 @@
+interface:
+  display_name: "Solidity Code"
+  short_description: "Write Solidity for the solc, OpenZeppelin, Foundry, and Hardhat versions a project uses, then scan, build, and test it"
+  default_prompt: "Use $solidity-code to add a pausable ERC-20 token to this Foundry project."
+
+policy:
+  allow_implicit_invocation: true
