@@ -166,5 +166,104 @@ check "--save-roots without --root exits 2" '[ "$rc" = 2 ]'
 after_status="$(git -C "$A" status --porcelain; git -C "$A" worktree list --porcelain; ls -A "$A")"
 check "scans leave the repository unchanged" '[ "$before_status" = "$after_status" ]'
 
-printf '%d passed, %d failed\n' "$PASS" "$FAIL"
+# --- the SKILL.md and its eval suite
+# The checks below run through eval in check(), so they read globals, not a function's arguments.
+PLUGIN="$(cd "$HERE/../../.." && pwd)"
+EVALS="$PLUGIN/evals"
+SKILL="$HERE/../SKILL.md"
+CASES=(asks-name asks-folders sums-up-saved-table deletes-nothing unrelated-request)
+
+eval_cases() {
+  local c
+  for c in "${CASES[@]}"; do
+    [ -f "$EVALS/$c/case.yaml" ] && [ -x "$EVALS/$c/fixture.sh" ] || return 1
+  done
+}
+check "the eval suite has the five cases" eval_cases
+
+# In the eval sandbox git fails, so the agent's scan reads no name and no repository. This git does the same.
+mkdir -p "$T/nogit"
+printf '#!/bin/sh\nexit 128\n' > "$T/nogit/git"
+chmod +x "$T/nogit/git"
+
+# fixture <case>: runs the case's fixture.sh the way claude plugin eval does (in home/cwd with HOME at
+# home, which is a git repository, and none of this test's REPO_PROGRESS_ settings) and prints the workspace.
+fixture() {
+  local home="$T/fixture-$1/home"
+  mkdir -p "$home/cwd"
+  git init -q "$home"
+  (cd "$home/cwd" && unset REPO_PROGRESS_HOME REPO_PROGRESS_GH REPO_PROGRESS_NOW && HOME="$home" bash "$EVALS/$1/fixture.sh") > /dev/null 2>&1 || return 1
+  printf '%s\n' "$home/cwd"
+}
+# sandbox_scan <case> <args...>: runs the scan as the agent's run sees it and prints its exit code.
+sandbox_scan() {
+  local home="$T/fixture-$1/home"
+  shift
+  (cd "$home/cwd" && unset REPO_PROGRESS_HOME REPO_PROGRESS_GH REPO_PROGRESS_NOW && HOME="$home" PATH="$T/nogit:$PATH" python3 "$SCRIPT" "$@") > /dev/null 2>&1
+  printf '%s\n' "$?"
+}
+fixtures_ready() {
+  local c ws
+  for c in "${CASES[@]}"; do
+    ws="$(fixture "$c")" || return 1
+    [ ! -e "$ws/.git" ] && [ ! -e "$T/fixture-$c/home/.gitconfig" ] || return 1
+    case "$c" in
+      asks-name) [ "$(sandbox_scan "$c")" = 2 ] || return 1 ;;
+      asks-folders) [ "$(sandbox_scan "$c" --author "Dana Kim")" = 1 ] || return 1 ;;
+      sums-up-saved-table)
+        python3 - "$ws/progress.txt" <<'PYEOF' || return 1
+import sys
+lines = [l.split() for l in open(sys.argv[1]).read().splitlines() if l.strip()]
+head = lines[0]
+rows = [l for l in lines[1:] if not l[0][0].isdigit()]
+issues, prs = head.index("issues"), head.index("prs")
+sys.exit(0 if head[0] == "repo" and len(rows) >= 2 and all(r[issues] == "?" and r[prs] == "?" for r in rows) else 1)
+PYEOF
+        ;;
+      deletes-nothing)
+        [ -d "$ws/shop/.git" ] || return 1
+        git -C "$ws/shop" rev-parse -q --verify refs/heads/fix/15-typo > /dev/null || return 1
+        [ "$(git -C "$ws/shop" branch --merged main --format='%(refname:short)' | grep -v '^main$')" = feat/12-login ] || return 1 ;;
+    esac
+  done
+}
+check "the eval fixtures build the states their cases start from" fixtures_ready
+
+results_ignored() {
+  local repo
+  repo="$(git -C "$PLUGIN" rev-parse --show-toplevel 2>/dev/null)" || return 1
+  git -C "$repo" check-ignore -q "${EVALS#"$repo"/}/results/run.json"
+}
+check "eval results are ignored by git" results_ignored
+
+# The body is counted in words and the description in characters, as the size the agent reads.
+SKILL_WORDS_MAX=828
+SKILL_DESCRIPTION_MAX=576
+skill_size() {
+  python3 - "$SKILL" "$SKILL_WORDS_MAX" "$SKILL_DESCRIPTION_MAX" <<'PYEOF'
+import re, sys
+front, body = open(sys.argv[1], encoding="utf-8").read().split("---", 2)[1:]
+words = len(body.split())
+chars = len(re.search(r"^description: (.*)$", front, re.M).group(1))
+print("      SKILL.md body %d words (max %s), description %d characters (max %s)" % (words, sys.argv[2], chars, sys.argv[3]))
+sys.exit(0 if words <= int(sys.argv[2]) and chars <= int(sys.argv[3]) else 1)
+PYEOF
+}
+check "the SKILL.md stays within its size limits" skill_size
+
+skill_rules() {
+  local phrase
+  for phrase in \
+    'It never changes a repository, a branch, a worktree, or an issue' \
+    'The skill never deletes anything' \
+    'Say that it is unknown, never that it is 0' \
+    'Ask the user which folders hold their repositories' \
+    'Ask the user for the name or email they commit with' \
+    'name each item, confirm it with the user, and check that its work is merged before removing it'; do
+    grep -qF -- "$phrase" "$SKILL" || return 1
+  done
+}
+check "the SKILL.md keeps its rules on changing nothing, unknown values, and asking first" skill_rules
+
+printf '%d passed, %d failed (%d ran)\n' "$PASS" "$FAIL" "$((PASS + FAIL))"
 [ "$FAIL" -eq 0 ]
