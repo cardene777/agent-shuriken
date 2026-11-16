@@ -2,7 +2,7 @@
 
 English · [日本語](how-it-works.ja.md)
 
-The plugin has three skills. `evm-standards` answers questions about ERCs and EIPs from items bundled with it, `solidity-code` writes Solidity for the versions a project uses from items about its tools, and `financial-standards` writes a design for an app built on financial standards from items about their versions.
+The plugin has four skills. `evm-standards` answers questions about ERCs and EIPs from items bundled with it, `solidity-code` writes Solidity for the versions a project uses from items about its tools, `contract-tests` writes tests for a project's contracts from items about its test tools, and `financial-standards` writes a design for an app built on financial standards from items about their versions.
 This page describes the skills' items, when an item counts as out of date, the scripts, and what the agent may do with them.
 
 ## The ERC and EIP items
@@ -87,6 +87,44 @@ It never prints the text of a line, and never reads `lib/`, `node_modules/`, `ou
 3. It writes the contract with the project's library, and asks the user how a contract is upgraded when that has not been chosen
 4. It runs `scan`, fixes each line it names, then builds and runs the tests, and says so when they cannot run
 
+## The test tool items
+
+`contract-tests` keeps its items in `skills/contract-tests/references/items/`, one Markdown file per fact about a test tool, such as `hardhat-3.0-network-helpers.md`.
+Its front matter holds `tool` (one of `forge-std`, `foundry`, `hardhat`), `since`, `checked`, and `source`, with the same meanings as the tool items above, and no `detect`.
+Facts about writing Solidity, such as Foundry 1.0 dropping `testFail`, stay in the `solidity-code` items, which `contract-tests` reads through that skill.
+A test tool item counts as out of date 90 days after it was checked.
+
+## The contract-tests script
+
+`skills/contract-tests/scripts/contract-tests.py` runs on Python 3 with its standard library only.
+
+| Command | What it does |
+|---|---|
+| `check` | Checks that every item has its four fields, a known tool, a version in `since`, and a real date. It names each item that does not and exits 1 |
+| `list` | Prints one line per item: `ok` or `stale`, the tool, the version, the date it was checked, and its name, then a count |
+| `points <folder>` | Reads the contracts under `src` in `foundry.toml` (default `src`) and under `contracts` in a Hardhat project, leaving out interfaces and `.t.sol` and `.s.sol` files, and prints one line per point: its kind, its name, and `file:line` |
+| `uncovered <folder>` | Reads the tests under the test folder and every `.t.sol` file, and prints each point no test touches. It exits 1 when one is left and 0 when every point has a test |
+
+| Kind | The point | A test touches it when |
+|---|---|---|
+| `function` | An external or public function | It calls `.<name>` |
+| `error` | A custom error | It names the error |
+| `event` | An event | It names the event |
+| `access` | A function guarded by a modifier whose name starts with `only`, or by a comparison with `msg.sender` | It expects a revert on a call to the function: in Solidity, the first call after `expectRevert` that is not a `vm.` cheatcode; in TypeScript, a call in the same statement as the revert check |
+| `fuzz` | A function that changes state and takes an integer | A Solidity test function with parameters, or a fast-check property, calls it |
+| `invariant` | A contract with a mapping to an unsigned integer and a function that changes state | A Solidity test file that names the contract has a function whose name starts with `invariant`, or a fast-check `fc.commands` test names it |
+
+Names inside comments do not count.
+Both commands print only kinds, names, and `file:line`, never the text of a contract or a test, and never read `lib/`, `node_modules/`, `out/`, `cache/`, `artifacts/`, hidden folders, or files whose names start with `.env`.
+
+## How the agent writes tests
+
+1. It reads the versions and the Solidity items with the `solidity-code` skill, runs `list` for the test tool items, re-checks the ones marked `stale`, and follows the project's existing tests
+2. It runs `points`, and adds rules the script cannot see, such as limits stated in comments or by the user
+3. When the kiwa-design and kiwa-forge skills (kiwa-hardhat for Hardhat) are available, it gives the points to kiwa-design and has kiwa write the tests, without writing test files itself. Otherwise it writes unit, fuzz, and invariant tests with forge, or with the Hardhat runner the project uses
+4. It runs `uncovered` and adds tests until no point is left, or tells the user which stay uncovered and why
+5. It runs the project's tests and the `solidity-code` scan, and says so when the tests cannot run. When a test shows a bug, it reports the bug and leaves the contract as it was
+
 ## The financial standard items
 
 `financial-standards` keeps its items in `skills/financial-standards/references/items/`, one Markdown file per standard, such as `iso-20022-cbpr-plus-release.md` or `fix-latest.md`.
@@ -129,6 +167,7 @@ The checklist holds the rules a design must never break: nothing private on chai
 - It never edits its items; a newer fact goes into the answer, not into the plugin's files
 - It searches only with a standard's number or name, or a tool's name and version, and sends nothing about your project
 - It never writes a private key or a mnemonic into a file, and refuses a command that passes a key
+- `contract-tests` never changes a contract to make a test pass, and writes only test files
 - `financial-standards` never reads a key, never signs, and writes no contracts, schemas, ABIs, API definitions, tests, or scripts
 - It never reads `.env` files
 - It keeps nothing after it answers

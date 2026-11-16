@@ -2,8 +2,8 @@
 
 [English](how-it-works.md) · 日本語
 
-このプラグインは3つのスキルを持ちます。
-`evm-standards`は同梱の項目からERCとEIPについての質問に答え、`solidity-code`は道具についての項目から、プロジェクトが使う版に合わせてSolidityを書き、`financial-standards`は金融の規格の版についての項目から、その規格を使うアプリの設計書を書きます。
+このプラグインは4つのスキルを持ちます。
+`evm-standards`は同梱の項目からERCとEIPについての質問に答え、`solidity-code`は道具についての項目から、プロジェクトが使う版に合わせてSolidityを書き、`contract-tests`はテストの道具についての項目から、プロジェクトのコントラクトのテストを書き、`financial-standards`は金融の規格の版についての項目から、その規格を使うアプリの設計書を書きます。
 この頁は、スキルの項目と、項目を古いと見る時期と、スクリプトと、エージェントが項目をどう扱うかを書きます。
 
 ## ERCとEIPの項目
@@ -92,6 +92,46 @@
 3. プロジェクトのライブラリでコントラクトを書き、更新の方式が決まっていない時は利用者に尋ねます
 4. `scan`を動かして名指された行を直し、ビルドとテストを回します。回せない時はそう伝えます
 
+## テストの道具の項目
+
+`contract-tests`は`skills/contract-tests/references/items/`に、テストの道具についての事実ごとに1つのMarkdownのファイルで項目を持ちます。
+例えば`hardhat-3.0-network-helpers.md`です。
+前付けは`tool`(`forge-std`、`foundry`、`hardhat`のどれか)と`since`と`checked`と`source`を持ち、意味は上の道具の項目と同じで、`detect`は持ちません。
+Foundry 1.0が`testFail`を外したことのような、Solidityの書き方についての事実は`solidity-code`の項目に残し、`contract-tests`はそのスキルを通して読みます。
+テストの道具の項目は、確かめた日から90日で古いと見ます。
+
+## contract-testsのスクリプト
+
+`skills/contract-tests/scripts/contract-tests.py`は、Python 3の標準ライブラリだけで動きます。
+
+| 命令 | すること |
+|---|---|
+| `check` | 全ての項目が4つの欄と、知っている道具と、`since`の版と、実在する日付を持つかを確かめます。持たない項目を名指して1で終わります |
+| `list` | 項目ごとに1行で、`ok`か`stale`と、道具と、版と、確かめた日と、名前を出し、最後に件数を出します |
+| `points <folder>` | `foundry.toml`の`src`(既定は`src`)と、Hardhatのプロジェクトの`contracts`の下のコントラクトを読みます。interfaceと、`.t.sol`と`.s.sol`のファイルは除きます。点ごとに1行で、種類と名前と`file:line`を出します |
+| `uncovered <folder>` | テストの置き場の下のテストと、全ての`.t.sol`のファイルを読み、どのテストも触れていない点を出します。残る点がある時は1で、全ての点にテストがある時は0で終わります |
+
+| 種類 | 点 | テストが触れたと数える時 |
+|---|---|---|
+| `function` | 外から呼べる関数 | `.<名前>`を呼ぶ時 |
+| `error` | 独自のerror | errorの名前を書く時 |
+| `event` | event | eventの名前を書く時 |
+| `access` | 名前が`only`で始まる修飾子か、`msg.sender`との比べで守った関数 | その関数を呼ぶ所でrevertを待つ時。Solidityでは`expectRevert`の後の、`vm.`の命令でない最初の呼び出しを見ます。TypeScriptでは、revertの確かめと同じ文の中の呼び出しを見ます |
+| `fuzz` | 状態を変え、整数を受ける関数 | 引数を受けるSolidityのテストの関数か、fast-checkの性質がその関数を呼ぶ時 |
+| `invariant` | 符号なし整数への`mapping`と、状態を変える関数を持つコントラクト | コントラクトの名前を書いたSolidityのテストのファイルが、名前が`invariant`で始まる関数を持つ時か、fast-checkの`fc.commands`のテストがその名前を書く時 |
+
+コメントの中の名前は数えません。
+どちらの命令も種類と名前と`file:line`だけを出し、コントラクトとテストの中身は出しません。
+`lib/`、`node_modules/`、`out/`、`cache/`、`artifacts/`、隠したフォルダ、名前が`.env`で始まるファイルは読みません。
+
+## エージェントのテストの書き方
+
+1. `solidity-code`のスキルで版とSolidityの項目を読み、`list`でテストの道具の項目を読み、`stale`の印の項目は確かめ直します。プロジェクトの今のテストの書き方に合わせます
+2. `points`を動かし、コメントや利用者が述べた上限のような、スクリプトが見えない決まりを足します
+3. kiwa-designとkiwa-forge(Hardhatではkiwa-hardhat)のスキルが使える時は、点をkiwa-designに渡してkiwaにテストを書かせ、自分ではテストのファイルを書きません。使えない時は、forgeか、プロジェクトが使うHardhatのテストの道具で、単体とfuzzとinvariantのテストを書きます
+4. `uncovered`を動かし、残る点が無くなるまでテストを足します。残す点がある時は、どれをなぜ残すかを利用者に伝えます
+5. プロジェクトのテストと`solidity-code`の探しを動かし、テストを回せない時はそう伝えます。テストが不具合を示した時は、コントラクトを変えずに不具合を伝えます
+
 ## 金融の規格の項目
 
 `financial-standards`は`skills/financial-standards/references/items/`に、規格ごとに1つのMarkdownのファイルで項目を持ちます。
@@ -136,6 +176,7 @@
 - 項目を書き換えません。新しい事実は答えに書き、プラグインのファイルには書きません
 - 検索には規格の番号か名前、または道具の名前と版だけを使い、あなたのプロジェクトについては何も送りません
 - 秘密鍵とニーモニックをファイルに書かず、鍵を渡す命令を断ります
+- `contract-tests`はテストを通すためにコントラクトを変えず、書くのはテストのファイルだけです
 - `financial-standards`は鍵を読まず、署名せず、コントラクトとschemaとABIとAPIの定義とテストとスクリプトを書きません
 - `.env`のファイルを読みません
 - 答えた後に何も残しません

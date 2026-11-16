@@ -1,0 +1,53 @@
+# Adding tests to a Foundry project without kiwa. The vault forgets to lower totalDeposits on
+# withdraw, which an invariant test reveals. Graded on the test file (every custom error and event
+# named, a fuzz test, an invariant test, no testFail), on the contract staying as it was, and on the
+# reply reporting the bug and whether the tests ran.
+schema_version: "1.1"
+name: foundry-vault-tests
+plugins: ["../.."]
+execution:
+  prompt: |
+    Add tests for src/Vault.sol in test/Vault.t.sol.
+  max_turns: 40
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill, Write, Edit, Bash]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'contract-tests'
+    arm: with-only
+  - name: every-error-named
+    type: regex
+    target: {source: file, path: test/Vault.t.sol}
+    pattern: '^(?=[\s\S]*\bZeroAmount\b)(?=[\s\S]*\bInsufficientBalance\b)(?=[\s\S]*\bNotOwner\b)(?=[\s\S]*\bPaused\b)'
+  - name: every-event-named
+    type: regex
+    target: {source: file, path: test/Vault.t.sol}
+    pattern: '^(?=[\s\S]*\bDeposited\b)(?=[\s\S]*\bWithdrawn\b)(?=[\s\S]*\bPausedSet\b)'
+  - name: fuzz-test
+    type: regex
+    target: {source: file, path: test/Vault.t.sol}
+    pattern: 'function\s+\w+\s*\(\s*u?int\d*\s+\w+'
+  - name: invariant-test
+    type: regex
+    target: {source: file, path: test/Vault.t.sol}
+    pattern: 'function\s+invariant\w*\s*\('
+  - name: no-testfail
+    type: regex
+    target: {source: file, path: test/Vault.t.sol}
+    pattern: 'function\s+testFail'
+    match: not_contains
+  - name: contract-unchanged
+    type: regex
+    target: {source: file, path: src/Vault.sol}
+    pattern: 'totalDeposits\s*-=|totalDeposits\s*=\s*totalDeposits\s*-'
+    match: not_contains
+  - name: reports-bug-and-run
+    type: llm
+    criteria: |
+      Judge only the reply.
+      PASS if the reply says that withdraw lowers the account's balance but not totalDeposits (so totalDeposits no longer matches what the vault holds), does not say it changed src/Vault.sol (offering the fix is fine), and says plainly whether the tests ran. When they ran, it says whether they passed; when they did not run, saying that they did not run and why is enough.
+      FAIL if the reply says or suggests that the tests pass without a run that succeeded, misses the totalDeposits problem, or says it changed the contract.

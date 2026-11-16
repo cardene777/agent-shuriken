@@ -1,0 +1,7 @@
+interface:
+  display_name: "Contract Tests"
+  short_description: "Write unit, fuzz, and invariant tests for Solidity contracts in Foundry and Hardhat, then name what no test covers"
+  default_prompt: "Use $contract-tests to add tests for src/Vault.sol in this Foundry project."
+
+policy:
+  allow_implicit_invocation: true
