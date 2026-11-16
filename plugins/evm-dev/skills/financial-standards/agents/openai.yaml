@@ -1,0 +1,7 @@
+interface:
+  display_name: "Financial Standards"
+  short_description: "Design apps built on ISO 20022, FIX, FpML, CDM, LEI, and XBRL with on-chain evidence and off-chain records, from dated items on each standard's version"
+  default_prompt: "Use $financial-standards to design how this project maps ISO 20022 payment messages onto a settlement contract."
+
+policy:
+  allow_implicit_invocation: true
