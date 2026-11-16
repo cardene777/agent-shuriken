@@ -26,7 +26,7 @@ S=<skill folder>/scripts; python3 "$S/repo_progress.py"
 
 The script keeps only the clones with a commit by the user, whom it finds from the global git name and email.
 When it exits with code 1, no repository with the user's commits was found. Ask the user which folders hold their repositories, then run `python3 "$S/repo_progress.py" --root <folder> --root <folder> --save-roots` so later scans remember them.
-When it exits with code 2, the user's name is unknown. Ask the user for the name or email they commit with, and run again with `--author "<name>"`.
+When it exits with code 2, the user's name is unknown. Ask the user for the name or email they commit with, never guess it from an account or address you know, and run again with `--author "<name>"`.
 Add `--author "<name>"` when the user commits under a name other than their global git name, for example at work.
 `python3 "$S/repo_progress.py" --show-roots` prints the folders a scan would use and where that list comes from.
 

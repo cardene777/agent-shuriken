@@ -237,7 +237,7 @@ results_ignored() {
 check "eval results are ignored by git" results_ignored
 
 # The body is counted in words and the description in characters, as the size the agent reads.
-SKILL_WORDS_MAX=566
+SKILL_WORDS_MAX=576
 SKILL_DESCRIPTION_MAX=288
 skill_size() {
   python3 - "$SKILL" "$SKILL_WORDS_MAX" "$SKILL_DESCRIPTION_MAX" <<'PYEOF'
@@ -259,6 +259,7 @@ skill_rules() {
     'Say that it is unknown, never that it is 0' \
     'Ask the user which folders hold their repositories' \
     'Ask the user for the name or email they commit with' \
+    'never guess it from an account or address you know' \
     'name each item, confirm it with the user, and check that its work is merged before removing it'; do
     grep -qF -- "$phrase" "$SKILL" || return 1
   done
