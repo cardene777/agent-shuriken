@@ -1037,9 +1037,11 @@ check "apply removes Ollama models with ollama rm while Ollama runs and deletes 
   '[ -n "$(model_at "$OLLAMA_LATEST")" ] && grep -qx "ollama rm llama3:latest" "$MOCK/calls.log" && [ -f "$OLLAMA_LATEST" ] && [ ! -e "$HF_TINY" ] && [ ! -e "$LMS" ]'
 write_ps 10:00.00
 : > "$MOCK/calls.log"
+# A model pulled after the scan uses blob d, which only 8b-q4 used when the scan ran.
+manifest "$OLLAMA/manifests/registry.ollama.ai/library/phi3/latest" a 10 d 200
 mc_as darwin apply --select "machine-cleanup:select $(model_at "$OLLAMA_Q4")" > "$T/apply-ollama-files.out" 2>&1
 check "while Ollama is not running, apply deletes the manifest and only the blobs no other model uses" \
-  '[ -n "$(model_at "$OLLAMA_Q4")" ] && [ ! -e "$OLLAMA_Q4" ] && [ ! -e "$OLLAMA/blobs/sha256-$(printf "%064d" 0 | tr 0 d)" ] && [ ! -e "$OLLAMA/blobs/sha256-$(printf "%064d" 0 | tr 0 e)" ] && [ -f "$OLLAMA/blobs/sha256-$(printf "%064d" 0 | tr 0 b)" ] && [ -f "$OLLAMA_LATEST" ] && ! grep -q "^ollama rm" "$MOCK/calls.log"'
+  '[ -n "$(model_at "$OLLAMA_Q4")" ] && [ ! -e "$OLLAMA_Q4" ] && [ ! -e "$OLLAMA/blobs/sha256-$(printf "%064d" 0 | tr 0 e)" ] && [ -f "$OLLAMA/blobs/sha256-$(printf "%064d" 0 | tr 0 d)" ] && [ -f "$OLLAMA/blobs/sha256-$(printf "%064d" 0 | tr 0 b)" ] && [ -f "$OLLAMA_LATEST" ] && ! grep -q "^ollama rm" "$MOCK/calls.log"'
 check "apply leaves unpicked projects, leftovers, tool versions, and models alone" \
   '[ -n "$(cat_at project "$IDLE2")" ] && leftover_named com.gonevendor.app2 && [ -n "$(tool_at "$H/.pyenv/versions/3.9.18")" ] && [ -n "$(model_at "$HF_OTHER")" ] && [ -d "$IDLE2/.git" ] && [ -f "$LIB/Application Support/com.gonevendor.app2/data" ] && [ -d "$H/.pyenv/versions/3.9.18" ] && [ -d "$HF_OTHER" ] && [ -d "$LMS_OLD" ]'
 
