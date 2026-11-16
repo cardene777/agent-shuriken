@@ -5,15 +5,6 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
-### Added
-
-- The `solidity-code` skill writes and changes Solidity contracts in Foundry and Hardhat projects for the versions of solc, OpenZeppelin, forge-std, Foundry, and Hardhat the project uses, following the project's own conventions and library
-- `solidity-code.py project` prints the framework and those versions, `unknown` for a version it cannot read, and `none` for a tool the project does not use
-- Items on what changed in those tools, each with the version it starts at, the date it was checked against the official document, and its source; `list` marks the ones checked more than 90 days ago
-- `solidity-code.py scan` names each line written in a way the project's versions changed or no longer support, such as an OpenZeppelin import path renamed in 5.7.0 or a `tx.origin` check after EIP-7702, without printing the line, and lists the items it could not judge because a version is unknown
-- After writing, the agent builds and runs the tests, and says so when they cannot run
-- `claude plugin eval` cases under `evals/` for the skill, run by hand
-
 ## [0.1.0] - 2026-11-16
 
 - Answers whether an ERC is final or an EIP is live on Ethereum mainnet, and what it lets contracts and wallets do, from 41 items checked against the official ERC and EIP documents, each with the date it was checked and its source
