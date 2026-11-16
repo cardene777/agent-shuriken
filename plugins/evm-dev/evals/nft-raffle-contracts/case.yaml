@@ -1,0 +1,45 @@
+# Designing a weekly NFT raffle on Ethereum mainnet. Graded on the design file: the draw uses
+# Chainlink VRF v2.5 (VRF v2 was deprecated in November 2024 and shuts down on 30 November 2026),
+# never block values, refunds are pulled by each buyer, and no service that had been deprecated
+# when the case was written is chosen to run the draw.
+schema_version: "1.1"
+name: nft-raffle-contracts
+plugins: ["../.."]
+execution:
+  prompt: |
+    Design the raffle contract before we write it: its state and invariants, the roles, whether it is upgradeable, how the winner is drawn and what triggers the draw, and how refunds work. Write the design to docs/design/raffle.md. Do not ask me questions; decide, and write down your assumptions.
+  max_turns: 30
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill, Write, Edit, Bash]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'contract-design'
+    arm: with-only
+  - name: vrf-v2-5
+    type: regex
+    target: {source: file, path: docs/design/raffle.md}
+    pattern: 'VRF[ _-]?v?2\.5|VRF[ _-]?V2[ _]?Plus|V2Plus|VRFV2PlusClient'
+  - name: no-block-randomness
+    type: llm
+    focus: {source: file, path: docs/design/raffle.md}
+    criteria: |
+      PASS if the winner is drawn from randomness that neither the gallery, a buyer, nor a block producer can predict or choose, such as Chainlink VRF or a commit-reveal no single party controls.
+      Mentioning block.prevrandao, block.timestamp, or a block hash as rejected is not a failure.
+      FAIL if the draw uses block.prevrandao, block.difficulty, block.timestamp, or a block hash as its randomness, or if the file is missing or empty.
+  - name: pull-refunds
+    type: llm
+    focus: {source: file, path: docs/design/raffle.md}
+    criteria: |
+      PASS if, when fewer than 200 tickets are sold, each buyer claims their own refund (a pull payment), so one buyer that cannot receive ETH cannot block the others.
+      FAIL if the contract sends every refund in one call or loop, or if the file is missing or empty.
+  - name: no-retired-services
+    type: llm
+    focus: {source: file, path: docs/design/raffle.md}
+    criteria: |
+      FAIL if the design chooses any of these: Chainlink VRF v2 (the v2 coordinator or VRFConsumerBaseV2 without "Plus") rather than v2.5, Chainlink Automation (also called Chainlink Keepers), Chainlink Functions, or OpenZeppelin Defender in any form. All of them had been deprecated or shut down before this case was written.
+      Mentioning one of them as deprecated, retired, or rejected is not a failure, and Chainlink VRF v2.5 is not a failure.
+      PASS otherwise. FAIL if the file is missing or empty.

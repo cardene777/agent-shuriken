@@ -1,6 +1,6 @@
 # EVM Dev
 
-ERCが確定したか、EIPがEthereumのメインネットで動いているかを答え、プロジェクトが使う版に合わせてSolidityとそのテストを書き、dAppの部品の組み方と、ISO 20022やFIXなどの金融の規格を使うアプリを設計します。どれも、エージェントの記憶ではなく、公式の文書で確かめた項目に基づきます。
+ERCが確定したか、EIPがEthereumのメインネットで動いているかを答え、プロジェクトが使う版に合わせてSolidityとそのテストを書き、コントラクトと、dAppの部品の組み方と、ISO 20022やFIXなどの金融の規格を使うアプリを設計します。どれも、エージェントの記憶ではなく、公式の文書で確かめた項目に基づきます。
 
 [English](README.md) · 日本語
 
@@ -13,6 +13,7 @@ EIPがネットワークの更新で入り、広く呼ばれている「ERC」�
 | `evm-standards` | ERCが確定したか、EIPが動いているか、コントラクトとウォレットで何ができるようになるかを、ERCとEIPの41の項目から答えます |
 | `solidity-code` | FoundryとHardhatのプロジェクトで、プロジェクトが使うsolcとOpenZeppelinとforge-stdとFoundryとHardhatの版に合わせてコントラクトを書き、古い書き方を探してからビルドとテストを回します |
 | `contract-tests` | FoundryかHardhatのプロジェクトで、コントラクトごとに確かめる点を挙げてから、単体とfuzzとinvariantのテストを書きます。kiwaが入っていればkiwaに書かせます。どのテストも触れていない点を名指し、テストを回します |
+| `contract-design` | 書く前にコントラクトを設計します。決めることを1つずつ尋ね、コントラクトの分け方、トークンの規格、不変条件、役割、更新の方式、価格、取引の順、乱数、外への呼び出しを1つの設計書に書き、節を確かめてから確かめの表で見直します |
 | `dapp-architecture` | dAppの部品の組み方を設計します。決めることを1つずつ尋ね、取引を誰が送りガス代を誰が払うか、チェーンの読み取り、データの置き場所、環境、管理の鍵、監視を1つの設計書に書き、節を確かめてから確かめの表で見直します |
 | `financial-standards` | ISO 20022、FIX、FpML、CDM、LEI、XBRLを使い、オンチェーンとオフチェーンの部分を持つアプリを設計します。決めることを1つずつ尋ね、雛形から1つの設計書を書き、節を確かめてから確かめの表で見直します |
 
@@ -20,6 +21,7 @@ EIPがネットワークの更新で入り、広く呼ばれている「ERC」�
 evm-standards:  List the items ──> Read the ones asked about ──> Re-check stale ones ──> Answer with date and source
 solidity-code:  Read the project's versions ──> Read the items for them ──> Write ──> Scan, build, and test
 contract-tests:  Read the versions and items ──> List what needs a test ──> Write the tests, or have kiwa write them ──> Name what no test covers ──> Run the tests
+contract-design:  Read the items ──> Ask the decisions ──> Write the design ──> Verify the sections ──> Review against the checklist
 dapp-architecture:  Read the items ──> Ask the decisions ──> Write the design ──> Verify the sections ──> Review against the checklist
 financial-standards:  Read the items ──> Ask the decisions ──> Write the design ──> Verify the sections ──> Review against the checklist
 ```
@@ -39,6 +41,7 @@ copilot plugin install evm-dev@agent-shuriken
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/evm-standards   # Gemini CLI
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/solidity-code
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/contract-tests
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/contract-design
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/dapp-architecture
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/financial-standards
 ```
@@ -54,13 +57,15 @@ gemini skills install https://github.com/cardene777/agent-shuriken.git --path pl
 例えば「このFoundryのプロジェクトに、止められるERC-20のトークンを足して」と頼みます。
 `contract-tests`は、コントラクトのテストを頼むと始まります。
 例えば「src/Vault.solのテストを足して」と頼みます。
+`contract-design`は、書く前にコントラクトの設計を頼むと始まります。
+例えば「このトークンの販売のコントラクトを設計して。役割と更新の方式と価格の読み方も」と頼みます。
 `dapp-architecture`は、dAppをどう組むかを頼むと始まります。
 例えば「このマーケットの構成を設計して。ガス代を誰が払うか、チェーンをどう読むか、管理の鍵を誰が持つか」と頼みます。
 `financial-standards`は、金融の規格を使う設計を頼むと始まります。
 例えば「ISO 20022の支払いのmessageを決済のコントラクトにどう対応させるかを設計して」と頼みます。
 呼び出すこともできます。
-Claude Codeでは`/evm-dev:evm-standards`か`/evm-dev:solidity-code`か`/evm-dev:contract-tests`か`/evm-dev:dapp-architecture`か`/evm-dev:financial-standards`を実行し、Codexでは`$`を入力して**EVM Standards**か**Solidity Code**か**Contract Tests**か**dApp Architecture**か**Financial Standards**を選びます。
-GitHub Copilot CLIでは依頼の文に`/evm-standards`か`/solidity-code`か`/contract-tests`か`/dapp-architecture`か`/financial-standards`と書き、Gemini CLIでは作業を説明します。
+Claude Codeでは`/evm-dev:evm-standards`か`/evm-dev:solidity-code`か`/evm-dev:contract-tests`か`/evm-dev:contract-design`か`/evm-dev:dapp-architecture`か`/evm-dev:financial-standards`を実行し、Codexでは`$`を入力して**EVM Standards**か**Solidity Code**か**Contract Tests**か**Contract Design**か**dApp Architecture**か**Financial Standards**を選びます。
+GitHub Copilot CLIでは依頼の文に`/evm-standards`か`/solidity-code`か`/contract-tests`か`/contract-design`か`/dapp-architecture`か`/financial-standards`と書き、Gemini CLIでは作業を説明します。
 
 ### 規格を確かめる
 
@@ -148,6 +153,31 @@ uncovered access Vault.setPaused src/Vault.sol:48
 uncovered: 2 of 13 points have no test
 ```
 
+### コントラクトを設計する
+
+1. エージェントがプロキシ、権限の管理、価格のフィード、乱数、非公開の中継、トークンの扱いの項目を並べ、古い項目は確かめ直します
+2. エージェントが決めることを1つずつ、勧める案を添えて尋ねます。コントラクトがすることと守る上限、トークンとその規格、役割を誰が持つか、更新できるようにするか、価格と乱数をどこから取るかを尋ねます。尋ねられない時は勧める案を採り、仮定として書きます
+3. エージェントが雛形をプロジェクトに写し(既定は`docs/design/<topic>.md`)、9つの節を埋めます。節は目的と範囲、コントラクト、トークンの規格、状態と不変条件、役割と統治、更新、価格と取引の順と乱数、外への呼び出しと失敗、未決です
+4. エージェントが節を確かめ、確かめの表で設計を見直し、判断できなかった決まりと未決の事を伝えます
+
+項目は次のように並びます。
+
+```text
+ok     oracles      2026-11-17 chainlink-data-feeds Chainlink Data Feeds
+ok     randomness   2026-11-17 chainlink-vrf Chainlink VRF
+ok     ordering     2026-11-17 flashbots-protect Flashbots Protect and private transaction relays
+ok     upgrades     2026-11-17 openzeppelin-5-proxies OpenZeppelin Contracts 5.x proxies and upgradeable contracts
+6 items, 0 stale as of 2026-11-17
+```
+
+確かめは節の名前を出し、設計書の中身は出しません。
+
+```text
+no checked date: Contracts
+missing: Upgrades
+contract-design: 2 problems; fill in or add each section named above
+```
+
 ### dAppの構成を設計する
 
 1. エージェントがインデクサ、取引の中継、自動実行、監視、テストネット、マルチシグ、保存の項目を並べ、古い項目は確かめ直します
@@ -207,9 +237,10 @@ financial-standards: 2 problems; fill in or add each section named above
 |---|---|
 | ERC。例えばERC-20、ERC-1271、ERC-4337、ERC-6551、ERC-7683 | L2のネットワークの状態。専門に追う頁があります |
 | コントラクトとウォレットでできることを変えるEIP。命令、プリコンパイル、ガス代、取引の種類、EIP-7702、プロトコルの中のアカウント抽象 | コンセンサスだけを変えるEIP。例えばバリデータの決まり |
-| EIPがネットワークの更新に入るまでの段階(EIP-7723) | コントラクトの更新の方式を選ぶこと。後のコントラクトの設計のスキルが扱います |
+| EIPがネットワークの更新に入るまでの段階(EIP-7723) | コントラクトの更新の方式を選ぶこと。`contract-design`が扱います |
 | プロジェクトが使うsolcとOpenZeppelinとforge-stdとFoundryとHardhatの版に合わせてSolidityを書くこと | デプロイ、出す前の保存の配置とABIの比べ |
 | FoundryかHardhatで、プロジェクトのコントラクトの単体とfuzzとinvariantのテストを書くこと、またはkiwaに書かせること | 変異試験、カバレッジの目標、dAppの画面のテスト。画面のテストはkiwaが扱います |
+| 書く前のコントラクトの設計。分け方、トークンの規格、不変条件、役割、更新の方式、価格、取引の順、乱数、外への呼び出しを決めます | コントラクトとそのテストと配る命令を書くこと。`solidity-code`と`contract-tests`が扱います |
 | dAppの部品、取引を誰が送りガス代を誰が払うか、インデクサ、データの置き場所、環境、管理の鍵、監視の設計。名指すサービスの今の状態も確かめます | 事業者を選んで申し込むこと、鍵を作ること、コントラクトと画面と配る命令を書くこと |
 | ISO 20022、FIX、FpML、CDM、LEI、XBRLを使うアプリの設計。原文と個人の情報はチェーンの外に置き、署名した証跡をチェーンに置きます | 設計のコントラクトとschemaとAPIの定義を書くこと、EVMのチェーン以外の台帳、法と規制の助言 |
 
@@ -218,7 +249,7 @@ financial-standards: 2 problems; fill in or add each section named above
 | 道具 | 要る時 |
 |---|---|
 | `bash` | いつも |
-| `python3` | `solidity-code`と`contract-tests`と`dapp-architecture`と`financial-standards`を使う時 |
+| `python3` | `solidity-code`と`contract-tests`と`contract-design`と`dapp-architecture`と`financial-standards`を使う時 |
 | Foundry(`forge`)かHardhat | `solidity-code`と`contract-tests`が書いた物をビルドしテストする時。無い時は、ビルドしていないと伝えます |
 | kiwaのプラグイン | 無くても動きます。スキルが入っている時は、`contract-tests`がkiwaにテストを書かせます |
 | エージェントのWebへの接続 | 古い項目を確かめ直す時。無い時は、項目から答えて確かめられなかったと伝えます |
@@ -233,6 +264,7 @@ financial-standards: 2 problems; fill in or add each section named above
 - `solidity-code`は`solidity-code.py`を動かし、プロジェクトの設定のファイルとライブラリの`package.json`から版を読み、探す時はプロジェクトのソースのファイルを読みます。`.env`のファイルと依存とビルドの出力は読まず、行の中身を出しません
 - `solidity-code`は頼まれたコントラクトだけを書き、プロジェクトのビルドとテストを動かします
 - `contract-tests`は`contract-tests.py`を動かし、プロジェクトの設定のファイルとコントラクトとテストを読みます。出すのは種類と名前と`file:line`だけで、コントラクトとテストの中身は出しません。書くのはテストのファイルだけで、コントラクトは変えず、`.env`のファイルと依存とビルドの出力は読みません
+- `contract-design`は`contract-design.py`を動かし、項目と、書いた設計書を読みます。設計書を確かめる時は節の名前だけを出します。書くのは設計書だけで、`.env`のファイルと鍵は読みません
 - `dapp-architecture`は`dapp-architecture.py`を動かし、項目と、書いた設計書を読みます。設計書を確かめる時は節の名前だけを出します。書くのは設計書だけで、`.env`のファイルと鍵は読みません
 - `financial-standards`は`financial-standards.py`を動かし、項目と、書いた設計書を読みます。設計書を確かめる時は節の名前だけを出します。書くのは設計書だけで、`.env`のファイルと鍵は読みません
 - 古い項目を確かめ直す時は、規格の番号か名前、または道具かサービスの名前と版だけでWebを検索し、公式の文書を開きます
