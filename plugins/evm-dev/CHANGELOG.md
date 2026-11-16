@@ -5,6 +5,14 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+### Added
+
+- The `financial-standards` skill designs apps with on-chain and off-chain parts built on ISO 20022, FIX, FpML, CDM, LEI, and XBRL. It asks the decisions one at a time, records the recommended choice as an assumption when it cannot ask, and writes one design document from a template with nine sections
+- Items on the version of each standard in force, such as CBPR+ SR2025 while Swift has deferred the payments part of SR2026, FIX Latest EP312, FpML 5.14, and CDM 7.10.0, each with the date it was checked against the official source and its source; `list` marks the ones checked more than 180 days ago
+- `financial-standards.py verify` names each section of a design that is missing, out of order, empty, still holding a `Fill in:` line, or, for Standard and business, without the date the version was checked, and never prints the design's text
+- A checklist of the rules a design must never break, such as keeping the original messages and personal data off chain, accepting only signed evidence that cannot be replayed, and appending corrections instead of overwriting them
+- `claude plugin eval` cases for the skill under `evals/`, run by hand
+
 ## [0.2.0] - 2026-11-16
 
 ### Added

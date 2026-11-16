@@ -1,0 +1,48 @@
+# Mapping ISO 20022 payment messages onto a settlement contract. Graded on the design file: the
+# private parts of a payment stay off chain, evidence is a salted commitment that cannot be replayed,
+# messages are tied by an internal case ID, and the CBPR+ release named is the one in force (SR2025,
+# since Swift deferred the payments part of SR2026 in August 2026).
+schema_version: "1.1"
+name: iso20022-settlement
+plugins: ["../.."]
+execution:
+  prompt: |
+    Design how this project maps ISO 20022 payment messages, the pacs.008 credit transfer and the pacs.002 status report, onto the settlement contract. Write the design to docs/design/iso20022-settlement.md. Do not ask me questions; decide, and write down your assumptions.
+  max_turns: 30
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill, Write, Edit, Bash]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'financial-standards'
+    arm: with-only
+  - name: salted-commitment
+    type: regex
+    target: {source: file, path: docs/design/iso20022-settlement.md}
+    pattern: '[Ss]alt'
+  - name: replay-protection
+    type: regex
+    target: {source: file, path: docs/design/iso20022-settlement.md}
+    pattern: '[Nn]once'
+  - name: binds-chain-id
+    type: regex
+    target: {source: file, path: docs/design/iso20022-settlement.md}
+    pattern: '[Cc]hain[ _-]?[Ii][Dd]'
+  - name: internal-case-id
+    type: regex
+    target: {source: file, path: docs/design/iso20022-settlement.md}
+    pattern: '[Cc]ase[ _-]?[Ii][Dd]'
+  - name: release-in-force
+    type: regex
+    target: {source: file, path: docs/design/iso20022-settlement.md}
+    pattern: 'SR ?2025'
+  - name: private-data-off-chain
+    type: llm
+    focus: {source: file, path: docs/design/iso20022-settlement.md}
+    criteria: |
+      PASS if the design keeps the original pacs.008 message, the names and postal addresses of the debtor and creditor, their account numbers, and the remittance information off the chain, putting on chain only identifiers, digests or commitments, amounts or statuses the banks must share.
+      Describing those fields as stored off-chain, or listing them in an off-chain database, is not a failure.
+      FAIL if the design stores any of them, or the whole message, in contract state or in events, or if the file is missing or empty.

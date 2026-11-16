@@ -1,0 +1,43 @@
+# Turning FIX execution reports into trade evidence on chain. Graded on the design file: the FIX
+# version is named per counterparty against FIX Latest, a correction or cancel appends a record that
+# refers to the earlier one, and evidence is a salted commitment that cannot be replayed.
+schema_version: "1.1"
+name: fix-trade-evidence
+plugins: ["../.."]
+execution:
+  prompt: |
+    Design how the brokers' FIX execution reports become trade evidence in the on-chain trade register, including corrections and cancellations. Write the design to docs/design/fix-trade-evidence.md. Do not ask me questions; decide, and write down your assumptions.
+  max_turns: 30
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill, Write, Edit, Bash]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'financial-standards'
+    arm: with-only
+  - name: names-fix-latest
+    type: regex
+    target: {source: file, path: docs/design/fix-trade-evidence.md}
+    pattern: 'FIX Latest|EP3[0-9][0-9]'
+  - name: salted-commitment
+    type: regex
+    target: {source: file, path: docs/design/fix-trade-evidence.md}
+    pattern: '[Ss]alt'
+  - name: replay-protection
+    type: regex
+    target: {source: file, path: docs/design/fix-trade-evidence.md}
+    pattern: '[Nn]once'
+  - name: parties-by-lei
+    type: regex
+    target: {source: file, path: docs/design/fix-trade-evidence.md}
+    pattern: 'LEI'
+  - name: corrections-append
+    type: llm
+    focus: {source: file, path: docs/design/fix-trade-evidence.md}
+    criteria: |
+      PASS if the design records a trade correction or a trade cancel from FIX (ExecType G or H, or the equivalent) as a new record that refers to the earlier execution, keeping the earlier record.
+      Marking the earlier record as corrected or cancelled through the new record is not a failure.
+      FAIL if a correction or a cancel overwrites or deletes the earlier record, if the design does not handle them, or if the file is missing or empty.

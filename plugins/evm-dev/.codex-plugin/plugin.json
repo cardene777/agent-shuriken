@@ -1,7 +1,7 @@
 {
   "name": "evm-dev",
   "version": "0.2.0",
-  "description": "Tells whether an ERC is final or an EIP is live on Ethereum mainnet, and writes Solidity contracts for the solc, OpenZeppelin, Foundry, and Hardhat versions a project uses, from dated items checked against the official documents",
+  "description": "Tells whether an ERC is final or an EIP is live on Ethereum mainnet, writes Solidity contracts for the solc, OpenZeppelin, Foundry, and Hardhat versions a project uses, and designs apps built on financial standards such as ISO 20022 and FIX, from dated items checked against the official documents",
   "author": {
     "name": "cardene777",
     "url": "https://github.com/cardene777"
@@ -17,19 +17,22 @@
     "solidity",
     "foundry",
     "hardhat",
-    "openzeppelin"
+    "openzeppelin",
+    "iso-20022",
+    "financial-standards"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "EVM Dev",
-    "shortDescription": "ERC status and Solidity code",
-    "longDescription": "Answers whether an ERC is final or an EIP is live on Ethereum mainnet, and what it lets contracts and wallets do, and writes Solidity contracts in Foundry and Hardhat projects for the solc, OpenZeppelin, Foundry, and Hardhat versions the project uses. Both skills work from items checked against the official documents, each with the date it was checked and its source, and re-check items that are out of date. After writing, it scans the code for patterns that the project's versions changed or that no longer hold, such as tx.origin checks after EIP-7702, and builds and tests it. It never writes keys into files and never changes its items.",
+    "shortDescription": "ERC status, Solidity, finance",
+    "longDescription": "Answers whether an ERC is final or an EIP is live on Ethereum mainnet, and what it lets contracts and wallets do, writes Solidity contracts in Foundry and Hardhat projects for the solc, OpenZeppelin, Foundry, and Hardhat versions the project uses, and designs apps built on financial standards such as ISO 20022, FIX, FpML, CDM, LEI, and XBRL. The skills work from items checked against the official documents, each with the date it was checked and its source, and re-check items that are out of date. After writing a contract, it scans the code for patterns that the project's versions changed or that no longer hold, such as tx.origin checks after EIP-7702, and builds and tests it. The design skill asks the decisions one at a time and writes one design document that keeps the original messages and personal data off chain and puts only signed evidence on it, then checks the document's sections and reviews it against a checklist. It never writes keys into files, never signs, and never changes its items.",
     "developerName": "cardene777",
     "category": "Developer Tools",
     "capabilities": [],
     "defaultPrompt": [
       "Is EIP-7702 live on Ethereum mainnet?",
-      "Add a pausable ERC-20 token to this Foundry project."
+      "Add a pausable ERC-20 token to this Foundry project.",
+      "Design how this project maps ISO 20022 payment messages onto a settlement contract."
     ],
     "composerIcon": "./assets/icon.svg",
     "logo": "./assets/icon.svg"
