@@ -1,7 +1,7 @@
 {
   "name": "evm-dev",
   "version": "0.1.0",
-  "description": "Tells whether an ERC is final or an EIP is live on Ethereum mainnet, and what it lets contracts and wallets do, from dated items checked against the official documents, re-checking the ones that are out of date",
+  "description": "Tells whether an ERC is final or an EIP is live on Ethereum mainnet, and writes Solidity contracts for the solc, OpenZeppelin, Foundry, and Hardhat versions a project uses, from dated items checked against the official documents",
   "author": {
     "name": "cardene777",
     "url": "https://github.com/cardene777"
@@ -14,18 +14,22 @@
     "evm",
     "erc",
     "eip",
-    "solidity"
+    "solidity",
+    "foundry",
+    "hardhat",
+    "openzeppelin"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "EVM Dev",
-    "shortDescription": "Status of ERCs and EIPs",
-    "longDescription": "Answers whether an ERC is final or an EIP is live on Ethereum mainnet, which network upgrade brought it, and what it lets contracts, wallets, and dApps do, such as new opcodes, precompiles, gas costs, and EIP-7702. Each answer comes from an item checked against the official ERC or EIP document, with the date it was checked and its source. Items past the days their status allows are re-checked against the official document before the agent answers, and when the document cannot be reached the agent says so instead of answering from memory. It covers ERCs and the EIPs that change what contracts and wallets can do, not the state of L2 networks. It uses Bash and never changes its items.",
+    "shortDescription": "ERC status and Solidity code",
+    "longDescription": "Answers whether an ERC is final or an EIP is live on Ethereum mainnet, and what it lets contracts and wallets do, and writes Solidity contracts in Foundry and Hardhat projects for the solc, OpenZeppelin, Foundry, and Hardhat versions the project uses. Both skills work from items checked against the official documents, each with the date it was checked and its source, and re-check items that are out of date. After writing, it scans the code for patterns that the project's versions changed or that no longer hold, such as tx.origin checks after EIP-7702, and builds and tests it. It never writes keys into files and never changes its items.",
     "developerName": "cardene777",
     "category": "Developer Tools",
     "capabilities": [],
     "defaultPrompt": [
-      "Is EIP-7702 live on Ethereum mainnet?"
+      "Is EIP-7702 live on Ethereum mainnet?",
+      "Add a pausable ERC-20 token to this Foundry project."
     ],
     "composerIcon": "./assets/icon.svg",
     "logo": "./assets/icon.svg"
