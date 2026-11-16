@@ -1,6 +1,6 @@
 {
   "name": "evm-dev",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Tells whether an ERC is final or an EIP is live on Ethereum mainnet, and writes Solidity contracts for the solc, OpenZeppelin, Foundry, and Hardhat versions a project uses, from dated items checked against the official documents",
   "author": {
     "name": "cardene777",

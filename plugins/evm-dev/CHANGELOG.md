@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-16
+
 ### Added
 
 - The `solidity-code` skill writes and changes Solidity contracts in Foundry and Hardhat projects for the versions of solc, OpenZeppelin, forge-std, Foundry, and Hardhat the project uses, following the project's own conventions and library
@@ -23,5 +25,6 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - Starts when you ask about the status of an ERC or EIP, or when you call it, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
 - The plugin has `claude plugin eval` cases under `evals/` that measure the skill, run by hand
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/evm-dev--v0.1.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/evm-dev--v0.2.0...HEAD
+[0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/evm-dev--v0.2.0
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/evm-dev--v0.1.0
