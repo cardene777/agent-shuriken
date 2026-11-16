@@ -1,0 +1,51 @@
+# Planning an NFT marketplace where buyers do not hold ETH. Graded on the design file: who sends and
+# pays for each transaction, how the indexer survives reorganizations and rebuilds, Sepolia rather
+# than a retired testnet, and no service that had shut down when the case was written (OpenZeppelin
+# Defender retired on 1 July 2026, The Graph's hosted service in June 2024, NFT.Storage Classic and
+# Storacha uploads, and serving only through the rate-limited public IPFS gateways).
+schema_version: "1.1"
+name: nft-marketplace-architecture
+plugins: ["../.."]
+execution:
+  prompt: |
+    Plan the architecture of this marketplace dApp: the parts, who sends and pays for each transaction, how the app reads chain data, where data lives, the environments, the admin keys, and monitoring. Write the design to docs/design/marketplace-architecture.md. Do not ask me questions; decide, and write down your assumptions.
+  max_turns: 30
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill, Write, Edit, Bash]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'dapp-architecture'
+    arm: with-only
+  - name: handles-reorgs
+    type: regex
+    target: {source: file, path: docs/design/marketplace-architecture.md}
+    pattern: '[Rr]eorg'
+  - name: rebuilds-from-start-block
+    type: regex
+    target: {source: file, path: docs/design/marketplace-architecture.md}
+    pattern: '[Dd]eploy(ment)?[ -]block|[Ss]tart(ing)?[ _-]?[Bb]lock|[Bb]lock (in )?which [\s\S]{0,40}deployed'
+  - name: sepolia-testnet
+    type: regex
+    target: {source: file, path: docs/design/marketplace-architecture.md}
+    pattern: 'Sepolia'
+  - name: no-retired-testnet
+    type: regex
+    target: {source: file, path: docs/design/marketplace-architecture.md}
+    pattern: '^(?![\s\S]*(Goerli|Holesky))[\s\S]+$'
+  - name: gas-and-keys
+    type: llm
+    focus: {source: file, path: docs/design/marketplace-architecture.md}
+    criteria: |
+      PASS if the design says, for buying and for listing, who signs, who sends the transaction, and who pays the gas, and it keeps any key that sends or sponsors transactions for users apart from the admin roles, which a multisig holds.
+      FAIL if a write path does not say who pays the gas, if a relayer, sponsor, or other hot service key also holds an admin or upgrade role, if a single externally owned account holds the admin role on mainnet, or if the file is missing or empty.
+  - name: no-retired-services
+    type: llm
+    focus: {source: file, path: docs/design/marketplace-architecture.md}
+    criteria: |
+      FAIL if the design chooses any of these to build on: OpenZeppelin Defender in any form (Relayers, Actions or Autotasks, Sentinels, Monitors), The Graph's hosted service, NFT.Storage Classic, web3.storage, Storacha uploads, or serving the artwork to users only through the public gateways ipfs.io or dweb.link. All of them had shut down or been restricted before this case was written.
+      Mentioning one of them as retired, deprecated, or rejected is not a failure, and The Graph Network, Subgraph Studio, a self-hosted OpenZeppelin Relayer or Monitor, or a paid pinning service is not a failure.
+      PASS otherwise. FAIL if the file is missing or empty.

@@ -1,0 +1,47 @@
+# Planning a DAO's scheduled payouts. Graded on the design file: the scheduled call is safe to run
+# twice or late, admin changes go through a timelock, Sepolia rather than a retired testnet, and no
+# automation or monitoring service that had shut down when the case was written (Chainlink Automation
+# deprecated on 31 July 2026, Chainlink Functions on 30 June 2026, and OpenZeppelin Defender retired
+# on 1 July 2026).
+schema_version: "1.1"
+name: treasury-payouts-architecture
+plugins: ["../.."]
+execution:
+  prompt: |
+    Plan the architecture of this payout dApp: the parts, what triggers each monthly payout and who pays for it, how the web page reads the payouts, the environments, who holds the admin roles, and how the council is alerted. Write the design to docs/design/payouts-architecture.md. Do not ask me questions; decide, and write down your assumptions.
+  max_turns: 30
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill, Write, Edit, Bash]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'dapp-architecture'
+    arm: with-only
+  - name: timelock
+    type: regex
+    target: {source: file, path: docs/design/payouts-architecture.md}
+    pattern: '[Tt]imelock'
+  - name: sepolia-testnet
+    type: regex
+    target: {source: file, path: docs/design/payouts-architecture.md}
+    pattern: 'Sepolia'
+  - name: no-retired-testnet
+    type: regex
+    target: {source: file, path: docs/design/payouts-architecture.md}
+    pattern: '^(?![\s\S]*(Goerli|Holesky))[\s\S]+$'
+  - name: payout-safe-to-repeat
+    type: llm
+    focus: {source: file, path: docs/design/payouts-architecture.md}
+    criteria: |
+      PASS if the design makes the monthly payout safe when the trigger runs twice, runs late, or misses a month: for example the contract records which period was paid and refuses to pay it again, and a late run pays the missed period.
+      FAIL if paying twice for one period is possible, if a missed or late run is not handled, or if the file is missing or empty.
+  - name: no-retired-services
+    type: llm
+    focus: {source: file, path: docs/design/payouts-architecture.md}
+    criteria: |
+      FAIL if the design chooses any of these to trigger, relay, or monitor anything: Chainlink Automation (also called Chainlink Keepers), Chainlink Functions, or OpenZeppelin Defender in any form (Relayers, Actions or Autotasks, Sentinels, Monitors). All of them had been deprecated or shut down before this case was written.
+      Mentioning one of them as deprecated, retired, or rejected is not a failure, and Chainlink CRE, a self-hosted OpenZeppelin Relayer or Monitor, a keeper the DAO runs, or a design where anyone may call the payout is not a failure.
+      PASS otherwise. FAIL if the file is missing or empty.

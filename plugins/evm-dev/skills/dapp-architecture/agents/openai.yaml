@@ -1,0 +1,7 @@
+interface:
+  display_name: "dApp Architecture"
+  short_description: "Design how a dApp's contracts, indexer, relayer, storage, environments, admin keys, and monitoring fit together, from dated items on the services"
+  default_prompt: "Use $dapp-architecture to design the architecture of this dApp, including who pays the gas and how it reads chain data."
+
+policy:
+  allow_implicit_invocation: true
