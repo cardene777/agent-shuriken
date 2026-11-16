@@ -1,6 +1,6 @@
 ---
 name: machine-cleanup
-description: Frees disk space, memory, and CPU on the user's macOS, Linux, or WSL machine. Scans at the lowest priority for caches that tools rebuild, ignored build output, the Trash, old logs and installers, large and duplicate files, unused apps, dev servers left running, heavy processes, login items, and running containers, shows them on a local page where the user picks, and frees only the picks. Use when the disk is full or the machine is slow, hot, or out of memory.
+description: Frees disk space, memory, and CPU on the user's macOS, Linux, or WSL machine. Scans at the lowest priority for caches that tools rebuild, ignored build output, the Trash, old logs and installers, large and duplicate files, git projects nobody has used for 30 days, unused apps and the files removed apps left behind, old tool versions, downloaded AI models, dev servers left running, heavy processes, login items, and running containers, shows them on a local page where the user picks, and frees only the picks. Use when the disk is full or the machine is slow, hot, or out of memory.
 ---
 
 # Machine Cleanup

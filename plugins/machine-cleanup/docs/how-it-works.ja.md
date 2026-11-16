@@ -17,10 +17,14 @@
 | プロセス | `--sample`秒 (既定は2秒) あけて`ps`を2回。CPUの使い方は、2回の間にプロセスごとのCPU時間がどれだけ増えたかで測ります。`ps`が出す`%cpu`は過去を少しずつ忘れる平均だからです |
 | ログイン項目 | macOSは`~/Library/LaunchAgents`。Linuxは`~/.config/autostart`と`systemctl --user list-unit-files` |
 | コンテナ | `docker ps`と`docker stats --no-stream` |
+| AIモデル | Ollamaのmanifestとblob (`OLLAMA_MODELS`か`~/.ollama/models`)、Hugging Faceのキャッシュの`models--`のフォルダ (`HF_HUB_CACHE`、`HF_HOME`か`~/.cache/huggingface/hub`)、LM Studioのモデルのフォルダ (`~/.lmstudio/models`と`~/.cache/lm-studio/models`) |
 | キャッシュ | パッケージ管理ごとの既定のフォルダ (置き場を変える変数`npm_config_cache`、`PNPM_STORE_DIR`、`YARN_CACHE_FOLDER`、`BUN_INSTALL_CACHE_DIR`、`PIP_CACHE_DIR`、`UV_CACHE_DIR`、`HOMEBREW_CACHE`、`CARGO_HOME`、`GOPATH`、`GOMODCACHE`、`GOCACHE`、`GRADLE_USER_HOME`、`XDG_CACHE_HOME`、`XDG_DATA_HOME`に従います)、macOSのXcodeのフォルダ、`~/Library/Caches`か`~/.cache`の50MB以上のアプリのキャッシュ、`docker system df` |
 | ゴミ箱とログ | ゴミ箱、macOSは`~/Library/Logs`の30日より古いファイル、Linuxは`~/.local/state`のログのファイル、`~/Downloads`の30日より古いインストーラー |
 | アプリ | macOSは`/Applications`と`~/Applications` (か`--apps-dir`) の中で自分が変えられる`.app`のうち、`mdls`が最後に使った日を90日より前と返す物。Linuxは`flatpak list --user --app` |
+| 消したアプリの残り | macOSは`~/Library`の`Application Support`、`Caches`、`Preferences`、`Containers`、`Saved Application State`、`HTTPStorages`、`WebKit`、`Logs`の中で、名前がbundle id (`com.example.app`) の物 |
 | ファイル | ホーム (か各`--root`) を8段の深さまでたどります。隠しフォルダ、macOSの`~/Library`と`~/Applications`、「入らない場所」の場所は飛ばします |
+| 作業フォルダ | たどる途中で見つけたgitのプロジェクトを、`git log`、`git status`、`git remote`、`git rev-list`で読みます |
+| 道具の版 | nvm、fnm、pyenv、rbenv、asdf、mise、rustupの版のフォルダ (置き場を変える変数`NVM_DIR`、`FNM_DIR`、`PYENV_ROOT`、`RBENV_ROOT`、`ASDF_DATA_DIR`、`MISE_DATA_DIR`、`RUSTUP_HOME`に従います)、それぞれの既定の版、たどる途中で見つけた版の指定のファイル |
 
 たどる途中で`.git`を持つフォルダをプロジェクトと見ます。
 プロジェクトの一番上から4段以内の`node_modules`、`.next`、`.nuxt`、`.svelte-kit`、`.turbo`、`.parcel-cache`、`.vite`、`.angular`、`.expo`、`.docusaurus`、`.output`、`.vercel`、`.wrangler`、`dist`、`build`、`out`、`target`、`.venv`、`venv`、`__pycache__`、`.pytest_cache`、`.mypy_cache`、`.ruff_cache`、`.tox`、`.gradle`、`DerivedData`、`coverage`、`.cache`、`Pods`という名前のフォルダは、`git check-ignore`がgitの無視を返し、`git ls-files`が中に追跡するファイルを1つも見つけない時だけビルドの出力にします。
@@ -30,6 +34,27 @@
 大きさ、先頭の64KiBのSHA-256、中身全体のSHA-256が同じ2つのファイルを重複とし、1つのファイルへのハードリンクは1つと数えます。
 調べる時にファイルの中身を読むのはここだけで、残すのはハッシュだけです。
 重複を持たない500MB以上のファイルは大きいファイルです。
+
+プロジェクトは、最後のcommitと、`.git/HEAD`とその記録が最後に変わった日 (checkoutかcommit) がどちらも30日より前で、`git status`に未commitの変更も未追跡のファイルも無く、remoteを持ち、`git rev-list HEAD --branches --not --remotes`がremoteを追う参照に無いcommitを1つも返さない時に、使っていない作業フォルダです。
+remoteを追う参照は最後に取り込んだ時の記録なので、走査はremoteへ繋ぎません。
+gitは`GIT_OPTIONAL_LOCKS=0`で動かすので、読むだけでプロジェクトのindexを書き換えません。
+別の作業場所を持つプロジェクトと、別の作業場所そのものは並べません。
+
+消したアプリの残りは、ライブラリの中の物のうち、bundle idの会社の部分 (先頭の2つ、`com.example`など) を持つアプリがアプリのフォルダにも動いているアプリにも無く、残りの部分が動いているプロセスに合わず、中の最新のファイルが30日より前の物です。
+8つのフォルダにまたがる同じbundle idの物を1行にまとめます。
+ここでのbundle idは、2文字から4文字のトップレベルドメインで始まり、UUIDや長い乱数の文字列のような、アプリやテストが実行ごとに作る部分を持たない名前です。
+名前がbundle idでない物、`com.apple.`で始まる物、使っていないアプリやアプリのキャッシュとして既に並べたファイルは外します。bundle idでない名前の物は、ほとんどがmacOS自身と命令の道具の物だからです。
+8つのフォルダを読み終える前に時間の上限に達した時は、残りを1つも並べません。読んでいないフォルダにある同じbundle idのファイルが新しいかもしれないからです。
+Linuxには残りの行がありません。ファイルを作ったパッケージと結び付けられないからです。
+
+道具の版は、道具の既定の版 (nvmの`alias/default`、fnmの`aliases/default`、pyenvとrbenvの`version`のファイル、asdfとmiseの`~/.tool-versions`、miseの全体の`config.toml`、rustupの`settings.toml`) でも、プロジェクトの`.nvmrc`、`.node-version`、`.python-version`、`.ruby-version`、`.tool-versions`、`mise.toml`、`.mise.toml`、`rust-toolchain`、`rust-toolchain.toml`が指定する版でもない時に、使っていない版です。
+版の前の部分 (`20.11.1`に対する`20`) や、隣の別名のリンク (miseの`lts`) で指定された版も、指定に数えます。
+動いているプログラムが使う版、既定かプロジェクトがどの版にも合わない語 (`latest`など) を指定した道具の版、時間の上限で全てのプロジェクトを読む前にたどるのが止まった時の版は、並べますが選べません。
+作業フォルダと道具の版は、キャッシュの後に行うホームをたどる段から得ます。ホームが大きい時は、`--time-limit`でたどり終える時間を与えます。
+
+モデルは全て、大きさと落とした日と一緒に並べます。
+Ollamaのモデルの大きさは、ほかのモデルが使わないblobだけを数えます。空くのはその分だけだからです。
+`~/.cache`の下のHugging FaceとLM Studioのフォルダは、アプリのキャッシュとして並べません。モデルは落とし直すのに時間がかかるからです。
 
 結果は状態のフォルダの`scan.json`に置きます。
 各項目は、識別子 (ディスクの項目は`d-`と16進の8文字、プロセスとログイン項目とコンテナは`p-`)、分類、種類、大きさかメモリの使用量、ひとりでに戻ってくるか、空け方、使用中ならその理由、変える前の確かめに使う指紋を持ちます。
@@ -43,7 +68,7 @@
 | 推奨度 | 項目 | 出す理由 |
 |---|---|---|
 | おすすめ | 道具が作り直すキャッシュ、30日より長くcommitの無いプロジェクトのビルドの出力、ゴミ箱、30日より古いログとインストーラー、始めた会話が終わった後も動いている開発用のサーバー | 次に要る時に作り直されること、プロジェクトに何日commitが無いか、ファイルがどれだけ古いか |
-| 確かめて選ぶ | 30日以内にcommitのあるプロジェクトのビルドの出力、大きいファイル、重複、使っていないアプリ、ログイン項目、`next-server`のプロセス (`next start`も同じ名前で動くため) | 最後のcommitかアプリを開いてから何日か、後から戻せること |
+| 確かめて選ぶ | 30日以内にcommitのあるプロジェクトのビルドの出力、大きいファイル、重複、使っていない作業フォルダ、使っていないアプリ、消したアプリの残り、使っていない道具の版、AIモデル、ログイン項目、`next-server`のプロセス (`next start`も同じ名前で動くため) | 最後のcommitかcheckoutか落とした日、アプリを開いた日、残りが最後に変わった日から何日か、後から戻せることか入れ直せること |
 | 慎重に | 重いプロセスと動いているコンテナ | 終わらせるとその作業が止まること |
 
 おすすめと確かめて選ぶの段の見出しには、段の行を全部選ぶボタンがあります。重複は1つの写しが必ず残るように1件ずつ選ぶため、このボタンでは選びません。
@@ -138,6 +163,9 @@
 | インストーラー、大きいファイル、重複 | ゴミ箱へ移します。macOSは`~/.Trash`、Linuxはfreedesktop.orgのゴミ箱で、ファイルの管理の道具が元に戻せるよう`.trashinfo`の記録を書きます |
 | macOSのアプリ | アプリと付属のファイル (`Application Support`、`Caches`、`Preferences`、`Containers`、`Saved Application State`、`HTTPStorages`、`WebKit`、`Logs`の中の物) をゴミ箱へ移します |
 | Flatpakのアプリ | `flatpak uninstall --user -y <app>`を動かします |
+| 作業フォルダと消したアプリの残り | プロジェクトのフォルダか、残りの全ての場所をゴミ箱へ移します |
+| 道具の版 | 版のフォルダと、その版を指していた隣のリンク (miseの`21`と`21.7`など) を消します。rustupの版は`rustup toolchain uninstall <toolchain>`で消します |
+| AIモデル | Ollamaが動いている時は`ollama rm <model>`を動かします。動いていない時は、`ollama rm`と同じく、モデルのmanifestとほかのモデルが使わないblobを消します。Hugging FaceとLM Studioのモデルはフォルダを消します |
 | プロセス | 終了の合図 (SIGTERM) を送り、`--term-wait`秒 (既定は5秒) 待ちます。まだ動いているプロセスは`survived`と知らせ、その識別子を渡した`apply --kill <id>`の時だけSIGKILLを送ります |
 | macOSのLaunchAgent | `launchctl bootout`を動かし、ファイルを状態のフォルダへ移します |
 | Linuxの自動起動 | ファイルを状態のフォルダへ移します |
@@ -154,6 +182,9 @@
 | ファイル | 大きさ、変更した日時、ファイルの番号のどれかが調べた時と違う |
 | フォルダ | フォルダが入れ替わったか、大きさが5%か1MBより大きく変わった |
 | プロジェクトの中の項目 | 動いているプログラムが今そのプロジェクトで作業している |
+| 作業フォルダ | 30日以内のcommitかcheckout、未commitの変更か未追跡のファイル、remoteに無いcommitのどれかがプロジェクトに増えた |
+| 道具の版 | 動いているプログラムが今その版を使っている |
+| Ollamaのモデル | manifestが変わった |
 | プロセス | プロセスが終わったか、開始の時刻か命令が違う (プロセスの番号が別のプログラムの物になった) |
 | ログイン項目 | ファイルが変わったか、無くなった |
 | コンテナ | コンテナがもう動いていない |
@@ -171,7 +202,7 @@ Dockerを片付け、Docker Desktopのディスクのファイルがある時は
 | macOSのLaunchAgent | ファイルを戻し、`launchctl bootstrap`を動かします |
 | Linuxの自動起動 | ファイルを戻します |
 | systemdのユーザー単位 | `systemctl --user enable --now`を動かします |
-| ゴミ箱へ移したファイルとアプリ | まだゴミ箱にあり、元の場所に何も無い時に戻します |
+| ゴミ箱へ移したファイル、アプリ、作業フォルダ、消したアプリの残り | まだゴミ箱にあり、元の場所に何も無い時に戻します |
 
 ## 残す物
 
@@ -202,6 +233,7 @@ Dockerを片付け、Docker Desktopのディスクのファイルがある時は
 |---|---|
 | `MACHINE_CLEANUP_HOME` | `~/.local/share/machine-cleanup`の代わりに使う状態のフォルダ |
 | 「調べ方」のキャッシュの変数 | パッケージ管理ごとのキャッシュを探す場所 |
+| 「調べ方」の道具の版とモデルの変数 | 版の管理の道具が版を置く場所と、モデルを探す場所 |
 
 ## 終わり方
 

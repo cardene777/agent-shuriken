@@ -6,7 +6,7 @@ English · [日本語](README.ja.md)
 
 ![The Overview tab of the page: rings for what can be freed by kind, size by level, the disk, and memory, and bars for the largest items and the processes using the most memory and CPU](assets/screenshot.png)
 
-Coding agents leave a lot behind: `node_modules` and build output in every project, package manager and Docker caches, Xcode's DerivedData, and dev servers and watchers that keep running after the session that started them ended.
+Coding agents leave a lot behind: `node_modules` and build output in every project, package manager and Docker caches, Xcode's DerivedData, projects nobody has opened for a month, old versions of Node.js, Python, Ruby, and Rust, downloaded AI models, and dev servers and watchers that keep running after the session that started them ended.
 This plugin measures all of it at the lowest priority, shows it on a page in your browser with the size or load of each item and what freeing it does, and frees only what you pick there.
 Anything that a live agent session, an open terminal, or a running program in the same project uses is shown but cannot be picked, so a cleanup never breaks work in progress in another session.
 
@@ -56,7 +56,9 @@ When the agent stopped waiting for the page, press **Copy the selection** and pa
 | Build output | `node_modules`, `.next`, `dist`, `target`, `.venv`, and similar folders in git projects that git ignores and that hold no tracked file | Deleted. The next install or build makes it again |
 | Trash and logs | The Trash, logs and crash reports older than 30 days, and installers in Downloads older than 30 days | The Trash is emptied and old logs are deleted for good. Installers move to the Trash |
 | Large and duplicate files | Files of 500 MB or more, and files of 10 MB or more with the same content in several places | Moved to the Trash. At least one copy of each duplicate always stays |
-| Apps | macOS apps not opened for 90 days that you can change without an administrator password, with their support files, and Flatpak apps installed for you on Linux | macOS apps move to the Trash with their support files. Flatpak apps are uninstalled |
+| Projects | git projects with no commit or checkout for 30 days, nothing uncommitted, and every commit on the remote as of the last fetch | Moved to the Trash, so you can put them back |
+| Apps | macOS apps not opened for 90 days that you can change without an administrator password, with their support files, files left behind by removed apps in your Library on macOS, and Flatpak apps installed for you on Linux | macOS apps move to the Trash with their support files, and leftovers move to the Trash. Flatpak apps are uninstalled |
+| Tools and models | Versions kept by nvm, fnm, pyenv, rbenv, asdf, mise, and rustup that are neither the default nor named by a project, and models downloaded by Ollama, Hugging Face, and LM Studio | Deleted. Tool versions are removed with `rustup toolchain uninstall` for Rust, and Ollama models with `ollama rm` while Ollama runs. The tool can download them again |
 | Processes | Dev servers, watchers, and test runs left running after their session ended, and the 15 processes that use the most memory or CPU | The process gets the end signal, so it can save its work. It is ended at once only when you pick it again |
 | Login items | macOS LaunchAgents in your Library, and autostart entries and systemd user services on Linux | Stopped, and kept so that the agent can turn it back on |
 | Containers | Running Docker containers | Stopped. Their data stays |
@@ -88,7 +90,8 @@ When the agent stopped waiting for the page, press **Copy the selection** and pa
 In short:
 
 - It reads the sizes and dates of files and folders in your home folder and app folders, reads the contents of files of 10 MB or more that have the same size as another file to tell duplicates apart, and lists your processes, login items, and containers
-- It runs `ps`, `du`, `df`, `lsof`, `git`, `mdls` on macOS, and, when they are installed, `docker`, `flatpak`, and the package managers' clean commands
+- It reads the version files in your projects (`.nvmrc`, `.python-version`, `.tool-versions`, `mise.toml`, `rust-toolchain.toml`, and similar), the version managers' settings, and Ollama's model manifests
+- It runs `ps`, `du`, `df`, `lsof`, `git`, `mdls` on macOS, and, when they are installed, `docker`, `flatpak`, `rustup`, `ollama`, and the package managers' clean commands. `git` only reads, and never fetches
 - It serves the page only on `127.0.0.1` with a one-time token and accepts a selection only from that page. It sends nothing over the network
 - It changes only what you picked, after checking it again. It never asks for or uses an administrator password
 - It hides values of command-line flags and environment variables whose names suggest a token, secret, password, or API key before a process command reaches the page or a file

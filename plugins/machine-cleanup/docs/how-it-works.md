@@ -17,10 +17,14 @@ It looks in this order, so the fastest and most useful results come first.
 | Processes | `ps` twice, `--sample` seconds apart (2 by default). CPU use is how much each process's CPU time grew between the two, because the `%cpu` that `ps` prints is a decaying average |
 | Login items | `~/Library/LaunchAgents` on macOS. `~/.config/autostart` and `systemctl --user list-unit-files` on Linux |
 | Containers | `docker ps` and `docker stats --no-stream` |
+| AI models | Ollama's manifests and blobs (`OLLAMA_MODELS` or `~/.ollama/models`), the `models--` folders of the Hugging Face cache (`HF_HUB_CACHE`, `HF_HOME`, or `~/.cache/huggingface/hub`), and the model folders of LM Studio (`~/.lmstudio/models` and `~/.cache/lm-studio/models`) |
 | Caches | The default folder of each package manager, honoring the variables that move it (`npm_config_cache`, `PNPM_STORE_DIR`, `YARN_CACHE_FOLDER`, `BUN_INSTALL_CACHE_DIR`, `PIP_CACHE_DIR`, `UV_CACHE_DIR`, `HOMEBREW_CACHE`, `CARGO_HOME`, `GOPATH`, `GOMODCACHE`, `GOCACHE`, `GRADLE_USER_HOME`, `XDG_CACHE_HOME`, `XDG_DATA_HOME`), Xcode's folders on macOS, app caches of 50 MB or more in `~/Library/Caches` or `~/.cache`, and `docker system df` |
 | Trash and logs | The Trash, files older than 30 days in `~/Library/Logs` on macOS or log files in `~/.local/state` on Linux, and installers older than 30 days in `~/Downloads` |
 | Apps | On macOS, `.app` bundles in `/Applications` and `~/Applications` (or `--apps-dir`) that you can change, whose last use `mdls` reports as more than 90 days ago. On Linux, `flatpak list --user --app` |
+| App leftovers | On macOS, the entries of `~/Library/Application Support`, `Caches`, `Preferences`, `Containers`, `Saved Application State`, `HTTPStorages`, `WebKit`, and `Logs` named by a bundle id (`com.example.app`) |
 | Files | A walk of the home folder (or each `--root`) up to 8 levels deep, which skips hidden folders, `~/Library` and `~/Applications` on macOS, and the places in "Places it never enters" |
+| Work folders | The git projects the walk met, read with `git log`, `git status`, `git remote`, and `git rev-list` |
+| Tool versions | The version folders of nvm, fnm, pyenv, rbenv, asdf, mise, and rustup, honoring `NVM_DIR`, `FNM_DIR`, `PYENV_ROOT`, `RBENV_ROOT`, `ASDF_DATA_DIR`, `MISE_DATA_DIR`, and `RUSTUP_HOME`, their defaults, and the version files the walk met |
 
 During the walk, a folder that holds `.git` is a project.
 Folders named `node_modules`, `.next`, `.nuxt`, `.svelte-kit`, `.turbo`, `.parcel-cache`, `.vite`, `.angular`, `.expo`, `.docusaurus`, `.output`, `.vercel`, `.wrangler`, `dist`, `build`, `out`, `target`, `.venv`, `venv`, `__pycache__`, `.pytest_cache`, `.mypy_cache`, `.ruff_cache`, `.tox`, `.gradle`, `DerivedData`, `coverage`, `.cache`, and `Pods` within four levels of the project's top are build output only when `git check-ignore` says git ignores them and `git ls-files` finds no tracked file inside.
@@ -30,6 +34,27 @@ Files of 10 MB or more are duplicate candidates.
 Two files are duplicates when they have the same size, the same SHA-256 of their first 64 KiB, and the same SHA-256 of their whole content; hard links to one file count once.
 This is the only time the scan reads file contents, and it keeps only the hashes.
 Files of 500 MB or more that have no duplicate are large files.
+
+A project is an unused work folder when its last commit and the last change of `.git/HEAD` and its log (a checkout or a commit) are both more than 30 days old, `git status` shows nothing uncommitted and no untracked file, it has a remote, and `git rev-list HEAD --branches --not --remotes` finds no commit that is missing from the remote-tracking refs.
+Those refs are what the last fetch saw, so the scan never connects to the remote.
+git runs with `GIT_OPTIONAL_LOCKS=0`, so reading a project never rewrites its index.
+A project with another worktree, and a worktree itself, are never listed.
+
+An app leftover is a Library entry whose bundle id belongs to a company (its first two parts, such as `com.example`) that no app in the app folders or among running apps has, whose other parts match no running process, and whose newest file is more than 30 days old.
+The entries of one bundle id across the eight folders form one row.
+A bundle id here starts with a top-level domain of 2 to 4 letters and has no part that looks generated, such as a UUID or a long random token, which an app or a test makes for each run.
+Entries named otherwise, entries starting with `com.apple.`, and files already listed with an unused app or as an app cache are left out, since names that are not bundle ids belong mostly to macOS itself and to command-line tools.
+When the time limit ends before the eight folders are read, no leftover is listed, because a file of the same bundle id in a folder not read may be recent.
+Linux has no leftovers row, because files there cannot be matched to the package that made them.
+
+A tool version is unused when it is neither the manager's default (nvm's `alias/default`, fnm's `aliases/default`, the `version` file of pyenv and rbenv, `~/.tool-versions` for asdf and mise, mise's global `config.toml`, and rustup's `settings.toml`) nor named by a project's `.nvmrc`, `.node-version`, `.python-version`, `.ruby-version`, `.tool-versions`, `mise.toml`, `.mise.toml`, `rust-toolchain`, or `rust-toolchain.toml`.
+A name also counts when it is the leading part of a version (`20` for `20.11.1`) or a link beside it (mise's `lts`).
+A version is listed but cannot be picked when a running program uses it, when a default or a project names a word such as `latest` that matches no installed version, or when the walk stopped at the time limit before reading every project.
+Work folders and tool versions come from the walk of the home folder, which comes after the caches; on a large home folder, `--time-limit` gives the walk time to finish.
+
+Every model is listed with its size and the day it was downloaded.
+An Ollama model's size counts only the blobs that no other model uses, because only those are freed.
+The Hugging Face and LM Studio folders under `~/.cache` are never listed as app caches, since a model takes long to download again.
 
 The result goes to `scan.json` in the state folder.
 Each item has an id (`d-` and eight hex digits for disk items, `p-` for processes, login items, and containers), a category, a kind, a size or memory use, whether it comes back on its own, how it is freed, the reason it is in use when it is, and a fingerprint for the check before acting.
@@ -43,7 +68,7 @@ The level only orders the rows and explains them; `apply` checks every pick the 
 | Level | Items | Reason shown |
 |---|---|---|
 | Recommended | Caches that tools rebuild, build output of a project with no commit for more than 30 days, the Trash, logs and installers older than 30 days, and dev servers still running after their session ended | Rebuilt the next time it is needed, how many days the project has had no commit, or how old the files are |
-| Check first | Build output of a project with a commit in the last 30 days, large files, duplicates, unused apps, login items, and a `next-server` process, since `next start` runs under the same name | How many days since the last commit or since the app was opened, or that the item can be put back |
+| Check first | Build output of a project with a commit in the last 30 days, large files, duplicates, unused work folders, unused apps, app leftovers, unused tool versions, AI models, login items, and a `next-server` process, since `next start` runs under the same name | How many days since the last commit, checkout, or download, since the app was opened, or since the leftover last changed, or that the item can be put back or installed again |
 | Careful | Heavy processes and running containers | Ending it stops its work |
 
 The headings of the recommended and check-first groups have a button that picks every row in the group except duplicates, which are picked one copy at a time so that one copy always stays.
@@ -138,6 +163,9 @@ When any id is not in the scan, is in use, or picks every copy of a duplicate, i
 | Installers, large files, duplicates | Moves the file to the Trash: `~/.Trash` on macOS, and the freedesktop.org Trash with a `.trashinfo` record on Linux, so file managers can put it back |
 | macOS apps | Moves the app and its support files (in `Application Support`, `Caches`, `Preferences`, `Containers`, `Saved Application State`, `HTTPStorages`, `WebKit`, and `Logs`) to the Trash |
 | Flatpak apps | Runs `flatpak uninstall --user -y <app>` |
+| Work folders and app leftovers | Moves the project folder, or every place of the leftover, to the Trash |
+| Tool versions | Deletes the version folder and the links beside it that pointed at it, such as mise's `21` and `21.7`. A rustup toolchain is removed with `rustup toolchain uninstall <toolchain>` |
+| AI models | While Ollama runs, runs `ollama rm <model>`. While it does not, deletes the model's manifest and the blobs no other model uses, as `ollama rm` does. Deletes a Hugging Face or LM Studio model's folder |
 | Processes | Sends the end signal (SIGTERM) and waits `--term-wait` seconds (5 by default). A process still running is reported as `survived`, and only `apply --kill <id>` for that id sends SIGKILL |
 | macOS LaunchAgents | Runs `launchctl bootout` and moves the file into the state folder |
 | Linux autostart entries | Moves the file into the state folder |
@@ -154,6 +182,9 @@ An item that fails a check is reported as `skipped` with the reason and left as 
 | Files | The size, modification time, or file number differs from the scan |
 | Folders | The folder was replaced, or its size changed by more than 5% or 1 MB |
 | Items in a project | A running program now works in the project |
+| Work folders | The project gained a commit or a checkout in the last 30 days, uncommitted changes or untracked files, or a commit that is not on the remote |
+| Tool versions | A running program now uses the version |
+| Ollama models | The manifest changed |
 | Processes | The process ended, or its start time or command differs, which means the process id now belongs to another program |
 | Login items | The file changed or is gone |
 | Containers | The container is no longer running |
@@ -171,7 +202,7 @@ When it ran a Docker prune and Docker Desktop's disk image exists, it adds that 
 | macOS LaunchAgents | Moves the file back and runs `launchctl bootstrap` |
 | Linux autostart entries | Moves the file back |
 | systemd user services | Runs `systemctl --user enable --now` |
-| Files and apps moved to the Trash | Moves them back while they are still in the Trash and nothing is in their old place |
+| Files, apps, work folders, and app leftovers moved to the Trash | Moves them back while they are still in the Trash and nothing is in their old place |
 
 ## What it keeps
 
@@ -202,6 +233,7 @@ Process commands are kept only after the values of flags and variables whose nam
 |---|---|
 | `MACHINE_CLEANUP_HOME` | The state folder, instead of `~/.local/share/machine-cleanup` |
 | The cache variables in "The scan" | Where each package manager's cache is looked for |
+| The version manager and model variables in "The scan" | Where each version manager keeps its versions, and where models are looked for |
 
 ## Exit codes
 
