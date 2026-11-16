@@ -31,6 +31,11 @@
       "description": "Write the public documentation of an open source project in five parts, Quickstart, Concepts, API reference, Cookbook, and FAQ, in English and a second language you pick, with every page's translation and every relative link checked"
     },
     {
+      "name": "evm-dev",
+      "source": "./plugins/evm-dev",
+      "description": "Tells whether an ERC is final or an EIP is live on Ethereum mainnet, and what it lets contracts and wallets do, from dated items checked against the official documents, re-checking the ones that are out of date"
+    },
+    {
       "name": "excalidraw-diagram",
       "source": "./plugins/excalidraw-diagram",
       "description": "Draw architecture, flow, sequence, and ER diagrams as Excalidraw files laid out by a script, checked for overlaps, crowded spacing, and labels on lines, with SVG and PNG copies and no downloads"

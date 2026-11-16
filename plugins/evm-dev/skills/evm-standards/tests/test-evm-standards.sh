@@ -52,19 +52,21 @@ bad_items_named() {
 check "check names an item with a missing field, an unknown status, or an impossible date" bad_items_named
 
 # On 2026-02-01, an announced item checked 2026-01-01 is 31 days old (past 30), one checked
-# 2026-01-02 is exactly 30 days old (not past), and a live item checked 2026-01-01 is well within 180.
+# 2026-01-02 is exactly 30 days old (not past), a live item checked 2026-01-01 is well within 180,
+# a specified item checked 2025-11-05 is 88 days old (within 90), and a stopped item checked
+# 2025-08-01 is 184 days old (past 180).
 stale_marked() {
   local d="$T/stale"
   item "$d" eip-10-old announced 2026-01-01
   item "$d" eip-11-edge announced 2026-01-02
   item "$d" erc-12-live live 2026-01-01
-  item "$d" erc-13-specified specified 2025-11-01
+  item "$d" erc-13-specified specified 2025-11-05
   item "$d" eip-14-stopped stopped 2025-08-01
   bash "$SCRIPT" list --dir "$d" --today 2026-02-01 > "$T/list.out" 2>&1 || return 1
   grep -Eq '^stale +announced +2026-01-01 +eip-10-old$' "$T/list.out" \
     && grep -Eq '^ok +announced +2026-01-02 +eip-11-edge$' "$T/list.out" \
     && grep -Eq '^ok +live +2026-01-01 +erc-12-live$' "$T/list.out" \
-    && grep -Eq '^ok +specified +2025-11-01 +erc-13-specified$' "$T/list.out" \
+    && grep -Eq '^ok +specified +2025-11-05 +erc-13-specified$' "$T/list.out" \
     && grep -Eq '^stale +stopped +2025-08-01 +eip-14-stopped$' "$T/list.out"
 }
 check "list marks the items past the days for their status" stale_marked

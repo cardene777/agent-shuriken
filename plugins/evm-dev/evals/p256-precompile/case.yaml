@@ -1,0 +1,25 @@
+# Verifying a passkey signature on mainnet. EIP-7951 went live in Fusaka at 0x100 for 6900 gas, while the
+# earlier RIP-7212 that a model may remember cost 3450 gas and lived only on some L2s.
+schema_version: "1.1"
+name: p256-precompile
+plugins: ["../.."]
+execution:
+  prompt: |
+    Can a contract on Ethereum mainnet verify a passkey (secp256r1, P-256) signature with a precompile today? If so, give the address and the gas cost.
+  max_turns: 20
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'evm-standards'
+    arm: with-only
+  - name: precompile-facts
+    type: llm
+    criteria: |
+      PASS if the reply says a P-256 verification precompile is available on Ethereum mainnet (EIP-7951, activated with the Fusaka upgrade in December 2025), at address 0x100, costing 6900 gas.
+      Mentioning RIP-7212 as the earlier L2 version is not a failure.
+      FAIL if the reply says no such precompile is live on mainnet, gives a gas cost other than 6900 for mainnet, or gives an address other than 0x100.

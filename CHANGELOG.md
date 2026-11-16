@@ -7,6 +7,10 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ## [Unreleased]
 
+### Added
+
+- The evm-dev plugin, which tells whether an ERC is final or an EIP is live on Ethereum mainnet, and what it lets contracts and wallets do, from 41 items checked against the official documents with their dates and sources, and re-checks the items that are out of date before answering
+
 ## [0.15.0] - 2026-11-16
 
 ### Plugins
