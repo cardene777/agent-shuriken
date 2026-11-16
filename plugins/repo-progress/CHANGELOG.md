@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-16
+
 - The `SKILL.md` is shorter: the tables of columns and of one repository's sections, which `docs/how-it-works.md` gives, the table of exit codes, which is now two sentences, and the list of common root folders, which `--show-roots` prints, are gone, and the description says only what the skill does and when to use it
 - When the scan cannot tell which commits are the user's, the `SKILL.md` says to ask for the name, never to guess it from an account or address the agent knows. Before, the agent sometimes passed an email it knew as `--author`
 - The plugin has `claude plugin eval` cases under `evals/` that measure the skill, run by hand
@@ -24,6 +26,7 @@ First public release.
 - Never changes a repository, a branch, a worktree, or an issue
 - Starts when you ask what you were working on or which repositories have stalled, or when you call it, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/repo-progress--v0.1.1...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/repo-progress--v0.1.2...HEAD
+[0.1.2]: https://github.com/cardene777/agent-shuriken/releases/tag/repo-progress--v0.1.2
 [0.1.1]: https://github.com/cardene777/agent-shuriken/releases/tag/repo-progress--v0.1.1
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/repo-progress--v0.1.0

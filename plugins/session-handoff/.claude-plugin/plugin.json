@@ -1,7 +1,7 @@
 {
   "name": "session-handoff",
   "displayName": "Session Handoff",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Hand an agent session over to a new one: a short message to paste, and a saved state of the options already rejected, the current phase, delegated work, and things not to do, with anything that looks like a secret refused",
   "author": {
     "name": "cardene777",

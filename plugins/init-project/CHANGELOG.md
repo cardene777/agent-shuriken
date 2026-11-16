@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-16
+
 - The skill's description is half as long, so every session that lists the installed skills reads less, and its instructions are shorter: the tables of project kinds, `plan` flags, plan marks, and exit codes are gone, since `detect`, `plan --help`, and each command's own messages say the same. The rules that keep env values away from the agent, ask before writing, and keep existing files are unchanged. An eval suite under `evals/` measures it with `claude plugin eval`, and no case scored lower
 - With an existing `.tpl` file, the 1Password commands copy only the variables whose line reads from the plan's item. Before, they also copied a variable whose kept line read from another item or held a value, so its value was stored in one more place than the template uses. The plan now names the variables it left out, without showing their lines
 
@@ -29,7 +31,8 @@ First public release.
 - Shows every file first and writes only after you approve, keeps existing files unless you name one to replace, and checks each file and the port again right before writing
 - Starts when you ask to set up a project, add Docker, or move environment variables into 1Password, or when you call it, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/init-project--v0.2.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/init-project--v0.3.0...HEAD
+[0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/init-project--v0.3.0
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/init-project--v0.2.0
 [0.1.1]: https://github.com/cardene777/agent-shuriken/releases/tag/init-project--v0.1.1
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/init-project--v0.1.0

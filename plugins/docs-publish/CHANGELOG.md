@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-16
+
 - `check` says how to fix each kind of problem it lists, in a `How to fix:` section before its last line
 - The skill's instructions are shorter, so starting the skill reads less. An eval suite under `evals/` measures it with `claude plugin eval`, and every case kept its score
 
@@ -31,7 +33,8 @@ First public release.
 - Writes only inside the docs folder, keeps nothing outside the project, and commits nothing
 - Starts when you ask for documentation for your project, or when you call it, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/docs-publish--v0.2.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/docs-publish--v0.3.0...HEAD
+[0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/docs-publish--v0.3.0
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/docs-publish--v0.2.0
 [0.1.1]: https://github.com/cardene777/agent-shuriken/releases/tag/docs-publish--v0.1.1
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/docs-publish--v0.1.0

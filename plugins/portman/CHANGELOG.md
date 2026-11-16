@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-16
+
 - When the socket test is refused, as inside a sandbox, `list` and `check` show the ports that `lsof` does not see as `unknown` instead of `free`, `doctor` lists them under `[Not tested]`, and `suggest` says that its ports could not be tested
 - The refusal for a registry written by a newer portman says to update the plugin instead of editing the file, and the refusal for a port that is already registered names `suggest`
 - The `SKILL.md` is shorter: the tables of arguments, exit codes, notes, and failures that the script's help and messages already give are gone, and the description says only what the skill does and when to use it
@@ -27,6 +29,7 @@ First public release.
 - Removes ports only after you approve the entries it shows, and skips an entry that changed in between
 - Starts when a port is already in use, when two projects want the same port, or when you set up ports for a project, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/portman--v0.2.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/portman--v0.3.0...HEAD
+[0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/portman--v0.3.0
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/portman--v0.2.0
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/portman--v0.1.0

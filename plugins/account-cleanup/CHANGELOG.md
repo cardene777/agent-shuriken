@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-16
+
 - The skill's instructions are shorter, so starting the skill reads less, and its rules on passwords, approval, and the browser are unchanged. An eval suite under `evals/` measures it with `claude plugin eval`, and every case kept its score
 - The agent passes its descriptions of the candidates to `annotate.sh -` on standard input. Before, it first wrote them to a file in the data folder, which asked for one more approval and was refused where the agent may not write outside the project
 
@@ -32,7 +34,8 @@ First public release.
 - Bundles the JustDeleteMe deletion directory
 - The pages offer an English / 日本語 switch
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/account-cleanup--v0.2.1...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/account-cleanup--v0.3.0...HEAD
+[0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/account-cleanup--v0.3.0
 [0.2.1]: https://github.com/cardene777/agent-shuriken/releases/tag/account-cleanup--v0.2.1
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/account-cleanup--v0.2.0
 [0.1.1]: https://github.com/cardene777/agent-shuriken/releases/tag/account-cleanup--v0.1.1

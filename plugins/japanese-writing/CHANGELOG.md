@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-16
+
 - A new reference, `references/connecting.md`, shows how to cut a long sentence in a message for people and connect the short ones with conjunctions, and how to put the conclusion first. It is edited from two documents of Japan's Agency for Cultural Affairs, credited in `THIRD_PARTY_NOTICES.md`
 
 ## [0.1.0] - 2026-11-15
@@ -18,3 +20,6 @@ First public release.
 - Scores how AI-like a text reads without changing it, when you ask for a score
 - Runs the scripts through `uv`, which downloads `sudachipy` and its dictionary on first use, and checks the same points by eye when `uv` is missing. The optional `semantic.py`, which downloads a 1 GB model, is left out
 - Starts when you ask to write Japanese or make it natural, or when you call it, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
+
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/japanese-writing--v0.2.0...HEAD
+[0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/japanese-writing--v0.2.0

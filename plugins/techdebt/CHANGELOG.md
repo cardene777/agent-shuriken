@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-11-16
+
 - The template is `templates/base.html`, so that no file in the plugin is named `report.html`; `scan` still writes the report as `report.html`
 - The `SKILL.md` is shorter: the table of measures and the weights of the score, which `docs/how-it-works.md` gives, the description of the report page, and the failures whose messages say what to fix are gone, and the description says only what the skill does and when to use it
 - The plugin has `claude plugin eval` cases under `evals/` that measure the skill, run by hand
@@ -39,7 +41,8 @@ First public release.
 - Writes one HTML report with a tab per measure, an English and Japanese switch, and pages of 50 rows, which loads nothing from the network
 - Starts when you ask about technical debt, or when you call it, in Claude Code and in Codex
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/techdebt--v0.3.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/techdebt--v0.3.1...HEAD
+[0.3.1]: https://github.com/cardene777/agent-shuriken/releases/tag/techdebt--v0.3.1
 [0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/techdebt--v0.3.0
 [0.2.2]: https://github.com/cardene777/agent-shuriken/releases/tag/techdebt--v0.2.2
 [0.2.1]: https://github.com/cardene777/agent-shuriken/releases/tag/techdebt--v0.2.1

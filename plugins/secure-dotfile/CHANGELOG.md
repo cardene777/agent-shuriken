@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-11-16
+
 - Every error and skip reason says what to do next, such as `unlock the keyring in your desktop session and run the move again`, so the agent passes it on instead of reading a table of reasons. The skill's instructions are less than half as long, and the agent reads them each time the skill starts
 - When git cannot run, such as the macOS `/usr/bin/git` inside a sandbox that hides Xcode, `scan` says the git history is `unknown: git could not run`, with git's message and what to do, instead of `not in a git repository`. Without git it says `unknown: git is not installed`
 
@@ -55,7 +57,8 @@ First public release.
 - Moves a secret in the chezmoi source file instead of the file chezmoi generates
 - Starts when you mention a secret in your shell configuration, or when you call it, in Claude Code and in Codex
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/secure-dotfile--v0.7.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/secure-dotfile--v0.7.1...HEAD
+[0.7.1]: https://github.com/cardene777/agent-shuriken/releases/tag/secure-dotfile--v0.7.1
 [0.7.0]: https://github.com/cardene777/agent-shuriken/releases/tag/secure-dotfile--v0.7.0
 [0.6.0]: https://github.com/cardene777/agent-shuriken/releases/tag/secure-dotfile--v0.6.0
 [0.5.0]: https://github.com/cardene777/agent-shuriken/releases/tag/secure-dotfile--v0.5.0
