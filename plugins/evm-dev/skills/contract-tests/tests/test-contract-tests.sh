@@ -206,8 +206,8 @@ contract VaultInvariantTest is Test {
 SOL
 }
 
-# Foundry tests that touch only some points: deposit with its event, setPaused without a revert,
-# and withdraw without inputs from the fuzzer. The marker must never reach the output.
+# Foundry tests that touch only some points: deposit with its event, setPaused without a revert on
+# its own call, and withdraw without inputs from the fuzzer. The marker must never reach the output.
 foundry_partial_tests() {
   cat > "$1/test/VaultPartial.t.sol" <<'SOL'
 // SPDX-License-Identifier: MIT
@@ -237,6 +237,13 @@ contract VaultPartialTest is Test {
 
     function test_withdraw_one() public {
         vault.deposit{value: 1}();
+        vault.withdraw(1);
+    }
+
+    // Expects a revert from withdraw, not from setPaused, so setPaused's access rule stays untested.
+    function test_withdraw_after_pausing() public {
+        vault.setPaused(true);
+        vm.expectRevert();
         vault.withdraw(1);
     }
 
@@ -416,7 +423,7 @@ check "list marks the items checked more than 90 days ago" stale_marked
 points_listed() {
   local out="$T/points-foundry.out" hh="$T/points-hardhat.out" v="src/Vault.sol" c="contracts/Counter.sol"
   run points "$FOUNDRY" > "$out" 2>&1 || return 1
-  has "$out" "function Vault.deposit $v:$(line_of "$VAULT" 'function deposit()')" || return 1
+  has "$out" "function Vault.deposit $v:$(line_of "$VAULT" 'function deposit() external payable {')" || return 1
   has "$out" "function Vault.setPaused $v:$(line_of "$VAULT" 'function setPaused(')" || return 1
   has "$out" "function Vault.sweep $v:$(line_of "$VAULT" 'function sweep(')" || return 1
   has "$out" "function Vault.preview $v:$(line_of "$VAULT" 'function preview(')" || return 1

@@ -5,6 +5,11 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+### Added
+
+- The `contract-tests` skill writes unit, fuzz, and invariant tests for a project's contracts in Foundry and Hardhat, or has kiwa write them when the kiwa plugin's skills are installed. It first lists what each contract needs a test for (external and public functions, custom errors, events, access rules, functions that take integers, and balances that must add up), then names each point no test touches, runs the tests, and reports a bug a test shows instead of changing the contract
+- Seven items on Hardhat 3's test runners, network helpers, Chai matchers, viem assertions, Solidity tests, and coverage, and on Foundry's invariant runs that drop reverted calls, each checked on 2026-11-17
+
 ## [0.3.0] - 2026-11-16
 
 ### Added

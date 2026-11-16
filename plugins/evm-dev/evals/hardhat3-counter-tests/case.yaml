@@ -1,0 +1,66 @@
+# Adding TypeScript tests to a Hardhat 3 project on viem. Hardhat 3 runs node:test, hands viem and
+# networkHelpers out per connection, and checks reverts with viem.assertions; Hardhat 2's
+# `import { ethers } from "hardhat"` and network-helpers imports do not work there. Graded on the
+# test file (the runner, the connection, the counter read after calls, the events with their
+# arguments, and each custom error on the call that raises it) and on the reply saying whether the
+# tests ran; the judge sees only the reply.
+schema_version: "1.1"
+name: hardhat3-counter-tests
+plugins: ["../.."]
+execution:
+  prompt: |
+    Add tests for contracts/Counter.sol in test/Counter.ts.
+  max_turns: 40
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill, Write, Edit, Bash]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'contract-tests'
+    arm: with-only
+  - name: node-test-runner
+    type: regex
+    target: {source: file, path: test/Counter.ts}
+    pattern: 'from\s+["'']node:test["'']'
+  - name: connection-from-network
+    type: regex
+    target: {source: file, path: test/Counter.ts}
+    pattern: '\bnetwork\.(create|connect)\s*\('
+  - name: no-hardhat2-imports
+    type: regex
+    target: {source: file, path: test/Counter.ts}
+    pattern: 'hardhat-network-helpers|hardhat-toolbox/network-helpers|import\s*\{[^}]*\bethers\b[^}]*\}\s*from\s*["'']hardhat["'']'
+    match: not_contains
+  - name: viem-assertions
+    type: regex
+    target: {source: file, path: test/Counter.ts}
+    pattern: 'viem\.assertions\.revertWithCustomError(WithArgs)?\s*\('
+  - name: every-error-named
+    type: regex
+    target: {source: file, path: test/Counter.ts}
+    pattern: '^(?=[\s\S]*\bTooLarge\b)(?=[\s\S]*\bNotOwner\b)'
+  - name: reads-counter
+    type: regex
+    target: {source: file, path: test/Counter.ts}
+    pattern: '\.read\.x\s*\('
+  - name: events-with-args
+    type: regex
+    target: {source: file, path: test/Counter.ts}
+    pattern: '^(?=[\s\S]*emitWithArgs\s*\([\s\S]{0,300}?["'']Increment["''])(?=[\s\S]*emitWithArgs\s*\([\s\S]{0,300}?["'']Reset["''])'
+  - name: reset-refused
+    type: regex
+    target: {source: file, path: test/Counter.ts}
+    pattern: 'revertWithCustomError(WithArgs)?\s*\([\s\S]{0,300}?\breset\b[\s\S]{0,300}?["'']NotOwner["'']'
+  - name: too-large-refused
+    type: regex
+    target: {source: file, path: test/Counter.ts}
+    pattern: 'revertWithCustomError(WithArgs)?\s*\([\s\S]{0,300}?\bincBy\b[\s\S]{0,300}?["'']TooLarge["'']'
+  - name: reports-run
+    type: llm
+    criteria: |
+      Judge only the reply.
+      PASS if the reply says plainly whether the tests ran. When they ran, it says whether they passed; when they did not run, saying that they did not run and why is enough.
+      FAIL if the reply says or suggests that the tests pass without a run that succeeded.

@@ -1,6 +1,6 @@
 # EVM Dev
 
-Know whether an ERC is final or an EIP is live on Ethereum mainnet, write Solidity for the versions your project uses, and design apps built on financial standards such as ISO 20022 and FIX, from items checked against the official documents instead of what the agent remembers.
+Know whether an ERC is final or an EIP is live on Ethereum mainnet, write Solidity and its tests for the versions your project uses, and design apps built on financial standards such as ISO 20022 and FIX, from items checked against the official documents instead of what the agent remembers.
 
 English · [日本語](README.ja.md)
 
@@ -11,11 +11,13 @@ This plugin ships dated items on all three, each with the date it was checked ag
 |---|---|
 | `evm-standards` | Answers whether an ERC is final or an EIP is live, and what it lets contracts and wallets do, from 41 items on ERCs and EIPs |
 | `solidity-code` | Writes and changes contracts in Foundry and Hardhat projects for the solc, OpenZeppelin, forge-std, Foundry, and Hardhat versions the project uses, then scans the code for outdated patterns and builds and tests it |
+| `contract-tests` | Writes unit, fuzz, and invariant tests for a project's contracts in Foundry or Hardhat, or has kiwa write them when it is installed, from a list of what each contract needs tested, then names what no test covers and runs the tests |
 | `financial-standards` | Designs an app with on-chain and off-chain parts built on ISO 20022, FIX, FpML, CDM, LEI, or XBRL: asks the decisions one at a time, writes one design document from a template, checks its sections, and reviews it against a checklist |
 
 ```
 evm-standards:  List the items ──> Read the ones asked about ──> Re-check stale ones ──> Answer with date and source
 solidity-code:  Read the project's versions ──> Read the items for them ──> Write ──> Scan, build, and test
+contract-tests:  Read the versions and items ──> List what needs a test ──> Write the tests, or have kiwa write them ──> Name what no test covers ──> Run the tests
 financial-standards:  Read the items ──> Ask the decisions ──> Write the design ──> Verify the sections ──> Review against the checklist
 ```
 
@@ -33,6 +35,7 @@ copilot plugin install evm-dev@agent-shuriken
 
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/evm-standards   # Gemini CLI
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/solidity-code
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/contract-tests
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/financial-standards
 ```
 
@@ -42,9 +45,10 @@ In other agents that read `SKILL.md`, unzip the skill zip attached to each relea
 
 `evm-standards` starts when you ask about the status of a standard, for example "is EIP-7702 live on mainnet?" or "can I cite ERC-7281 as final?".
 `solidity-code` starts when you ask for a contract to be written or changed, for example "add a pausable ERC-20 token to this Foundry project".
+`contract-tests` starts when you ask for tests of a contract, for example "add tests for src/Vault.sol".
 `financial-standards` starts when you ask for a design built on a financial standard, for example "design how this project maps ISO 20022 payment messages onto a settlement contract".
-You can also call them: run `/evm-dev:evm-standards`, `/evm-dev:solidity-code`, or `/evm-dev:financial-standards` in Claude Code, or type `$` and pick **EVM Standards**, **Solidity Code**, or **Financial Standards** in Codex.
-In GitHub Copilot CLI, write `/evm-standards`, `/solidity-code`, or `/financial-standards` in your request, and in Gemini CLI, describe the task.
+You can also call them: run `/evm-dev:evm-standards`, `/evm-dev:solidity-code`, `/evm-dev:contract-tests`, or `/evm-dev:financial-standards` in Claude Code, or type `$` and pick **EVM Standards**, **Solidity Code**, **Contract Tests**, or **Financial Standards** in Codex.
+In GitHub Copilot CLI, write `/evm-standards`, `/solidity-code`, `/contract-tests`, or `/financial-standards` in your request, and in Gemini CLI, describe the task.
 
 ### Check a standard
 
@@ -98,6 +102,40 @@ src/Pass.sol:16 ethereum-eip-7702-eoa-checks
 scan: 2 matches; 0 items not judged
 ```
 
+### Test a contract
+
+1. The agent reads the project's versions and the items on its test tools, and re-checks the ones that are out of date
+2. The agent lists what each contract needs a test for: its external and public functions, custom errors, events, access rules, functions that take numbers, and balances that must add up
+3. When the kiwa plugin's skills are installed, the agent gives that list to kiwa and has kiwa write the tests. Otherwise it writes unit, fuzz, and invariant tests with forge, or with the Hardhat runner the project uses
+4. The agent names each point that no test touches, adds tests for them, then runs the tests and says so when it cannot. When a test shows a bug, it reports the bug instead of changing the contract
+
+The list looks like this.
+
+```text
+invariant Vault src/Vault.sol:6
+error Vault.ZeroAmount src/Vault.sol:7
+error Vault.InsufficientBalance src/Vault.sol:8
+error Vault.NotOwner src/Vault.sol:9
+error Vault.Paused src/Vault.sol:10
+event Vault.Deposited src/Vault.sol:12
+event Vault.Withdrawn src/Vault.sol:13
+event Vault.PausedSet src/Vault.sol:14
+function Vault.deposit src/Vault.sol:30
+function Vault.withdraw src/Vault.sol:37
+fuzz Vault.withdraw src/Vault.sol:37
+function Vault.setPaused src/Vault.sol:48
+access Vault.setPaused src/Vault.sol:48
+points: 13 in 1 contract
+```
+
+The check names the point, never the text of a test.
+
+```text
+uncovered invariant Vault src/Vault.sol:6
+uncovered access Vault.setPaused src/Vault.sol:48
+uncovered: 2 of 13 points have no test
+```
+
 ### Design on a financial standard
 
 1. The agent lists the items on the standards' versions, and re-checks the ones that are out of date
@@ -132,7 +170,8 @@ financial-standards: 2 problems; fill in or add each section named above
 | ERCs, such as ERC-20, ERC-1271, ERC-4337, ERC-6551, ERC-7683 | The state of L2 networks, which dedicated trackers follow |
 | EIPs that change what contracts and wallets can do: opcodes, precompiles, gas costs, transaction types, EIP-7702, native account abstraction | EIPs that change only consensus, such as validator rules |
 | How an EIP gets into a network upgrade (EIP-7723) | Choosing how a contract is upgraded, which a later contract design skill covers |
-| Writing Solidity for the versions of solc, OpenZeppelin, forge-std, Foundry, and Hardhat a project uses | Writing tests, deploying, and comparing storage layouts or ABIs before a release |
+| Writing Solidity for the versions of solc, OpenZeppelin, forge-std, Foundry, and Hardhat a project uses | Deploying, and comparing storage layouts or ABIs before a release |
+| Writing unit, fuzz, and invariant tests for a project's contracts in Foundry or Hardhat, or having kiwa write them | Mutation testing, coverage targets, and tests of a dApp's screens, which kiwa covers |
 | Designing apps on ISO 20022, FIX, FpML, CDM, LEI, and XBRL, with original messages and personal data off chain and signed evidence on it | Writing the contracts, schemas, or API definitions of the design, ledgers other than EVM chains, and legal or regulatory advice |
 
 ## Requirements
@@ -140,8 +179,9 @@ financial-standards: 2 problems; fill in or add each section named above
 | Tool | When it's needed |
 |---|---|
 | `bash` | Always |
-| `python3` | For `solidity-code` and `financial-standards` |
-| Foundry (`forge`) or Hardhat | To build and test what `solidity-code` writes. Without them the agent says the code was not built |
+| `python3` | For `solidity-code`, `contract-tests`, and `financial-standards` |
+| Foundry (`forge`) or Hardhat | To build and test what `solidity-code` and `contract-tests` write. Without them the agent says the code was not built |
+| The kiwa plugin | Optional. When its skills are installed, `contract-tests` has kiwa write the tests |
 | Web access in the agent | To re-check an out-of-date item. Without it the agent answers from the item and says it could not confirm it |
 
 ## What it reads, runs, and sends
@@ -153,6 +193,7 @@ In short:
 - `evm-standards` runs `evm-standards.sh list`, which reads the items and prints one line each
 - `solidity-code` runs `solidity-code.py`, which reads the project's config files and the `package.json` files of its libraries for their versions, and the project's source files for the scan. It never reads `.env` files, dependencies, or build output, and never prints the text of a line
 - `solidity-code` writes only the contracts you ask for, and runs the project's build and tests
+- `contract-tests` runs `contract-tests.py`, which reads the project's config files, contracts, and tests, and prints only kinds, names, and `file:line`, never the text of a contract or a test. It writes only test files, never changes a contract, and never reads `.env` files, dependencies, or build output
 - `financial-standards` runs `financial-standards.py`, which reads its items and the design file it writes, and prints only section names when it checks the design. It writes only the design file, and never reads `.env` files or keys
 - To re-check an out-of-date item, the agent searches the web and opens the official document with only a standard's number or name, or a tool's name and version
 - It never edits its items and keeps nothing
