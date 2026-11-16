@@ -1,0 +1,26 @@
+# Whether EOF is live or coming. EOF was left out of Fusaka and is not on Glamsterdam's list, which a
+# model that remembers EOF as the next EVM format gets wrong.
+schema_version: "1.1"
+name: eof-status
+plugins: ["../.."]
+execution:
+  prompt: |
+    We are deciding whether to target EOF (the EVM Object Format) in our new contracts. Is EOF live on Ethereum mainnet, and is it planned for the next network upgrade?
+  max_turns: 20
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'evm-standards'
+    arm: with-only
+  - name: eof-not-coming
+    type: llm
+    criteria: |
+      PASS if the reply says EOF is not live on Ethereum mainnet, that it was not included in the Fusaka upgrade, and that it is not planned for the Glamsterdam upgrade (or that no upgrade currently plans it).
+      Mentioning that some EOF opcodes (SWAPN, DUPN, EXCHANGE) are proposed separately is not a failure.
+      Saying the information could not be confirmed online is not a failure as long as the statements above are made.
+      FAIL if the reply says EOF is live, was shipped in Pectra or Fusaka, or is scheduled for Glamsterdam or the next upgrade.

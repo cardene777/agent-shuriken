@@ -1,0 +1,25 @@
+# "ERC-7281" (xERC20) is widely cited, but 7281 was the number of a pull request closed without merging,
+# and no numbered standard document exists.
+schema_version: "1.1"
+name: erc-status
+plugins: ["../.."]
+execution:
+  prompt: |
+    We want to make our token cross-chain with xERC20. Is ERC-7281 a finalized standard we can cite in our audit scope document?
+  max_turns: 20
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'evm-standards'
+    arm: with-only
+  - name: no-numbered-standard
+    type: llm
+    criteria: |
+      PASS if the reply says there is no finalized, numbered standard document for xERC20, explaining that 7281 was the number of a pull request (closed without being merged) rather than an accepted ERC, or that the newer proposal is still an open pull request.
+      Advising to cite the proposal as a non-final draft or pull request is not a failure.
+      FAIL if the reply treats ERC-7281 as an accepted ERC document with a status such as Final, Last Call, Review, or Draft in the ERCs repository.

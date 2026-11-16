@@ -1,0 +1,7 @@
+interface:
+  display_name: "EVM Standards"
+  short_description: "Whether an ERC is final or an EIP is live on Ethereum mainnet, from dated items with their sources"
+  default_prompt: "Use $evm-standards to tell me whether EIP-7702 is live on Ethereum mainnet."
+
+policy:
+  allow_implicit_invocation: true
