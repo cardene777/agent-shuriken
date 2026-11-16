@@ -7,9 +7,38 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-11-16
+
+### Plugins
+
+| Plugin | Version |
+|---|---|
+| account-cleanup | 0.3.0 |
+| compare-report | 0.5.0 |
+| convey | 0.2.0 |
+| diagram-explainer | 0.2.2 |
+| docs-publish | 0.3.0 |
+| evm-dev | 0.1.0 |
+| excalidraw-diagram | 0.3.0 |
+| feedback-loop | 0.1.2 |
+| init-project | 0.3.0 |
+| japanese-writing | 0.2.0 |
+| learning-to-skill | 0.1.2 |
+| machine-cleanup | 0.1.0 |
+| portman | 0.3.0 |
+| repo-progress | 0.1.2 |
+| secure-dotfile | 0.7.1 |
+| session-handoff | 0.1.1 |
+| skill-tune | 0.1.0 |
+| techdebt | 0.3.1 |
+
 ### Added
 
 - The evm-dev plugin, which tells whether an ERC is final or an EIP is live on Ethereum mainnet, and what it lets contracts and wallets do, from 41 items checked against the official documents with their dates and sources, and re-checks the items that are out of date before answering
+
+### Changed
+
+- The README check in `scripts/check.sh` looks for each skill's name as the Codex `$` list shows it, from the skill's `agents/openai.yaml`, so a plugin can hold more than one skill
 
 ## [0.15.0] - 2026-11-16
 
@@ -379,7 +408,8 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 - First public release with the account-cleanup and pc-tidy plugins, installable from this marketplace in Claude Code and Codex
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/v0.15.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/v0.16.0...HEAD
+[0.16.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.16.0
 [0.15.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.15.0
 [0.14.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.14.0
 [0.13.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.13.0
