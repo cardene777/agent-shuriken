@@ -33,7 +33,7 @@
     {
       "name": "evm-dev",
       "source": "./plugins/evm-dev",
-      "description": "Tells whether an ERC is final or an EIP is live on Ethereum mainnet, and what it lets contracts and wallets do, from dated items checked against the official documents, re-checking the ones that are out of date"
+      "description": "Tells whether an ERC is final or an EIP is live on Ethereum mainnet, and writes Solidity contracts for the solc, OpenZeppelin, Foundry, and Hardhat versions a project uses, from dated items checked against the official documents"
     },
     {
       "name": "excalidraw-diagram",
