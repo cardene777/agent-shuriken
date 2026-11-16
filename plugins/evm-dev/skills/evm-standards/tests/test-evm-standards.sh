@@ -62,12 +62,23 @@ stale_marked() {
   item "$d" erc-12-live live 2026-01-01
   item "$d" erc-13-specified specified 2025-11-05
   item "$d" eip-14-stopped stopped 2025-08-01
+  # Each status at exactly its days (still ok) and one day past them (stale), counted to 2026-02-01.
+  item "$d" erc-15-specified-edge specified 2025-11-03
+  item "$d" erc-16-specified-old specified 2025-11-02
+  item "$d" erc-17-live-edge live 2025-08-05
+  item "$d" erc-18-live-old live 2025-08-04
+  item "$d" eip-19-stopped-edge stopped 2025-08-05
   bash "$SCRIPT" list --dir "$d" --today 2026-02-01 > "$T/list.out" 2>&1 || return 1
   grep -Eq '^stale +announced +2026-01-01 +eip-10-old$' "$T/list.out" \
     && grep -Eq '^ok +announced +2026-01-02 +eip-11-edge$' "$T/list.out" \
     && grep -Eq '^ok +live +2026-01-01 +erc-12-live$' "$T/list.out" \
     && grep -Eq '^ok +specified +2025-11-05 +erc-13-specified$' "$T/list.out" \
-    && grep -Eq '^stale +stopped +2025-08-01 +eip-14-stopped$' "$T/list.out"
+    && grep -Eq '^stale +stopped +2025-08-01 +eip-14-stopped$' "$T/list.out" \
+    && grep -Eq '^ok +specified +2025-11-03 +erc-15-specified-edge$' "$T/list.out" \
+    && grep -Eq '^stale +specified +2025-11-02 +erc-16-specified-old$' "$T/list.out" \
+    && grep -Eq '^ok +live +2025-08-05 +erc-17-live-edge$' "$T/list.out" \
+    && grep -Eq '^stale +live +2025-08-04 +erc-18-live-old$' "$T/list.out" \
+    && grep -Eq '^ok +stopped +2025-08-05 +eip-19-stopped-edge$' "$T/list.out"
 }
 check "list marks the items past the days for their status" stale_marked
 
