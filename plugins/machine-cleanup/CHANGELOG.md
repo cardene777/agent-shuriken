@@ -25,6 +25,7 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 - The confirm dialog shows the number of items apart from their size, such as `4 items, 807.4 MB`, instead of running them together as `4 807.4 MB`
 - On Linux, the Hugging Face and LM Studio folders in `~/.cache` are no longer recommended as app caches that come back on their own
+- Measuring folder sizes stops when the time limit runs out, so a scan of a large home folder no longer runs minutes past the limit
 
 ## [0.1.0] - 2026-11-15
 
