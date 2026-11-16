@@ -1,0 +1,7 @@
+interface:
+  display_name: "Contract Design"
+  short_description: "Design smart contracts before writing them: the split, token standards, invariants, roles, upgrades, prices, ordering, and randomness, from dated items"
+  default_prompt: "Use $contract-design to design the contracts of this token sale before we write them."
+
+policy:
+  allow_implicit_invocation: true

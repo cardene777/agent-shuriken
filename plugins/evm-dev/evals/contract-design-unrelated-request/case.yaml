@@ -1,0 +1,28 @@
+# A question about what one function of an existing sale contract does is near the contract-design
+# skill but asks for no design, so the design skill must not start.
+schema_version: "1.1"
+name: contract-design-unrelated-request
+plugins: ["../.."]
+execution:
+  prompt: |
+    In contracts/Sale.sol, what happens when someone calls buy after endTime? Answer in one sentence.
+  max_turns: 10
+  timeout_seconds: 300
+  allowed_tools: [Read, Glob, Grep, Skill]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-not-loaded
+    type: tool_used
+    tool: Skill
+    input_match: 'contract-design'
+    min: 0
+    max: 0
+    arm: both
+  - name: no-script-run
+    type: tool_used
+    tool: Bash
+    input_match: 'contract-design\.py'
+    min: 0
+    max: 0
+    arm: both

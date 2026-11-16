@@ -2,7 +2,7 @@
   "name": "evm-dev",
   "displayName": "EVM Dev",
   "version": "0.3.0",
-  "description": "Tells whether an ERC is final or an EIP is live on Ethereum mainnet, writes Solidity contracts and their tests for the solc, OpenZeppelin, Foundry, and Hardhat versions a project uses, and designs dApp architectures and apps built on financial standards such as ISO 20022 and FIX, from dated items checked against the official documents",
+  "description": "Tells whether an ERC is final or an EIP is live on Ethereum mainnet, writes Solidity contracts and their tests for the solc, OpenZeppelin, Foundry, and Hardhat versions a project uses, and designs contracts, dApp architectures, and apps built on financial standards such as ISO 20022 and FIX, from dated items checked against the official documents",
   "author": {
     "name": "cardene777",
     "url": "https://github.com/cardene777"

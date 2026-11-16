@@ -1,0 +1,47 @@
+# Designing the contracts of a token sale on Arbitrum that takes USDC and ETH. Graded on the design
+# file: the ETH price is checked for staleness and for sequencer downtime, USDC moves through
+# SafeERC20, anyone can finish the sale when it ends, and no service that had been deprecated when
+# the case was written is chosen (Chainlink Automation on 31 July 2026, Chainlink Functions on
+# 30 June 2026, OpenZeppelin Defender on 1 July 2026).
+schema_version: "1.1"
+name: token-sale-contracts
+plugins: ["../.."]
+execution:
+  prompt: |
+    Design the contracts of this token sale before we write them: how they are split, the token standard, the invariants, the roles, whether they are upgradeable, how prices are read, and the external calls. Write the design to docs/design/token-sale.md. Do not ask me questions; decide, and write down your assumptions.
+  max_turns: 30
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill, Write, Edit, Bash]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'contract-design'
+    arm: with-only
+  - name: stale-price-check
+    type: regex
+    target: {source: file, path: docs/design/token-sale.md}
+    pattern: '[Ss]tale|updatedAt|[Hh]eartbeat'
+  - name: sequencer-uptime
+    type: regex
+    target: {source: file, path: docs/design/token-sale.md}
+    pattern: '[Ss]equencer'
+  - name: safe-token-transfers
+    type: regex
+    target: {source: file, path: docs/design/token-sale.md}
+    pattern: 'SafeERC20|safeTransfer'
+  - name: anyone-can-finish
+    type: llm
+    focus: {source: file, path: docs/design/token-sale.md}
+    criteria: |
+      PASS if, once the sale's end time has passed, the sale can be finished and buyers can receive their tokens and refunds without the team or a single off-chain service acting: for example a finalize function anyone may call, or each buyer claiming for themselves.
+      FAIL if ending the sale, settling the oversubscription, or paying out depends only on an owner or operator call or on one keeper service, or if the file is missing or empty.
+  - name: no-retired-services
+    type: llm
+    focus: {source: file, path: docs/design/token-sale.md}
+    criteria: |
+      FAIL if the design chooses any of these: Chainlink Automation (also called Chainlink Keepers), Chainlink Functions, OpenZeppelin Defender in any form (Relayers, Actions or Autotasks, Sentinels, Monitors), or Chainlink VRF v2 rather than v2.5. All of them had been deprecated or shut down before this case was written.
+      Mentioning one of them as deprecated, retired, or rejected is not a failure, and Chainlink Data Feeds and the sequencer uptime feed are not a failure.
+      PASS otherwise. FAIL if the file is missing or empty.
