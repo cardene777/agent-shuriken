@@ -355,8 +355,9 @@ for f in docs/how-it-works.ja.md README.ja.md; do
   grep '使っていない依存' "$docs/$f" | grep -q '概算' || undocumented="$undocumented $f"
 done
 check "the docs call the unused dependencies approximate" "[ -z \"$undocumented\" ]"
+# The SKILL.md leaves how each tool runs to docs/how-it-works.md, so only the docs are read here.
 undescribed=""
-for f in skills/techdebt/SKILL.md docs/how-it-works.md README.md; do
+for f in docs/how-it-works.md README.md; do
   { grep -qi 'deprecated calls' "$docs/$f" && grep -qF -- '--metrics off' "$docs/$f"; } || undescribed="$undescribed $f"
 done
 for f in docs/how-it-works.ja.md README.ja.md; do
@@ -364,5 +365,129 @@ for f in docs/how-it-works.ja.md README.ja.md; do
 done
 check "the docs describe the deprecated calls and how semgrep is run" "[ -z \"$undescribed\" ]"
 
-printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
+# --- the template, the SKILL.md, and the eval suite
+# The checks below run through eval in check(), so they read globals, not a function's arguments.
+PLUGIN="$(cd "$HERE/../../.." && pwd)"
+EVALS="$PLUGIN/evals"
+SKILL="$HERE/../SKILL.md"
+CASES=(ranks-and-explains fixes-notes masks-marker tools-not-run unrelated-request)
+
+# claude plugin eval keeps the agent out of a plugin folder that holds a file named report.html, so the
+# template has another name, and scan still writes the report as report.html.
+template_name() {
+  local out="$T/template-name"
+  [ -f "$HERE/../templates/base.html" ] || return 1
+  [ -z "$(find "$PLUGIN" -name report.html -not -path '*/evals/results/*')" ] || return 1
+  mkdir -p "$out/src"
+  printf '# TODO: split this file\nx = 1\n' > "$out/src/one.py"
+  TECHDEBT_HOME="$out/state" python3 "$SCRIPT" scan "$out/src" > /dev/null 2>&1 || return 1
+  [ -n "$(find "$out/state" -name report.html)" ]
+}
+check "the template is not named report.html, and scan writes report.html" template_name
+
+eval_cases() {
+  local c
+  for c in "${CASES[@]}"; do
+    [ -f "$EVALS/$c/case.yaml" ] && [ -x "$EVALS/$c/fixture.sh" ] || return 1
+  done
+}
+check "the eval suite has the five cases" eval_cases
+
+# In the eval sandbox git fails, so the agent's scan sees no repository. This git does the same.
+mkdir -p "$T/nogit"
+printf '#!/bin/sh\nexit 128\n' > "$T/nogit/git"
+chmod +x "$T/nogit/git"
+
+# fixture <case>: runs the case's fixture.sh the way claude plugin eval does (in home/cwd with HOME at
+# home, which is a git repository, and without this test's TECHDEBT_HOME) and prints the workspace.
+fixture() {
+  local ws="$T/fixture-$1/home/cwd"
+  mkdir -p "$ws"
+  git init -q "$T/fixture-$1/home"
+  (cd "$ws" && unset TECHDEBT_HOME && HOME="$T/fixture-$1/home" bash "$EVALS/$1/fixture.sh") > /dev/null 2>&1 || return 1
+  printf '%s\n' "$ws"
+}
+# fixture_scan <case> <workspace>: scans the workspace as the agent's run sees it and prints scan.json.
+fixture_scan() {
+  TECHDEBT_HOME="$T/fixture-$1/state" PATH="$T/nogit:$PATH" python3 "$SCRIPT" scan "$2" > /dev/null 2>&1 || return 1
+  find "$T/fixture-$1/state" -name scan.json | head -1
+}
+fixtures_ready() {
+  local c ws sj
+  for c in "${CASES[@]}"; do
+    ws="$(fixture "$c")" || return 1
+    [ ! -e "$ws/.git" ] || return 1
+    sj="$(fixture_scan "$c" "$ws")" && [ -n "$sj" ] || return 1
+    if [ "$c" = tools-not-run ]; then
+      [ -z "$(find "$ws" -name '*.py')" ] && [ ! -e "$ws/node_modules" ] && [ -z "$(find "$ws" -name '.semgrep*')" ] || return 1
+      python3 - "$sj" <<'PYEOF' || return 1
+import json, sys
+d = json.load(open(sys.argv[1]))
+tools = d["deprecated_calls"]["tools"]
+names = [u["name"] for u in d["unused_dependencies"]["items"]]
+sys.exit(0 if tools and not any(t["ran"] for t in tools) and "left-pad-lite" in names else 1)
+PYEOF
+      continue
+    fi
+    grep -qF 'password = "tiger-canary-77"' "$ws/ledger/config.py" || return 1
+    python3 - "$sj" <<'PYEOF' || return 1
+import json, sys
+text = open(sys.argv[1]).read()
+d = json.loads(text)
+ranked = [r["file"] for r in d["ranked"]]
+masked = any('password = "***"' in m.get("text", "") for m in d["markers"])
+ok = "ledger/billing.py" in ranked and "ledger/report.py" in ranked and "tests/test_util.py" not in ranked
+sys.exit(0 if ok and masked and "tiger-canary-77" not in text else 1)
+PYEOF
+    if [ "$c" = fixes-notes ]; then
+      # The case grades both repairs, so explain must refuse the draft for both reasons.
+      TECHDEBT_HOME="$T/fixture-$c/state" PATH="$T/nogit:$PATH" python3 "$SCRIPT" explain --notes "$ws/notes/draft.json" "$ws" > /dev/null 2> "$T/fixture-$c/explain.err"
+      [ "$?" = 2 ] || return 1
+      grep -qF 'tests/test_util.py is not in the ranked list' "$T/fixture-$c/explain.err" || return 1
+      grep -qF 'ledger/report.py needs non-empty what, why, and action' "$T/fixture-$c/explain.err" || return 1
+    else
+      [ ! -e "$ws/notes/draft.json" ] || return 1
+    fi
+  done
+}
+check "the eval fixtures build the states their cases start from" fixtures_ready
+
+results_ignored() {
+  local repo
+  repo="$(git -C "$PLUGIN" rev-parse --show-toplevel 2>/dev/null)" || return 1
+  git -C "$repo" check-ignore -q "${EVALS#"$repo"/}/results/run.json"
+}
+check "eval results are ignored by git" results_ignored
+
+# The body is counted in words and the description in characters, as the size the agent reads.
+SKILL_WORDS_MAX=816
+SKILL_DESCRIPTION_MAX=299
+skill_size() {
+  python3 - "$SKILL" "$SKILL_WORDS_MAX" "$SKILL_DESCRIPTION_MAX" <<'PYEOF'
+import re, sys
+front, body = open(sys.argv[1], encoding="utf-8").read().split("---", 2)[1:]
+words = len(body.split())
+chars = len(re.search(r"^description: (.*)$", front, re.M).group(1))
+print("      SKILL.md body %d words (max %s), description %d characters (max %s)" % (words, sys.argv[2], chars, sys.argv[3]))
+sys.exit(0 if words <= int(sys.argv[2]) and chars <= int(sys.argv[3]) else 1)
+PYEOF
+}
+check "the SKILL.md stays within its size limits" skill_size
+
+skill_rules() {
+  local phrase
+  for phrase in \
+    'Do not change any code unless the user asks' \
+    'open issues only for the files they name' \
+    'quote a marker line only as `scan.json` or the report shows it' \
+    'say that the measure was not checked rather than that nothing was found' \
+    'tell the user to check each one before removing it' \
+    'Install or configure it only if the user wants it' \
+    'do not count its findings as zero'; do
+    grep -qF -- "$phrase" "$SKILL" || return 1
+  done
+}
+check "the SKILL.md keeps its rules on code, issues, quoting, and tools" skill_rules
+
+printf '\n%d passed, %d failed (%d ran)\n' "$PASS" "$FAIL" "$((PASS + FAIL))"
 [ "$FAIL" -eq 0 ]
