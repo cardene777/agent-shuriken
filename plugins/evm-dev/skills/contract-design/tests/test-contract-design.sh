@@ -253,6 +253,40 @@ PYEOF
 }
 check "the contract-design SKILL.md stays within its size limits" skill_size
 
+# The services that run scheduled calls, relay transactions, or watch contracts are dated in the
+# items of dapp-architecture, so contract-design sends the agent there instead of keeping copies.
+DAPP_ITEMS="$PLUGIN/skills/dapp-architecture/references/items"
+sends_to_dapp_items() {
+  local phrase
+  [ -f "$SKILL" ] || return 1
+  grep -q '^topic: automation' "$DAPP_ITEMS"/*.md 2>/dev/null || return 1
+  for phrase in \
+    'scheduled calls' \
+    'relayers' \
+    'monitoring' \
+    'the items of the dapp-architecture skill' \
+    'when that skill is not installed' \
+    'never choose a deprecated or retired service'; do
+    grep -qF -- "$phrase" "$SKILL" || return 1
+  done
+}
+check "the contract-design SKILL.md sends automation, relayer, and monitoring services to the dapp-architecture items" sends_to_dapp_items
+
+# One fact lives in one skill: no contract-design item shares a file name or a subject with an item
+# of dapp-architecture.
+no_copies() {
+  local f subject
+  [ "$(find "$ITEMS" -name '*.md' | wc -l | tr -d ' ')" -ge 1 ] && [ -d "$DAPP_ITEMS" ] || return 1
+  for f in "$ITEMS"/*.md; do
+    [ -e "$DAPP_ITEMS/$(basename "$f")" ] && return 1
+    subject="$(sed -n 's/^subject: //p' "$f")"
+    [ -n "$subject" ] || return 1
+    grep -qxF -- "subject: $subject" "$DAPP_ITEMS"/*.md && return 1
+  done
+  return 0
+}
+check "no contract-design item copies a dapp-architecture item" no_copies
+
 # Each case has a case.yaml and an executable fixture.sh that runs the way claude plugin eval runs it
 # (in home/cwd with HOME at home). A design case leaves the project's README and grades the design
 # file the prompt names; the unrelated case grades that the skill did not start.
