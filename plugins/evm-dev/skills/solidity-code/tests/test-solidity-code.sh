@@ -240,13 +240,13 @@ check "the SKILL.md stays within its size limits" skill_size
 # Each case has a case.yaml and an executable fixture.sh that runs the way claude plugin eval runs it
 # (in home/cwd with HOME at home). A project case must leave a project whose framework and versions
 # `project` reads as the case expects; the unrelated case grades that the skill did not start.
-CASES=(erc4337-imports proxy-init-data eoa-only-mint hardhat-network code-unrelated-request)
+CASES=(erc4337-imports proxy-init-data eoa-only-mint upgradeable-guard code-unrelated-request)
 expect_project() {
   case "$1" in
     erc4337-imports) printf 'framework +foundry\nopenzeppelin +5\\.7\\.0\n' ;;
     proxy-init-data) printf 'framework +foundry\nopenzeppelin +5\\.6\\.1\n' ;;
     eoa-only-mint) printf 'framework +foundry\nopenzeppelin +5\\.6\\.1\n' ;;
-    hardhat-network) printf 'framework +hardhat\nhardhat +3\\.22\\.0\n' ;;
+    upgradeable-guard) printf 'framework +hardhat\nhardhat +3\\.22\\.0\nopenzeppelin +5\\.5\\.0\n' ;;
   esac
 }
 eval_suite() {
