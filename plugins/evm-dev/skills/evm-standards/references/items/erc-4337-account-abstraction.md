@@ -2,6 +2,7 @@
 status: live
 checked: 2026-11-11
 source: ethereum/ERCs: the ERC-4337 document; ethereum/EIPs: the EIP-2938 document; eth-infinitism/account-abstraction: the release notes
+can: Accounts can keep their validation logic in a contract, with bundlers, paymasters that pay gas, and batched calls, without protocol changes.
 ---
 
 # ERC-4337 (account abstraction without protocol changes)

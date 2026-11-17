@@ -2,6 +2,7 @@
 status: specified
 checked: 2026-11-09
 source: ethereum/ERCs: the ERC-7760 document
+can: Upgradeable proxies that follow ERC-1967 can be deployed with minimal bytecode.
 ---
 
 # ERC-7760 (minimal upgradeable proxies)

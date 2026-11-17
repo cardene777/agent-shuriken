@@ -4,6 +4,11 @@
 # Usage
 #   bash evm-standards.sh check [--dir <items folder>]
 #   bash evm-standards.sh list  [--dir <items folder>] [--today <YYYY-MM-DD>]
+#   bash evm-standards.sh find  [--dir <items folder>] <word>...
+#   bash evm-standards.sh article <number>
+#
+# find and article are run by standards.py next to this script, which also reads the bitsumi
+# article index; see the top of that file.
 #
 # Each item is one Markdown file whose front matter, between the first two `---` lines, holds
 # `status`, `checked`, and `source`. `_days_for` alone owns how many days each status stays fresh.
@@ -21,16 +26,24 @@ set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+case "${1:-}" in
+  find|article) exec python3 "$SCRIPT_DIR/standards.py" "$@" ;;
+esac
+
 usage() {
   cat <<'EOF'
 Usage: evm-standards.sh check [--dir <items folder>]
        evm-standards.sh list  [--dir <items folder>] [--today <YYYY-MM-DD>]
+       evm-standards.sh find  [--dir <items folder>] <word>...
+       evm-standards.sh article <number>
 
 check  Checks that every item has status, checked, and source, that status is announced,
        specified, live, or stopped, and that checked is a real date.
 list   Prints one line per item: stale or ok, the status, the date it was checked, and its name.
        An item is stale once more days have passed since it was checked than its status allows:
        announced 30, specified 90, live 180, stopped 180.
+find   Prints the items and the bitsumi articles that hold any of the words, most words first.
+article  Prints the bitsumi articles on the ERC or EIP with that number.
 
 --dir    The folder of items. Defaults to the items bundled with this skill.
 --today  The date to count from. Defaults to today.

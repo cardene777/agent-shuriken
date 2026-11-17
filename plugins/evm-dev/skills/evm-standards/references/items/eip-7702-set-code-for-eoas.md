@@ -2,6 +2,7 @@
 status: live
 checked: 2026-11-09
 source: ethereum/EIPs: the EIP-7702 and EIP-7600 (the Pectra meta EIP) documents
+can: An EOA can delegate its code to a contract, so an ordinary wallet can use smart account features such as batched calls and sponsored gas.
 ---
 
 # EIP-7702 (Set a code delegation on an ordinary account)

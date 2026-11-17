@@ -2,6 +2,7 @@
 status: specified
 checked: 2026-11-09
 source: ethereum/EIPs: the EIP-7688 and EIP-7773 (the Glamsterdam meta EIP) documents
+can: Contracts and light clients can verify consensus data with proofs whose shape stays the same across forks.
 ---
 
 # EIP-7688 (Consensus data structures that stay the same across forks)

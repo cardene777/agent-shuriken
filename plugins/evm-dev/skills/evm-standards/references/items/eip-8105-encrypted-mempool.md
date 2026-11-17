@@ -2,6 +2,7 @@
 status: specified
 checked: 2026-11-16
 source: ethereum/EIPs: the EIP-8105 and EIP-8081 (the Hegotá meta EIP) documents
+can: Transactions could stay encrypted in the mempool until they enter a block, so others cannot read them before they are ordered.
 ---
 
 # EIP-8105 (Bring an encrypted mempool into the protocol)

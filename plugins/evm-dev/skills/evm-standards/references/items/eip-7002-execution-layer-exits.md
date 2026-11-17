@@ -2,6 +2,7 @@
 status: live
 checked: 2026-11-11
 source: ethereum/EIPs: the EIP-7002, EIP-7685, and EIP-7600 (the Pectra meta EIP) documents
+can: A validator with an execution layer withdrawal credential can trigger exits and partial withdrawals through an execution layer transaction.
 ---
 
 # EIP-7002 (Execution layer triggered exits and withdrawals)

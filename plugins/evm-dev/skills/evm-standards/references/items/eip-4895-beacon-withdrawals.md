@@ -2,6 +2,7 @@
 status: live
 checked: 2026-11-11
 source: ethereum/EIPs: the EIP-4895 document and EIP-7568 (the meta EIP covering upgrades up to Shapella); ethereum/execution-specs: the Shanghai specification; ethereum/consensus-specs: the mainnet configuration
+can: Validator withdrawals from the beacon chain arrive at execution layer addresses as a system operation, without a transaction.
 ---
 
 # EIP-4895 (Beacon chain withdrawals pushed to the execution layer)

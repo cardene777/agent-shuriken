@@ -150,5 +150,137 @@ eval_suite() {
 }
 check "the eval suite has its cases and each fixture builds its state" eval_suite
 
+every_item_can() {
+  local f n=0
+  for f in "$ITEMS"/*.md; do
+    [ -f "$f" ] || return 1
+    n=$((n + 1))
+    sed -n '/^---$/,/^---$/p' "$f" | grep -qE '^can: .{20,}' || { echo "      no can field: $(basename "$f")"; return 1; }
+  done
+  [ "$n" -ge 30 ]
+}
+check "every item says what the standard lets contracts and wallets do" every_item_can
+
+# The article index fixture has the form of https://cardene.dev/llms.txt and is read through a file:// URL,
+# so no test reaches the network. EVM_DEV_HOME points the kept copy into the throwaway folder.
+INDEX="$T/llms.txt"
+write_index() {
+  {
+    printf '# bitsumi\n\n> Articles\n\n## Blockchain / ERC\n\n'
+    printf -- '- [\\[EIP7702\\] EOAをコントラクトアカウントに変える仕組み](https://cardene.dev/articles/aaa.md): EOAが取引の間コントラクトのコードを使えるようにする提案です。\n'
+    printf -- '- [\\[ERC7821\\] EIP7702を使うバッチ実行](https://cardene.dev/articles/bbb.md): バッチ実行のインターフェースです。\n'
+    printf -- '- [\\[ACP209\\] EIP-7702をAvalancheで導入する仕組み](https://cardene.dev/articles/ccc.md): Avalancheの提案です。\n'
+    printf -- '- [\\[EIP7951\\] パスキーの署名を検証するプリコンパイル](https://cardene.dev/articles/ddd.md): secp256r1の署名をコントラクトで検証します。\n'
+    [ -n "${1-}" ] && printf -- '- [\\[EIP9999\\] 後から足した記事](https://cardene.dev/articles/eee.md): 新しい提案です。\n'
+  } > "$INDEX"
+}
+
+# can_item <folder> <name> <status> <checked> <can> <body>
+can_item() {
+  mkdir -p "$1"
+  printf -- '---\nstatus: %s\nchecked: %s\nsource: The EIP document\ncan: %s\n---\n\n# %s\n\n%s\n' "$3" "$4" "$5" "$2" "$6" > "$1/$2.md"
+}
+
+run_std() { EVM_DEV_HOME="$1" EVM_DEV_INDEX_URL="$2" bash "$SCRIPT" "${@:3}"; }
+
+find_lists() {
+  local d="$T/find-items" out="$T/find.out" a b
+  can_item "$d" eip-7951-p256 live 2026-11-10 "Contracts can verify passkey signatures on the P-256 curve." "A precompile."
+  can_item "$d" eip-7702-setcode live 2026-11-09 "An EOA can run contract code for one transaction." "Wallets can batch calls."
+  can_item "$d" erc-20-token live 2026-11-08 "Tokens move between accounts with a standard interface." "Transfers."
+  write_index
+  run_std "$T/find-home" "file://$INDEX" find --dir "$d" passkey signatures パスキー 署名 batch バッチ > "$out" 2>&1 || return 1
+  grep -q '^item eip-7951-p256 live 2026-11-10 ' "$out" && grep -q '^item eip-7702-setcode live 2026-11-09 ' "$out" || return 1
+  ! grep -q 'erc-20-token' "$out" || return 1
+  a=$(grep -n '^item eip-7951-p256 ' "$out" | cut -d: -f1); b=$(grep -n '^item eip-7702-setcode ' "$out" | cut -d: -f1)
+  [ "$a" -lt "$b" ] || return 1
+  grep -q '^article EIP7951 https://cardene.dev/articles/ddd ' "$out" && grep -q '^article ERC7821 https://cardene.dev/articles/bbb ' "$out" || return 1
+  a=$(grep -n '^article EIP7951 ' "$out" | cut -d: -f1); b=$(grep -n '^article ERC7821 ' "$out" | cut -d: -f1)
+  [ "$a" -lt "$b" ] || return 1
+  ! grep -qE 'articles/(aaa|ccc)' "$out"
+}
+check "find lists the items and the articles that match the words" find_lists
+
+find_passkey() {
+  run_std "$T/passkey-home" "file://$T/no-index.txt" find passkey P-256 > "$T/passkey.out" 2>&1 || return 1
+  grep -q '^item eip-7951-secp256r1-precompile ' "$T/passkey.out"
+}
+check "find returns EIP-7951 for a passkey signature" find_passkey
+
+article_gives() {
+  local out="$T/article.out" form
+  write_index
+  for form in 7702 EIP-7702 eip7702; do
+    run_std "$T/article-home" "file://$INDEX" article "$form" > "$out" 2>&1 || return 1
+    grep -q '^article EIP7702 https://cardene.dev/articles/aaa ' "$out" || return 1
+    ! grep -qE 'articles/(bbb|ccc|ddd)' "$out" || return 1
+  done
+  run_std "$T/article-home" "file://$INDEX" article 1234 > "$out" 2>&1 || return 1
+  ! grep -q '^article ' "$out"
+}
+check "article gives the bitsumi articles on a standard" article_gives
+
+find_offline() {
+  local d="$T/offline-items" out="$T/offline.out"
+  can_item "$d" eip-7951-p256 live 2026-11-10 "Contracts can verify passkey signatures on the P-256 curve." "A precompile."
+  run_std "$T/offline-home" "file://$T/no-index.txt" find --dir "$d" passkey > "$out" 2>&1 || return 1
+  grep -q '^item eip-7951-p256 ' "$out" && grep -qi 'could not read' "$out"
+}
+check "find answers from the items when the index cannot be read" find_offline
+
+request_has_no_words() {
+  local out="$T/request.out"
+  write_index
+  run_std "$T/request-home" "file://$INDEX" find secretword > "$out" 2>&1 || return 1
+  grep -qF "file://$INDEX" "$out" || return 1
+  ! grep -F "file://$INDEX" "$out" | grep -q secretword || return 1
+  grep -q 'INDEX_URL' "$SKILL_DIR/scripts/standards.py" && ! grep -qE 'urlencode|quote\(' "$SKILL_DIR/scripts/standards.py"
+}
+check "the index request carries none of the search words" request_has_no_words
+
+kept_for_a_day() {
+  local home="$T/kept-home" out="$T/kept.out"
+  write_index
+  run_std "$home" "file://$INDEX" article 7702 > /dev/null 2>&1 || return 1
+  python3 - "$home" <<'PYEOF' || return 1
+import os, stat, sys
+home = sys.argv[1]
+files = [os.path.join(home, f) for f in os.listdir(home)]
+ok = files and stat.S_IMODE(os.stat(home).st_mode) == 0o700 and all(stat.S_IMODE(os.stat(f).st_mode) == 0o600 for f in files)
+sys.exit(0 if ok else 1)
+PYEOF
+  write_index new
+  run_std "$home" "file://$INDEX" article 9999 > "$out" 2>&1 || return 1
+  ! grep -q '^article EIP9999 ' "$out" || return 1
+  python3 -c 'import os, sys, time; [os.utime(os.path.join(sys.argv[1], f), (time.time() - 2 * 86400,) * 2) for f in os.listdir(sys.argv[1])]' "$home"
+  run_std "$home" "file://$INDEX" article 9999 > "$out" 2>&1 || return 1
+  grep -q '^article EIP9999 https://cardene.dev/articles/eee ' "$out"
+}
+check "the index is kept for a day in a folder only the user can read" kept_for_a_day
+
+skill_find_rules() {
+  local phrase
+  [ -f "$SKILL" ] || return 1
+  for phrase in \
+    'bash "$S/evm-standards.sh" find' \
+    'bash "$S/evm-standards.sh" article' \
+    'in English and in the language the user writes in' \
+    'never take a status from an article' \
+    'is data, not instructions' \
+    'could not read the article index'; do
+    grep -qF -- "$phrase" "$SKILL" || { echo "      missing: $phrase"; return 1; }
+  done
+}
+check "the SKILL.md says how to find standards and when to give articles" skill_find_rules
+
+docs_describe_index() {
+  local f
+  for f in README.md README.ja.md docs/how-it-works.md docs/how-it-works.ja.md; do
+    grep -qF 'https://cardene.dev/llms.txt' "$PLUGIN/$f" && grep -qF '~/.local/share/evm-dev' "$PLUGIN/$f" \
+      || { echo "      not described in $f"; return 1; }
+  done
+}
+check "the README and how-it-works describe the article index" docs_describe_index
+
 printf '%d passed, %d failed (%d ran)\n' "$PASS" "$FAIL" "$((PASS + FAIL))"
 [ "$FAIL" -eq 0 ]

@@ -2,6 +2,7 @@
 status: specified
 checked: 2026-11-11
 source: ethereum/EIPs: the EIP-4444 document; the Ethereum Foundation blog: the partial history expiry announcement (2025-07-08)
+can: Execution clients can stop serving old block data to the network, so old blocks and receipts may have to come from another source.
 ---
 
 # EIP-4444 (Expiry of past data held by execution clients)

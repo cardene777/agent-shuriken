@@ -2,6 +2,7 @@
 status: specified
 checked: 2026-11-09
 source: ethereum/ERCs: the ERC-7683 document
+can: Users can place cross-chain orders in a common format that solvers on other chains can read and fill.
 ---
 
 # ERC-7683 (a common format for cross-chain orders)

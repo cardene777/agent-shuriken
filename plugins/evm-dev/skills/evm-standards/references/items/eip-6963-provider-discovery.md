@@ -2,6 +2,7 @@
 status: specified
 checked: 2026-11-11
 source: ethereum/EIPs: the EIP-6963 document; reown-com/appkit: the source code
+can: Dapps can find every wallet extension installed in the browser and let the user choose one.
 ---
 
 # EIP-6963 (Finding multiple wallets installed in the browser)

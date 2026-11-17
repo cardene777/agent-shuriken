@@ -2,6 +2,7 @@
 status: specified
 checked: 2026-11-11
 source: ethereum/ERCs: the ERC-6900 document and its change history; alchemyplatform/modular-account: the README and the release notes
+can: Smart accounts can take add-on modules through common interfaces, so one module works with many accounts.
 ---
 
 # ERC-6900 (smart accounts that take add-on modules)

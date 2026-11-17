@@ -2,6 +2,7 @@
 status: specified
 checked: 2026-11-11
 source: ethereum/EIPs: the EIP-7706, EIP-7999, EIP-8037, EIP-7773 (Glamsterdam meta), and EIP-8081 (Hegotá meta) documents
+can: Calldata, state creation, and other resources would each be counted and priced as a separate kind of gas.
 ---
 
 # EIP-7706 (separate gas pricing for each resource)

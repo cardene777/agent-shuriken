@@ -2,6 +2,7 @@
 status: specified
 checked: 2026-11-11
 source: ethereum/ERCs: the ERC-4906 document
+can: Contracts can emit an event when the metadata of an ERC-721 token changes, so marketplaces and indexers can refresh it.
 ---
 
 # ERC-4906 (signaling that NFT metadata changed)

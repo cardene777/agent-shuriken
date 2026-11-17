@@ -2,6 +2,7 @@
 status: specified
 checked: 2026-11-16
 source: ethereum/EIPs: the EIP-8184, EIP-8081 (the Hegotá meta EIP), and EIP-7732 documents; as a company's view, ShutterNetwork's article on X (2024-05-31); and as research, the post on X by `guruvamsip` (2024-05-03), the explainer on HackMD, and the IACR ePrint 2024/263 paper
+can: Sealed transactions would travel through the public mempool and inclusion lists and stay hidden until their order is fixed.
 ---
 
 # EIP-8184 (LUCID, an encrypted mempool delivered through inclusion lists)

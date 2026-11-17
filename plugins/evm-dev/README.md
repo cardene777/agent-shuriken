@@ -9,7 +9,7 @@ This plugin ships dated items on all of them, each with the date it was checked 
 
 | Skill | What it does |
 |---|---|
-| `evm-standards` | Answers whether an ERC is final or an EIP is live, and what it lets contracts and wallets do, from 41 items on ERCs and EIPs |
+| `evm-standards` | Answers whether an ERC is final or an EIP is live, and what it lets contracts and wallets do, from 41 items on ERCs and EIPs. It also finds standards by what they do, and links the maintainer's bitsumi article on each standard it names |
 | `solidity-code` | Writes and changes contracts in Foundry and Hardhat projects for the solc, OpenZeppelin, forge-std, Foundry, and Hardhat versions the project uses, then scans the code for outdated patterns and builds and tests it |
 | `contract-tests` | Writes unit, fuzz, and invariant tests for a project's contracts in Foundry or Hardhat, or has kiwa write them when it is installed, from a list of what each contract needs tested, then names what no test covers and runs the tests |
 | `contract-deploy` | Writes Foundry and Hardhat Ignition deploy scripts that never touch keys, names every place a project handles a key unsafely, hands you the command to sign with a hardware wallet on production chains and an encrypted keystore on test chains, then records each chain's deployed addresses and checks them |
@@ -61,7 +61,7 @@ In other agents that read `SKILL.md`, unzip the skill zip attached to each relea
 
 ## Use
 
-`evm-standards` starts when you ask about the status of a standard, for example "is EIP-7702 live on mainnet?" or "can I cite ERC-7281 as final?".
+`evm-standards` starts when you ask about the status of a standard, for example "is EIP-7702 live on mainnet?" or "can I cite ERC-7281 as final?", or which standard does a job, for example "which standard lets a contract verify a passkey signature?".
 `solidity-code` starts when you ask for a contract to be written or changed, for example "add a pausable ERC-20 token to this Foundry project".
 `contract-tests` starts when you ask for tests of a contract, for example "add tests for src/Vault.sol".
 `contract-deploy` starts when you ask for contracts to be deployed or a deployment to be recorded, for example "deploy src/Vault.sol to Sepolia and then Base" or "write down what my last forge script deployed".
@@ -97,6 +97,21 @@ An answer looks like this.
 Yes. EIP-7951 adds a P256VERIFY precompile at 0x100 that costs 6900 gas.
 It went live on mainnet with the Fusaka upgrade on 2025-12-03.
 Status: live, checked 2026-11-11, source: the EIP-7951 document and EIP-7607 (the Fusaka meta EIP).
+```
+
+### Find a standard by what it does
+
+1. The agent searches the items and the maintainer's bitsumi articles with words for what you want, in English and in your language
+2. The agent answers with the standards that match, with the status of each from the items or the official document
+3. For each standard it names, the agent gives the title and link of the bitsumi article on it, when there is one
+
+The search looks like this.
+Each article line, left out here, gives the standard, the link, such as https://cardene.dev/articles/a55db75ffbc68801d968 for EIP-7951, and the article's title and description, which are in Japanese.
+
+```text
+item eip-7951-secp256r1-precompile live 2026-11-11 3 Contracts can cheaply verify P-256 (secp256r1) signatures, such as passkey, WebAuthn, Secure Enclave, and Android Keystore signatures, with P256VERIFY at 0x100.
+items: 1 matched
+articles: 1 matched of 642 in https://cardene.dev/llms.txt, read 2026-11-17
 ```
 
 ### Write a contract
@@ -371,6 +386,7 @@ financial-standards: 2 problems; fill in or add each section named above
 | Node.js and `@openzeppelin/upgrades-core` in the project | Optional. When both are there, `release-check` also runs OpenZeppelin's upgrade check |
 | The kiwa plugin | Optional. When its skills are installed, `contract-tests` has kiwa write the tests |
 | Web access in the agent | To re-check an out-of-date item. Without it the agent answers from the item and says it could not confirm it |
+| Network access to `cardene.dev` | To link bitsumi articles. Without it `evm-standards` searches only its items and says it could not read the article index |
 
 ## What it reads, runs, and sends
 
@@ -379,6 +395,7 @@ In short:
 
 - It reads the items bundled with the plugin
 - `evm-standards` runs `evm-standards.sh list`, which reads the items and prints one line each
+- `evm-standards` runs `standards.py` for `find` and `article`. It reads the items and the bitsumi article index, https://cardene.dev/llms.txt, which it downloads with a plain request to that fixed address, so no word of your question is sent. It keeps the index in `~/.local/share/evm-dev/` (`EVM_DEV_HOME` changes it), readable only by you, for one day, and prints only article titles, descriptions, and `https://cardene.dev/articles/` links
 - `solidity-code` runs `solidity-code.py`, which reads the project's config files and the `package.json` files of its libraries for their versions, and the project's source files for the scan. It never reads `.env` files, dependencies, or build output, and never prints the text of a line
 - `solidity-code` writes only the contracts you ask for, and runs the project's build and tests
 - `contract-tests` runs `contract-tests.py`, which reads the project's config files, contracts, and tests, and prints only kinds, names, and `file:line`, never the text of a contract or a test. It writes only test files, never changes a contract, and never reads `.env` files, dependencies, or build output
@@ -392,7 +409,7 @@ In short:
 - `dapp-architecture` runs `dapp-architecture.py`, which reads its items and the design file it writes, and prints only section names when it checks the design. It writes only the design file, and never reads `.env` files or keys
 - `financial-standards` runs `financial-standards.py`, which reads its items and the design file it writes, and prints only section names when it checks the design. It writes only the design file, and never reads `.env` files or keys
 - To re-check an out-of-date item, the agent searches the web and opens the official document with only a standard's number or name, or a tool's or service's name and version
-- It never edits its items and keeps nothing
+- It never edits its items, and keeps nothing but that copy of the article index
 
 ## License
 

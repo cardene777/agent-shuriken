@@ -2,6 +2,7 @@
 status: live
 checked: 2026-11-11
 source: ethereum/EIPs: the EIP-2935 document and EIP-7600 (the Pectra meta EIP)
+can: Contracts can read the hashes of recent past blocks from the storage of a system contract.
 ---
 
 # EIP-2935 (Past block hashes kept in state)

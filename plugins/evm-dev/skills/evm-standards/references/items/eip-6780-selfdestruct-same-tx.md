@@ -2,6 +2,7 @@
 status: live
 checked: 2026-11-11
 source: ethereum/EIPs: the EIP-6780 and EIP-6049 documents, plus EIP-7569 (the Dencun meta EIP) and EIP-7773 (the Glamsterdam meta EIP)
+can: SELFDESTRUCT only sends the account's ETH to the target, unless it runs in the same transaction that created the contract.
 ---
 
 # EIP-6780 (SELFDESTRUCT limited to the same transaction)

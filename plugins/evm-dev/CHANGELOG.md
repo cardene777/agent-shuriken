@@ -5,6 +5,11 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+### Added
+
+- `evm-standards` finds standards by what they let contracts, wallets, and dApps do with `evm-standards.sh find`, from a new `can` field on every item and the maintainer's bitsumi articles
+- `evm-standards` gives the title and link of the maintainer's bitsumi article on each standard it names with `evm-standards.sh article`. It reads the article index https://cardene.dev/llms.txt with a plain request that carries no word of the question, and keeps it in `~/.local/share/evm-dev/` for one day
+
 ## [0.4.0] - 2026-11-17
 
 ### Added
