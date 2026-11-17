@@ -9,7 +9,7 @@ source: OpenZeppelin, Introducing OpenZeppelin Contracts 5.0 and the Contracts 5
 
 `Ownable2Step` keeps one owner and moves ownership only when the new owner accepts it, so a typo cannot hand the contract to a wrong address.
 `AccessControl` gives each function a role, with an admin role for each role.
-`AccessManager`, added in 5.0, keeps the permissions of many contracts in one manager: each function can be restricted to a role, and a role can carry an execution delay, so a change is scheduled and can be cancelled before it runs. Contracts that use `Ownable` or `AccessControl` can hand their ownership or admin role to a manager later.
+`AccessManager`, added in 5.0, keeps the permissions of many contracts in one manager: each function can be restricted to a role, and each member of a role can be given an execution delay, so that member's calls are scheduled and can be cancelled before they run. A role can also carry a grant delay, the time before a new member can use it, and a member granted with an execution delay of 0 acts at once. Contracts that use `Ownable` or `AccessControl` can hand their ownership or admin role to a manager later.
 
 For a design:
 

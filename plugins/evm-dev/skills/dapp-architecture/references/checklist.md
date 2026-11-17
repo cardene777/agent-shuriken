@@ -14,7 +14,7 @@ Go through this list after `verify` passes. A design that fails any rule in the 
 | Reads survive reorgs | The indexer treats a block as final without a confirmation depth or the chain's finality, or cannot undo what it read from a block that was reorganized away |
 | Indexing is idempotent and rebuildable | Events are stored without a key built from the chain ID, the transaction hash, and the log index, or the index cannot be rebuilt from the deployment block |
 | No single key controls the protocol | An externally owned account alone holds the owner, admin, or upgrader role on a mainnet |
-| Changes are delayed and visible | Upgrades and parameter changes run at once, without a timelock that users can watch, except a pause |
+| Changes are delayed and visible | Upgrades and parameter changes run at once, without a timelock that users can watch, except a pause, or a role that can revoke without the timelock can also grant roles without it |
 | Pausing is separate | The pauser role is the same as the role that can upgrade, or nobody can pause quickly |
 | Environments do not share keys | The same key, address list, or configuration is used on the local chain, a testnet, and a mainnet, instead of one set per environment |
 

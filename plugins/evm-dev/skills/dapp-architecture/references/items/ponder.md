@@ -7,7 +7,7 @@ source: Ponder, documentation and migration guide
 
 # Ponder is a self-hosted TypeScript indexer on 0.x versions
 
-Ponder is an open-source TypeScript framework for indexing EVM data. The team runs it on its own infrastructure and reads the indexed data directly from Postgres. Its documentation lists versions up to 0.17.
+Ponder is an open-source TypeScript framework for indexing EVM data. The team runs it on its own infrastructure and reads the indexed data directly from Postgres. Its npm releases reached 0.18.0 in October 2026 and 0.18.9 in November 2026, still before 1.0.
 
 For a design:
 

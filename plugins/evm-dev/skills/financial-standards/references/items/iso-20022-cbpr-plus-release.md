@@ -13,11 +13,11 @@ MT messages for exceptions, investigations, and cancellations follow a separate 
 
 SR2026 was planned to go live on 14 November 2026 and to reject fully unstructured postal addresses.
 On 27 August 2026 Swift announced a change to the SR2026 timeline and accepted a community request to extend the move to structured addresses.
-Reports of that notice say the payments part of SR2026 did not go live on 14 November 2026, that SR2025 stays in force until a later release replaces it, and that Swift would give a new date by December 2026.
+Reports of that notice say the CBPR+ changes were taken out of SR2026 and moved to a later release, so the payments part of SR2026 did not go live on 14 November 2026 and SR2025 stays in force until that release replaces it. The date of that release was not published when this item was checked.
 This item could not read Swift's own page directly; confirm the date and scope on Swift's standards release page before relying on it.
 
 For a design:
 
-- Name the usage guideline and its release (CBPR+ SR2025 until Swift sets the SR2026 date), and the message versions that release fixes, read from the guideline itself
+- Name the usage guideline and its release (CBPR+ SR2025 until the later release that takes over the changes moved out of SR2026), and the message versions that release fixes, read from the guideline itself
 - Design addresses as structured or hybrid now, with town and country in their own fields, since unstructured addresses are on their way out
 - A `pacs.002` status report and `camt.053` or `camt.054` statements report on a payment; they are not the settlement itself

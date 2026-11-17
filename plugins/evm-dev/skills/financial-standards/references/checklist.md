@@ -14,6 +14,7 @@ Go through this list after `verify` passes. A design that fails any rule in the 
 | Reports are not settlement | A status report, a statement, or a notification is treated as settlement or as the direct cause of a state change; it is not settlement finality |
 | The ledger is not the law | On-chain state is presented as the legal finality of a bank, a clearing house, a central securities depository, or a regulator |
 | Someone is allowed, and can be revoked | Anyone can change state, or permissions and their revocation are not defined |
+| Terminal states stay closed | A case in a terminal state, such as cancelled or settled, can be moved back by any participant, or a correction or a cancellation is accepted after it |
 | Corrections append | Corrections, cancellations, expiry, or retention are handled by overwriting or deleting records instead of appending new ones that refer to the old |
 | The version and profile are fixed | The standard's version and profile, and the messages or data model used, are not pinned |
 | Off-chain responsibilities are separated | Keeping the original, managing personal data and keys, validation, correlation, signing, and audit disclosure have no owner or no defined boundary between them |
