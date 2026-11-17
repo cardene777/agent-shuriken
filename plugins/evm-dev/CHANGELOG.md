@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-17
+
 ### Added
 
 - The `release-check` skill checks contracts before a release: it builds the deployed git tag or commit in a temporary worktree, compares its storage layout and ABI with the new version, finds opcodes each target chain's EVM cannot run, runs OpenZeppelin's upgrade check when the project has it, compares gas with `forge snapshot --diff` and sizes with `forge build --sizes`, and checks deployment transactions against the per-transaction gas cap of EIP-7825
@@ -58,7 +60,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - Starts when you ask about the status of an ERC or EIP, or when you call it, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
 - The plugin has `claude plugin eval` cases under `evals/` that measure the skill, run by hand
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/evm-dev--v0.3.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/evm-dev--v0.4.0...HEAD
+[0.4.0]: https://github.com/cardene777/agent-shuriken/releases/tag/evm-dev--v0.4.0
 [0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/evm-dev--v0.3.0
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/evm-dev--v0.2.0
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/evm-dev--v0.1.0
