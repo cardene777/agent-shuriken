@@ -35,7 +35,7 @@ graders:
     type: llm
     criteria: |
       Judge only the reply.
-      PASS if the reply says that the Deposited event's signature changed (a third parameter, total), so its topic changes and anything that reads the old Deposited(address,uint256) event, such as an indexer, a subgraph, or a frontend, must be updated.
+      PASS if the reply says that the Deposited event's signature changed (a third parameter, total), so its topic changes and whatever reads the old Deposited(address,uint256) event (consumers, indexers, subgraphs, or frontends, named in any way) must be updated or the old event kept.
       FAIL if the reply does not mention the change to the Deposited event.
   - name: not-called-safe
     type: llm

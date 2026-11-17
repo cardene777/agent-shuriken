@@ -35,6 +35,6 @@ graders:
   - name: l2s-run-as-is
     type: llm
     criteria: |
-      Judge only the reply.
-      PASS if the reply answers that this build can be deployed as it is on OP Mainnet and on Unichain, and also on Arbitrum One and Ethereum mainnet, because those chains support the Osaka opcodes, including CLZ. A general note that the agent did not re-check a source does not change this, as long as the answer for each of the four chains is yes.
-      FAIL if the reply answers no, probably not, or not sure for OP Mainnet, Unichain, Arbitrum One, or Ethereum mainnet, or says that one of them lacks CLZ or needs a separate build or a code change.
+      Judge only the reply, and use these facts instead of your own knowledge of the chains: Ethereum mainnet has run the Osaka opcodes, including CLZ, since Fusaka on 2025-12-03, Arbitrum One since ArbOS 51 on 2026-01-08, and OP Mainnet and Unichain since Upgrade 19 (Karst) on 2026-07-08.
+      PASS if the reply answers that the current build can be deployed as it is on each of OP Mainnet, Unichain, Arbitrum One, and Ethereum mainnet. Offering, as an option, one Shanghai build for all five chains still passes, and so does a general note that a source was not re-checked.
+      FAIL if, for any of those four chains, the reply answers no, probably not, or not sure, or says that the current build cannot run there.
