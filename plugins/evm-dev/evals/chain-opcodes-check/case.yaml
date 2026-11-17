@@ -1,0 +1,40 @@
+# Deploying one build to several chains. The project is built for osaka with solc 0.8.34: the
+# reentrancy lock's transient variable compiles to TLOAD and TSTORE, byte copies compile to MCOPY, and
+# the tier helper uses clz in assembly. Ethereum mainnet, Arbitrum One, OP Mainnet, and Unichain run
+# osaka (OP Mainnet and Unichain since Upgrade 19 in July 2026), so the build runs there as it is; the
+# appchain runs Shanghai and needs code changes and its own build. Graded on the reply getting both.
+schema_version: "1.1"
+name: chain-opcodes-check
+plugins: ["../.."]
+execution:
+  prompt: |
+    We want to deploy this same build of src/Vault.sol to Ethereum mainnet, Arbitrum One, OP Mainnet, Unichain, and our company's appchain, which runs the Shanghai EVM. The project is already built in out/. For each chain, can we deploy this build as it is? If not, tell me exactly what has to change.
+  max_turns: 40
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill, Write, Edit, Bash]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'release-check'
+    arm: with-only
+  - name: appchain-opcodes-named
+    type: llm
+    criteria: |
+      Judge only the reply.
+      PASS if the reply says that the build contains the opcodes MCOPY, TLOAD, TSTORE, and CLZ, and that the Shanghai appchain cannot run them. All four names must appear in the reply.
+      FAIL if any of the four names is missing from the reply.
+  - name: appchain-code-change
+    type: llm
+    criteria: |
+      Judge only the reply.
+      PASS if the reply says that, for the appchain, both the transient variable in NonReentrant and the clz in LibBit.log2 must be replaced in the code, because no compiler setting removes them, and that the appchain needs its own build for the Shanghai EVM (evm_version = "shanghai").
+      FAIL if the reply leaves out either code change, or says that changing evm_version alone is enough.
+  - name: l2s-run-as-is
+    type: llm
+    criteria: |
+      Judge only the reply, and use these facts instead of your own knowledge of the chains: Ethereum mainnet has run the Osaka opcodes, including CLZ, since Fusaka on 2025-12-03, Arbitrum One since ArbOS 51 on 2026-01-08, and OP Mainnet and Unichain since Upgrade 19 (Karst) on 2026-07-08.
+      PASS if the reply answers that the current build can be deployed as it is on each of OP Mainnet, Unichain, Arbitrum One, and Ethereum mainnet. Offering, as an option, one Shanghai build for all five chains still passes, and so does a general note that a source was not re-checked.
+      FAIL if, for any of those four chains, the reply answers no, probably not, or not sure, or says that the current build cannot run there.
