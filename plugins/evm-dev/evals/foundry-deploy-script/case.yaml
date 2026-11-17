@@ -1,0 +1,53 @@
+# Writing a deploy script for a Foundry project that will go to a test chain and then a production
+# chain. The project's Makefile and README still pass the deployer's key on the command line. Graded
+# on the script (no key read from the environment, the signer left to the command line, the owner the
+# user named) and on the reply (a hardware wallet for Base, an encrypted keystore for Sepolia, --slow
+# on Base, and the Makefile's --private-key named).
+schema_version: "1.1"
+name: foundry-deploy-script
+plugins: ["../.."]
+execution:
+  prompt: |
+    Write script/DeployVault.s.sol to deploy src/Vault.sol to Sepolia first and then to Base mainnet, and give me the commands to run. The owner on both chains is our Safe at 0x5aFE00000000000000000000000000000000C0De. The asset is USDC: 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238 on Sepolia and 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 on Base.
+  max_turns: 40
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill, Write, Edit, Bash]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'contract-deploy'
+    arm: with-only
+  - name: no-env-key
+    type: regex
+    target: {source: file, path: script/DeployVault.s.sol}
+    pattern: 'vm\.env\w*\s*\(\s*"\w*(PRIVATE|MNEMONIC|SEED|_PK)'
+    match: not_contains
+  - name: signer-from-command-line
+    type: regex
+    target: {source: file, path: script/DeployVault.s.sol}
+    pattern: 'vm\.startBroadcast\(\s*\)'
+  - name: owner-is-safe
+    type: regex
+    target: {source: file, path: script/DeployVault.s.sol}
+    pattern: '0x5aFE00000000000000000000000000000000C0De'
+  - name: key-methods
+    type: llm
+    criteria: |
+      Judge only the reply.
+      PASS if the command the reply gives for Base mainnet signs with a hardware wallet (--ledger or --trezor), the command for Sepolia signs with an encrypted keystore (--account, with the keystore created by cast wallet import), and no command the reply recommends passes --private-key, --mnemonic, or a key from an environment variable.
+      FAIL if the Base command uses a keystore file, an environment variable, or --private-key, if the Sepolia command uses --private-key or an environment variable, or if either command is missing.
+  - name: slow-on-base
+    type: llm
+    criteria: |
+      Judge only the reply.
+      PASS if the command the reply gives for Base mainnet includes --slow.
+      FAIL if it does not, or if there is no command for Base mainnet.
+  - name: makefile-key-named
+    type: llm
+    criteria: |
+      Judge only the reply.
+      PASS if the reply tells the user that the existing Makefile (or its README instructions) passes the deployer's private key on the command line with --private-key from .env, and recommends replacing that with a keystore or a hardware wallet. Changing the Makefile and saying so also passes.
+      FAIL if the reply does not mention the Makefile's or README's --private-key use at all.
