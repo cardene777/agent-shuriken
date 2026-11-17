@@ -9,7 +9,8 @@ the same page paths in every language folder:
     docs/<code>/README.md           the index of that language
     docs/<code>/quickstart.md
     docs/<code>/concepts/README.md  and one page per concept
-    docs/<code>/api/README.md       and one page per function, class, command, or option group
+    docs/<code>/api/README.md       and one page per function, class, command, option group, or
+                                    HTTP endpoint
     docs/<code>/cookbook/README.md  and one page per task
     docs/<code>/faq.md
 
@@ -19,8 +20,10 @@ Commands (each takes --root, default `docs`):
     scaffold PLAN        Creates the folders, a starter page for every planned page in every
                          language, and the map. PLAN is a JSON file, or - for standard input,
                          and may list projects whose docs were followed, which the map keeps.
+                         An API page marked "endpoint": true gets the outline of an HTTP endpoint.
                          Never overwrites a file. --dry-run prints the files and writes nothing.
-    add PATH --title T   Adds one page to every language and to the map.
+    add PATH --title T   Adds one page to every language and to the map. --endpoint gives an API
+                         page the outline of an HTTP endpoint.
     drop PATH            Removes one page from the map. Its files are left in place.
     translated PATH...   Records that each translation matches the current source page.
     check                Checks the pages against the map and against each other. Writes nothing.
@@ -166,7 +169,8 @@ def check_follow(value, errors):
 
 
 def read_plan(source):
-    """Return (project, languages, {page path: title}, projects followed) from a plan, or raise Usage."""
+    """Return (project, languages, {page path: title}, projects followed, endpoint paths) from a plan,
+    or raise Usage."""
     try:
         if source == "-":
             text = sys.stdin.read()
@@ -184,7 +188,7 @@ def read_plan(source):
         errors.append("project: give the project's name, up to 80 characters on one line")
     languages = check_languages(plan.get("languages"), errors)
     follow = check_follow(plan.get("follow"), errors)
-    titles = {}
+    titles, endpoints = {}, set()
     for part in PARTS:
         items = plan.get(part)
         if not isinstance(items, list) or not items:
@@ -194,6 +198,11 @@ def read_plan(source):
             where = "%s[%d]" % (part, i)
             slug = item.get("slug") if isinstance(item, dict) else None
             title = item.get("title") if isinstance(item, dict) else None
+            endpoint = item.get("endpoint", False) if isinstance(item, dict) else False
+            if not isinstance(endpoint, bool):
+                errors.append("%s: endpoint must be true or false" % where)
+            elif endpoint and part != "api":
+                errors.append("%s: only an API page can be an endpoint" % where)
             if isinstance(slug, str) and slug.endswith(".md"):
                 slug = slug[:-3]
             if not isinstance(slug, str) or not SLUG_RE.fullmatch(slug) or slug == "README":
@@ -207,9 +216,11 @@ def read_plan(source):
                 errors.append("%s: title must be up to 80 characters on one line, without [ or ]" % where)
             else:
                 titles[path] = title.strip()
+                if endpoint:
+                    endpoints.add(path)
     if errors:
         raise Usage("The plan has problems:\n" + "\n".join("  " + e for e in errors))
-    return project.strip(), languages, titles, follow
+    return project.strip(), languages, titles, follow, endpoints
 
 
 # ------------------------------------------------------------------ the map
@@ -299,8 +310,9 @@ def header(title, languages, code, path):
     return lines
 
 
-def source_stub(path, title, languages, children=()):
-    """The starter page in the source language: the outline, with a to-do note per section."""
+def source_stub(path, title, languages, children=(), endpoint=False):
+    """The starter page in the source language: the outline, with a to-do note per section.
+    An API page that is an HTTP endpoint gets the endpoint outline instead of the signature outline."""
     lines = header(title, languages, languages[0]["code"], path)
 
     def section(heading, note, extra=()):
@@ -319,9 +331,12 @@ def source_stub(path, title, languages, children=()):
             lines += ["## " + heading, "", "- [%s](%s)" % (label, link), ""]
     elif path == "quickstart.md":
         lines += [todo("One sentence: what the reader has running at the end, in about five minutes."), ""]
-        section("Requirements", "The runtimes and tools, each with its minimum version.")
-        section("Install", "The install command in a code block.")
-        section("First run", "The smallest complete example, the command that runs it, and the output it prints.")
+        section("Requirements", "The runtimes and tools, each with its minimum version, or the account a hosted "
+                "service needs.")
+        section("Install", "The install command in a code block. For a hosted service the reader signs up for, "
+                "title this section Sign up: how to create an account and get an API key.")
+        section("First run", "The smallest complete example, or a service's first request, the command that runs "
+                "it, and the output it prints.")
         lines += ["## Next steps", "", "- [Concepts](concepts/README.md)", "- [Cookbook](cookbook/README.md)", ""]
     elif path == "faq.md":
         lines += [todo("One ## heading per question, a one-to-three-sentence answer, and a link to the page "
@@ -336,6 +351,18 @@ def source_stub(path, title, languages, children=()):
         section("How it works", "A Mermaid diagram of the parts or the flow, then the explanation.")
         section("Example", "A short, complete code example.")
         section("Related", "Links to related concepts and API pages.", ["- [Concepts](%s)" % back])
+    elif part == "api" and endpoint:
+        lines += [todo("One sentence on what the endpoint does, and when to use another one instead."), ""]
+        section("Endpoint", "The method and the path exactly as the code routes them, such as POST /v1/carts, "
+                "and the base URL, in a code block.")
+        section("Authentication", "What the request needs, such as an API key in a header, and where to get it.")
+        section("Parameters", "A table with Name, In (path, query, or header), Type, Required, Default, and "
+                "Description.")
+        section("Request body", "The content type and a table of the fields, or that it takes no body.")
+        section("Response", "Each status code it returns on success, with the body and a table of its fields.")
+        section("Errors", "Each error status code, the body it returns, and the condition.")
+        section("Example", "A complete request, such as a curl command, and the response it returns.")
+        section("Related", "Links to related API pages and recipes.", ["- [API reference](%s)" % back])
     elif part == "api":
         lines += [todo("One sentence on what it does, and when to use something else instead."), ""]
         section("Signature", "The signature exactly as the code declares it, in a code block.")
@@ -484,7 +511,7 @@ class Disk:
 
 def cmd_scaffold(args):
     root = args.root
-    project, languages, titles, follow = read_plan(args.plan)
+    project, languages, titles, follow, endpoints = read_plan(args.plan)
     if os.path.exists(map_path(root)):
         print("%s already exists, so the docs are already laid out. Use add for new pages." % map_path(root),
               file=sys.stderr)
@@ -502,7 +529,7 @@ def cmd_scaffold(args):
                 part = part_of(path)
                 children = [(p[len(part) + 1:], titles[p]) for p in paths
                             if part and path == part + "/README.md" and part_of(p) == part and p != path]
-                text = source_stub(path, titles[path], languages, children)
+                text = source_stub(path, titles[path], languages, children, path in endpoints)
             else:
                 text = translation_stub(path, titles[path], languages, lang["code"])
             fresh = not os.path.exists(file) if args.dry_run else write_new(file, text)
@@ -554,10 +581,12 @@ def cmd_add(args):
         raise Usage("%s is already in the map" % path)
     if not valid_title(args.title):
         raise Usage("--title must be up to 80 characters on one line, without [ or ]")
+    if args.endpoint and part_of(path) != "api":
+        raise Usage("%s: only an API page can be an endpoint. Leave out --endpoint, or add it under api/" % path)
     for i, lang in enumerate(languages):
         file = os.path.join(root, lang["code"], path)
         if i == 0:
-            text = source_stub(path, args.title.strip(), languages)
+            text = source_stub(path, args.title.strip(), languages, endpoint=args.endpoint)
         else:
             text = translation_stub(path, args.title.strip(), languages, lang["code"])
         fresh = write_new(file, text)
@@ -791,6 +820,7 @@ def main(argv):
     p = command("add", "add a page to every language and to the map")
     p.add_argument("path", help="the page path, such as concepts/caching.md")
     p.add_argument("--title", required=True, help="the page title in the source language")
+    p.add_argument("--endpoint", action="store_true", help="give an API page the outline of an HTTP endpoint")
     p = command("drop", "remove a page from the map, leaving its files")
     p.add_argument("path", help="the page path, such as concepts/caching.md")
     p = command("translated", "record that translations match the current source pages")

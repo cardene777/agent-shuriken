@@ -64,6 +64,34 @@ out="$(cd "$T/k" && dp scaffold "$T/plan.json")"
 check "an existing page is kept as it is" '[ "$(cat "$T/k/docs/en/quickstart.md")" = "my own words" ]'
 check "a kept page is reported as kept" 'printf "%s\n" "$out" | grep -q "^kept  docs/en/quickstart.md (it already exists)"'
 
+# HTTP endpoints and hosted services: an API page marked as an endpoint gets its own outline.
+headings() { grep '^## ' "$1" | sed 's/^## //' | paste -sd, -; }
+ENDPOINT_OUTLINE="Endpoint,Authentication,Parameters,Request body,Response,Errors,Example,Related"
+SIGNATURE_OUTLINE="Signature,Parameters,Returns,Errors,Example,Related"
+jq '.api = [{"slug": "create-cart", "title": "POST /v1/carts", "endpoint": true}, {"slug": "createCart", "title": "createCart", "endpoint": false}]' \
+  "$T/plan.json" > "$T/endpoint.json"
+mkdir -p "$T/e"
+(cd "$T/e" && dp scaffold "$T/endpoint.json") >/dev/null 2>&1; rc=$?
+endpoint_page="$T/e/docs/en/api/create-cart.md"
+check "an endpoint page in the plan gets the endpoint outline" \
+  '[ "$rc" = 0 ] && [ "$(headings "$endpoint_page")" = "$ENDPOINT_OUTLINE" ] && grep -q "method and the path" "$endpoint_page" && grep -q "status code" "$endpoint_page" && grep -q "complete request" "$endpoint_page" && [ "$(headings "$T/e/docs/en/api/createCart.md")" = "$SIGNATURE_OUTLINE" ] && grep -qF "Translate en/api/create-cart.md into Deutsch" "$T/e/docs/de/api/create-cart.md"'
+check "a function page keeps the signature outline" \
+  '[ "$(headings "$T/s/docs/en/api/createCart.md")" = "$SIGNATURE_OUTLINE" ] && grep -q "The signature exactly as the code declares it" "$T/s/docs/en/api/createCart.md"'
+python3 - "$T/plan.json" "$T/badendpoint.json" <<'PY'
+import json, sys
+plan = json.load(open(sys.argv[1]))
+plan["api"][0]["endpoint"] = "yes"
+plan["concepts"][0]["endpoint"] = True
+json.dump(plan, open(sys.argv[2], "w"))
+PY
+mkdir -p "$T/bade"
+(cd "$T/bade" && dp scaffold "$T/badendpoint.json") >/dev/null 2>"$T/err"; rc=$?
+check "a bad endpoint mark in the plan is refused" \
+  '[ "$rc" = 2 ] && [ -z "$(ls -A "$T/bade")" ] && grep -q "api\[0\]: endpoint must be true or false" "$T/err" && grep -q "concepts\[0\]: only an API page can be an endpoint" "$T/err"'
+qs="$T/s/docs/en/quickstart.md"
+check "the quickstart starter page fits a service the reader signs up for" \
+  'grep -q "install command" "$qs" && grep -qi "sign up" "$qs" && grep -q "account" "$qs" && grep -q "API key" "$qs" && grep -q "first request" "$qs" && [ "$(grep -c "docs-publish:todo" "$qs")" = 4 ]'
+
 # Projects to follow: recorded from the plan, never fetched by the script.
 FOLLOW='[{"name": "Sibling A", "url": "https://git.example.org/acme/sibling-a", "adopted": "One API page per function, with parameters, return value, and errors in that order"}, {"name": "Sibling B", "url": "https://docs.example.com/sibling-b/", "adopted": "A Cookbook page per task, named as the task"}]'
 jq --argjson f "$FOLLOW" '. + {follow: $f}' "$T/plan.json" > "$T/follow.json"
@@ -485,6 +513,12 @@ for bad in ../x.md guides/x.md faq.md concepts/carts.md concepts/README.md; do
   dp add --root "$C/docs" "$bad" --title "X" >/dev/null 2>&1 || [ $? != 2 ] || refused=$((refused + 1))
 done
 check "add refuses paths outside the parts, fixed pages, and pages already mapped" '[ "$refused" = 5 ]'
+out="$(dp add --root "$C/docs" api/get-cart.md --title "GET /v1/carts/{id}" --endpoint)"; rc=$?
+check "add --endpoint writes the endpoint outline" \
+  '[ "$rc" = 0 ] && [ "$(headings "$C/docs/en/api/get-cart.md")" = "$ENDPOINT_OUTLINE" ] && grep -qF "Translate en/api/get-cart.md into Deutsch" "$C/docs/de/api/get-cart.md" && jq -e ".pages[] | select(.path == \"api/get-cart.md\")" "$C/docs/_translation-map.json" >/dev/null'
+dp add --root "$C/docs" concepts/sessions.md --title "Sessions" --endpoint >/dev/null 2>"$T/err"; rc=$?
+check "add refuses --endpoint for a page outside api/" \
+  '[ "$rc" = 2 ] && [ ! -e "$C/docs/en/concepts/sessions.md" ] && grep -q "only an API page can be an endpoint" "$T/err"'
 
 case_copy drop
 out="$(dp drop --root "$C/docs" cookbook/apply-a-coupon.md)"; rc=$?
@@ -527,6 +561,59 @@ ja_named="$(python3 -c 'print("".join(map(chr, (0x540d, 0x6307, 0x3057, 0x305f))
 ja_agree="$(python3 -c 'print("".join(map(chr, (0x540c, 0x610f))))')"
 check "the READMEs say the docs of other projects are read only with the user's agreement" \
   'grep -i "projects you name" "$PLUGIN/README.md" | grep -q "agreement" && grep -F "$ja_named" "$PLUGIN/README.ja.md" | grep -qF "$ja_agree"'
+
+# The skill writes the docs of the user's own libraries, command-line tools, and web services (#231).
+ROOT="$PLUGIN/../.."
+page_row() { grep -F -- "$1" "$SKILL"; }
+endpoint_row="$(page_row '| `api/<slug>.md` for an HTTP endpoint |')"
+row_says() { printf '%s\n' "$endpoint_row" | grep -qiF -- "$1"; }
+check "SKILL.md gives an HTTP endpoint page a layout of its own" \
+  '[ "$(printf "%s\n" "$endpoint_row" | grep -c .)" = 1 ] && row_says "method and path" && row_says "authentication" && row_says "parameters" && row_says "request body" && row_says "status code" && row_says "errors" && row_says "complete request" && row_says "response" && grep -qF "\"endpoint\": true" "$SKILL"'
+quickstart_row="$(page_row '| `quickstart.md` |')"
+check "SKILL.md starts the Quickstart of a service from an account, an API key, and a first request" \
+  'printf "%s\n" "$quickstart_row" | grep -q "install command" && printf "%s\n" "$quickstart_row" | grep -q "account" && printf "%s\n" "$quickstart_row" | grep -q "API key" && printf "%s\n" "$quickstart_row" | grep -q "first request"'
+read_step="$(awk '/^### 1\. Read the project/{f=1; next} /^### /{f=0} f' "$SKILL")"
+check "SKILL.md reads the issues of a private repository that gh can read" \
+  'printf "%s\n" "$read_step" | grep -q "private" && printf "%s\n" "$read_step" | grep -q "gh issue list" && printf "%s\n" "$read_step" | grep -q "gh issue view"'
+rules="$(awk '/^## Rules/{f=1; next} /^## /{f=0} f' "$SKILL")"
+check "SKILL.md never puts a real API key in a page" \
+  'printf "%s\n" "$rules" | grep -i "never" | grep -q "real API key" && printf "%s\n" "$rules" | grep -q "placeholder"'
+check "SKILL.md sends requests only to a copy of the service on the user's machine" \
+  'grep -q "only to a copy the project starts on this machine" "$SKILL" && grep -q "never to the hosted service" "$SKILL"'
+
+# descriptions: every place that says what the plugin does, one text per line.
+descriptions() {
+  sed -n 's/^description: //p' "$SKILL"
+  for f in "$PLUGIN/README.md" "$PLUGIN/README.ja.md" "$PLUGIN/docs/how-it-works.md" "$PLUGIN/docs/how-it-works.ja.md"; do
+    tr '\n' ' ' < "$f"; printf '\n'
+  done
+  jq -r '.description' "$PLUGIN/.claude-plugin/plugin.json"
+  jq -r '.description, .interface.longDescription' "$PLUGIN/.codex-plugin/plugin.json"
+  jq -r '.plugins[] | select(.name == "docs-publish") | .description' "$ROOT/.claude-plugin/marketplace.json"
+  grep -F '| [docs-publish](plugins/docs-publish) |' "$ROOT/README.md" "$ROOT/README.ja.md"
+}
+# The Japanese words for "library", "command line", "service", and "open source", from code points.
+ja_word() { python3 -c 'import sys; print("".join(chr(int(c, 16)) for c in sys.argv[1:]))' "$@"; }
+ja_library="$(ja_word 30e9 30a4 30d6 30e9 30ea)"
+ja_command_line="$(ja_word 30b3 30de 30f3 30c9 30e9 30a4 30f3)"
+ja_service="$(ja_word 30b5 30fc 30d3 30b9)"
+ja_open_source="$(ja_word 30aa 30fc 30d7 30f3 30bd 30fc 30b9)"
+names_all_three() {
+  local line n=0
+  while IFS= read -r line; do
+    n=$((n + 1))
+    if printf '%s\n' "$line" | grep -qiE 'librar' && printf '%s\n' "$line" | grep -qiE 'command-line tool' &&
+      printf '%s\n' "$line" | grep -qiE 'web service'; then continue; fi
+    if printf '%s\n' "$line" | grep -qF "$ja_library" && printf '%s\n' "$line" | grep -qF "$ja_command_line" &&
+      printf '%s\n' "$line" | grep -qF "Web$ja_service"; then continue; fi
+    printf 'does not name all three: %s\n' "${line:0:120}" >&2
+    return 1
+  done < <(descriptions)
+  [ "$n" = 11 ]
+}
+check "every description names libraries, command-line tools, and web services" "names_all_three"
+check "no description limits the skill to open source projects" \
+  '! descriptions | grep -qiE "open[ -]source" && ! descriptions | grep -qF "$ja_open_source" && ! jq -r ".keywords[]" "$PLUGIN/.claude-plugin/plugin.json" "$PLUGIN/.codex-plugin/plugin.json" | grep -qi "open-source"'
 
 # --- check says how to fix what it lists, so the SKILL.md does not need a table of problems
 case_copy fixlines
@@ -599,7 +686,9 @@ check "eval results are ignored by git" "eval_results_ignored"
 
 # The limits are the sizes of the shortened SKILL.md. Every agent that starts the skill reads the
 # whole body, and every session reads the description, so raise a limit only with a reason.
-SKILL_WORDS_MAX=1972
+# 1972 words grew to 2134 for the HTTP endpoint page, the Quickstart of a hosted service, and the
+# rules on API keys and on where requests go (#231).
+SKILL_WORDS_MAX=2134
 SKILL_DESCRIPTION_MAX=317
 skill_size() {
   python3 - "$SKILL" "$SKILL_WORDS_MAX" "$SKILL_DESCRIPTION_MAX" <<'PY'

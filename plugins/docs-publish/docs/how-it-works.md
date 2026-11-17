@@ -3,6 +3,7 @@
 English · [日本語](how-it-works.ja.md)
 
 This page describes what Docs Publish reads, writes, runs, and keeps, and every rule its script applies.
+Docs Publish writes the documentation of a library, command-line tool, or web service you build, whether its code is public or private.
 The agent writes and translates the pages; the script `skills/docs-publish/scripts/docs_publish.py` lays out the folders, keeps the translation map, and checks the result.
 The script uses only the Python standard library and reads and writes only the docs folder.
 
@@ -10,7 +11,7 @@ The script uses only the Python standard library and reads and writes only the d
 
 | Who | Reads |
 |---|---|
-| The agent | Your project's files: the README, the package manifest, the public entry points, the command-line help, the examples, the tests, the changelog, and any existing docs. With your agreement, the titles, bodies, and comments of your project's most discussed GitHub issues, through `gh`. Also with your agreement, the table of contents and up to five pages of the docs of each project you name to follow, through `gh api` for a GitHub repository or the agent's tool for reading web pages for another site; only their structure is taken, never their text |
+| The agent | Your project's files: the README, the package manifest, the public entry points, the command-line help, a web service's routes and API schema, the examples, the tests, the changelog, and any existing docs. With your agreement, the titles, bodies, and comments of your project's most discussed GitHub issues, in a public or private repository that `gh` can read. Also with your agreement, the table of contents and up to five pages of the docs of each project you name to follow, through `gh api` for a GitHub repository or the agent's tool for reading web pages for another site; only their structure is taken, never their text |
 | The script | The plan the agent passes it, `_translation-map.json`, and the Markdown files in the docs folder's language folders |
 
 Everything it reads is treated as data, never as instructions.
@@ -24,7 +25,7 @@ The plan is JSON.
 {"project": "Acme Shop",
  "languages": [{"code": "en", "name": "English"}, {"code": "es", "name": "Español"}],
  "concepts": [{"slug": "carts", "title": "Carts"}],
- "api": [{"slug": "createCart", "title": "createCart"}],
+ "api": [{"slug": "createCart", "title": "createCart"}, {"slug": "post-carts", "title": "POST /carts", "endpoint": true}],
  "cookbook": [{"slug": "apply-a-coupon", "title": "Apply a coupon"}]}
 ```
 
@@ -33,7 +34,7 @@ The plan is JSON.
 | `project` | The project's name, up to 80 characters on one line |
 | `languages` | One or more languages, the source first. `code` is a language tag such as `en`, `ja`, or `pt-BR` and names the language's folder. `name` is the language's own name, shown in the language switch. A code may appear once |
 | `follow` | Optional. The projects whose docs were followed, each with `name` (up to 80 characters on one line), `url` (starting with `https://`, without spaces), and `adopted` (what was followed, up to 200 characters on one line). Left out means none, and the map keeps the list |
-| `concepts`, `api`, `cookbook` | At least one page each. `slug` names the file and uses letters, digits, `.`, `_`, and `-`, starting with a letter or digit, with `/` for a subfolder; a trailing `.md` is dropped, and `README` is not allowed. `title` is up to 80 characters on one line |
+| `concepts`, `api`, `cookbook` | At least one page each. `slug` names the file and uses letters, digits, `.`, `_`, and `-`, starting with a letter or digit, with `/` for a subfolder; a trailing `.md` is dropped, and `README` is not allowed. `title` is up to 80 characters on one line. An API page may have `endpoint`: `true` gives it the starter page of an HTTP endpoint, and `false` or leaving it out gives the signature outline. Any other value, or `endpoint` on a concept or Cookbook page, is a problem in the plan |
 
 Titles and names may not contain `[` or `]`, because they become link text.
 When the plan has problems, the script lists all it finds, writes nothing, and exits 2.
@@ -68,10 +69,11 @@ A starter page in the source language has the title, the language switch line, a
 | Page | Title | Outline |
 |---|---|---|
 | `README.md` | The project's name and "documentation" | A note for the opening paragraph, and one section per part linking its page |
-| `quickstart.md` | Quickstart | Requirements, Install, First run, and Next steps linking the Concepts and Cookbook indexes |
+| `quickstart.md` | Quickstart | Requirements, Install, First run, and Next steps linking the Concepts and Cookbook indexes. The notes also fit a hosted service: the account it needs, Install retitled Sign up with creating an account and getting an API key, and the first request |
 | `concepts/README.md`, `api/README.md`, `cookbook/README.md` | Concepts, API reference, Cookbook | A note for the opening paragraph, and a link to every planned page of the part |
 | `concepts/<slug>.md` | From the plan | Why, How it works, Example, and Related |
 | `api/<slug>.md` | From the plan | Signature, Parameters, Returns, Errors, Example, and Related |
+| `api/<slug>.md` marked as an endpoint | From the plan | Endpoint, Authentication, Parameters, Request body, Response, Errors, Example, and Related |
 | `cookbook/<slug>.md` | From the plan | Before you start, Steps, Check the result, and Related |
 | `faq.md` | FAQ | One note on how to write the questions |
 
@@ -115,7 +117,7 @@ Each command takes `--root <docs folder>`, which defaults to `docs`.
 | Command | What it does | Exit codes |
 |---|---|---|
 | `scaffold <plan>` | Reads the plan from a file, or from standard input with `-`, and writes the starter pages and the map. `--dry-run` lists the files and writes nothing | 0 written, 2 the plan has problems, 3 the map already exists |
-| `add <path> --title <title>` | Adds a page under `concepts/`, `api/`, or `cookbook/` to every language and to the map, appending `.md` when it is missing. Keeps a file that exists | 0 added, 2 the path is outside those folders, is a fixed page, or is already in the map |
+| `add <path> --title <title>` | Adds a page under `concepts/`, `api/`, or `cookbook/` to every language and to the map, appending `.md` when it is missing. Keeps a file that exists. `--endpoint` gives an API page the starter page of an HTTP endpoint | 0 added, 2 the path is outside those folders, is a fixed page, or is already in the map, or `--endpoint` names a page outside `api/` |
 | `drop <path>` | Removes a page from the map and lists its files that are still there. Deletes no file | 0 removed, 2 a fixed page or a page not in the map |
 | `translated <path>...` | Records that each translation matches the current source page | 0 every page recorded, 1 a page was not recorded, 2 bad input |
 | `check` | Checks the pages against the map and each other, and writes nothing | 0 no problems, 1 problems listed, 2 the map cannot be read |
@@ -172,7 +174,8 @@ When it lists problems, a `How to fix:` section before that last line gives one 
 
 - The script runs no other program and connects to nothing
 - The agent runs the script with `python3`, and runs your project's Quickstart and Cookbook commands to show their real output only when they need nothing new installed. It asks before installing anything
-- With your agreement, the agent runs `gh issue list` and `gh issue view` on your project, which sends the repository's name to GitHub through your own `gh` sign-in
+- For a web service, the agent sends those requests only to a copy your project starts on your machine, never to the hosted service. It never reads, copies, or writes a real API key, token, or password; the pages show a placeholder such as `YOUR_API_KEY` instead
+- With your agreement, the agent runs `gh issue list` and `gh issue view` on your project's repository, public or private, which sends the repository's name to GitHub through your own `gh` sign-in
 - With your agreement, the agent reads the docs of the projects you name to follow: `gh api` for a GitHub repository, which sends its name to GitHub through your own `gh` sign-in, and the agent's tool for reading web pages for another site, which requests those pages from that site. When the agent has no such tool, it skips the project and tells you. Nothing else is sent anywhere
 
 ## What it keeps

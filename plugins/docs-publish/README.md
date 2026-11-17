@@ -1,13 +1,14 @@
 # Docs Publish
 
-Write the public documentation of an open source project in five parts, in English and a second language you pick, with every translation and every link checked.
+Write the documentation of a library, command-line tool, or web service you build, whether its code is public or private, in five parts, in English and a second language you pick, with every translation and every link checked.
 
 English · [日本語](README.ja.md)
 
-Good documentation for an open source project has a quick start, an explanation of its ideas, a reference, worked tasks, and answers to common questions, and readers of another language need the same pages in their language.
+Good documentation for a library, a command-line tool, or a web service has a quick start, an explanation of its ideas, a reference, worked tasks, and answers to common questions, and readers of another language need the same pages in their language.
 Kept by hand, two languages drift apart: a page is added in one and not the other, a translation falls behind its source, and links break when files move.
 This plugin has your agent write the pages from your project's own code and examples, in five parts, in English and a second language such as Japanese, with one file per page in each language.
 A script lays out the folders, keeps a translation map, and checks every page and link, so the two languages stay in step.
+An HTTP endpoint gets a page shaped for it, with the method and path, the authentication, the request, the responses, and the errors, and the Quickstart of a hosted service starts from creating an account and getting an API key.
 
 ```
 Read the project ──> Agree on the plan ──> Lay out and write ──> Translate ──> Check every page
@@ -37,9 +38,9 @@ The plugin starts when you ask for documentation, for example "write the docs fo
 You can also call it: run `/docs-publish:docs-publish` in Claude Code, or type `$` and pick **Docs Publish** in Codex.
 In GitHub Copilot CLI, write `/docs-publish` in your request, and in Gemini CLI, describe the task.
 
-1. The agent reads your project: the README, the package manifest, the public API, the examples, the tests, and any existing docs
+1. The agent reads your project: the README, the package manifest, the public API, a web service's routes, the examples, the tests, and any existing docs
 2. When you name projects whose docs yours should follow, such as a sibling library, and agree, the agent reads their table of contents and up to five pages each, and takes only their structure
-3. The agent proposes the second language, the docs folder, and the pages: three to five concepts, one API page per function, class, or command, and one Cookbook page per task. You confirm or change them
+3. The agent proposes the second language, the docs folder, and the pages: three to five concepts, one API page per function, class, command, or HTTP endpoint, and one Cookbook page per task. You confirm or change them
 4. The script lays out the folders and starter pages, and the agent writes each page in the source language, usually English
 5. The agent translates every page into the second language, and the script records each translation
 6. The script checks every page and link, and the agent fixes what it reports until nothing is left
@@ -76,7 +77,7 @@ docs/
 │   ├── README.md                 the index: what the project is, and the five parts
 │   ├── quickstart.md             from nothing to a first working result
 │   ├── concepts/                 README.md, then one page per idea, each with a diagram
-│   ├── api/                      README.md, then one page per function, class, or command
+│   ├── api/                      README.md, then one page per function, class, command, or endpoint
 │   ├── cookbook/                 README.md, then one page per task
 │   └── faq.md                    common questions and errors
 └── ja/                           the same pages, translated
@@ -155,7 +156,7 @@ console.log(cart.total, cart.discounts);
 | Tool | When it's needed |
 |---|---|
 | `python3` | Always, version 3.9 or later |
-| `gh` | Only to read your project's issues for FAQ material, signed in to GitHub, and only when you agree. Everything else works without it |
+| `gh` | Only to read your project's issues for FAQ material, in a public or private repository it can read, signed in to GitHub, and only when you agree. Everything else works without it |
 
 ## What it reads, runs, and sends
 
@@ -165,6 +166,7 @@ In short:
 - The agent reads your project's files, such as the README, the source code, the examples, and existing docs, to write the pages, and the script reads only the docs folder
 - It writes only inside the docs folder, and adds links to your README only when you agree. It never overwrites, moves, or deletes a file
 - It runs its own Python script, and runs your Quickstart and Cookbook commands to show their real output when they need nothing new installed. It asks before installing anything
+- For a web service, it sends those requests only to a copy your project starts on your machine, never to the hosted service. It never reads, copies, or writes a real API key, token, or password; the pages show a placeholder such as `YOUR_API_KEY` instead
 - With your agreement, it runs `gh issue list` and `gh issue view` on your project, which sends the repository's name to GitHub through your own `gh` sign-in
 - It reads the docs of projects you name to follow only with your agreement: the table of contents and up to five pages of each, through `gh api` for a GitHub repository, which sends its name to GitHub through your own `gh` sign-in, or with the agent's tool for reading web pages for another site. It takes only their structure, never copies their text, and records each project's name, address, and what was followed in the translation map
 - It keeps nothing outside your project. The pages and the translation map stay in your docs folder until you delete them
