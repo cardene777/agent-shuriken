@@ -2,6 +2,7 @@
 status: live
 checked: 2026-11-11
 source: ethereum/EIPs: the EIP-3529 document and EIP-8081 (the Hegotá meta EIP); ethereum/execution-specs: the London specification
+can: Transactions get no gas refund for SELFDESTRUCT and a smaller refund for clearing storage with SSTORE.
 ---
 
 # EIP-3529 (Smaller gas refunds)

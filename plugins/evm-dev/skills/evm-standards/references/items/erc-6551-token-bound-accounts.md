@@ -2,6 +2,7 @@
 status: specified
 checked: 2026-11-11
 source: ethereum/ERCs: the ERC-6551 document
+can: Every NFT can have its own account, so the NFT can own assets and use apps.
 ---
 
 # ERC-6551 (accounts owned by NFTs)

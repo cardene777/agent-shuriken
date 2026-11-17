@@ -2,6 +2,7 @@
 status: live
 checked: 2026-11-10
 source: ethereum/EIPs: the EIP-4788 document and EIP-7569 (the Dencun meta EIP)
+can: Contracts can read the parent beacon block root, so they can check facts about the consensus layer against it with proofs.
 ---
 
 # EIP-4788 (Beacon block root readable from the EVM)

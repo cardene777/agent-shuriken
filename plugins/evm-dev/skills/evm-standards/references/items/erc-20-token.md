@@ -2,6 +2,7 @@
 status: specified
 checked: 2026-11-11
 source: ethereum/ERCs: the ERC-20 document; OpenZeppelin/openzeppelin-contracts: the changelog
+can: Tokens can be transferred, hold balances, and give allowances to other addresses through one common interface.
 ---
 
 # ERC-20 (fungible tokens)

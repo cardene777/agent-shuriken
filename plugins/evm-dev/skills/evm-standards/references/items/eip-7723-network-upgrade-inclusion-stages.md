@@ -2,6 +2,7 @@
 status: specified
 checked: 2026-11-11
 source: ethereum/EIPs: the EIP-7723, EIP-7773 (the Glamsterdam meta EIP), and EIP-8081 (the Hegotá meta EIP) documents
+can: It tells which stage an EIP has reached on its way into a network upgrade.
 ---
 
 # EIP-7723 (The stages an EIP passes through to enter a network upgrade)

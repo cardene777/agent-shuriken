@@ -2,6 +2,7 @@
 status: specified
 checked: 2026-11-11
 source: ethereum/EIPs: the EIP-6493 document
+can: Wallets can sign transactions represented in SSZ, the serialization format of the consensus layer, with one defined scheme.
 ---
 
 # EIP-6493 (Signature scheme for SSZ transactions)

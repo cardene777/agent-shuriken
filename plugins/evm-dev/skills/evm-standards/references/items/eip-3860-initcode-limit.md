@@ -2,6 +2,7 @@
 status: live
 checked: 2026-11-11
 source: ethereum/EIPs: the EIP-3860 document, EIP-7568 (the meta EIP covering upgrades up to Shapella), and EIP-7773 (the Glamsterdam meta EIP); ethereum/execution-specs: the Shanghai specification
+can: Contract creation code (initcode) is limited in size and charged gas according to its size.
 ---
 
 # EIP-3860 (Size limit and gas for contract creation code)

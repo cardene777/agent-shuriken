@@ -10,7 +10,7 @@ EIPがネットワークの更新で入り、広く呼ばれている「ERC」�
 
 | スキル | すること |
 |---|---|
-| `evm-standards` | ERCが確定したか、EIPが動いているか、コントラクトとウォレットで何ができるようになるかを、ERCとEIPの41の項目から答えます |
+| `evm-standards` | ERCが確定したか、EIPが動いているか、コントラクトとウォレットで何ができるようになるかを、ERCとEIPの41の項目から答えます。できることから規格を探し、答えに出す規格にメンテナーのbitsumiの記事が在ればリンクを添えます |
 | `solidity-code` | FoundryとHardhatのプロジェクトで、プロジェクトが使うsolcとOpenZeppelinとforge-stdとFoundryとHardhatの版に合わせてコントラクトを書き、古い書き方を探してからビルドとテストを回します |
 | `contract-tests` | FoundryかHardhatのプロジェクトで、コントラクトごとに確かめる点を挙げてから、単体とfuzzとinvariantのテストを書きます。kiwaが入っていればkiwaに書かせます。どのテストも触れていない点を名指し、テストを回します |
 | `contract-deploy` | 鍵に触れないFoundryとHardhat Ignitionの配る命令を書き、プロジェクトが鍵を危なく扱う所を全て名指し、本番のチェーンはハードウェアの財布、テストのチェーンは暗号化した鍵の保管で署名する命令を渡し、配った後にチェーンごとの出したアドレスを記録して確かめます |
@@ -65,6 +65,7 @@ gemini skills install https://github.com/cardene777/agent-shuriken.git --path pl
 
 `evm-standards`は、規格の状態を尋ねると始まります。
 例えば「EIP-7702はメインネットで動いている?」や「ERC-7281を確定した規格として書いてよい?」と尋ねます。
+「パスキーの署名をコントラクトで検証できる規格は?」のように、できることから規格を尋ねても始まります。
 `solidity-code`は、コントラクトを書くか変えるよう頼むと始まります。
 例えば「このFoundryのプロジェクトに、止められるERC-20のトークンを足して」と頼みます。
 `contract-tests`は、コントラクトのテストを頼むと始まります。
@@ -110,6 +111,21 @@ ok     announced  2026-11-10 erc-7281-xerc20
 Yes. EIP-7951 adds a P256VERIFY precompile at 0x100 that costs 6900 gas.
 It went live on mainnet with the Fusaka upgrade on 2025-12-03.
 Status: live, checked 2026-11-11, source: the EIP-7951 document and EIP-7607 (the Fusaka meta EIP).
+```
+
+### できることから規格を探す
+
+1. エージェントが、したいことを表す語を英語とあなたの言語で並べ、項目とメンテナーのbitsumiの記事から探します
+2. エージェントが、当たった規格を、項目か公式の文書で確かめた状態を添えて答えます
+3. 答えに出す規格にbitsumiの記事が在る時は、エージェントがその題とリンクを添えます
+
+探した結果は次のように出ます。
+
+```text
+item eip-7951-secp256r1-precompile live 2026-11-11 3 Contracts can cheaply verify P-256 (secp256r1) signatures, such as passkey, WebAuthn, Secure Enclave, and Android Keystore signatures, with P256VERIFY at 0x100.
+items: 1 matched
+article EIP7951 https://cardene.dev/articles/a55db75ffbc68801d968 3 secp256r1プリコンパイルでApple Secure EnclaveやPasskeyをEthereumに繋ぐ仕組みを理解しよう！ | EIP7951は、0x100番地にP256VERIFYプリコンパイルを追加します。
+articles: 1 matched of 642 in https://cardene.dev/llms.txt, read 2026-11-17
 ```
 
 ### コントラクトを書く
@@ -384,6 +400,7 @@ financial-standards: 2 problems; fill in or add each section named above
 | Node.jsとプロジェクトの`@openzeppelin/upgrades-core` | 無くても動きます。両方が在る時は、`release-check`がOpenZeppelinの更新の検査も回します |
 | kiwaのプラグイン | 無くても動きます。スキルが入っている時は、`contract-tests`がkiwaにテストを書かせます |
 | エージェントのWebへの接続 | 古い項目を確かめ直す時。無い時は、項目から答えて確かめられなかったと伝えます |
+| `cardene.dev`への接続 | bitsumiの記事のリンクを添える時。無い時は、`evm-standards`は項目だけから探し、記事の一覧を読めなかったと伝えます |
 
 ## 読む物、動かす物、送る物
 
@@ -392,6 +409,7 @@ financial-standards: 2 problems; fill in or add each section named above
 
 - プラグインに同梱した項目を読みます
 - `evm-standards`は`evm-standards.sh list`を動かし、項目を読んで1件1行で出します
+- `evm-standards`は`find`と`article`で`standards.py`を動かし、項目と、bitsumiの記事の一覧のhttps://cardene.dev/llms.txtを読みます。一覧は決まったアドレスへの素の要求で取るため、質問の語は送りません。一覧は`~/.local/share/evm-dev/`(`EVM_DEV_HOME`で替えられます)に、あなただけが読める形で1日の間残し、出すのは記事の題と説明と`https://cardene.dev/articles/`のリンクだけです
 - `solidity-code`は`solidity-code.py`を動かし、プロジェクトの設定のファイルとライブラリの`package.json`から版を読み、探す時はプロジェクトのソースのファイルを読みます。`.env`のファイルと依存とビルドの出力は読まず、行の中身を出しません
 - `solidity-code`は頼まれたコントラクトだけを書き、プロジェクトのビルドとテストを動かします
 - `contract-tests`は`contract-tests.py`を動かし、プロジェクトの設定のファイルとコントラクトとテストを読みます。出すのは種類と名前と`file:line`だけで、コントラクトとテストの中身は出しません。書くのはテストのファイルだけで、コントラクトは変えず、`.env`のファイルと依存とビルドの出力は読みません
@@ -405,7 +423,7 @@ financial-standards: 2 problems; fill in or add each section named above
 - `dapp-architecture`は`dapp-architecture.py`を動かし、項目と、書いた設計書を読みます。設計書を確かめる時は節の名前だけを出します。書くのは設計書だけで、`.env`のファイルと鍵は読みません
 - `financial-standards`は`financial-standards.py`を動かし、項目と、書いた設計書を読みます。設計書を確かめる時は節の名前だけを出します。書くのは設計書だけで、`.env`のファイルと鍵は読みません
 - 古い項目を確かめ直す時は、規格の番号か名前、または道具かサービスの名前と版だけでWebを検索し、公式の文書を開きます
-- 項目を書き換えず、何も残しません
+- 項目を書き換えず、記事の一覧の写しのほかは何も残しません
 
 ## ライセンス
 

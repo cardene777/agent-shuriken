@@ -2,6 +2,7 @@
 status: live
 checked: 2026-11-11
 source: ethereum/EIPs: the EIP-7516 and EIP-7569 (the Dencun meta EIP) documents
+can: Contracts can read the blob base fee of the current block with the BLOBBASEFEE opcode.
 ---
 
 # EIP-7516 (BLOBBASEFEE, an opcode that reads the blob base fee)

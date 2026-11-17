@@ -2,6 +2,7 @@
 status: specified
 checked: 2026-11-16
 source: ethereum/ERCs: the ERC-7631 document; Guardian: the results of its DN404 audit
+can: An ERC-20 contract and an ERC-721 contract can be linked so that operations on one side are mirrored on the other.
 ---
 
 # ERC-7631 (a fungible token paired with an NFT)

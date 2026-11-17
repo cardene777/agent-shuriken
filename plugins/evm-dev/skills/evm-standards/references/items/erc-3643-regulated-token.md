@@ -2,6 +2,7 @@
 status: specified
 checked: 2026-11-11
 source: ethereum/ERCs: the ERC-3643 document
+can: Security tokens can move only between investors who have completed identity verification.
 ---
 
 # ERC-3643 (regulated security tokens, T-REX)

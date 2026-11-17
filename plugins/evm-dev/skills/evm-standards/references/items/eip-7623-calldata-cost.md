@@ -2,6 +2,7 @@
 status: live
 checked: 2026-11-11
 source: ethereum/EIPs: the EIP-7623, EIP-7600 (the Pectra meta EIP), and EIP-7773 (the Glamsterdam meta EIP) documents
+can: Transactions that mainly carry calldata pay a higher floor price for it, while other transactions pay as before.
 ---
 
 # EIP-7623 (Raise the calldata cost of transactions that mainly carry data)

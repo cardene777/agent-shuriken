@@ -2,6 +2,7 @@
 status: specified
 checked: 2026-11-11
 source: ethereum/EIPs: the EIP-7610 document
+can: Contract creation fails at an address that already has storage, so a new contract never starts with old storage.
 ---
 
 # EIP-7610 (Make contract creation fail at an address that has storage)

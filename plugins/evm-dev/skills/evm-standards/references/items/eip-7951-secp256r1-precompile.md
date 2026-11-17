@@ -2,6 +2,7 @@
 status: live
 checked: 2026-11-11
 source: ethereum/EIPs: the EIP-7951 and EIP-7607 (the Fusaka meta EIP) documents
+can: Contracts can cheaply verify P-256 (secp256r1) signatures, such as passkey, WebAuthn, Secure Enclave, and Android Keystore signatures, with P256VERIFY at 0x100.
 ---
 
 # EIP-7951 (A precompile that verifies secp256r1 signatures)

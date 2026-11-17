@@ -2,6 +2,7 @@
 status: live
 checked: 2026-11-11
 source: ethereum/EIPs: the EIP-4844, EIP-7594, EIP-7691, EIP-7892, and EIP-7918 documents, plus EIP-7569 (the Dencun meta EIP) and EIP-7607 (the Fusaka meta EIP); ethereum/consensus-specs: the mainnet configuration and the Deneb and Fulu p2p specifications; the Ethereum Foundation summary of the KZG ceremony
+can: Rollups can post their data in cheap blobs that the EVM cannot read, paying a separate blob fee.
 ---
 
 # EIP-4844 (Transactions that carry blobs)

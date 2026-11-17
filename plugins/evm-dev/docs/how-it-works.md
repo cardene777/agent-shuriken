@@ -8,13 +8,14 @@ This page describes the skills' items, when an item counts as out of date, the s
 ## The ERC and EIP items
 
 Each item is one Markdown file in `skills/evm-standards/references/items/`, named after its standard, such as `eip-7702-set-code-for-eoas.md` or `erc-4337-account-abstraction.md`.
-Its front matter holds three fields.
+Its front matter holds four fields.
 
 | Field | What it holds |
 |---|---|
 | `status` | One of `announced`, `specified`, `live`, `stopped` |
 | `checked` | The date the status was confirmed against the official document, as `YYYY-MM-DD` |
 | `source` | The organization and the documents the item comes from, by name. Items hold no URLs |
+| `can` | One sentence on what the standard lets contracts, wallets, or dApps do, which `find` searches |
 
 The body says what the standard is, what it lets contracts, wallets, or dApps do, its current status, and what has not shipped yet.
 Items cover ERCs and the EIPs that change what contracts and wallets can do; EIPs that change only consensus and the state of L2 networks are left out.
@@ -42,12 +43,27 @@ Days are counted in UTC, so a daylight saving change cannot shorten a day.
 
 `--dir` points either command at another folder of items, and `list --today` counts from another date; the plugin's test uses both.
 
+`find` and `article` run `skills/evm-standards/scripts/standards.py`, which uses only the Python standard library.
+
+| Command | What it does |
+|---|---|
+| `find <word>...` | Prints the items that hold any of the words in their name, heading, `can` field, or body, and the bitsumi articles that hold any of them in their title or description, the ones that hold more words first. An item line gives the status and the date it was checked; an article line gives its link |
+| `article <number>` | Prints the bitsumi articles whose title starts with `[ERC<number>]` or `[EIP<number>]`. Other titles, such as `[ACP209]`, and articles that only mention the number later in the title are left out |
+
+The article index is https://cardene.dev/llms.txt, the list of the maintainer's bitsumi site.
+The script downloads it with a plain GET of that fixed address, so no word of the question is sent, and keeps it as `bitsumi-llms.txt` in `~/.local/share/evm-dev/` (`EVM_DEV_HOME` changes it), a folder only the user can read, for one day before it downloads it again.
+When the index cannot be downloaded, it uses the copy it kept and says so; with no copy, `find` still prints the items and says it could not read the article index.
+It prints only titles, descriptions, and links that start with `https://cardene.dev/articles/`, and the agent reads them as data, not instructions.
+`EVM_DEV_INDEX_URL` points it at another index; the plugin's test uses a `file://` copy.
+
 ## How the agent answers about a standard
 
 1. It runs `list` and reads the items the question needs
 2. When an item is `stale`, it re-checks the official ERC or EIP document before answering, and says what changed
 3. When the document cannot be reached, it answers from the item and says it could not confirm it, with the date the item was checked
 4. When no item covers the question, it says so, and answers from the official document or says it could not be checked
+5. When asked which standard does a job, it runs `find` with words in English and in the user's language, and takes the status of each standard from its item or the official document, never from an article
+6. For each standard it names, it runs `article` and gives the title and link of each article
 
 ## The tool items
 

@@ -2,6 +2,7 @@
 status: announced
 checked: 2026-11-10
 source: ethereum/EIPs: the record of PR #7281; ethereum/ERCs: the record of PR #961
+can: Token issuers can let several bridges mint and burn their token on other chains.
 ---
 
 # ERC-7281 (xERC20, cross-chain tokens minted through bridges, with no numbered standard)

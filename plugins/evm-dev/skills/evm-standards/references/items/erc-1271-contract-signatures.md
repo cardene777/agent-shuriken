@@ -2,6 +2,7 @@
 status: specified
 checked: 2026-11-11
 source: ethereum/ERCs: the ERC-1271 and ERC-7739 documents; Alchemy: the disclosure of the ERC-1271 signature replay weakness
+can: Contracts such as smart accounts and multisigs can say whether a signature is valid for them, so apps can accept signatures from contract accounts.
 ---
 
 # ERC-1271 (validating signatures from contracts)

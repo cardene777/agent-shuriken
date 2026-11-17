@@ -2,6 +2,7 @@
 status: specified
 checked: 2026-11-11
 source: ethereum/EIPs: the EIP-7523 document
+can: Contracts and clients can assume that a post-merge network holds no empty accounts.
 ---
 
 # EIP-7523 (Declare that there are no empty accounts)

@@ -2,6 +2,7 @@
 status: specified
 checked: 2026-11-10
 source: ethereum/EIPs: the EIP-7692 (EOFv1 meta), EIP-7607 (Fusaka meta), and EIP-7773 (Glamsterdam meta) documents
+can: Contract code can use a container format that is validated at deployment, with reworked jumps and functions (EOF).
 ---
 
 # EIP-7692 (EOF, a reworked format for EVM code)

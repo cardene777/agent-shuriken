@@ -2,6 +2,7 @@
 status: live
 checked: 2026-11-11
 source: ethereum/EIPs: the EIP-1153 document and EIP-7569 (the Dencun meta EIP)
+can: Contracts can read and write values with TSTORE and TLOAD that are discarded when the transaction ends, without the cost of permanent storage.
 ---
 
 # EIP-1153 (Storage that lasts only for one transaction)

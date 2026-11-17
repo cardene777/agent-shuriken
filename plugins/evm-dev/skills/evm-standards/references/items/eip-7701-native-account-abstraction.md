@@ -2,6 +2,7 @@
 status: specified
 checked: 2026-11-11
 source: ethereum/RIPs: the RIP-7560 document; ethereum/ERCs: the ERC-7562 document; ethereum/EIPs: the EIP-7701, EIP-8141, and EIP-8081 (Hegotá meta) documents
+can: Accounts could have their validation and gas payment handled by the protocol as a transaction type, instead of through ERC-4337.
 ---
 
 # EIP-7701 (native account abstraction in the protocol)
