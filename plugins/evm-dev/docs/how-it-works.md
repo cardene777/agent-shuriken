@@ -2,7 +2,7 @@
 
 English · [日本語](how-it-works.ja.md)
 
-The plugin has eight skills. `evm-standards` answers questions about ERCs and EIPs from items bundled with it, `solidity-code` writes Solidity for the versions a project uses from items about its tools, `contract-tests` writes tests for a project's contracts from items about its test tools, `contract-design` writes a design for a set of contracts from items about the libraries and services they rely on, `wallet-design` writes a design for an app's wallets and signing from items about accounts, permissions, approvals, gas sponsorship, and payments, `multichain-design` writes a design for an app on more than one chain from items about deployment tools, bridges, message protocols, and token standards, `dapp-architecture` writes a design for how a dApp's parts fit together from items about the services it may use, and `financial-standards` writes a design for an app built on financial standards from items about their versions.
+The plugin has nine skills. `evm-standards` answers questions about ERCs and EIPs from items bundled with it, `solidity-code` writes Solidity for the versions a project uses from items about its tools, `contract-tests` writes tests for a project's contracts from items about its test tools, `contract-deploy` writes deploy scripts, checks how a project handles keys, and records what was deployed, from items about keystores, hardware wallets, deployment files, and verification, `contract-design` writes a design for a set of contracts from items about the libraries and services they rely on, `wallet-design` writes a design for an app's wallets and signing from items about accounts, permissions, approvals, gas sponsorship, and payments, `multichain-design` writes a design for an app on more than one chain from items about deployment tools, bridges, message protocols, and token standards, `dapp-architecture` writes a design for how a dApp's parts fit together from items about the services it may use, and `financial-standards` writes a design for an app built on financial standards from items about their versions.
 This page describes the skills' items, when an item counts as out of date, the scripts, and what the agent may do with them.
 
 ## The ERC and EIP items
@@ -124,6 +124,65 @@ Both commands print only kinds, names, and `file:line`, never the text of a cont
 3. When the kiwa-design and kiwa-forge skills (kiwa-hardhat for Hardhat) are available, it gives the points to kiwa-design and has kiwa write the tests, without writing test files itself. Otherwise it writes unit, fuzz, and invariant tests with forge, or with the Hardhat runner the project uses
 4. It runs `uncovered` and adds tests until no point is left, or tells the user which stay uncovered and why
 5. It runs the project's tests and the `solidity-code` scan, and says so when the tests cannot run. When a test shows a bug, it reports the bug and leaves the contract as it was
+
+## The deployment items
+
+`contract-deploy` keeps its items in `skills/contract-deploy/references/items/`, one Markdown file per tool, file format, or service, such as `foundry-keystore.md` or `foundry-broadcast.md`.
+Its front matter holds the same four fields as the dApp service items, with these topics.
+
+| Field | What it holds |
+|---|---|
+| `topic` | One of `keys`, `records`, `verification` |
+| `subject` | The tool, file format, or service the item is about, such as `Foundry encrypted keystores (cast wallet import and --account)` |
+| `checked` | The date the item was confirmed against the official source, as `YYYY-MM-DD` |
+| `source` | The organization and the documents the item comes from, by name. Items hold no URLs |
+
+The body says how the tool, file, or service worked when it was checked, and what a deployment must respect.
+A deployment item counts as out of date 90 days after it was checked.
+
+## The contract-deploy script
+
+`skills/contract-deploy/scripts/contract-deploy.py` runs on Python 3 with its standard library only, and asks `git` about `.env` files when the project is a git repository.
+
+| Command | What it does |
+|---|---|
+| `check` | Checks that every item has its four fields, a known topic, and a real date. It names each item that does not and exits 1 |
+| `list` | Prints one line per item: `ok` or `stale`, the topic, the date it was checked, its name, and its subject, then a count |
+| `keys <folder>` | Names each place the project handles a key unsafely, one line per finding with its kind and `file:line`, and exits 1 when there is one |
+| `record <folder>` | Prints each deployed contract and each transaction to look at, from Foundry's broadcast files and Hardhat Ignition's journals. With `--write` it also writes `deployments/<chain id>.json`. It exits 1 when a transaction needs a look |
+
+`keys` reports four kinds.
+
+| Kind | What it means |
+|---|---|
+| `env-key` | A private key or mnemonic read from an environment variable (`vm.envUint` and the other `vm.env` calls, `process.env`, `$NAME` in shell and Make), or from a Hardhat 2 configuration variable, which is stored in plain text |
+| `key-flag` | A command that passes `--private-key`, `--private-keys`, `--mnemonic`, `--mnemonics`, or `--password` |
+| `key-literal` | 64 hex digits, or a quoted phrase of 12 to 24 lowercase words, on a line that speaks of a key, a mnemonic, a seed, accounts, or broadcasting |
+| `env-file` | A file whose name starts with `.env`, other than `.env.example`, `.env.sample`, and `.env.template`, that git tracks or does not ignore |
+
+`keys` reads Solidity, JavaScript, TypeScript, shell scripts, Makefiles, justfiles, `package.json`, and TOML and YAML files, and leaves out comments except for `key-literal`, since a key in a comment is still in the file.
+It never opens a file whose name starts with `.env`, and never reads dependencies, build output, `broadcast/`, `deployments/`, Foundry's `cache/`, or hidden folders.
+
+`record` reads `broadcast/<script>/<chain id>/run-latest.json`, leaving out the `dry-run/` folders, and `ignition/deployments/<deployment id>/journal.jsonl`.
+It prints these lines.
+
+| Line | What it means |
+|---|---|
+| `contract` | A contract that went on chain: the chain, its name, address, transaction, block, the account that sent it, and the source (`foundry:<script>` or `ignition:<deployment id>`) |
+| `failed` | A transaction whose receipt says it reverted |
+| `pending` | A transaction that was sent but has no receipt |
+| `mismatch` | A transaction recorded as creating a contract whose receipt does not show that contract being created |
+
+A record file holds `format` (1), `chainId`, `contracts` (name, address, tx, block, deployer, source, commit), and `problems` (kind, name, tx, source).
+It is rebuilt from the files each time, and the commit comes from Foundry's run file or is `null`.
+
+## How the agent deploys
+
+1. It reads the project's versions through `solidity-code`, runs `list`, and re-checks the items marked `stale`; for the status of an ERC or EIP the contracts rely on, it uses `evm-standards`
+2. It asks which chains to deploy to, which of them are production chains, and who should own each contract
+3. It writes a Foundry script that calls `vm.startBroadcast()` with no argument, or an Ignition module with every key behind `configVariable`, then runs `keys`, fixes each finding in what it wrote, and names the others to the user
+4. It simulates the deployment, then gives the user the command for each chain: `--ledger` or `--trezor` with `--slow` on a production chain, and an encrypted keystore (`cast wallet import` and `--account`, or the Hardhat 3 keystore) on a test chain. The user runs it
+5. It runs `record --write`, follows up each `failed`, `pending`, or `mismatch` line, checks each address with `cast code`, and verifies the source with `forge verify-contract` or `ignition verify` once the user agrees
 
 ## The contract design items
 
@@ -321,6 +380,7 @@ The checklist holds the rules a design must never break: nothing private on chai
 - It searches only with a standard's number or name, or a tool's or service's name and version, and sends nothing about your project
 - It never writes a private key or a mnemonic into a file, and refuses a command that passes a key
 - `contract-tests` never changes a contract to make a test pass, and writes only test files
+- `contract-deploy` never reads a key, a mnemonic, or a password, never signs or broadcasts, refuses a command that passes `--private-key`, `--mnemonic`, or `--password`, never reads Foundry's `cache/`, and verifies source code only after the user agrees
 - `contract-design` never reads a key, never signs, and writes no Solidity, tests, or deployment scripts
 - `wallet-design` never reads a key, never signs, refuses a command that passes a key, and writes no Solidity, wallet code, tests, or deployment scripts
 - `multichain-design` never reads a key, never signs, refuses a command that passes a key, and writes no Solidity, bridge code, tests, or deployment scripts

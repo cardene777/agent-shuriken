@@ -2,8 +2,8 @@
 
 [English](how-it-works.md) · 日本語
 
-このプラグインは8つのスキルを持ちます。
-`evm-standards`は同梱の項目からERCとEIPについての質問に答え、`solidity-code`は道具についての項目から、プロジェクトが使う版に合わせてSolidityを書き、`contract-tests`はテストの道具についての項目から、プロジェクトのコントラクトのテストを書き、`contract-design`は頼るライブラリとサービスについての項目から、コントラクトの設計書を書き、`wallet-design`はアカウントと許可と承認とガス代の肩代わりと支払いについての項目から、アプリのウォレットと署名の設計書を書き、`multichain-design`は展開の道具とブリッジとメッセージのプロトコルとトークンの規格についての項目から、複数のチェーンにまたがるアプリの設計書を書き、`dapp-architecture`は使うかもしれないサービスについての項目から、dAppの部品の組み方の設計書を書き、`financial-standards`は金融の規格の版についての項目から、その規格を使うアプリの設計書を書きます。
+このプラグインは9つのスキルを持ちます。
+`evm-standards`は同梱の項目からERCとEIPについての質問に答え、`solidity-code`は道具についての項目から、プロジェクトが使う版に合わせてSolidityを書き、`contract-tests`はテストの道具についての項目から、プロジェクトのコントラクトのテストを書き、`contract-deploy`は鍵の保管とハードウェアの財布と配った記録と検証についての項目から、配る命令を書き、プロジェクトの鍵の扱いを確かめ、出した物を記録し、`contract-design`は頼るライブラリとサービスについての項目から、コントラクトの設計書を書き、`wallet-design`はアカウントと許可と承認とガス代の肩代わりと支払いについての項目から、アプリのウォレットと署名の設計書を書き、`multichain-design`は展開の道具とブリッジとメッセージのプロトコルとトークンの規格についての項目から、複数のチェーンにまたがるアプリの設計書を書き、`dapp-architecture`は使うかもしれないサービスについての項目から、dAppの部品の組み方の設計書を書き、`financial-standards`は金融の規格の版についての項目から、その規格を使うアプリの設計書を書きます。
 この頁は、スキルの項目と、項目を古いと見る時期と、スクリプトと、エージェントが項目をどう扱うかを書きます。
 
 ## ERCとEIPの項目
@@ -131,6 +131,67 @@ Foundry 1.0が`testFail`を外したことのような、Solidityの書き方に
 3. kiwa-designとkiwa-forge(Hardhatではkiwa-hardhat)のスキルが使える時は、点をkiwa-designに渡してkiwaにテストを書かせ、自分ではテストのファイルを書きません。使えない時は、forgeか、プロジェクトが使うHardhatのテストの道具で、単体とfuzzとinvariantのテストを書きます
 4. `uncovered`を動かし、残る点が無くなるまでテストを足します。残す点がある時は、どれをなぜ残すかを利用者に伝えます
 5. プロジェクトのテストと`solidity-code`の探しを動かし、テストを回せない時はそう伝えます。テストが不具合を示した時は、コントラクトを変えずに不具合を伝えます
+
+## 配ることの項目
+
+`contract-deploy`は`skills/contract-deploy/references/items/`に、道具かファイルの形かサービスごとに1つのMarkdownのファイルで項目を持ちます。
+例えば`foundry-keystore.md`や`foundry-broadcast.md`です。
+前書きは、dAppのサービスの項目と同じ4つの欄を持ち、話題は次のどれかです。
+
+| 欄 | 持つ物 |
+|---|---|
+| `topic` | `keys`、`records`、`verification`のどれか |
+| `subject` | 項目が扱う道具かファイルの形かサービス。例えば`Foundry encrypted keystores (cast wallet import and --account)` |
+| `checked` | 公式の情報で確かめた日。`YYYY-MM-DD`で書きます |
+| `source` | 項目のもとにした組織と文書の名前。項目はURLを持ちません |
+
+本文は、確かめた時に道具やファイルやサービスがどう動いたかと、配る時に守ることを書きます。
+配ることの項目は、確かめてから90日を過ぎると古いと見ます。
+
+## contract-deployのスクリプト
+
+`skills/contract-deploy/scripts/contract-deploy.py`は、Python 3の標準ライブラリだけで動き、プロジェクトがgitのリポジトリの時は`.env`のファイルについて`git`に尋ねます。
+
+| 命令 | すること |
+|---|---|
+| `check` | どの項目も4つの欄と、知っている話題と、実在する日付を持つかを確かめます。持たない項目を名指して1で終わります |
+| `list` | 項目ごとに1行を出します。`ok`か`stale`、話題、確かめた日、名前、扱う物の順で、最後に数を出します |
+| `keys <folder>` | プロジェクトが鍵を危なく扱う所を、種類と`file:line`で1件1行で名指し、1件でもあれば1で終わります |
+| `record <folder>` | Foundryのbroadcastのファイルと、Hardhat Ignitionのjournalから、配ったコントラクトと見るべき取引を出します。`--write`を付けると`deployments/<chain id>.json`も書きます。見るべき取引があれば1で終わります |
+
+`keys`は4つの種類を出します。
+
+| 種類 | 意味 |
+|---|---|
+| `env-key` | 環境変数から読む秘密鍵かニーモニック(`vm.envUint`などの`vm.env`の呼び出し、`process.env`、shellとMakeの`$NAME`)、またはHardhat 2の設定の変数から読む物。Hardhat 2の設定の変数は暗号化されずに保存されます |
+| `key-flag` | `--private-key`、`--private-keys`、`--mnemonic`、`--mnemonics`、`--password`を渡す命令 |
+| `key-literal` | 鍵、ニーモニック、種、アカウント、取引の送信について書いた行にある、64桁の16進か、引用符で囲んだ12語から24語の小文字の語の並び |
+| `env-file` | 名前が`.env`で始まるファイルのうち、gitが追跡しているか無視していない物。`.env.example`と`.env.sample`と`.env.template`は除きます |
+
+`keys`は、Solidity、JavaScript、TypeScript、shellのスクリプト、Makefile、justfile、`package.json`、TOMLとYAMLのファイルを読み、コメントを除いて調べます。
+ただし`key-literal`はコメントも調べます。コメントに書いた鍵もファイルの中に在るからです。
+名前が`.env`で始まるファイルは開かず、依存、ビルドの出力、`broadcast/`、`deployments/`、Foundryの`cache/`、隠しフォルダは読みません。
+
+`record`は、`dry-run/`のフォルダを除いた`broadcast/<script>/<chain id>/run-latest.json`と、`ignition/deployments/<deployment id>/journal.jsonl`を読みます。
+出す行は次のとおりです。
+
+| 行 | 意味 |
+|---|---|
+| `contract` | チェーンに載ったコントラクト。チェーン、名前、アドレス、取引、ブロック、送った口座、出どころ(`foundry:<script>`か`ignition:<deployment id>`)を出します |
+| `failed` | 受け取りが失敗を示す取引 |
+| `pending` | 送ったが受け取りの無い取引 |
+| `mismatch` | コントラクトを作ったと記録されているのに、受け取りがそのコントラクトを作ったことを示さない取引 |
+
+記録のファイルは、`format`(1)、`chainId`、`contracts`(name、address、tx、block、deployer、source、commit)、`problems`(kind、name、tx、source)を持ちます。
+毎回ファイルから作り直し、commitはFoundryの記録から取り、無い時は`null`にします。
+
+## エージェントの配り方
+
+1. `solidity-code`でプロジェクトの版を読み、`list`を動かし、`stale`の印の項目を確かめ直します。コントラクトが頼るERCやEIPの状態は`evm-standards`で確かめます
+2. どのチェーンに配るか、そのうちどれが本番のチェーンか、各コントラクトの持ち主を誰にするかを尋ねます
+3. `vm.startBroadcast()`を引数なしで呼ぶFoundryのスクリプトか、全ての鍵を`configVariable`の後ろに置くIgnitionのmoduleを書き、`keys`を動かして、書いた物の指摘を直し、ほかの指摘は本人に名指します
+4. 配る前に模擬実行し、チェーンごとの命令を本人に渡します。本番のチェーンは`--ledger`か`--trezor`と`--slow`、テストのチェーンは暗号化した鍵の保管(`cast wallet import`と`--account`、またはHardhat 3のkeystore)です。命令は本人が打ちます
+5. `record --write`を動かし、`failed`と`pending`と`mismatch`の行を1つずつ調べ、各アドレスを`cast code`で確かめ、本人が同意すれば`forge verify-contract`か`ignition verify`でソースを検証します
 
 ## コントラクトの設計の項目
 
@@ -340,6 +401,7 @@ Foundry 1.0が`testFail`を外したことのような、Solidityの書き方に
 - 検索には規格の番号か名前、または道具かサービスの名前と版だけを使い、あなたのプロジェクトについては何も送りません
 - 秘密鍵とニーモニックをファイルに書かず、鍵を渡す命令を断ります
 - `contract-tests`はテストを通すためにコントラクトを変えず、書くのはテストのファイルだけです
+- `contract-deploy`は鍵とニーモニックとpasswordを読まず、署名も取引の送信もせず、`--private-key`か`--mnemonic`か`--password`を渡す命令を断り、Foundryの`cache/`を読まず、本人が同意した時だけソースを検証します
 - `contract-design`は鍵を読まず、署名せず、Solidityとテストと配る命令を書きません
 - `wallet-design`は鍵を読まず、署名せず、鍵を渡す命令を断り、Solidityとウォレットのコードとテストと配る命令を書きません
 - `multichain-design`は鍵を読まず、署名せず、鍵を渡す命令を断り、Solidityとブリッジのコードとテストと配る命令を書きません

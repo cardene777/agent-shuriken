@@ -1,6 +1,6 @@
 # EVM Dev
 
-Know whether an ERC is final or an EIP is live on Ethereum mainnet, design contracts, wallets, and apps across chains, write Solidity and its tests for the versions your project uses, plan a dApp's architecture, and design apps built on financial standards such as ISO 20022 and FIX, from items checked against the official documents instead of what the agent remembers.
+Know whether an ERC is final or an EIP is live on Ethereum mainnet, design contracts, wallets, and apps across chains, write Solidity and its tests for the versions your project uses, deploy contracts while the key stays with you, plan a dApp's architecture, and design apps built on financial standards such as ISO 20022 and FIX, from items checked against the official documents instead of what the agent remembers.
 
 English · [日本語](README.ja.md)
 
@@ -12,6 +12,7 @@ This plugin ships dated items on all of them, each with the date it was checked 
 | `evm-standards` | Answers whether an ERC is final or an EIP is live, and what it lets contracts and wallets do, from 41 items on ERCs and EIPs |
 | `solidity-code` | Writes and changes contracts in Foundry and Hardhat projects for the solc, OpenZeppelin, forge-std, Foundry, and Hardhat versions the project uses, then scans the code for outdated patterns and builds and tests it |
 | `contract-tests` | Writes unit, fuzz, and invariant tests for a project's contracts in Foundry or Hardhat, or has kiwa write them when it is installed, from a list of what each contract needs tested, then names what no test covers and runs the tests |
+| `contract-deploy` | Writes Foundry and Hardhat Ignition deploy scripts that never touch keys, names every place a project handles a key unsafely, hands you the command to sign with a hardware wallet on production chains and an encrypted keystore on test chains, then records each chain's deployed addresses and checks them |
 | `contract-design` | Designs contracts before they are written: asks the decisions one at a time and writes one design document on how contracts are split, token standards, invariants, roles, upgrades, prices, transaction ordering, randomness, and external calls, then checks its sections and reviews it against a checklist |
 | `wallet-design` | Designs wallets and signing: asks the decisions one at a time and writes one design document on how keys are held and recovered, ERC-4337 and EIP-7702 accounts, signed permissions, approvals, who pays gas, and payments by AI agents, then checks its sections and reviews it against a checklist |
 | `multichain-design` | Designs apps that run on more than one chain: asks the decisions one at a time and writes one design document on same-address deployment, moving assets between chains, verifying cross-chain messages, and what happens when only one side completes, then checks its sections and reviews it against a checklist |
@@ -22,6 +23,7 @@ This plugin ships dated items on all of them, each with the date it was checked 
 evm-standards:  List the items ──> Read the ones asked about ──> Re-check stale ones ──> Answer with date and source
 solidity-code:  Read the project's versions ──> Read the items for them ──> Write ──> Scan, build, and test
 contract-tests:  Read the versions and items ──> List what needs a test ──> Write the tests, or have kiwa write them ──> Name what no test covers ──> Run the tests
+contract-deploy:  Read the versions and items ──> Write the deploy script ──> Check the key handling ──> Simulate, then the user broadcasts ──> Record and verify
 contract-design:  Read the items ──> Ask the decisions ──> Write the design ──> Verify the sections ──> Review against the checklist
 wallet-design:  Read the items ──> Ask the decisions ──> Write the design ──> Verify the sections ──> Review against the checklist
 multichain-design:  Read the items ──> Ask the decisions ──> Write the design ──> Verify the sections ──> Review against the checklist
@@ -44,6 +46,7 @@ copilot plugin install evm-dev@agent-shuriken
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/evm-standards   # Gemini CLI
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/solidity-code
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/contract-tests
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/contract-deploy
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/contract-design
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/wallet-design
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/multichain-design
@@ -58,13 +61,14 @@ In other agents that read `SKILL.md`, unzip the skill zip attached to each relea
 `evm-standards` starts when you ask about the status of a standard, for example "is EIP-7702 live on mainnet?" or "can I cite ERC-7281 as final?".
 `solidity-code` starts when you ask for a contract to be written or changed, for example "add a pausable ERC-20 token to this Foundry project".
 `contract-tests` starts when you ask for tests of a contract, for example "add tests for src/Vault.sol".
+`contract-deploy` starts when you ask for contracts to be deployed or a deployment to be recorded, for example "deploy src/Vault.sol to Sepolia and then Base" or "write down what my last forge script deployed".
 `contract-design` starts when you ask for contracts to be designed before they are written, for example "design the contracts of this token sale: the roles, the upgrades, and how prices are read".
 `wallet-design` starts when you ask for the wallets or the signing of an app to be designed, for example "should our users get ERC-4337 smart accounts or EIP-7702, and who pays their gas?".
 `multichain-design` starts when you ask for an app on more than one chain to be designed, for example "plan how our token moves between Ethereum and Base".
 `dapp-architecture` starts when you ask how a dApp should be put together, for example "plan the architecture of this marketplace: who pays the gas, how it reads chain data, and who holds the admin keys".
 `financial-standards` starts when you ask for a design built on a financial standard, for example "design how this project maps ISO 20022 payment messages onto a settlement contract".
-You can also call them: run `/evm-dev:evm-standards`, `/evm-dev:solidity-code`, `/evm-dev:contract-tests`, `/evm-dev:contract-design`, `/evm-dev:wallet-design`, `/evm-dev:multichain-design`, `/evm-dev:dapp-architecture`, or `/evm-dev:financial-standards` in Claude Code, or type `$` and pick **EVM Standards**, **Solidity Code**, **Contract Tests**, **Contract Design**, **Wallet Design**, **Multichain Design**, **dApp Architecture**, or **Financial Standards** in Codex.
-In GitHub Copilot CLI, write `/evm-standards`, `/solidity-code`, `/contract-tests`, `/contract-design`, `/wallet-design`, `/multichain-design`, `/dapp-architecture`, or `/financial-standards` in your request, and in Gemini CLI, describe the task.
+You can also call them: run `/evm-dev:evm-standards`, `/evm-dev:solidity-code`, `/evm-dev:contract-tests`, `/evm-dev:contract-deploy`, `/evm-dev:contract-design`, `/evm-dev:wallet-design`, `/evm-dev:multichain-design`, `/evm-dev:dapp-architecture`, or `/evm-dev:financial-standards` in Claude Code, or type `$` and pick **EVM Standards**, **Solidity Code**, **Contract Tests**, **Contract Deploy**, **Contract Design**, **Wallet Design**, **Multichain Design**, **dApp Architecture**, or **Financial Standards** in Codex.
+In GitHub Copilot CLI, write `/evm-standards`, `/solidity-code`, `/contract-tests`, `/contract-deploy`, `/contract-design`, `/wallet-design`, `/multichain-design`, `/dapp-architecture`, or `/financial-standards` in your request, and in Gemini CLI, describe the task.
 
 ### Check a standard
 
@@ -150,6 +154,34 @@ The check names the point, never the text of a test.
 uncovered invariant Vault src/Vault.sol:6
 uncovered access Vault.setPaused src/Vault.sol:48
 uncovered: 2 of 13 points have no test
+```
+
+### Deploy a contract
+
+1. The agent reads the project's versions and the items on keystores, hardware wallets, deployment files, and verification, and re-checks the ones that are out of date
+2. The agent writes a Foundry script that leaves the signer to the command line, or a Hardhat Ignition module that keeps each key behind `configVariable`
+3. The agent names every place the project handles a key unsafely: a key read from an environment variable, a command that passes `--private-key`, `--mnemonic`, or `--password`, a key written into a file, and a `.env` file that git tracks or does not ignore
+4. The agent simulates the deployment and hands you the command for each chain: a hardware wallet and `--slow` on a production chain, an encrypted keystore on a test chain. You run it and approve the signature; the agent never sees the key
+5. The agent records each chain's contracts in `deployments/<chain id>.json`, names each transaction that failed, has no receipt, or does not show the contract it should have created, checks that each address has code, and verifies the source once you agree
+
+The key check names the kind, the file, and the line, never the line itself.
+
+```text
+env-key Makefile:4
+key-flag Makefile:4
+keys: 2 findings in 6 files read; change each one to an encrypted keystore or a hardware wallet
+```
+
+The record lists what went on chain and each transaction to look at.
+
+```text
+contract 11155111 Vault 0x234b5a9f35e11c182d81e4e30682b5febcdcc060 tx 0xf12dfc147716ec611d7e1fcc9b6946dfa39421b2af650bba90390d065ee98891 block 7100001 from 0x7e5f4552091a69125d5dfcb7b8c2659029395bdf source foundry:DeployVault.s.sol
+contract 8453 Vault 0x1534aac5b2be5f3ce3502106a257c8bc7c1ac23d tx 0xc7eee6b4d5440a8a2d8e6ae851040e23774b242ef147706c0d3b0a83cdb6a747 block 38200001 from 0x7e5f4552091a69125d5dfcb7b8c2659029395bdf source foundry:DeployVault.s.sol
+failed 11155111 FeeRouter tx 0xd38e9b9179d8361ea428c5f90b987a1c93fa41744591b611441104ef40fd91b8 source foundry:DeployVault.s.sol
+pending 8453 Oracle tx 0xc716db5108b741d36dc98b163ef3864bab9ae80e0e6b33f4141ce4c7378dbbbe source foundry:DeployVault.s.sol
+wrote deployments/8453.json
+wrote deployments/11155111.json
+record: 2 contracts on 2 chains, 2 transactions to look at
 ```
 
 ### Design contracts
@@ -287,11 +319,12 @@ financial-standards: 2 problems; fill in or add each section named above
 | ERCs, such as ERC-20, ERC-1271, ERC-4337, ERC-6551, ERC-7683 | The state of L2 networks, which dedicated trackers follow |
 | EIPs that change what contracts and wallets can do: opcodes, precompiles, gas costs, transaction types, EIP-7702, native account abstraction | EIPs that change only consensus, such as validator rules |
 | How an EIP gets into a network upgrade (EIP-7723) | Choosing how a contract is upgraded, which `contract-design` covers |
-| Writing Solidity for the versions of solc, OpenZeppelin, forge-std, Foundry, and Hardhat a project uses | Deploying, and comparing storage layouts or ABIs before a release |
+| Writing Solidity for the versions of solc, OpenZeppelin, forge-std, Foundry, and Hardhat a project uses | Comparing storage layouts or ABIs before a release |
 | Writing unit, fuzz, and invariant tests for a project's contracts in Foundry or Hardhat, or having kiwa write them | Mutation testing, coverage targets, and tests of a dApp's screens, which kiwa covers |
-| Designing contracts before they are written: the split, token standards, invariants, roles, upgrades, prices, ordering, randomness, and external calls | Writing the contracts, their tests, or deployment scripts, which `solidity-code` and `contract-tests` cover |
+| Writing deploy scripts for Foundry and Hardhat Ignition, checking how a project handles keys, and recording and verifying what was deployed | Signing or broadcasting, holding keys, and proposing transactions to a multisig such as Safe |
+| Designing contracts before they are written: the split, token standards, invariants, roles, upgrades, prices, ordering, randomness, and external calls | Writing the contracts, their tests, or deployment scripts, which `solidity-code`, `contract-tests`, and `contract-deploy` cover |
 | Designing wallets and signing: keys and recovery, ERC-4337 and EIP-7702 accounts, signed permissions, approvals, gas sponsorship, and AI agent payments | Writing wallet code, holding keys, or signing, which no skill does |
-| Designing apps across chains: same-address deployment, moving assets, verifying messages, and partial failures | Writing bridge contracts or deployment scripts, which `solidity-code` covers |
+| Designing apps across chains: same-address deployment, moving assets, verifying messages, and partial failures | Writing bridge contracts, which `solidity-code` covers, or deployment scripts, which `contract-deploy` covers |
 | Planning a dApp's parts, who sends and pays for each transaction, indexing, data placement, environments, admin keys, and monitoring, with the state of the services it names | Choosing and signing up for a provider, creating keys, and writing the contracts, frontend, or deployment scripts |
 | Designing apps on ISO 20022, FIX, FpML, CDM, LEI, and XBRL, with original messages and personal data off chain and signed evidence on it | Writing the contracts, schemas, or API definitions of the design, ledgers other than EVM chains, and legal or regulatory advice |
 
@@ -300,8 +333,9 @@ financial-standards: 2 problems; fill in or add each section named above
 | Tool | When it's needed |
 |---|---|
 | `bash` | Always |
-| `python3` | For `solidity-code`, `contract-tests`, `contract-design`, `wallet-design`, `multichain-design`, `dapp-architecture`, and `financial-standards` |
-| Foundry (`forge`) or Hardhat | To build and test what `solidity-code` and `contract-tests` write. Without them the agent says the code was not built |
+| `python3` | For `solidity-code`, `contract-tests`, `contract-deploy`, `contract-design`, `wallet-design`, `multichain-design`, `dapp-architecture`, and `financial-standards` |
+| Foundry (`forge`) or Hardhat | To build and test what `solidity-code` and `contract-tests` write, and to simulate, look up, and verify what `contract-deploy` deploys. Without them the agent says the code was not built |
+| `git` | Optional. `contract-deploy` asks it whether each `.env` file is tracked or ignored; without it that check is skipped |
 | The kiwa plugin | Optional. When its skills are installed, `contract-tests` has kiwa write the tests |
 | Web access in the agent | To re-check an out-of-date item. Without it the agent answers from the item and says it could not confirm it |
 
@@ -315,6 +349,8 @@ In short:
 - `solidity-code` runs `solidity-code.py`, which reads the project's config files and the `package.json` files of its libraries for their versions, and the project's source files for the scan. It never reads `.env` files, dependencies, or build output, and never prints the text of a line
 - `solidity-code` writes only the contracts you ask for, and runs the project's build and tests
 - `contract-tests` runs `contract-tests.py`, which reads the project's config files, contracts, and tests, and prints only kinds, names, and `file:line`, never the text of a contract or a test. It writes only test files, never changes a contract, and never reads `.env` files, dependencies, or build output
+- `contract-deploy` runs `contract-deploy.py`, which reads the project's deploy scripts and settings for unsafe key handling, asks `git` whether each `.env` file is tracked or ignored without opening it, and reads `broadcast/` and `ignition/deployments/` to build the record. It prints only kinds and `file:line`, never a key or the text of a line, and writes only `deployments/<chain id>.json`. It never reads `.env` files or Foundry's `cache/`, never signs, and refuses a command that passes a key
+- `contract-deploy` writes the deploy script, simulates it, and looks up transactions and code through the project's RPC endpoints. You run the command that broadcasts. Verification sends the contracts' source code to Sourcify, Etherscan, or Blockscout to publish it, so the agent asks before it runs
 - `contract-design` runs `contract-design.py`, which reads its items and the design file it writes, and prints only section names when it checks the design. It writes only the design file, and never reads `.env` files or keys
 - `wallet-design` runs `wallet-design.py`, which reads its items and the design file it writes, and prints only section names when it checks the design. It writes only the design file, never reads `.env` files or keys, never signs, and refuses a command that passes a key
 - `multichain-design` runs `multichain-design.py`, which reads its items and the design file it writes, and prints only section names when it checks the design. It writes only the design file, never reads `.env` files or keys, never signs, and refuses a command that passes a key

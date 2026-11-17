@@ -1,0 +1,7 @@
+interface:
+  display_name: "Contract Deploy"
+  short_description: "Write deploy scripts that never touch keys, sign with a hardware wallet or encrypted keystore, then record and verify what was deployed"
+  default_prompt: "Use $contract-deploy to deploy our Vault to Sepolia and then Base, and record the addresses."
+
+policy:
+  allow_implicit_invocation: true
