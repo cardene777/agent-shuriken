@@ -1,6 +1,6 @@
 # EVM Dev
 
-ERCが確定したか、EIPがEthereumのメインネットで動いているかを答え、プロジェクトが使う版に合わせてSolidityとそのテストを書き、コントラクトと、dAppの部品の組み方と、ISO 20022やFIXなどの金融の規格を使うアプリを設計します。どれも、エージェントの記憶ではなく、公式の文書で確かめた項目に基づきます。
+ERCが確定したか、EIPがEthereumのメインネットで動いているかを答え、プロジェクトが使う版に合わせてSolidityとそのテストを書き、コントラクトと、ウォレットと署名と、dAppの部品の組み方と、ISO 20022やFIXなどの金融の規格を使うアプリを設計します。どれも、エージェントの記憶ではなく、公式の文書で確かめた項目に基づきます。
 
 [English](README.md) · 日本語
 
@@ -14,6 +14,7 @@ EIPがネットワークの更新で入り、広く呼ばれている「ERC」�
 | `solidity-code` | FoundryとHardhatのプロジェクトで、プロジェクトが使うsolcとOpenZeppelinとforge-stdとFoundryとHardhatの版に合わせてコントラクトを書き、古い書き方を探してからビルドとテストを回します |
 | `contract-tests` | FoundryかHardhatのプロジェクトで、コントラクトごとに確かめる点を挙げてから、単体とfuzzとinvariantのテストを書きます。kiwaが入っていればkiwaに書かせます。どのテストも触れていない点を名指し、テストを回します |
 | `contract-design` | 書く前にコントラクトを設計します。決めることを1つずつ尋ね、コントラクトの分け方、トークンの規格、不変条件、役割、更新の方式、価格、取引の順、乱数、外への呼び出しを1つの設計書に書き、節を確かめてから確かめの表で見直します |
+| `wallet-design` | ウォレットと署名を設計します。決めることを1つずつ尋ね、鍵の持ち方と取り戻し方、ERC-4337とEIP-7702のアカウント、署名による許可、承認、ガス代を誰が払うか、AIエージェントの支払いを1つの設計書に書き、節を確かめてから確かめの表で見直します |
 | `dapp-architecture` | dAppの部品の組み方を設計します。決めることを1つずつ尋ね、取引を誰が送りガス代を誰が払うか、チェーンの読み取り、データの置き場所、環境、管理の鍵、監視を1つの設計書に書き、節を確かめてから確かめの表で見直します |
 | `financial-standards` | ISO 20022、FIX、FpML、CDM、LEI、XBRLを使い、オンチェーンとオフチェーンの部分を持つアプリを設計します。決めることを1つずつ尋ね、雛形から1つの設計書を書き、節を確かめてから確かめの表で見直します |
 
@@ -22,6 +23,7 @@ evm-standards:  List the items ──> Read the ones asked about ──> Re-chec
 solidity-code:  Read the project's versions ──> Read the items for them ──> Write ──> Scan, build, and test
 contract-tests:  Read the versions and items ──> List what needs a test ──> Write the tests, or have kiwa write them ──> Name what no test covers ──> Run the tests
 contract-design:  Read the items ──> Ask the decisions ──> Write the design ──> Verify the sections ──> Review against the checklist
+wallet-design:  Read the items ──> Ask the decisions ──> Write the design ──> Verify the sections ──> Review against the checklist
 dapp-architecture:  Read the items ──> Ask the decisions ──> Write the design ──> Verify the sections ──> Review against the checklist
 financial-standards:  Read the items ──> Ask the decisions ──> Write the design ──> Verify the sections ──> Review against the checklist
 ```
@@ -42,6 +44,7 @@ gemini skills install https://github.com/cardene777/agent-shuriken.git --path pl
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/solidity-code
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/contract-tests
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/contract-design
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/wallet-design
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/dapp-architecture
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/financial-standards
 ```
@@ -59,13 +62,15 @@ gemini skills install https://github.com/cardene777/agent-shuriken.git --path pl
 例えば「src/Vault.solのテストを足して」と頼みます。
 `contract-design`は、書く前にコントラクトの設計を頼むと始まります。
 例えば「このトークンの販売のコントラクトを設計して。役割と更新の方式と価格の読み方も」と頼みます。
+`wallet-design`は、アプリのウォレットか署名の設計を頼むと始まります。
+例えば「利用者にERC-4337のスマートアカウントを持たせるか、EIP-7702を使うか決めて。ガス代を誰が払うかも」と頼みます。
 `dapp-architecture`は、dAppをどう組むかを頼むと始まります。
 例えば「このマーケットの構成を設計して。ガス代を誰が払うか、チェーンをどう読むか、管理の鍵を誰が持つか」と頼みます。
 `financial-standards`は、金融の規格を使う設計を頼むと始まります。
 例えば「ISO 20022の支払いのmessageを決済のコントラクトにどう対応させるかを設計して」と頼みます。
 呼び出すこともできます。
-Claude Codeでは`/evm-dev:evm-standards`か`/evm-dev:solidity-code`か`/evm-dev:contract-tests`か`/evm-dev:contract-design`か`/evm-dev:dapp-architecture`か`/evm-dev:financial-standards`を実行し、Codexでは`$`を入力して**EVM Standards**か**Solidity Code**か**Contract Tests**か**Contract Design**か**dApp Architecture**か**Financial Standards**を選びます。
-GitHub Copilot CLIでは依頼の文に`/evm-standards`か`/solidity-code`か`/contract-tests`か`/contract-design`か`/dapp-architecture`か`/financial-standards`と書き、Gemini CLIでは作業を説明します。
+Claude Codeでは`/evm-dev:evm-standards`か`/evm-dev:solidity-code`か`/evm-dev:contract-tests`か`/evm-dev:contract-design`か`/evm-dev:wallet-design`か`/evm-dev:dapp-architecture`か`/evm-dev:financial-standards`を実行し、Codexでは`$`を入力して**EVM Standards**か**Solidity Code**か**Contract Tests**か**Contract Design**か**Wallet Design**か**dApp Architecture**か**Financial Standards**を選びます。
+GitHub Copilot CLIでは依頼の文に`/evm-standards`か`/solidity-code`か`/contract-tests`か`/contract-design`か`/wallet-design`か`/dapp-architecture`か`/financial-standards`と書き、Gemini CLIでは作業を説明します。
 
 ### 規格を確かめる
 
@@ -178,6 +183,31 @@ missing: Upgrades
 contract-design: 2 problems; fill in or add each section named above
 ```
 
+### ウォレットと署名を設計する
+
+1. エージェントがEntryPointの版、EIP-7702の委任、ウォレットの権限、Permit2、paymasterのサービス、x402の項目を並べ、古い項目は確かめ直します
+2. エージェントが決めることを1つずつ、勧める案を添えて尋ねます。ウォレットを使う人と守る上限、利用者とエージェントが持つアカウントの種類、鍵を誰が持ち失くした鍵をどう取り戻すか、利用者が何に署名し何を承認するか、ガス代を誰が払いAIエージェントがどう払うかを尋ねます。尋ねられない時は勧める案を採り、仮定として書きます
+3. エージェントが雛形をプロジェクトに写し(既定は`docs/design/<topic>.md`)、9つの節を埋めます。節は目的と使う人、アカウント、鍵と取り戻し方、署名と許可、承認、ガス代と肩代わり、エージェントの支払い、チェーンと環境、未決です
+4. エージェントが節を確かめ、確かめの表で設計を見直し、判断できなかった決まりと未決の事を伝えます
+
+項目は次のように並びます。
+
+```text
+ok     accounts     2026-11-17 eip-7702-delegation EIP-7702 delegation and its initialization
+ok     accounts     2026-11-17 entrypoint-versions ERC-4337 EntryPoint v0.8 and v0.9
+ok     gas          2026-11-17 erc-7677-paymaster-service EIP-5792 wallet_sendCalls and the ERC-7677 paymaster service
+ok     signatures   2026-11-17 erc-7715-advanced-permissions MetaMask Advanced Permissions (ERC-7715) and the Smart Accounts Kit
+6 items, 0 stale as of 2026-11-17
+```
+
+確かめは節の名前を出し、設計書の中身は出しません。
+
+```text
+no checked date: Accounts
+missing: Approvals
+wallet-design: 2 problems; fill in or add each section named above
+```
+
 ### dAppの構成を設計する
 
 1. エージェントがインデクサ、取引の中継、自動実行、監視、テストネット、マルチシグ、保存の項目を並べ、古い項目は確かめ直します
@@ -241,6 +271,7 @@ financial-standards: 2 problems; fill in or add each section named above
 | プロジェクトが使うsolcとOpenZeppelinとforge-stdとFoundryとHardhatの版に合わせてSolidityを書くこと | デプロイ、出す前の保存の配置とABIの比べ |
 | FoundryかHardhatで、プロジェクトのコントラクトの単体とfuzzとinvariantのテストを書くこと、またはkiwaに書かせること | 変異試験、カバレッジの目標、dAppの画面のテスト。画面のテストはkiwaが扱います |
 | 書く前のコントラクトの設計。分け方、トークンの規格、不変条件、役割、更新の方式、価格、取引の順、乱数、外への呼び出しを決めます | コントラクトとそのテストと配る命令を書くこと。`solidity-code`と`contract-tests`が扱います |
+| ウォレットと署名の設計。鍵と取り戻し方、ERC-4337とEIP-7702のアカウント、署名による許可、承認、ガス代の肩代わり、AIエージェントの支払いを決めます | ウォレットのコードを書くこと、鍵を持つこと、署名すること。どの技もしません |
 | dAppの部品、取引を誰が送りガス代を誰が払うか、インデクサ、データの置き場所、環境、管理の鍵、監視の設計。名指すサービスの今の状態も確かめます | 事業者を選んで申し込むこと、鍵を作ること、コントラクトと画面と配る命令を書くこと |
 | ISO 20022、FIX、FpML、CDM、LEI、XBRLを使うアプリの設計。原文と個人の情報はチェーンの外に置き、署名した証跡をチェーンに置きます | 設計のコントラクトとschemaとAPIの定義を書くこと、EVMのチェーン以外の台帳、法と規制の助言 |
 
@@ -249,7 +280,7 @@ financial-standards: 2 problems; fill in or add each section named above
 | 道具 | 要る時 |
 |---|---|
 | `bash` | いつも |
-| `python3` | `solidity-code`と`contract-tests`と`contract-design`と`dapp-architecture`と`financial-standards`を使う時 |
+| `python3` | `solidity-code`と`contract-tests`と`contract-design`と`wallet-design`と`dapp-architecture`と`financial-standards`を使う時 |
 | Foundry(`forge`)かHardhat | `solidity-code`と`contract-tests`が書いた物をビルドしテストする時。無い時は、ビルドしていないと伝えます |
 | kiwaのプラグイン | 無くても動きます。スキルが入っている時は、`contract-tests`がkiwaにテストを書かせます |
 | エージェントのWebへの接続 | 古い項目を確かめ直す時。無い時は、項目から答えて確かめられなかったと伝えます |
@@ -265,6 +296,7 @@ financial-standards: 2 problems; fill in or add each section named above
 - `solidity-code`は頼まれたコントラクトだけを書き、プロジェクトのビルドとテストを動かします
 - `contract-tests`は`contract-tests.py`を動かし、プロジェクトの設定のファイルとコントラクトとテストを読みます。出すのは種類と名前と`file:line`だけで、コントラクトとテストの中身は出しません。書くのはテストのファイルだけで、コントラクトは変えず、`.env`のファイルと依存とビルドの出力は読みません
 - `contract-design`は`contract-design.py`を動かし、項目と、書いた設計書を読みます。設計書を確かめる時は節の名前だけを出します。書くのは設計書だけで、`.env`のファイルと鍵は読みません
+- `wallet-design`は`wallet-design.py`を動かし、項目と、書いた設計書を読みます。設計書を確かめる時は節の名前だけを出します。書くのは設計書だけで、`.env`のファイルと鍵は読まず、署名せず、鍵を渡す命令を断ります
 - `dapp-architecture`は`dapp-architecture.py`を動かし、項目と、書いた設計書を読みます。設計書を確かめる時は節の名前だけを出します。書くのは設計書だけで、`.env`のファイルと鍵は読みません
 - `financial-standards`は`financial-standards.py`を動かし、項目と、書いた設計書を読みます。設計書を確かめる時は節の名前だけを出します。書くのは設計書だけで、`.env`のファイルと鍵は読みません
 - 古い項目を確かめ直す時は、規格の番号か名前、または道具かサービスの名前と版だけでWebを検索し、公式の文書を開きます

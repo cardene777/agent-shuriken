@@ -1,0 +1,52 @@
+# Choosing between ERC-4337 smart accounts and EIP-7702 for a savings app whose users already have
+# wallets. Graded on the design file: it names EntryPoint v0.8 or v0.9 (v0.8 added EIP-7702 support),
+# batches and sponsors through the wallet with EIP-5792 and the ERC-7677 paymaster service, keeps
+# an EIP-7702 delegate from being initialized by someone else, limits the USDC approval, and limits
+# the sponsorship.
+schema_version: "1.1"
+name: smart-account-choice
+plugins: ["../.."]
+execution:
+  prompt: |
+    Decide whether our users get ERC-4337 smart accounts or use EIP-7702 with the wallets they already have, and design the wallet and signing side: the accounts, the keys, what users sign and approve, and who pays gas. Write the design to docs/design/wallet.md. Do not ask me questions; decide, and write down your assumptions.
+  max_turns: 30
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill, Write, Edit, Bash]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'wallet-design'
+    arm: with-only
+  - name: entrypoint-version
+    type: regex
+    target: {source: file, path: docs/design/wallet.md}
+    pattern: '[Ee]ntry ?[Pp]oint[^\n]{0,40}v?0\.[89]\b|\bv0\.[89]\b[^\n]{0,40}[Ee]ntry ?[Pp]oint'
+  - name: wallet-batching
+    type: regex
+    target: {source: file, path: docs/design/wallet.md}
+    pattern: 'wallet_sendCalls|EIP-5792|ERC-5792'
+  - name: paymaster-service
+    type: regex
+    target: {source: file, path: docs/design/wallet.md}
+    pattern: 'ERC-7677|paymasterService'
+  - name: delegate-initialization
+    type: llm
+    focus: {source: file, path: docs/design/wallet.md}
+    criteria: |
+      PASS if the design lets the user's wallet choose and vet any EIP-7702 delegate instead of asking users to sign an authorization to the app's own contract, or, when the app's own delegate is used, says that its initialization is bound to the account's own signature or callable only through the EntryPoint, so nobody who sees the authorization can initialize it first. A design that does not use EIP-7702 at all passes.
+      FAIL if the app asks users to sign an EIP-7702 authorization to the app's own delegate contract and does not say who may call its initializer, or if the file is missing or empty.
+  - name: bounded-approval
+    type: llm
+    focus: {source: file, path: docs/design/wallet.md}
+    criteria: |
+      PASS if the USDC approval covers only the amount being deposited (an exact approval batched with the deposit, or a permit or Permit2 allowance with that amount and a short expiration).
+      FAIL if the design asks for an unlimited or maximum approval, a standing allowance with no expiration, or does not say how much is approved, or if the file is missing or empty.
+  - name: sponsorship-limits
+    type: llm
+    focus: {source: file, path: docs/design/wallet.md}
+    criteria: |
+      PASS if gas sponsorship is limited per user (the first five deposits) and also by a total budget or rate limit, and the design says what happens when a user has used their five deposits or the sponsor's funds run out.
+      FAIL if sponsorship has no total limit, or the design does not say what happens after the limit, or if the file is missing or empty.
