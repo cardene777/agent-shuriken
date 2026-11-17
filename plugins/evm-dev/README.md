@@ -1,6 +1,6 @@
 # EVM Dev
 
-Know whether an ERC is final or an EIP is live on Ethereum mainnet, design contracts and wallets, write Solidity and its tests for the versions your project uses, plan a dApp's architecture, and design apps built on financial standards such as ISO 20022 and FIX, from items checked against the official documents instead of what the agent remembers.
+Know whether an ERC is final or an EIP is live on Ethereum mainnet, design contracts, wallets, and apps across chains, write Solidity and its tests for the versions your project uses, plan a dApp's architecture, and design apps built on financial standards such as ISO 20022 and FIX, from items checked against the official documents instead of what the agent remembers.
 
 English · [日本語](README.ja.md)
 
@@ -14,6 +14,7 @@ This plugin ships dated items on all of them, each with the date it was checked 
 | `contract-tests` | Writes unit, fuzz, and invariant tests for a project's contracts in Foundry or Hardhat, or has kiwa write them when it is installed, from a list of what each contract needs tested, then names what no test covers and runs the tests |
 | `contract-design` | Designs contracts before they are written: asks the decisions one at a time and writes one design document on how contracts are split, token standards, invariants, roles, upgrades, prices, transaction ordering, randomness, and external calls, then checks its sections and reviews it against a checklist |
 | `wallet-design` | Designs wallets and signing: asks the decisions one at a time and writes one design document on how keys are held and recovered, ERC-4337 and EIP-7702 accounts, signed permissions, approvals, who pays gas, and payments by AI agents, then checks its sections and reviews it against a checklist |
+| `multichain-design` | Designs apps that run on more than one chain: asks the decisions one at a time and writes one design document on same-address deployment, moving assets between chains, verifying cross-chain messages, and what happens when only one side completes, then checks its sections and reviews it against a checklist |
 | `dapp-architecture` | Plans how a dApp's parts fit together: asks the decisions one at a time and writes one design document on who sends and pays for each transaction, how the app reads chain data, where data lives, the environments, the admin keys, and monitoring, then checks its sections and reviews it against a checklist |
 | `financial-standards` | Designs an app with on-chain and off-chain parts built on ISO 20022, FIX, FpML, CDM, LEI, or XBRL: asks the decisions one at a time, writes one design document from a template, checks its sections, and reviews it against a checklist |
 
@@ -23,6 +24,7 @@ solidity-code:  Read the project's versions ──> Read the items for them ─�
 contract-tests:  Read the versions and items ──> List what needs a test ──> Write the tests, or have kiwa write them ──> Name what no test covers ──> Run the tests
 contract-design:  Read the items ──> Ask the decisions ──> Write the design ──> Verify the sections ──> Review against the checklist
 wallet-design:  Read the items ──> Ask the decisions ──> Write the design ──> Verify the sections ──> Review against the checklist
+multichain-design:  Read the items ──> Ask the decisions ──> Write the design ──> Verify the sections ──> Review against the checklist
 dapp-architecture:  Read the items ──> Ask the decisions ──> Write the design ──> Verify the sections ──> Review against the checklist
 financial-standards:  Read the items ──> Ask the decisions ──> Write the design ──> Verify the sections ──> Review against the checklist
 ```
@@ -44,6 +46,7 @@ gemini skills install https://github.com/cardene777/agent-shuriken.git --path pl
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/contract-tests
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/contract-design
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/wallet-design
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/multichain-design
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/dapp-architecture
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/financial-standards
 ```
@@ -57,10 +60,11 @@ In other agents that read `SKILL.md`, unzip the skill zip attached to each relea
 `contract-tests` starts when you ask for tests of a contract, for example "add tests for src/Vault.sol".
 `contract-design` starts when you ask for contracts to be designed before they are written, for example "design the contracts of this token sale: the roles, the upgrades, and how prices are read".
 `wallet-design` starts when you ask for the wallets or the signing of an app to be designed, for example "should our users get ERC-4337 smart accounts or EIP-7702, and who pays their gas?".
+`multichain-design` starts when you ask for an app on more than one chain to be designed, for example "plan how our token moves between Ethereum and Base".
 `dapp-architecture` starts when you ask how a dApp should be put together, for example "plan the architecture of this marketplace: who pays the gas, how it reads chain data, and who holds the admin keys".
 `financial-standards` starts when you ask for a design built on a financial standard, for example "design how this project maps ISO 20022 payment messages onto a settlement contract".
-You can also call them: run `/evm-dev:evm-standards`, `/evm-dev:solidity-code`, `/evm-dev:contract-tests`, `/evm-dev:contract-design`, `/evm-dev:wallet-design`, `/evm-dev:dapp-architecture`, or `/evm-dev:financial-standards` in Claude Code, or type `$` and pick **EVM Standards**, **Solidity Code**, **Contract Tests**, **Contract Design**, **Wallet Design**, **dApp Architecture**, or **Financial Standards** in Codex.
-In GitHub Copilot CLI, write `/evm-standards`, `/solidity-code`, `/contract-tests`, `/contract-design`, `/wallet-design`, `/dapp-architecture`, or `/financial-standards` in your request, and in Gemini CLI, describe the task.
+You can also call them: run `/evm-dev:evm-standards`, `/evm-dev:solidity-code`, `/evm-dev:contract-tests`, `/evm-dev:contract-design`, `/evm-dev:wallet-design`, `/evm-dev:multichain-design`, `/evm-dev:dapp-architecture`, or `/evm-dev:financial-standards` in Claude Code, or type `$` and pick **EVM Standards**, **Solidity Code**, **Contract Tests**, **Contract Design**, **Wallet Design**, **Multichain Design**, **dApp Architecture**, or **Financial Standards** in Codex.
+In GitHub Copilot CLI, write `/evm-standards`, `/solidity-code`, `/contract-tests`, `/contract-design`, `/wallet-design`, `/multichain-design`, `/dapp-architecture`, or `/financial-standards` in your request, and in Gemini CLI, describe the task.
 
 ### Check a standard
 
@@ -198,6 +202,31 @@ missing: Approvals
 wallet-design: 2 problems; fill in or add each section named above
 ```
 
+### Design apps across chains
+
+1. The agent lists the items on CREATE2 factories, Circle's CCTP, LayerZero's verifier configuration, Chainlink's Cross-Chain Token standard, and Superchain interop, and re-checks the ones that are out of date
+2. The agent asks the decisions one at a time, each with a recommended choice: which chains and what moves between them, which contracts need the same address, which chain issues each asset, which protocol carries messages and who verifies them, and what happens when only one side completes. When it cannot ask, it takes the recommended choice and records it as an assumption
+3. The agent copies the template into your project, `docs/design/<topic>.md` by default, and fills in its nine sections: purpose and chains, deployment and addresses, assets across chains, messages and verification, partial failures, roles and limits, fees and gas, monitoring and environments, and open decisions
+4. The agent checks the sections and reviews the design against the checklist, then tells you the rules it could not judge and the open decisions
+
+The items look like this.
+
+```text
+ok     tokens       2026-11-17 chainlink-ccip-cct Chainlink CCIP Cross-Chain Token (CCT) standard and token pool rate limits
+ok     bridges      2026-11-17 circle-cctp-v2 Circle CCTP V1 (Legacy) and V2
+ok     deployment   2026-11-17 create2-factories CREATE2 factories for the same address on every chain (ERC-7955, Safe Singleton Factory, CreateX)
+ok     messaging    2026-11-17 layerzero-dvn-config LayerZero V2 verifier (DVN) configuration
+5 items, 0 stale as of 2026-11-17
+```
+
+The check names sections, never the text of the design.
+
+```text
+no checked date: Messages and verification
+missing: Partial failures
+multichain-design: 2 problems; fill in or add each section named above
+```
+
 ### Plan a dApp's architecture
 
 1. The agent lists the items on indexers, relayers, automation, monitoring, testnets, multisigs, and storage, and re-checks the ones that are out of date
@@ -262,6 +291,7 @@ financial-standards: 2 problems; fill in or add each section named above
 | Writing unit, fuzz, and invariant tests for a project's contracts in Foundry or Hardhat, or having kiwa write them | Mutation testing, coverage targets, and tests of a dApp's screens, which kiwa covers |
 | Designing contracts before they are written: the split, token standards, invariants, roles, upgrades, prices, ordering, randomness, and external calls | Writing the contracts, their tests, or deployment scripts, which `solidity-code` and `contract-tests` cover |
 | Designing wallets and signing: keys and recovery, ERC-4337 and EIP-7702 accounts, signed permissions, approvals, gas sponsorship, and AI agent payments | Writing wallet code, holding keys, or signing, which no skill does |
+| Designing apps across chains: same-address deployment, moving assets, verifying messages, and partial failures | Writing bridge contracts or deployment scripts, which `solidity-code` covers |
 | Planning a dApp's parts, who sends and pays for each transaction, indexing, data placement, environments, admin keys, and monitoring, with the state of the services it names | Choosing and signing up for a provider, creating keys, and writing the contracts, frontend, or deployment scripts |
 | Designing apps on ISO 20022, FIX, FpML, CDM, LEI, and XBRL, with original messages and personal data off chain and signed evidence on it | Writing the contracts, schemas, or API definitions of the design, ledgers other than EVM chains, and legal or regulatory advice |
 
@@ -270,7 +300,7 @@ financial-standards: 2 problems; fill in or add each section named above
 | Tool | When it's needed |
 |---|---|
 | `bash` | Always |
-| `python3` | For `solidity-code`, `contract-tests`, `contract-design`, `wallet-design`, `dapp-architecture`, and `financial-standards` |
+| `python3` | For `solidity-code`, `contract-tests`, `contract-design`, `wallet-design`, `multichain-design`, `dapp-architecture`, and `financial-standards` |
 | Foundry (`forge`) or Hardhat | To build and test what `solidity-code` and `contract-tests` write. Without them the agent says the code was not built |
 | The kiwa plugin | Optional. When its skills are installed, `contract-tests` has kiwa write the tests |
 | Web access in the agent | To re-check an out-of-date item. Without it the agent answers from the item and says it could not confirm it |
@@ -287,6 +317,7 @@ In short:
 - `contract-tests` runs `contract-tests.py`, which reads the project's config files, contracts, and tests, and prints only kinds, names, and `file:line`, never the text of a contract or a test. It writes only test files, never changes a contract, and never reads `.env` files, dependencies, or build output
 - `contract-design` runs `contract-design.py`, which reads its items and the design file it writes, and prints only section names when it checks the design. It writes only the design file, and never reads `.env` files or keys
 - `wallet-design` runs `wallet-design.py`, which reads its items and the design file it writes, and prints only section names when it checks the design. It writes only the design file, never reads `.env` files or keys, never signs, and refuses a command that passes a key
+- `multichain-design` runs `multichain-design.py`, which reads its items and the design file it writes, and prints only section names when it checks the design. It writes only the design file, never reads `.env` files or keys, never signs, and refuses a command that passes a key
 - `dapp-architecture` runs `dapp-architecture.py`, which reads its items and the design file it writes, and prints only section names when it checks the design. It writes only the design file, and never reads `.env` files or keys
 - `financial-standards` runs `financial-standards.py`, which reads its items and the design file it writes, and prints only section names when it checks the design. It writes only the design file, and never reads `.env` files or keys
 - To re-check an out-of-date item, the agent searches the web and opens the official document with only a standard's number or name, or a tool's or service's name and version

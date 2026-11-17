@@ -1,0 +1,50 @@
+# Planning a token that moves between Ethereum and Base. Graded on the design file: messages are not
+# accepted on the word of a single verifier (a LayerZero app with one required verifier lost about
+# 292 million dollars in April 2026), every direction has a rate limit and the design says who may
+# change it, the total supply stays at most 100 million, and a message that is sent but not
+# delivered can be recovered.
+schema_version: "1.1"
+name: bridged-token-plan
+plugins: ["../.."]
+execution:
+  prompt: |
+    Plan how PEARL moves between Ethereum and Base: the bridge or message protocol and how its messages are verified, how the supply stays correct, what happens when only one side completes, the limits, and who can pause it. Write the design to docs/design/pearl-multichain.md. Do not ask me questions; decide, and write down your assumptions.
+  max_turns: 30
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill, Write, Edit, Bash]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'multichain-design'
+    arm: with-only
+  - name: rate-limits
+    type: regex
+    target: {source: file, path: docs/design/pearl-multichain.md}
+    pattern: '[Rr]ate[ -]?limit'
+  - name: no-single-verifier
+    type: llm
+    focus: {source: file, path: docs/design/pearl-multichain.md}
+    criteria: |
+      PASS if the design requires more than one independent party to verify a message before PEARL is minted or released, such as LayerZero with at least two required DVNs from independent operators, Chainlink CCIP, or the canonical bridge of Base, and says how many must agree or which network verifies.
+      FAIL if the design uses LayerZero or another message protocol with its default configuration or a single required verifier, or does not say how messages are verified, or if the file is missing or empty.
+  - name: rate-limit-admin
+    type: llm
+    focus: {source: file, path: docs/design/pearl-multichain.md}
+    criteria: |
+      PASS if the design says who may change the rate limits on each chain (for example a rate limit admin role held by a multisig or behind a timelock), so that one key cannot raise or remove them.
+      FAIL if the design sets rate limits but does not say who can change them, or has no rate limits, or if the file is missing or empty.
+  - name: supply-whole
+    type: llm
+    focus: {source: file, path: docs/design/pearl-multichain.md}
+    criteria: |
+      PASS if the design says how the total of PEARL on Ethereum and Base stays at most 100,000,000 (for example lock on Ethereum and mint on Base, or burn and mint), and that only the bridge's verified messages can mint on Base.
+      FAIL if the design does not say how the supply stays whole or who may mint on Base, or if the file is missing or empty.
+  - name: partial-failure
+    type: llm
+    focus: {source: file, path: docs/design/pearl-multichain.md}
+    criteria: |
+      PASS if the design says what happens when PEARL leaves one chain but the message is not delivered, or is delivered and fails, and how the holder gets their tokens (retry, manual execution, or refund).
+      FAIL if it does not cover that case, or if the file is missing or empty.

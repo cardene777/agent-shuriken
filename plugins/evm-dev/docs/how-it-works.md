@@ -2,7 +2,7 @@
 
 English · [日本語](how-it-works.ja.md)
 
-The plugin has seven skills. `evm-standards` answers questions about ERCs and EIPs from items bundled with it, `solidity-code` writes Solidity for the versions a project uses from items about its tools, `contract-tests` writes tests for a project's contracts from items about its test tools, `contract-design` writes a design for a set of contracts from items about the libraries and services they rely on, `wallet-design` writes a design for an app's wallets and signing from items about accounts, permissions, approvals, gas sponsorship, and payments, `dapp-architecture` writes a design for how a dApp's parts fit together from items about the services it may use, and `financial-standards` writes a design for an app built on financial standards from items about their versions.
+The plugin has eight skills. `evm-standards` answers questions about ERCs and EIPs from items bundled with it, `solidity-code` writes Solidity for the versions a project uses from items about its tools, `contract-tests` writes tests for a project's contracts from items about its test tools, `contract-design` writes a design for a set of contracts from items about the libraries and services they rely on, `wallet-design` writes a design for an app's wallets and signing from items about accounts, permissions, approvals, gas sponsorship, and payments, `multichain-design` writes a design for an app on more than one chain from items about deployment tools, bridges, message protocols, and token standards, `dapp-architecture` writes a design for how a dApp's parts fit together from items about the services it may use, and `financial-standards` writes a design for an app built on financial standards from items about their versions.
 This page describes the skills' items, when an item counts as out of date, the scripts, and what the agent may do with them.
 
 ## The ERC and EIP items
@@ -203,6 +203,44 @@ Relayers and monitoring services are dated in the dApp service items, so `wallet
 
 The checklist holds the rules a design must never break: no key in a `.env` file, an environment variable, or code, a recovery path and a way to rotate keys, EIP-712 signatures with the chain ID, a nonce, and a deadline, ERC-1271 and ERC-6492 for smart account signatures, permissions and approvals bounded in scope, amount, and time and revocable by users, a pinned EntryPoint version, EIP-7702 delegates that nobody else can initialize and that leave no traps in old storage, sponsorship with limits, agents with spending limits and allowed payees, and signing requests users can read.
 
+## The multichain design items
+
+`multichain-design` keeps its items in `skills/multichain-design/references/items/`, one Markdown file per tool, protocol, standard, or practice, such as `circle-cctp-v2.md` or `layerzero-dvn-config.md`.
+Its front matter holds the same four fields as the dApp service items, with these topics.
+
+| Field | What it holds |
+|---|---|
+| `topic` | One of `deployment`, `bridges`, `messaging`, `tokens` |
+| `subject` | The tool, protocol, standard, or practice the item is about, such as `Circle CCTP V1 (Legacy) and V2` |
+| `checked` | The date the item was confirmed against the official source, as `YYYY-MM-DD` |
+| `source` | The organization and the documents the item comes from, by name. Items hold no URLs |
+
+The body says the state of the tool, protocol, or standard when it was checked, such as a version being retired or an incident that changed the advice, and what a design across chains must respect.
+A multichain design item counts as out of date 90 days after it was checked.
+Relayers and monitoring services are dated in the dApp service items, so `multichain-design` sends the agent to the items of `dapp-architecture` for them, or to their official documents when that skill is not installed.
+
+## The multichain-design script
+
+`skills/multichain-design/scripts/multichain-design.py` runs on Python 3 with its standard library only.
+
+| Command | What it does |
+|---|---|
+| `check` | Checks that every item has its four fields, a known topic, and a real date. It names each item that does not and exits 1 |
+| `list` | Prints one line per item: `ok` or `stale`, the topic, the date it was checked, its name, and its subject, then a count |
+| `verify <file>` | Checks that a design has the nine sections of the template in order, each with text and no `Fill in:` line left, and a date in Messages and verification. It names each section that does not and exits 1 |
+
+`verify` reads only the design file it is given, and prints section names and what is wrong with them, never the design's text.
+
+## How the agent designs across chains
+
+1. It runs `list`, reads the items the design may rely on, and re-checks the ones marked `stale`; for the status of an ERC or EIP, such as ERC-7802 or ERC-7955, it uses `evm-standards`
+2. It asks the decisions one at a time, each with a recommended choice, and skips what the request already answers. When it cannot ask, it takes the recommended choice and records it as an assumption under Open decisions
+3. It copies `templates/design.md` to `docs/design/<topic>.md`, or where the user or the project keeps designs, replaces every `Fill in:` line, and writes in Messages and verification each protocol, its version, and the date it checked it
+4. It runs `verify`, fixes each section it names, then goes through `references/checklist.md` and fixes every rule the design breaks
+5. It tells the user the rules it could not judge and the open decisions
+
+The checklist holds the rules a design must never break: the same code at the same address, messages bound to their chains, sender, and nonce and processed once, a whole supply and one canonical token, respect for finality, no single verifier, rate limits in every direction, recovery for stuck and failed messages, a pause on every chain, admin keys not shared across chains, matching decimals, and destination gas that someone pays.
+
 ## The dApp service items
 
 `dapp-architecture` keeps its items in `skills/dapp-architecture/references/items/`, one Markdown file per service, network, or tool, such as `openzeppelin-defender-relayer.md` or `ethereum-testnets.md`.
@@ -285,6 +323,7 @@ The checklist holds the rules a design must never break: nothing private on chai
 - `contract-tests` never changes a contract to make a test pass, and writes only test files
 - `contract-design` never reads a key, never signs, and writes no Solidity, tests, or deployment scripts
 - `wallet-design` never reads a key, never signs, refuses a command that passes a key, and writes no Solidity, wallet code, tests, or deployment scripts
+- `multichain-design` never reads a key, never signs, refuses a command that passes a key, and writes no Solidity, bridge code, tests, or deployment scripts
 - `dapp-architecture` never reads a key, never signs, and writes no contracts, ABIs, API definitions, frontend code, tests, or scripts
 - `financial-standards` never reads a key, never signs, and writes no contracts, schemas, ABIs, API definitions, tests, or scripts
 - It never reads `.env` files
