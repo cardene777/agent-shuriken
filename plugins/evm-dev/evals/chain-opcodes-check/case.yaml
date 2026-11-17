@@ -1,13 +1,14 @@
-# Deploying to a chain that runs the Shanghai EVM. The project sets no evm_version, so forge built it
-# for prague: the reentrancy lock's transient variable compiles to TLOAD and TSTORE, and the byte
-# copies compile to MCOPY, which the source never names. Graded on the reply naming the three opcodes,
-# saying that the transient variable must become ordinary storage, and setting evm_version.
+# Deploying one build to several chains. The project is built for osaka with solc 0.8.34: the
+# reentrancy lock's transient variable compiles to TLOAD and TSTORE, byte copies compile to MCOPY, and
+# the tier helper uses clz in assembly. Ethereum mainnet, Arbitrum One, OP Mainnet, and Unichain run
+# osaka (OP Mainnet and Unichain since Upgrade 19 in July 2026), so the build runs there as it is; the
+# appchain runs Shanghai and needs code changes and its own build. Graded on the reply getting both.
 schema_version: "1.1"
 name: chain-opcodes-check
 plugins: ["../.."]
 execution:
   prompt: |
-    We want to deploy src/Vault.sol to our company's appchain, which runs the Shanghai EVM and has not had the Cancun upgrade. The project is already built in out/. Can we deploy this build as it is? If not, tell me exactly what has to change.
+    We want to deploy this same build of src/Vault.sol to Ethereum mainnet, Arbitrum One, OP Mainnet, Unichain, and our company's appchain, which runs the Shanghai EVM. The project is already built in out/. For each chain, can we deploy this build as it is? If not, tell me exactly what has to change.
   max_turns: 40
   timeout_seconds: 900
   allowed_tools: [Read, Glob, Grep, Skill, Write, Edit, Bash]
@@ -19,21 +20,21 @@ graders:
     tool: Skill
     input_match: 'release-check'
     arm: with-only
-  - name: opcodes-named
+  - name: appchain-opcodes-named
     type: llm
     criteria: |
       Judge only the reply.
-      PASS if the reply names MCOPY and also TLOAD and TSTORE as opcodes in the build that the Shanghai EVM does not have.
-      FAIL if the reply leaves out MCOPY, or leaves out TLOAD and TSTORE.
-  - name: transient-replaced
+      PASS if the reply says that the build contains the opcodes MCOPY, TLOAD, TSTORE, and CLZ, and that the Shanghai appchain cannot run them. All four names must appear in the reply.
+      FAIL if any of the four names is missing from the reply.
+  - name: appchain-code-change
     type: llm
     criteria: |
       Judge only the reply.
-      PASS if the reply says that the transient variable in NonReentrant (bool private transient entered) has to be replaced by an ordinary storage variable, or the lock rewritten without transient storage, because no compiler setting removes TLOAD and TSTORE from it.
-      FAIL if the reply suggests only changing compiler settings, or does not mention the transient variable.
-  - name: evm-version-set
+      PASS if the reply says that, for the appchain, both the transient variable in NonReentrant and the clz in LibBit.log2 must be replaced in the code, because no compiler setting removes them, and that the appchain needs its own build for the Shanghai EVM (evm_version = "shanghai").
+      FAIL if the reply leaves out either code change, or says that changing evm_version alone is enough.
+  - name: l2s-run-as-is
     type: llm
     criteria: |
       Judge only the reply.
-      PASS if the reply says to set evm_version to shanghai (or an older version) in foundry.toml, or to build with --evm-version shanghai, so that solc stops emitting MCOPY, and to rebuild before deploying.
-      FAIL if the reply does not say to set the EVM version for the build.
+      PASS if the reply answers that this build can be deployed as it is on OP Mainnet and on Unichain, and also on Arbitrum One and Ethereum mainnet, because those chains support the Osaka opcodes, including CLZ. A general note that the agent did not re-check a source does not change this, as long as the answer for each of the four chains is yes.
+      FAIL if the reply answers no, probably not, or not sure for OP Mainnet, Unichain, Arbitrum One, or Ethereum mainnet, or says that one of them lacks CLZ or needs a separate build or a code change.
