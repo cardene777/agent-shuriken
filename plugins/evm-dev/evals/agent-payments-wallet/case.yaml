@@ -1,0 +1,40 @@
+# Designing the wallet of an AI agent that pays data APIs with x402 from a monthly budget. Graded on
+# the design file: the agent's key is never kept in a .env file, an environment variable, or code,
+# its spending is capped by something its own code cannot change, and it can pay only approved
+# payees.
+schema_version: "1.1"
+name: agent-payments-wallet
+plugins: ["../.."]
+execution:
+  prompt: |
+    Design how the agent's wallet holds funds, signs, and pays: the account, where its key lives, the limits on what it can spend and to whom, and how a person stops it. Write the design to docs/design/agent-wallet.md. Do not ask me questions; decide, and write down your assumptions.
+  max_turns: 30
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill, Write, Edit, Bash]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'wallet-design'
+    arm: with-only
+  - name: no-key-in-env
+    type: llm
+    focus: {source: file, path: docs/design/agent-wallet.md}
+    criteria: |
+      FAIL if the design keeps the agent's private key or mnemonic in a .env file, an environment variable, a config file, or source code, even encrypted with a key that sits next to it.
+      Mentioning one of these as rejected is not a failure. A key management service, a hardware security module, a wallet service with a policy engine, or a session key granted by a smart account passes.
+      PASS otherwise. FAIL if the file is missing or empty.
+  - name: capped-outside-agent
+    type: llm
+    focus: {source: file, path: docs/design/agent-wallet.md}
+    criteria: |
+      PASS if the 200 USDC a month cap is enforced by something the agent's own code cannot change, such as an on-chain permission or session key with a spending limit and an expiry, a smart account or Safe module policy, an allowance, or a key service's signing policy, and a person can revoke it.
+      FAIL if the cap is enforced only by the agent's own code or configuration, if there is no cap, or if the file is missing or empty.
+  - name: approved-payees
+    type: llm
+    focus: {source: file, path: docs/design/agent-wallet.md}
+    criteria: |
+      PASS if the design limits who the agent can pay to the approved data APIs (an allowlist of payee addresses or hosts) and enforces it outside the agent's own code, or says the funds the agent holds are capped so low that an unapproved payment cannot exceed the monthly budget and are separate from the treasury.
+      FAIL if the agent can pay any address, or if the file is missing or empty.

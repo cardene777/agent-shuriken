@@ -1,0 +1,7 @@
+interface:
+  display_name: "Wallet Design"
+  short_description: "Design wallets and signing: keys, ERC-4337 and EIP-7702 accounts, permissions, approvals, gas sponsorship, and agent payments, from dated items"
+  default_prompt: "Use $wallet-design to decide whether our users get ERC-4337 smart accounts or EIP-7702 delegation."
+
+policy:
+  allow_implicit_invocation: true

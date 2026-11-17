@@ -2,7 +2,7 @@
 
 English · [日本語](how-it-works.ja.md)
 
-The plugin has six skills. `evm-standards` answers questions about ERCs and EIPs from items bundled with it, `solidity-code` writes Solidity for the versions a project uses from items about its tools, `contract-tests` writes tests for a project's contracts from items about its test tools, `contract-design` writes a design for a set of contracts from items about the libraries and services they rely on, `dapp-architecture` writes a design for how a dApp's parts fit together from items about the services it may use, and `financial-standards` writes a design for an app built on financial standards from items about their versions.
+The plugin has seven skills. `evm-standards` answers questions about ERCs and EIPs from items bundled with it, `solidity-code` writes Solidity for the versions a project uses from items about its tools, `contract-tests` writes tests for a project's contracts from items about its test tools, `contract-design` writes a design for a set of contracts from items about the libraries and services they rely on, `wallet-design` writes a design for an app's wallets and signing from items about accounts, permissions, approvals, gas sponsorship, and payments, `dapp-architecture` writes a design for how a dApp's parts fit together from items about the services it may use, and `financial-standards` writes a design for an app built on financial standards from items about their versions.
 This page describes the skills' items, when an item counts as out of date, the scripts, and what the agent may do with them.
 
 ## The ERC and EIP items
@@ -165,6 +165,44 @@ When that skill is not installed, the agent checks those services against their 
 
 The checklist holds the rules a design must never break: an owner for every state change, invariants a test can check, exact decimals and rounding, locked initializers, a storage layout that survives upgrades, checked prices and sequencer uptime, randomness nobody can choose, slippage limits and deadlines, no reentrancy, pull payments where pushing can fail, SafeERC20 and fee-on-transfer tokens, no single key in control with a two-step transfer and a pauser, changes delayed by a timelock, no dependence on one keeper, and bounded loops.
 
+## The wallet design items
+
+`wallet-design` keeps its items in `skills/wallet-design/references/items/`, one Markdown file per contract, standard, service, or practice, such as `entrypoint-versions.md` or `permit2-approvals.md`.
+Its front matter holds the same four fields as the dApp service items, with these topics.
+
+| Field | What it holds |
+|---|---|
+| `topic` | One of `accounts`, `signatures`, `approvals`, `gas`, `payments` |
+| `subject` | The contract, standard, service, or practice the item is about, such as `x402 payments over HTTP` |
+| `checked` | The date the item was confirmed against the official source, as `YYYY-MM-DD` |
+| `source` | The organization and the documents the item comes from, by name. Items hold no URLs |
+
+The body says the state of the contract, standard, or service when it was checked, such as which EntryPoint versions a bundler runs, and what a wallet design must respect.
+A wallet design item counts as out of date 90 days after it was checked.
+Relayers and monitoring services are dated in the dApp service items, so `wallet-design` sends the agent to the items of `dapp-architecture` for them, or to their official documents when that skill is not installed.
+
+## The wallet-design script
+
+`skills/wallet-design/scripts/wallet-design.py` runs on Python 3 with its standard library only.
+
+| Command | What it does |
+|---|---|
+| `check` | Checks that every item has its four fields, a known topic, and a real date. It names each item that does not and exits 1 |
+| `list` | Prints one line per item: `ok` or `stale`, the topic, the date it was checked, its name, and its subject, then a count |
+| `verify <file>` | Checks that a design has the nine sections of the template in order, each with text and no `Fill in:` line left, and a date in Accounts. It names each section that does not and exits 1 |
+
+`verify` reads only the design file it is given, and prints section names and what is wrong with them, never the design's text.
+
+## How the agent designs wallets
+
+1. It runs `list`, reads the items the design may rely on, and re-checks the ones marked `stale`; for the status of an ERC or EIP, such as ERC-4337 or EIP-7702, it uses `evm-standards`
+2. It asks the decisions one at a time, each with a recommended choice, and skips what the request already answers. When it cannot ask, it takes the recommended choice and records it as an assumption under Open decisions
+3. It copies `templates/design.md` to `docs/design/<topic>.md`, or where the user or the project keeps designs, replaces every `Fill in:` line, and writes in Accounts the account contract, the EntryPoint version, and the date it checked each service
+4. It runs `verify`, fixes each section it names, then goes through `references/checklist.md` and fixes every rule the design breaks
+5. It tells the user the rules it could not judge and the open decisions
+
+The checklist holds the rules a design must never break: no key in a `.env` file, an environment variable, or code, a recovery path and a way to rotate keys, EIP-712 signatures with the chain ID, a nonce, and a deadline, ERC-1271 and ERC-6492 for smart account signatures, permissions and approvals bounded in scope, amount, and time and revocable by users, a pinned EntryPoint version, EIP-7702 delegates that nobody else can initialize and that leave no traps in old storage, sponsorship with limits, agents with spending limits and allowed payees, and signing requests users can read.
+
 ## The dApp service items
 
 `dapp-architecture` keeps its items in `skills/dapp-architecture/references/items/`, one Markdown file per service, network, or tool, such as `openzeppelin-defender-relayer.md` or `ethereum-testnets.md`.
@@ -246,6 +284,7 @@ The checklist holds the rules a design must never break: nothing private on chai
 - It never writes a private key or a mnemonic into a file, and refuses a command that passes a key
 - `contract-tests` never changes a contract to make a test pass, and writes only test files
 - `contract-design` never reads a key, never signs, and writes no Solidity, tests, or deployment scripts
+- `wallet-design` never reads a key, never signs, refuses a command that passes a key, and writes no Solidity, wallet code, tests, or deployment scripts
 - `dapp-architecture` never reads a key, never signs, and writes no contracts, ABIs, API definitions, frontend code, tests, or scripts
 - `financial-standards` never reads a key, never signs, and writes no contracts, schemas, ABIs, API definitions, tests, or scripts
 - It never reads `.env` files
