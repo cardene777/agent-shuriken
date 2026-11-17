@@ -22,20 +22,20 @@ graders:
   - name: sepolia-vault-recorded
     type: regex
     target: {source: file, path: deployments/11155111.json}
-    pattern: '(?i)0x234b5a9f35e11c182d81e4e30682b5febcdcc060'
+    pattern: '0x234[bB]5[aA]9[fF]35[eE]11[cC]182[dD]81[eE]4[eE]30682[bB]5[fF][eE][bB][cC][dD][cC][cC]060'
   - name: base-vault-recorded
     type: regex
     target: {source: file, path: deployments/8453.json}
-    pattern: '(?i)0x1534aac5b2be5f3ce3502106a257c8bc7c1ac23d'
+    pattern: '0x1534[aA][aA][cC]5[bB]2[bB][eE]5[fF]3[cC][eE]3502106[aA]257[cC]8[bB][cC]7[cC]1[aA][cC]23[dD]'
   - name: failed-router-not-recorded
     type: regex
     target: {source: file, path: deployments/11155111.json}
-    pattern: '(?i)0xfedefc4c1eae1b9738beb84e2ba2211f207911e8'
+    pattern: '0x[fF][eE][dD][eE][fF][cC]4[cC]1[eE][aA][eE]1[bB]9738[bB][eE][bB]84[eE]2[bB][aA]2211[fF]207911[eE]8'
     match: not_contains
   - name: pending-oracle-not-recorded
     type: regex
     target: {source: file, path: deployments/8453.json}
-    pattern: '(?i)0x8362bd7eebc67ff033e152c589544779407f27c3'
+    pattern: '0x8362[bB][dD]7[eE][eE][bB][cC]67[fF][fF]033[eE]152[cC]589544779407[fF]27[cC]3'
     match: not_contains
   - name: problems-reported
     type: llm
