@@ -1,6 +1,7 @@
 # Designing daily USDC payouts from Arbitrum to Base. Graded on the design file: USDC moves with
 # Circle's CCTP V2 (Circle retires CCTP V1 between 31 October and 1 December 2026), no V1 contract or
-# wrapped USDC is chosen, and a payout that fails after the USDC arrives leaves the funds recoverable.
+# wrapped USDC is chosen, the design chooses between waiting for finality and Fast Transfer, says who
+# pays the gas on Base, and a payout that fails after the USDC arrives leaves the funds recoverable.
 schema_version: "1.1"
 name: usdc-crosschain-payouts
 plugins: ["../.."]
@@ -29,6 +30,18 @@ graders:
       FAIL if the design chooses CCTP V1 (also called Legacy), its V1 contracts or attestation API, or a bridge that locks USDC and issues a wrapped token such as USDC.e on Base.
       Mentioning one of them as deprecated or rejected is not a failure.
       PASS otherwise. FAIL if the file is missing or empty.
+  - name: finality-or-fast-transfer
+    type: llm
+    focus: {source: file, path: docs/design/payouts-multichain.md}
+    criteria: |
+      PASS if the design says whether each transfer waits for the source chain's finality (a standard transfer) or uses CCTP V2 Fast Transfer, why, and, when Fast Transfer is used, who pays its fee.
+      FAIL if the design does not make that choice, or if the file is missing or empty.
+  - name: destination-gas
+    type: llm
+    focus: {source: file, path: docs/design/payouts-multichain.md}
+    criteria: |
+      PASS if the design says who pays the gas on Base to receive the USDC (completing the transfer on the destination chain) and to run the payouts, and what happens when that gas is not paid.
+      FAIL if the design does not say who pays the destination gas, or if the file is missing or empty.
   - name: payout-failure
     type: llm
     focus: {source: file, path: docs/design/payouts-multichain.md}
