@@ -28,7 +28,7 @@
     {
       "name": "docs-publish",
       "source": "./plugins/docs-publish",
-      "description": "Write the public documentation of an open source project in five parts, Quickstart, Concepts, API reference, Cookbook, and FAQ, in English and a second language you pick, with every page's translation and every relative link checked"
+      "description": "Write the documentation of a library, command-line tool, or web service you build, public or private, in five parts, Quickstart, Concepts, API reference, Cookbook, and FAQ, in English and a second language you pick, with every page's translation and every relative link checked"
     },
     {
       "name": "evm-dev",

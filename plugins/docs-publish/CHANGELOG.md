@@ -5,6 +5,11 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- Writes the docs of a library, command-line tool, or web service you build, whether its code is public or private, not only of an open source project
+- An API page marked `"endpoint": true` in the plan, or added with `add --endpoint`, gets the outline of an HTTP endpoint: Endpoint, Authentication, Parameters, Request body, Response, Errors, Example, and Related
+- The Quickstart also fits a hosted service the reader signs up for, starting from creating an account and getting an API key, then the first request
+- Pages show a placeholder in place of an API key, token, or password, and a web service's requests go only to a copy your project starts on your machine, never to the hosted service
+
 ## [0.3.0] - 2026-11-16
 
 - `check` says how to fix each kind of problem it lists, in a `How to fix:` section before its last line

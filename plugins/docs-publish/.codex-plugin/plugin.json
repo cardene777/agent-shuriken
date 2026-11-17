@@ -1,7 +1,7 @@
 {
   "name": "docs-publish",
   "version": "0.3.0",
-  "description": "Write the public documentation of an open source project in five parts, Quickstart, Concepts, API reference, Cookbook, and FAQ, in English and a second language you pick, with every page's translation and every relative link checked",
+  "description": "Write the documentation of a library, command-line tool, or web service you build, public or private, in five parts, Quickstart, Concepts, API reference, Cookbook, and FAQ, in English and a second language you pick, with every page's translation and every relative link checked",
   "author": {
     "name": "cardene777",
     "url": "https://github.com/cardene777"
@@ -13,19 +13,19 @@
     "documentation",
     "docs",
     "translation",
-    "open-source",
+    "api-reference",
     "markdown"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Docs Publish",
     "shortDescription": "Write docs in two languages",
-    "longDescription": "Writes the public documentation of an open source project in five parts: a Quickstart, pages that explain its ideas, an API reference with one page per function, class, or command, a Cookbook with one page per task, and an FAQ. Every page is written in English and in a second language you pick, such as Japanese, as one file per language at the same path, listed in a translation map. A Python script lays out the folders and starter pages, never overwriting a file, records which translations match the current source page, and checks that every page has its counterpart with the same headings, code blocks, and tables, that every relative link resolves with the right letter case, that links stay in their language, and that every page can be reached from the index. The agent writes and translates the pages from the project's own code and examples, and nothing is committed or published until you review it.",
+    "longDescription": "Writes the documentation of a library, command-line tool, or web service you build, whether its code is public or private, in five parts: a Quickstart, pages that explain its ideas, an API reference with one page per function, class, command, or HTTP endpoint, a Cookbook with one page per task, and an FAQ. An endpoint's page has the method and path, the authentication, the request, the responses with their status codes, and the errors, and a hosted service's Quickstart starts from creating an account and getting an API key. Every page is written in English and in a second language you pick, such as Japanese, as one file per language at the same path, listed in a translation map. A Python script lays out the folders and starter pages, never overwriting a file, records which translations match the current source page, and checks that every page has its counterpart with the same headings, code blocks, and tables, that every relative link resolves with the right letter case, that links stay in their language, and that every page can be reached from the index. The agent writes and translates the pages from the project's own code and examples, and nothing is committed or published until you review it.",
     "developerName": "cardene777",
     "category": "Developer Tools",
     "capabilities": [],
     "defaultPrompt": [
-      "Write public docs for this project in English and Japanese"
+      "Write docs for this project in English and Japanese"
     ],
     "composerIcon": "./assets/icon.svg",
     "logo": "./assets/icon.svg"
