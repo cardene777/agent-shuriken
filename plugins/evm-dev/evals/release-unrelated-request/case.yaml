@@ -1,0 +1,32 @@
+# A request to add an event declaration to the Vault is near the release-check skill (the same
+# upgradeable contract, the same build) but checks no release, so the skill must not start.
+schema_version: "1.1"
+name: release-unrelated-request
+plugins: ["../.."]
+execution:
+  prompt: |
+    Add an event FeeChanged(uint256 oldFee, uint256 newFee) to the Vault contract in src/Vault.sol, next to the other events. Only declare it; don't change anything else.
+  max_turns: 20
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill, Write, Edit, Bash]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-not-loaded
+    type: tool_used
+    tool: Skill
+    input_match: 'release-check'
+    min: 0
+    max: 0
+    arm: both
+  - name: no-script-run
+    type: tool_used
+    tool: Bash
+    input_match: 'release-check\.py'
+    min: 0
+    max: 0
+    arm: both
+  - name: event-declared
+    type: regex
+    target: {source: file, path: src/Vault.sol}
+    pattern: 'event FeeChanged\(uint256 oldFee, uint256 newFee\);'

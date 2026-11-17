@@ -2,7 +2,7 @@
 
 English · [日本語](how-it-works.ja.md)
 
-The plugin has nine skills. `evm-standards` answers questions about ERCs and EIPs from items bundled with it, `solidity-code` writes Solidity for the versions a project uses from items about its tools, `contract-tests` writes tests for a project's contracts from items about its test tools, `contract-deploy` writes deploy scripts, checks how a project handles keys, and records what was deployed, from items about keystores, hardware wallets, deployment files, and verification, `contract-design` writes a design for a set of contracts from items about the libraries and services they rely on, `wallet-design` writes a design for an app's wallets and signing from items about accounts, permissions, approvals, gas sponsorship, and payments, `multichain-design` writes a design for an app on more than one chain from items about deployment tools, bridges, message protocols, and token standards, `dapp-architecture` writes a design for how a dApp's parts fit together from items about the services it may use, and `financial-standards` writes a design for an app built on financial standards from items about their versions.
+The plugin has ten skills. `evm-standards` answers questions about ERCs and EIPs from items bundled with it, `solidity-code` writes Solidity for the versions a project uses from items about its tools, `contract-tests` writes tests for a project's contracts from items about its test tools, `contract-deploy` writes deploy scripts, checks how a project handles keys, and records what was deployed, from items about keystores, hardware wallets, deployment files, and verification, `release-check` checks contracts before a release against the deployed version and the target chains, from items about EVM versions, the transaction gas cap, storage layouts, and the tools, `contract-design` writes a design for a set of contracts from items about the libraries and services they rely on, `wallet-design` writes a design for an app's wallets and signing from items about accounts, permissions, approvals, gas sponsorship, and payments, `multichain-design` writes a design for an app on more than one chain from items about deployment tools, bridges, message protocols, and token standards, `dapp-architecture` writes a design for how a dApp's parts fit together from items about the services it may use, and `financial-standards` writes a design for an app built on financial standards from items about their versions.
 This page describes the skills' items, when an item counts as out of date, the scripts, and what the agent may do with them.
 
 ## The ERC and EIP items
@@ -183,6 +183,63 @@ It is rebuilt from the files each time, and the commit comes from Foundry's run 
 3. It writes a Foundry script that calls `vm.startBroadcast()` with no argument, or an Ignition module with every key behind `configVariable`, then runs `keys`, fixes each finding in what it wrote, and names the others to the user
 4. It simulates the deployment, then gives the user the command for each chain: `--ledger` or `--trezor` with `--slow` on a production chain, and an encrypted keystore (`cast wallet import` and `--account`, or the Hardhat 3 keystore) on a test chain. The user runs it
 5. It runs `record --write`, follows up each `failed`, `pending`, or `mismatch` line, checks each address with `cast code`, and verifies the source with `forge verify-contract` or `ignition verify` once the user agrees
+
+## The release items
+
+`release-check` keeps its items in `skills/release-check/references/items/`, one Markdown file per subject, such as `chain-evm-support.md` or `openzeppelin-upgrades-validate.md`.
+Its front matter holds the same four fields as the deployment items, with these topics.
+
+| Field | What it holds |
+|---|---|
+| `topic` | One of `layout`, `evm`, `tools` |
+| `subject` | What the item is about, such as `The EVM version each major chain runs` |
+| `checked` | The date the item was confirmed against the official source, as `YYYY-MM-DD` |
+| `source` | The organization and the documents the item comes from, by name. Items hold no URLs |
+
+The body says what held when the item was checked, and what a release must respect.
+A release item counts as out of date 90 days after it was checked.
+
+## The release-check script
+
+`skills/release-check/scripts/release-check.py` runs on Python 3 with its standard library only, and reads only the JSON files it is given or finds in a build folder.
+
+| Command | What it does |
+|---|---|
+| `check` | Checks that every item has its four fields, a known topic, and a real date. It names each item that does not and exits 1 |
+| `list` | Prints one line per item: `ok` or `stale`, the topic, the date it was checked, its name, and its subject, then a count |
+| `layout <old> <new>` | Compares two storage layouts, from `forge inspect <Contract> storageLayout --json`, from artifacts built with `--extra-output storageLayout`, or from two `out/` folders contract by contract, and exits 1 when it finds a problem |
+| `abi <old> <new>` | Compares two ABIs, from `forge inspect <Contract> abi --json`, from artifacts, or from two `out/` folders, and exits 1 when a function, event, or error was removed or changed |
+| `opcodes <build> --evm <version>` | Names each opcode in the runtime code and the constructor that the EVM version lacks, and exits 1 when there is one |
+
+`layout` prints these lines.
+
+| Line | What it means |
+|---|---|
+| `removed` | A variable of the deployed version is gone, and no variable of the same type took its place |
+| `moved` | A variable now sits at another slot or offset |
+| `retyped` | A variable's type changed; a change inside a struct, a mapping's value, or an array's element prints `changed inside` |
+| `gap` | A `__gap` array no longer ends at the slot where it ended, so the variables after it moved |
+| `renamed` | A variable of the same type sits where the old one did under a new name. It is not counted as a problem |
+
+A variable is matched by name, then by place.
+Struct and enum names are compared without the contract that declares them, so renaming the contract changes nothing.
+In folders, test and script artifacts (`*.t.sol/`, `*.s.sol/`), `build-info/`, and Hardhat's `*.dbg.json` files are left out, and `--contract` with `--new-contract` compares two contracts with different names.
+Variables in ERC-7201 namespaced storage are not in solc's layout output, so `layout` does not see them.
+
+`abi` prints `removed-function`, `changed-function` (outputs or state mutability), `removed-event`, `changed-event` (which parameters are indexed, or whether it is anonymous), and `removed-error`.
+Additions are compatible and are not printed, and `receive` and `fallback` count as functions.
+
+`opcodes` reads Foundry and Hardhat artifacts, leaves out solc's metadata at the end of the code, skips the data of each `PUSH`, and counts library placeholders as zero bytes.
+For the creation code it reads only the part before the runtime code, which runs the constructor.
+The EVM versions run from `homestead` to `osaka`, and an unknown version exits 2.
+
+## How the agent checks a release
+
+1. It reads the project's versions through `solidity-code`, runs `list`, and re-checks the items marked `stale`; for the status of an ERC or EIP, it uses `evm-standards`
+2. It asks which chains the contracts go to and, for an upgrade, which git tag or commit is deployed
+3. It checks out that version with `git worktree add` in a temporary folder and builds both versions with `--extra-output storageLayout`, unless the user gives the deployed version's layout and ABI
+4. It runs `layout` and `abi` on the two versions and `opcodes` with each target chain's EVM version, and runs `npx @openzeppelin/upgrades-core validate` as well when the project has it
+5. It compares gas with `forge snapshot --diff` and sizes with `forge build --sizes`, checks each deployment transaction against the chain's per-transaction gas cap (EIP-7825), reports each finding with what to do, and removes the temporary worktree
 
 ## The contract design items
 
@@ -381,6 +438,7 @@ The checklist holds the rules a design must never break: nothing private on chai
 - It never writes a private key or a mnemonic into a file, and refuses a command that passes a key
 - `contract-tests` never changes a contract to make a test pass, and writes only test files
 - `contract-deploy` never reads a key, a mnemonic, or a password, never signs or broadcasts, refuses a command that passes `--private-key`, `--mnemonic`, or `--password`, never reads Foundry's `cache/`, and verifies source code only after the user agrees
+- `release-check` never reads a key or a mnemonic, never signs, refuses a command that passes a key, writes nothing into the project, and removes the temporary worktree it creates
 - `contract-design` never reads a key, never signs, and writes no Solidity, tests, or deployment scripts
 - `wallet-design` never reads a key, never signs, refuses a command that passes a key, and writes no Solidity, wallet code, tests, or deployment scripts
 - `multichain-design` never reads a key, never signs, refuses a command that passes a key, and writes no Solidity, bridge code, tests, or deployment scripts

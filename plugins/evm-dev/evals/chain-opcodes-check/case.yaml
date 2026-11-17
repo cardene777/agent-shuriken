@@ -1,0 +1,39 @@
+# Deploying to a chain that runs the Shanghai EVM. The project sets no evm_version, so forge built it
+# for prague: the reentrancy lock's transient variable compiles to TLOAD and TSTORE, and the byte
+# copies compile to MCOPY, which the source never names. Graded on the reply naming the three opcodes,
+# saying that the transient variable must become ordinary storage, and setting evm_version.
+schema_version: "1.1"
+name: chain-opcodes-check
+plugins: ["../.."]
+execution:
+  prompt: |
+    We want to deploy src/Vault.sol to our company's appchain, which runs the Shanghai EVM and has not had the Cancun upgrade. The project is already built in out/. Can we deploy this build as it is? If not, tell me exactly what has to change.
+  max_turns: 40
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill, Write, Edit, Bash]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'release-check'
+    arm: with-only
+  - name: opcodes-named
+    type: llm
+    criteria: |
+      Judge only the reply.
+      PASS if the reply names MCOPY and also TLOAD and TSTORE as opcodes in the build that the Shanghai EVM does not have.
+      FAIL if the reply leaves out MCOPY, or leaves out TLOAD and TSTORE.
+  - name: transient-replaced
+    type: llm
+    criteria: |
+      Judge only the reply.
+      PASS if the reply says that the transient variable in NonReentrant (bool private transient entered) has to be replaced by an ordinary storage variable, or the lock rewritten without transient storage, because no compiler setting removes TLOAD and TSTORE from it.
+      FAIL if the reply suggests only changing compiler settings, or does not mention the transient variable.
+  - name: evm-version-set
+    type: llm
+    criteria: |
+      Judge only the reply.
+      PASS if the reply says to set evm_version to shanghai (or an older version) in foundry.toml, or to build with --evm-version shanghai, so that solc stops emitting MCOPY, and to rebuild before deploying.
+      FAIL if the reply does not say to set the EVM version for the build.

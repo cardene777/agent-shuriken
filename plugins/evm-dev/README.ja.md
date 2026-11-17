@@ -1,6 +1,6 @@
 # EVM Dev
 
-ERCが確定したか、EIPがEthereumのメインネットで動いているかを答え、プロジェクトが使う版に合わせてSolidityとそのテストを書き、鍵を手元に置いたままコントラクトを配り、コントラクトと、ウォレットと署名と、複数のチェーンにまたがるアプリと、dAppの部品の組み方と、ISO 20022やFIXなどの金融の規格を使うアプリを設計します。どれも、エージェントの記憶ではなく、公式の文書で確かめた項目に基づきます。
+ERCが確定したか、EIPがEthereumのメインネットで動いているかを答え、プロジェクトが使う版に合わせてSolidityとそのテストを書き、鍵を手元に置いたままコントラクトを配り、出す前に配ってある版と出す先のチェーンに照らして確かめ、コントラクトと、ウォレットと署名と、複数のチェーンにまたがるアプリと、dAppの部品の組み方と、ISO 20022やFIXなどの金融の規格を使うアプリを設計します。どれも、エージェントの記憶ではなく、公式の文書で確かめた項目に基づきます。
 
 [English](README.md) · 日本語
 
@@ -14,6 +14,7 @@ EIPがネットワークの更新で入り、広く呼ばれている「ERC」�
 | `solidity-code` | FoundryとHardhatのプロジェクトで、プロジェクトが使うsolcとOpenZeppelinとforge-stdとFoundryとHardhatの版に合わせてコントラクトを書き、古い書き方を探してからビルドとテストを回します |
 | `contract-tests` | FoundryかHardhatのプロジェクトで、コントラクトごとに確かめる点を挙げてから、単体とfuzzとinvariantのテストを書きます。kiwaが入っていればkiwaに書かせます。どのテストも触れていない点を名指し、テストを回します |
 | `contract-deploy` | 鍵に触れないFoundryとHardhat Ignitionの配る命令を書き、プロジェクトが鍵を危なく扱う所を全て名指し、本番のチェーンはハードウェアの財布、テストのチェーンは暗号化した鍵の保管で署名する命令を渡し、配った後にチェーンごとの出したアドレスを記録して確かめます |
+| `release-check` | 出す前にコントラクトを確かめます。保存の配置とABIを配ってある版と比べ、出す先のチェーンのEVMが動かせないオペコードを名指し、プロジェクトにOpenZeppelinの更新の検査が在れば回し、ガス代と大きさを比べます |
 | `contract-design` | 書く前にコントラクトを設計します。決めることを1つずつ尋ね、コントラクトの分け方、トークンの規格、不変条件、役割、更新の方式、価格、取引の順、乱数、外への呼び出しを1つの設計書に書き、節を確かめてから確かめの表で見直します |
 | `wallet-design` | ウォレットと署名を設計します。決めることを1つずつ尋ね、鍵の持ち方と取り戻し方、ERC-4337とEIP-7702のアカウント、署名による許可、承認、ガス代を誰が払うか、AIエージェントの支払いを1つの設計書に書き、節を確かめてから確かめの表で見直します |
 | `multichain-design` | 複数のチェーンにまたがるアプリを設計します。決めることを1つずつ尋ね、同じアドレスでの展開、チェーンの間の資産の移し方、チェーンをまたぐメッセージの検証、片側だけ終わった時の扱いを1つの設計書に書き、節を確かめてから確かめの表で見直します |
@@ -25,6 +26,7 @@ evm-standards:  List the items ──> Read the ones asked about ──> Re-chec
 solidity-code:  Read the project's versions ──> Read the items for them ──> Write ──> Scan, build, and test
 contract-tests:  Read the versions and items ──> List what needs a test ──> Write the tests, or have kiwa write them ──> Name what no test covers ──> Run the tests
 contract-deploy:  Read the versions and items ──> Write the deploy script ──> Check the key handling ──> Simulate, then the user broadcasts ──> Record and verify
+release-check:  Read the versions and items ──> Build the deployed version ──> Compare layouts and ABIs ──> Find opcodes the chains lack ──> Report and clean up
 contract-design:  Read the items ──> Ask the decisions ──> Write the design ──> Verify the sections ──> Review against the checklist
 wallet-design:  Read the items ──> Ask the decisions ──> Write the design ──> Verify the sections ──> Review against the checklist
 multichain-design:  Read the items ──> Ask the decisions ──> Write the design ──> Verify the sections ──> Review against the checklist
@@ -48,6 +50,7 @@ gemini skills install https://github.com/cardene777/agent-shuriken.git --path pl
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/solidity-code
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/contract-tests
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/contract-deploy
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/release-check
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/contract-design
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/wallet-design
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/multichain-design
@@ -68,6 +71,8 @@ gemini skills install https://github.com/cardene777/agent-shuriken.git --path pl
 例えば「src/Vault.solのテストを足して」と頼みます。
 `contract-deploy`は、コントラクトを配るか、配った物の記録を頼むと始まります。
 例えば「src/Vault.solをSepoliaに配ってからBaseに配って」や「前に回したforge scriptで出した物を書き留めて」と頼みます。
+`release-check`は、コントラクトを出してよいか、更新が安全かを尋ねると始まります。
+例えば「Vaultをsrc/のcodeへ更新して安全か」や「このビルドはまだShanghaiのチェーンで動くか」と尋ねます。
 `contract-design`は、書く前にコントラクトの設計を頼むと始まります。
 例えば「このトークンの販売のコントラクトを設計して。役割と更新の方式と価格の読み方も」と頼みます。
 `wallet-design`は、アプリのウォレットか署名の設計を頼むと始まります。
@@ -79,8 +84,8 @@ gemini skills install https://github.com/cardene777/agent-shuriken.git --path pl
 `financial-standards`は、金融の規格を使う設計を頼むと始まります。
 例えば「ISO 20022の支払いのmessageを決済のコントラクトにどう対応させるかを設計して」と頼みます。
 呼び出すこともできます。
-Claude Codeでは`/evm-dev:evm-standards`か`/evm-dev:solidity-code`か`/evm-dev:contract-tests`か`/evm-dev:contract-deploy`か`/evm-dev:contract-design`か`/evm-dev:wallet-design`か`/evm-dev:multichain-design`か`/evm-dev:dapp-architecture`か`/evm-dev:financial-standards`を実行し、Codexでは`$`を入力して**EVM Standards**か**Solidity Code**か**Contract Tests**か**Contract Deploy**か**Contract Design**か**Wallet Design**か**Multichain Design**か**dApp Architecture**か**Financial Standards**を選びます。
-GitHub Copilot CLIでは依頼の文に`/evm-standards`か`/solidity-code`か`/contract-tests`か`/contract-deploy`か`/contract-design`か`/wallet-design`か`/multichain-design`か`/dapp-architecture`か`/financial-standards`と書き、Gemini CLIでは作業を説明します。
+Claude Codeでは`/evm-dev:evm-standards`か`/evm-dev:solidity-code`か`/evm-dev:contract-tests`か`/evm-dev:contract-deploy`か`/evm-dev:release-check`か`/evm-dev:contract-design`か`/evm-dev:wallet-design`か`/evm-dev:multichain-design`か`/evm-dev:dapp-architecture`か`/evm-dev:financial-standards`を実行し、Codexでは`$`を入力して**EVM Standards**か**Solidity Code**か**Contract Tests**か**Contract Deploy**か**Release Check**か**Contract Design**か**Wallet Design**か**Multichain Design**か**dApp Architecture**か**Financial Standards**を選びます。
+GitHub Copilot CLIでは依頼の文に`/evm-standards`か`/solidity-code`か`/contract-tests`か`/contract-deploy`か`/release-check`か`/contract-design`か`/wallet-design`か`/multichain-design`か`/dapp-architecture`か`/financial-standards`と書き、Gemini CLIでは作業を説明します。
 
 ### 規格を確かめる
 
@@ -194,6 +199,33 @@ pending 8453 Oracle tx 0xc716db5108b741d36dc98b163ef3864bab9ae80e0e6b33f4141ce4c
 wrote deployments/8453.json
 wrote deployments/11155111.json
 record: 2 contracts on 2 chains, 2 transactions to look at
+```
+
+### リリースを確かめる
+
+1. エージェントがプロジェクトの版と、チェーンごとのEVMの版と1つの取引のガスの上限と保存の配置と道具の項目を読み、古い項目は確かめ直します
+2. 更新の時は、エージェントが配ってあるgitのtagかcommitを一時的なworktreeに取り出し、それと新しい版を、保存の配置をビルドの出力に含めてビルドします
+3. エージェントが2つの保存の配置を比べ、消えた変数、置き場所が動いた変数、型が変わった変数をstructの中まで名指し、終わりの位置が動いた`__gap`を名指します。ABIを比べ、消えたか形の変わった関数とeventとerrorを名指します
+4. エージェントが、出す先のチェーンのEVMの版が持たないオペコードを、実行時のcodeとconstructorの両方で名指し、コンパイラの設定で直るか、codeを変える要があるかを伝えます
+5. プロジェクトにOpenZeppelinの更新の検査が在れば、エージェントはそれも回して両方の結果を伝えます。ガス代を`forge snapshot --diff`で、大きさを`forge build --sizes`で比べ、配る取引ごとにチェーンのガスの上限と照らし、一時的なworktreeを消します
+
+保存の配置の比べは、更新した後に違う値を読む変数を名指します。
+
+```text
+retyped Vault positions mapping(address => struct Position) changed inside
+gap Vault __gap ends at slot 51 instead of 50
+moved Vault version 50:0 -> 51:0
+moved Vault initialized 51:0 -> 52:0
+layout: 4 problems in 1 contract compared (0 renamed)
+```
+
+オペコードの確かめは、古いEVMの版のチェーンが断る物を名指します。
+
+```text
+opcode Vault runtime MCOPY needs cancun
+opcode Vault runtime TLOAD needs cancun
+opcode Vault runtime TSTORE needs cancun
+opcodes: 3 opcodes the shanghai EVM lacks in 1 contract
 ```
 
 ### コントラクトを設計する
@@ -331,9 +363,10 @@ financial-standards: 2 problems; fill in or add each section named above
 | ERC。例えばERC-20、ERC-1271、ERC-4337、ERC-6551、ERC-7683 | L2のネットワークの状態。専門に追う頁があります |
 | コントラクトとウォレットでできることを変えるEIP。命令、プリコンパイル、ガス代、取引の種類、EIP-7702、プロトコルの中のアカウント抽象 | コンセンサスだけを変えるEIP。例えばバリデータの決まり |
 | EIPがネットワークの更新に入るまでの段階(EIP-7723) | コントラクトの更新の方式を選ぶこと。`contract-design`が扱います |
-| プロジェクトが使うsolcとOpenZeppelinとforge-stdとFoundryとHardhatの版に合わせてSolidityを書くこと | 出す前の保存の配置とABIの比べ |
+| プロジェクトが使うsolcとOpenZeppelinとforge-stdとFoundryとHardhatの版に合わせてSolidityを書くこと | リリースの確かめ。`release-check`が扱います |
 | FoundryかHardhatで、プロジェクトのコントラクトの単体とfuzzとinvariantのテストを書くこと、またはkiwaに書かせること | 変異試験、カバレッジの目標、dAppの画面のテスト。画面のテストはkiwaが扱います |
 | FoundryとHardhat Ignitionの配る命令を書くこと、プロジェクトの鍵の扱いを確かめること、出した物を記録して検証すること | 署名して取引を送ること、鍵を持つこと、Safeのような複数の署名者の財布へ取引を提案すること |
+| 出す前に、保存の配置とABIを配ってある版と比べること、出す先のチェーンが持たないオペコードを探すこと、ガス代と大きさを比べること | チェーンに配ってあるcodeを読みに行くこと、ERC-7201の名前空間の保存を比べること。名前空間の保存はOpenZeppelinの検査か両方の版を読んで比べます |
 | 書く前のコントラクトの設計。分け方、トークンの規格、不変条件、役割、更新の方式、価格、取引の順、乱数、外への呼び出しを決めます | コントラクトとそのテストと配る命令を書くこと。`solidity-code`と`contract-tests`と`contract-deploy`が扱います |
 | ウォレットと署名の設計。鍵と取り戻し方、ERC-4337とEIP-7702のアカウント、署名による許可、承認、ガス代の肩代わり、AIエージェントの支払いを決めます | ウォレットのコードを書くこと、鍵を持つこと、署名すること。どの技もしません |
 | 複数のチェーンにまたがるアプリの設計。同じアドレスでの展開、資産の移し方、メッセージの検証、片側だけ終わった時を決めます | ブリッジのコントラクトと配る命令を書くこと。コントラクトは`solidity-code`が、配る命令は`contract-deploy`が扱います |
@@ -345,9 +378,10 @@ financial-standards: 2 problems; fill in or add each section named above
 | 道具 | 要る時 |
 |---|---|
 | `bash` | いつも |
-| `python3` | `solidity-code`と`contract-tests`と`contract-deploy`と`contract-design`と`wallet-design`と`multichain-design`と`dapp-architecture`と`financial-standards`を使う時 |
-| Foundry(`forge`)かHardhat | `solidity-code`と`contract-tests`が書いた物をビルドしテストする時と、`contract-deploy`が配る物を模擬実行し、取引を調べ、検証する時。無い時は、ビルドしていないと伝えます |
-| `git` | 無くても動きます。`contract-deploy`が、各`.env`のファイルが追跡されているか無視されているかを尋ねます。無い時はその確かめを飛ばします |
+| `python3` | `solidity-code`と`contract-tests`と`contract-deploy`と`release-check`と`contract-design`と`wallet-design`と`multichain-design`と`dapp-architecture`と`financial-standards`を使う時 |
+| Foundry(`forge`)かHardhat | `solidity-code`と`contract-tests`が書いた物をビルドしテストする時と、`contract-deploy`が配る物を模擬実行し、取引を調べ、検証する時と、`release-check`が2つの版をビルドする時。無い時は、ビルドしていないと伝えます |
+| `git` | 無くても動きます。`contract-deploy`が、各`.env`のファイルが追跡されているか無視されているかを尋ねます。`release-check`はこれで配ってある版を取り出します。無い時は前の確かめを飛ばし、`release-check`は配ってある版の保存の配置とABIをあなたから受け取ります |
+| Node.jsとプロジェクトの`@openzeppelin/upgrades-core` | 無くても動きます。両方が在る時は、`release-check`がOpenZeppelinの更新の検査も回します |
 | kiwaのプラグイン | 無くても動きます。スキルが入っている時は、`contract-tests`がkiwaにテストを書かせます |
 | エージェントのWebへの接続 | 古い項目を確かめ直す時。無い時は、項目から答えて確かめられなかったと伝えます |
 
@@ -363,6 +397,8 @@ financial-standards: 2 problems; fill in or add each section named above
 - `contract-tests`は`contract-tests.py`を動かし、プロジェクトの設定のファイルとコントラクトとテストを読みます。出すのは種類と名前と`file:line`だけで、コントラクトとテストの中身は出しません。書くのはテストのファイルだけで、コントラクトは変えず、`.env`のファイルと依存とビルドの出力は読みません
 - `contract-deploy`は`contract-deploy.py`を動かし、鍵の危ない扱いを探すためにプロジェクトの配る命令と設定を読み、各`.env`のファイルを開かずに追跡されているか無視されているかを`git`に尋ね、記録を作るために`broadcast/`と`ignition/deployments/`を読みます。出すのは種類と`file:line`だけで、鍵も行の中身も出さず、書くのは`deployments/<chain id>.json`だけです。`.env`のファイルとFoundryの`cache/`は読まず、署名せず、鍵を渡す命令を断ります
 - `contract-deploy`は配る命令を書いて模擬実行し、プロジェクトのRPCの接続先を通して取引とcodeを調べます。取引を送る命令はあなたが打ちます。検証はコントラクトのソースをSourcifyかEtherscanかBlockscoutに送って公開するため、エージェントは動かす前に尋ねます
+- `release-check`は`release-check.py`を動かし、ビルドの出力と渡されたJSONのファイルの中の保存の配置とABIとbytecodeだけを読み、見つけた物を1件1行で出します。何も書かず、`.env`のファイルと鍵は読みません
+- `release-check`は配ってある版を一時的なgitのworktreeに取り出し、プロジェクトの道具で2つの版をビルドしてテストを回し、終わったらworktreeを消します。プロジェクトにOpenZeppelinの検査が在る時、その検査は名前空間の保存を確かめるために、合うsolcをSolidityの配布元から取ってくることがあります
 - `contract-design`は`contract-design.py`を動かし、項目と、書いた設計書を読みます。設計書を確かめる時は節の名前だけを出します。書くのは設計書だけで、`.env`のファイルと鍵は読みません
 - `wallet-design`は`wallet-design.py`を動かし、項目と、書いた設計書を読みます。設計書を確かめる時は節の名前だけを出します。書くのは設計書だけで、`.env`のファイルと鍵は読まず、署名せず、鍵を渡す命令を断ります
 - `multichain-design`は`multichain-design.py`を動かし、項目と、書いた設計書を読みます。設計書を確かめる時は節の名前だけを出します。書くのは設計書だけで、`.env`のファイルと鍵は読まず、署名せず、鍵を渡す命令を断ります

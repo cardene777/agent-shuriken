@@ -2,8 +2,8 @@
 
 [English](how-it-works.md) · 日本語
 
-このプラグインは9つのスキルを持ちます。
-`evm-standards`は同梱の項目からERCとEIPについての質問に答え、`solidity-code`は道具についての項目から、プロジェクトが使う版に合わせてSolidityを書き、`contract-tests`はテストの道具についての項目から、プロジェクトのコントラクトのテストを書き、`contract-deploy`は鍵の保管とハードウェアの財布と配った記録と検証についての項目から、配る命令を書き、プロジェクトの鍵の扱いを確かめ、出した物を記録し、`contract-design`は頼るライブラリとサービスについての項目から、コントラクトの設計書を書き、`wallet-design`はアカウントと許可と承認とガス代の肩代わりと支払いについての項目から、アプリのウォレットと署名の設計書を書き、`multichain-design`は展開の道具とブリッジとメッセージのプロトコルとトークンの規格についての項目から、複数のチェーンにまたがるアプリの設計書を書き、`dapp-architecture`は使うかもしれないサービスについての項目から、dAppの部品の組み方の設計書を書き、`financial-standards`は金融の規格の版についての項目から、その規格を使うアプリの設計書を書きます。
+このプラグインは10のスキルを持ちます。
+`evm-standards`は同梱の項目からERCとEIPについての質問に答え、`solidity-code`は道具についての項目から、プロジェクトが使う版に合わせてSolidityを書き、`contract-tests`はテストの道具についての項目から、プロジェクトのコントラクトのテストを書き、`contract-deploy`は鍵の保管とハードウェアの財布と配った記録と検証についての項目から、配る命令を書き、プロジェクトの鍵の扱いを確かめ、出した物を記録し、`release-check`はEVMの版と取引のガスの上限と保存の配置と道具についての項目から、出す前のコントラクトを配ってある版と出す先のチェーンに照らして確かめ、`contract-design`は頼るライブラリとサービスについての項目から、コントラクトの設計書を書き、`wallet-design`はアカウントと許可と承認とガス代の肩代わりと支払いについての項目から、アプリのウォレットと署名の設計書を書き、`multichain-design`は展開の道具とブリッジとメッセージのプロトコルとトークンの規格についての項目から、複数のチェーンにまたがるアプリの設計書を書き、`dapp-architecture`は使うかもしれないサービスについての項目から、dAppの部品の組み方の設計書を書き、`financial-standards`は金融の規格の版についての項目から、その規格を使うアプリの設計書を書きます。
 この頁は、スキルの項目と、項目を古いと見る時期と、スクリプトと、エージェントが項目をどう扱うかを書きます。
 
 ## ERCとEIPの項目
@@ -192,6 +192,64 @@ Foundry 1.0が`testFail`を外したことのような、Solidityの書き方に
 3. `vm.startBroadcast()`を引数なしで呼ぶFoundryのスクリプトか、全ての鍵を`configVariable`の後ろに置くIgnitionのmoduleを書き、`keys`を動かして、書いた物の指摘を直し、ほかの指摘は本人に名指します
 4. 配る前に模擬実行し、チェーンごとの命令を本人に渡します。本番のチェーンは`--ledger`か`--trezor`と`--slow`、テストのチェーンは暗号化した鍵の保管(`cast wallet import`と`--account`、またはHardhat 3のkeystore)です。命令は本人が打ちます
 5. `record --write`を動かし、`failed`と`pending`と`mismatch`の行を1つずつ調べ、各アドレスを`cast code`で確かめ、本人が同意すれば`forge verify-contract`か`ignition verify`でソースを検証します
+
+## リリースの項目
+
+`release-check`は`skills/release-check/references/items/`に、扱う物ごとに1つのMarkdownのファイルで項目を持ちます。
+例えば`chain-evm-support.md`や`openzeppelin-upgrades-validate.md`です。
+前書きは、配ることの項目と同じ4つの欄を持ち、話題は次のどれかです。
+
+| 欄 | 持つ物 |
+|---|---|
+| `topic` | `layout`、`evm`、`tools`のどれか |
+| `subject` | 項目が扱う物。例えば`The EVM version each major chain runs` |
+| `checked` | 公式の情報で確かめた日。`YYYY-MM-DD`で書きます |
+| `source` | 項目のもとにした組織と文書の名前。項目はURLを持ちません |
+
+本文は、確かめた時に成り立っていたことと、リリースで守ることを書きます。
+リリースの項目は、確かめてから90日を過ぎると古いと見ます。
+
+## release-checkのスクリプト
+
+`skills/release-check/scripts/release-check.py`は、Python 3の標準ライブラリだけで動き、渡されたJSONのファイルか、ビルドのフォルダの中で見つけたJSONのファイルだけを読みます。
+
+| 命令 | すること |
+|---|---|
+| `check` | どの項目も4つの欄と、知っている話題と、実在する日付を持つかを確かめます。持たない項目を名指して1で終わります |
+| `list` | 項目ごとに1行を出します。`ok`か`stale`、話題、確かめた日、名前、扱う物の順で、最後に数を出します |
+| `layout <old> <new>` | `forge inspect <Contract> storageLayout --json`の出力か、`--extra-output storageLayout`を付けてビルドしたartifactか、2つの`out/`のフォルダを契約ごとに使い、2つの保存の配置を比べます。問題を見つけると1で終わります |
+| `abi <old> <new>` | `forge inspect <Contract> abi --json`の出力か、artifactか、2つの`out/`のフォルダを使い、2つのABIを比べます。関数かeventかerrorが消えたか変わった時は1で終わります |
+| `opcodes <build> --evm <version>` | 実行時のcodeとconstructorの中で、そのEVMの版が持たないオペコードを名指し、1つでもあれば1で終わります |
+
+`layout`は次の行を出します。
+
+| 行 | 意味 |
+|---|---|
+| `removed` | 配ってある版の変数が消え、同じ型の変数がその場所を継いでいません |
+| `moved` | 変数が別のslotかoffsetに動きました |
+| `retyped` | 変数の型が変わりました。structの中か、mappingの値か、配列の要素の中の変化は`changed inside`と出します |
+| `gap` | `__gap`の配列が前と同じslotで終わらず、その後ろの変数が動きました |
+| `renamed` | 前の変数の場所に、同じ型の変数が新しい名前で在ります。問題には数えません |
+
+変数は名前で突き合わせ、合わなければ場所で突き合わせます。
+structとenumの名前は宣言した契約の名前を除いて比べるため、契約の名前を変えても変化に数えません。
+フォルダでは、テストとスクリプトのartifact(`*.t.sol/`、`*.s.sol/`)、`build-info/`、Hardhatの`*.dbg.json`のファイルを除き、`--contract`と`--new-contract`で名前の違う2つの契約を比べます。
+ERC-7201の名前空間の保存の変数は、solcの保存の配置の出力に無いため、`layout`には見えません。
+
+`abi`は`removed-function`、`changed-function`(出力か状態の変更の可否)、`removed-event`、`changed-event`(どの引数がindexedか、anonymousか)、`removed-error`を出します。
+足した物は互換で、出しません。`receive`と`fallback`は関数に数えます。
+
+`opcodes`はFoundryとHardhatのartifactを読み、codeの末尾のsolcのmetadataを除き、各`PUSH`の引数を飛ばし、ライブラリの置き場所の印を0のbyteとして数えます。
+デプロイ時のcodeは、実行時のcodeより前の、constructorを動かす部分だけを読みます。
+EVMの版は`homestead`から`osaka`までで、知らない版は2で終わります。
+
+## エージェントのリリースの確かめ方
+
+1. `solidity-code`でプロジェクトの版を読み、`list`を動かし、`stale`の印の項目を確かめ直します。ERCやEIPの状態は`evm-standards`で確かめます
+2. どのチェーンに出すかと、更新の時は配ってあるgitのtagかcommitを尋ねます
+3. 本人が配ってある版の保存の配置とABIを渡さない時は、その版を`git worktree add`で一時的なフォルダに取り出し、2つの版を`--extra-output storageLayout`を付けてビルドします
+4. 2つの版で`layout`と`abi`を動かし、出す先のチェーンごとのEVMの版で`opcodes`を動かし、プロジェクトに在れば`npx @openzeppelin/upgrades-core validate`も動かします
+5. ガス代を`forge snapshot --diff`で、大きさを`forge build --sizes`で比べ、配る取引ごとにチェーンの1つの取引のガスの上限(EIP-7825)と照らし、見つけた物ごとにすることを伝え、一時的なworktreeを消します
 
 ## コントラクトの設計の項目
 
@@ -402,6 +460,7 @@ Foundry 1.0が`testFail`を外したことのような、Solidityの書き方に
 - 秘密鍵とニーモニックをファイルに書かず、鍵を渡す命令を断ります
 - `contract-tests`はテストを通すためにコントラクトを変えず、書くのはテストのファイルだけです
 - `contract-deploy`は鍵とニーモニックとpasswordを読まず、署名も取引の送信もせず、`--private-key`か`--mnemonic`か`--password`を渡す命令を断り、Foundryの`cache/`を読まず、本人が同意した時だけソースを検証します
+- `release-check`は鍵とニーモニックを読まず、署名せず、鍵を渡す命令を断り、プロジェクトに何も書かず、作った一時的なworktreeを消します
 - `contract-design`は鍵を読まず、署名せず、Solidityとテストと配る命令を書きません
 - `wallet-design`は鍵を読まず、署名せず、鍵を渡す命令を断り、Solidityとウォレットのコードとテストと配る命令を書きません
 - `multichain-design`は鍵を読まず、署名せず、鍵を渡す命令を断り、Solidityとブリッジのコードとテストと配る命令を書きません

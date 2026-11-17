@@ -1,0 +1,7 @@
+interface:
+  display_name: "Release Check"
+  short_description: "Compare storage layouts and ABIs with the deployed version and find opcodes a target chain cannot run, before a release"
+  default_prompt: "Use $release-check to check that our Vault upgrade keeps the deployed storage layout and runs on Base and Arbitrum."
+
+policy:
+  allow_implicit_invocation: true

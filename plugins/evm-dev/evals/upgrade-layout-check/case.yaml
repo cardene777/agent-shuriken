@@ -1,0 +1,45 @@
+# Checking an upgrade of a Vault behind a proxy. The new version adds cap to the base contract without
+# shrinking the gap, so the gap and the Vault's own variables (version, initialized) move one slot; it
+# reorders the members of the Position struct kept in a mapping; and it adds a parameter to the
+# Deposited event. Graded on the reply naming each problem and not calling the upgrade safe.
+schema_version: "1.1"
+name: upgrade-layout-check
+plugins: ["../.."]
+execution:
+  prompt: |
+    Our Vault runs behind an ERC-1967 proxy on Base, and we want to upgrade it to the code now in src/Vault.sol. The deployed implementation's storage layout and ABI are in snapshots/, taken with forge inspect at the deployed tag, and forge build has already been run for the new code. Is this upgrade safe to ship? List anything that has to change before we upgrade.
+  max_turns: 40
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill, Write, Edit, Bash]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'release-check'
+    arm: with-only
+  - name: gap-shift-named
+    type: llm
+    criteria: |
+      Judge only the reply.
+      PASS if the reply says that adding cap without shrinking __gap moves the gap, so that version and initialized (the variables declared in Vault after the base contract) move to other slots and would read the wrong stored values after the upgrade.
+      FAIL if the reply does not say that version and initialized, or the variables after the gap, move.
+  - name: struct-reorder-named
+    type: llm
+    criteria: |
+      Judge only the reply.
+      PASS if the reply says that reordering the members of the Position struct (active moved before since) changes how the positions already stored in the mapping are read, so existing positions would be corrupted.
+      FAIL if the reply does not mention the Position struct's member order.
+  - name: event-change-named
+    type: llm
+    criteria: |
+      Judge only the reply.
+      PASS if the reply says that the Deposited event's signature changed (a third parameter, total), so its topic changes and anything that reads the old Deposited(address,uint256) event, such as an indexer, a subgraph, or a frontend, must be updated.
+      FAIL if the reply does not mention the change to the Deposited event.
+  - name: not-called-safe
+    type: llm
+    criteria: |
+      Judge only the reply.
+      PASS if the reply concludes that the upgrade is not safe to ship as it is.
+      FAIL if the reply says the upgrade is safe, or leaves the verdict open.
