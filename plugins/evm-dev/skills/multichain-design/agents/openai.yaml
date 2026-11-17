@@ -1,0 +1,7 @@
+interface:
+  display_name: "Multichain Design"
+  short_description: "Design apps on more than one chain: same-address deployment, moving assets, verifying messages, and partial failures, from dated items"
+  default_prompt: "Use $multichain-design to plan how our token moves between Ethereum and Base."
+
+policy:
+  allow_implicit_invocation: true

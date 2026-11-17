@@ -1,0 +1,37 @@
+# Designing daily USDC payouts from Arbitrum to Base. Graded on the design file: USDC moves with
+# Circle's CCTP V2 (Circle retires CCTP V1 between 31 October and 1 December 2026), no V1 contract or
+# wrapped USDC is chosen, and a payout that fails after the USDC arrives leaves the funds recoverable.
+schema_version: "1.1"
+name: usdc-crosschain-payouts
+plugins: ["../.."]
+execution:
+  prompt: |
+    Design how the day's USDC moves from Arbitrum to Base and pays the sellers: the protocol, what happens if the transfer or the payout fails, the limits, and who pays the fees. Write the design to docs/design/payouts-multichain.md. Do not ask me questions; decide, and write down your assumptions.
+  max_turns: 30
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill, Write, Edit, Bash]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'multichain-design'
+    arm: with-only
+  - name: cctp-v2
+    type: regex
+    target: {source: file, path: docs/design/payouts-multichain.md}
+    pattern: 'CCTP ?[Vv]2|CCTPv2|CCTP version 2'
+  - name: no-cctp-v1
+    type: llm
+    focus: {source: file, path: docs/design/payouts-multichain.md}
+    criteria: |
+      FAIL if the design chooses CCTP V1 (also called Legacy), its V1 contracts or attestation API, or a bridge that locks USDC and issues a wrapped token such as USDC.e on Base.
+      Mentioning one of them as deprecated or rejected is not a failure.
+      PASS otherwise. FAIL if the file is missing or empty.
+  - name: payout-failure
+    type: llm
+    focus: {source: file, path: docs/design/payouts-multichain.md}
+    criteria: |
+      PASS if the design says what happens when the USDC arrives on Base but paying a seller fails (for example one seller's address cannot receive, or the payout runs out of gas), and the funds stay recoverable: kept in the payout contract for a retry or for each seller to claim.
+      FAIL if a failed payout can lose funds or block every other seller, or the design does not cover it, or if the file is missing or empty.
