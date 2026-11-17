@@ -276,6 +276,11 @@ readmes_list() {
 check "the root READMEs list /evm-dev:dapp-architecture" readmes_list
 
 others_kept() {
+  # A test that another skill's test runs skips this check: the outer test runs every other skill's
+  # tests once itself, so the same tests are not run again inside each other.
+  [ -n "${EVM_DEV_NESTED:-}" ] && return 0
+  local EVM_DEV_NESTED=1
+  export EVM_DEV_NESTED
   bash "$PLUGIN/skills/evm-standards/scripts/evm-standards.sh" check > "$T/evm-standards.out" 2>&1 \
     && bash "$PLUGIN/skills/solidity-code/tests/test-solidity-code.sh" > "$T/solidity-code.out" 2>&1 \
     && bash "$PLUGIN/skills/financial-standards/tests/test-financial-standards.sh" > "$T/financial-standards.out" 2>&1 \
