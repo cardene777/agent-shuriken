@@ -1,9 +1,24 @@
 {
-  "readings": {"ラングチェーン": "LangChain", "オワスプ": "OWASP"},
+  "readings": {
+    "ラングチェーン": "LangChain",
+    "オワスプ": "OWASP"
+  },
   "lines": [
-    {"speaker": "rumi", "text": "研究チームが、ラングチェーンと LangGraph を、同じモデルで比べたそうです。"},
-    {"speaker": "rumi", "text": "オワスプの危険の一覧に沿って、12の実験をしたということです。"},
-    {"speaker": "bolt", "text": "CrewAI も比べて、15の実験をしたようです。"},
-    {"speaker": "bolt", "text": "ミストラルのモデルも使ったようです。"}
+    {
+      "speaker": "rumi",
+      "text": "エーアイエージェントの研究チームが、ラングチェーンと LangGraph を、同じモデルで1つずつ比べたそうです。"
+    },
+    {
+      "speaker": "rumi",
+      "text": "オワスプの危険の一覧に沿って、12の実験をしたということです。"
+    },
+    {
+      "speaker": "bolt",
+      "text": "CrewAI も比べて、15の実験をしたようです。"
+    },
+    {
+      "speaker": "bolt",
+      "text": "ミストラルのモデルも使ったようです。"
+    }
   ]
 }

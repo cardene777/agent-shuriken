@@ -62,7 +62,8 @@ finds_casual_and_written() {
   status_is casual 1 || return 1
   local n
   for n in 1 2 3; do has casual "^L$n casual-contraction " || return 1; done
-  for n in 4 5 6; do has casual "^L$n written-style " || return 1; done
+  for n in 4 5 6 7; do has casual "^L$n written-style " || return 1; done
+  ! has casual "^L8 "
 }
 check "check finds casual contractions and written-style phrases" "finds_casual_and_written"
 
@@ -118,7 +119,11 @@ check "check lists numbers and names absent from the source" "lists_absent_names
 rejects_bad_input() {
   local name
   for name in missing broken no-lines no-text; do
-    if [ "$name" = missing ]; then run "$name" "$T/missing.json"; else run "$name" "$FIX/$name.json"; fi
+    case "$name" in
+      missing) run "$name" "$T/missing.json" ;;
+      broken) run "$name" "$FIX/broken.txt" ;;
+      *) run "$name" "$FIX/$name.json" ;;
+    esac
     status_is "$name" 2 || return 1
     [ ! -s "$T/$name.out" ] || return 1
     [ "$(wc -l <"$T/$name.err" | tr -d ' ')" = 1 ] || return 1

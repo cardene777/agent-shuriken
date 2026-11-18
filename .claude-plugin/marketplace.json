@@ -51,6 +51,11 @@
       "description": "Set up a project for local work: pick a free local port, add a Docker setup, and link its env files to 1Password with references, writing each file only after you approve it"
     },
     {
+      "name": "japanese-speaking",
+      "source": "./plugins/japanese-speaking",
+      "description": "Write Japanese that sounds like people talking, not reading lines, for podcast and radio dialogue, a news item one host reads and both discuss, interviews, narration, and talk scripts, checked by a script and a fresh reader before you use it"
+    },
+    {
       "name": "japanese-writing",
       "source": "./plugins/japanese-writing",
       "description": "Write and fix Japanese text so that it reads naturally and adds nothing the original does not say, with the steps and scripts of coji/natural-japanese and rules for repository Markdown, metaphor verbs, explanations, and questions"
