@@ -523,6 +523,183 @@ comments_not_counted() {
 }
 check "uncovered does not count a name that only appears in a comment" comments_not_counted
 
+# Foundry tests that reach withdraw only through helpers that take parameters: an internal one called
+# from a test without parameters, and a public one whose name does not start with test.
+foundry_helper_tests() {
+  cat > "$1/test/VaultHelpers.t.sol" <<'SOL'
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.28;
+
+import {Test} from "forge-std/Test.sol";
+import {Vault} from "../src/Vault.sol";
+
+contract VaultHelperTest is Test {
+    Vault vault;
+
+    function setUp() public {
+        vault = new Vault();
+    }
+
+    function _depositAndWithdraw(uint256 amount) internal {
+        vault.deposit{value: amount}();
+        vault.withdraw(amount);
+    }
+
+    function withdrawTwice(uint256 amount) public {
+        vault.withdraw(amount);
+        vault.withdraw(amount);
+    }
+
+    function test_withdraw_one() public {
+        _depositAndWithdraw(1);
+    }
+
+    receive() external payable {}
+}
+SOL
+}
+
+fuzz_needs_a_test_function() {
+  local p="$T/helpers" out="$T/uncovered-helpers.out" status v="src/Vault.sol"
+  foundry_project "$p"
+  foundry_helper_tests "$p"
+  run uncovered "$p" > "$out" 2>&1
+  status=$?
+  [ "$status" -eq 1 ] || return 1
+  has "$out" "uncovered fuzz Vault.withdraw $v:$(line_of "$VAULT" 'function withdraw(')" || return 1
+  # The test still calls withdraw, so the function point itself is covered.
+  ! grep -q '^uncovered function Vault\.withdraw ' "$out"
+}
+check "uncovered counts a fuzz point only when a test function with parameters calls it" fuzz_needs_a_test_function
+
+# A contract behind OpenZeppelin's AccessManaged: restricted guards setCap and pause, whenNotPaused
+# alone guards nothing, and a name that only starts with restricted is not the modifier.
+managed_project() {
+  local p="$1"
+  mkdir -p "$p/src" "$p/test"
+  printf '[profile.default]\nsrc = "src"\nout = "out"\nlibs = ["lib"]\n' > "$p/foundry.toml"
+  cat > "$p/src/Managed.sol" <<'SOL'
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.28;
+
+import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManaged.sol";
+
+contract Managed is AccessManaged {
+    uint256 public cap;
+    bool public paused;
+
+    modifier whenNotPaused() {
+        require(!paused);
+        _;
+    }
+
+    modifier restrictedTo(address account) {
+        _;
+    }
+
+    constructor(address manager) AccessManaged(manager) {}
+
+    function setCap(uint256 newCap) external restricted {
+        cap = newCap;
+    }
+
+    function pause()
+        external
+        restricted
+        whenNotPaused
+    {
+        paused = true;
+    }
+
+    function poke() external whenNotPaused {
+        cap += 0;
+    }
+
+    function nudge(address account) external restrictedTo(account) {
+        cap += 0;
+    }
+}
+SOL
+}
+
+restricted_is_access() {
+  local p="$T/managed" out="$T/points-managed.out" m
+  managed_project "$p"
+  m="$p/src/Managed.sol"
+  run points "$p" > "$out" 2>&1 || return 1
+  has "$out" "access Managed.setCap src/Managed.sol:$(line_of "$m" 'function setCap(')" || return 1
+  has "$out" "access Managed.pause src/Managed.sol:$(line_of "$m" 'function pause(')" || return 1
+  ! grep -qE '^access Managed\.(poke|nudge) ' "$out"
+}
+check "points lists functions guarded by restricted as access points" restricted_is_access
+
+# Membership keeps a mapping whose key and value are named; Points keeps its mapping inside an
+# ERC-7201 namespaced struct; Allowlist names its mapping's parts but maps to a bool, so it holds no
+# amount to check.
+mappings_project() {
+  local p="$1"
+  mkdir -p "$p/src" "$p/test"
+  printf '[profile.default]\nsrc = "src"\n' > "$p/foundry.toml"
+  cat > "$p/src/Membership.sol" <<'SOL'
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.28;
+
+contract Membership {
+    mapping(address account => uint256 tokenId) public memberToken;
+
+    function issue(address account, uint256 tokenId) external {
+        memberToken[account] = tokenId;
+    }
+}
+SOL
+  cat > "$p/src/Points.sol" <<'SOL'
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.28;
+
+contract Points {
+    /// @custom:storage-location erc7201:example.points
+    struct PointsStorage {
+        uint256 totalMinted;
+        mapping(uint256 day => uint256 amount) mintedOnDay;
+    }
+
+    function mint(uint256 day, uint256 amount) external {
+        PointsStorage storage $ = _points();
+        $.mintedOnDay[day] += amount;
+        $.totalMinted += amount;
+    }
+
+    function _points() private pure returns (PointsStorage storage $) {
+        assembly {
+            $.slot := 0x1234
+        }
+    }
+}
+SOL
+  cat > "$p/src/Allowlist.sol" <<'SOL'
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.28;
+
+contract Allowlist {
+    mapping(address account => bool allowed) public isAllowed;
+
+    function allow(address account) external {
+        isAllowed[account] = true;
+    }
+}
+SOL
+}
+
+named_and_struct_mappings() {
+  local p="$T/mappings" out="$T/points-mappings.out"
+  mappings_project "$p"
+  run points "$p" > "$out" 2>&1 || return 1
+  has "$out" "invariant Membership src/Membership.sol:$(line_of "$p/src/Membership.sol" 'contract Membership {')" || return 1
+  has "$out" "invariant Points src/Points.sol:$(line_of "$p/src/Points.sol" 'contract Points {')" || return 1
+  ! grep -q '^invariant Allowlist ' "$out"
+}
+check "points lists a contract with a named mapping or a mapping in a struct as an invariant point" named_and_struct_mappings
+
 no_urls() {
   [ -d "$ITEMS" ] || return 1
   [ "$(find "$ITEMS" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')" -ge 2 ] || return 1
