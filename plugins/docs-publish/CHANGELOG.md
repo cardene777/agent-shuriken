@@ -9,6 +9,9 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - An API page marked `"endpoint": true` in the plan, or added with `add --endpoint`, gets the outline of an HTTP endpoint: Endpoint, Authentication, Parameters, Request body, Response, Errors, Example, and Related
 - The Quickstart also fits a hosted service the reader signs up for, starting from creating an account and getting an API key, then the first request
 - Pages show a placeholder in place of an API key, token, or password, and a web service's requests go only to a copy your project starts on your machine, never to the hosted service
+- `scaffold` lists each part's pages in the order of the plan, in the part's `README.md` and in what the dry run prints, instead of in alphabetical order
+- `check` names each link to a heading that the page it points at does not have, as an `anchor` problem counted as a broken link. It compares the anchor with the one GitHub makes from each heading, including Japanese headings, checks links to headings on the same page, and reads Markdown files outside the docs folder, such as the project's README, for their headings only when they are inside the folder that holds the docs folder
+- When the user cannot be asked whether to use a `docs/` folder that already holds pages, the agent uses `docs/` if the dry run lists every file as new, since the existing pages stay as they are, and otherwise writes nothing and names the files in the way
 
 ## [0.3.0] - 2026-11-16
 

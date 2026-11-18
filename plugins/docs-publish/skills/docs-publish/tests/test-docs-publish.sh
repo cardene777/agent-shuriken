@@ -796,8 +796,9 @@ check "eval results are ignored by git" "eval_results_ignored"
 # The limits are the sizes of the shortened SKILL.md. Every agent that starts the skill reads the
 # whole body, and every session reads the description, so raise a limit only with a reason.
 # 1972 words grew to 2134 for the HTTP endpoint page, the Quickstart of a hosted service, and the
-# rules on API keys and on where requests go (#231).
-SKILL_WORDS_MAX=2134
+# rules on API keys and on where requests go (#231). 2134 grew by 56 words to 2190 for what to do with an
+# existing docs folder when the user cannot be asked (#237).
+SKILL_WORDS_MAX=2190
 SKILL_DESCRIPTION_MAX=317
 skill_size() {
   python3 - "$SKILL" "$SKILL_WORDS_MAX" "$SKILL_DESCRIPTION_MAX" <<'PY'

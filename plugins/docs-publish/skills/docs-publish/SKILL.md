@@ -88,6 +88,7 @@ EOF
 ```
 
 When it lists problems with the plan, fix them and run it again.
+When `docs/` already holds pages and the user cannot be asked, use `docs/` if the dry run lists every file as `new`, since the existing pages stay as they are, and name those pages in the report; if it lists any file as `kept`, write nothing and tell the user which files are in the way.
 Show the user every page the dry run lists, from the Quickstart to the FAQ, with one line on what each concept, API, and Cookbook page covers, and the projects the docs follow, then ask them to confirm or change the plan.
 
 ### 4. Lay out the folders
