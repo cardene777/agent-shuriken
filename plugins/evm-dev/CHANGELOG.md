@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-18
+
 ### Added
 
 - `evm-standards` finds standards by what they let contracts, wallets, and dApps do with `evm-standards.sh find`, from a new `can` field on every item and the maintainer's bitsumi articles
@@ -23,7 +25,6 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 ### Fixed
 
 - `release-check.py layout` compares the fields of each ERC-7201 namespaced struct (`@custom:storage-location erc7201:<id>`) of a contract and its base contracts between the two versions, read from the syntax tree that `forge build --ast` writes, and names each field removed, moved, or retyped. It printed `compatible` before, because solc's storage layout leaves these structs out. When it cannot compare them, it prints a `not-compared` line with the reason and never prints `compatible` for that contract
-
 - Every item of the ten evm-dev skills was compared with its primary source and is dated 2026-11-18. Among the facts corrected: the execution delay of OpenZeppelin's `AccessManager` belongs to each member of a role; the KelpDAO attacker unlocked rsETH on Ethereum rather than minting it; CCIP pools from v1.6.1 on set limits in the local chain's decimals; the CBPR+ changes moved out of SR2026 to a later release; Ponder has reached 0.18.9; Gelato's relay services shut down on 1 September 2026; ERC-7683 now covers only how solvers read a protocol's orders; Foundry has used the `osaka` EVM version by default since 1.7.0 and refuses `--resume` after a reverted transaction since 1.9.0; and the gas floor of EIP-7623 includes the 21,000 base cost. Items now also say that Ponder's `reorgWindow` counts at most 600 seconds, so finality comes from the RPC's `finalized` block; that Safe's `Safe4337Module` 0.3.0 supports only EntryPoint v0.7; that a CCIP 2.0 pool refills to the new capacity whenever its rate limit changes; that CreateX does not reject a salt naming another address but deploys elsewhere; and that contracts behind a proxy use the `contracts-upgradeable` variants
 
 ## [0.4.0] - 2026-11-17
@@ -81,7 +82,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - Starts when you ask about the status of an ERC or EIP, or when you call it, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
 - The plugin has `claude plugin eval` cases under `evals/` that measure the skill, run by hand
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/evm-dev--v0.4.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/evm-dev--v0.5.0...HEAD
+[0.5.0]: https://github.com/cardene777/agent-shuriken/releases/tag/evm-dev--v0.5.0
 [0.4.0]: https://github.com/cardene777/agent-shuriken/releases/tag/evm-dev--v0.4.0
 [0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/evm-dev--v0.3.0
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/evm-dev--v0.2.0
