@@ -210,3 +210,4 @@ Temporary files are created next to the file they replace and renamed over it, o
 | 1 | Nothing is registered for what you asked, or a request was refused, such as a port that is already registered |
 | 2 | The input is not valid, or the registry cannot be read |
 | 3 | An entry or a file changed after the preview, so it was skipped or nothing was written |
+| 141 | The reader closed the output pipe, as `head -1` does after the first line. portman stops without printing more; a command that changes the registry or project files finishes writing before it prints |
