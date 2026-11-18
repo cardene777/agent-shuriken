@@ -36,6 +36,22 @@ JA_ALLOWED=(
   plugins/excalidraw-diagram/skills/excalidraw-diagram/tests/test-excalidraw-diagram.sh
   plugins/techdebt/skills/techdebt/templates/base.html
   plugins/techdebt/skills/techdebt/tests/test-techdebt.sh
+  plugins/japanese-speaking/README.md
+  plugins/japanese-speaking/skills/japanese-speaking/SKILL.md
+  plugins/japanese-speaking/skills/japanese-speaking/references/speaking.md
+  plugins/japanese-speaking/skills/japanese-speaking/references/formats.md
+  plugins/japanese-speaking/skills/japanese-speaking/references/review.md
+  plugins/japanese-speaking/skills/japanese-speaking/references/patterns.tsv
+  plugins/japanese-speaking/skills/japanese-speaking/references/common-katakana.txt
+  plugins/japanese-speaking/skills/japanese-speaking/scripts/speaking.py
+  plugins/japanese-speaking/skills/japanese-speaking/tests/test-japanese-speaking.sh
+  plugins/japanese-speaking/skills/japanese-speaking/tests/fixtures/rejected-2026-11-18.json
+  plugins/japanese-speaking/skills/japanese-speaking/tests/fixtures/natural.json
+  plugins/japanese-speaking/skills/japanese-speaking/tests/fixtures/plain.txt
+  plugins/japanese-speaking/skills/japanese-speaking/tests/fixtures/casual.json
+  plugins/japanese-speaking/skills/japanese-speaking/tests/fixtures/sources.json
+  plugins/japanese-speaking/skills/japanese-speaking/tests/fixtures/sourced.json
+  plugins/japanese-speaking/skills/japanese-speaking/tests/fixtures/notes.json
   plugins/japanese-writing/README.md
   plugins/convey/skills/convey/scripts/convey.py
   plugins/convey/skills/convey/references/filler-phrases.tsv

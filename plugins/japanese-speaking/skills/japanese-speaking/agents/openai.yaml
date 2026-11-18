@@ -1,0 +1,7 @@
+interface:
+  display_name: "Japanese Speaking"
+  short_description: "Write Japanese that sounds like people talking, checked before you use it"
+  default_prompt: "Use $japanese-speaking to write a two-host podcast script from this article."
+
+policy:
+  allow_implicit_invocation: true

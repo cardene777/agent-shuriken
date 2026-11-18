@@ -7,6 +7,8 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ## [Unreleased]
 
+- The japanese-speaking plugin, which writes Japanese that sounds like people talking for podcast and radio dialogue, news read and discussed, interviews, narration, and talk scripts, checks the draft with a script for lines that sound read from paper, and has a fresh reader listen for the rest
+
 ## [0.19.0] - 2026-11-17
 
 ### Plugins
