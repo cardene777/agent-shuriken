@@ -13,6 +13,6 @@ solc's `storageLayout` lists only ordinary state variables. A contract that keep
 
 For a release:
 
-- Compare each namespaced struct by reading it in both versions: members may only be appended at the end, never removed, reordered, or retyped
+- Compare each namespaced struct in both versions: members may only be appended at the end, never removed, reordered, or retyped. `release-check.py layout` does this from the syntax tree of builds made with `--ast`, and prints `not-compared` for a contract whose structs it could not read
 - Never change the namespace string, since that moves the whole struct
 - OpenZeppelin's upgrade check validates namespaced structs; to do that it recompiles a modified copy of the sources, and may download the matching solc from the Solidity binaries server when it is not cached

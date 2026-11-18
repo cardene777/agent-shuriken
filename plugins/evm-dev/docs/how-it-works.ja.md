@@ -133,9 +133,9 @@ Foundry 1.0が`testFail`を外したことのような、Solidityの書き方に
 | `function` | 外から呼べる関数 | `.<名前>`を呼ぶ時 |
 | `error` | 独自のerror | errorの名前を書く時 |
 | `event` | event | eventの名前を書く時 |
-| `access` | 名前が`only`で始まる修飾子か、`msg.sender`との比べで守った関数 | その関数を呼ぶ所でrevertを待つ時。Solidityでは`expectRevert`の後の、`vm.`の命令でない最初の呼び出しを見ます。TypeScriptでは、revertの確かめと同じ文の中の呼び出しを見ます |
-| `fuzz` | 状態を変え、整数を受ける関数 | 引数を受けるSolidityのテストの関数か、fast-checkの性質がその関数を呼ぶ時 |
-| `invariant` | 符号なし整数への`mapping`と、状態を変える関数を持つコントラクト | コントラクトの名前を書いたSolidityのテストのファイルが、名前が`invariant`で始まる関数を持つ時か、fast-checkの`fc.commands`のテストがその名前を書く時 |
+| `access` | 名前が`only`で始まる修飾子、`restricted`(OpenZeppelinの`AccessManaged`)、`msg.sender`との比べのどれかで守った関数 | その関数を呼ぶ所でrevertを待つ時。Solidityでは`expectRevert`の後の、`vm.`の命令でない最初の呼び出しを見ます。TypeScriptでは、revertの確かめと同じ文の中の呼び出しを見ます |
+| `fuzz` | 状態を変え、整数を受ける関数 | 引数を受けるSolidityのテストの関数(名前が`test`で始まる関数)か、fast-checkの性質がその関数を呼ぶ時。引数を受ける補助の関数は数えません |
+| `invariant` | 符号なし整数への`mapping`と、状態を変える関数を持つコントラクト。`mapping`の鍵と値に名前が付いていても、コントラクトが宣言したstruct(ERC-7201の名前空間のstructなど)の中に在っても数えます | コントラクトの名前を書いたSolidityのテストのファイルが、名前が`invariant`で始まる関数を持つ時か、fast-checkの`fc.commands`のテストがその名前を書く時 |
 
 コメントの中の名前は数えません。
 どちらの命令も種類と名前と`file:line`だけを出し、コントラクトとテストの中身は出しません。
@@ -167,14 +167,14 @@ Foundry 1.0が`testFail`を外したことのような、Solidityの書き方に
 
 ## contract-deployのスクリプト
 
-`skills/contract-deploy/scripts/contract-deploy.py`は、Python 3の標準ライブラリだけで動き、プロジェクトがgitのリポジトリの時は`.env`のファイルについて`git`に尋ねます。
+`skills/contract-deploy/scripts/contract-deploy.py`は、Python 3の標準ライブラリだけで動き、プロジェクトがgitのリポジトリの時は、`.env`のファイルと、記録のcommitと違うファイルについて`git`に尋ねます。
 
 | 命令 | すること |
 |---|---|
 | `check` | どの項目も4つの欄と、知っている話題と、実在する日付を持つかを確かめます。持たない項目を名指して1で終わります |
 | `list` | 項目ごとに1行を出します。`ok`か`stale`、話題、確かめた日、名前、扱う物の順で、最後に数を出します |
 | `keys <folder>` | プロジェクトが鍵を危なく扱う所を、種類と`file:line`で1件1行で名指し、1件でもあれば1で終わります |
-| `record <folder>` | Foundryのbroadcastのファイルと、Hardhat Ignitionのjournalから、配ったコントラクトと見るべき取引を出します。`--write`を付けると`deployments/<chain id>.json`も書きます。見るべき取引があれば1で終わります |
+| `record <folder>` | Foundryのbroadcastのファイルと、Hardhat Ignitionのjournalから、配ったコントラクトと見るべき取引を出します。`--write`を付けると`deployments/<chain id>.json`も書きます。見るべき取引か記録のcommitがあれば1で終わります |
 
 `keys`は4つの種類を出します。
 
@@ -182,10 +182,10 @@ Foundry 1.0が`testFail`を外したことのような、Solidityの書き方に
 |---|---|
 | `env-key` | 環境変数から読む秘密鍵かニーモニック(`vm.envUint`などの`vm.env`の呼び出し、`process.env`、shellとMakeの`$NAME`)、またはHardhat 2の設定の変数から読む物。Hardhat 2の設定の変数は暗号化されずに保存されます |
 | `key-flag` | `--private-key`、`--private-keys`、`--mnemonic`、`--mnemonics`、`--password`を渡す命令 |
-| `key-literal` | 鍵、ニーモニック、種、アカウント、取引の送信について書いた行にある、64桁の16進か、引用符で囲んだ12語から24語の小文字の語の並び |
+| `key-literal` | 鍵、ニーモニック、種、アカウント、取引の送信について書いた行にある、64桁の16進か、引用符で囲んだ12語から24語の小文字の語の並び。JSONのファイルでは、鍵、ニーモニック、種、署名する人、アカウントを表す名前の欄の値なら、`accounts`の配列の中の値のように別の行に在っても名指します |
 | `env-file` | 名前が`.env`で始まるファイルのうち、gitが追跡しているか無視していない物。`.env.example`と`.env.sample`と`.env.template`は除きます |
 
-`keys`は、Solidity、JavaScript、TypeScript、shellのスクリプト、Makefile、justfile、`package.json`、TOMLとYAMLのファイルを読み、コメントを除いて調べます。
+`keys`は、Solidity、JavaScript、TypeScript、shellのスクリプト、Makefile、justfile、JSONとTOMLとYAMLのファイル(配るスクリプトが読むチェーンごとの設定を含みます)を読み、コメントを除いて調べます。
 ただし`key-literal`はコメントも調べます。コメントに書いた鍵もファイルの中に在るからです。
 名前が`.env`で始まるファイルは開かず、依存、ビルドの出力、`broadcast/`、`deployments/`、Foundryの`cache/`、隠しフォルダは読みません。
 
@@ -198,9 +198,14 @@ Foundry 1.0が`testFail`を外したことのような、Solidityの書き方に
 | `failed` | 受け取りが失敗を示す取引 |
 | `pending` | 送ったが受け取りの無い取引 |
 | `mismatch` | コントラクトを作ったと記録されているのに、受け取りがそのコントラクトを作ったことを示さない取引 |
+| `commit-differs` | 記録のcommitが、配ったcodeと違うかもしれない記録。そのcommitと中身が違い、Foundryが記録を書く前に最後に変えたファイルが在ります。チェーン、commit、出どころ、ファイルを出します |
 
-記録のファイルは、`format`(1)、`chainId`、`contracts`(name、address、tx、block、deployer、source、commit)、`problems`(kind、name、tx、source)を持ちます。
+記録のファイルは、`format`(1)、`chainId`、`contracts`(name、address、tx、block、deployer、source、commit)、`problems`(kind、name、tx、source、`commit-differs`ではcommitとファイル)を持ちます。
 毎回ファイルから作り直し、commitはFoundryの記録から取り、無い時は`null`にします。
+
+`commit-differs`のために、`record`はプロジェクトで`git diff --name-only <commit>`と`git ls-files --others`を動かし、出たファイルごとに最後に変えた時刻を読みます。
+数えるのは、`test/`と`tests/`の外の`.sol`のファイル(`.t.sol`で終わる物を除きます)と、`foundry.toml`と`remappings.txt`で、記録の`timestamp`より前に最後に変えた物だけです。配った後にcodeを進めても数えません。
+プロジェクトがgitのリポジトリでない時と、commitがリポジトリに無い時は、commitを確かめなかったと標準エラーに出します。
 
 ## エージェントの配り方
 
@@ -208,7 +213,7 @@ Foundry 1.0が`testFail`を外したことのような、Solidityの書き方に
 2. どのチェーンに配るか、そのうちどれが本番のチェーンか、各コントラクトの持ち主を誰にするかを尋ねます
 3. `vm.startBroadcast()`を引数なしで呼ぶFoundryのスクリプトか、全ての鍵を`configVariable`の後ろに置くIgnitionのmoduleを書き、`keys`を動かして、書いた物の指摘を直し、ほかの指摘は本人に名指します
 4. 配る前に模擬実行し、チェーンごとの命令を本人に渡します。本番のチェーンは`--ledger`か`--trezor`と`--slow`、テストのチェーンは暗号化した鍵の保管(`cast wallet import`と`--account`、またはHardhat 3のkeystore)です。命令は本人が打ちます
-5. `record --write`を動かし、`failed`と`pending`と`mismatch`の行を1つずつ調べ、各アドレスを`cast code`で確かめ、本人が同意すれば`forge verify-contract`か`ignition verify`でソースを検証します
+5. `record --write`を動かし、`failed`と`pending`と`mismatch`の行を1つずつ調べ、`commit-differs`の行のファイルを本人に伝え、各アドレスを`cast code`で確かめ、本人が同意すれば`forge verify-contract`か`ignition verify`でソースを検証します
 
 ## リリースの項目
 
@@ -228,7 +233,7 @@ Foundry 1.0が`testFail`を外したことのような、Solidityの書き方に
 
 ## release-checkのスクリプト
 
-`skills/release-check/scripts/release-check.py`は、Python 3の標準ライブラリだけで動き、渡されたJSONのファイルか、ビルドのフォルダの中で見つけたJSONのファイルだけを読みます。
+`skills/release-check/scripts/release-check.py`は、Python 3の標準ライブラリだけで動き、渡されたJSONのファイルか、ビルドのフォルダの中で見つけたJSONのファイルだけを読みます。`forge build --ast`が各artifactに書く構文木も、その中に在ります。
 
 | 命令 | すること |
 |---|---|
@@ -247,11 +252,14 @@ Foundry 1.0が`testFail`を外したことのような、Solidityの書き方に
 | `retyped` | 変数の型が変わりました。structの中か、mappingの値か、配列の要素の中の変化は`changed inside`と出します |
 | `gap` | `__gap`の配列が前と同じslotで終わらず、その後ろの変数が動きました |
 | `renamed` | 前の変数の場所に、同じ型の変数が新しい名前で在ります。問題には数えません |
+| `not-compared` | その契約のERC-7201の名前空間の保存を比べませんでした。名前空間(ビルドがどれを持つか分からない時は`namespaces`)と理由を出します。この時`layout`は`compatible`を出さず、1で終わります |
 
 変数は名前で突き合わせ、合わなければ場所で突き合わせます。
 structとenumの名前は宣言した契約の名前を除いて比べるため、契約の名前を変えても変化に数えません。
 フォルダでは、テストとスクリプトのartifact(`*.t.sol/`、`*.s.sol/`)、`build-info/`、Hardhatの`*.dbg.json`のファイルを除き、`--contract`と`--new-contract`で名前の違う2つの契約を比べます。
-ERC-7201の名前空間の保存の変数は、solcの保存の配置の出力に無いため、`layout`には見えません。
+ERC-7201の名前空間の保存の変数(`@custom:storage-location erc7201:<id>`を付けたstruct)は、solcの保存の配置の出力に在りません。
+`layout`は、そのstructを各artifactの構文木から、契約と、契約が継ぐ全ての契約について読み、solcがstructを並べるのと同じ規則で欄を並べ、名前空間ごとに同じ行で比べます。行の名前は`erc7201:<id>.<欄>`で、slotは名前空間のslotから数えます。
+artifactが構文木を持たない時(`forge inspect`の出力か、`--ast`無しのビルド)、継ぐ契約がどのartifactにも無い時、ビルドがコンパイラの別々の実行を混ぜた時、欄の型を並べられない時は`not-compared`を出します。
 
 `abi`は`removed-function`、`changed-function`(出力か状態の変更の可否)、`removed-event`、`changed-event`(どの引数がindexedか、anonymousか)、`removed-error`を出します。
 足した物は互換で、出しません。`receive`と`fallback`は関数に数えます。
@@ -264,9 +272,9 @@ EVMの版は`homestead`から`osaka`までで、知らない版は2で終わり�
 
 1. `solidity-code`でプロジェクトの版を読み、`list`を動かし、`stale`の印の項目を確かめ直します。ERCやEIPの状態は`evm-standards`で確かめます
 2. どのチェーンに出すかと、更新の時は配ってあるgitのtagかcommitを尋ねます
-3. 本人が配ってある版の保存の配置とABIを渡さない時は、その版を`git worktree add`で一時的なフォルダに取り出し、2つの版を`--extra-output storageLayout`を付けてビルドします
+3. その版を`git worktree add`で一時的なフォルダに取り出し、2つの版をソースのフォルダから空のフォルダへ、`--extra-output storageLayout`と`--ast`を付けてビルドします。2つのビルドは同じコントラクトを持ちます
 4. 2つの版で`layout`と`abi`を動かし、出す先のチェーンごとのEVMの版で`opcodes`を動かし、プロジェクトに在れば`npx @openzeppelin/upgrades-core validate`も動かします
-5. ガス代を`forge snapshot --diff`で、大きさを`forge build --sizes`で比べ、配る取引ごとにチェーンの1つの取引のガスの上限(EIP-7825)と照らし、見つけた物ごとにすることを伝え、一時的なworktreeを消します
+5. ガス代を`forge snapshot --diff`で、大きさを`forge build --sizes`で比べ、配る取引ごとにチェーンの1つの取引のガスの上限(EIP-7825)と照らし、見つけた物ごとにすることを伝え、一時的なworktreeを`git worktree remove --force`で消します。submoduleを持つworktreeは`--force`が要ります
 
 ## コントラクトの設計の項目
 

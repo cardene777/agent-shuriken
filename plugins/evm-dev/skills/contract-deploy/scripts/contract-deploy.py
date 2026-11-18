@@ -17,14 +17,16 @@ Kinds of findings from keys
   key-flag     a command that passes --private-key, --private-keys, --mnemonic, --mnemonics, or
                --password
   key-literal  64 hex digits, or a quoted phrase of 12 to 24 lowercase words, on a line that speaks
-               of a key, a mnemonic, a seed, accounts, or broadcasting
+               of a key, a mnemonic, a seed, accounts, or broadcasting; in a JSON file, also such a
+               value of a field whose name speaks of a key, a mnemonic, a seed, a signer, or accounts,
+               on whatever line the value sits
   env-file     a file whose name starts with .env that git tracks or does not ignore (.env.example,
                .env.sample, and .env.template are left out); only checked inside a git repository
 
 A variable counts as a key when its name holds private_key, privkey, secret_key, mnemonic, seed, or pk
-as a word. keys reads Solidity, JavaScript, TypeScript, shell scripts, Makefiles, justfiles,
-package.json, and TOML and YAML files. Comments are left out, except for key-literal: a key in a
-comment is still a key in the file.
+as a word. keys reads Solidity, JavaScript, TypeScript, shell scripts, Makefiles, justfiles, and
+JSON, TOML, and YAML files, such as the per-chain settings a deploy script reads. Comments are left
+out, except for key-literal: a key in a comment is still a key in the file.
 
 Lines from record
   contract <chain> <name> <address> tx <hash> block <n> from <deployer> source <source>
@@ -32,11 +34,21 @@ Lines from record
   pending  <chain> <name> tx <hash> source <source>   the transaction has no receipt
   mismatch <chain> <name> tx <hash> source <source>   the record says the transaction created the
                                                       contract, but its receipt does not show it
+  commit-differs <chain> <commit> source <source> (<n> files changed before the broadcast: <files>)
+           the deployed code may not be the recorded commit: these files differ from that commit
+           and were last changed before Foundry wrote the run file
 The source is `foundry:<script>` for broadcast/<script>/<chain>/run-latest.json, or
 `ignition:<deployment id>` for ignition/deployments/<deployment id>/journal.jsonl. Dry runs
 (broadcast/.../dry-run/) are left out. A record file holds `format` (1), `chainId`, `contracts` (name,
-address, tx, block, deployer, source, commit), and `problems` (kind, name, tx, source); it is rebuilt
-from the files each time. The commit comes from Foundry's run file and is null when it has none.
+address, tx, block, deployer, source, commit), and `problems` (kind, name, tx, source, and for
+commit-differs, commit and files); it is rebuilt from the files each time. The commit comes from
+Foundry's run file and is null when it has none.
+
+record compares that commit with the project's files through git (`git diff --name-only` and
+`git ls-files --others`) and the files' modification times. It counts `.sol` files outside test/ and
+tests/ (and not ending in .t.sol), foundry.toml, and remappings.txt, and only those last changed before
+the run file's timestamp, so later work on the code is not counted. When the folder is not a git
+repository or the commit is not in it, the commit is not checked and record says so on stderr.
 
 An item is a Markdown file whose front matter holds `topic` (keys, records, or verification),
 `subject`, `checked` (YYYY-MM-DD), and `source`.
@@ -65,7 +77,7 @@ MAX_BYTES = 1024 * 1024
 
 C_LIKE = {".sol", ".ts", ".js", ".cjs", ".mjs", ".cts", ".mts"}
 JS_LIKE = C_LIKE - {".sol"}
-SHELL_LIKE = {".sh", ".bash", ".zsh", ".toml", ".yml", ".yaml"}
+SHELL_LIKE = {".sh", ".bash", ".zsh", ".toml", ".yml", ".yaml", ".json"}
 SHELL_NAMES = {"Makefile", "makefile", "GNUmakefile", "justfile", "Justfile", "package.json"}
 ENV_EXAMPLES = {".env.example", ".env.sample", ".env.template"}
 
@@ -77,6 +89,10 @@ KEY_FLAG = re.compile(r"(?<![\w-])--(?:private-keys?|mnemonics?|password)(?=[\s=
 HEX_KEY = re.compile(r"(?<![0-9A-Za-z])(?:0x)?[0-9a-fA-F]{64}(?![0-9A-Za-z])")
 PHRASE = re.compile(r"[\"'`][a-z]+(?: [a-z]+){11,23}[\"'`]")
 KEY_WORDS = re.compile(r"private|priv|secret|mnemonic|seed|phrase|\bpk\b|key|accounts|broadcast|wallet|signer", re.I)
+JSON_KEY_FIELD = re.compile(r"private_?key|privkey|secret|mnemonic|seed|phrase|signer|accounts?$|(?:^|_)pk(?:$|_)|^key$", re.I)
+WHOLE_KEY = re.compile(r"(?:0x)?[0-9a-fA-F]{64}")
+WHOLE_PHRASE = re.compile(r"[a-z]+(?: [a-z]+){11,23}")
+CODE_FILES = {"foundry.toml", "remappings.txt"}
 
 
 # ---- items -------------------------------------------------------------------------------------
@@ -236,7 +252,33 @@ def key_findings(text, path):
     for number, line in enumerate(text.split("\n"), 1):
         if KEY_WORDS.search(line) and (HEX_KEY.search(line) or PHRASE.search(line)):
             found.add(("key-literal", number))
+    if path.suffix == ".json":
+        found |= {("key-literal", number) for number in json_key_lines(text)}
     return sorted(found, key=lambda f: (f[1], f[0]))
+
+
+def json_key_lines(text):
+    """The lines of a JSON document that hold a key-shaped value of a field named for a key, such as
+    an entry of an `accounts` list on its own line; none when the text is not JSON."""
+    try:
+        data = json.loads(text)
+    except ValueError:
+        return set()
+    values = set()
+
+    def walk(node, field):
+        if isinstance(node, dict):
+            for name, value in node.items():
+                walk(value, str(name))
+        elif isinstance(node, list):
+            for value in node:
+                walk(value, field)
+        elif isinstance(node, str) and JSON_KEY_FIELD.search(field) \
+                and (WHOLE_KEY.fullmatch(node) or WHOLE_PHRASE.fullmatch(node)):
+            values.add(json.dumps(node))
+
+    walk(data, "")
+    return {number for number, line in enumerate(text.split("\n"), 1) if any(v in line for v in values)}
 
 
 def git(root, *args):
@@ -244,6 +286,15 @@ def git(root, *args):
         return subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True).returncode
     except OSError:
         return None
+
+
+def git_lines(root, *args):
+    """The lines git prints, or None when it fails."""
+    try:
+        done = subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True)
+    except OSError:
+        return None
+    return [line for line in done.stdout.splitlines() if line] if done.returncode == 0 else None
 
 
 def env_file_findings(root, env_files):
@@ -329,11 +380,47 @@ def foundry_runs(root):
                 yield script.name, chain.name, run
 
 
-def foundry_record(script, chain_name, path, contracts, problems):
+def counts_as_code(rel):
+    """Whether a changed file can change the deployed code: Solidity outside the tests, and the
+    compiler settings."""
+    parts = rel.split("/")
+    if parts[-1] in CODE_FILES:
+        return True
+    return rel.endswith(".sol") and not rel.endswith(".t.sol") and not set(parts[:-1]) & {"test", "tests"}
+
+
+def changed_before(root, commit, timestamp):
+    """(files, note): the files that differ from the commit and were last changed before the run file's
+    timestamp, or a note saying why the commit could not be checked."""
+    if not commit:
+        return [], None
+    if timestamp is None:
+        return [], "the run file has no timestamp, so its commit %s was not checked" % commit
+    if git(root, "rev-parse", "--is-inside-work-tree") != 0:
+        return [], "not a git repository, so the commit %s was not checked" % commit
+    if git(root, "cat-file", "-e", "%s^{commit}" % commit) != 0:
+        return [], "commit %s is not in this repository, so it was not checked" % commit
+    changed = git_lines(root, "diff", "--name-only", "--relative", "--no-renames", commit, "--")
+    untracked = git_lines(root, "ls-files", "--others", "--exclude-standard")
+    if changed is None or untracked is None:
+        return [], "git could not compare the files with commit %s" % commit
+    sent = timestamp / 1000 if timestamp > 10 ** 11 else timestamp
+    files = []
+    for rel in sorted(set(changed) | set(untracked)):
+        try:
+            if counts_as_code(rel) and (root / rel).stat().st_mtime <= sent:
+                files.append(rel)
+        except OSError:
+            continue
+    return files, None
+
+
+def foundry_record(root, script, chain_name, path, contracts, problems, notes):
     data = json.loads(path.read_text(encoding="utf-8"))
     chain = number(data.get("chain")) or int(chain_name)
     source = "foundry:%s" % script
     commit = data.get("commit") or None
+    deployed = len(contracts)
     receipts = {low(r.get("transactionHash")): r for r in data.get("receipts") or []}
     for tx in data.get("transactions") or []:
         tx_hash = tx.get("hash") or ""
@@ -357,6 +444,14 @@ def foundry_record(script, chain_name, path, contracts, problems):
         for extra in tx.get("additionalContracts") or []:
             contracts.append(dict(entry, chain=chain, name=extra.get("contractName") or "unknown",
                                   address=extra.get("address")))
+    if len(contracts) == deployed:
+        return
+    files, note = changed_before(root, commit, number(data.get("timestamp")))
+    if note:
+        notes.append("%s: %s" % (source, note))
+    if files:
+        problems.append({"chain": chain, "kind": "commit-differs", "name": None, "tx": None, "source": source,
+                         "commit": commit, "files": files})
 
 
 def ignition_record(deployment, path, contracts, problems):
@@ -418,10 +513,10 @@ def cmd_record(args):
     root = folder_or_fail(args.folder)
     if root is None:
         return 2
-    contracts, problems, read = [], [], 0
+    contracts, problems, notes, read = [], [], [], 0
     for script, chain, path in foundry_runs(root):
         try:
-            foundry_record(script, chain, path, contracts, problems)
+            foundry_record(root, script, chain, path, contracts, problems, notes)
         except (OSError, ValueError) as error:
             print("record: cannot read %s: %s" % (path.relative_to(root).as_posix(), type(error).__name__), file=sys.stderr)
             return 2
@@ -445,8 +540,16 @@ def cmd_record(args):
     for c in contracts:
         print("contract %s %s %s tx %s block %s from %s source %s"
               % (c["chain"], c["name"], c["address"], c["tx"], c["block"], c["deployer"], c["source"]))
-    for p in problems:
+    sent = [p for p in problems if p["kind"] != "commit-differs"]
+    differs = [p for p in problems if p["kind"] == "commit-differs"]
+    for p in sent:
         print("%s %s %s tx %s source %s" % (p["kind"], p["chain"], p["name"], p["tx"], p["source"]))
+    for p in differs:
+        shown = ", ".join(p["files"][:3]) + (", and %d more" % (len(p["files"]) - 3) if len(p["files"]) > 3 else "")
+        print("commit-differs %s %s source %s (%d file%s changed before the broadcast: %s)"
+              % (p["chain"], p["commit"], p["source"], len(p["files"]), "" if len(p["files"]) == 1 else "s", shown))
+    for note in notes:
+        print("record: %s" % note, file=sys.stderr)
     chains = sorted({c["chain"] for c in contracts} | {p["chain"] for p in problems})
     if args.write:
         out = root / "deployments"
@@ -455,14 +558,17 @@ def cmd_record(args):
             record = {"format": 1, "chainId": chain,
                       "contracts": [{k: c[k] for k in ("name", "address", "tx", "block", "deployer", "source", "commit")}
                                     for c in contracts if c["chain"] == chain],
-                      "problems": [{k: p[k] for k in ("kind", "name", "tx", "source")}
+                      "problems": [{k: p[k] for k in ("kind", "name", "tx", "source", "commit", "files") if k in p}
                                    for p in problems if p["chain"] == chain]}
             target = out / ("%s.json" % chain)
             target.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
             print("wrote %s" % target.relative_to(root).as_posix())
-    print("record: %d contract%s on %d chain%s, %d transaction%s to look at"
-          % (len(contracts), "" if len(contracts) == 1 else "s", len(chains), "" if len(chains) == 1 else "s",
-             len(problems), "" if len(problems) == 1 else "s"))
+    summary = "record: %d contract%s on %d chain%s, %d transaction%s to look at" \
+        % (len(contracts), "" if len(contracts) == 1 else "s", len(chains), "" if len(chains) == 1 else "s",
+           len(sent), "" if len(sent) == 1 else "s")
+    if differs:
+        summary += ", %d run%s whose commit may not be the deployed code" % (len(differs), "" if len(differs) == 1 else "s")
+    print(summary)
     return 1 if problems else 0
 
 

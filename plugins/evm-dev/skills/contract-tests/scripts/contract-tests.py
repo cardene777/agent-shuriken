@@ -13,16 +13,19 @@ Kinds of points
   function   an external or public function
   error      a custom error
   event      an event
-  access     a function guarded by a modifier whose name starts with `only`, or by a comparison
-             with msg.sender
+  access     a function guarded by a modifier whose name starts with `only`, by `restricted`
+             (OpenZeppelin's AccessManaged), or by a comparison with msg.sender
   fuzz       a function that changes state and takes an integer
-  invariant  a contract with a mapping to an unsigned integer and a function that changes state
+  invariant  a contract with a mapping to an unsigned integer, with or without names for its key and
+             value, at the top of the contract or in a struct it declares, and a function that
+             changes state
 
 A test touches a function when it calls `.<name>`, an error or an event when it names it, an access
 rule when a test expects a revert on a call to the function, a fuzz target when a Solidity test
-function with parameters or a fast-check property calls it, and an invariant when a Solidity test
-file that names the contract has a function whose name starts with `invariant`, or a fast-check
-`fc.commands` test names it. Names inside comments do not count.
+function (its name starts with `test`) that takes parameters or a fast-check property calls it, and
+an invariant when a Solidity test file that names the contract has a function whose name starts with
+`invariant`, or a fast-check `fc.commands` test names it. A helper that takes parameters but is not a
+test function does not count, even when a test calls it. Names inside comments do not count.
 
 Contracts are read from the `src` folder in foundry.toml (default `src`) and from `contracts` in a
 Hardhat project, leaving out interfaces and `.t.sol` and `.s.sol` files. Tests are the files under
@@ -59,9 +62,10 @@ DECLARATION = re.compile(r"\b(abstract\s+contract|contract|library|interface)\s+
 FUNCTION = re.compile(r"\bfunction\s+(" + IDENT + r")\s*\(")
 ERROR = re.compile(r"\berror\s+(" + IDENT + r")\s*\(")
 EVENT = re.compile(r"\bevent\s+(" + IDENT + r")\s*\(")
-UINT_MAPPING = re.compile(r"\bmapping\s*\([^;{}]*=>\s*uint\d*\s*\)")
+UINT_MAPPING = re.compile(r"\bmapping\s*\([^;{}]*=>\s*uint\d*(?:\s+" + IDENT + r")?\s*\)")
+STRUCT = re.compile(r"\bstruct\s+" + IDENT + r"\s*\{")
 INTEGER = re.compile(r"\bu?int\d*\b")
-ONLY_MODIFIER = re.compile(r"\bonly\w+")
+GUARD_MODIFIER = re.compile(r"\bonly\w+|\brestricted\b")
 SENDER_CHECK = re.compile(r"msg\.sender\s*[!=]=|[!=]=\s*msg\.sender|\b_check(?:Owner|Role)\s*\(")
 REVERT = re.compile(r"\b(?:expect\w*Revert\w*|revert\w*|reject\w*)\b")
 JS_TEST = re.compile(r"\b(?:it|test)(?:\.(?:only|skip|each\([^)]*\)))?\s*\(")
@@ -255,6 +259,16 @@ def functions(cleaned, start, end):
     return found
 
 
+def state_text(text, start, end, flat):
+    """The top of a contract's body and the bodies of the structs it declares, where its storage
+    variables are declared."""
+    parts = [flat]
+    for match in STRUCT.finditer(flat):
+        brace = start + match.end() - 1
+        parts.append(text[brace:matching(text, brace, "{", "}")])
+    return "\n".join(parts)
+
+
 def line_at(text, offset):
     return text.count("\n", 0, offset) + 1
 
@@ -345,11 +359,11 @@ def project_points(root):
                 readonly = re.search(r"\b(?:view|pure)\b", header)
                 if not readonly:
                     changes_state = True
-                if ONLY_MODIFIER.search(header) or SENDER_CHECK.search(body):
+                if GUARD_MODIFIER.search(header) or SENDER_CHECK.search(body):
                     add("access", fname, at)
                 if not readonly and INTEGER.search(params):
                     add("fuzz", fname, at)
-            if kind == "contract" and changes_state and UINT_MAPPING.search(flat):
+            if kind == "contract" and changes_state and UINT_MAPPING.search(state_text(text, start, end, flat)):
                 add("invariant", None, offset)
     points.sort(key=lambda p: (p["place"].rsplit(":", 1)[0], int(p["place"].rsplit(":", 1)[1]),
                                KINDS.index(p["kind"])))
@@ -368,7 +382,8 @@ def project_tests(root):
             for _, _, _, start, end in [d for d in declarations(text) if d[0] != "interface"]:
                 for fname, _, params, _, body in functions(text, start, end):
                     if body is not None:
-                        solidity_cases.append({"name": fname, "params": params.strip(), "body": body})
+                        solidity_cases.append({"name": fname, "params": params.strip(), "body": body,
+                                               "test": fname.startswith("test")})
         else:
             starts = [m.start() for m in JS_TEST.finditer(text)]
             for i, at in enumerate(starts):
@@ -406,7 +421,7 @@ def touched(point, texts, solidity_cases, script_cases, solidity_files):
         return (any(reverting_call(c["body"], call, solidity=True) for c in solidity_cases)
                 or any(reverting_call(c, call, solidity=False) for c in script_cases))
     if kind == "fuzz":
-        return (any(c["params"] and call.search(c["body"]) for c in solidity_cases)
+        return (any(c["test"] and c["params"] and call.search(c["body"]) for c in solidity_cases)
                 or any(FAST_CHECK.search(c) and call.search(c) for c in script_cases))
     contract = re.compile(r"\b%s\b" % re.escape(point["contract"]))
     return (any(contract.search(t) and re.search(r"\bfunction\s+invariant\w*\s*\(", t) for t in solidity_files)

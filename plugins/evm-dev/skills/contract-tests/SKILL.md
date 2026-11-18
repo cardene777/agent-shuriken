@@ -22,7 +22,7 @@ Follow the runner, folder, naming, and helpers of the project's existing tests.
 ## 2. List what needs a test
 
 Run `points` with the project root.
-It prints one line per point: `function` (external or public), `error`, `event`, `access` (guarded by an `only` modifier or a `msg.sender` check), `fuzz` (changes state and takes an integer), and `invariant` (a contract that keeps balances in a mapping).
+It prints one line per point: `function` (external or public), `error`, `event`, `access` (guarded by an `only` modifier, `restricted`, or a `msg.sender` check), `fuzz` (changes state and takes an integer), and `invariant` (a contract that keeps balances in a mapping).
 Add rules the script cannot see, such as limits stated in comments or by the user.
 For whether an ERC or EIP the contract implements is final or live, use the evm-standards skill.
 
