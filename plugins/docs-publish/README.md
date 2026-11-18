@@ -147,7 +147,7 @@ console.log(cart.total, cart.discounts);
 | Content | A concept page without a Mermaid diagram, or a Quickstart, API, or Cookbook page without a code example |
 | Structure | A translation whose headings, code blocks, or table rows differ from its source |
 | Freshness | A translation that was never recorded, or whose source page changed after it was recorded |
-| Links | A relative link or image that points at nothing, or whose letter case differs from the file, resolved from the page's own folder. Code is not read for links |
+| Links | A relative link or image that points at nothing, or whose letter case differs from the file, resolved from the page's own folder, and a link to a heading that the page it points at does not have, compared with the anchor GitHub makes from each heading. Code is not read for links |
 | Language | A link into the other language's folder other than the language switch, or a page without a link to its counterpart |
 | Reach | A page that cannot be reached by following links from its language's index |
 
@@ -163,7 +163,7 @@ console.log(cart.total, cart.discounts);
 [How it works](docs/how-it-works.md) explains the plan, the map, every check, and the script's commands.
 In short:
 
-- The agent reads your project's files, such as the README, the source code, the examples, and existing docs, to write the pages, and the script reads only the docs folder
+- The agent reads your project's files, such as the README, the source code, the examples, and existing docs, to write the pages. The script reads the docs folder, and to check links to headings, it also reads the headings of the Markdown files outside the docs folder that the pages link to, such as your README, only inside the folder that holds the docs folder
 - It writes only inside the docs folder, and adds links to your README only when you agree. It never overwrites, moves, or deletes a file
 - It runs its own Python script, and runs your Quickstart and Cookbook commands to show their real output when they need nothing new installed. It asks before installing anything
 - For a web service, it sends those requests only to a copy your project starts on your machine, never to the hosted service. It never reads, copies, or writes a real API key, token, or password; the pages show a placeholder such as `YOUR_API_KEY` instead
