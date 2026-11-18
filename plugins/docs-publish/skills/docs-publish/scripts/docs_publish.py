@@ -34,12 +34,15 @@ Exit codes: 0 done, or no problems found; 1 problems found, or a page was not re
 from __future__ import annotations
 
 import argparse
+import difflib
 import hashlib
+import html
 import json
 import os
 import re
 import sys
 import tempfile
+import unicodedata
 from urllib.parse import unquote
 
 MAP_NAME = "_translation-map.json"
@@ -70,8 +73,27 @@ REF_DEF_RE = re.compile(r"^ {0,3}\[(?!\^)[^\]]+\]:\s*(<[^>\n]*>|\S+)")
 HTML_LINK_RE = re.compile(r"""(?:src|href)\s*=\s*["']([^"']+)["']""")
 SCHEME_RE = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*:")
 
+# Headings, read for the anchors GitHub gives them.
+ATX_TEXT_RE = re.compile(r"^ {0,3}#{1,6}(?:[ \t]+|$)(.*)$")
+ATX_CLOSE_RE = re.compile(r"(?:^|[ \t]+)#+[ \t]*$")
+SETEXT_RE = re.compile(r"^ {0,3}(?:=+|-+)[ \t]*$")
+# Lines that start a block other than a paragraph, so a setext underline after them is not a heading.
+NOT_PARAGRAPH_RE = re.compile(r"^(?: {4}|\t| {0,3}(?:[-+*][ \t]|\d{1,9}[.)][ \t]|>|\||<))")
+HTML_ANCHOR_RE = re.compile(r"""<[A-Za-z][^>]*?\s(?:id|name)\s*=\s*["']([^"']+)["']""")
+ESCAPE_RE = re.compile(r"\\([!-/:-@\[-`{-~])")
+IMAGE_RE = re.compile(r"!\[[^\]]*\](?:\((?:[^()]|\([^()]*\))*\)|\[[^\]]*\])")
+TEXT_LINK_RE = re.compile(r"\[([^\]]*)\](?:\((?:[^()]|\([^()]*\))*\)|\[[^\]]*\])")
+AUTOLINK_RE = re.compile(r"<((?:[A-Za-z][A-Za-z0-9+.-]{1,31}:[^<>\s]*)|(?:[^<>\s@]+@[^<>\s@]+))>")
+TAG_RE = re.compile(r"</?[A-Za-z][^>]*>|<!--.*?-->")
+UNDERSCORE_RE = re.compile(r"(?<![^\W_])(_+)(?=\S)(.+?)(?<=\S)\1(?![^\W_])")
+# Escaped characters are held as private-use characters while the marks around them are removed.
+HELD = 0xF0000
+# Symbols that Unicode counts as letters, which GitHub keeps in an anchor: circled, squared, and negative
+# Latin letters.
+LETTER_SYMBOLS = ((0x24B6, 0x24E9), (0x1F130, 0x1F149), (0x1F150, 0x1F169), (0x1F170, 0x1F189))
+
 KIND_ORDER = ("missing", "unmapped", "todo", "content", "structure", "untranslated", "stale",
-              "link", "crosslink", "switch", "orphan")
+              "link", "anchor", "crosslink", "switch", "orphan")
 # What to do about each kind of problem. check prints the line for every kind it lists, so the agent
 # and the user learn the fix from the output.
 FIXES = {
@@ -83,6 +105,8 @@ FIXES = {
     "untranslated": "Compare the translation with its source, then run translated",
     "stale": "Update the translation to match its source, then run translated",
     "link": "Fix the path, relative to the page's own folder, in the file's exact letter case",
+    "anchor": "Use the anchor GitHub makes from the heading: its text in lower case, without punctuation other "
+              "than - and _, with each space as -, and -1, -2, and so on after a repeated heading",
     "crosslink": "Point the link at the page in the same language",
     "switch": "Put the language switch line back under the title",
     "orphan": "Link the page from its part's README.md",
@@ -402,9 +426,62 @@ def write_new(path, text):
 
 # ------------------------------------------------------------------ reading pages
 
+def heading_text(markdown):
+    """The text GitHub shows for a heading written in Markdown: a code span keeps its content, a link keeps
+    its text, images and HTML tags drop out, emphasis marks go, and character references are decoded."""
+    out, rest = [], markdown
+    while True:
+        m = CODE_SPAN_RE.search(rest)
+        plain, code = (rest, None) if not m else (rest[:m.start()], m.group(0)[len(m.group(1)):-len(m.group(1))])
+        plain = ESCAPE_RE.sub(lambda e: chr(HELD + ord(e.group(1))), plain)
+        plain = TEXT_LINK_RE.sub(r"\1", IMAGE_RE.sub("", plain))
+        plain = TAG_RE.sub("", AUTOLINK_RE.sub(r"\1", plain))
+        previous = None
+        while previous != plain:
+            previous, plain = plain, UNDERSCORE_RE.sub(r"\2", plain)
+        out.append(html.unescape(plain))
+        if code is None:
+            break
+        if len(code) > 2 and code.startswith(" ") and code.endswith(" ") and code.strip():
+            code = code[1:-1]
+        out.append(code)
+        rest = rest[m.end():]
+    return re.sub("[\U000F0000-\U000F007F]", lambda c: chr(ord(c.group(0)) - HELD), "".join(out)).strip()
+
+
+def github_anchor(text):
+    """The anchor GitHub makes from a heading's text: lower case, keeping only letters (with letter numbers such
+    as Roman numerals and circled Latin letters), marks, decimal digits, connector punctuation such as _,
+    hyphens, and spaces, with each space turned into a hyphen."""
+    kept = []
+    for ch in text.lower():
+        category = unicodedata.category(ch)
+        if ch == " ":
+            kept.append("-")
+        elif ch == "-" or category[0] in "LM" or category in ("Nd", "Nl", "Pc") or \
+                any(low <= ord(ch) <= high for low, high in LETTER_SYMBOLS):
+            kept.append(ch)
+    return "".join(kept)
+
+
+def anchors_of(headings):
+    """The anchors of a page's headings in order; a repeated anchor gets -1, -2, and so on, as on GitHub."""
+    seen, out = {}, set()
+    for text in headings:
+        base = anchor = github_anchor(text)
+        while anchor in seen:
+            seen[base] += 1
+            anchor = "%s-%d" % (base, seen[base])
+        seen[anchor] = 0
+        out.add(anchor)
+    return out
+
+
 def parse(text):
-    """The parts of a page the checks compare. Code blocks and code spans are not read for links."""
+    """The parts of a page the checks compare, and the anchors its headings and HTML ids give.
+    Code blocks and code spans are not read for links."""
     info = {"headings": [], "fences": [], "tables": 0, "links": [], "todo": 0}
+    titles, ids, paragraph = [], set(), []
     fence = None
     for number, line in enumerate(text.splitlines(), 1):
         m = FENCE_RE.match(line)
@@ -416,10 +493,20 @@ def parse(text):
             fence = (m.group(1)[0], len(m.group(1)))
             words = m.group(2).split()
             info["fences"].append(words[0].lower() if words else "")
+            paragraph = []
             continue
         h = HEADING_RE.match(line)
         if h:
             info["headings"].append(len(h.group(1)))
+            titles.append(heading_text(ATX_CLOSE_RE.sub("", ATX_TEXT_RE.match(line).group(1))))
+            paragraph = []
+        elif paragraph and SETEXT_RE.match(line):
+            titles.append(heading_text("\n".join(paragraph)))
+            paragraph = []
+        elif not line.strip() or (not paragraph and NOT_PARAGRAPH_RE.match(line)):
+            paragraph = []
+        else:
+            paragraph.append(line.strip())
         if line.lstrip().startswith("|"):
             info["tables"] += 1
         info["todo"] += line.count(TODO)
@@ -427,6 +514,8 @@ def parse(text):
         for regex in (INLINE_LINK_RE, REF_DEF_RE, HTML_LINK_RE):
             for target in regex.findall(bare):
                 info["links"].append((number, target))
+        ids.update(HTML_ANCHOR_RE.findall(bare))
+    info["anchors"] = anchors_of(titles) | ids
     return info
 
 
@@ -469,16 +558,21 @@ def list_pages(folder):
 
 
 def link_target(raw):
-    """Return (kind, path): kind is relative, absolute, or skip (web addresses and in-page anchors)."""
+    """Return (kind, path, anchor). kind is relative, page (a heading on the same page), absolute, or skip
+    (web addresses). anchor is the decoded part after #, or None when there is none or a query comes first."""
     t = raw.strip()
     if t.startswith("<") and t.endswith(">"):
         t = t[1:-1].strip()
-    if not t or t.startswith("#") or t.startswith("//") or SCHEME_RE.match(t):
-        return "skip", None
+    if not t or t.startswith("//") or SCHEME_RE.match(t):
+        return "skip", None, None
     if t.startswith("/"):
-        return "absolute", None
-    t = re.split(r"[#?]", t, maxsplit=1)[0]
-    return ("relative", unquote(t)) if t else ("skip", None)
+        return "absolute", None, None
+    path, _, anchor = t.partition("#")
+    path, queried, _ = path.partition("?")
+    anchor = unquote(anchor) if anchor and not queried else None
+    if path:
+        return "relative", unquote(path), anchor
+    return ("page", None, anchor) if anchor else ("skip", None, None)
 
 
 class Disk:
@@ -519,7 +613,8 @@ def cmd_scaffold(args):
     titles.update({"README.md": "%s documentation" % project, "quickstart.md": "Quickstart", "faq.md": "FAQ"})
     for part in PARTS:
         titles["%s/README.md" % part] = PART_TITLES[part]
-    paths = sorted(titles, key=order_key)
+    # Sorted by part only, so the pages of a part keep the plan's order: the reading order its index lists.
+    paths = sorted(titles, key=lambda path: order_key(path)[:2])
     written = kept = 0
     rows = [("new", map_path(root))]
     for i, lang in enumerate(languages):
@@ -724,6 +819,33 @@ def cmd_check(args):
             elif recorded != sha[(source, path)]:
                 add("stale", "%s/%s changed after %s/%s was translated from it" % (source, path, lang, path))
 
+    # The anchors of every Markdown page a link names, read once. Mapped pages are already parsed; other
+    # Markdown files are read only inside the folder that holds the docs folder, and only for their headings.
+    anchor_cache = {os.path.join(root_abs, lang, path): info["anchors"] for (lang, path), info in parsed.items()}
+    project = os.path.realpath(os.path.dirname(root_abs))
+
+    def anchors_at(file):
+        """The anchors of the Markdown page at file, or None when it is not one this check reads."""
+        if file not in anchor_cache:
+            real = os.path.realpath(file)
+            page = None
+            if file.lower().endswith(".md") and os.path.isfile(real) and \
+                    os.path.commonpath([real, project]) == project:
+                page = read_page(real)
+            anchor_cache[file] = parse(page[1])["anchors"] if page else None
+        return anchor_cache[file]
+
+    def missing_anchor(where, file, anchor):
+        """Report a link whose anchor no heading of file gives, with the closest anchor the page has."""
+        anchors = anchors_at(file)
+        if anchors is None or anchor in anchors:
+            return 0
+        closest = difflib.get_close_matches(anchor, sorted(anchors), n=1)
+        add("anchor", "%s: %s has no heading with this anchor%s" % (
+            where, os.path.relpath(file, root_abs).replace(os.sep, "/"),
+            "; the closest is #%s" % closest[0] if closest else ""))
+        return 1
+
     disk = Disk()
     checked = broken = absolute = 0
     edges = {}
@@ -732,15 +854,18 @@ def cmd_check(args):
         lang_root = os.path.join(root_abs, lang)
         switched = set()
         for number, raw in info["links"]:
-            kind, target = link_target(raw)
+            kind, target, anchor = link_target(raw)
             if kind == "absolute":
                 absolute += 1
                 continue
             if kind == "skip":
                 continue
             checked += 1
-            resolved = os.path.normpath(os.path.join(here, target))
             where = "%s/%s:%d: %s" % (lang, path, number, raw)
+            if kind == "page":
+                broken += missing_anchor(where, os.path.join(root_abs, lang, path), anchor)
+                continue
+            resolved = os.path.normpath(os.path.join(here, target))
             if not os.path.exists(resolved):
                 broken += 1
                 add("link", "%s does not exist" % where)
@@ -750,6 +875,9 @@ def cmd_check(args):
                 add("link", "%s differs in letter case from the file on disk, so it breaks on GitHub "
                     "and most web servers" % where)
                 continue
+            if anchor is not None:
+                folder_page = os.path.join(resolved, "README.md")
+                broken += missing_anchor(where, folder_page if os.path.isdir(resolved) else resolved, anchor)
             first = os.path.relpath(resolved, root_abs).split(os.sep, 1)[0]
             if first in languages and first != lang:
                 if resolved == os.path.normpath(os.path.join(root_abs, first, path)):

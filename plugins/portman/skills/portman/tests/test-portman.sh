@@ -563,6 +563,122 @@ refused_unknown() {
 }
 check "a refused socket test is reported as unknown, never as free" refused_unknown
 
+# --- a reader that closes the output pipe, as `portman.py doctor | head -1` does once head has its line
+# closed_out <args...>: runs portman.py with its standard output on a pipe whose reader has already
+# closed it, and its standard error in $T/closed.err. Returns portman's exit code.
+closed_out() {
+  python3 - "$SCRIPT" "$@" 2>"$T/closed.err" <<'PYEOF'
+import os, subprocess, sys
+r, w = os.pipe()
+os.close(r)
+sys.exit(subprocess.call([sys.executable, sys.argv[1]] + sys.argv[2:], stdout=w))
+PYEOF
+}
+# quiet141 <args...>: the command exits 141 and writes nothing to standard error.
+quiet141() {
+  local rc
+  closed_out "$@"; rc=$?
+  [ "$rc" = 141 ] && [ ! -s "$T/closed.err" ] || { printf '      %s: exit %s, stderr %s\n' "$*" "$rc" "$(head -c 200 "$T/closed.err")"; return 1; }
+}
+pipe_project() {
+  local f="$1"
+  mkdir -p "$f"
+  printf 'services:\n  web:\n    image: web\n    ports:\n      - "3000:3000"\n' > "$f/compose.yaml"
+}
+pipe_every_command() {
+  local h="$T/pipe-all" f token args
+  f="$(mkdir -p "$T/pipe-site" && cd "$T/pipe-site" && pwd -P)"
+  pipe_project "$f"
+  mkdir -p "$h"
+  PORTMAN_HOME="$h" pm add site web 21201 >/dev/null || return 1
+  for args in "list" "list --json" "add site api 21202" "remove site" "remove --confirm site/api=21202" "check" \
+    "check 21201" "suggest" "doctor" "--help" "add --help"; do
+    # shellcheck disable=SC2086 # each entry is the words of one command
+    PORTMAN_HOME="$h" quiet141 $args || return 1
+  done
+  PORTMAN_HOME="$h" quiet141 apply --project site --dir "$f" || return 1
+  token="$(PORTMAN_HOME="$h" pm apply --project site --dir "$f" | sed -nE 's/.*--confirm ([0-9a-f]{12})$/\1/p')"
+  PORTMAN_HOME="$h" quiet141 apply --project site --dir "$f" --confirm "${token:-none}"
+}
+check "every command exits 141 without a traceback when its output pipe is closed" pipe_every_command
+
+doctor_head() {
+  local h="$T/pipe-big" rc
+  mkdir -p "$h"
+  python3 - "$h/registry.json" <<'PYEOF'
+import json, sys
+projects = {"p%04d" % i: {"ports": [{"name": "app", "port": 21000 + i % 3000}]} for i in range(6000)}
+json.dump({"version": 1, "projects": projects}, open(sys.argv[1], "w"))
+PYEOF
+  PORTMAN_HOME="$h" PORTMAN_LSOF="$T/bin/none" PORTMAN_DOCKER="$T/bin/none" pm doctor 2>"$T/head.err" | head -1 > "$T/head.out"
+  rc=${PIPESTATUS[0]}
+  [ "$rc" = 141 ] && [ "$(wc -l < "$T/head.out" | tr -d ' ')" = 1 ] && grep -q "^Registry " "$T/head.out" && [ ! -s "$T/head.err" ] \
+    || { printf '      exit %s, stderr %s\n' "$rc" "$(head -c 200 "$T/head.err")"; return 1; }
+}
+check "doctor piped into head -1 prints one line and no traceback" doctor_head
+
+pipe_changes_finish() {
+  local h="$T/pipe-change" f token
+  f="$(mkdir -p "$T/pipe-shop" && cd "$T/pipe-shop" && pwd -P)"
+  pipe_project "$f"
+  mkdir -p "$h"
+  PORTMAN_HOME="$h" pm add gone a 21211 >/dev/null && PORTMAN_HOME="$h" pm add gone b 21212 >/dev/null || return 1
+  PORTMAN_HOME="$h" PYTHONUNBUFFERED=1 closed_out remove --confirm gone/a=21211 --confirm gone/b=21212
+  PORTMAN_HOME="$h" pm list --project gone >/dev/null 2>&1 && { echo "      remove --confirm left gone in the registry"; return 1; }
+  PORTMAN_HOME="$h" pm add shop web 21213 >/dev/null || return 1
+  token="$(PORTMAN_HOME="$h" pm apply --project shop --dir "$f" | sed -nE 's/.*--confirm ([0-9a-f]{12})$/\1/p')"
+  PORTMAN_HOME="$h" PYTHONUNBUFFERED=1 closed_out apply --project shop --dir "$f" --confirm "${token:-none}"
+  grep -q "^PORT_WEB=21213$" "$f/.env.local" 2>/dev/null || { echo "      apply --confirm did not write .env.local"; return 1; }
+  grep -q '"21213:3000"' "$f/compose.override.yaml" 2>/dev/null || { echo "      apply --confirm did not write the override"; return 1; }
+  PORTMAN_HOME="$h" pm list --json | python3 -c 'import json, sys; sys.exit(0 if json.loads(sys.stdin.readline())["dir"] == sys.argv[1] else 1)' "$f" \
+    || { echo "      apply --confirm did not record the folder"; return 1; }
+}
+check "remove --confirm and apply --confirm finish their changes when the output pipe is closed" pipe_changes_finish
+
+pipe_add_registers() {
+  local h="$T/pipe-add"
+  mkdir -p "$h"
+  PORTMAN_HOME="$h" PYTHONUNBUFFERED=1 closed_out add shop web 21221
+  PORTMAN_HOME="$h" pm list --project shop 2>/dev/null | grep -qE "^shop +web +21221 "
+}
+check "add registers the port when the output pipe is closed" pipe_add_registers
+
+pipe_refusals() {
+  local h="$T/pipe-refuse" rc
+  mkdir -p "$h"
+  PORTMAN_HOME="$h" closed_out list; rc=$?
+  [ "$rc" = 1 ] && grep -q "The registry is empty" "$T/closed.err" || { echo "      list: exit $rc"; return 1; }
+  PORTMAN_HOME="$h" closed_out add shop web abc; rc=$?
+  [ "$rc" = 2 ] && grep -q "must be a number from 1 to 65535" "$T/closed.err" || { echo "      add: exit $rc"; return 1; }
+  PORTMAN_HOME="$h" closed_out frobnicate; rc=$?
+  [ "$rc" = 2 ] && grep -q "invalid choice" "$T/closed.err" || { echo "      frobnicate: exit $rc"; return 1; }
+}
+check "refusals keep their message and exit code when the output pipe is closed" pipe_refusals
+
+# The five refusals for a registry that cannot be used, with the registry in its default place under HOME.
+registry_errors_short() {
+  local home="$T/home-errors" dir err body rc
+  dir="$home/.local/share/portman"
+  mkdir -p "$dir"
+  for body in DIR 'not json' '{}' '{"version": 2, "projects": {}}' '{"version": 1, "projects": []}'; do
+    rm -rf "$dir/registry.json"
+    if [ "$body" = DIR ]; then mkdir "$dir/registry.json"; else printf '%s\n' "$body" > "$dir/registry.json"; fi
+    err="$(unset PORTMAN_HOME; HOME="$home" pm list 2>&1 >/dev/null)"; rc=$?
+    [ "$rc" = 2 ] && printf '%s\n' "$err" | grep -qF "~/.local/share/portman/registry.json" && ! printf '%s\n' "$err" | grep -qF "$home" \
+      || { printf '      %s: exit %s, %s\n' "$body" "$rc" "${err//$home/<HOME>}"; return 1; }
+  done
+}
+check "registry errors print the registry path with ~, not the home folder" registry_errors_short
+
+exit_141_documented() {
+  python3 -c 'import ast, sys
+doc = ast.get_docstring(ast.parse(open(sys.argv[1], encoding="utf-8").read()))
+sys.exit(0 if "141" in doc.split("Exit codes:", 1)[-1] else 1)' "$SCRIPT" || return 1
+  grep -qE "^\| 141 \| .*pipe" "$HERE/../../../docs/how-it-works.md" || return 1
+  grep -qE "^\| 141 \| .*head -1" "$HERE/../../../docs/how-it-works.ja.md"
+}
+check "the exit code 141 is documented" exit_141_documented
+
 # --- the SKILL.md and its eval suite
 PLUGIN="$(cd "$HERE/../../.." && pwd)"
 EVALS="$PLUGIN/evals"
