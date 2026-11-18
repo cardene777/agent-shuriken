@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-18
+
 - Writes the docs of a library, command-line tool, or web service you build, whether its code is public or private, not only of an open source project
 - An API page marked `"endpoint": true` in the plan, or added with `add --endpoint`, gets the outline of an HTTP endpoint: Endpoint, Authentication, Parameters, Request body, Response, Errors, Example, and Related
 - The Quickstart also fits a hosted service the reader signs up for, starting from creating an account and getting an API key, then the first request
@@ -41,7 +43,8 @@ First public release.
 - Writes only inside the docs folder, keeps nothing outside the project, and commits nothing
 - Starts when you ask for documentation for your project, or when you call it, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/docs-publish--v0.3.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/docs-publish--v0.4.0...HEAD
+[0.4.0]: https://github.com/cardene777/agent-shuriken/releases/tag/docs-publish--v0.4.0
 [0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/docs-publish--v0.3.0
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/docs-publish--v0.2.0
 [0.1.1]: https://github.com/cardene777/agent-shuriken/releases/tag/docs-publish--v0.1.1

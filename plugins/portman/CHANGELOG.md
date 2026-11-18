@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-11-18
+
 - Every command stops without a traceback and exits 141 when the reader closes the output pipe, as in `portman.py doctor | head -1`, and `remove --confirm` and `apply --confirm` finish writing their changes before they print anything
 - The refusals for a registry that cannot be read or used print its path with the home folder shortened to `~`, like the other messages, instead of the full path with the account name
 
@@ -32,7 +34,8 @@ First public release.
 - Removes ports only after you approve the entries it shows, and skips an entry that changed in between
 - Starts when a port is already in use, when two projects want the same port, or when you set up ports for a project, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/portman--v0.3.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/portman--v0.3.1...HEAD
+[0.3.1]: https://github.com/cardene777/agent-shuriken/releases/tag/portman--v0.3.1
 [0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/portman--v0.3.0
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/portman--v0.2.0
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/portman--v0.1.0
