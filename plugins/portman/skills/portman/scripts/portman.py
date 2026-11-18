@@ -17,7 +17,8 @@ Usage:
   portman.py apply [--project NAME] [--dir DIR] [--confirm TOKEN]
 
 Exit codes: 0 on success, 1 when something is not registered or a request is refused,
-2 for bad input or a registry that cannot be read, 3 when an entry or a file changed after the preview.
+2 for bad input or a registry that cannot be read, 3 when an entry or a file changed after the preview,
+141 when the reader closes the output pipe, as `portman.py doctor | head -1` does after its first line.
 """
 import argparse
 import contextlib
@@ -124,26 +125,28 @@ def registry_path():
 def load_registry():
     """Return the registry. Raises Refused (exit 2) when it cannot be read or its shape is wrong."""
     path = registry_path()
+    # Printed with ~ for the home folder, like every other path portman prints.
+    name = shown(path)
     try:
         with open(path, encoding="utf-8") as f:
             text = f.read()
     except FileNotFoundError:
         return {"version": FORMAT_VERSION, "projects": {}}
     except OSError as e:
-        raise Refused("Cannot read %s: %s" % (path, e.strerror), 2)
+        raise Refused("Cannot read %s: %s" % (name, e.strerror), 2)
     try:
         data = json.loads(text)
     except ValueError as e:
-        raise Refused("%s is not valid JSON (%s). Fix or move the file, then run again." % (path, e), 2)
+        raise Refused("%s is not valid JSON (%s). Fix or move the file, then run again." % (name, e), 2)
     if not isinstance(data, dict) or "version" not in data:
-        raise Refused("%s is not a portman registry: it has no version." % path, 2)
+        raise Refused("%s is not a portman registry: it has no version." % name, 2)
     if data["version"] != FORMAT_VERSION:
         raise Refused("%s has format version %r, but this portman reads version %d only. "
                       "Update the portman plugin instead of editing the file."
-                      % (path, data["version"], FORMAT_VERSION), 2)
+                      % (name, data["version"], FORMAT_VERSION), 2)
     problems = shape_problems(data)
     if problems:
-        raise Refused("%s has entries portman cannot read:\n  %s" % (path, "\n  ".join(problems)), 2)
+        raise Refused("%s has entries portman cannot read:\n  %s" % (name, "\n  ".join(problems)), 2)
     return data
 
 
@@ -596,7 +599,7 @@ def remove_confirmed(items):
         if not m:
             raise Refused("%r is not in the form PROJECT/NAME=PORT, as the preview prints it." % item, 2)
         parsed.append((m.group(1), m.group(2), int(m.group(3)), item))
-    skipped = 0
+    skipped, lines = 0, []
     with locked():
         data = load_registry()
         changed = False
@@ -604,20 +607,22 @@ def remove_confirmed(items):
             info = data["projects"].get(project)
             e = next((e for e in info["ports"] if e["name"] == name), None) if info else None
             if e is None:
-                print("skipped %s: no longer registered" % item)
+                lines.append("skipped %s: no longer registered" % item)
                 skipped += 1
             elif e["port"] != port:
-                print("skipped %s: now registered as %d" % (item, e["port"]))
+                lines.append("skipped %s: now registered as %d" % (item, e["port"]))
                 skipped += 1
             else:
                 info["ports"].remove(e)
                 changed = True
-                print("removed %s" % item)
+                lines.append("removed %s" % item)
                 if not info["ports"]:
                     del data["projects"][project]
-                    print("%s has no ports left and is no longer in the registry" % project)
+                    lines.append("%s has no ports left and is no longer in the registry" % project)
         if changed:
             save_registry(data)
+    # Printed only after the registry is saved, so a reader that closes the pipe cannot stop the change halfway.
+    print("\n".join(lines))
     return 3 if skipped else 0
 
 
@@ -1188,11 +1193,16 @@ def cmd_apply(args):
                               "Run apply without --confirm to see the change again.", 3)
             for path, _, text in changes:
                 write_file(path, text)
-                print("Wrote %s" % os.path.relpath(path, folder))
-            if data["projects"][project].get("dir") != folder:
+            recorded = data["projects"][project].get("dir") != folder
+            if recorded:
                 data["projects"][project]["dir"] = folder
                 save_registry(data)
-                print("Recorded %s as the folder of %s" % (shown(folder), project))
+        # Printed only after every file and the registry are written, so a reader that closes the pipe
+        # cannot leave .env.local changed and the Compose override not.
+        for path, _, _ in changes:
+            print("Wrote %s" % os.path.relpath(path, folder))
+        if recorded:
+            print("Recorded %s as the folder of %s" % (shown(folder), project))
         print("Open http://localhost:%d" % main_port)
         return 0
     data = load_registry()
@@ -1265,5 +1275,25 @@ def main(argv):
         return e.code
 
 
+# The status a shell gives a program that a closed pipe stopped: 128 plus SIGPIPE (13).
+PIPE_CLOSED = 141
+
+
+def cli(argv):
+    """Run main, and stop quietly with PIPE_CLOSED when the reader closes the output pipe, as head -1 does."""
+    try:
+        try:
+            code = main(argv)
+        except SystemExit as e:
+            # argparse exits by itself after printing --help or a usage error.
+            code = e.code
+        sys.stdout.flush()
+    except BrokenPipeError:
+        # Point standard output at /dev/null, so the flush when Python exits does not fail again.
+        os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
+        return PIPE_CLOSED
+    return code
+
+
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    sys.exit(cli(sys.argv[1:]))

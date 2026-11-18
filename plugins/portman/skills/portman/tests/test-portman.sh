@@ -675,7 +675,7 @@ exit_141_documented() {
 doc = ast.get_docstring(ast.parse(open(sys.argv[1], encoding="utf-8").read()))
 sys.exit(0 if "141" in doc.split("Exit codes:", 1)[-1] else 1)' "$SCRIPT" || return 1
   grep -qE "^\| 141 \| .*pipe" "$HERE/../../../docs/how-it-works.md" || return 1
-  grep -qE "^\| 141 \| .*パイプ" "$HERE/../../../docs/how-it-works.ja.md"
+  grep -qE "^\| 141 \| .*head -1" "$HERE/../../../docs/how-it-works.ja.md"
 }
 check "the exit code 141 is documented" exit_141_documented
 
