@@ -1,7 +1,7 @@
 ---
 topic: ordering
 subject: Flashbots Protect and private transaction relays
-checked: 2026-11-17
+checked: 2026-11-18
 source: Flashbots, Flashbots Protect overview (updated 2025-12-16)
 ---
 

@@ -1,7 +1,7 @@
 ---
 topic: keys
 subject: Hardhat 3 keystore plugin and configVariable
-checked: 2026-11-17
+checked: 2026-11-18
 source: Hardhat, managing config values and secrets safely; Hardhat, hardhat-keystore plugin; Nomic Foundation, Hardhat 2.19.0 release introducing configuration variables
 ---
 

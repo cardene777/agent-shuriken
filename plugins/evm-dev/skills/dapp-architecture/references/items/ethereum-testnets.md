@@ -1,13 +1,13 @@
 ---
 topic: networks
 subject: Ethereum testnets (Sepolia, Hoodi, Holesky)
-checked: 2026-11-17
-source: Ethereum Foundation blog, Holesky shutdown announcement and Hoodi announcement; Ethereum Magicians, Sepolia testnet replacement thread
+checked: 2026-11-18
+source: Ethereum Foundation blog, Holesky shutdown announcement, Fusaka testnet announcement, and Hoodi announcement; Ethereum Magicians, Sepolia testnet replacement and sunsetting thread
 ---
 
 # Sepolia is the testnet for apps; Holesky is shut down
 
-The Ethereum Foundation shut down Holesky after the Fusaka upgrade. Sepolia is the testnet for applications and tooling, and Hoodi, launched in March 2025, is for validators and staking providers.
+The Ethereum Foundation shut down Holesky after the Fusaka upgrade reached it on 1 October 2025, and it is no longer supported. Sepolia is the testnet for applications and tooling, and Hoodi, launched in March 2025, is for validators and staking providers.
 
 A replacement for Sepolia was proposed in May 2026 on Ethereum Magicians: a new network reaching the latest fork by early 2027, with Sepolia shut down in mid or late 2027. Its name and dates were not settled when checked.
 

@@ -1,6 +1,6 @@
 ---
 status: specified
-checked: 2026-11-11
+checked: 2026-11-18
 source: ethereum/EIPs: the EIP-7706, EIP-7999, EIP-8037, EIP-7773 (Glamsterdam meta), and EIP-8081 (Hegotá meta) documents
 can: Calldata, state creation, and other resources would each be counted and priced as a separate kind of gas.
 ---
@@ -18,7 +18,7 @@ A group of proposals that count calldata, state creation, and other resources as
 ## Current status
 
 EIP-7706 was created on 2024-05-13, EIP-7999 on 2025-08-04, and EIP-8037 on 2025-10-01.
-The EIP-8037 document gives a `Last Call` deadline of 2026-11-01, and it was still in `Last Call` as of 2026-11-11.
+The EIP-8037 document gives a `Last Call` deadline of 2026-11-01, and it was still in `Last Call` as of 2026-11-18.
 
 The Glamsterdam meta (EIP-7773, status `Review`) lists EIP-8037 as `Scheduled for Inclusion`.
 EIP-7706 and EIP-7999 appear in neither the Glamsterdam meta nor the Hegotá meta (EIP-8081).

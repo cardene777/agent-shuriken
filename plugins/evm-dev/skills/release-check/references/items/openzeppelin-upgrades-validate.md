@@ -1,13 +1,13 @@
 ---
 topic: tools
 subject: OpenZeppelin's upgrade safety check from the command line and from Foundry and Hardhat
-checked: 2026-11-17
-source: OpenZeppelin, Upgrades Core documentation (validate command), OpenZeppelin Foundry Upgrades documentation, and Hardhat Upgrades documentation and changelog
+checked: 2026-11-18
+source: OpenZeppelin, Upgrades Core documentation (validate command) and upgrades-core 1.48.0 validate source, OpenZeppelin Foundry Upgrades documentation, and Hardhat Upgrades 4.1.0 documentation and changelog
 ---
 
 # OpenZeppelin's check also catches unsafe code that the storage layout does not show
 
-OpenZeppelin's upgrade check compares storage layouts, including ERC-7201 namespaced structs, and flags code that is unsafe behind a proxy: a constructor that sets state, `selfdestruct`, `delegatecall`, and immutable variables. It reads solc's build-info files.
+OpenZeppelin's upgrade check compares storage layouts, including ERC-7201 namespaced structs, and flags code that is unsafe behind a proxy: a constructor with statements or modifiers, an initial value on a state variable, `selfdestruct`, `delegatecall`, immutable variables, and missing initializer calls. It reads solc's build-info files.
 
 Command line, when `@openzeppelin/upgrades-core` is in the project's `node_modules`:
 

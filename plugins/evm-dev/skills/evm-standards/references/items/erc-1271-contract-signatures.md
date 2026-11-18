@@ -1,7 +1,7 @@
 ---
-status: specified
-checked: 2026-11-11
-source: ethereum/ERCs: the ERC-1271 and ERC-7739 documents; Alchemy: the disclosure of the ERC-1271 signature replay weakness
+status: live
+checked: 2026-11-18
+source: ethereum/ERCs: the ERC-1271 and ERC-7739 documents; Alchemy: the disclosure of the ERC-1271 signature replay weakness; Uniswap/permit2: the source of `SignatureVerification`; Ethereum mainnet: the code at the Permit2 address
 can: Contracts such as smart accounts and multisigs can say whether a signature is valid for them, so apps can accept signatures from contract accounts.
 ---
 
@@ -14,7 +14,7 @@ Smart accounts that have no private key can still answer dapps that ask for a si
 |---|---|
 | Interface | Call `isValidSignature(bytes32,bytes)` |
 | Success value | Returns `0x1626ba7e` when the signature is valid |
-| Which to use | If the signer is an EOA, check with `ecrecover`; if it is a contract, check with this interface |
+| Which to use | The method is for signatures of contracts, not of EOAs. The document's example recovers an EOA signer with `ecrecover` |
 
 ## The signature replay weakness
 
@@ -37,6 +37,7 @@ As affected apps, it named transfers made with Permit2 signatures and Cowswap tr
 ## Current status
 
 The ERC-1271 document's status is `Final`, and it was created on 2018-07-25.
+It is in use on mainnet: Permit2's `SignatureVerification` calls `isValidSignature` when the signer has code, and the Permit2 address had code on mainnet on 2026-11-18.
 ERC-7739 is still `Draft`, and it was created on 2024-05-28.
 
 ## Not yet shipped

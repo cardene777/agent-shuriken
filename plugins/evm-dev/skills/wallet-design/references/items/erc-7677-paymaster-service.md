@@ -1,7 +1,7 @@
 ---
 topic: gas
 subject: EIP-5792 wallet_sendCalls and the ERC-7677 paymaster service
-checked: 2026-11-17
+checked: 2026-11-18
 source: Ethereum, ERC-7677 specification; Candide, Batch and Sponsor Transactions (via ERC-5792); Dynamic, EIP-5792 reference
 ---
 

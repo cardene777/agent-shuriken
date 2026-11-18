@@ -1,8 +1,8 @@
 ---
 topic: evm
 subject: The EVM version each major chain runs
-checked: 2026-11-17
-source: Ethereum Foundation, Fusaka mainnet announcement; Offchain Labs, ArbOS 51 Dia release notes; Optimism, Upgrade 19 (Karst) notice; Base, Azul network upgrade notes and the earlier Canyon, Ecotone, and Isthmus notes; Linea, release notes for the Beta v4 upgrades
+checked: 2026-11-18
+source: Ethereum Foundation, Fusaka mainnet announcement; EIP-7773 (Glamsterdam, no mainnet activation yet); Offchain Labs, ArbOS 51 Dia and ArbOS 61 Elara release notes; Optimism, Upgrade 19 (Karst) notice and the superchain registry; Base, Azul network upgrade notes and the base/base chain configuration; Linea, release notes for the Beta v4 upgrades
 ---
 
 # Most major chains run osaka; check a smaller chain before relying on it

@@ -1,6 +1,6 @@
 ---
 tool: ethereum
-checked: 2026-11-16
+checked: 2026-11-18
 source: EIP-7702 (Final), Security Considerations and Backwards Compatibility, and EIP-7600 (the Pectra meta EIP)
 detect: tx\.origin\s*==\s*msg\.sender|msg\.sender\s*==\s*tx\.origin|\.code\.length\s*(==|>|!=)\s*0|extcodesize
 ---

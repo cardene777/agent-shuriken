@@ -1,6 +1,6 @@
 ---
 status: live
-checked: 2026-11-11
+checked: 2026-11-18
 source: ethereum/EIPs: the EIP-3855 document and EIP-7568 (the meta EIP covering upgrades up to Shapella); ethereum/execution-specs: the Shanghai specification
 can: Compilers can push the constant 0 with the PUSH0 opcode, which makes contract code smaller and cheaper.
 ---

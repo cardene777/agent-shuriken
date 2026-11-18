@@ -1,13 +1,13 @@
 ---
 topic: approvals
 subject: Permit2 allowances and signature phishing
-checked: 2026-11-17
+checked: 2026-11-18
 source: Uniswap, Permit2 documentation (AllowanceTransfer); Revoke.cash, What is Permit2; MetaMask Support, Signature phishing
 ---
 
 # Permit2 allowances expire, but a phished signature still moves the tokens
 
-Permit2 gives each allowance an amount and an expiration, and treats the largest uint160 amount as unlimited. A user approves Permit2 once per token and then signs EIP-712 permits for each spender, so a malicious site can take tokens by getting one permit signed, with no transaction from the user. Revoke.cash advises revoking Permit2 allowances that are no longer used, and MetaMask advises checking the site and reading what a signature grants before signing.
+Permit2 gives each allowance an amount and an expiration, and treats the largest uint160 amount as unlimited. A user approves Permit2 once per token and then signs EIP-712 permits for each spender, so a malicious site can take tokens by getting one permit signed, with no transaction from the user. Revoke.cash advises revoking the approval given to Permit2 once it is no longer used, and a Permit2 allowance whose expiration is too far away, and MetaMask advises checking the address of the site that asks for a signature, and turning on its security alerts, before signing.
 
 For a design:
 

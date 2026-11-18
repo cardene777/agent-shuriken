@@ -1,7 +1,7 @@
 ---
 topic: accounts
 subject: EIP-7702 delegation and its initialization
-checked: 2026-11-17
+checked: 2026-11-18
 source: Ethereum Foundation, EIP-7702 page of the Pectra roadmap on ethereum.org
 ---
 

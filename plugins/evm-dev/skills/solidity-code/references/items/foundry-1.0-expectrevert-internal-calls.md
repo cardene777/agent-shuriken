@@ -1,8 +1,8 @@
 ---
 tool: foundry
 since: 1.0.0
-checked: 2026-11-16
-source: Foundry v1.0 migration guide and the Foundry config reference
+checked: 2026-11-18
+source: Foundry v1.0 migration guide, the Foundry expectRevert cheatcode reference, and the Foundry config reference
 ---
 
 # expectRevert does not catch internal calls by default

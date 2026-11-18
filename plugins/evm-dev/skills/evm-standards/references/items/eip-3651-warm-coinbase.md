@@ -1,6 +1,6 @@
 ---
 status: live
-checked: 2026-11-11
+checked: 2026-11-18
 source: ethereum/EIPs: the EIP-3651 document and EIP-7568 (the meta EIP covering upgrades up to Shapella); ethereum/execution-specs: the Shanghai specification
 can: Transactions pay less gas to access the block producer's address (COINBASE), which is warm from the start.
 ---

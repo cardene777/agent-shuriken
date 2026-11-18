@@ -1,6 +1,6 @@
 ---
 status: specified
-checked: 2026-11-11
+checked: 2026-11-18
 source: ethereum/EIPs: the EIP-7523 document
 can: Contracts and clients can assume that a post-merge network holds no empty accounts.
 ---
@@ -20,7 +20,7 @@ It forbids them explicitly so that clients can drop their legacy handling.
 ## Current status
 
 The document's status is `Last Call`, with a deadline given as 2024-03-26, and it was created on 2023-09-19.
-The deadline has passed, but as of 2026-11-11 the document's status was still `Last Call`.
+The deadline has passed, but as of 2026-11-18 the document's status was still `Last Call`.
 
 ## Not yet shipped
 

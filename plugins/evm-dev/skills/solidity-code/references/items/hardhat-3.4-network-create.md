@@ -1,7 +1,7 @@
 ---
 tool: hardhat
 since: 3.4.0
-checked: 2026-11-16
+checked: 2026-11-18
 source: Hardhat changelog, 3.4.0 and 3.7.0, and the Hardhat network manager reference
 detect: network\.connect\(
 files: *.ts *.js *.mjs *.cjs *.mts *.cts

@@ -2,7 +2,8 @@
 # pays for each transaction, how the indexer survives reorganizations and rebuilds, Sepolia rather
 # than a retired testnet, and no service that had shut down when the case was written (OpenZeppelin
 # Defender retired on 1 July 2026, The Graph's hosted service in June 2024, NFT.Storage Classic and
-# Storacha uploads, and serving only through the rate-limited public IPFS gateways).
+# Storacha uploads, Gelato's relay services on 1 September 2026, and serving only through the
+# rate-limited public IPFS gateways).
 schema_version: "1.1"
 name: nft-marketplace-architecture
 plugins: ["../.."]
@@ -46,6 +47,6 @@ graders:
     type: llm
     focus: {source: file, path: docs/design/marketplace-architecture.md}
     criteria: |
-      FAIL if the design chooses any of these to build on: OpenZeppelin Defender in any form (Relayers, Actions or Autotasks, Sentinels, Monitors), The Graph's hosted service, NFT.Storage Classic, web3.storage, Storacha uploads, or serving the artwork to users only through the public gateways ipfs.io or dweb.link. All of them had shut down or been restricted before this case was written.
+      FAIL if the design chooses any of these to build on: OpenZeppelin Defender in any form (Relayers, Actions or Autotasks, Sentinels, Monitors), Gelato Relay or Gelato Web3 Functions, The Graph's hosted service, NFT.Storage Classic, web3.storage, Storacha uploads, or serving the artwork to users only through the public gateways ipfs.io or dweb.link. All of them had shut down or been restricted before this case was written.
       Mentioning one of them as retired, deprecated, or rejected is not a failure, and The Graph Network, Subgraph Studio, a self-hosted OpenZeppelin Relayer or Monitor, or a paid pinning service is not a failure.
       PASS otherwise. FAIL if the file is missing or empty.

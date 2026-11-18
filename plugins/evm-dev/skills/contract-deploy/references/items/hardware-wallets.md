@@ -1,7 +1,7 @@
 ---
 topic: keys
 subject: Signing deployments with a Ledger or Trezor in Foundry and Hardhat 3
-checked: 2026-11-17
+checked: 2026-11-18
 source: Foundry, forge script reference and key management best practices; forge 1.5.1 help output; Foundry ZKsync book, using a Ledger device; Hardhat, hardhat-ledger plugin and Ignition guide to deploying with a Ledger; Ledger Academy, blind signing
 ---
 

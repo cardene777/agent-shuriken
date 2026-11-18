@@ -1,6 +1,6 @@
 ---
 status: live
-checked: 2026-11-11
+checked: 2026-11-18
 source: ethereum/EIPs: the EIP-7951 and EIP-7607 (the Fusaka meta EIP) documents
 can: Contracts can cheaply verify P-256 (secp256r1) signatures, such as passkey, WebAuthn, Secure Enclave, and Android Keystore signatures, with P256VERIFY at 0x100.
 ---
@@ -15,8 +15,8 @@ Signatures made by Apple's Secure Enclave, Android's Keystore, and FIDO2 and Web
 | Interface | `P256VERIFY` at `0x100` |
 | Gas | 6900 |
 | Input | 160 bytes |
-| Relation to the earlier proposal | It replaces RIP-7212, which is deployed on several L2s. The interface is the same, and bytecode that works with RIP-7212 works unchanged |
-| What it fixes | It fixes two weaknesses that RIP-7212 had. One is that RIP-7212 did not check whether the recovered point was the point at infinity |
+| Relation to the earlier proposal | It replaces RIP-7212, which is deployed on several L2s. The address and the input are the same, and bytecode that works with RIP-7212 works unchanged. Only the gas differs: RIP-7212 charges 3450 |
+| What it fixes | It fixes two weaknesses that RIP-7212 had: it did not check whether the recovered point was the point at infinity, and it compared `r' == r` instead of comparing modulo the curve order `n` |
 
 ## Current status
 

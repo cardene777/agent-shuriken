@@ -1,7 +1,7 @@
 ---
 topic: layout
 subject: Getting the storage layout from Foundry and Hardhat, and the rules an upgrade must keep
-checked: 2026-11-17
+checked: 2026-11-18
 source: Solidity documentation, Layout of State Variables in Storage and the storageLayout output; Foundry, forge build and forge inspect reference; Hardhat, solidity settings reference; OpenZeppelin, Writing Upgradeable Contracts; forge 1.5.1 and solc 0.8.30 run on a throwaway project
 ---
 
@@ -14,7 +14,7 @@ Ways to get it:
 - Foundry, one contract: `forge inspect <Contract> storageLayout --json`
 - Foundry, every artifact: `forge build --extra-output storageLayout`, or `extra_output = ["storageLayout"]` in `foundry.toml`; each `out/<File>.sol/<Contract>.json` then holds `storageLayout`
 - Foundry, another version: build it into its own folder with `forge build --root <folder> --out <folder>/out`, so the project's own `out/` stays as it is
-- Hardhat: add `storageLayout` to `outputSelection` in the solidity settings; the layout lands in the build-info under `artifacts/build-info/`, not in the artifacts, so take the contract's `storageLayout` object from there with `jq` and save it as a file
+- Hardhat: add `storageLayout` to `outputSelection` in the solidity settings; the layout lands in the build-info under `artifacts/build-info/` (the `<id>.output.json` file in Hardhat 3), not in the artifacts, so take the contract's `storageLayout` object from there with `jq` and save it as a file
 
 Rules an upgrade keeps:
 

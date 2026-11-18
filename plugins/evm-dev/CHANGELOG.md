@@ -10,6 +10,15 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - `evm-standards` finds standards by what they let contracts, wallets, and dApps do with `evm-standards.sh find`, from a new `can` field on every item and the maintainer's bitsumi articles
 - `evm-standards` gives the title and link of the maintainer's bitsumi article on each standard it names with `evm-standards.sh article`. It reads the article index https://cardene.dev/llms.txt with a plain request that carries no word of the question, and keeps it in `~/.local/share/evm-dev/` for one day
 
+### Changed
+
+- `verify` of `contract-design`, `wallet-design`, `multichain-design`, `dapp-architecture`, and `financial-standards` also names each decision ID, such as D9, that a design cites but no row of its Open decisions table defines
+- The checklists of the five design skills check more: the EIP-7825 cap of 16,777,216 gas per transaction and a role granted without the delay the design relies on (`contract-design`), the ERC-7562 limits at account creation and the function each party calls during recovery (`wallet-design`), what a manual-execution gas override reaches and the refill of a token-bucket rate limit (`multichain-design`), a role that can revoke without the timelock and so grant without it, and a pause key that can do more than pause (`dapp-architecture`, and the pauser in `contract-design`), and a terminal state moved back after it closed (`financial-standards`)
+
+### Fixed
+
+- Every item of the ten evm-dev skills was compared with its primary source and is dated 2026-11-18. Among the facts corrected: the execution delay of OpenZeppelin's `AccessManager` belongs to each member of a role; the KelpDAO attacker unlocked rsETH on Ethereum rather than minting it; CCIP pools from v1.6.1 on set limits in the local chain's decimals; the CBPR+ changes moved out of SR2026 to a later release; Ponder has reached 0.18.9; Gelato's relay services shut down on 1 September 2026; ERC-7683 now covers only how solvers read a protocol's orders; Foundry has used the `osaka` EVM version by default since 1.7.0 and refuses `--resume` after a reverted transaction since 1.9.0; and the gas floor of EIP-7623 includes the 21,000 base cost. Items now also say that Ponder's `reorgWindow` counts at most 600 seconds, so finality comes from the RPC's `finalized` block; that Safe's `Safe4337Module` 0.3.0 supports only EntryPoint v0.7; that a CCIP 2.0 pool refills to the new capacity whenever its rate limit changes; that CreateX does not reject a salt naming another address but deploys elsewhere; and that contracts behind a proxy use the `contracts-upgradeable` variants
+
 ## [0.4.0] - 2026-11-17
 
 ### Added

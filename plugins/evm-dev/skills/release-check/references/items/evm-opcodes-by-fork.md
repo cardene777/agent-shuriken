@@ -1,8 +1,8 @@
 ---
 topic: evm
 subject: Opcodes added by each EVM version, and the version solc and Foundry compile for by default
-checked: 2026-11-17
-source: Ethereum execution specifications (the opcode lists per fork); Solidity documentation, Using the compiler (Target options) and the 0.8.30 and 0.8.31 release notes; forge 1.5.1 and solc 0.8.30 run on a throwaway project
+checked: 2026-11-18
+source: Ethereum execution specifications (the opcode lists per fork); EIP-7773 and EIP-7843; Solidity documentation, Using the compiler (Target options) and the 0.8.30, 0.8.31, 0.8.36, and 0.8.37 release notes; Foundry, 1.7.0 release notes and the default evm_version change; Hardhat 3.22.0, default EVM targets table; forge 1.5.1 and solc 0.8.30 run on a throwaway project
 ---
 
 # Code compiled for a newer EVM version may use opcodes an older chain rejects
@@ -19,12 +19,12 @@ solc emits opcodes for the EVM version it targets, also where the source never n
 | `cancun` | `TLOAD` (0x5c), `TSTORE` (0x5d), `MCOPY` (0x5e), `BLOBHASH` (0x49), `BLOBBASEFEE` (0x4a) |
 | `osaka` | `CLZ` (0x1e) |
 
-The versions in order: `homestead`, `tangerineWhistle`, `spuriousDragon`, `byzantium`, `constantinople`, `petersburg`, `istanbul`, `berlin`, `london`, `paris`, `shanghai`, `cancun`, `prague`, `osaka`. `prague` added no opcode.
+The versions in order: `homestead`, `tangerineWhistle`, `spuriousDragon`, `byzantium`, `constantinople`, `petersburg`, `istanbul`, `berlin`, `london`, `paris`, `shanghai`, `cancun`, `prague`, `osaka`. `prague` added no opcode. solc 0.8.36 and later also accept `amsterdam` (the Glamsterdam fork), which Ethereum mainnet has not activated as of 2026-11-18; `block.slotnum` compiles to `SLOTNUM` (0x4b), which needs it.
 
 Defaults when the project sets no `evm_version`:
 
 - solc 0.8.30 targets `prague`; solc 0.8.31 and later target `osaka`
-- forge 1.5.1 passes `prague` to solc
+- Foundry 1.7.0 and later pass `osaka` to solc; forge 1.5.1 passed `prague`
 - Hardhat uses `osaka` for solc 0.8.31 and later
 
 For a release:

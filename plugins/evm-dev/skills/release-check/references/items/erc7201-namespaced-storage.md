@@ -1,7 +1,7 @@
 ---
 topic: layout
 subject: ERC-7201 namespaced storage, which solc's layout output leaves out
-checked: 2026-11-17
+checked: 2026-11-18
 source: ERC-7201, Namespaced Storage Layout; OpenZeppelin Contracts 5.x documentation, Upgradeable contracts; forge 1.5.1 and solc 0.8.30 run on a throwaway project
 ---
 

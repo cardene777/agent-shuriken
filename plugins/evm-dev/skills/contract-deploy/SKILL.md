@@ -45,9 +45,9 @@ The user runs the command that broadcasts, in their own terminal, and types any 
 
 Run `record` with the project root and `--write` once the user says the broadcast finished.
 It writes `deployments/<chain id>.json` and names each `failed`, `pending`, or `mismatch` transaction.
-For each one, look it up with `cast receipt <hash> --rpc-url <chain>`, and resume with `forge script --resume` or by rerunning the Ignition deploy; never call a deployment done while one is left.
+For each one, look it up with `cast receipt <hash> --rpc-url <chain>`, and resume with `forge script --resume` or by rerunning the Ignition deploy; after a reverted one, Foundry 1.9 needs `--broadcast --start-fresh`, Ignition `ignition wipe` first. Never call a deployment done while one is left.
 Check that each recorded address has code with `cast code` and the chain's RPC.
-Verification publishes the source code, so ask the user first; then verify with `forge verify-contract` (Sourcify by default; `--verifier etherscan` when the user wants Etherscan) or with `ignition verify` and the deployment id in Hardhat.
+Verification publishes the source code, so ask the user first; then verify with `forge verify-contract` (Sourcify when no Etherscan key is set; `--verifier etherscan` when the user wants Etherscan, which since Foundry 1.8 also goes to Sourcify) or with `ignition verify` and the deployment id in Hardhat.
 Report each contract's chain, address, and verification result.
 
 ## Rules

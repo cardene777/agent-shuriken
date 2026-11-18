@@ -1,13 +1,13 @@
 ---
 topic: transactions
 subject: OpenZeppelin Defender and OpenZeppelin Relayer
-checked: 2026-11-17
-source: OpenZeppelin, Doubling Down on Open Source and Phasing Out Defender, and the Defender sunset FAQ
+checked: 2026-11-18
+source: OpenZeppelin, Doubling Down on Open Source and Phasing Out Defender, the Defender sunset FAQ, and the openzeppelin-relayer repository
 ---
 
 # OpenZeppelin Defender was retired on 1 July 2026
 
-OpenZeppelin retired the hosted Defender service on 1 July 2026. Its Relayer and Monitor continue as open-source tools that the team hosts itself, shipped as Docker images and released under the AGPL v3.
+OpenZeppelin retired the hosted Defender service on 1 July 2026. Its Relayer and Monitor continue as open-source tools that the team hosts itself, shipped as Docker images and released under the AGPL v3; OpenZeppelin also takes requests for a hosted setup.
 
 For a design:
 

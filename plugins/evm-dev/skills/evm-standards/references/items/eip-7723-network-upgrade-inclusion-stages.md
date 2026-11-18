@@ -1,6 +1,6 @@
 ---
 status: specified
-checked: 2026-11-11
+checked: 2026-11-18
 source: ethereum/EIPs: the EIP-7723, EIP-7773 (the Glamsterdam meta EIP), and EIP-8081 (the Hegotá meta EIP) documents
 can: It tells which stage an EIP has reached on its way into a network upgrade.
 ---
@@ -21,7 +21,7 @@ Each upgrade's meta EIP lists EIPs under these stage names.
 ## Current status
 
 The document's status is `Last Call`, with a deadline given as 2025-04-01, and it was created on 2024-06-12.
-The deadline has passed, but as of 2026-11-11 the document's status was still `Last Call`.
+The deadline has passed, but as of 2026-11-18 the document's status was still `Last Call`.
 The Glamsterdam meta EIP (EIP-7773) and the Hegotá meta EIP (EIP-8081) list EIPs by referring to these stage definitions.
 
 ## Not yet shipped
