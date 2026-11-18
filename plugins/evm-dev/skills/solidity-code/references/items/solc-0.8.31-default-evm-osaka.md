@@ -1,7 +1,7 @@
 ---
 tool: solc
 since: 0.8.31
-checked: 2026-11-16
+checked: 2026-11-18
 source: Solidity changelog, 0.8.30 and 0.8.31
 ---
 

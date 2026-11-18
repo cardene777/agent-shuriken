@@ -1,7 +1,7 @@
 ---
-status: specified
-checked: 2026-11-11
-source: ethereum/ERCs: the ERC-4906 document
+status: live
+checked: 2026-11-18
+source: ethereum/ERCs: the ERC-4906 document; OpenZeppelin/openzeppelin-contracts: the source of `ERC721URIStorage`; OpenSea: the developer documentation page `Updating metadata`
 can: Contracts can emit an event when the metadata of an ERC-721 token changes, so marketplaces and indexers can refresh it.
 ---
 
@@ -22,7 +22,11 @@ Outside interfaces such as marketplaces can then re-read the metadata of many NF
 
 The document's status is `Final`, and it was created on 2022-03-13.
 
+It is in use: OpenZeppelin's `ERC721URIStorage` emits `MetadataUpdate` from `_setTokenURI` and returns `true` for `0x49064906`.
+OpenSea's developer documentation tells ERC-721 collections to use the ERC-4906 events for one token or a range of tokens, so that OpenSea can refresh the affected items.
+Both were checked on 2026-11-18.
+
 ## Not yet shipped
 
 Nothing remains open within the standard.
-Which marketplaces read this event has not been checked.
+Which marketplaces other than OpenSea read this event has not been checked.

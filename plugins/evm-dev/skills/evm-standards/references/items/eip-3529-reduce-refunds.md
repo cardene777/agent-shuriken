@@ -1,7 +1,7 @@
 ---
 status: live
-checked: 2026-11-11
-source: ethereum/EIPs: the EIP-3529 document and EIP-8081 (the Hegotá meta EIP); ethereum/execution-specs: the London specification
+checked: 2026-11-18
+source: ethereum/EIPs: the EIP-3529, EIP-8038, EIP-7773 (the Glamsterdam meta EIP), and EIP-8081 (the Hegotá meta EIP) documents; ethereum/execution-specs: the London specification; the Ethereum Foundation blog: the Glamsterdam posts of 2026-10-22 and 2026-11-06
 can: Transactions get no gas refund for SELFDESTRUCT and a smaller refund for clearing storage with SSTORE.
 ---
 
@@ -25,4 +25,6 @@ It is included in the London specification in execution-specs and went live on m
 ## Not yet shipped
 
 Nothing in the standard remains.
+EIP-8038 (status `Last Call`), listed under `Scheduled for Inclusion` in the Glamsterdam meta EIP (EIP-7773), renames the clearing refund `STORAGE_CLEAR_REFUND` and raises it from 4,800 to 11,616, keeping the one-fifth cap.
+Glamsterdam has no mainnet date, and the Ethereum Foundation blog (2026-11-06) says EIP-8037 and EIP-8038 may be revised because deployed contracts depend on invariants they break.
 EIP-3298, which removes the refund for clearing values and the refund cap, is listed under `Considered for Inclusion` in the Hegotá meta EIP (EIP-8081).

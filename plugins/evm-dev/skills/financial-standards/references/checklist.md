@@ -6,7 +6,7 @@ Go through this list after `verify` passes. A design that fails any rule in the 
 
 | Rule | What fails it |
 |---|---|
-| Nothing private on chain | The original message, names, addresses, account numbers or card numbers, the purpose of a payment, or free-text remittance information is stored in contract state or in events |
+| Nothing private on chain | The original message, names, addresses, account numbers or card numbers, the purpose of a payment, or free-text remittance information is stored in contract state or in events; or a state the request keeps off chain, such as an unpaid or withdrawn invoice, is put on chain where other participants can read it |
 | Commitments, not bare hashes | Confidentiality is claimed from a hash of the payload alone, without a random salt, a domain that separates its uses, and a stated way for an authorized party to recompute it |
 | Public data stays public | Data on a public chain is called private because the API needs a login |
 | The contract does not parse XML | The contract parses XML, validates against a schema or a profile, or correlates messages, instead of accepting signed evidence produced off-chain |
@@ -14,6 +14,7 @@ Go through this list after `verify` passes. A design that fails any rule in the 
 | Reports are not settlement | A status report, a statement, or a notification is treated as settlement or as the direct cause of a state change; it is not settlement finality |
 | The ledger is not the law | On-chain state is presented as the legal finality of a bank, a clearing house, a central securities depository, or a regulator |
 | Someone is allowed, and can be revoked | Anyone can change state, or permissions and their revocation are not defined |
+| Terminal states stay closed | A case in a terminal state, such as cancelled or settled, can be moved back by any participant, or a later correction, cancellation request, or return that the standard allows changes it, instead of being recorded as a new case or event that refers to it |
 | Corrections append | Corrections, cancellations, expiry, or retention are handled by overwriting or deleting records instead of appending new ones that refer to the old |
 | The version and profile are fixed | The standard's version and profile, and the messages or data model used, are not pinned |
 | Off-chain responsibilities are separated | Keeping the original, managing personal data and keys, validation, correlation, signing, and audit disclosure have no owner or no defined boundary between them |

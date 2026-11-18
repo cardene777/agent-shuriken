@@ -1,7 +1,7 @@
 ---
 tool: openzeppelin
 since: 5.5.0
-checked: 2026-11-16
+checked: 2026-11-18
 source: OpenZeppelin Contracts changelog, 5.5.0, and the published contracts-upgradeable 5.5.0 package
 detect: contracts-upgradeable/(utils/ReentrancyGuard(Transient)?Upgradeable|token/ERC721/utils/ERC721HolderUpgradeable|token/ERC1155/utils/ERC1155HolderUpgradeable|proxy/utils/(Initializable|UUPSUpgradeable))\.sol
 ---

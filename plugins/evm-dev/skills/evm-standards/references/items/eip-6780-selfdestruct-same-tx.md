@@ -1,7 +1,7 @@
 ---
 status: live
-checked: 2026-11-11
-source: ethereum/EIPs: the EIP-6780 and EIP-6049 documents, plus EIP-7569 (the Dencun meta EIP) and EIP-7773 (the Glamsterdam meta EIP)
+checked: 2026-11-18
+source: ethereum/EIPs: the EIP-6780, EIP-6049, and EIP-8246 documents, plus EIP-7569 (the Dencun meta EIP) and EIP-7773 (the Glamsterdam meta EIP); the Ethereum Foundation blog: the Glamsterdam post of 2026-10-22
 can: SELFDESTRUCT only sends the account's ETH to the target, unless it runs in the same transaction that created the contract.
 ---
 
@@ -13,7 +13,7 @@ Only when it is called in the same transaction that created the contract does it
 | Point | What the document says |
 |---|---|
 | Normal case | Only sends ETH to the target, and does not delete the code or the storage |
-| Created in the same transaction | Deletes the contract as before |
+| Created in the same transaction | Deletes the contract as before. If the target is the contract itself, its ETH is burned |
 | Required EIPs | EIP-2681, EIP-2929, EIP-3529 |
 
 ## Current status
@@ -25,5 +25,6 @@ EIP-6049 (status `Final`), which went into Shanghai, only gave advance notice th
 
 ## Not yet shipped
 
-The Glamsterdam meta EIP (EIP-7773) lists EIP-8246 (titled `Remove SELFDESTRUCT Burn`) under `Scheduled for Inclusion`.
-The contents of EIP-8246 have not been checked.
+The Glamsterdam meta EIP (EIP-7773) lists EIP-8246 (`Remove SELFDESTRUCT Burn`, status `Last Call`) under `Scheduled for Inclusion`.
+It keeps the balance of a contract that self-destructs in its creation transaction, clearing only its code, storage, and nonce, so no ETH is burned.
+Glamsterdam has no mainnet date (Ethereum Foundation blog, 2026-10-22).

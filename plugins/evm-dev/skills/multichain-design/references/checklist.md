@@ -13,8 +13,9 @@ Go through this list after `verify` passes. A design that fails any rule in the 
 | One canonical token | Users can end up with two tokens for the same asset on one chain, for example a wrapped USDC next to native USDC, without the design choosing the canonical one |
 | Finality is respected | The destination acts on a message before the source chain's finality, without saying how a reorg of the source chain is handled |
 | No single verifier | A message is accepted on the word of a single verifier, instead of several independent verifiers or the canonical bridge of a rollup |
-| Rate limits hold | No rate limit caps how much can move per window in each direction, so one forged message can drain everything |
+| Rate limits hold | No rate limit caps how much can move in each direction, so one forged message can drain everything, or the design counts a token-bucket limit as one window's cap without adding the refill |
 | Failures can be recovered | The design does not say what happens when a message is sent but not delivered, or delivered but fails: no retry, no manual execution, and no refund for stuck messages |
+| Manual execution reaches the failed call | The fix for a message that ran out of gas raises a gas override that does not reach the call that failed: CCIP's `gasLimitOverride` covers only the receiver's `ccipReceive`, so a token pool's mint or release needs the token gas overrides of a v1.5 or v1.6 OffRamp, or on v2.0 a higher gas limit for the whole transaction |
 | Pauses are per chain | A pause on one chain leaves the other chains minting or releasing, or nobody can pause a chain without a timelock |
 | Admin keys are not shared | One key holds the bridge admin or rate limit admin role on every chain, or a role on any chain is held by a single externally owned account |
 | Decimals match | A token has different decimals on two chains and amounts or rate limits are not converted |

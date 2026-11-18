@@ -1,6 +1,6 @@
 ---
 status: specified
-checked: 2026-11-10
+checked: 2026-11-18
 source: ethereum/ERCs: the ERC-7512 document
 can: Contracts can read audit reports that are stored on chain.
 ---

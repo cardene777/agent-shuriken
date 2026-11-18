@@ -1,6 +1,6 @@
 ---
 status: specified
-checked: 2026-11-11
+checked: 2026-11-18
 source: ethereum/EIPs: the EIP-4444 document; the Ethereum Foundation blog: the partial history expiry announcement (2025-07-08)
 can: Execution clients can stop serving old block data to the network, so old blocks and receipts may have to come from another source.
 ---
@@ -19,7 +19,7 @@ A standard that lets execution clients stop serving old data to the network.
 ## Current status
 
 The document's status is `Draft`, and it was created on 2021-11-02.
-The document was read and checked on 2026-11-11.
+The document was read and checked on 2026-11-18.
 
 On 2025-07-08, the Ethereum Foundation blog announced that every execution client can now delete pre-Merge blocks.
 Only mainnet and Sepolia, which have a pre-Merge range, can delete them.

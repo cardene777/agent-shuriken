@@ -1,7 +1,7 @@
 ---
 topic: keys
 subject: Foundry encrypted keystores (cast wallet import and --account)
-checked: 2026-11-17
+checked: 2026-11-18
 source: Foundry, key management best practices and the forge script and cast wallet import references; forge 1.5.1 help output
 ---
 

@@ -1,13 +1,13 @@
 ---
 topic: oracles
 subject: Chainlink Data Feeds
-checked: 2026-11-17
+checked: 2026-11-18
 source: Chainlink, Deprecation of Chainlink Data Feeds and the developer changelog (feeds scheduled for deprecation)
 ---
 
 # Chainlink deprecates feeds with little use, in batches through 2026
 
-Chainlink schedules Data Feeds for deprecation when they have low or no usage or no path to economic sustainability, and announces them in batches in its changelog; batches in 2026 had shutdown dates from March to November 2026. Monitoring of a feed stops two weeks before its deprecation date, after which its answer can stop updating.
+Chainlink schedules Data Feeds for deprecation when they have low or no usage or no path to economic sustainability, and announces them in batches in its changelog. The batches announced in 2026 that named a date had shutdown dates from March to November 2026, five to fourteen days after the announcement, and Data Feeds support ended on whole networks, Fantom on 12 January and Ronin on 16 February 2026. Chainlink stops monitoring the data quality of a feed two weeks before its deprecation date, after which its answer can stop updating.
 
 For a design:
 

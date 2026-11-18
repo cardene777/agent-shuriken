@@ -1,8 +1,8 @@
 ---
 standard: cdm
 version: 7.10.0
-checked: 2026-11-16
-source: FINOS, Common Domain Model releases and the CDM 7 production release notes
+checked: 2026-11-18
+source: FINOS, Common Domain Model releases on GitHub and the CDM 7.0.0 production release notes
 ---
 
 # The CDM 7 line is in production; 8.0.0 is in development

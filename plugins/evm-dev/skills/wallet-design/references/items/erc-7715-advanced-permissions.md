@@ -1,7 +1,7 @@
 ---
 topic: signatures
 subject: MetaMask Advanced Permissions (ERC-7715) and the Smart Accounts Kit
-checked: 2026-11-17
+checked: 2026-11-18
 source: MetaMask, Smart Accounts Kit documentation (Advanced Permissions concepts and the Wallet Client actions reference)
 ---
 

@@ -1,7 +1,7 @@
 ---
 topic: randomness
 subject: Chainlink VRF
-checked: 2026-11-17
+checked: 2026-11-18
 source: Chainlink, Migrating from VRF v2 (VRF v2.5 documentation)
 ---
 

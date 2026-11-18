@@ -14,6 +14,8 @@ Go through this list after `verify` passes. A design that fails any rule in the 
 | Permissions are bounded | A session key or a permission granted by a signature can call any contract or function, has no amount limit, or has no expiry |
 | Approvals are bounded | An approval or a Permit2 allowance is unlimited, or has no expiration, where the action needs a known amount |
 | Users can revoke | Users cannot see or revoke the approvals, allowances, session keys, and permissions they granted |
+| Accounts can be created | Validating the first UserOperation needs a second CREATE2 deployment besides the account, such as a passkey signer, or touches the account's entries in other contracts' storage without a staked factory; at account creation ERC-7562 allows CREATE2 only once, to deploy the account, and that storage only with a staked factory |
+| Recovery calls are right | The recovery steps do not name the function each party calls, such as who confirms and who executes once the delay has passed, or the names were not checked against the source code of the recovery module |
 | The EntryPoint is pinned | A smart account design does not name its EntryPoint version, or relies on an EntryPoint version that the chosen bundler or paymaster does not support |
 | Delegation cannot be hijacked | An EIP-7702 delegate can be initialized by anyone who sees the authorization, instead of only with the account's signature or through the EntryPoint |
 | Old delegations leave no traps | Moving an EIP-7702 account to a new delegate ignores the storage the previous delegate wrote, or the design uses `tx.origin` to tell accounts from contracts |

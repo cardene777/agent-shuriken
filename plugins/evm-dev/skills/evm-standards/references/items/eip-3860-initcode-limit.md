@@ -1,7 +1,7 @@
 ---
 status: live
-checked: 2026-11-11
-source: ethereum/EIPs: the EIP-3860 document, EIP-7568 (the meta EIP covering upgrades up to Shapella), and EIP-7773 (the Glamsterdam meta EIP); ethereum/execution-specs: the Shanghai specification
+checked: 2026-11-18
+source: ethereum/EIPs: the EIP-3860 and EIP-7954 documents, EIP-7568 (the meta EIP covering upgrades up to Shapella), and EIP-7773 (the Glamsterdam meta EIP); ethereum/execution-specs: the Shanghai specification; the Ethereum Foundation blog: the Glamsterdam posts of 2026-09-17 and 2026-10-22
 can: Contract creation code (initcode) is limited in size and charged gas according to its size.
 ---
 
@@ -26,4 +26,5 @@ The timestamp is 1681338455, which falls on 2023-04-12.
 ## Not yet shipped
 
 Nothing in the standard remains.
-EIP-7954, which raises the contract size limit, is listed under `Scheduled for Inclusion` in the Glamsterdam meta EIP (EIP-7773).
+EIP-7954 (status `Last Call`), listed under `Scheduled for Inclusion` in the Glamsterdam meta EIP (EIP-7773), raises the contract code limit from 24,576 to 65,536 bytes and this initcode limit from 49,152 to 131,072 bytes.
+Glamsterdam activated on Sepolia on 2026-10-06; its Hoodi activation was postponed (2026-10-22), and no mainnet date is set, so mainnet still uses 49,152 bytes.

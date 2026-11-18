@@ -1,8 +1,8 @@
 ---
 tool: openzeppelin
 since: 5.7.0
-checked: 2026-11-16
-source: OpenZeppelin Contracts changelog, 5.7.0, and the npm registry
+checked: 2026-11-18
+source: OpenZeppelin Contracts changelog, 5.7.0, the npm registry, and the forge install source in the Foundry repository
 detect: draft-I?ERC4337
 ---
 
@@ -19,4 +19,4 @@ import {ERC4337Utils} from "@openzeppelin/contracts/account/utils/ERC4337Utils.s
 ```
 
 Before 5.7.0 the `draft-` paths are the right ones, so read the installed version first.
-On npm, the `latest` tag of both OpenZeppelin packages still installs 5.6.1, and 5.7.0 is under the `dev` tag, so a fresh `npm install` gets 5.6.1 while `forge install` of the latest release gets 5.7.0.
+On npm, the `latest` tag of both OpenZeppelin packages still installs 5.6.1, and 5.7.0 is under the `dev` tag, so a fresh `npm install` gets 5.6.1 while `forge install` without a tag checks out the latest release tag, 5.7.0.

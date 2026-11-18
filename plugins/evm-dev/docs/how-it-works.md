@@ -283,9 +283,9 @@ When that skill is not installed, the agent checks those services against their 
 |---|---|
 | `check` | Checks that every item has its four fields, a known topic, and a real date. It names each item that does not and exits 1 |
 | `list` | Prints one line per item: `ok` or `stale`, the topic, the date it was checked, its name, and its subject, then a count |
-| `verify <file>` | Checks that a design has the nine sections of the template in order, each with text and no `Fill in:` line left, and a date in Contracts. It names each section that does not and exits 1 |
+| `verify <file>` | Checks that a design has the nine sections of the template in order, each with text and no `Fill in:` line left, and a date in Contracts. It names each section that does not, and each decision ID, such as D9, that the design cites but no row of its Open decisions table defines, and exits 1 |
 
-`verify` reads only the design file it is given, and prints section names and what is wrong with them, never the design's text.
+`verify` reads only the design file it is given, and prints section names, decision IDs, and what is wrong with them, never the design's text.
 
 ## How the agent designs contracts
 
@@ -321,9 +321,9 @@ Relayers and monitoring services are dated in the dApp service items, so `wallet
 |---|---|
 | `check` | Checks that every item has its four fields, a known topic, and a real date. It names each item that does not and exits 1 |
 | `list` | Prints one line per item: `ok` or `stale`, the topic, the date it was checked, its name, and its subject, then a count |
-| `verify <file>` | Checks that a design has the nine sections of the template in order, each with text and no `Fill in:` line left, and a date in Accounts. It names each section that does not and exits 1 |
+| `verify <file>` | Checks that a design has the nine sections of the template in order, each with text and no `Fill in:` line left, and a date in Accounts. It names each section that does not, and each decision ID, such as D9, that the design cites but no row of its Open decisions table defines, and exits 1 |
 
-`verify` reads only the design file it is given, and prints section names and what is wrong with them, never the design's text.
+`verify` reads only the design file it is given, and prints section names, decision IDs, and what is wrong with them, never the design's text.
 
 ## How the agent designs wallets
 
@@ -359,9 +359,9 @@ Relayers and monitoring services are dated in the dApp service items, so `multic
 |---|---|
 | `check` | Checks that every item has its four fields, a known topic, and a real date. It names each item that does not and exits 1 |
 | `list` | Prints one line per item: `ok` or `stale`, the topic, the date it was checked, its name, and its subject, then a count |
-| `verify <file>` | Checks that a design has the nine sections of the template in order, each with text and no `Fill in:` line left, and a date in Messages and verification. It names each section that does not and exits 1 |
+| `verify <file>` | Checks that a design has the nine sections of the template in order, each with text and no `Fill in:` line left, and a date in Messages and verification. It names each section that does not, and each decision ID, such as D9, that the design cites but no row of its Open decisions table defines, and exits 1 |
 
-`verify` reads only the design file it is given, and prints section names and what is wrong with them, never the design's text.
+`verify` reads only the design file it is given, and prints section names, decision IDs, and what is wrong with them, never the design's text.
 
 ## How the agent designs across chains
 
@@ -396,9 +396,9 @@ A service item counts as out of date 90 days after it was checked, since hosted 
 |---|---|
 | `check` | Checks that every item has its four fields, a known topic, and a real date. It names each item that does not and exits 1 |
 | `list` | Prints one line per item: `ok` or `stale`, the topic, the date it was checked, its name, and its subject, then a count |
-| `verify <file>` | Checks that a design has the nine sections of the template in order, each with text and no `Fill in:` line left, and a date in Components. It names each section that does not and exits 1 |
+| `verify <file>` | Checks that a design has the nine sections of the template in order, each with text and no `Fill in:` line left, and a date in Components. It names each section that does not, and each decision ID, such as D9, that the design cites but no row of its Open decisions table defines, and exits 1 |
 
-`verify` reads only the design file it is given, and prints section names and what is wrong with them, never the design's text.
+`verify` reads only the design file it is given, and prints section names, decision IDs, and what is wrong with them, never the design's text.
 
 ## How the agent plans an architecture
 
@@ -433,9 +433,9 @@ A standard item counts as out of date 180 days after it was checked, since these
 |---|---|
 | `check` | Checks that every item has its four fields, a known standard, and a real date. It names each item that does not and exits 1 |
 | `list` | Prints one line per item: `ok` or `stale`, the standard, the version, the date it was checked, and its name, then a count |
-| `verify <file>` | Checks that a design has the nine sections of the template in order, each with text and no `Fill in:` line left, and a date in Standard and business. It names each section that does not and exits 1 |
+| `verify <file>` | Checks that a design has the nine sections of the template in order, each with text and no `Fill in:` line left, and a date in Standard and business. It names each section that does not, and each decision ID, such as D9, that the design cites but no row of its Open decisions table defines, and exits 1 |
 
-`verify` reads only the design file it is given, and prints section names and what is wrong with them, never the design's text.
+`verify` reads only the design file it is given, and prints section names, decision IDs, and what is wrong with them, never the design's text.
 
 ## How the agent writes a design
 

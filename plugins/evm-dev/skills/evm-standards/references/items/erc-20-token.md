@@ -1,7 +1,7 @@
 ---
-status: specified
-checked: 2026-11-11
-source: ethereum/ERCs: the ERC-20 document; OpenZeppelin/openzeppelin-contracts: the changelog
+status: live
+checked: 2026-11-18
+source: ethereum/ERCs: the ERC-20 document; OpenZeppelin/openzeppelin-contracts: the changelog and `SafeERC20`; Ethereum mainnet: `totalSupply` calls to the WETH and USDC contracts
 can: Tokens can be transferred, hold balances, and give allowances to other addresses through one common interface.
 ---
 
@@ -15,11 +15,12 @@ A token standard that gives transfers, balances, and allowances for other addres
 | Changing it | Calling `approve` again overwrites the previous allowance with `_value` |
 | Front-running problem | The document cites the attack on overwriting an allowance through a link to an outside document. If the spender uses the previous allowance before the overwriting transaction, it can withdraw both the previous and the new amount |
 | What the document recommends | User interfaces SHOULD reset the allowance to `0` before setting a different value for the same spender |
-| Contracts | For compatibility with contracts deployed earlier, the contract side does not enforce resetting to `0` |
+| Contracts | For compatibility with contracts deployed earlier, the contract itself should not enforce resetting to `0` |
 
 ## Current status
 
 The document's status is `Final`, and it was created on 2015-11-19.
+It is in use on mainnet: the WETH and USDC contracts answered `totalSupply` on 2026-11-18.
 
 OpenZeppelin Contracts 5.0.0 (2023-10-05) removed `increaseAllowance` and `decreaseAllowance`, which are not in the standard, from `ERC20`.
 `safeIncreaseAllowance` and `safeDecreaseAllowance`, used to increase and decrease an allowance, remain in `SafeERC20`.

@@ -1,6 +1,6 @@
 ---
 status: specified
-checked: 2026-11-11
+checked: 2026-11-18
 source: ethereum/ERCs: the ERC-6900 document and its change history; alchemyplatform/modular-account: the README and the release notes
 can: Smart accounts can take add-on modules through common interfaces, so one module works with many accounts.
 ---
@@ -12,7 +12,7 @@ It lets any module be installed in any account that follows the standard.
 
 | Point | What the document says |
 |---|---|
-| What a module has | Execution functions, validation functions, and hooks that run before and after execution |
+| What a module has | Execution functions, validation functions, and hooks. Validation hooks run before a validation function, and execution hooks run before and after an execution function |
 | Module manifest | A module's `manifest` lists the execution functions, interface IDs, and hooks to install in the account |
 | Standards it relies on | Follows ERC-4337, and assumes ERC-165 and ERC-1271 |
 

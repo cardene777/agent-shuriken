@@ -172,6 +172,53 @@ verify_template() {
 }
 check "verify refuses the unfilled wallet-design template" verify_template
 
+# ids_design <file> <citing text> <ID>...: a complete design whose first section carries the citing
+# text and whose Open decisions section ends with a table that defines the given IDs.
+ids_design() {
+  local f="$1" cites="$2"
+  shift 2
+  design "$f"
+  python3 - "$f" "$cites" "$@" <<'PYEOF'
+import sys
+p, cites, ids = sys.argv[1], sys.argv[2], sys.argv[3:]
+text = open(p, encoding="utf-8").read().replace("SECRET_TEXT_MARKER", "SECRET_TEXT_MARKER " + cites, 1)
+rows = "".join("| %s | A decision. SECRET_TEXT_MARKER |\n" % i for i in ids)
+open(p, "w", encoding="utf-8").write(text.rstrip("\n") + "\n\n| ID | Decision |\n|---|---|\n" + rows)
+PYEOF
+}
+
+# A cited ID is undefined when no row of the Open decisions table starts with it, and A10 is not
+# A1. verify names each undefined ID once and never prints the design's text.
+verify_undefined_id() {
+  local f="$T/ids/undefined.md"
+  ids_design "$f" "Rests on A2, Q3, and A10." A1 A2 Q1
+  run verify "$f" > "$T/verify-undefined.out" 2>&1
+  [ $? -eq 1 ] || return 1
+  ! grep -q 'SECRET_TEXT_MARKER' "$T/verify-undefined.out" || return 1
+  grep -Eq '^undefined decision: Q3$' "$T/verify-undefined.out" \
+    && grep -Eq '^undefined decision: A10$' "$T/verify-undefined.out" \
+    && [ "$(grep -c '^undefined decision: ' "$T/verify-undefined.out")" -eq 2 ]
+}
+check "wallet-design verify names a cited Open decisions ID the table does not define" verify_undefined_id
+
+# An ID the table defines but the text never cites is fine, and standard names are not IDs.
+verify_uncited_id() {
+  local f="$T/ids/uncited.md"
+  ids_design "$f" "Rests on Q1. ERC-20, EIP-7825, SR2025, and step B3 apply." A1 A2 Q1
+  run verify "$f" > "$T/verify-uncited.out" 2>&1
+}
+check "wallet-design verify accepts an uncited Open decisions ID and standard names" verify_uncited_id
+
+checklist_erc7562() {
+  grep -F 'ERC-7562' "$CHECKLIST" | grep -qiE 'creat|deploy'
+}
+check "the wallet-design checklist checks the ERC-7562 limits on account creation" checklist_erc7562
+
+checklist_recovery_calls() {
+  grep -iE 'recovery' "$CHECKLIST" | grep -iE 'function' | grep -qiE 'source|code'
+}
+check "the wallet-design checklist checks each recovery call against the module" checklist_recovery_calls
+
 no_urls() {
   [ "$(find "$ITEMS" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')" -ge 5 ] || return 1
   ! grep -rIlE 'https?://|www\.' "$ITEMS" > /dev/null || return 1

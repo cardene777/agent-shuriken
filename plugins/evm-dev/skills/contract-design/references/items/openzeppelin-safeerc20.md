@@ -1,7 +1,7 @@
 ---
 topic: tokens
 subject: OpenZeppelin SafeERC20 and non-standard ERC-20 tokens
-checked: 2026-11-17
+checked: 2026-11-18
 source: OpenZeppelin, Contracts 5.x ERC-20 API reference (SafeERC20)
 ---
 

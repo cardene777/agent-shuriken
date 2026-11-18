@@ -172,6 +172,56 @@ verify_template() {
 }
 check "verify refuses the unfilled template" verify_template
 
+# ids_design <file> <citing text> <ID>...: a complete design whose first section carries the citing
+# text and whose Open decisions section ends with a table that defines the given IDs.
+ids_design() {
+  local f="$1" cites="$2"
+  shift 2
+  design "$f"
+  python3 - "$f" "$cites" "$@" <<'PYEOF'
+import sys
+p, cites, ids = sys.argv[1], sys.argv[2], sys.argv[3:]
+text = open(p, encoding="utf-8").read().replace("SECRET_TEXT_MARKER", "SECRET_TEXT_MARKER " + cites, 1)
+rows = "".join("| %s | A decision. SECRET_TEXT_MARKER |\n" % i for i in ids)
+open(p, "w", encoding="utf-8").write(text.rstrip("\n") + "\n\n| ID | Decision |\n|---|---|\n" + rows)
+PYEOF
+}
+
+# A cited ID is undefined when no row of the Open decisions table starts with it, and D10 is not
+# D1. verify names each undefined ID once and never prints the design's text.
+verify_undefined_id() {
+  local f="$T/ids/undefined.md"
+  ids_design "$f" "Rests on D2, D9, and D10." D1 D2
+  run verify "$f" > "$T/verify-undefined.out" 2>&1
+  [ $? -eq 1 ] || return 1
+  ! grep -q 'SECRET_TEXT_MARKER' "$T/verify-undefined.out" || return 1
+  grep -Eq '^undefined decision: D9$' "$T/verify-undefined.out" \
+    && grep -Eq '^undefined decision: D10$' "$T/verify-undefined.out" \
+    && [ "$(grep -c '^undefined decision: ' "$T/verify-undefined.out")" -eq 2 ]
+}
+check "financial-standards verify names a cited Open decisions ID the table does not define" verify_undefined_id
+
+# An ID the table defines but the text never cites is fine, and standard names are not IDs.
+verify_uncited_id() {
+  local f="$T/ids/uncited.md"
+  ids_design "$f" "Rests on D2. ERC-20, EIP-7825, SR2025, and step B3 apply." D1 D2
+  run verify "$f" > "$T/verify-uncited.out" 2>&1
+}
+check "financial-standards verify accepts an uncited Open decisions ID and standard names" verify_uncited_id
+
+cbpr_moved() {
+  local f="$ITEMS/iso-20022-cbpr-plus-release.md"
+  [ -f "$f" ] || return 1
+  ! grep -qiF 'until Swift sets the SR2026 date' "$f" || return 1
+  grep -qiF 'out of SR2026' "$f"
+}
+check "the financial-standards CBPR+ item says the changes moved out of SR2026" cbpr_moved
+
+checklist_terminal() {
+  grep -qiE 'terminal state' "$CHECKLIST"
+}
+check "the financial-standards checklist keeps terminal states closed" checklist_terminal
+
 no_urls() {
   [ "$(find "$ITEMS" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')" -ge 6 ] || return 1
   ! grep -rIlE 'https?://|www\.' "$ITEMS" > /dev/null || return 1

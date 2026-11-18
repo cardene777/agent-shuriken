@@ -1,7 +1,7 @@
 ---
 status: specified
-checked: 2026-11-09
-source: ethereum/EIPs: the EIP-7688 and EIP-7773 (the Glamsterdam meta EIP) documents
+checked: 2026-11-18
+source: ethereum/EIPs: the EIP-7688 and EIP-7773 (the Glamsterdam meta EIP) documents; the Ethereum Foundation blog: the Glamsterdam posts of 2026-09-17 and 2026-10-22
 can: Contracts and light clients can verify consensus data with proofs whose shape stays the same across forks.
 ---
 
@@ -26,4 +26,4 @@ Records from 2024 said it was unclear whether it would go into Pectra, but it di
 ## Not yet shipped
 
 It has not become `Final`.
-The mainnet activation date of Glamsterdam has not been checked.
+Glamsterdam activated on Sepolia at epoch 353024 (2026-10-06), its Hoodi activation was postponed on 2026-10-22, and no mainnet date is set.

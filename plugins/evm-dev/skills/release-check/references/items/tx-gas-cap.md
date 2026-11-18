@@ -1,7 +1,7 @@
 ---
 topic: evm
 subject: The per-transaction gas cap of EIP-7825 and the contract size limits
-checked: 2026-11-17
+checked: 2026-11-18
 source: EIP-7825, EIP-170, and EIP-3860; Ethereum Foundation, Fusaka mainnet announcement; Offchain Labs, ArbOS 51 Dia release notes; Optimism, Upgrade 19 (Karst) notice; Base, Azul network upgrade notes; Foundry, forge script reference
 ---
 

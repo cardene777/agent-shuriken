@@ -1,7 +1,7 @@
 ---
 tool: hardhat
 since: 3.0.0
-checked: 2026-11-16
+checked: 2026-11-18
 source: Hardhat migration guide from Hardhat 2
 detect: module\.exports|require\(\s*.(hardhat|@nomicfoundation)
 files: hardhat.config.*

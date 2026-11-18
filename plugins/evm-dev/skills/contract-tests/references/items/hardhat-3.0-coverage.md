@@ -1,7 +1,7 @@
 ---
 tool: hardhat
 since: 3.0.0
-checked: 2026-11-17
+checked: 2026-11-18
 source: Hardhat 3 documentation, the guide on computing code coverage, and the Hardhat 3.0.0 pre-release notes
 ---
 

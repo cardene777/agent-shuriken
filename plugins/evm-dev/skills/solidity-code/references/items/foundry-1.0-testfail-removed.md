@@ -1,7 +1,7 @@
 ---
 tool: foundry
 since: 1.0.0
-checked: 2026-11-16
+checked: 2026-11-18
 source: Foundry v1.0 migration guide and v1.0.0 release notes
 detect: function\s+testFail
 ---

@@ -17,10 +17,11 @@ Go through this list after `verify` passes. A design that fails any rule in the 
 | Calls cannot reenter | State is changed after an external call instead of following checks-effects-interactions, or a function that sends funds has no reentrancy guard where callbacks are possible |
 | Funds are pulled when pushing can fail | Paying many recipients in one call lets one failing recipient block the rest, instead of letting each pull their funds |
 | Tokens are handled safely | Outside tokens are moved without SafeERC20, or the design assumes the received amount equals the sent amount for a fee-on-transfer or rebasing token it accepts |
-| No single key controls everything | One externally owned account holds the owner, admin, or upgrader role on mainnet, ownership moves without a two-step transfer, or there is no pauser and no way to stop the contract in an emergency |
+| No single key controls everything | One externally owned account holds the owner, admin, or upgrader role on mainnet, ownership moves without a two-step transfer, or there is no pauser and no way to stop the contract in an emergency, or a pauser that needs fewer signatures than the admin can also cancel scheduled changes, so one leaked key can block every fix |
 | Changes are delayed | Parameter changes and upgrades take effect at once instead of through a timelock, except a pause |
+| Delays cannot be skipped | A role whose calls the design delays can be granted to someone with no delay, such as an `AccessManager` grant with an execution delay of 0, or an admin that can revoke a role without the timelock can also grant it without the timelock |
 | Nothing depends on one keeper | Finishing a sale, a draw, or a period needs one off-chain service, instead of a function anyone can call once its time has come |
-| Gas is bounded | A function loops over an unbounded array or mapping that users can grow |
+| Gas is bounded | A function loops over an unbounded array or mapping that users can grow, or a batch, a migration, or a deployment needs more than the EIP-7825 cap of 16,777,216 gas for one transaction |
 
 ## Rules to check with the team
 

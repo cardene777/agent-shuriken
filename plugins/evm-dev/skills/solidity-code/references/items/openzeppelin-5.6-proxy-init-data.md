@@ -1,7 +1,7 @@
 ---
 tool: openzeppelin
 since: 5.6.0
-checked: 2026-11-16
+checked: 2026-11-18
 source: OpenZeppelin Contracts changelog, 5.6.0
 detect: new\s+(ERC1967Proxy|TransparentUpgradeableProxy)\s*(\{[^}]*\}\s*)?\(.*,\s*(""|''|new\s+bytes\(0\)|bytes\(""\)|hex"")\s*\)
 ---

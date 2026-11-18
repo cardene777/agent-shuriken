@@ -1,7 +1,7 @@
 ---
 tool: openzeppelin
 since: 5.0.0
-checked: 2026-11-16
+checked: 2026-11-18
 source: OpenZeppelin Contracts changelog, 5.0.0
 detect: \bOwnable\(\s*\)
 ---

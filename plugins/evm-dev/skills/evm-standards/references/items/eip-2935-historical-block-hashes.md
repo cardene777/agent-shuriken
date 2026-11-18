@@ -1,7 +1,7 @@
 ---
 status: live
-checked: 2026-11-11
-source: ethereum/EIPs: the EIP-2935 document and EIP-7600 (the Pectra meta EIP)
+checked: 2026-11-18
+source: ethereum/EIPs: the EIP-2935 document, EIP-7600 (the Pectra meta EIP), and EIP-8081 (the Hegotá meta EIP)
 can: Contracts can read the hashes of recent past blocks from the storage of a system contract.
 ---
 
@@ -25,4 +25,5 @@ The timestamp is 1746612311, which falls on 2025-05-07.
 ## Not yet shipped
 
 Nothing in the standard remains.
+EIP-7709, which would make `BLOCKHASH` read from this contract and change its cost, is listed under `Considered for Inclusion` in the Hegotá meta EIP (EIP-8081).
 Whether any application reads the contract has not been checked.

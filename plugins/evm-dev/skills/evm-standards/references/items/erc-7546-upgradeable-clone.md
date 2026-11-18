@@ -1,6 +1,6 @@
 ---
 status: specified
-checked: 2026-11-11
+checked: 2026-11-18
 source: ethereum/ERCs: the ERC-7546 document
 can: Many proxies of the same form can be cloned and upgraded together.
 ---

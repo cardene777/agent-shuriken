@@ -1,6 +1,6 @@
 ---
 status: live
-checked: 2026-11-11
+checked: 2026-11-18
 source: ethereum/EIPs: the EIP-2537 document and EIP-7600 (the Pectra meta EIP)
 can: Contracts can call BLS12-381 curve operations as cheap precompiles, for example to verify BLS signatures.
 ---

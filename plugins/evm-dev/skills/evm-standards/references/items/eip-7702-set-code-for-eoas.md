@@ -1,6 +1,6 @@
 ---
 status: live
-checked: 2026-11-09
+checked: 2026-11-18
 source: ethereum/EIPs: the EIP-7702 and EIP-7600 (the Pectra meta EIP) documents
 can: An EOA can delegate its code to a contract, so an ordinary wallet can use smart account features such as batched calls and sponsored gas.
 ---
@@ -14,7 +14,8 @@ A standard that lets an ordinary account held by a private key (an EOA) delegate
 | New transaction | The `set code` transaction (type `0x04`) |
 | Delegation marker | The account's code is set to `0xef0100` followed by an address |
 | What it enables | Doing several operations at once, having someone else pay the gas, and using sub-keys with narrowed permissions |
-| Caution | Delegated code has unlimited authority over the account, so wallets check the delegation target strictly |
+| Caution | Delegated code has unrestricted access to the account. Applications must not expect to have the user sign an authorization, and wallets must not offer an interface for it |
+| `tx.origin` | An account can send a transaction and run its own delegated code, so `msg.sender == tx.origin` can hold below the top call frame. Checks that rely on it against reentrancy or flash-loan sandwiches no longer hold |
 
 ## Current status
 

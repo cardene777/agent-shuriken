@@ -1,6 +1,6 @@
 ---
 status: specified
-checked: 2026-11-11
+checked: 2026-11-18
 source: ethereum/RIPs: the RIP-7560 document; ethereum/ERCs: the ERC-7562 document; ethereum/EIPs: the EIP-7701, EIP-8141, and EIP-8081 (Hegotá meta) documents
 can: Accounts could have their validation and gas payment handled by the protocol as a transaction type, instead of through ERC-4337.
 ---
@@ -13,8 +13,8 @@ A group of proposals that put per-account validation and gas payment into the pr
 |---|---|---|
 | RIP-7560 | `Draft` | For rollups. Combines EIP-2938 and ERC-4337 and adds a new transaction type (`AA_TX_TYPE`, number not yet assigned) that splits a transaction into a validation phase, an execution phase, and a phase after that. It assumes EIP-7702 |
 | ERC-7562 | `Review` | Rules imposed on code that validates ERC-4337 `UserOperation`s. Bundlers and block builders enforce them off-chain to prevent attacks that stall nodes with unpaid computation |
-| EIP-7701 | `Withdrawn` | Account abstraction for L1. The reason given for withdrawal is "replaced by EIP-8141" |
-| EIP-8141 | `Draft` | A new transaction that is split into a sequence of frames with roles such as validating, approving gas payment, and executing. A frame's `mode` is one of three: `DEFAULT`, `VERIFY`, and `SENDER` |
+| EIP-7701 | `Withdrawn` | Account abstraction for L1. The reason given for withdrawal is "Superseded by EIP-8141" |
+| EIP-8141 | `Draft` | A new transaction (type `0x06`) that is split into a sequence of frames with roles such as validating, approving gas payment, and executing. A frame's `mode` is one of three: `DEFAULT`, `VERIFY`, and `SENDER` |
 
 ## Current status
 

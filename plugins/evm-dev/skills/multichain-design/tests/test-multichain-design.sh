@@ -172,6 +172,72 @@ verify_template() {
 }
 check "verify refuses the unfilled multichain-design template" verify_template
 
+# ids_design <file> <citing text> <ID>...: a complete design whose first section carries the citing
+# text and whose Open decisions section ends with a table that defines the given IDs.
+ids_design() {
+  local f="$1" cites="$2"
+  shift 2
+  design "$f"
+  python3 - "$f" "$cites" "$@" <<'PYEOF'
+import sys
+p, cites, ids = sys.argv[1], sys.argv[2], sys.argv[3:]
+text = open(p, encoding="utf-8").read().replace("SECRET_TEXT_MARKER", "SECRET_TEXT_MARKER " + cites, 1)
+rows = "".join("| %s | A decision. SECRET_TEXT_MARKER |\n" % i for i in ids)
+open(p, "w", encoding="utf-8").write(text.rstrip("\n") + "\n\n| ID | Decision |\n|---|---|\n" + rows)
+PYEOF
+}
+
+# A cited ID is undefined when no row of the Open decisions table starts with it, and D10 is not
+# D1. verify names each undefined ID once and never prints the design's text.
+verify_undefined_id() {
+  local f="$T/ids/undefined.md"
+  ids_design "$f" "Rests on D2, D9, and D10." D1 D2
+  run verify "$f" > "$T/verify-undefined.out" 2>&1
+  [ $? -eq 1 ] || return 1
+  ! grep -q 'SECRET_TEXT_MARKER' "$T/verify-undefined.out" || return 1
+  grep -Eq '^undefined decision: D9$' "$T/verify-undefined.out" \
+    && grep -Eq '^undefined decision: D10$' "$T/verify-undefined.out" \
+    && [ "$(grep -c '^undefined decision: ' "$T/verify-undefined.out")" -eq 2 ]
+}
+check "multichain-design verify names a cited Open decisions ID the table does not define" verify_undefined_id
+
+# An ID the table defines but the text never cites is fine, and standard names are not IDs.
+verify_uncited_id() {
+  local f="$T/ids/uncited.md"
+  ids_design "$f" "Rests on D2. ERC-20, EIP-7825, SR2025, and step B3 apply." D1 D2
+  run verify "$f" > "$T/verify-uncited.out" 2>&1
+}
+check "multichain-design verify accepts an uncited Open decisions ID and standard names" verify_uncited_id
+
+kelp_unlocked() {
+  local f="$ITEMS/layerzero-dvn-config.md"
+  [ -f "$f" ] || return 1
+  ! grep -qiF 'minted about 116,500' "$f" || return 1
+  grep -qiE 'unlock' "$f"
+}
+check "the multichain-design LayerZero item says the KelpDAO rsETH was unlocked, not minted" kelp_unlocked
+
+# A token bucket lets its full capacity and the refill through, so no item may cap a forged message
+# at one window's limit.
+refill_counted() {
+  ! grep -rqiF "one window's limit" "$ITEMS" || return 1
+  grep -rqiE 'refill' "$ITEMS"
+}
+check "the multichain-design items count the refill in what a forged message can move" refill_counted
+
+ccip_local_decimals() {
+  local f="$ITEMS/chainlink-ccip-cct.md"
+  [ -f "$f" ] || return 1
+  ! grep -qiF "remote chain's decimals" "$f" || return 1
+  grep -qiF "local chain's decimals" "$f"
+}
+check "the multichain-design CCIP item sets inbound limits in the local chain's decimals" ccip_local_decimals
+
+checklist_manual_override() {
+  grep -iE 'manual[- ]execution' "$CHECKLIST" | grep -qiE 'override'
+}
+check "the multichain-design checklist checks what a manual-execution gas override reaches" checklist_manual_override
+
 no_urls() {
   [ "$(find "$ITEMS" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')" -ge 5 ] || return 1
   ! grep -rIlE 'https?://|www\.' "$ITEMS" > /dev/null || return 1

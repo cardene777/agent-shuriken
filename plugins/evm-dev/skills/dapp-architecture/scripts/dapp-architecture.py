@@ -13,7 +13,9 @@ automation, monitoring, networks, admin, storage), `subject` (the service, netwo
 about), `checked` (YYYY-MM-DD), and `source` (the organization and document, never a URL).
 
 Exit codes: 0 fine, 1 problems found, 2 wrong use or unreadable items.
-verify prints only section names and what is wrong with them, never the text of the design.
+verify also names each decision ID, such as D9, that the text cites but no row of the Open decisions
+table defines.
+verify prints only section names, decision IDs, and what is wrong with them, never the text of the design.
 """
 import argparse
 import datetime
@@ -110,6 +112,33 @@ def content_lines(lines):
     return [line for line in text.splitlines() if line.strip() and not line.lstrip().startswith("#")]
 
 
+DECISIONS_SECTION = "Open decisions"
+DECISION_ROW = re.compile(r"^\s*\|\s*([A-Z])(\d+)\s*\|")
+
+
+def undefined_decisions(sections):
+    """IDs such as D9 that the design cites but no row of an Open decisions table defines, in the
+    order they first appear. Only letters that begin a row's ID count as ID letters, so ERC-20, SR2025,
+    or step B3 are not read as IDs, and a design without such a table has nothing to check."""
+    defined = set()
+    for title, body in sections:
+        if title == DECISIONS_SECTION:
+            for line in body:
+                match = DECISION_ROW.match(line)
+                if match:
+                    defined.add(match.group(1) + match.group(2))
+    letters = "".join(sorted({name[0] for name in defined}))
+    if not letters:
+        return []
+    cited = re.compile(r"(?<![A-Za-z0-9_])([%s]\d+)(?![A-Za-z0-9_])" % letters)
+    text = "\n".join(line for _, body in sections for line in body)
+    missing = []
+    for name in cited.findall(text):
+        if name not in defined and name not in missing:
+            missing.append(name)
+    return missing
+
+
 def design_problems(text):
     """Problems as 'what: section' lines, naming only sections, never the design's text."""
     preamble, sections = split_sections(text)
@@ -135,6 +164,7 @@ def design_problems(text):
             problems.append("unfinished: %s" % name)
         elif name == DATED_SECTION and not any(real_date(d) for d in DATE.findall("\n".join(lines))):
             problems.append("no checked date: %s" % name)
+    problems.extend("undefined decision: %s" % name for name in undefined_decisions(sections))
     return problems
 
 
@@ -183,7 +213,7 @@ def cmd_verify(args):
     for problem in problems:
         print(problem)
     if problems:
-        print("dapp-architecture: %d problem%s; fill in or add each section named above"
+        print("dapp-architecture: %d problem%s; fill in or add each section, or define each decision, named above"
               % (len(problems), "" if len(problems) == 1 else "s"))
         return 1
     print("dapp-architecture: ok (%d sections)" % len(SECTIONS))

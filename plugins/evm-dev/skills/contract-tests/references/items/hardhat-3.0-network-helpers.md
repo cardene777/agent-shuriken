@@ -1,7 +1,7 @@
 ---
 tool: hardhat
 since: 3.0.0
-checked: 2026-11-17
+checked: 2026-11-18
 source: Hardhat 3 documentation, the guides on testing with viem and with ethers
 ---
 
