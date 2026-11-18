@@ -30,11 +30,23 @@ Lines from layout
   gap <contract> <label> ends at slot <n> instead of <n>   a __gap array no longer ends where it did
   renamed <contract> <old> -> <new> slot <n> offset <n>   same place and type, new name (not counted
           as a problem)
+  not-compared <contract> <namespace>: <why>   the contract's ERC-7201 namespaced storage was not
+          compared; <namespace> is `namespaces` when the build does not say which it has
 A variable is matched by name first, then by place. New variables are fine where nothing lived
 before: in unused bytes of a slot, inside the old __gap, or after the last old variable. Struct and
 enum names are compared without the contract that declares them, and a contract type counts as an
-address. Variables in ERC-7201 namespaced storage (@custom:storage-location) are not in solc's
-layout output, so layout does not see them.
+address.
+
+ERC-7201 namespaced storage
+  Variables in a struct marked `@custom:storage-location erc7201:<id>` are not in solc's layout
+  output. layout reads those structs from the syntax tree that `forge build --ast` puts in each
+  artifact, for the contract and every contract it inherits from, lays out their fields the way solc
+  lays out a struct, and compares them namespace by namespace with the same lines as above. The label
+  is `erc7201:<id>.<field>` and the slot counts from the namespace's own slot. A namespace that is gone
+  from the new version has every field removed. layout prints `not-compared` instead, and never
+  `compatible` for that contract, when an artifact has no syntax tree (forge inspect output, or a build
+  without --ast), when a base contract is in no artifact given (pass the out/ folder rather than one
+  artifact), when the build mixes compiler runs, or when a field's type cannot be laid out.
 
 Lines from abi
   removed-function <contract> <signature>   (receive() and fallback() included)
@@ -91,6 +103,11 @@ PLACEHOLDER = re.compile(r"__\$[0-9a-fA-F]{34}\$__")
 QUALIFIED = re.compile(r"\b(struct|enum) [A-Za-z_$][\w$]*\.")
 CONTRACT_TYPE = re.compile(r"^contract [A-Za-z_$][\w$]*$")
 ARRAY_LENGTH = re.compile(r"\[(\d+)\]$")
+STORAGE_LOCATION = re.compile(r"@custom:storage-location\s+([A-Za-z0-9_]+:\S+)")
+DATA_LOCATION = re.compile(r" (?:storage ref|storage pointer|storage|memory|calldata)\b")
+INT_CONST = re.compile(r"^int_const (\d+)$")
+SIZED = re.compile(r"^(u?int|bytes|u?fixed)(\d+)(?:x\d+)?$")
+DECLARATIONS = ("ContractDefinition", "StructDefinition", "EnumDefinition", "UserDefinedValueTypeDefinition")
 
 
 # ---- items -------------------------------------------------------------------------------------
@@ -202,9 +219,9 @@ def artifact_files(folder):
                 yield path.relative_to(root).as_posix(), path.stem, path
 
 
-def side(path, pick, contract):
-    """{key: (name, data)} for one side of a comparison. pick(data) returns the part compared, or
-    None when the file holds none."""
+def side(path, pick, contract, visit=None):
+    """{key: (name, part, data)} for one side of a comparison. pick(data) returns the part compared,
+    or None when the file holds none; visit(data), when given, sees every file read."""
     p = Path(path)
     found = {}
     if p.is_dir():
@@ -213,15 +230,19 @@ def side(path, pick, contract):
                 data = json.loads(file.read_text(encoding="utf-8"))
             except (OSError, ValueError):
                 continue
+            if visit:
+                visit(data)
             part = pick(data) if isinstance(data, (dict, list)) else None
             if part is not None and (contract is None or name == contract):
-                found[key] = (name, part)
+                found[key] = (name, part, data)
     elif p.is_file():
         data = read_json(p)
+        if visit:
+            visit(data)
         part = pick(data)
         if part is None:
             raise UseError("%s holds nothing to compare" % path)
-        found[p.name] = (file_contract(data, p), part)
+        found[p.name] = (file_contract(data, p), part, data)
     else:
         raise UseError("%s is neither a file nor a folder" % path)
     return found
@@ -239,15 +260,15 @@ def file_contract(data, path):
     return path.name.split(".")[0]
 
 
-def pairs(old_path, new_path, pick, contract, new_contract):
-    """The (name, old part, new part) to compare."""
-    old = side(old_path, pick, contract)
-    new = side(new_path, pick, new_contract or contract)
+def pairs(old_path, new_path, pick, contract, new_contract, visit_old=None, visit_new=None):
+    """The (name, old, new) to compare, where old and new are each (name, part, data)."""
+    old = side(old_path, pick, contract, visit_old)
+    new = side(new_path, pick, new_contract or contract, visit_new)
     if new_contract or len(old) == 1 and len(new) == 1 and not (Path(old_path).is_dir() and Path(new_path).is_dir()):
         if len(old) != 1 or len(new) != 1:
             raise UseError("name one contract on each side: found %d old and %d new" % (len(old), len(new)))
-        (_, (_, o)), (_, (name, n)) = next(iter(old.items())), next(iter(new.items()))
-        return [(name, o, n)]
+        o, n = next(iter(old.values())), next(iter(new.values()))
+        return [(n[0], o, n)]
     if Path(old_path).is_dir() and Path(new_path).is_dir():
         keys = sorted(set(old) & set(new))
     else:
@@ -257,7 +278,7 @@ def pairs(old_path, new_path, pick, contract, new_contract):
     if not keys:
         raise UseError("no contract is in both %s and %s; name them with --contract and --new-contract"
                        % (old_path, new_path))
-    return [(new[k][0], old[k][1], new[k][1]) for k in keys]
+    return [(new[k][0], old[k], new[k]) for k in keys]
 
 
 # ---- layout ------------------------------------------------------------------------------------
@@ -303,8 +324,9 @@ def is_gap(label):
     return str(label).startswith("__gap")
 
 
-def compare_layout(name, old, new):
-    """(problem lines, renamed lines) for one contract."""
+def compare_layout(name, old, new, prefix=""):
+    """(problem lines, renamed lines) for one contract, or one namespace of it when the labels carry
+    the namespace as their prefix."""
     old_types, new_types = old.get("types") or {}, new.get("types") or {}
     old_vars, new_vars = old["storage"], new["storage"]
     used = set()
@@ -314,6 +336,7 @@ def compare_layout(name, old, new):
         return int(e["slot"]), int(e.get("offset") or 0)
 
     for o in old_vars:
+        label = prefix + o["label"]
         match = next((i for i, n in enumerate(new_vars) if i not in used and n["label"] == o["label"]), None)
         if match is not None:
             used.add(match)
@@ -323,18 +346,18 @@ def compare_layout(name, old, new):
                 new_start, new_count = slots(new_types, n)
                 if old_start + old_count != new_start + new_count:
                     problems.append("gap %s %s ends at slot %d instead of %d"
-                                    % (name, o["label"], new_start + new_count, old_start + old_count))
+                                    % (name, label, new_start + new_count, old_start + old_count))
                 continue
             if place(o) != place(n):
-                problems.append("moved %s %s %d:%d -> %d:%d" % ((name, o["label"]) + place(o) + place(n)))
+                problems.append("moved %s %s %d:%d -> %d:%d" % ((name, label) + place(o) + place(n)))
             old_shape, new_shape = shape(old_types, o["type"]), shape(new_types, n["type"])
             if old_shape != new_shape:
                 old_label = plain((old_types.get(o["type"]) or {}).get("label", o["type"]))
                 new_label = plain((new_types.get(n["type"]) or {}).get("label", n["type"]))
                 if old_label == new_label:
-                    problems.append("retyped %s %s %s changed inside" % (name, o["label"], old_label))
+                    problems.append("retyped %s %s %s changed inside" % (name, label, old_label))
                 else:
-                    problems.append("retyped %s %s %s -> %s" % (name, o["label"], old_label, new_label))
+                    problems.append("retyped %s %s %s -> %s" % (name, label, old_label, new_label))
             continue
         if is_gap(o["label"]):
             continue
@@ -344,27 +367,254 @@ def compare_layout(name, old, new):
         if same_place is not None and shape(old_types, o["type"]) == shape(new_types, new_vars[same_place]["type"]):
             used.add(same_place)
             renamed.append("renamed %s %s -> %s slot %d offset %d"
-                           % ((name, o["label"], new_vars[same_place]["label"]) + place(o)))
+                           % ((name, label, prefix + new_vars[same_place]["label"]) + place(o)))
             continue
-        problems.append("removed %s %s slot %d offset %d" % ((name, o["label"]) + place(o)))
+        problems.append("removed %s %s slot %d offset %d" % ((name, label) + place(o)))
     return problems, renamed
 
 
-def cmd_layout(args):
-    found = pairs(args.old, args.new, pick_layout, args.contract, args.new_contract)
-    problems, renamed = [], []
-    for name, old, new in found:
-        p, r = compare_layout(name, old, new)
+# ---- ERC-7201 namespaced storage ---------------------------------------------------------------
+
+class AstIndex:
+    """The contracts, structs, enums, and user-defined value types of the syntax trees on one side,
+    by node id. An id that names two different declarations means the build mixes compiler runs."""
+
+    def __init__(self):
+        self.nodes, self.clashes = {}, set()
+
+    def add(self, data):
+        unit = data.get("ast") if isinstance(data, dict) else None
+        if not isinstance(unit, dict) or unit.get("nodeType") != "SourceUnit":
+            return
+        for node in unit.get("nodes") or []:
+            self.keep(node)
+            if isinstance(node, dict) and node.get("nodeType") == "ContractDefinition":
+                for child in node.get("nodes") or []:
+                    self.keep(child)
+
+    def keep(self, node):
+        if not isinstance(node, dict) or node.get("nodeType") not in DECLARATIONS:
+            return
+        seen = self.nodes.setdefault(node.get("id"), node)
+        if (seen.get("nodeType"), seen.get("canonicalName", seen.get("name"))) != \
+                (node.get("nodeType"), node.get("canonicalName", node.get("name"))):
+            self.clashes.add(node.get("id"))
+
+    def get(self, node_id):
+        """(node, None), or (None, why) when the id is in no syntax tree read or names two nodes."""
+        if node_id in self.clashes:
+            return None, "clash"
+        node = self.nodes.get(node_id)
+        return (node, None) if node is not None else (None, "missing")
+
+
+class Unsized(Exception):
+    """A type whose storage cannot be worked out from the syntax trees read."""
+
+
+def packed(t):
+    """Whether a type is a value that shares a slot with its neighbours."""
+    return t["encoding"] == "inplace" and not t.get("members") and not t.get("base")
+
+
+class Layouter:
+    """Lays out structs the way solc does, into a `types` table shaped like solc's storageLayout."""
+
+    def __init__(self, index):
+        self.index, self.types = index, {}
+
+    def add(self, label, size, encoding="inplace", **parts):
+        type_id = "t%d" % len(self.types)
+        self.types[type_id] = dict(parts, label=label, numberOfBytes=str(size), encoding=encoding)
+        return type_id
+
+    def type_of(self, type_name, depth):
+        if not isinstance(type_name, dict):
+            raise Unsized("a type the syntax tree does not spell out")
+        if depth > 32:
+            raise Unsized("a type nested too deep")
+        kind = type_name.get("nodeType")
+        label = DATA_LOCATION.sub("", (type_name.get("typeDescriptions") or {}).get("typeString")
+                                  or type_name.get("name") or "")
+        if kind == "ElementaryTypeName":
+            return self.elementary(label)
+        if kind == "Mapping":
+            return self.add(label, 32, "mapping", key=self.type_of(type_name.get("keyType"), depth + 1),
+                            value=self.type_of(type_name.get("valueType"), depth + 1))
+        if kind == "ArrayTypeName":
+            base = self.type_of(type_name.get("baseType"), depth + 1)
+            if type_name.get("length") is None:
+                return self.add(label, 32, "dynamic_array", base=base)
+            length = ARRAY_LENGTH.search(label) or INT_CONST.match(
+                ((type_name["length"] or {}).get("typeDescriptions") or {}).get("typeString") or "")
+            if not length:
+                raise Unsized(label)
+            count, t = int(length.group(1)), self.types[base]
+            size = int(t["numberOfBytes"])
+            used = -(-count // (32 // size)) if packed(t) else count * -(-size // 32)
+            return self.add(label, used * 32, base=base)
+        if kind == "FunctionTypeName":
+            return self.add(label, 24 if type_name.get("visibility") == "external" else 8)
+        if kind == "UserDefinedTypeName":
+            if label.startswith("contract "):
+                return self.add(label, 20)
+            if label.startswith("enum "):
+                return self.add(label, 1)
+            node, _ = self.index.get(type_name.get("referencedDeclaration"))
+            if node is None:
+                raise Unsized(label)
+            if node["nodeType"] == "StructDefinition":
+                members, used = self.struct(node, depth + 1)
+                return self.add(label, used * 32, members=members)
+            if node["nodeType"] == "UserDefinedValueTypeDefinition":
+                underlying = node.get("underlyingType") or {}
+                size = int(self.types[self.elementary(underlying.get("name") or "")]["numberOfBytes"])
+                return self.add(label, size)
+            return self.add(label, 1 if node["nodeType"] == "EnumDefinition" else 20)
+        raise Unsized(label or "an unknown type")
+
+    def elementary(self, label):
+        if label in ("string", "bytes"):
+            return self.add(label, 32, "bytes")
+        if label in ("bool", "address", "address payable"):
+            return self.add(label, 1 if label == "bool" else 20)
+        if label in ("uint", "int", "fixed", "ufixed"):
+            return self.add(label, 32 if label.endswith("int") else 16)
+        sized = SIZED.match(label)
+        if not sized:
+            raise Unsized(label)
+        bits = int(sized.group(2))
+        return self.add(label, bits if sized.group(1) == "bytes" else bits // 8)
+
+    def struct(self, node, depth=0):
+        """(members as solc's storageLayout writes them, slots used) for one struct."""
+        members, slot, offset = [], 0, 0
+        for member in node.get("members") or []:
+            try:
+                type_id = self.type_of(member.get("typeName"), depth + 1)
+            except Unsized as error:
+                raise Unsized("cannot lay out field %s (%s)" % (member.get("name"), error)) if depth == 0 else error
+            t = self.types[type_id]
+            size = int(t["numberOfBytes"])
+            if offset and (not packed(t) or offset + size > 32):
+                slot, offset = slot + 1, 0
+            members.append({"label": member.get("name"), "slot": str(slot), "offset": offset, "type": type_id})
+            if packed(t):
+                offset += size
+            else:
+                slot, offset = slot + -(-size // 32), 0
+            if offset >= 32:
+                slot, offset = slot + 1, 0
+        return members, slot + (1 if offset else 0)
+
+
+def storage_location(node):
+    """`erc7201:<id>` for a struct marked as namespaced storage, else None."""
+    if not isinstance(node, dict) or node.get("nodeType") != "StructDefinition":
+        return None
+    doc = node.get("documentation")
+    text = doc.get("text") if isinstance(doc, dict) else doc
+    match = STORAGE_LOCATION.search(text or "")
+    return match.group(1) if match else None
+
+
+def namespaces(index, data, contract):
+    """(laid out, unsized, why) for one side of one contract: each namespace of the contract and its
+    bases as a layout, each namespace whose fields cannot be laid out with the reason, and why the
+    contract's namespaces cannot all be known (no syntax tree, a missing base, mixed runs), or None."""
+    unit = data.get("ast") if isinstance(data, dict) else None
+    if not isinstance(unit, dict):
+        return {}, {}, "no AST"
+    node = next((n for n in unit.get("nodes") or [] if isinstance(n, dict)
+                 and n.get("nodeType") == "ContractDefinition" and n.get("name") == contract), None)
+    if node is None:
+        return {}, {}, "no contract"
+    laid, unsized, why = {}, {}, None
+    for base_id in node.get("linearizedBaseContracts") or [node.get("id")]:
+        base, missing = (node, None) if base_id == node.get("id") else index.get(base_id)
+        if base is None:
+            why = why or ("mixed runs" if missing == "clash" else "missing base")
+            continue
+        for child in base.get("nodes") or []:
+            namespace = storage_location(child)
+            if namespace is None or namespace in laid or namespace in unsized:
+                continue
+            layouter = Layouter(index)
+            try:
+                members, _ = layouter.struct(child)
+                laid[namespace] = {"storage": members, "types": layouter.types}
+            except Unsized as error:
+                unsized[namespace] = str(error)
+    return laid, unsized, why
+
+
+REASONS = {"no AST": "the %s build has no AST; build it with --ast",
+           "no contract": "the AST in the %s build does not declare the contract",
+           "missing base": "a base contract is in no artifact of the %s build; pass the whole out/ folder",
+           "mixed runs": "the %s build mixes compiler runs; rebuild it into an empty folder"}
+
+
+BOTH = {"no AST": "neither build has an AST; build both with --ast",
+        "no contract": "the AST in neither build declares the contract",
+        "missing base": "a base contract is in no artifact given; pass the whole out/ folders",
+        "mixed runs": "both builds mix compiler runs; rebuild them into empty folders"}
+
+
+def unread_reason(old_why, new_why):
+    if old_why == new_why:
+        return BOTH[old_why]
+    return "; ".join(REASONS[why] % which for which, why in (("old", old_why), ("new", new_why)) if why)
+
+
+def compare_namespaces(name, old, old_index, new, new_index):
+    """(problem lines, renamed lines, not-compared lines, namespaces compared) for one contract."""
+    old_laid, old_unsized, old_why = namespaces(old_index, old[2], old[0])
+    new_laid, new_unsized, new_why = namespaces(new_index, new[2], new[0])
+    if old_why or new_why:
+        why = unread_reason(old_why, new_why)
+        known = sorted(set(old_laid) | set(old_unsized) | set(new_laid) | set(new_unsized))
+        return [], [], (["not-compared %s %s: %s" % (name, ns, why) for ns in known]
+                        or ["not-compared %s namespaces: %s" % (name, why)]), 0
+    problems, renamed, unread, compared = [], [], [], 0
+    for ns in sorted(set(old_laid) | set(old_unsized)):
+        if ns in old_unsized or ns in new_unsized:
+            unread.append("not-compared %s %s: %s" % (name, ns, old_unsized.get(ns) or new_unsized.get(ns)))
+            continue
+        p, r = compare_layout(name, old_laid[ns], new_laid.get(ns, {"storage": [], "types": {}}), ns + ".")
         problems += p
         renamed += r
-    for line in problems + renamed:
+        compared += 1
+    return problems, renamed, unread, compared
+
+
+def cmd_layout(args):
+    old_index, new_index = AstIndex(), AstIndex()
+    found = pairs(args.old, args.new, pick_layout, args.contract, args.new_contract, old_index.add, new_index.add)
+    problems, renamed, unread, unread_contracts, compared = [], [], [], set(), 0
+    for name, old, new in found:
+        p, r = compare_layout(name, old[1], new[1])
+        problems += p
+        renamed += r
+        p, r, u, c = compare_namespaces(name, old, old_index, new, new_index)
+        problems += p
+        renamed += r
+        unread += u
+        compared += c
+        if u:
+            unread_contracts.add(name)
+    for line in problems + renamed + unread:
         print(line)
     contracts = "%d contract%s compared" % (len(found), "" if len(found) == 1 else "s")
     if problems:
         print("layout: %d problem%s in %s (%d renamed)" % (len(problems), "" if len(problems) == 1 else "s",
                                                           contracts, len(renamed)))
         return 1
-    print("layout: compatible (%s, %d renamed)" % (contracts, len(renamed)))
+    if unread:
+        print("layout: namespaced storage not compared in %d of %d contract%s (%d renamed)"
+              % (len(unread_contracts), len(found), "" if len(found) == 1 else "s", len(renamed)))
+        return 1
+    print("layout: compatible (%s, %d namespace%s, %d renamed)"
+          % (contracts, compared, "" if compared == 1 else "s", len(renamed)))
     return 0
 
 
@@ -442,7 +692,7 @@ def cmd_abi(args):
     found = pairs(args.old, args.new, pick_abi, args.contract, args.new_contract)
     lines = []
     for name, old, new in found:
-        lines += compare_abi(name, old, new)
+        lines += compare_abi(name, old[1], new[1])
     for line in lines:
         print(line)
     contracts = "%d contract%s compared" % (len(found), "" if len(found) == 1 else "s")

@@ -232,6 +232,67 @@ env_files_named() {
 }
 check "keys names an env file that git tracks or does not ignore" env_files_named
 
+# Per-chain settings that a deploy script reads with vm.readFile: a key under a field named for it, a
+# key in an accounts list on its own line, and a mnemonic one level down.
+json_keys_project() {
+  local p="$1"
+  mkdir -p "$p/config" "$p/script"
+  printf '[profile.default]\nsrc = "src"\nfs_permissions = [{ access = "read", path = "./config" }]\n' > "$p/foundry.toml"
+  cat > "$p/config/11155111.json" <<JSON
+{
+  "owner": "0x00000000000000000000000000000000000000a1",
+  "deployerPrivateKey": "0x$KEYHEX",
+  "accounts": [
+    "0x$KEYHEX"
+  ]
+}
+JSON
+  cat > "$p/config/84532.json" <<JSON
+{
+  "owner": "0x00000000000000000000000000000000000000b2",
+  "signer": {
+    "mnemonic": "$WORDS"
+  }
+}
+JSON
+}
+
+keys_in_json() {
+  local p="$T/json-keys" out="$T/keys-json.out" code
+  json_keys_project "$p"
+  run keys "$p" > "$out" 2>&1
+  code=$?
+  [ "$code" -eq 1 ] || return 1
+  grep -qx "key-literal config/11155111.json:$(line_of "$p/config/11155111.json" 'deployerPrivateKey')" "$out" \
+    && grep -qx "key-literal config/11155111.json:$(( $(line_of "$p/config/11155111.json" '"accounts"') + 1 ))" "$out" \
+    && grep -qx "key-literal config/84532.json:$(line_of "$p/config/84532.json" '"mnemonic"')" "$out" \
+    && ! grep -Eq '^(env-key|key-flag) config/' "$out" \
+    && [ "$(grep -c '^key-literal config/' "$out")" -eq 3 ] \
+    && ! grep -qF "$KEYHEX" "$out" && ! grep -qF 'word word' "$out"
+}
+check "keys names a key or a mnemonic written in a JSON file by file and line without printing it" keys_in_json
+
+# Settings with addresses, a salt, and a transaction hash, each 40 or 64 hex digits under a field that
+# does not speak of a key.
+keys_json_clean() {
+  local p="$T/json-clean" out="$T/keys-json-clean.out"
+  mkdir -p "$p/config"
+  printf '[profile.default]\nsrc = "src"\n' > "$p/foundry.toml"
+  cat > "$p/config/1.json" <<JSON
+{
+  "owner": "0x00000000000000000000000000000000000000c3",
+  "salt": "0x$KEYHEX",
+  "deployed": {
+    "points": "0x00000000000000000000000000000000000000d4",
+    "txHash": "0x$KEYHEX"
+  }
+}
+JSON
+  run keys "$p" > "$out" 2>&1 || return 1
+  ! grep -Eq '^(env-key|key-flag|key-literal|env-file) ' "$out" && ! grep -qF "$KEYHEX" "$out"
+}
+check "keys does not name addresses or hashes in a JSON file" keys_json_clean
+
 # Deployment records. The Foundry run file follows what forge 1.5 writes: transactions with their
 # hashes and receipts listed separately. The Ignition journal follows the message types of
 # ignition-core 3: one JSON object per line, the first line empty, numbers too big for JSON written as
@@ -383,6 +444,81 @@ record_dry_cache() {
     && ! grep -qi 'permission' "$T/record-dry.out"
 }
 check "record skips dry runs and never reads cache/" record_dry_cache
+
+# commit_project <folder>: a git repository with one commit (a contract, a script, a test, and
+# foundry.toml) and a Foundry run file that names that commit and was written 500 seconds ago, as
+# forge writes it: the short hash in `commit`, milliseconds in `timestamp`. Prints the short hash.
+commit_project() {
+  local p="$1"
+  mkdir -p "$p/src" "$p/script" "$p/test"
+  printf '[profile.default]\nsrc = "src"\n' > "$p/foundry.toml"
+  printf 'contract Vault { uint256 public total; }\n' > "$p/src/Vault.sol"
+  printf 'contract Deploy { function run() external {} }\n' > "$p/script/Deploy.s.sol"
+  printf 'contract VaultTest { function test_total() public {} }\n' > "$p/test/Vault.t.sol"
+  git -C "$p" init -q || return 1
+  git -C "$p" add -A || return 1
+  git -C "$p" -c user.name=test -c user.email=test -c commit.gpgsign=false -c core.hooksPath=/dev/null \
+    commit -q -m "first" || return 1
+  python3 - "$p" "$(git -C "$p" rev-parse --short HEAD)" <<'PYEOF'
+import json, os, sys, time
+root, commit = sys.argv[1], sys.argv[2]
+sent = time.time() - 500
+tx = {"hash": "0x" + "%064x" % 1, "transactionType": "CREATE", "contractName": "Vault",
+      "contractAddress": "0x" + "%040x" % 0x11, "transaction": {"from": "0x" + "%040x" % 0xD0}, "additionalContracts": []}
+receipt = {"status": "0x1", "transactionHash": tx["hash"], "blockNumber": "0x5", "contractAddress": tx["contractAddress"]}
+run = {"transactions": [tx], "receipts": [receipt], "pending": [], "chain": 11155111,
+       "commit": commit, "timestamp": int(sent * 1000)}
+path = os.path.join(root, "broadcast/Deploy.s.sol/11155111/run-latest.json")
+os.makedirs(os.path.dirname(path))
+json.dump(run, open(path, "w"), indent=2)
+print(commit)
+PYEOF
+}
+
+# touch_at <file> <seconds from now>: sets the file's modification time.
+touch_at() { python3 -c 'import os, sys, time; t = time.time() + int(sys.argv[2]); os.utime(sys.argv[1], (t, t))' "$1" "$2"; }
+
+record_commit_differs() {
+  local p="$T/rec-commit" out="$T/record-commit.out" commit
+  command -v git > /dev/null || return 1
+  commit="$(commit_project "$p")" || return 1
+  # The contract and foundry.toml changed 1000 seconds ago, before the broadcast, and stayed that way.
+  printf 'contract Vault { uint256 public total; uint256 public cap; }\n' > "$p/src/Vault.sol"
+  printf '[profile.default]\nsrc = "src"\noptimizer = true\n' > "$p/foundry.toml"
+  touch_at "$p/src/Vault.sol" -1000
+  touch_at "$p/foundry.toml" -1000
+  run record "$p" --write > "$out" 2>&1
+  [ $? -eq 1 ] || return 1
+  grep -q "^commit-differs 11155111 $commit source foundry:Deploy.s.sol " "$out" \
+    && grep '^commit-differs ' "$out" | grep -q 'src/Vault.sol' \
+    && grep '^commit-differs ' "$out" | grep -q 'foundry.toml' \
+    && grep -q "^contract 11155111 Vault " "$out" || return 1
+  python3 - "$p/deployments/11155111.json" "$commit" <<'PYEOF'
+import json, sys
+record = json.load(open(sys.argv[1]))
+found = [p for p in record["problems"] if p["kind"] == "commit-differs"]
+assert len(found) == 1, record["problems"]
+assert found[0]["source"] == "foundry:Deploy.s.sol" and found[0]["commit"] == sys.argv[2], found
+assert sorted(found[0]["files"]) == ["foundry.toml", "src/Vault.sol"], found
+PYEOF
+}
+check "record names a run whose commit differs from files changed before the broadcast" record_commit_differs
+
+record_commit_kept() {
+  local p="$T/rec-commit-kept" out="$T/record-commit-kept.out"
+  command -v git > /dev/null || return 1
+  commit_project "$p" > /dev/null || return 1
+  # A test changed before the broadcast; the contract and a new script changed after it.
+  printf 'contract VaultTest { function test_total() public {} function test_cap() public {} }\n' > "$p/test/Vault.t.sol"
+  touch_at "$p/test/Vault.t.sol" -1000
+  printf 'contract Vault { uint256 public total; uint256 public cap; }\n' > "$p/src/Vault.sol"
+  printf 'contract Other { function run() external {} }\n' > "$p/script/Other.s.sol"
+  touch_at "$p/src/Vault.sol" -100
+  touch_at "$p/script/Other.s.sol" -100
+  run record "$p" > "$out" 2>&1 || return 1
+  ! grep -q '^commit-differs ' "$out" && grep -q "^contract 11155111 Vault " "$out"
+}
+check "record does not name files changed after the broadcast or under test/" record_commit_kept
 
 no_urls() {
   [ "$(find "$ITEMS" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')" -ge 5 ] || return 1

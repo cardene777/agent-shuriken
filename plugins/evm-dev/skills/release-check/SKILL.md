@@ -20,15 +20,17 @@ Ask which chains the contracts go to and, for an upgrade, which git tag or commi
 
 ## 2. Build both versions
 
-When the user already has the deployed version's layout and ABI from `forge inspect`, use those files.
-Otherwise check out the deployed ref in a new temporary folder with `git worktree add`, run `git -C <folder> submodule update --init` when the project has submodules, and build it with `forge build --root <folder> --out <folder>/out`.
-Build both versions with `--extra-output storageLayout` and `--skip test --skip script`, so only deployed code is compared; the storage-layout-output item covers Hardhat.
+Check out the deployed ref in a new temporary folder with `git worktree add`, then `git -C <folder> submodule update --init` when it has submodules.
+Build both versions the same way, each into an empty folder, passing the source folder from `foundry.toml` (default `src`) so only it and what it imports are built: `forge build --root <folder> --out <empty folder> --extra-output storageLayout --ast <folder>/src`.
+`--extra-output storageLayout` adds solc's layout and `--ast` the syntax tree that `layout` reads namespaced structs from.
+The storage-layout-output item covers Hardhat.
 
 ## 3. Run the checks
 
-Run `layout` with the deployed and the new build; for a renamed contract, pass the two artifacts with `--contract` and `--new-contract`.
+Run `layout` on the two builds; for a renamed contract, add `--contract` and `--new-contract`.
 Every `removed`, `moved`, `retyped`, or `gap` line would corrupt the deployed state: never call such an upgrade safe.
 A `renamed` line is safe for storage only when the new name means the same value.
+A `not-compared` line means that contract's namespaced storage was not compared: rebuild as above or read those structs in both versions before calling it safe.
 Run `abi` with the same builds; each line breaks callers such as frontends, indexers, and other contracts, so name who must change.
 Run `opcodes` with the new build and `--evm` set to each target chain's EVM version from the items.
 When the source never names the opcode, compiling with that chain's `evm_version` fixes it; when the code relies on it (`transient` variables, `tload`, `tstore`, or `mcopy` in assembly), the code must change or the chain must wait.
@@ -36,7 +38,7 @@ When the source never names the opcode, compiling with that chain's `evm_version
 ## 4. OpenZeppelin's check
 
 When the project's `node_modules` has `@openzeppelin/upgrades-core`, also run `npx @openzeppelin/upgrades-core validate` with the reference as the openzeppelin-upgrades-validate item describes, and report both results; never install it.
-Variables in `@custom:storage-location` (ERC-7201 namespaced) structs are not in solc's layout, so `layout` does not see them: compare those structs by reading both versions, or rely on OpenZeppelin's check.
+It also covers `@custom:storage-location` structs.
 
 ## 5. Gas, size, and the transaction cap
 
@@ -48,7 +50,7 @@ In the deployment's simulation, check each transaction's gas limit against the c
 Report each finding with the contract, the script's line, and what to do.
 For whether an ERC or EIP is final or live, use the evm-standards skill.
 Fixing the contracts belongs to the solidity-code skill, and deploying them to the contract-deploy skill.
-Remove the temporary worktree with `git worktree remove` and delete its folder.
+Remove the temporary worktree with `git worktree remove --force <folder>`; submodules need `--force`.
 
 ## Rules
 

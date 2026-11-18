@@ -14,15 +14,15 @@ Run it as a shell command, `python3 <folder of this SKILL.md>/scripts/contract-d
 ## 1. Read the project
 
 Read the versions with the solidity-code skill in this plugin: its `project` prints them.
-Run `list` here for the items on keystores, hardware wallets, broadcast and Ignition files, and verification.
-When an item is marked `stale`, re-check it against the official document before relying on it, and tell the user what changed; when the document cannot be reached, use the item and say it is unconfirmed, with its checked date.
+Run `list` here for the items on keys, records, and verification.
+When an item is marked `stale`, re-check it against the official document before relying on it, and tell the user what changed; when the document cannot be reached, use the item and say it is unconfirmed, with its date.
 Ask which chains to deploy to, which of them are production chains (their tokens have value), and who should own each contract; never default ownership to the deployer.
 
 ## 2. Write the deploy script
 
-In a Foundry project, write `script/<Name>.s.sol` that calls `vm.startBroadcast()` with no argument, so the signer comes from the command line, and reads constructor values from constants or a config file, never a key from the environment.
+In a Foundry project, write `script/<Name>.s.sol` that calls `vm.startBroadcast()` with no argument, so the signer comes from the command line, and reads constructor values from constants or a config file, never a key.
 In a Hardhat project, write an Ignition module under `ignition/modules/` and put each key and RPC URL behind `configVariable`.
-For whether an ERC or EIP the contracts rely on is final or live, use the evm-standards skill.
+For whether an ERC or EIP is final or live, use the evm-standards skill.
 Contract changes belong to the solidity-code skill.
 
 ## 3. Check the key handling
@@ -37,7 +37,7 @@ Simulate first: `forge script <script> --rpc-url <chain> --sender <address>` wit
 Then give the user the command for each chain:
 
 - Production chain: `--ledger` or `--trezor` (Hardhat: `ledgerAccounts`), with `--slow` so each transaction waits for the one before
-- Test chain: an encrypted keystore that the user creates once with `cast wallet import` and its `--interactive` prompt, used with `--account` and the keystore's name; in Hardhat 3, `npx hardhat keystore set <NAME>` with `configVariable`
+- Test chain: an encrypted keystore the user creates once with `cast wallet import` and `--interactive`, used with `--account` and its name; in Hardhat 3, `npx hardhat keystore set <NAME>` with `configVariable`
 
 The user runs the command that broadcasts, in their own terminal, and types any password there.
 
@@ -46,7 +46,8 @@ The user runs the command that broadcasts, in their own terminal, and types any 
 Run `record` with the project root and `--write` once the user says the broadcast finished.
 It writes `deployments/<chain id>.json` and names each `failed`, `pending`, or `mismatch` transaction.
 For each one, look it up with `cast receipt <hash> --rpc-url <chain>`, and resume with `forge script --resume` or by rerunning the Ignition deploy; after a reverted one, Foundry 1.9 needs `--broadcast --start-fresh`, Ignition `ignition wipe` first. Never call a deployment done while one is left.
-Check that each recorded address has code with `cast code` and the chain's RPC.
+A `commit-differs` line means the record's commit may not be the deployed code; name the files to the user.
+Check each recorded address for code with `cast code` and the chain's RPC.
 Verification publishes the source code, so ask the user first; then verify with `forge verify-contract` (Sourcify when no Etherscan key is set; `--verifier etherscan` when the user wants Etherscan, which since Foundry 1.8 also goes to Sourcify) or with `ignition verify` and the deployment id in Hardhat.
 Report each contract's chain, address, and verification result.
 

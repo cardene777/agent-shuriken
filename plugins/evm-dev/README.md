@@ -179,9 +179,9 @@ uncovered: 2 of 13 points have no test
 
 1. The agent reads the project's versions and the items on keystores, hardware wallets, deployment files, and verification, and re-checks the ones that are out of date
 2. The agent writes a Foundry script that leaves the signer to the command line, or a Hardhat Ignition module that keeps each key behind `configVariable`
-3. The agent names every place the project handles a key unsafely: a key read from an environment variable, a command that passes `--private-key`, `--mnemonic`, or `--password`, a key written into a file, and a `.env` file that git tracks or does not ignore
+3. The agent names every place the project handles a key unsafely: a key read from an environment variable, a command that passes `--private-key`, `--mnemonic`, or `--password`, a key written into a file, such as a JSON settings file a deploy script reads, and a `.env` file that git tracks or does not ignore
 4. The agent simulates the deployment and hands you the command for each chain: a hardware wallet and `--slow` on a production chain, an encrypted keystore on a test chain. You run it and approve the signature; the agent never sees the key
-5. The agent records each chain's contracts in `deployments/<chain id>.json`, names each transaction that failed, has no receipt, or does not show the contract it should have created, checks that each address has code, and verifies the source once you agree
+5. The agent records each chain's contracts in `deployments/<chain id>.json`, names each transaction that failed, has no receipt, or does not show the contract it should have created, says when files changed before the broadcast differ from the commit the record names, checks that each address has code, and verifies the source once you agree
 
 The key check names the kind, the file, and the line, never the line itself.
 
@@ -206,8 +206,8 @@ record: 2 contracts on 2 chains, 2 transactions to look at
 ### Check a release
 
 1. The agent reads the project's versions and the items on each chain's EVM version, the per-transaction gas cap, storage layouts, and the tools, and re-checks the ones that are out of date
-2. For an upgrade, the agent checks out the deployed git tag or commit in a temporary worktree and builds it and the new version with the storage layout in the build output
-3. The agent compares the two storage layouts and names each variable that was removed, moved, or retyped, also inside structs, and each `__gap` that no longer ends where it did. It compares the ABIs and names each function, event, and error that was removed or changed
+2. For an upgrade, the agent checks out the deployed git tag or commit in a temporary worktree and builds it and the new version from the same source folder, with the storage layout and the syntax tree (`--ast`) in the build output
+3. The agent compares the two storage layouts and names each variable that was removed, moved, or retyped, also inside structs and inside ERC-7201 namespaced structs, and each `__gap` that no longer ends where it did; a contract whose namespaced storage it could not compare is named, never passed. It compares the ABIs and names each function, event, and error that was removed or changed
 4. The agent names each opcode the target chain's EVM version lacks, in the runtime code and in the constructor, and says whether a compiler setting fixes it or the code must change
 5. When the project has OpenZeppelin's upgrade check, the agent runs it as well and reports both. It compares gas with `forge snapshot --diff` and sizes with `forge build --sizes`, checks each deployment transaction against the chain's gas cap, and removes the temporary worktree
 
@@ -368,7 +368,7 @@ financial-standards: 2 problems; fill in or add each section named above
 | Writing Solidity for the versions of solc, OpenZeppelin, forge-std, Foundry, and Hardhat a project uses | Checking a release, which `release-check` covers |
 | Writing unit, fuzz, and invariant tests for a project's contracts in Foundry or Hardhat, or having kiwa write them | Mutation testing, coverage targets, and tests of a dApp's screens, which kiwa covers |
 | Writing deploy scripts for Foundry and Hardhat Ignition, checking how a project handles keys, and recording and verifying what was deployed | Signing or broadcasting, holding keys, and proposing transactions to a multisig such as Safe |
-| Comparing storage layouts and ABIs with the deployed version, finding opcodes a target chain lacks, and comparing gas and sizes before a release | Reading the code deployed on chain, and comparing ERC-7201 namespaced storage, which OpenZeppelin's check or reading both versions covers |
+| Comparing storage layouts and ABIs with the deployed version, finding opcodes a target chain lacks, and comparing gas and sizes before a release | Reading the code deployed on chain, and comparing ERC-7201 namespaced storage in a Hardhat build or a Foundry build made without `--ast`, which OpenZeppelin's check or reading both versions covers |
 | Designing contracts before they are written: the split, token standards, invariants, roles, upgrades, prices, ordering, randomness, and external calls | Writing the contracts, their tests, or deployment scripts, which `solidity-code`, `contract-tests`, and `contract-deploy` cover |
 | Designing wallets and signing: keys and recovery, ERC-4337 and EIP-7702 accounts, signed permissions, approvals, gas sponsorship, and AI agent payments | Writing wallet code, holding keys, or signing, which no skill does |
 | Designing apps across chains: same-address deployment, moving assets, verifying messages, and partial failures | Writing bridge contracts, which `solidity-code` covers, or deployment scripts, which `contract-deploy` covers |

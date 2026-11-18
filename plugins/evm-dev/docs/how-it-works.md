@@ -126,9 +126,9 @@ A test tool item counts as out of date 90 days after it was checked.
 | `function` | An external or public function | It calls `.<name>` |
 | `error` | A custom error | It names the error |
 | `event` | An event | It names the event |
-| `access` | A function guarded by a modifier whose name starts with `only`, or by a comparison with `msg.sender` | It expects a revert on a call to the function: in Solidity, the first call after `expectRevert` that is not a `vm.` cheatcode; in TypeScript, a call in the same statement as the revert check |
-| `fuzz` | A function that changes state and takes an integer | A Solidity test function with parameters, or a fast-check property, calls it |
-| `invariant` | A contract with a mapping to an unsigned integer and a function that changes state | A Solidity test file that names the contract has a function whose name starts with `invariant`, or a fast-check `fc.commands` test names it |
+| `access` | A function guarded by a modifier whose name starts with `only`, by `restricted` (OpenZeppelin's `AccessManaged`), or by a comparison with `msg.sender` | It expects a revert on a call to the function: in Solidity, the first call after `expectRevert` that is not a `vm.` cheatcode; in TypeScript, a call in the same statement as the revert check |
+| `fuzz` | A function that changes state and takes an integer | A Solidity test function (its name starts with `test`) that takes parameters, or a fast-check property, calls it. A helper that takes parameters does not count |
+| `invariant` | A contract with a mapping to an unsigned integer, with or without names for its key and value, at the top of the contract or in a struct it declares (such as an ERC-7201 namespaced struct), and a function that changes state | A Solidity test file that names the contract has a function whose name starts with `invariant`, or a fast-check `fc.commands` test names it |
 
 Names inside comments do not count.
 Both commands print only kinds, names, and `file:line`, never the text of a contract or a test, and never read `lib/`, `node_modules/`, `out/`, `cache/`, `artifacts/`, hidden folders, or files whose names start with `.env`.
@@ -158,14 +158,14 @@ A deployment item counts as out of date 90 days after it was checked.
 
 ## The contract-deploy script
 
-`skills/contract-deploy/scripts/contract-deploy.py` runs on Python 3 with its standard library only, and asks `git` about `.env` files when the project is a git repository.
+`skills/contract-deploy/scripts/contract-deploy.py` runs on Python 3 with its standard library only, and asks `git` about `.env` files and about the files that differ from a recorded commit when the project is a git repository.
 
 | Command | What it does |
 |---|---|
 | `check` | Checks that every item has its four fields, a known topic, and a real date. It names each item that does not and exits 1 |
 | `list` | Prints one line per item: `ok` or `stale`, the topic, the date it was checked, its name, and its subject, then a count |
 | `keys <folder>` | Names each place the project handles a key unsafely, one line per finding with its kind and `file:line`, and exits 1 when there is one |
-| `record <folder>` | Prints each deployed contract and each transaction to look at, from Foundry's broadcast files and Hardhat Ignition's journals. With `--write` it also writes `deployments/<chain id>.json`. It exits 1 when a transaction needs a look |
+| `record <folder>` | Prints each deployed contract and each transaction to look at, from Foundry's broadcast files and Hardhat Ignition's journals. With `--write` it also writes `deployments/<chain id>.json`. It exits 1 when a transaction or a recorded commit needs a look |
 
 `keys` reports four kinds.
 
@@ -173,10 +173,10 @@ A deployment item counts as out of date 90 days after it was checked.
 |---|---|
 | `env-key` | A private key or mnemonic read from an environment variable (`vm.envUint` and the other `vm.env` calls, `process.env`, `$NAME` in shell and Make), or from a Hardhat 2 configuration variable, which is stored in plain text |
 | `key-flag` | A command that passes `--private-key`, `--private-keys`, `--mnemonic`, `--mnemonics`, or `--password` |
-| `key-literal` | 64 hex digits, or a quoted phrase of 12 to 24 lowercase words, on a line that speaks of a key, a mnemonic, a seed, accounts, or broadcasting |
+| `key-literal` | 64 hex digits, or a quoted phrase of 12 to 24 lowercase words, on a line that speaks of a key, a mnemonic, a seed, accounts, or broadcasting. In a JSON file it is also such a value of a field whose name speaks of a key, a mnemonic, a seed, a signer, or accounts, wherever the value sits, such as an entry of an `accounts` list on its own line |
 | `env-file` | A file whose name starts with `.env`, other than `.env.example`, `.env.sample`, and `.env.template`, that git tracks or does not ignore |
 
-`keys` reads Solidity, JavaScript, TypeScript, shell scripts, Makefiles, justfiles, `package.json`, and TOML and YAML files, and leaves out comments except for `key-literal`, since a key in a comment is still in the file.
+`keys` reads Solidity, JavaScript, TypeScript, shell scripts, Makefiles, justfiles, and JSON, TOML, and YAML files, such as the per-chain settings a deploy script reads, and leaves out comments except for `key-literal`, since a key in a comment is still in the file.
 It never opens a file whose name starts with `.env`, and never reads dependencies, build output, `broadcast/`, `deployments/`, Foundry's `cache/`, or hidden folders.
 
 `record` reads `broadcast/<script>/<chain id>/run-latest.json`, leaving out the `dry-run/` folders, and `ignition/deployments/<deployment id>/journal.jsonl`.
@@ -188,9 +188,14 @@ It prints these lines.
 | `failed` | A transaction whose receipt says it reverted |
 | `pending` | A transaction that was sent but has no receipt |
 | `mismatch` | A transaction recorded as creating a contract whose receipt does not show that contract being created |
+| `commit-differs` | A run whose recorded commit may not be the deployed code: some files differ from that commit and were last changed before Foundry wrote the run file. The line gives the chain, the commit, the source, and the files |
 
-A record file holds `format` (1), `chainId`, `contracts` (name, address, tx, block, deployer, source, commit), and `problems` (kind, name, tx, source).
+A record file holds `format` (1), `chainId`, `contracts` (name, address, tx, block, deployer, source, commit), and `problems` (kind, name, tx, source, and for `commit-differs` the commit and the files).
 It is rebuilt from the files each time, and the commit comes from Foundry's run file or is `null`.
+
+For `commit-differs`, `record` runs `git diff --name-only <commit>` and `git ls-files --others` in the project, and reads the modification time of each file they name.
+It counts `.sol` files outside `test/` and `tests/` (and not ending in `.t.sol`), `foundry.toml`, and `remappings.txt`, and only those last changed before the run file's `timestamp`, so work done on the code after the broadcast is not counted.
+When the project is not a git repository or the commit is not in it, `record` says on stderr that the commit was not checked.
 
 ## How the agent deploys
 
@@ -198,7 +203,7 @@ It is rebuilt from the files each time, and the commit comes from Foundry's run 
 2. It asks which chains to deploy to, which of them are production chains, and who should own each contract
 3. It writes a Foundry script that calls `vm.startBroadcast()` with no argument, or an Ignition module with every key behind `configVariable`, then runs `keys`, fixes each finding in what it wrote, and names the others to the user
 4. It simulates the deployment, then gives the user the command for each chain: `--ledger` or `--trezor` with `--slow` on a production chain, and an encrypted keystore (`cast wallet import` and `--account`, or the Hardhat 3 keystore) on a test chain. The user runs it
-5. It runs `record --write`, follows up each `failed`, `pending`, or `mismatch` line, checks each address with `cast code`, and verifies the source with `forge verify-contract` or `ignition verify` once the user agrees
+5. It runs `record --write`, follows up each `failed`, `pending`, or `mismatch` line, names the files of each `commit-differs` line to the user, checks each address with `cast code`, and verifies the source with `forge verify-contract` or `ignition verify` once the user agrees
 
 ## The release items
 
@@ -217,7 +222,7 @@ A release item counts as out of date 90 days after it was checked.
 
 ## The release-check script
 
-`skills/release-check/scripts/release-check.py` runs on Python 3 with its standard library only, and reads only the JSON files it is given or finds in a build folder.
+`skills/release-check/scripts/release-check.py` runs on Python 3 with its standard library only, and reads only the JSON files it is given or finds in a build folder, including the syntax tree that `forge build --ast` writes into each artifact.
 
 | Command | What it does |
 |---|---|
@@ -236,11 +241,14 @@ A release item counts as out of date 90 days after it was checked.
 | `retyped` | A variable's type changed; a change inside a struct, a mapping's value, or an array's element prints `changed inside` |
 | `gap` | A `__gap` array no longer ends at the slot where it ended, so the variables after it moved |
 | `renamed` | A variable of the same type sits where the old one did under a new name. It is not counted as a problem |
+| `not-compared` | The contract's ERC-7201 namespaced storage was not compared, with the namespace (or `namespaces` when the build does not say which) and the reason. `layout` then prints no `compatible` and exits 1 |
 
 A variable is matched by name, then by place.
 Struct and enum names are compared without the contract that declares them, so renaming the contract changes nothing.
 In folders, test and script artifacts (`*.t.sol/`, `*.s.sol/`), `build-info/`, and Hardhat's `*.dbg.json` files are left out, and `--contract` with `--new-contract` compares two contracts with different names.
-Variables in ERC-7201 namespaced storage are not in solc's layout output, so `layout` does not see them.
+Variables in ERC-7201 namespaced storage (a struct marked `@custom:storage-location erc7201:<id>`) are not in solc's layout output.
+`layout` reads those structs from the syntax tree in each artifact, for the contract and every contract it inherits from, lays out their fields the way solc lays out a struct, and compares them namespace by namespace with the same lines, labelled `erc7201:<id>.<field>` with slots counted from the namespace's slot.
+It prints `not-compared` when an artifact has no syntax tree (output of `forge inspect`, or a build without `--ast`), when a base contract is in no artifact given, when the build mixes compiler runs, or when a field's type cannot be laid out.
 
 `abi` prints `removed-function`, `changed-function` (outputs or state mutability), `removed-event`, `changed-event` (which parameters are indexed, or whether it is anonymous), and `removed-error`.
 Additions are compatible and are not printed, and `receive` and `fallback` count as functions.
@@ -253,9 +261,9 @@ The EVM versions run from `homestead` to `osaka`, and an unknown version exits 2
 
 1. It reads the project's versions through `solidity-code`, runs `list`, and re-checks the items marked `stale`; for the status of an ERC or EIP, it uses `evm-standards`
 2. It asks which chains the contracts go to and, for an upgrade, which git tag or commit is deployed
-3. It checks out that version with `git worktree add` in a temporary folder and builds both versions with `--extra-output storageLayout`, unless the user gives the deployed version's layout and ABI
+3. It checks out that version with `git worktree add` in a temporary folder and builds both versions from the source folder into empty folders with `--extra-output storageLayout` and `--ast`, so both builds hold the same contracts
 4. It runs `layout` and `abi` on the two versions and `opcodes` with each target chain's EVM version, and runs `npx @openzeppelin/upgrades-core validate` as well when the project has it
-5. It compares gas with `forge snapshot --diff` and sizes with `forge build --sizes`, checks each deployment transaction against the chain's per-transaction gas cap (EIP-7825), reports each finding with what to do, and removes the temporary worktree
+5. It compares gas with `forge snapshot --diff` and sizes with `forge build --sizes`, checks each deployment transaction against the chain's per-transaction gas cap (EIP-7825), reports each finding with what to do, and removes the temporary worktree with `git worktree remove --force`, which a worktree with submodules needs
 
 ## The contract design items
 

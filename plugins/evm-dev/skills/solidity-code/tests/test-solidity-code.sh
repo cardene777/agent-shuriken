@@ -202,6 +202,25 @@ no_urls() {
 }
 check "no item holds a URL" no_urls
 
+# What a forge 1.5.1 and solc 0.8.38 build showed: inline assembly cannot read a constant set with
+# erc7201(...), forge's linter fails the build on erc7201(...) in an expression, and the slot written
+# as a number from cast index-erc7201 builds.
+erc7201_item() {
+  local f="$ITEMS/solc-0.8.35-erc7201-builtin.md" phrase
+  [ -f "$f" ] || return 1
+  for phrase in \
+    'inline assembly' \
+    'Error (7615)' \
+    'unresolved symbol `erc7201`' \
+    'forge 1.5.1' \
+    '`cast index-erc7201 <namespace>`' \
+    'layout at erc7201('; do
+    grep -qF -- "$phrase" "$f" || return 1
+  done
+  ! grep -qF 'can replace a hand-written slot constant' "$f"
+}
+check "the erc7201 builtin item says where the builtin cannot be used and what to write instead" erc7201_item
+
 skill_rules() {
   local phrase
   [ -f "$SKILL" ] || return 1

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Tests for release-check.py, the bundled items, the SKILL.md, and the eval suite. Storage layouts,
-# ABIs, and bytecode written here follow what forge 1.5 and solc 0.8.30 write, live in a throwaway
-# folder, and are built by hand; nothing reaches the network and nothing runs forge or Hardhat.
+# syntax trees, ABIs, and bytecode written here follow what forge 1.5 and solc 0.8.30 write, live in a
+# throwaway folder, and are built by hand; nothing reaches the network and nothing runs forge or
+# Hardhat.
 set -u
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -145,13 +146,96 @@ write("gapped.json", gapped, t)
 PYEOF
 }
 
+# astfix.py: syntax trees in the shape forge 1.5 writes into each artifact with --ast, and artifacts
+# that hold one next to a storage layout. Node ids are unique across one build, as in one solc run.
+cat > "$T/astfix.py" <<'PYEOF'
+import itertools, json, os
+_ids = itertools.count(1000)
+
+def _desc(text):
+    return {"typeString": text}
+
+def elem(name):
+    return {"nodeType": "ElementaryTypeName", "id": next(_ids), "name": name, "typeDescriptions": _desc(name)}
+
+def ref(target, type_string):
+    """A type that names a declaration: a contract, a struct, an enum, or a user-defined value type."""
+    target_id = target["id"] if isinstance(target, dict) else target
+    return {"nodeType": "UserDefinedTypeName", "id": next(_ids), "referencedDeclaration": target_id,
+            "typeDescriptions": _desc(type_string)}
+
+def mapping(key, value):
+    text = "mapping(%s => %s)" % (key["typeDescriptions"]["typeString"], value["typeDescriptions"]["typeString"])
+    return {"nodeType": "Mapping", "id": next(_ids), "keyType": key, "valueType": value, "typeDescriptions": _desc(text)}
+
+def array(base, length=None):
+    text = "%s[%s]" % (base["typeDescriptions"]["typeString"], "" if length is None else length)
+    size = None if length is None else {"nodeType": "Literal", "id": next(_ids), "value": str(length),
+                                        "typeDescriptions": _desc("int_const %d" % length)}
+    return {"nodeType": "ArrayTypeName", "id": next(_ids), "baseType": base, "length": size, "typeDescriptions": _desc(text)}
+
+def field(name, type_name):
+    return {"nodeType": "VariableDeclaration", "id": next(_ids), "name": name, "typeName": type_name,
+            "typeDescriptions": dict(type_name["typeDescriptions"])}
+
+def struct(name, owner, fields, namespace=None):
+    node = {"nodeType": "StructDefinition", "id": next(_ids), "name": name, "canonicalName": "%s.%s" % (owner, name),
+            "members": list(fields), "visibility": "public"}
+    if namespace:
+        node["documentation"] = {"nodeType": "StructuredDocumentation", "id": next(_ids),
+                                 "text": "@custom:storage-location erc7201:" + namespace}
+    return node
+
+def contract(name, nodes=(), bases=(), kind="contract"):
+    node = {"nodeType": "ContractDefinition", "id": next(_ids), "name": name, "contractKind": kind,
+            "abstract": False, "nodes": list(nodes)}
+    order = [node["id"]]
+    for base in bases:
+        for i in base["linearizedBaseContracts"]:
+            if i not in order:
+                order.append(i)
+    node["linearizedBaseContracts"] = order
+    node["baseContracts"] = [{"nodeType": "InheritanceSpecifier", "baseName": {"nodeType": "IdentifierPath",
+                              "name": b["name"], "referencedDeclaration": b["id"]}} for b in bases]
+    return node
+
+def unit(path, *nodes):
+    return {"nodeType": "SourceUnit", "id": next(_ids), "absolutePath": path, "nodes": list(nodes)}
+
+def artifact(root, path, ast=None, layout=None):
+    p = os.path.join(root, path)
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    data = {"abi": [], "bytecode": {"object": "0x00"}, "deployedBytecode": {"object": "0x00"},
+            "storageLayout": layout or {"storage": [], "types": {}}}
+    if ast is not None:
+        data["ast"] = ast
+    with open(p, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+PYEOF
+
+# The forge inspect layouts of layouts(), wrapped into artifacts that also hold a syntax tree in
+# which Vault and VaultV2 keep no namespaced storage.
+ast_layouts() {
+  python3 - "$1" "$T" <<'PYEOF'
+import json, os, sys
+root, T = sys.argv[1], sys.argv[2]
+sys.path.insert(0, T)
+from astfix import artifact, contract, unit
+def load(name):
+    return json.load(open(os.path.join(root, name)))
+artifact(root, "old-ast.json", unit("src/Vault.sol", contract("Vault")), load("old.json"))
+artifact(root, "good-ast.json", unit("src/VaultV2.sol", contract("VaultV2")), load("good.json"))
+PYEOF
+}
+
 layout_compatible() {
   local d="$T/layout"
   [ -f "$SCRIPT" ] || return 1
   layouts "$d"
-  run layout "$d/old.json" "$d/good.json" > "$T/layout-good.out" 2>&1 || return 1
-  ! grep -Eq '^(removed|moved|retyped|gap|renamed) ' "$T/layout-good.out" \
-    && grep -Eq '^layout: compatible \(1 contract compared, 0 renamed\)$' "$T/layout-good.out"
+  ast_layouts "$d" || return 1
+  run layout "$d/old-ast.json" "$d/good-ast.json" > "$T/layout-good.out" 2>&1 || return 1
+  ! grep -Eq '^(removed|moved|retyped|gap|renamed|not-compared) ' "$T/layout-good.out" \
+    && grep -Eq '^layout: compatible \(1 contract compared, 0 namespaces, 0 renamed\)$' "$T/layout-good.out"
 }
 check "layout passes an upgrade that appends variables and shrinks the gap to match" layout_compatible
 
@@ -178,19 +262,20 @@ layout_breaks() {
 }
 check "layout names removed, moved, retyped, and renamed variables and a gap that no longer ends where it did" layout_breaks
 
-# Foundry out folders: one artifact per contract under <file>.sol/, test and script artifacts that
-# also changed, and a build-info folder, none of which may be compared.
+# Foundry out folders built with --ast: one artifact per contract under <file>.sol/, test and script
+# artifacts that also changed, and a build-info folder, none of which may be compared.
 out_folders() {
-  python3 - "$1" "$T/layout" <<'PYEOF'
+  python3 - "$1" "$T/layout" "$T" <<'PYEOF'
 import json, os, sys
-root, layouts = sys.argv[1], sys.argv[2]
+root, layouts, T = sys.argv[1], sys.argv[2], sys.argv[3]
+sys.path.insert(0, T)
+import astfix
 def load(name):
     return json.load(open(os.path.join(layouts, name)))
 def artifact(folder, path, layout):
-    p = os.path.join(root, folder, path)
-    os.makedirs(os.path.dirname(p), exist_ok=True)
-    json.dump({"abi": [], "bytecode": {"object": "0x00"}, "deployedBytecode": {"object": "0x00"}, "storageLayout": layout},
-              open(p, "w"), indent=2)
+    name = os.path.basename(path)[:-len(".json")]
+    source = os.path.dirname(path)
+    astfix.artifact(os.path.join(root, folder), path, astfix.unit("src/" + source, astfix.contract(name)), layout)
 token = {"storage": [{"astId": 1, "contract": "src/Token.sol:Token", "label": "supply", "offset": 0, "slot": "0", "type": "t_uint256"}],
          "types": {"t_uint256": {"encoding": "inplace", "label": "uint256", "numberOfBytes": "32"}}}
 artifact("old", "Vault.sol/Vault.json", load("old.json"))
@@ -219,13 +304,114 @@ layout_folders() {
     && ! grep -Eq 'VaultTest|Deploy|Token ' "$T/layout-folders.out" \
     && grep -Eq '^layout: 3 problems in 2 contracts compared \(1 renamed\)$' "$T/layout-folders.out" || return 1
   run layout "$d/old" "$d/new" --contract Token > "$T/layout-token.out" 2>&1 || return 1
-  grep -Eq '^layout: compatible \(1 contract compared, 0 renamed\)$' "$T/layout-token.out" || return 1
+  grep -Eq '^layout: compatible \(1 contract compared, 0 namespaces, 0 renamed\)$' "$T/layout-token.out" || return 1
   run layout "$d/v1" "$d/v2" > "$T/layout-none.out" 2>&1
   [ $? -eq 2 ] || return 1
   run layout "$d/v1" "$d/v2" --contract VaultV1 --new-contract VaultV2 > "$T/layout-pair.out" 2>&1 || return 1
-  grep -Eq '^layout: compatible \(1 contract compared, 0 renamed\)$' "$T/layout-pair.out"
+  grep -Eq '^layout: compatible \(1 contract compared, 0 namespaces, 0 renamed\)$' "$T/layout-pair.out"
 }
 check "layout compares Foundry out folders contract by contract, leaving out tests, scripts, and build-info" layout_folders
+
+# Namespaced builds: an interface, an abstract Counted with the namespace example.counted, and Points
+# (is Counted) with the namespace example.points, whose mapping holds a plain Position struct. The old
+# version (v1) and three new ones: v2 appends to both structs and types membership as an address
+# instead of the interface; bad reorders, retypes, and removes fields; odd holds a field whose struct
+# is not in the build.
+namespaced_builds() {
+  python3 - "$1" "$T" <<'PYEOF'
+import os, sys
+root, T = sys.argv[1], sys.argv[2]
+sys.path.insert(0, T)
+from astfix import array, artifact, contract, elem, field, mapping, ref, struct, unit
+
+def build(folder, counted_fields, position_fields, points_fields, membership_as_address=False, with_ast=True):
+    out = os.path.join(root, folder)
+    iface = contract("IMembership", kind="interface")
+    counted_struct = struct("CountedStorage", "Counted", [field(n, elem(t)) for n, t in counted_fields], "example.counted")
+    counted = contract("Counted", [counted_struct])
+    position = struct("Position", "Points", [field(n, elem(t)) for n, t in position_fields])
+    membership = elem("address") if membership_as_address else ref(iface, "contract IMembership")
+    types = {"membership": membership,
+             "positions": mapping(elem("address"), ref(position, "struct Points.Position")),
+             "missing": ref(999999, "struct Lib.Missing"),
+             "days": array(elem("uint64"), 3)}
+    fields = [field(n, types[t] if t in types else elem(t)) for n, t in points_fields]
+    points = contract("Points", [position, struct("PointsStorage", "Points", fields, "example.points")], [counted])
+    artifact(out, "IMembership.sol/IMembership.json", unit("src/IMembership.sol", iface) if with_ast else None)
+    artifact(out, "Counted.sol/Counted.json", unit("src/Counted.sol", counted) if with_ast else None)
+    artifact(out, "Points.sol/Points.json", unit("src/Points.sol", points) if with_ast else None)
+
+v1_points = [("membership", "membership"), ("cap", "uint256"), ("positions", "positions"),
+             ("totalMinted", "uint256"), ("lastDay", "uint64"), ("days", "days")]
+build("v1", [("count", "uint256")], [("amount", "uint128"), ("since", "uint64")], v1_points)
+build("v2", [("count", "uint256"), ("resets", "uint256")], [("amount", "uint128"), ("since", "uint64")],
+      v1_points + [("totalBurned", "uint256")], membership_as_address=True)
+build("bad", [("count", "uint128")], [("since", "uint64"), ("amount", "uint128")],
+      [("membership", "membership"), ("cap", "uint128"), ("positions", "positions"), ("lastDay", "uint64"), ("days", "days")])
+build("odd", [("count", "uint256")], [("amount", "uint128"), ("since", "uint64")], v1_points + [("extra", "missing")])
+build("flat", [("count", "uint256")], [("amount", "uint128"), ("since", "uint64")], v1_points, with_ast=False)
+PYEOF
+}
+
+# In v1, PointsStorage holds membership 0:0, cap 1:0, positions 2:0, totalMinted 3:0, lastDay 4:0, and
+# days 5:0. In bad, cap shrinks to uint128 and fits slot 1 alone, positions stays at 2:0, totalMinted
+# is gone, so lastDay moves to 3:0 and days to 4:0; Position's members are swapped; count shrinks.
+namespaced_breaks() {
+  local d="$T/ns" out="$T/ns-bad.out"
+  [ -d "$d/v1" ] || namespaced_builds "$d" || return 1
+  run layout "$d/v1" "$d/bad" > "$out" 2>&1
+  [ $? -eq 1 ] || return 1
+  grep -qx 'retyped Points erc7201:example.points.cap uint256 -> uint128' "$out" \
+    && grep -qx 'retyped Points erc7201:example.points.positions mapping(address => struct Position) changed inside' "$out" \
+    && grep -qx 'removed Points erc7201:example.points.totalMinted slot 3 offset 0' "$out" \
+    && grep -qx 'moved Points erc7201:example.points.lastDay 4:0 -> 3:0' "$out" \
+    && grep -qx 'moved Points erc7201:example.points.days 5:0 -> 4:0' "$out" \
+    && grep -qx 'retyped Points erc7201:example.counted.count uint256 -> uint128' "$out" \
+    && grep -qx 'retyped Counted erc7201:example.counted.count uint256 -> uint128' "$out" \
+    && ! grep -q 'membership' "$out" && ! grep -q 'IMembership' "$out" \
+    && ! grep -q '^not-compared ' "$out" && ! grep -q 'compatible' "$out" \
+    && grep -qx 'layout: 7 problems in 3 contracts compared (0 renamed)' "$out"
+}
+check "layout names removed, moved, and retyped fields of an ERC-7201 namespaced struct, also in a base contract" namespaced_breaks
+
+namespaced_appended() {
+  local d="$T/ns" out="$T/ns-good.out"
+  [ -d "$d/v1" ] || namespaced_builds "$d" || return 1
+  run layout "$d/v1" "$d/v2" > "$out" 2>&1 || return 1
+  ! grep -Eq '^(removed|moved|retyped|gap|renamed|not-compared) ' "$out" \
+    && grep -qx 'layout: compatible (3 contracts compared, 3 namespaces, 0 renamed)' "$out"
+}
+check "layout passes an upgrade that appends a field to an ERC-7201 namespaced struct" namespaced_appended
+
+# Four ways the namespaced storage cannot be compared: forge inspect layouts with no syntax tree, a
+# new build made without --ast, a field whose struct is not in the build, and one artifact given
+# alone, whose base contract sits in another artifact.
+namespaced_unread() {
+  local d="$T/ns" out status
+  [ -d "$d/v1" ] || namespaced_builds "$d" || return 1
+  [ -f "$T/layout/old.json" ] || layouts "$T/layout"
+  out="$T/ns-inspect.out"
+  run layout "$T/layout/old.json" "$T/layout/good.json" > "$out" 2>&1
+  status=$?
+  [ "$status" -eq 1 ] && grep -q '^not-compared VaultV2 namespaces: ' "$out" && ! grep -q 'compatible' "$out" || return 1
+  out="$T/ns-flat.out"
+  run layout "$d/v1" "$d/flat" > "$out" 2>&1
+  status=$?
+  [ "$status" -eq 1 ] && grep -q '^not-compared Points erc7201:example.points: ' "$out" \
+    && grep -q '^not-compared Points erc7201:example.counted: ' "$out" \
+    && grep -q '^not-compared Counted erc7201:example.counted: ' "$out" \
+    && grep -q '^not-compared IMembership namespaces: ' "$out" && ! grep -q 'compatible' "$out" || return 1
+  out="$T/ns-odd.out"
+  run layout "$d/v1" "$d/odd" > "$out" 2>&1
+  status=$?
+  [ "$status" -eq 1 ] && grep -q '^not-compared Points erc7201:example.points: .*extra' "$out" \
+    && ! grep -q '^not-compared Counted ' "$out" && ! grep -q 'compatible' "$out" || return 1
+  out="$T/ns-alone.out"
+  run layout "$d/v1/Points.sol/Points.json" "$d/v2/Points.sol/Points.json" > "$out" 2>&1
+  status=$?
+  [ "$status" -eq 1 ] && grep -q '^not-compared Points ' "$out" && ! grep -q 'compatible' "$out"
+}
+check "layout names a contract whose namespaced storage it could not compare and never prints compatible for it" namespaced_unread
 
 abis() {
   python3 - "$1" <<'PYEOF'
@@ -356,7 +542,10 @@ skill_rules() {
     're-check it against the official document' \
     '`git worktree add`' \
     '`--extra-output storageLayout`' \
+    '`--ast`' \
+    'only it and what it imports' \
     'Run `layout`' \
+    '`not-compared`' \
     'Run `abi`' \
     'Run `opcodes`' \
     '`npx @openzeppelin/upgrades-core validate`' \
@@ -367,6 +556,7 @@ skill_rules() {
     'use the evm-standards skill' \
     'the solidity-code skill' \
     'Remove the temporary worktree' \
+    '`git worktree remove --force <folder>`' \
     'Never read a private key or a mnemonic' \
     'never sign' \
     'refuse a command that passes a key' \
