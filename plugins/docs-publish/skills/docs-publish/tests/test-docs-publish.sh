@@ -64,6 +64,17 @@ out="$(cd "$T/k" && dp scaffold "$T/plan.json")"
 check "an existing page is kept as it is" '[ "$(cat "$T/k/docs/en/quickstart.md")" = "my own words" ]'
 check "a kept page is reported as kept" 'printf "%s\n" "$out" | grep -q "^kept  docs/en/quickstart.md (it already exists)"'
 
+# The plan gives the reading order, so each part keeps it instead of sorting its pages (#237).
+jq '.concepts = [{"slug": "zebra", "title": "Zebra"}, {"slug": "apple", "title": "Apple"}, {"slug": "mango", "title": "Mango"}]' \
+  "$T/plan.json" > "$T/order.json"
+mkdir -p "$T/odry" "$T/o"
+out="$(cd "$T/odry" && dp scaffold --dry-run "$T/order.json")"
+check "the dry run lists each part's pages in the order of the plan" \
+  '[ "$(printf "%s\n" "$out" | sed -n "s|^new   docs/en/concepts/||p" | paste -sd, -)" = "README.md,zebra.md,apple.md,mango.md" ]'
+(cd "$T/o" && dp scaffold "$T/order.json") >/dev/null
+check "scaffold lists each part's pages in the order of the plan" \
+  '[ "$(grep "^- \[" "$T/o/docs/en/concepts/README.md" | paste -sd, -)" = "- [Zebra](zebra.md),- [Apple](apple.md),- [Mango](mango.md)" ]'
+
 # HTTP endpoints and hosted services: an API page marked as an endpoint gets its own outline.
 headings() { grep '^## ' "$1" | sed 's/^## //' | paste -sd, -; }
 ENDPOINT_OUTLINE="Endpoint,Authentication,Parameters,Request body,Response,Errors,Example,Related"
@@ -446,16 +457,91 @@ out="$(run_check)"
 check "an API page without a code example is reported" 'has "content      en/api/createCart.md has no code example"'
 
 case_copy cjk
-python3 - "$C/docs/de/faq.md" <<'PY'
+python3 - "$C/docs/de/faq.md" "$C/docs/de/quickstart.md" <<'PY'
 import sys
 p = sys.argv[1]; t = open(p).read()
 heading = "## " + chr(0x5C0E) + chr(0x5165); word = chr(0x307E) + chr(0x305A)
 open(p, "w", encoding="utf-8").write(t.replace("## Install", heading).replace("Follow", word))
+# The link to that heading follows it, with the anchor GitHub makes from the new heading.
+q = sys.argv[2]; t = open(q, encoding="utf-8").read()
+open(q, "w", encoding="utf-8").write(t.replace("faq.md#install", "faq.md#" + heading[3:]))
 PY
 out="$(dp translated --root "$C/docs" "$C/docs/de/faq.md")"; rc=$?
 check "a translation in another script is recorded" '[ "$rc" = 0 ] && has "recorded      de/faq.md"'
 out="$(run_check)"; rc=$?
 check "a translation in another script passes the check" '[ "$rc" = 0 ]'
+
+# --- links to headings (#237): an anchor must be one GitHub makes from a heading of the target page.
+# A file the pages link to, outside the docs folder but inside the folder that holds it.
+outside_readme() {
+  printf '# Acme Shop\n\n## Getting started\n\nRead the docs.\n\n<a name="legacy-install"></a>\n' > "$C/README.md"
+}
+case_copy anchors
+outside_readme
+python3 - "$C/docs/en/faq.md" "$C/docs/de/faq.md" <<'PY'
+import sys
+from urllib.parse import quote
+ja = lambda *points: "".join(map(chr, points))
+read_run_send = ja(0x8AAD, 0x3080, 0x7269, 0x3001, 0x52D5, 0x304B, 0x3059, 0x7269, 0x3001, 0x9001, 0x308B, 0x7269)
+settings = ja(0x8A2D, 0x5B9A, 0xFF08, 0xFF21, 0xFF09)
+example = ja(0x4F8B)
+usage = ja(0x306E, 0x4F7F, 0x3044, 0x65B9)
+and_more = ja(0x3068) + "**" + ja(0x307B, 0x304B) + "**" + ja(0x306E, 0x30A4, 0x30F3, 0x30B9, 0x30C8, 0x30FC, 0x30EB, 0x30FB, 0x8A2D, 0x5B9A)
+shared = "[g](faq.md#install), [h](concepts/carts.md#how-it-works), [i](api/#api-reference), " \
+         "[j](../../README.md#getting-started), [k](../../README.md#legacy-install)"
+pages = {
+    sys.argv[1]: (["Read, run, & send", "Settings (A)", "Example", "Example", "`apply --confirm` usage",
+                   "See [the API](api/createCart.md) and **more**"],
+                  ["read-run--send", "settings-a", "example", "example-1", "apply---confirm-usage",
+                   "see-the-api-and-more"]),
+    sys.argv[2]: ([read_run_send, settings, example, example, "`apply --confirm`" + usage,
+                   "[API](api/createCart.md)" + and_more],
+                  [ja(0x8AAD, 0x3080, 0x7269, 0x52D5, 0x304B, 0x3059, 0x7269, 0x9001, 0x308B, 0x7269),
+                   quote(ja(0x8A2D, 0x5B9A, 0xFF41)), example, example + "-1", "apply---confirm" + usage,
+                   "api" + ja(0x3068, 0x307B, 0x304B, 0x306E, 0x30A4, 0x30F3, 0x30B9, 0x30C8, 0x30FC, 0x30EB,
+                              0x8A2D, 0x5B9A)]),
+}
+for path, (headings, anchors) in pages.items():
+    text = open(path, encoding="utf-8").read()
+    text += "".join("\n## %s\n\nText.\n" % h for h in headings)
+    text += "\nJump to %s, %s.\n" % (", ".join("[%s](#%s)" % (chr(97 + i), a) for i, a in enumerate(anchors)), shared)
+    open(path, "w", encoding="utf-8").write(text)
+PY
+dp translated --root "$C/docs" faq.md >/dev/null; rc=$?
+out="$(run_check)"; check_rc=$?
+check "links to headings that exist pass, including Japanese headings" \
+  '[ "$rc" = 0 ] && [ "$check_rc" = 0 ] && ! printf "%s\n" "$out" | grep -q "^anchor"'
+
+case_copy anchor
+printf '\nSee [the steps](quickstart.md#instal), [Install](quickstart.md#Install), and [the top](#faqs).\n' >> "$C/docs/en/faq.md"
+line="$(grep -n "quickstart.md#instal" "$C/docs/en/faq.md" | cut -d: -f1)"
+out="$(run_check)"; rc=$?
+check "a link to a heading the target page lacks is reported" \
+  '[ "$rc" = 1 ] && has "anchor       en/faq.md:$line: quickstart.md#instal" && has "anchor       en/faq.md:$line: quickstart.md#Install" && ! has "anchor       en/quickstart.md"'
+check "a link to a missing heading on the same page is reported" 'has "anchor       en/faq.md:$line: #faqs"'
+check "the summary counts a link to a missing heading and says how to fix it" \
+  'printf "%s\n" "$out" | tail -1 | grep -q ", 3 broken" && printf "%s\n" "$out" | grep -qE "^  anchor +\S"'
+
+case_copy outside
+outside_readme
+printf '\nSee [Install](../../README.md#install) and [Start](../../README.md#getting-started).\n' >> "$C/docs/en/faq.md"
+out="$(run_check)"
+check "a link to a missing heading of a page outside the docs folder is reported" \
+  'has "anchor       en/faq.md:" && has "../../README.md#install" && ! has "../../README.md#getting-started"'
+
+case_copy above
+printf '# Outside\n' > "$T/outside.md"
+printf '\nSee [Outside](../../../outside.md#nowhere).\n' >> "$C/docs/en/faq.md"
+out="$(run_check)"
+check "a heading outside the folder above the docs folder is not checked" \
+  '! has "outside.md#nowhere" && printf "%s\n" "$out" | tail -1 | grep -q ", 0 broken"'
+
+case_copy notmarkdown
+printf 'print("acme")\n' > "$C/script.py"
+printf '\nSee [the flow](../assets/coupon.svg#frame) and [line 1](../../script.py#L1).\n' >> "$C/docs/en/faq.md"
+out="$(run_check)"
+check "an anchor on a file that is not Markdown is not checked" \
+  '! printf "%s\n" "$out" | grep -q "^anchor" && printf "%s\n" "$out" | tail -1 | grep -q ", 0 broken"'
 
 # --- translated refuses what does not match
 case_copy refuse; printf '\n## Extra\n' >> "$C/docs/de/faq.md"
@@ -581,6 +667,20 @@ check "SKILL.md never puts a real API key in a page" \
 check "SKILL.md sends requests only to a copy of the service on the user's machine" \
   'grep -q "only to a copy the project starts on this machine" "$SKILL" && grep -q "never to the hosted service" "$SKILL"'
 
+# An existing docs folder when the user cannot be asked (#237).
+plan_step="$(awk '/^### 3\. Agree on the plan/{f=1; next} /^### /{f=0} f' "$SKILL")"
+unasked="$(printf '%s\n' "$plan_step" | grep -i "cannot be asked")"
+unasked_says() { printf '%s\n' "$unasked" | grep -qiF -- "$1"; }
+check "SKILL.md uses an existing docs folder when the dry run lists every file as new" \
+  'unasked_says "docs/" && unasked_says "every file as \`new\`" && unasked_says "use \`docs/\`" && unasked_says "report"'
+check "SKILL.md writes nothing into an existing docs folder when the dry run keeps a file" \
+  'unasked_says "\`kept\`" && unasked_says "write nothing"'
+
+unreleased="$(awk '/^## \[Unreleased\]/{f=1; next} /^## /{f=0} f' "$PLUGIN/CHANGELOG.md")"
+unreleased_line() { printf '%s\n' "$unreleased" | grep '^- ' | grep -i -- "$1" | grep -qi -- "$2"; }
+check "the changelog has a line for each change of #237" \
+  'unreleased_line "order of the plan" "scaffold" && unreleased_line "heading" "check" && unreleased_line "cannot be asked" "docs/"'
+
 # descriptions: every place that says what the plugin does, one text per line.
 descriptions() {
   sed -n 's/^description: //p' "$SKILL"
@@ -614,6 +714,15 @@ names_all_three() {
 check "every description names libraries, command-line tools, and web services" "names_all_three"
 check "no description limits the skill to open source projects" \
   '! descriptions | grep -qiE "open[ -]source" && ! descriptions | grep -qF "$ja_open_source" && ! jq -r ".keywords[]" "$PLUGIN/.claude-plugin/plugin.json" "$PLUGIN/.codex-plugin/plugin.json" | grep -qi "open-source"'
+
+# check reads the Markdown files outside the docs folder that the pages link to with an anchor (#237).
+# The Japanese words for "heading" and "outside the folder", from code points.
+ja_heading="$(ja_word 898b 51fa 3057)"
+ja_outside="$(ja_word 30d5 30a9 30eb 30c0 306e 5916)"
+says_reads_outside() { grep -i "headings" "$1" | grep -qi "outside the docs folder"; }
+says_reads_outside_ja() { grep -F "$ja_heading" "$1" | grep -qF "$ja_outside"; }
+check "the READMEs and how-it-works say check reads the headings of linked Markdown outside the docs folder" \
+  'says_reads_outside "$PLUGIN/README.md" && says_reads_outside "$PLUGIN/docs/how-it-works.md" && says_reads_outside_ja "$PLUGIN/README.ja.md" && says_reads_outside_ja "$PLUGIN/docs/how-it-works.ja.md"'
 
 # --- check says how to fix what it lists, so the SKILL.md does not need a table of problems
 case_copy fixlines
