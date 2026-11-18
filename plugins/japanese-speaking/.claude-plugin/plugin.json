@@ -1,0 +1,21 @@
+{
+  "name": "japanese-speaking",
+  "displayName": "Japanese Speaking",
+  "version": "0.1.0",
+  "description": "Write Japanese that sounds like people talking, not reading lines, for podcast and radio dialogue, a news item one host reads and both discuss, interviews, narration, and talk scripts, checked by a script and a fresh reader before you use it",
+  "author": {
+    "name": "cardene777",
+    "url": "https://github.com/cardene777"
+  },
+  "homepage": "https://github.com/cardene777/agent-shuriken/tree/main/plugins/japanese-speaking",
+  "repository": "https://github.com/cardene777/agent-shuriken",
+  "license": "MIT",
+  "keywords": [
+    "japanese",
+    "writing",
+    "podcast",
+    "script",
+    "dialogue",
+    "speech"
+  ]
+}

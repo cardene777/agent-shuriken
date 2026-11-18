@@ -5,6 +5,9 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- Every command stops without a traceback and exits 141 when the reader closes the output pipe, as in `portman.py doctor | head -1`, and `remove --confirm` and `apply --confirm` finish writing their changes before they print anything
+- The refusals for a registry that cannot be read or used print its path with the home folder shortened to `~`, like the other messages, instead of the full path with the account name
+
 ## [0.3.0] - 2026-11-16
 
 - When the socket test is refused, as inside a sandbox, `list` and `check` show the ports that `lsof` does not see as `unknown` instead of `free`, `doctor` lists them under `[Not tested]`, and `suggest` says that its ports could not be tested

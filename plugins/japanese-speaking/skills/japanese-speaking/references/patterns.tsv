@@ -1,0 +1,8 @@
+name	pattern	except	description
+particle-ending	[をにへとがの]。$	(ます|です|ました|でした)(ね|よ|よね)?、|^(確かに|本当に|まさに|特に|さらに|ちなみに|ついに|すぐに|一緒に|ほかに|次に|最後に|最初に)。$	The sentence stops on a particle, like a note. Finish it with a predicate, or keep the clause after a full predicate as an inversion
+clipped-question	(ません|ないです|でした|ます|です)[？?]$		The polite question drops か. Say ませんか？ or ですか？
+quiz-question	(というのは|とは|って)、?(どういう|何|なん)[^。？?]*(ですか|でしょうか)[？?。]?$		One speaker quizzes another on a term like an expert. Let the speaker who knows explain it while talking
+casual-contraction	ちゃ[うっいお]|じゃ[うっ]|じゃあ|もんね|っす|(?<![てで])みたいです		A casual contraction. Use the full polite form: てしまう, では, ですよね, ようです
+written-style	(である|であろう|のだ)[。？?]|(あり|(?<!と)おり)、|における		A written-style phrase. Say it the way people talk: です, で, ていて, あって, での
+unhedged-source	(によると|によれば)|(ドキュメント|論文|調査|報告書|記事|資料|発表)(では|には|にも|でも|で)、	(ようです|らしいです|とのことです|ということです|としています|と書かれ|と書いて|と(述べ|言っ|説明し|結論付け|報告し|発表し)|そうです|そうなんです)	The sentence names a source and then states the claim as fact. Pass it on as reported: ようです, ということです, と書かれています
+vague-source	手引き|(?<![てで])ある(記事|調査|資料)|とある(記事|資料|調査|研究)|某		The source is named vaguely. Say what it is: the official documentation, a paper by a named team, a news article in a named outlet
