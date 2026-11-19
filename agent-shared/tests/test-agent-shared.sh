@@ -576,7 +576,7 @@ PY
 
 placed_other_source() {
   fresh placed-other
-  # The shape of ikkan studio's folder: skills only, an empty rules folder, and no hooks.
+  # The shape of an app's own folder: skills only, an empty rules folder, and no hooks.
   SRC="$T/source-other"
   mkdir -p "$SRC/skills/gamma" "$SRC/rules"
   printf -- '---\nname: gamma\ndescription: Gamma.\n---\nGamma.\n' > "$SRC/skills/gamma/SKILL.md"

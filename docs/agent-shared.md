@@ -134,21 +134,21 @@ A name the table does not have, and a call without `--agent`, end with exit stat
 It writes nothing, so an app that deploys its own folder, such as ikkan-studio, can list what each agent got without keeping a second copy of where each agent keeps its files.
 
 ```
-agent-shared placed --source ~/.ikkan/userdata/shared
+agent-shared placed --source ~/apps/my-tool/.shared
 agent-shared placed --source ~/.shared
 ```
 
 ```json
 {
-  "source": "/path/to/home/.ikkan/userdata/shared",
+  "source": "/path/to/apps/my-tool/.shared",
   "agents": {
     "Claude Code": {
-      "skills": ["ikkan", "ikkan-run"],
+      "skills": ["review", "release-notes"],
       "rules": ["writing.md"],
-      "hooks": [{"event": "PreToolUse", "matcher": "Bash", "command": "bash /path/to/home/.ikkan/userdata/shared/hooks/guard.sh"}]
+      "hooks": [{"event": "PreToolUse", "matcher": "Bash", "command": "bash /path/to/apps/my-tool/.shared/hooks/guard.sh"}]
     },
     "Codex": {
-      "skills": ["ikkan", "ikkan-run"],
+      "skills": ["review", "release-notes"],
       "rules": ["writing.md"],
       "hooks": []
     }

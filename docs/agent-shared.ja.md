@@ -134,21 +134,21 @@ agent-shared hooks --agent Codex --source ~/work/team-shared
 何も書かないので、ikkan-studioのように自分のフォルダーを配るアプリは、各エージェントの置き場をもう1か所に持たずに、各エージェントへ何が置かれたかを一覧にできます。
 
 ```
-agent-shared placed --source ~/.ikkan/userdata/shared
+agent-shared placed --source ~/apps/my-tool/.shared
 agent-shared placed --source ~/.shared
 ```
 
 ```json
 {
-  "source": "/path/to/home/.ikkan/userdata/shared",
+  "source": "/path/to/apps/my-tool/.shared",
   "agents": {
     "Claude Code": {
-      "skills": ["ikkan", "ikkan-run"],
+      "skills": ["review", "release-notes"],
       "rules": ["writing.md"],
-      "hooks": [{"event": "PreToolUse", "matcher": "Bash", "command": "bash /path/to/home/.ikkan/userdata/shared/hooks/guard.sh"}]
+      "hooks": [{"event": "PreToolUse", "matcher": "Bash", "command": "bash /path/to/apps/my-tool/.shared/hooks/guard.sh"}]
     },
     "Codex": {
-      "skills": ["ikkan", "ikkan-run"],
+      "skills": ["review", "release-notes"],
       "rules": ["writing.md"],
       "hooks": []
     }
