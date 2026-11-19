@@ -6,7 +6,11 @@ description: Designs wallets and signing, asking the decisions one at a time and
 # Wallet design
 
 Turn an app's wallet and signing needs into one design document that the solidity-code and contract-tests skills can build on.
-Talk to the user in the language they write in, and write the design in that language, keeping the nine section headings in English, since the script reads them.
+Talk to the user in the language they write in, and write the design in that language, keeping the section headings in English, since `verify` reads them.
+
+Write in the `design` format of the `design-doc` skill: open the `design-doc` skill by name and read the file it names for `design`.
+If the `musubi` command is available, run `musubi check` before reading, and stop if it fails.
+If the `design-doc` skill is not installed, do not start: tell the user that `design-doc` is missing and how to install it, then stop.
 
 The script is `scripts/wallet-design.py` next to this `SKILL.md`.
 Run it as a shell command, `python3 <folder of this SKILL.md>/scripts/wallet-design.py <command>`; `--help` describes every command.
@@ -35,7 +39,7 @@ When you cannot ask, take the recommended choice and record it under Open decisi
 
 ## 3. Write the design
 
-Copy `templates/design.md` into the project, to `docs/design/<topic>.md` unless the user or project names another place, and replace every `Fill in:` line.
+Write the design in that format, to `docs/design/<topic>.md` unless the user or project names another place: put the sections of `templates/sections.md` where the format says, and replace every `Fill in:` line.
 Put every decision and assumption in Open decisions, never in two places.
 Write in Accounts the account contract, the EntryPoint version, and the date you checked each service.
 
@@ -47,7 +51,7 @@ The checklist holds the rest.
 
 ## 4. Check the design
 
-Run `verify` on the design: `verify <design file>`.
+Run `verify` from the `design-doc` skill, the file it names for `verify`, as a shell command: `python3 <that file> verify --sections <folder of this SKILL.md>/templates/sections.md --dated "Accounts" <design file>`.
 It names each missing, misplaced, empty, or unfinished section, and an undated Accounts section; fix each and run it again.
 Then go through `references/checklist.md` and fix every rule the design breaks. Tell the user which rules you could not judge, and list the open decisions.
 

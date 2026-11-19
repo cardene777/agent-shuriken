@@ -2,7 +2,7 @@
 # but asks for no design, so the design skill must not start.
 schema_version: "1.1"
 name: wallet-design-unrelated-request
-plugins: ["../.."]
+plugins: ["../..", "../../../doc-formats"]
 execution:
   prompt: |
     In src/wallet.ts, which chain does connectWallet switch the wallet to? Answer in one sentence.

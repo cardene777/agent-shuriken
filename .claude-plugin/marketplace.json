@@ -31,6 +31,11 @@
       "description": "Write an explainer as one HTML file with a figure drawn in every section, built from JSON and checked before you share it"
     },
     {
+      "name": "doc-formats",
+      "source": "./plugins/doc-formats",
+      "description": "Shared document formats that other skills follow, starting with the format of a design document and a script that checks every section is filled in"
+    },
+    {
       "name": "docs-publish",
       "source": "./plugins/docs-publish",
       "description": "Write the documentation of a library, command-line tool, or web service you build, public or private, in five parts, Quickstart, Concepts, API reference, Cookbook, and FAQ, in English and a second language you pick, with every page's translation and every relative link checked"

@@ -2,7 +2,7 @@
 # asks for no design, so the design skill must not start.
 schema_version: "1.1"
 name: architecture-unrelated-request
-plugins: ["../.."]
+plugins: ["../..", "../../../doc-formats"]
 execution:
   prompt: |
     In contracts/Market.sol, what does the whenNotPaused modifier do, and who can turn it on? Answer in two sentences.

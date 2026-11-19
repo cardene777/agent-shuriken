@@ -10,6 +10,9 @@
   "homepage": "https://github.com/cardene777/agent-shuriken/tree/main/plugins/evm-dev",
   "repository": "https://github.com/cardene777/agent-shuriken",
   "license": "MIT",
+  "dependencies": [
+    "doc-formats"
+  ],
   "keywords": [
     "ethereum",
     "evm",

@@ -38,6 +38,9 @@ Versions are not changed in these pull requests.
 3. Run `bash scripts/release.sh <name> X.Y.Z --dry-run` and read the notes and assets it prints
 4. Run `bash scripts/release.sh <name> X.Y.Z`
 
+Before releasing doc-formats or evm-dev, run `musubi check plugins/doc-formats/skills plugins/evm-dev/skills` from the root of this repository with the musubi command of your local musubi checkout, and release only when it prints `ok`.
+When the design format or `verify` of `design-doc` changed, check each design skill against the change first, then run the same command with `--update` and commit the new fingerprints.
+
 The script refuses unless it runs on an up-to-date `main` with a clean working tree, `scripts/check.sh` passes, and the version matches the plugin's changelog and manifests.
 It then tags `<name>--vX.Y.Z`, pushes the tag, and creates a GitHub release with the changelog section as notes and two zips:
 

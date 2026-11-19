@@ -6,7 +6,7 @@
 # rate-limited public IPFS gateways).
 schema_version: "1.1"
 name: nft-marketplace-architecture
-plugins: ["../.."]
+plugins: ["../..", "../../../doc-formats"]
 execution:
   prompt: |
     Plan the architecture of this marketplace dApp: the parts, who sends and pays for each transaction, how the app reads chain data, where data lives, the environments, the admin keys, and monitoring. Write the design to docs/design/marketplace-architecture.md. Do not ask me questions; decide, and write down your assumptions.

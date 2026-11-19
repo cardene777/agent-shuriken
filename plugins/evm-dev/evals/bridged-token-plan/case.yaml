@@ -5,7 +5,7 @@
 # delivered can be recovered.
 schema_version: "1.1"
 name: bridged-token-plan
-plugins: ["../.."]
+plugins: ["../..", "../../../doc-formats"]
 execution:
   prompt: |
     Plan how PEARL moves between Ethereum and Base: the bridge or message protocol and how its messages are verified, how the supply stays correct, what happens when only one side completes, the limits, and who can pause it. Write the design to docs/design/pearl-multichain.md. Do not ask me questions; decide, and write down your assumptions.

@@ -1,9 +1,3 @@
-# Fill in: the name of the app and of this wallet design
-
-Fill in: one paragraph on who holds which accounts, what they sign and pay for, and what this design leaves out.
-
-Each section decides one part and points to the others instead of repeating them. Open decisions holds every decision, assumption, and open question; other sections link to it.
-
 ## Purpose and users
 
 Fill in: who uses the wallets (end users, operators, administrators, AI agents), what each does with them, the assets involved, and what is out of scope.
@@ -43,7 +37,3 @@ Fill in: how an agent's permission is revoked, how its payments are recorded and
 
 Fill in: the chains and their chain IDs for each environment (local, test network, mainnet), the account, EntryPoint, and service addresses on each, and how a signature for one chain is kept from being used on another.
 Fill in: which keys, accounts, and sponsors are separate in each environment.
-
-## Open decisions
-
-Fill in: each open question and assumption, the candidates, what it affects, who decides, and by when or under what condition.

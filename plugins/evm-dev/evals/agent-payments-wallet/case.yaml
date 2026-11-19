@@ -4,7 +4,7 @@
 # payees.
 schema_version: "1.1"
 name: agent-payments-wallet
-plugins: ["../.."]
+plugins: ["../..", "../../../doc-formats"]
 execution:
   prompt: |
     Design how the agent's wallet holds funds, signs, and pays: the account, where its key lives, the limits on what it can spend and to whom, and how a person stops it. Write the design to docs/design/agent-wallet.md. Do not ask me questions; decide, and write down your assumptions.

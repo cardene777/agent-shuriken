@@ -2,7 +2,7 @@
 # belongs to evm-standards, so the design skill must not start.
 schema_version: "1.1"
 name: standards-unrelated-request
-plugins: ["../.."]
+plugins: ["../..", "../../../doc-formats"]
 execution:
   prompt: |
     Is ERC-3643 a final ERC? Answer in one sentence.

@@ -41,9 +41,11 @@ financial-standards:  Read the items ──> Ask the decisions ──> Write the
 
 codex plugin marketplace add cardene777/agent-shuriken   # Codex
 codex plugin add evm-dev@agent-shuriken
+codex plugin add doc-formats@agent-shuriken
 
 copilot plugin marketplace add cardene777/agent-shuriken # GitHub Copilot CLI
 copilot plugin install evm-dev@agent-shuriken
+copilot plugin install doc-formats@agent-shuriken
 
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/evm-standards   # Gemini CLI
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/solidity-code
@@ -55,8 +57,11 @@ gemini skills install https://github.com/cardene777/agent-shuriken.git --path pl
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/multichain-design
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/dapp-architecture
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/financial-standards
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/doc-formats/skills/design-doc
 ```
 
+The five design skills write in the design format of the `design-doc` skill in the [doc-formats](../doc-formats) plugin.
+Claude Code installs doc-formats with evm-dev; in Codex, GitHub Copilot CLI, and Gemini CLI, install it with the lines above that name it.
 In other agents that read `SKILL.md`, unzip the skill zip attached to each release into the agent's skills folder, as [Getting started](../../docs/getting-started.md#install-without-the-marketplace) shows.
 
 ## Use
@@ -234,7 +239,7 @@ opcodes: 3 opcodes the shanghai EVM lacks in 1 contract
 
 1. The agent lists the items on proxies, access control, price feeds, randomness, private relays, and token handling, and re-checks the ones that are out of date
 2. The agent asks the decisions one at a time, each with a recommended choice: what the contracts must do and the limits that must hold, the tokens and their standards, who holds each role, whether the contracts are upgradeable, and where prices and randomness come from. When it cannot ask, it takes the recommended choice and records it as an assumption
-3. The agent copies the template into your project, `docs/design/<topic>.md` by default, and fills in its nine sections: purpose and scope, contracts, token standards, state and invariants, roles and governance, upgrades, prices, ordering, and randomness, external calls and failures, and open decisions
+3. The agent writes the design in the design format of `design-doc` into your project, `docs/design/<topic>.md` by default, and fills in its nine sections: purpose and scope, contracts, token standards, state and invariants, roles and governance, upgrades, prices, ordering, and randomness, external calls and failures, and open decisions
 4. The agent checks the sections and reviews the design against the checklist, then tells you the rules it could not judge and the open decisions
 
 The items look like this.
@@ -259,7 +264,7 @@ contract-design: 2 problems; fill in or add each section named above
 
 1. The agent lists the items on EntryPoint versions, EIP-7702 delegation, wallet permissions, Permit2, paymaster services, and x402, and re-checks the ones that are out of date
 2. The agent asks the decisions one at a time, each with a recommended choice: who uses the wallets and the limits that must hold, which kind of account each user or agent holds, who holds each key and how a lost key is recovered, what users sign and approve, and who pays gas and how AI agents pay. When it cannot ask, it takes the recommended choice and records it as an assumption
-3. The agent copies the template into your project, `docs/design/<topic>.md` by default, and fills in its nine sections: purpose and users, accounts, keys and recovery, signatures and permissions, approvals, gas and sponsorship, agent payments, chains and environments, and open decisions
+3. The agent writes the design in the design format of `design-doc` into your project, `docs/design/<topic>.md` by default, and fills in its nine sections: purpose and users, accounts, keys and recovery, signatures and permissions, approvals, gas and sponsorship, agent payments, chains and environments, and open decisions
 4. The agent checks the sections and reviews the design against the checklist, then tells you the rules it could not judge and the open decisions
 
 The items look like this.
@@ -284,7 +289,7 @@ wallet-design: 2 problems; fill in or add each section named above
 
 1. The agent lists the items on CREATE2 factories, Circle's CCTP, LayerZero's verifier configuration, Chainlink's Cross-Chain Token standard, and Superchain interop, and re-checks the ones that are out of date
 2. The agent asks the decisions one at a time, each with a recommended choice: which chains and what moves between them, which contracts need the same address, which chain issues each asset, which protocol carries messages and who verifies them, and what happens when only one side completes. When it cannot ask, it takes the recommended choice and records it as an assumption
-3. The agent copies the template into your project, `docs/design/<topic>.md` by default, and fills in its nine sections: purpose and chains, deployment and addresses, assets across chains, messages and verification, partial failures, roles and limits, fees and gas, monitoring and environments, and open decisions
+3. The agent writes the design in the design format of `design-doc` into your project, `docs/design/<topic>.md` by default, and fills in its nine sections: purpose and chains, deployment and addresses, assets across chains, messages and verification, partial failures, roles and limits, fees and gas, monitoring and environments, and open decisions
 4. The agent checks the sections and reviews the design against the checklist, then tells you the rules it could not judge and the open decisions
 
 The items look like this.
@@ -309,7 +314,7 @@ multichain-design: 2 problems; fill in or add each section named above
 
 1. The agent lists the items on indexers, relayers, automation, monitoring, testnets, multisigs, and storage, and re-checks the ones that are out of date
 2. The agent asks the decisions one at a time, each with a recommended choice: the users and chains, who sends each transaction and pays the gas, how the app reads chain data, what is stored where, who holds the admin roles, and which services the team runs itself. When it cannot ask, it takes the recommended choice and records it as an assumption
-3. The agent copies the template into your project, `docs/design/<topic>.md` by default, and fills in its nine sections: purpose and users, components, transactions and gas, reading chain data, data placement, environments, keys and admin, monitoring and operations, and open decisions
+3. The agent writes the design in the design format of `design-doc` into your project, `docs/design/<topic>.md` by default, and fills in its nine sections: purpose and users, components, transactions and gas, reading chain data, data placement, environments, keys and admin, monitoring and operations, and open decisions
 4. The agent checks the sections and reviews the design against the checklist, then tells you the rules it could not judge and the open decisions
 
 The items look like this.
@@ -335,7 +340,7 @@ dapp-architecture: 2 problems; fill in or add each section named above
 
 1. The agent lists the items on the standards' versions, and re-checks the ones that are out of date
 2. The agent asks the decisions one at a time, each with a recommended choice: the standard and its profile, the business flow, the chain, what goes on chain and who signs it, where legal finality sits, and whether assets are tokenized. When it cannot ask, it takes the recommended choice and records it as an assumption
-3. The agent copies the template into your project, `docs/design/<topic>.md` by default, and fills in its nine sections: standard and business, application, data and storage, on-chain, off-chain, integration, security and operations, verification and delivery, and open decisions
+3. The agent writes the design in the design format of `design-doc` into your project, `docs/design/<topic>.md` by default, and fills in its nine sections: standard and business, application, data and storage, on-chain, off-chain, integration, security and operations, verification and delivery, and open decisions
 4. The agent checks the sections and reviews the design against the checklist, then tells you the rules it could not judge and the open decisions
 
 The items look like this.

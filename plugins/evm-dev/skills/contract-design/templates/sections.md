@@ -1,9 +1,3 @@
-# Fill in: the name of the contracts and of this design
-
-Fill in: one paragraph on what these contracts do, what assets they hold, and what this design leaves out.
-
-Each section decides one part and points to the others instead of repeating them. Open decisions holds every decision, assumption, and open question; other sections link to it.
-
 ## Purpose and scope
 
 Fill in: what the contracts do, who uses them (users, operators, administrators, other contracts), the assets they hold, the chains they run on, and what is out of scope.
@@ -44,7 +38,3 @@ Fill in: what is left out because no price, ordering, or randomness is involved.
 
 Fill in: every call to another contract or token, the order of checks, state changes, and calls, protection against reentrancy, and whether funds are pushed or pulled.
 Fill in: what happens when a call fails or runs out of gas, the limits on loops and array sizes, and which functions anyone can call to move the system forward.
-
-## Open decisions
-
-Fill in: each open question and assumption, the candidates, what it affects, who decides, and by when or under what condition.

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Design Doc"
+  short_description: "The shared format of a design document and the script that checks one, for skills that write designs"
+  default_prompt: "Use $design-doc to check that this design has every section filled in."
+
+policy:
+  allow_implicit_invocation: true

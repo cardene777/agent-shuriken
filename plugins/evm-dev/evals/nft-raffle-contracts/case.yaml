@@ -4,7 +4,7 @@
 # when the case was written is chosen to run the draw.
 schema_version: "1.1"
 name: nft-raffle-contracts
-plugins: ["../.."]
+plugins: ["../..", "../../../doc-formats"]
 execution:
   prompt: |
     Design the raffle contract before we write it: its state and invariants, the roles, whether it is upgradeable, how the winner is drawn and what triggers the draw, and how refunds work. Write the design to docs/design/raffle.md. Do not ask me questions; decide, and write down your assumptions.

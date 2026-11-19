@@ -1,0 +1,16 @@
+{
+  "musubi": "2026-11-19",
+  "follows": {
+    "design-doc/design": {
+      "version": "^1.0.0",
+      "integrity": "sha256-2eOcptAjjHiVoyWBfNY14lbuQtP5u65Kzg924ceSjmI=",
+      "examples": [
+        "examples/invoice-settlement.md"
+      ]
+    },
+    "design-doc/verify": {
+      "version": "^1.0.0",
+      "integrity": "sha256-u4FNTYMTojH1ecwdfCsIgtNILJ6wVM8CZ4ejFFY1jGA="
+    }
+  }
+}

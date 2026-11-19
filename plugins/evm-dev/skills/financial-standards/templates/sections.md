@@ -1,9 +1,3 @@
-# Fill in: the name of the design
-
-Fill in: one paragraph on what this design lets the team build, what it covers, and what it leaves out.
-
-Each section decides one part of the implementation and points to the others instead of repeating them. Open decisions holds every decision, assumption, and open question; other sections link to it.
-
 ## Standard and business
 
 Fill in: the standard, its version, the profile or usage guideline (for example CBPR+ and its release), the messages or data model used, and the date each was checked against the official source, written as YYYY-MM-DD.
@@ -46,7 +40,3 @@ Fill in: change management, key revocation, disputes, corrections, cancellations
 
 Fill in: the acceptance criteria for conformance to the standard and profile, data formats, storage in the database, protected storage, and contracts, signatures and permissions, each boundary, recovery from failures, and a minimal end-to-end flow.
 Fill in: the build order and dependencies, environments, release, migration of existing data and messages, validation of older versions, and rollback.
-
-## Open decisions
-
-Fill in: each open question and assumption, the candidates, what it affects, who decides, and by when or under what condition.

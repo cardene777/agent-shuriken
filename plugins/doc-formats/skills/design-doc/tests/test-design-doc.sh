@@ -229,7 +229,9 @@ ids_design() {
   python3 - "$f" "$cites" "$@" <<'PYEOF'
 import sys
 p, cites, ids = sys.argv[1], sys.argv[2], sys.argv[3:]
-text = open(p, encoding="utf-8").read().replace("SECRET_TEXT_MARKER", "SECRET_TEXT_MARKER " + cites, 1)
+text = open(p, encoding="utf-8").read()
+first = text.index("## Purpose and scope")
+text = text[:first] + text[first:].replace("SECRET_TEXT_MARKER", "SECRET_TEXT_MARKER " + cites, 1)
 rows = "".join("| %s | A decision. SECRET_TEXT_MARKER |\n" % i for i in ids)
 open(p, "w", encoding="utf-8").write(text.rstrip("\n") + "\n\n| ID | Decision |\n|---|---|\n" + rows)
 PYEOF

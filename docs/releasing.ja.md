@@ -39,6 +39,9 @@
 3. `bash scripts/release.sh <name> X.Y.Z --dry-run`を実行し、表示されたリリースノートと添付ファイルを読みます
 4. `bash scripts/release.sh <name> X.Y.Z`を実行します
 
+doc-formatsかevm-devをリリースする前に、手元のmusubiのリポジトリのmusubiの命令で、このリポジトリの根から`musubi check plugins/doc-formats/skills plugins/evm-dev/skills`を実行し、`ok`が出た時だけリリースします。
+`design-doc`の設計書の書式か`verify`を変えた時は、先に各設計のスキルを変更に照らして確かめ、同じ命令に`--update`を付けて実行し、新しい指紋をコミットします。
+
 スクリプトが動くのは、最新の`main`の上で作業ツリーに未コミットの変更が無く、`scripts/check.sh`が通り、バージョンがプラグインの変更履歴とマニフェストに一致する時だけです。
 条件がそろうと、`<name>--vX.Y.Z`のタグを付けてプッシュし、変更履歴の節をリリースノートにしたGitHubのリリースを作って、次の2つのzipを添付します。
 
