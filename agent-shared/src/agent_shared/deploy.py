@@ -508,8 +508,8 @@ def trust_codex_hooks(place):
         server.close()
 
 
-def deploy(extra_sources, repo_argument):
-    """Plans the deployment, refuses before writing when anything is in the way, then writes it. Returns 0."""
+def user_sources(extra_sources):
+    """~/.shared when it exists, then every --source folder once, in the order given."""
     main_path = os.path.join(home(), ".shared")
     sources = [Source(main_path)] if os.path.isdir(main_path) else []
     for path in extra_sources:
@@ -518,12 +518,54 @@ def deploy(extra_sources, repo_argument):
             raise Usage("the source folder {} does not exist".format(shown(path)))
         if source_id(path) not in {source.id for source in sources}:
             sources.append(Source(path))
+    return sources
+
+
+def agent_table():
+    main_path = os.path.join(home(), ".shared")
+    return load_table(os.path.join(main_path, "agents.json") if os.path.isdir(main_path) else None)
+
+
+def agent_hook_groups(declared, agent_name):
+    """The groups deploy adds to one agent's hook file, by event, and the (event, command) pairs they carry.
+    Each declared hook goes in its own copy of its group, with the source's mark on a last line of its command."""
+    groups, commands = {}, set()
+    for source, event, bare, hook, tools in declared:
+        if tools is not None and agent_name not in tools:
+            continue
+        commands.add((event, hook["command"]))
+        marked = dict(hook, command=hook["command"] + "\n" + MARK + source.id)
+        groups.setdefault(event, []).append(dict(bare, hooks=[marked]))
+    return groups, commands
+
+
+def hooks(agent_name, extra_sources):
+    """Prints, as JSON, the hook groups deploy would add to the agent's hook file. Writes nothing. Returns 0."""
+    sources = user_sources(extra_sources)
+    if not sources:
+        raise Usage("there are no hooks to print: create ~/.shared, or pass --source")
+    table = agent_table()
+    agent_names = [row["name"] for row in table]
+    if agent_name not in agent_names:
+        raise Usage("the agent {} is not in the agent table (agents: {})".format(agent_name, ", ".join(agent_names)))
+    row = next(row for row in table if row["name"] == agent_name)
+    groups = {}
+    if "hooks" in row:
+        declared = [(source,) + hook for source in sources for hook in source.hooks(agent_names)]
+        groups, _commands = agent_hook_groups(declared, agent_name)
+    print(json.dumps({"hooks": groups}, ensure_ascii=False, indent=2))
+    return 0
+
+
+def deploy(extra_sources, repo_argument):
+    """Plans the deployment, refuses before writing when anything is in the way, then writes it. Returns 0."""
+    sources = user_sources(extra_sources)
     repo_root = find_repo(repo_argument)
     repo = Source(os.path.join(repo_root, ".shared")) if repo_root else None
     if not sources and repo is None:
         raise Usage("there is nothing to deploy: create ~/.shared, or pass --source or --repo")
 
-    table = load_table(os.path.join(main_path, "agents.json") if os.path.isdir(main_path) else None)
+    table = agent_table()
     agent_names = [row["name"] for row in table]
     record = Record()
     run = sources + ([repo] if repo else [])
@@ -568,12 +610,10 @@ def deploy(extra_sources, repo_argument):
         if "hooks" in row:
             place = expand(row["hooks"]["file"])
             entry = hook_files.setdefault(place, {"trust": row["hooks"].get("trust"), "groups": {}, "commands": set()})
-            for source, event, bare, hook, tools in declared:
-                if tools is not None and row["name"] not in tools:
-                    continue
-                entry["commands"].add((event, hook["command"]))
-                marked = dict(hook, command=hook["command"] + "\n" + MARK + source.id)
-                entry["groups"].setdefault(event, []).append(dict(bare, hooks=[marked]))
+            groups, commands = agent_hook_groups(declared, row["name"])
+            entry["commands"] |= commands
+            for event, added in groups.items():
+                entry["groups"].setdefault(event, []).extend(added)
         if repo and isinstance(row.get("repo_skills"), str):
             base = os.path.join(repo_root, row["repo_skills"])
             for name, path in repo.skills().items():

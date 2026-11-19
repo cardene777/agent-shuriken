@@ -114,6 +114,20 @@ The agent lists each skill once, and the plugin you chose to install keeps worki
 `<id>` is the first 12 hex digits of the SHA-256 of the source folder's real path.
 Hooks you wrote by hand, skills you placed yourself, and the lines of `AGENTS.md` outside the block keep their bytes.
 
+## Printing the hooks it places
+
+`agent-shared hooks` prints, as JSON, the hook groups `deploy` adds to one agent's hook file, with the mark and the source folder filled in.
+It writes nothing, so a guard that stops settings from being weakened can compare the agent's hook file with it instead of building the hooks a second way.
+
+```
+agent-shared hooks --agent "Claude Code"
+agent-shared hooks --agent Codex --source ~/work/team-shared
+```
+
+It reads the same sources as `deploy`: `~/.shared` and every `--source` folder.
+`--agent` takes a name from the agent table, and a hook whose `tools` leave that agent out is not printed.
+A name the table does not have, and a call without `--agent`, end with exit status 2 and print nothing.
+
 ## When it refuses
 
 The command checks the whole change first, and when anything is in the way it writes nothing, prints each reason, and exits 1.

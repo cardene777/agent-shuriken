@@ -50,6 +50,7 @@ GitHub Copilot CLI and Gemini CLI read the skills in `~/.agents/skills` too.
 Skills and rules are links to the one copy in `~/.shared`, so an edit reaches every agent at once.
 A repository can keep its own skills in `.shared/skills`, and running `agent-shared deploy` inside it links them into the repository's `.claude/skills` and `.agents/skills`.
 Running the command again places what is new and removes only what it placed before, and it never sends anything over the network.
+`agent-shared hooks --agent <name>` prints the hooks `deploy` places for one agent and writes nothing, so a guard can compare an agent's hook file with it.
 [agent-shared](docs/agent-shared.md) explains every place it writes and every refusal.
 
 ## Plugins
