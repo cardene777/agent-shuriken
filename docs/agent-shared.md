@@ -97,7 +97,7 @@ The agent lists each skill once, and the plugin you chose to install keeps worki
 
 | Kind | Paths |
 |---|---|
-| Reads | The source folders, `~/.claude/plugins/installed_plugins.json`, `enabledPlugins` in `~/.claude/settings.json`, `~/.codex/config.toml`, and the skill folders under `~/.codex/plugins/cache` |
+| Reads | The source folders, `~/.claude/plugins/installed_plugins.json`, `enabledPlugins` in `~/.claude/settings.json`, `~/.codex/config.toml`, and the skill folders under `~/.codex/plugins/cache`. `placed` reads only the record and the places in the agent table |
 | Writes | The places in the agent table, only for what it placed itself |
 | Keeps | `~/.local/share/agent-shared/placed.json`, readable only by you, which names each link it placed. `AGENT_SHARED_STATE` moves the folder |
 | Runs | `codex app-server`, to write Codex's trust for the hooks it placed. `AGENT_SHARED_CODEX_BIN` names another `codex` command |
@@ -127,6 +127,48 @@ agent-shared hooks --agent Codex --source ~/work/team-shared
 It reads the same sources as `deploy`: `~/.shared` and every `--source` folder.
 `--agent` takes a name from the agent table, and a hook whose `tools` leave that agent out is not printed.
 A name the table does not have, and a call without `--agent`, end with exit status 2 and print nothing.
+
+## Listing what a source placed
+
+`agent-shared placed` prints, as JSON, the skills, rules, and hooks one source folder placed in each agent and that are still there.
+It writes nothing, so an app that deploys its own folder, such as ikkan-studio, can list what each agent got without keeping a second copy of where each agent keeps its files.
+
+```
+agent-shared placed --source ~/.ikkan/userdata/shared
+agent-shared placed --source ~/.shared
+```
+
+```json
+{
+  "source": "/path/to/home/.ikkan/userdata/shared",
+  "agents": {
+    "Claude Code": {
+      "skills": ["ikkan", "ikkan-run"],
+      "rules": ["writing.md"],
+      "hooks": [{"event": "PreToolUse", "matcher": "Bash", "command": "bash /path/to/home/.ikkan/userdata/shared/hooks/guard.sh"}]
+    },
+    "Codex": {
+      "skills": ["ikkan", "ikkan-run"],
+      "rules": ["writing.md"],
+      "hooks": []
+    }
+  }
+}
+```
+
+| Field | Meaning |
+|---|---|
+| `source` | The full path of the source folder |
+| `agents` | Every agent in the agent table, in the table's order, each with `skills`, `rules`, and `hooks` |
+| `skills` | The names of the skill links the source placed for that agent that still point where they were placed |
+| `rules` | The file names of the rule links, or of the rules in the source's block of the rules file |
+| `hooks` | Each hook with the source's mark: its `event`, the group's `matcher` when the group has one, and its `command` without the mark |
+
+`--source` names one folder, and only what that folder placed is printed.
+A skill that a plugin already has was never placed for that agent, so it is not listed.
+A link you removed or pointed elsewhere, and a hook without the mark, are not listed either.
+A folder that was never deployed lists every agent with empty lists and ends with exit status 0.
+A call without `--source`, a folder that does not exist, a record or hook file that is not JSON, and a broken rules block end with exit status 2 and print nothing.
 
 ## When it refuses
 

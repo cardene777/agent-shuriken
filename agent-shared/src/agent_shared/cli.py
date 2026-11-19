@@ -4,7 +4,7 @@ import argparse
 import sys
 
 from agent_shared import __version__
-from agent_shared.deploy import Refused, Usage, deploy, hooks
+from agent_shared.deploy import Refused, Usage, deploy, hooks, placed
 
 DESCRIPTION = """\
 Deploy the skills, rules, and hooks in ~/.shared (and in a repository's .shared) to Claude Code,
@@ -19,6 +19,16 @@ HOOKS_EPILOG = """\
 exit status:
   0  printed
   2  the command line, a source folder, the agent name, or the agent table could not be used"""
+
+PLACED_DESCRIPTION = """\
+Print, as JSON, the skills, rules, and hooks one source folder placed in each agent of the agent
+table and that are still there. Nothing is written, so an app can list what it deployed without
+keeping a second copy of where each agent keeps its files."""
+
+PLACED_EPILOG = """\
+exit status:
+  0  printed (every agent of the table is named, with empty lists when the source placed nothing)
+  2  the command line, the source folder, the agent table, the record, or an agent's file could not be used"""
 
 EPILOG = """\
 exit status:
@@ -51,17 +61,24 @@ def parser():
                       help='the agent, as named in the agent table (for example "Claude Code" or Codex)')
     show.add_argument("--source", action="append", default=[], metavar="DIR",
                       help="another folder with the .shared layout, read together with ~/.shared")
+    listed = commands.add_parser("placed", help="print what one source placed in each agent, writing nothing",
+                                 description=PLACED_DESCRIPTION, epilog=PLACED_EPILOG,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    listed.add_argument("--source", required=True, metavar="DIR",
+                        help="the source folder whose placed items are printed, for example ~/.shared")
     return top
 
 
 def main(argv=None):
     args = parser().parse_args(argv)
-    if args.command not in ("deploy", "hooks"):
+    if args.command not in ("deploy", "hooks", "placed"):
         parser().print_help()
         return 2
     try:
         if args.command == "hooks":
             return hooks(args.agent, args.source)
+        if args.command == "placed":
+            return placed(args.source)
         return deploy(args.source, args.repo)
     except Refused as error:
         for line in error.lines:

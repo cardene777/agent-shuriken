@@ -11,6 +11,7 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 - The `agent-shared` command, installed with `uv tool install`, which links the skills and rules in `~/.shared` into Claude Code and the agents that read `~/.agents/skills`, writes the rules into `~/.codex/AGENTS.md` and the hooks into both agents' settings with Codex's trust, links a repository's `.shared` skills into its own folders, and removes only what it placed. It is now the main feature of the repository, and the plugins are listed after it
 - Getting started now places Codex skills in `~/.agents/skills` instead of `~/.codex/skills`, which Codex keeps only for older setups
 - `agent-shared hooks --agent <name>`, which prints the hook groups `deploy` adds to one agent's hook file and writes nothing, for a guard to compare with
+- `agent-shared placed --source <folder>`, which prints, as JSON, the skills, rules, and hooks one source folder placed in each agent and that are still there, and writes nothing, for an app to list what it deployed
 - The diagram-composer plugin, which designs the diagram area of a slide with one visual metaphor, a meaning for every connector, and labels kept off the lines, and checks the diagram's geometry with a script before the slide is rendered
 
 ## [0.20.0] - 2026-11-18

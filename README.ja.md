@@ -51,6 +51,7 @@ GitHub Copilot CLIとGemini CLIも、`~/.agents/skills`のスキルを読みま�
 リポジトリは自分のスキルを`.shared/skills`に置けて、その中で`agent-shared deploy`を打つと、そのリポジトリの`.claude/skills`と`.agents/skills`にリンクを置きます。
 もう一度打つと新しい物を置き、前に自分が置いた物だけを外します。ネットワークには何も送りません。
 `agent-shared hooks --agent <名前>`は、`deploy`が1つのエージェントへ置くhookを何も書かずに出すので、見張りはエージェントのhookの置き場とこの出力を比べられます。
+`agent-shared placed --source <フォルダー>`は、1つのフォルダーが各エージェントへ置いたスキルとルールとhookを何も書かずにJSONで出すので、アプリは配った物を一覧にできます。
 置き場と断る場合の全ては[agent-shared](docs/agent-shared.ja.md)にあります。
 
 ## プラグイン
