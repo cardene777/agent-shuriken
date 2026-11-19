@@ -20,3 +20,10 @@
 | `README.md`と`README.ja.md`は、`agent-shared`の節をpluginの一覧の節より前に置く | `bash agent-shared/tests/test-agent-shared.sh`の検査`"the READMEs put agent-shared before the plugins"`が通る | #250 |
 | `docs/getting-started.md`と`docs/getting-started.ja.md`は、Codexのskillの置き場を`~/.agents/skills`と書き、`~/.codex/skills`を書かない | `bash agent-shared/tests/test-agent-shared.sh`の検査`"getting started no longer points Codex at its deprecated skills folder"`が通る | #250 |
 | repoの検査が全て通る | `bash scripts/check.sh`が終了0 | #250 |
+| `agent-shared hooks --agent "Claude Code"`が出すJSONの`hooks`の欄は、同じ元で`agent-shared deploy`が`~/.claude/settings.json`へ足した印付きのhookの組と一致する | `bash agent-shared/tests/test-agent-shared.sh`の検査`"hooks prints the groups deploy adds for an agent"`が通る | #256 |
+| `agent-shared hooks --agent Codex`は、宣言の`tools`がCodexを名指さないhookを出さない | `bash agent-shared/tests/test-agent-shared.sh`の検査`"hooks leaves out a hook whose tools name another agent"`が通る | #256 |
+| `agent-shared hooks`は、`--source`で渡したfolderの宣言のhookも出す | `bash agent-shared/tests/test-agent-shared.sh`の検査`"hooks includes the hooks of every source"`が通る | #256 |
+| `agent-shared hooks`は終わり方0で終え、打った後のホームと記録の置き場のfileの中身が打つ前と同じ | `bash agent-shared/tests/test-agent-shared.sh`の検査`"hooks writes nothing"`が通る | #256 |
+| agentの表に無い名前を`--agent`に渡すと、`agent-shared hooks`は標準出力に何も出さず、その名前を名指して終わり方2で断る | `bash agent-shared/tests/test-agent-shared.sh`の検査`"hooks refuses an agent the table does not have"`が通る | #256 |
+| `--agent`を渡さないと、`agent-shared hooks`は`--agent`を名指して終わり方2で断る | `bash agent-shared/tests/test-agent-shared.sh`の検査`"hooks refuses a call without --agent"`が通る | #256 |
+| `agent-shared deploy`は今どおり印付きのhookを足し、ほかの設定を変えない | `bash agent-shared/tests/test-agent-shared.sh`の検査`"deploy adds marked hooks and keeps the other settings"`が通る | #256 |
