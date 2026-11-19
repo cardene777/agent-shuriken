@@ -1,0 +1,16 @@
+# diagram-composer-skill
+
+| 条件 | 確かめ方 | 出元 |
+|---|---|---|
+| `plugins/diagram-composer/`が既存のプラグインと同じ一式を持つ。一式は2つの`plugin.json`、`README.md`と`README.ja.md`、`CHANGELOG.md`、`LICENSE`、`assets/icon.svg`、`docs/how-it-works.md`と`docs/how-it-works.ja.md`、`skills/diagram-composer/SKILL.md`と`agents/openai.yaml`で、版は`0.1.0`である | `bash scripts/check.sh`の検査`"plugin folders are complete"`、`"plugin manifests agree"`、`"plugin icons are square and present"`、`"versions match the changelogs"`、`"pages have Japanese counterparts"`、`"Codex skill metadata matches SKILL.md"`が通り、`bash scripts/check.sh`が終わり方0で終わる | #248 |
+| マーケットプレイスと2つのREADMEの表と2つの公開の状況の表が`diagram-composer`の行を持つ。READMEの行は`/diagram-composer:diagram-composer`とCodexの表示名`Diagram Composer`を示す | `bash scripts/check.sh`の検査`"marketplace lists every plugin once"`、`"README tables list every plugin"`、`"publishing tables list every plugin"`、`"claude plugin validate"`が通る | #248 |
+| 技の名前は手元の写しと同じ`diagram-composer`で、Codexの表示名は`Diagram Composer`である | `bash plugins/diagram-composer/skills/diagram-composer/tests/test-diagram-composer.sh`の検査`"the skill keeps the name diagram-composer"`が通る | #248 |
+| `plugins/diagram-composer/`の下のどのfileも、私的な資料の一覧と2つの私的な意匠の名前 (`deep-navy`、`editorial-gold`、`reference-decks`、`slide/references`) を書かない | `bash plugins/diagram-composer/skills/diagram-composer/tests/test-diagram-composer.sh`の検査`"no file names a private deck or theme"`が通る | #248 |
+| `SKILL.md`はスライドの技の登録簿の語`catalog`を使わず、利用者のデックが既に持つ図を指す。そのうえで3つの手順を書く。意匠を比べる時は意匠ごとに役割の違う3枚以上を全体の大きさで描き、利用者が選ぶまでデックに足さない。既に在る図を見せる時は手を加えずに描く。名指された前のデックを基準にする | `bash plugins/diagram-composer/skills/diagram-composer/tests/test-diagram-composer.sh`の検査`"the SKILL.md points at the user's deck, not a catalog"`と`"the SKILL.md keeps its three review steps"`が通る | #248 |
+| `SKILL.md`の例のmanifestは`theme`と`metaphor`を持ち、書いてあるまま確かめのscriptに渡すと通る | `bash plugins/diagram-composer/skills/diagram-composer/tests/test-diagram-composer.sh`の検査`"the SKILL.md example passes the checker"`が通る | #248 |
+| `SKILL.md`は確かめのscriptを、`SKILL.md`を置いたフォルダからの相対の場所で名指す。利用者のprojectのフォルダから絶対の場所で呼んでも、同じmanifestに同じ結果を返す | `bash plugins/diagram-composer/skills/diagram-composer/tests/test-diagram-composer.sh`の検査`"the SKILL.md names the checker by the skill's folder"`と`"the checker runs from any folder"`が通る | #248 |
+| 確かめのscriptは、札を斜めと横と縦に横切る線を断り、札から外れる線を同じ数だけ通し、札の手前で終わる線を通す | `bash plugins/diagram-composer/skills/diagram-composer/tests/test-diagram-composer.sh`の検査`"the checker finds labels on connectors"`が通る | #248 |
+| 確かめのscriptは、札と線の間を12px以内にした配置を断り、13px離した配置を通す | `bash plugins/diagram-composer/skills/diagram-composer/tests/test-diagram-composer.sh`の検査`"the checker keeps a 12 px clearance"`が通る | #248 |
+| 確かめのscriptは、`theme`の無い図、`metaphor`の無い図、`lane`の無い線、知らない囲いに属す要素、囲いの余白を越える要素を、それぞれ理由を名指して断り、終わり方0以外で終わる。`diagrams`の配列では、断った図の番号を名指す | `bash plugins/diagram-composer/skills/diagram-composer/tests/test-diagram-composer.sh`の検査`"the checker names each rule it rejects"`と`"the checker names the rejected slide"`が通る | #248 |
+| 確かめのscriptは、決まりを全て守る図に`OK:`で始まる1行を出し、終わり方0で終わる | `bash plugins/diagram-composer/skills/diagram-composer/tests/test-diagram-composer.sh`の検査`"the checker accepts a clean diagram"`が通る | #248 |
+| 検査とscriptと文書は英語で書き、日本語は`.ja.md`のfileだけが持つ | `bash scripts/check.sh`の検査`"English outside the Japanese pages"`が通る | #248 |
