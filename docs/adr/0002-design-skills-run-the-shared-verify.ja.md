@@ -1,4 +1,4 @@
-# 0001. 設計のスキルはdoc-formatsの共通のverifyを回す
+# 0002. 設計のスキルはdoc-formatsの共通のverifyを回す
 
 ## 決めたこと
 

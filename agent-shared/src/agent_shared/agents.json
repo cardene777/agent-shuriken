@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "agents": [
+    {
+      "name": "Claude Code",
+      "skills": "~/.claude/skills",
+      "repo_skills": ".claude/skills",
+      "rules": {"place": "~/.claude/rules", "form": "link"},
+      "hooks": {"file": "~/.claude/settings.json"},
+      "plugins": "claude"
+    },
+    {
+      "name": "Codex",
+      "skills": "~/.agents/skills",
+      "repo_skills": ".agents/skills",
+      "rules": {"place": "~/.codex/AGENTS.md", "form": "block"},
+      "hooks": {"file": "~/.codex/hooks.json", "trust": "codex-app-server"},
+      "plugins": "codex"
+    }
+  ]
+}
