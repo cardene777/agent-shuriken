@@ -75,12 +75,11 @@ In Gemini CLI, install the skill zip of a release, as the next section shows.
 
 Each plugin release attaches a zip of its skill folder.
 Unzip it into your agent's skills folder.
-GitHub Copilot CLI, Gemini CLI, and other agents that follow the Agent Skills format read `~/.agents/skills/`.
+Codex, GitHub Copilot CLI, Gemini CLI, and other agents that follow the Agent Skills format read `~/.agents/skills/`.
 
 ```
 unzip techdebt-0.1.0-skill.zip -d ~/.claude/skills/   # Claude Code
-unzip techdebt-0.1.0-skill.zip -d ~/.codex/skills/    # Codex
-unzip techdebt-0.1.0-skill.zip -d ~/.agents/skills/   # GitHub Copilot CLI, Gemini CLI, and other agents
+unzip techdebt-0.1.0-skill.zip -d ~/.agents/skills/   # Codex, GitHub Copilot CLI, Gemini CLI, and other agents
 ```
 
 For an agent that reads another folder, unzip it there; its documentation names the folder.

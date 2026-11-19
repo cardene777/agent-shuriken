@@ -5,11 +5,14 @@ Claude Code reads it through `CLAUDE.md`; Codex and other agents read it directl
 
 ## What this repository is
 
-A marketplace of agent plugins that install in Claude Code, Codex, and GitHub Copilot CLI.
+The `agent-shared` command, which places the skills, rules, and hooks a person keeps in `~/.shared` into every coding agent, and a marketplace of agent plugins that install in Claude Code, Codex, and GitHub Copilot CLI.
 Each skill follows the Agent Skills format, so Gemini CLI and other agents that read `SKILL.md` can use it too.
+`agent-shared` is a Python package under `agent-shared/`, installed with `uv tool install`, and [agent-shared](docs/agent-shared.md) describes everything it reads and writes.
 Each plugin is a self-contained folder under `plugins/`, listed in `.claude-plugin/marketplace.json`, which Claude Code, Codex, and GitHub Copilot CLI read.
 
 ```
+agent-shared/src/agent_shared/            The agent-shared command and its default agent table, agents.json
+agent-shared/tests/test-agent-shared.sh   Tests for agent-shared with a throwaway HOME
 .claude-plugin/marketplace.json           Marketplace read by Claude Code, Codex, and GitHub Copilot CLI (one entry per plugin)
 plugins/<name>/.claude-plugin/plugin.json Plugin manifest for Claude Code and GitHub Copilot CLI
 plugins/<name>/.codex-plugin/plugin.json  Plugin manifest for Codex, with the listing text for OpenAI's directory
