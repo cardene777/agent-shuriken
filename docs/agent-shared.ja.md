@@ -114,6 +114,20 @@ Claude CodeかCodexに入れたプラグインが、フォルダーのスキル�
 `<id>`は、配る元のフォルダーの実際のpathのSHA-256の先頭12桁です。
 手で書いたhook、自分で置いたスキル、`AGENTS.md`の囲みの外の行は、byteまで変わりません。
 
+## 置くhookを出す
+
+`agent-shared hooks`は、`deploy`が1つのエージェントのhookの置き場へ足すhookの組を、印と配る元のフォルダーを埋めた形のままJSONで出します。
+何も書かないので、設定を弱める変更を止める見張りは、hookを別の作り方で組み立て直さずに、エージェントのhookの置き場とこの出力を比べられます。
+
+```
+agent-shared hooks --agent "Claude Code"
+agent-shared hooks --agent Codex --source ~/work/team-shared
+```
+
+読む元は`deploy`と同じで、`~/.shared`と、`--source`で渡した全てのフォルダーです。
+`--agent`にはエージェントの表の名前を渡し、`tools`がそのエージェントを含まないhookは出しません。
+表に無い名前と、`--agent`の無い呼び方は、何も出さずに終わり方2で終わります。
+
 ## 断る時
 
 コマンドは先に変更の全体を確かめ、何かが邪魔をする時は何も書かず、理由を1つずつ出して終わり方1で終わります。

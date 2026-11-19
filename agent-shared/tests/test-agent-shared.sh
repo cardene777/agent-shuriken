@@ -373,6 +373,105 @@ getting_started() {
 }
 
 export T
+# Runs `agent-shared hooks` with stdout and stderr kept apart in $T/hooks.out and $T/hooks.err.
+hooks_run() {
+  (cd "$RUN_DIR" && PYTHONPATH="$PKG/src" python3 -m agent_shared hooks "$@") > "$T/hooks.out" 2> "$T/hooks.err"
+  rc=$?
+}
+
+# Prints every path under $1 with its kind, link target, and content hash, to compare before and after.
+snapshot() {
+  python3 - "$1" <<'PY'
+import hashlib, os, sys
+for here, dirs, files in os.walk(sys.argv[1]):
+    dirs.sort()
+    for name in sorted(dirs + files):
+        path = os.path.join(here, name)
+        if os.path.islink(path):
+            print("link", path, os.readlink(path))
+        elif os.path.isdir(path):
+            print("dir", path)
+        else:
+            print("file", path, hashlib.sha256(open(path, "rb").read()).hexdigest())
+PY
+}
+
+hooks_match_deploy() {
+  fresh hooks-match
+  hooks_run --agent "Claude Code"
+  [ "$rc" = 0 ] || { why="hooks exited $rc: $(tail -1 "$T/hooks.err")"; return 1; }
+  cp "$T/hooks.out" "$T/hooks-claude.json"
+  deployed || return 1
+  python3 - "$T/hooks-claude.json" "$HOME/.claude/settings.json" <<'PY' > "$T/compare.out" 2>&1 || { why="$(tail -1 "$T/compare.out")"; return 1; }
+import json, sys
+printed = json.load(open(sys.argv[1]))
+settings = json.load(open(sys.argv[2]))
+mark = "# agent-shared 1 source="
+placed = {}
+for event, groups in settings["hooks"].items():
+    kept = [g for g in groups if all(h["command"].rsplit("\n", 1)[-1].startswith(mark) for h in g["hooks"])]
+    if kept:
+        placed[event] = kept
+if not placed:
+    sys.exit("deploy placed no marked hooks to compare with")
+if printed.get("hooks") != placed:
+    sys.exit("the printed hooks differ from the marked hooks deploy added")
+PY
+}
+
+hooks_by_tools() {
+  fresh hooks-tools
+  cat > "$HOME/.shared/hooks.json" <<'JSON'
+{"hooks": {
+  "Stop": [
+    {"hooks": [{"type": "command", "command": "echo stop"}]},
+    {"hooks": [{"type": "command", "command": "echo claude-only", "tools": ["Claude Code"]}]}
+  ]
+}}
+JSON
+  hooks_run --agent Codex
+  [ "$rc" = 0 ] || { why="hooks --agent Codex exited $rc: $(tail -1 "$T/hooks.err")"; return 1; }
+  grep -q 'echo stop' "$T/hooks.out" || { why="the hook for every agent is missing for Codex"; return 1; }
+  ! grep -q 'claude-only' "$T/hooks.out" || { why="a hook for Claude Code only was printed for Codex"; return 1; }
+  hooks_run --agent "Claude Code"
+  grep -q 'claude-only' "$T/hooks.out" || { why="the hook for Claude Code only is missing for Claude Code"; return 1; }
+}
+
+hooks_every_source() {
+  fresh hooks-sources
+  mkdir -p "$T/extra-source"
+  printf '%s\n' '{"hooks": {"Stop": [{"hooks": [{"type": "command", "command": "echo extra"}]}]}}' > "$T/extra-source/hooks.json"
+  hooks_run --agent "Claude Code" --source "$T/extra-source"
+  [ "$rc" = 0 ] || { why="hooks exited $rc: $(tail -1 "$T/hooks.err")"; return 1; }
+  grep -q 'echo extra' "$T/hooks.out" || { why="the hook of the --source folder was not printed"; return 1; }
+  grep -q 'echo stop' "$T/hooks.out" || { why="the hook of ~/.shared was not printed"; return 1; }
+}
+
+hooks_write_nothing() {
+  fresh hooks-quiet
+  deployed || return 1
+  snapshot "$HOME" > "$T/before.txt"
+  hooks_run --agent "Claude Code"
+  [ "$rc" = 0 ] || { why="hooks exited $rc: $(tail -1 "$T/hooks.err")"; return 1; }
+  snapshot "$HOME" > "$T/after.txt"
+  cmp -s "$T/before.txt" "$T/after.txt" || { why="hooks changed $(diff "$T/before.txt" "$T/after.txt" | sed -n 2p)"; return 1; }
+}
+
+hooks_unknown_agent() {
+  fresh hooks-unknown
+  hooks_run --agent Nobody
+  [ "$rc" = 2 ] || { why="hooks --agent Nobody exited $rc"; return 1; }
+  [ ! -s "$T/hooks.out" ] || { why="hooks printed something for an unknown agent"; return 1; }
+  grep -q 'Nobody' "$T/hooks.err" || { why="the refusal does not name the agent: $(tail -1 "$T/hooks.err")"; return 1; }
+}
+
+hooks_need_agent() {
+  fresh hooks-no-agent
+  hooks_run
+  [ "$rc" = 2 ] || { why="hooks without --agent exited $rc"; return 1; }
+  grep -q -- '--agent' "$T/hooks.err" || { why="the refusal does not name --agent: $(tail -1 "$T/hooks.err")"; return 1; }
+}
+
 check "uv tool install puts agent-shared on PATH without any plugin" uv_installs
 check "deploy links every skill into the Claude Code and shared agent folders" links_skills
 check "deploy places nothing in the deprecated Codex skills folder" no_codex_skills
@@ -390,6 +489,12 @@ check "a row in the user's table adds an agent" user_row
 check "the record of placed items is kept readable only by the user" private_record
 check "the READMEs put agent-shared before the plugins" readmes_first
 check "getting started no longer points Codex at its deprecated skills folder" getting_started
+check "hooks prints the groups deploy adds for an agent" hooks_match_deploy
+check "hooks leaves out a hook whose tools name another agent" hooks_by_tools
+check "hooks includes the hooks of every source" hooks_every_source
+check "hooks writes nothing" hooks_write_nothing
+check "hooks refuses an agent the table does not have" hooks_unknown_agent
+check "hooks refuses a call without --agent" hooks_need_agent
 
 printf '%d passed, %d failed (%d ran)\n' "$PASS" "$FAIL" "$((PASS + FAIL))"
 [ "$FAIL" -eq 0 ]
