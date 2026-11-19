@@ -75,12 +75,11 @@ Gemini CLIでは、次の節のとおりリリースのスキルのzipをイン�
 
 プラグインのリリースには、それぞれスキルのフォルダをまとめたzipが添付されています。
 これを、エージェントのスキル用フォルダに展開します。
-GitHub Copilot CLI、Gemini CLI、Agent Skillsの形式に従うほかのエージェントは`~/.agents/skills/`を読みます。
+Codex、GitHub Copilot CLI、Gemini CLI、Agent Skillsの形式に従うほかのエージェントは`~/.agents/skills/`を読みます。
 
 ```
 unzip techdebt-0.1.0-skill.zip -d ~/.claude/skills/   # Claude Code
-unzip techdebt-0.1.0-skill.zip -d ~/.codex/skills/    # Codex
-unzip techdebt-0.1.0-skill.zip -d ~/.agents/skills/   # GitHub Copilot CLI, Gemini CLI, and other agents
+unzip techdebt-0.1.0-skill.zip -d ~/.agents/skills/   # Codex, GitHub Copilot CLI, Gemini CLI, and other agents
 ```
 
 別のフォルダを読むエージェントでは、そのフォルダに展開します。フォルダの名前は、そのエージェントの資料に書いてあります。

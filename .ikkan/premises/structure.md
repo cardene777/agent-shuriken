@@ -9,3 +9,4 @@
 - commit の題は `<絵文字> <種別>(<範囲>): <要約>` の英語で、範囲は plugin の名前か `repo` (根拠 `AGENTS.md` の Commits and pull requests)
 - ikkan の受入条件は `.ikkan/specs/<機能>.md` に残し、どの plugin にも入らない (根拠 `AGENTS.md`)
 - 版を出す手順は `scripts/release.sh` と `docs/releasing.md` が持つ
+- `agent-shared` のコマンドは plugin ではなく `agent-shared/` の Python package で、code と既定のエージェントの表 `agents.json` を `src/agent_shared/` に、テストを `tests/test-agent-shared.sh` に持つ。説明の頁は `docs/agent-shared.md` (根拠 `AGENTS.md`)

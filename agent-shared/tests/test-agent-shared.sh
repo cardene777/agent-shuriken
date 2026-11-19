@@ -85,7 +85,10 @@ fresh() {
   printf '# Two\nRule two.\n' > "$HOME/.shared/rules/two.md"
   cat > "$HOME/.shared/hooks.json" <<'JSON'
 {"hooks": {
-  "PreToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/guard.sh"}]}],
+  "PreToolUse": [
+    {"matcher": "Bash", "hooks": [{"type": "command", "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/guard.sh"}]},
+    {"matcher": "Edit", "hooks": [{"type": "command", "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/guard.sh"}]}
+  ],
   "Stop": [{"hooks": [{"type": "command", "command": "echo stop"}]}]
 }}
 JSON
@@ -185,8 +188,8 @@ guard = "bash %s/.shared/hooks/guard.sh" % home
 for path in (os.path.join(home, ".claude/settings.json"), os.path.join(home, ".codex/hooks.json")):
     pre = commands(path, "PreToolUse")
     stop = commands(path, "Stop")
-    if not any(marked(c) and c.startswith(guard) for c in pre):
-        problem = "%s has no marked guard hook with the source folder filled in" % path
+    if sum(1 for c in pre if marked(c) and c.startswith(guard)) != 2:
+        problem = "%s does not have the guard hook once for each of its two matchers, with the source folder filled in" % path
     elif not any(marked(c) and c.startswith("echo stop") for c in stop):
         problem = "%s has no marked stop hook" % path
 if problem is None and (settings.get("model") != "opus" or settings.get("permissions") != {"allow": ["Bash(ls)"]}):
@@ -347,8 +350,8 @@ private_record() {
   [ "$(mode "$dir")" = 0o700 ] || { why="the record folder has mode $(mode "$dir")"; return 1; }
   file="$(find "$dir" -type f -print -quit)"
   [ -n "$file" ] && [ "$(mode "$file")" = 0o600 ] || { why="no record file readable only by the user"; return 1; }
+  fresh record-moved
   export AGENT_SHARED_STATE="$T/state"
-  rm -rf "$HOME/.shared/skills/beta"
   deployed || return 1
   [ -n "$(find "$T/state" -type f -print -quit 2>/dev/null)" ] || { why="AGENT_SHARED_STATE did not move the record"; return 1; }
 }
