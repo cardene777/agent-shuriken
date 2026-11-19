@@ -1,0 +1,20 @@
+{
+  "name": "diagram-composer",
+  "displayName": "Diagram Composer",
+  "version": "0.1.0",
+  "description": "Design the diagram area of a slide with one visual metaphor, a meaning for every connector, and labels kept off the lines, checked by a script before the slide is rendered",
+  "author": {
+    "name": "cardene777",
+    "url": "https://github.com/cardene777"
+  },
+  "homepage": "https://github.com/cardene777/agent-shuriken/tree/main/plugins/diagram-composer",
+  "repository": "https://github.com/cardene777/agent-shuriken",
+  "license": "MIT",
+  "keywords": [
+    "diagram",
+    "slides",
+    "presentation",
+    "layout",
+    "geometry"
+  ]
+}

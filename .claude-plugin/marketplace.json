@@ -21,6 +21,11 @@
       "description": "Write messages that tell people what they need, with the conclusion first and nothing the reader does not need, for Slack, Discord, email, or GitHub, checked for length, formatting, and private details before they are copied"
     },
     {
+      "name": "diagram-composer",
+      "source": "./plugins/diagram-composer",
+      "description": "Design the diagram area of a slide with one visual metaphor, a meaning for every connector, and labels kept off the lines, checked by a script before the slide is rendered"
+    },
+    {
       "name": "diagram-explainer",
       "source": "./plugins/diagram-explainer",
       "description": "Write an explainer as one HTML file with a figure drawn in every section, built from JSON and checked before you share it"

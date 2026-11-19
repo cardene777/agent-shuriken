@@ -1,0 +1,33 @@
+{
+  "name": "diagram-composer",
+  "version": "0.1.0",
+  "description": "Design the diagram area of a slide with one visual metaphor, a meaning for every connector, and labels kept off the lines, checked by a script before the slide is rendered",
+  "author": {
+    "name": "cardene777",
+    "url": "https://github.com/cardene777"
+  },
+  "homepage": "https://github.com/cardene777/agent-shuriken/tree/main/plugins/diagram-composer",
+  "repository": "https://github.com/cardene777/agent-shuriken",
+  "license": "MIT",
+  "keywords": [
+    "diagram",
+    "slides",
+    "presentation",
+    "layout",
+    "geometry"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Diagram Composer",
+    "shortDescription": "Compose clear slide diagrams",
+    "longDescription": "Designs the diagram area of a slide in your own deck and keeps the slide's theme, title, and lead. The agent states one visual metaphor and the relationship to read, gives every connector one meaning, and puts relation labels in zones of their own, at least 12 px from any line and its arrowhead. It writes the diagram's boxes, lines, and labels as a small JSON geometry manifest, and a Python script that uses only the standard library checks it before the slide is rendered: it rejects a label on or near a line, a box outside its container's padding, a line without a named lane, and a diagram without a theme or metaphor, and names the slide of a multi-slide deck. The agent then renders the full slide in your deck's own tool and looks at it. The script reads only the manifest you pass, runs no other program, connects to nothing, and keeps nothing.",
+    "developerName": "cardene777",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": [
+      "Create a diagram for this slide and check that no label touches a line"
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
+  }
+}

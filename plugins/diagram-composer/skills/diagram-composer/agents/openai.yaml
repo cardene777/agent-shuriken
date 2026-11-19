@@ -1,0 +1,7 @@
+interface:
+  display_name: "Diagram Composer"
+  short_description: "Compose slide diagrams whose labels stay off the connectors, checked by a script before rendering"
+  default_prompt: "Use $diagram-composer to create a diagram for this slide and validate label and connector geometry before rendering."
+
+policy:
+  allow_implicit_invocation: true
