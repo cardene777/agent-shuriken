@@ -9,11 +9,13 @@ SKILL_DIR="$(cd "$HERE/.." && pwd)"
 SCRIPT="$SKILL_DIR/scripts/financial-standards.py"
 ITEMS="$SKILL_DIR/references/items"
 CHECKLIST="$SKILL_DIR/references/checklist.md"
-TEMPLATE="$SKILL_DIR/templates/design.md"
+SECTIONS_FILE="$SKILL_DIR/templates/sections.md"
+DECLARATION="$SKILL_DIR/musubi.json"
 SKILL="$SKILL_DIR/SKILL.md"
 PLUGIN="$(cd "$SKILL_DIR/../.." && pwd)"
 REPO="$(cd "$PLUGIN/../.." && pwd)"
 EVALS="$PLUGIN/evals"
+DESIGN_DOC="$REPO/plugins/doc-formats/skills/design-doc"
 PASS=0
 FAIL=0
 T="$(mktemp -d)"
@@ -25,9 +27,10 @@ check() { if eval "$2"; then ok "$1"; else ng "$1"; fi; }
 
 run() { python3 "$SCRIPT" "$@"; }
 
-# The nine sections a design holds, in the order verify wants them.
-SECTIONS=("Standard and business" "Application" "Data and storage" "On-chain" "Off-chain" \
-  "Integration" "Security and operations" "Verification and delivery" "Open decisions")
+# The eight sections of this skill, in the order of templates/sections.md. Open decisions comes from
+# the design format of design-doc, and verify wants it last.
+OWN=("Standard and business" "Application" "Data and storage" "On-chain" "Off-chain" "Integration" "Security and operations" "Verification and delivery")
+DATED="Standard and business"
 
 # item <folder> <name> <field lines...>: writes one item file with the given front matter lines.
 item() {
@@ -39,25 +42,6 @@ item() {
     for line in "$@"; do printf '%s\n' "$line"; done
     printf -- '---\n\n# %s\n\nBody.\n' "$name"
   } > "$d/$name.md"
-}
-
-# design <file> [<section to leave out>]: writes a complete design, with one body line per section
-# that carries SECRET_TEXT_MARKER, so a check can tell whether verify printed the design's text.
-design() {
-  local f="$1" skip="${2:-}" s
-  mkdir -p "$(dirname "$f")"
-  {
-    printf '# Payments settlement design\n\n'
-    for s in "${SECTIONS[@]}"; do
-      [ "$s" = "$skip" ] && continue
-      printf '## %s\n\n' "$s"
-      if [ "$s" = "Standard and business" ]; then
-        printf 'ISO 20022 CBPR+ SR2025, checked 2026-11-16. SECRET_TEXT_MARKER\n\n'
-      else
-        printf 'What this part decides. SECRET_TEXT_MARKER\n\n'
-      fi
-    done
-  } > "$f"
 }
 
 # The bundled items are few; an empty or missing folder must not pass for a clean one, and every
@@ -98,116 +82,6 @@ stale_marked() {
     && grep -Eq '^2 items, 1 stale as of 2026-05-01$' "$T/list.out"
 }
 check "list marks the items checked more than 180 days ago" stale_marked
-
-verify_complete() {
-  local f="$T/complete/docs/design/payments.md"
-  design "$f"
-  run verify "$f" > "$T/verify-ok.out" 2>&1 || return 1
-  # Other level-two headings may sit between the nine.
-  { printf '## Glossary\n\nTerms. SECRET_TEXT_MARKER\n\n'; cat "$f"; } > "$T/complete/extra.md"
-  run verify "$T/complete/extra.md" > "$T/verify-extra.out" 2>&1
-}
-check "verify accepts a complete design" verify_complete
-
-# Each broken design breaks one thing, so a check that misses one of them fails here.
-verify_refusals() {
-  local d="$T/broken" f
-  design "$d/missing.md" "Integration"
-  design "$d/misplaced.md"
-  python3 - "$d/misplaced.md" <<'PYEOF'
-import sys
-p = sys.argv[1]
-text = open(p, encoding="utf-8").read()
-a = text.index("## On-chain")
-b = text.index("## Off-chain")
-c = text.index("## Integration")
-open(p, "w", encoding="utf-8").write(text[:a] + text[b:c] + text[a:b] + text[c:])
-PYEOF
-  design "$d/empty.md"
-  python3 - "$d/empty.md" <<'PYEOF'
-import sys
-p = sys.argv[1]
-text = open(p, encoding="utf-8").read()
-text = text.replace("## Application\n\nWhat this part decides. SECRET_TEXT_MARKER\n", "## Application\n\n<!-- left empty -->\n")
-open(p, "w", encoding="utf-8").write(text)
-PYEOF
-  design "$d/unfinished.md"
-  printf 'Fill in: who may read the evidence.\n' >> "$d/unfinished.md"
-  design "$d/undated.md"
-  python3 - "$d/undated.md" <<'PYEOF'
-import sys
-p = sys.argv[1]
-text = open(p, encoding="utf-8").read().replace(", checked 2026-11-16", "")
-open(p, "w", encoding="utf-8").write(text)
-PYEOF
-  for f in missing misplaced empty unfinished undated; do
-    run verify "$d/$f.md" > "$T/verify-$f.out" 2>&1
-    [ $? -eq 1 ] || return 1
-    ! grep -q 'SECRET_TEXT_MARKER' "$T/verify-$f.out" || return 1
-  done
-  grep -Eq '^missing: Integration$' "$T/verify-missing.out" \
-    && grep -Eq '^out of order: (On-chain|Off-chain)$' "$T/verify-misplaced.out" \
-    && grep -Eq '^empty: Application$' "$T/verify-empty.out" \
-    && grep -Eq '^unfinished: Open decisions$' "$T/verify-unfinished.out" \
-    && grep -Eq '^no checked date: Standard and business$' "$T/verify-undated.out"
-}
-check "verify names each missing, misplaced, empty, or unfinished section without printing the design's text" verify_refusals
-
-template_sections() {
-  local s n=0 got
-  [ -f "$TEMPLATE" ] || return 1
-  got="$(grep -E '^## ' "$TEMPLATE" | sed 's/^## //')"
-  for s in "${SECTIONS[@]}"; do
-    n=$((n + 1))
-    [ "$(printf '%s\n' "$got" | sed -n "${n}p")" = "$s" ] || return 1
-  done
-  [ "$(printf '%s\n' "$got" | wc -l | tr -d ' ')" -eq 9 ]
-}
-check "the template has every section in order" template_sections
-
-verify_template() {
-  [ -f "$TEMPLATE" ] && [ -f "$SCRIPT" ] || return 1
-  run verify "$TEMPLATE" > "$T/verify-template.out" 2>&1
-  [ $? -eq 1 ] && grep -q '^unfinished: ' "$T/verify-template.out"
-}
-check "verify refuses the unfilled template" verify_template
-
-# ids_design <file> <citing text> <ID>...: a complete design whose first section carries the citing
-# text and whose Open decisions section ends with a table that defines the given IDs.
-ids_design() {
-  local f="$1" cites="$2"
-  shift 2
-  design "$f"
-  python3 - "$f" "$cites" "$@" <<'PYEOF'
-import sys
-p, cites, ids = sys.argv[1], sys.argv[2], sys.argv[3:]
-text = open(p, encoding="utf-8").read().replace("SECRET_TEXT_MARKER", "SECRET_TEXT_MARKER " + cites, 1)
-rows = "".join("| %s | A decision. SECRET_TEXT_MARKER |\n" % i for i in ids)
-open(p, "w", encoding="utf-8").write(text.rstrip("\n") + "\n\n| ID | Decision |\n|---|---|\n" + rows)
-PYEOF
-}
-
-# A cited ID is undefined when no row of the Open decisions table starts with it, and D10 is not
-# D1. verify names each undefined ID once and never prints the design's text.
-verify_undefined_id() {
-  local f="$T/ids/undefined.md"
-  ids_design "$f" "Rests on D2, D9, and D10." D1 D2
-  run verify "$f" > "$T/verify-undefined.out" 2>&1
-  [ $? -eq 1 ] || return 1
-  ! grep -q 'SECRET_TEXT_MARKER' "$T/verify-undefined.out" || return 1
-  grep -Eq '^undefined decision: D9$' "$T/verify-undefined.out" \
-    && grep -Eq '^undefined decision: D10$' "$T/verify-undefined.out" \
-    && [ "$(grep -c '^undefined decision: ' "$T/verify-undefined.out")" -eq 2 ]
-}
-check "financial-standards verify names a cited Open decisions ID the table does not define" verify_undefined_id
-
-# An ID the table defines but the text never cites is fine, and standard names are not IDs.
-verify_uncited_id() {
-  local f="$T/ids/uncited.md"
-  ids_design "$f" "Rests on D2. ERC-20, EIP-7825, SR2025, and step B3 apply." D1 D2
-  run verify "$f" > "$T/verify-uncited.out" 2>&1
-}
-check "financial-standards verify accepts an uncited Open decisions ID and standard names" verify_uncited_id
 
 cbpr_moved() {
   local f="$ITEMS/iso-20022-cbpr-plus-release.md"
@@ -279,7 +153,7 @@ skill_rules() {
 check "the SKILL.md keeps its rules" skill_rules
 
 # The body is counted in words and the description in characters, as the size the agent reads.
-SKILL_WORDS_MAX=600
+SKILL_WORDS_MAX=700
 SKILL_DESCRIPTION_MAX=300
 skill_size() {
   [ -f "$SKILL" ] || return 1
@@ -331,6 +205,93 @@ others_kept() {
     && bash "$PLUGIN/skills/solidity-code/tests/test-solidity-code.sh" > "$T/solidity-code.out" 2>&1
 }
 check "the other evm-dev skills still pass their tests" others_kept
+
+# The skill writes in the design format of design-doc and checks a design with its verify, both
+# pinned by a range and a fingerprint in musubi.json. musubi check compares the fingerprints.
+follows_design_doc() {
+  [ -f "$DECLARATION" ] || return 1
+  python3 - "$SKILL_DIR" <<'PYEOF'
+import json, os, re, sys
+skill = sys.argv[1]
+declaration = json.load(open(os.path.join(skill, "musubi.json"), encoding="utf-8"))
+follows = declaration.get("follows", {})
+pin = re.compile(r"^sha256-[A-Za-z0-9+/]{43}=$")
+if declaration.get("musubi") != "2026-11-19" or sorted(follows) != ["design-doc/design", "design-doc/verify"] \
+        or "provides" in declaration:
+    print("      musubi.json declares %s" % json.dumps(declaration, sort_keys=True))
+    sys.exit(1)
+for ref, entry in follows.items():
+    if entry.get("version") != "^1.0.0" or not pin.match(entry.get("integrity", "")):
+        print("      %s is %s" % (ref, entry))
+        sys.exit(1)
+examples = follows["design-doc/design"].get("examples", [])
+if len(examples) != 1 or not examples[0].startswith("examples/") \
+        or not os.path.isfile(os.path.join(skill, examples[0])):
+    print("      the design examples are %s" % examples)
+    sys.exit(1)
+sys.exit(1 if "examples" in follows["design-doc/verify"] else 0)
+PYEOF
+}
+check "the skill follows design and verify of design-doc" follows_design_doc
+
+# The three lines musubi add prints for design-doc/design, and the verify step that passes this
+# skill's sections file and dated section.
+LINE_FORMAT='Write in the `design` format of the `design-doc` skill: open the `design-doc` skill by name and read the file it names for `design`.'
+LINE_CHECK='If the `musubi` command is available, run `musubi check` before reading, and stop if it fails.'
+LINE_MISSING='If the `design-doc` skill is not installed, do not start: tell the user that `design-doc` is missing and how to install it, then stop.'
+writes_in_the_format() {
+  [ -f "$SKILL" ] || return 1
+  grep -qxF -- "$LINE_FORMAT" "$SKILL" && grep -qxF -- "$LINE_CHECK" "$SKILL" || return 1
+  grep -qF -- 'put the sections of `templates/sections.md` where the format says' "$SKILL" || return 1
+  grep -qF -- "verify --sections <folder of this SKILL.md>/templates/sections.md --dated \"$DATED\" <design file>" "$SKILL" || return 1
+  ! grep -qF -- 'templates/design.md' "$SKILL"
+}
+check "the SKILL.md writes in the design-doc format and runs its verify" writes_in_the_format
+
+stops_without_design_doc() {
+  [ -f "$SKILL" ] && grep -qxF -- "$LINE_MISSING" "$SKILL"
+}
+check "the SKILL.md stops when design-doc is missing" stops_without_design_doc
+
+sections_in_order() {
+  local s n=0 got
+  [ -f "$SECTIONS_FILE" ] || return 1
+  got="$(grep -E '^## ' "$SECTIONS_FILE" | sed 's/^## //')"
+  for s in "${OWN[@]}"; do
+    n=$((n + 1))
+    [ "$(printf '%s\n' "$got" | sed -n "${n}p")" = "$s" ] || { echo "      section $n is not $s"; return 1; }
+  done
+  [ "$(printf '%s\n' "$got" | wc -l | tr -d ' ')" -eq 8 ] && [ "$(grep -c '^Fill in: ' "$SECTIONS_FILE")" -ge 8 ]
+}
+check "the sections file keeps the eight sections in order" sections_in_order
+
+old_template_gone() {
+  [ ! -e "$SKILL_DIR/templates/design.md" ] && [ -f "$SECTIONS_FILE" ] && ! grep -q '^## Open decisions' "$SECTIONS_FILE"
+}
+check "the old design template is gone" old_template_gone
+
+example_passes() {
+  local example
+  [ -f "$DECLARATION" ] && [ -f "$DESIGN_DOC/scripts/design-doc.py" ] || return 1
+  example="$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["follows"]["design-doc/design"]["examples"][0])' "$DECLARATION")" || return 1
+  python3 "$DESIGN_DOC/scripts/design-doc.py" verify --sections "$SECTIONS_FILE" --dated "$DATED" "$SKILL_DIR/$example" > "$T/example.out" 2>&1 \
+    || { sed 's/^/      /' "$T/example.out"; return 1; }
+}
+check "the example design passes the verify of design-doc" example_passes
+
+no_verify_command() {
+  python3 "$SCRIPT" verify "$T/no-such-design.md" > "$T/no-verify.out" 2>&1
+  [ $? -eq 2 ] && grep -q "invalid choice: 'verify'" "$T/no-verify.out" && ! grep -q 'def design_problems' "$SCRIPT"
+}
+check "the script has no verify command" no_verify_command
+
+eval_cases_load_doc_formats() {
+  local c
+  for c in "${CASES[@]}"; do
+    grep -qxF 'plugins: ["../..", "../../../doc-formats"]' "$EVALS/$c/case.yaml" || { echo "      $c"; return 1; }
+  done
+}
+check "the eval cases load doc-formats too" eval_cases_load_doc_formats
 
 printf '%d passed, %d failed (%d ran)\n' "$PASS" "$FAIL" "$((PASS + FAIL))"
 [ "$FAIL" -eq 0 ]

@@ -303,16 +303,15 @@ EVMの版は`homestead`から`osaka`までで、知らない版は2で終わり�
 |---|---|
 | `check` | 全ての項目が4つの欄と、知っているtopicと、実在する日付を持つかを確かめます。持たない項目を名指して1で終わります |
 | `list` | 項目ごとに1行で、`ok`か`stale`と、topicと、確かめた日と、名前と、subjectを出し、最後に件数を出します |
-| `verify <file>` | 設計書が雛形の9つの節を順に持ち、どの節も中身を持って`Fill in:`の行が残らず、Contractsの節が日付を持つかを確かめます。満たさない節と、設計書が挙げたのにOpen decisionsの表のどの行にも無いD9のような決めごとの番号を名指して1で終わります |
 
-`verify`は渡された設計書だけを読み、節の名前と決めごとの番号と何が足りないかを出し、設計書の文は出しません。
+設計書は[doc-formats](../../doc-formats/docs/how-it-works.ja.md)の`design-doc`のスキルの`verify`が確かめます。`verify`は設計書とこのスキルの`templates/sections.md`だけを読み、Contractsの節に日付を求めます。
 
 ## エージェントのコントラクトの設計の仕方
 
 1. `list`を動かし、設計が頼るかもしれない項目を読み、`stale`の印の項目は確かめ直します。ERC-4626のようなERCとEIPの状態は`evm-standards`で確かめます
 2. 決めることを1つずつ、勧める案を添えて尋ね、依頼が既に答えている事は尋ねません。尋ねられない時は勧める案を採り、Open decisionsの節に仮定として書きます
-3. `templates/design.md`を`docs/design/<topic>.md`か、利用者かプロジェクトが設計書を置く所へ写し、`Fill in:`の行を全て書き換え、Contractsの節にライブラリとコンパイラの版と、サービスごとに確かめた日を書きます
-4. `verify`を動かして名指された節を直し、`references/checklist.md`で設計を見直し、破った決まりを全て直します
+3. `design-doc`の設計書の書式で、`docs/design/<topic>.md`か、利用者かプロジェクトが設計書を置く所へ設計書を書き、書式が示す所に`templates/sections.md`の節を置き、`Fill in:`の行を全て書き換え、Contractsの節にライブラリとコンパイラの版と、サービスごとに確かめた日を書きます
+4. `templates/sections.md`を渡して`design-doc`の`verify`を動かし、名指された節を直し、`references/checklist.md`で設計を見直し、破った決まりを全て直します
 5. 判断できなかった決まりと未決を利用者に伝えます
 
 確かめの表は、設計が破ってはならない決まりを持ちます。
@@ -344,16 +343,15 @@ EVMの版は`homestead`から`osaka`までで、知らない版は2で終わり�
 |---|---|
 | `check` | 全ての項目が4つの欄と、知っているtopicと、実在する日付を持つかを確かめます。持たない項目を名指して1で終わります |
 | `list` | 項目ごとに1行で、`ok`か`stale`と、topicと、確かめた日と、名前と、subjectを出し、最後に件数を出します |
-| `verify <file>` | 設計書が雛形の9つの節を順に持ち、どの節も中身を持って`Fill in:`の行が残らず、Accountsの節が日付を持つかを確かめます。満たさない節と、設計書が挙げたのにOpen decisionsの表のどの行にも無いD9のような決めごとの番号を名指して1で終わります |
 
-`verify`は渡された設計書だけを読み、節の名前と決めごとの番号と何が足りないかを出し、設計書の文は出しません。
+設計書は[doc-formats](../../doc-formats/docs/how-it-works.ja.md)の`design-doc`のスキルの`verify`が確かめます。`verify`は設計書とこのスキルの`templates/sections.md`だけを読み、Accountsの節に日付を求めます。
 
 ## エージェントのウォレットの設計の仕方
 
 1. `list`を動かし、設計が頼るかもしれない項目を読み、`stale`の印の項目は確かめ直します。ERC-4337やEIP-7702のようなERCとEIPの状態は`evm-standards`で確かめます
 2. 決めることを1つずつ、勧める案を添えて尋ね、依頼が既に答えている事は尋ねません。尋ねられない時は勧める案を採り、Open decisionsの節に仮定として書きます
-3. `templates/design.md`を`docs/design/<topic>.md`か、利用者かプロジェクトが設計書を置く所へ写し、`Fill in:`の行を全て書き換え、Accountsの節にアカウントのコントラクトとEntryPointの版と、サービスごとに確かめた日を書きます
-4. `verify`を動かして名指された節を直し、`references/checklist.md`で設計を見直し、破った決まりを全て直します
+3. `design-doc`の設計書の書式で、`docs/design/<topic>.md`か、利用者かプロジェクトが設計書を置く所へ設計書を書き、書式が示す所に`templates/sections.md`の節を置き、`Fill in:`の行を全て書き換え、Accountsの節にアカウントのコントラクトとEntryPointの版と、サービスごとに確かめた日を書きます
+4. `templates/sections.md`を渡して`design-doc`の`verify`を動かし、名指された節を直し、`references/checklist.md`で設計を見直し、破った決まりを全て直します
 5. 判断できなかった決まりと未決を利用者に伝えます
 
 確かめの表は、設計が破ってはならない決まりを持ちます。
@@ -385,16 +383,15 @@ EVMの版は`homestead`から`osaka`までで、知らない版は2で終わり�
 |---|---|
 | `check` | 全ての項目が4つの欄と、知っているtopicと、実在する日付を持つかを確かめます。持たない項目を名指して1で終わります |
 | `list` | 項目ごとに1行で、`ok`か`stale`と、topicと、確かめた日と、名前と、subjectを出し、最後に件数を出します |
-| `verify <file>` | 設計書が雛形の9つの節を順に持ち、どの節も中身を持って`Fill in:`の行が残らず、Messages and verificationの節が日付を持つかを確かめます。満たさない節と、設計書が挙げたのにOpen decisionsの表のどの行にも無いD9のような決めごとの番号を名指して1で終わります |
 
-`verify`は渡された設計書だけを読み、節の名前と決めごとの番号と何が足りないかを出し、設計書の文は出しません。
+設計書は[doc-formats](../../doc-formats/docs/how-it-works.ja.md)の`design-doc`のスキルの`verify`が確かめます。`verify`は設計書とこのスキルの`templates/sections.md`だけを読み、Messages and verificationの節に日付を求めます。
 
 ## エージェントの複数のチェーンの設計の仕方
 
 1. `list`を動かし、設計が頼るかもしれない項目を読み、`stale`の印の項目は確かめ直します。ERC-7802やERC-7955のようなERCとEIPの状態は`evm-standards`で確かめます
 2. 決めることを1つずつ、勧める案を添えて尋ね、依頼が既に答えている事は尋ねません。尋ねられない時は勧める案を採り、Open decisionsの節に仮定として書きます
-3. `templates/design.md`を`docs/design/<topic>.md`か、利用者かプロジェクトが設計書を置く所へ写し、`Fill in:`の行を全て書き換え、Messages and verificationの節にプロトコルごとの版と確かめた日を書きます
-4. `verify`を動かして名指された節を直し、`references/checklist.md`で設計を見直し、破った決まりを全て直します
+3. `design-doc`の設計書の書式で、`docs/design/<topic>.md`か、利用者かプロジェクトが設計書を置く所へ設計書を書き、書式が示す所に`templates/sections.md`の節を置き、`Fill in:`の行を全て書き換え、Messages and verificationの節にプロトコルごとの版と確かめた日を書きます
+4. `templates/sections.md`を渡して`design-doc`の`verify`を動かし、名指された節を直し、`references/checklist.md`で設計を見直し、破った決まりを全て直します
 5. 判断できなかった決まりと未決を利用者に伝えます
 
 確かめの表は、設計が破ってはならない決まりを持ちます。
@@ -424,16 +421,15 @@ EVMの版は`homestead`から`osaka`までで、知らない版は2で終わり�
 |---|---|
 | `check` | 全ての項目が4つの欄と、知っているtopicと、実在する日付を持つかを確かめます。持たない項目を名指して1で終わります |
 | `list` | 項目ごとに1行で、`ok`か`stale`と、topicと、確かめた日と、名前と、subjectを出し、最後に件数を出します |
-| `verify <file>` | 設計書が雛形の9つの節を順に持ち、どの節も中身を持って`Fill in:`の行が残らず、Componentsの節が日付を持つかを確かめます。満たさない節と、設計書が挙げたのにOpen decisionsの表のどの行にも無いD9のような決めごとの番号を名指して1で終わります |
 
-`verify`は渡された設計書だけを読み、節の名前と決めごとの番号と何が足りないかを出し、設計書の文は出しません。
+設計書は[doc-formats](../../doc-formats/docs/how-it-works.ja.md)の`design-doc`のスキルの`verify`が確かめます。`verify`は設計書とこのスキルの`templates/sections.md`だけを読み、Componentsの節に日付を求めます。
 
 ## エージェントのdAppの構成の設計の仕方
 
 1. `list`を動かし、設計で使うかもしれないサービスの項目を読み、`stale`の印の項目は確かめ直します。ERC-4337やEIP-7702のようなERCとEIPの状態は`evm-standards`で確かめます
 2. 決めることを1つずつ、勧める案を添えて尋ね、依頼が既に答えている事は尋ねません。尋ねられない時は勧める案を採り、Open decisionsの節に仮定として書きます
-3. `templates/design.md`を`docs/design/<topic>.md`か、利用者かプロジェクトが設計書を置く所へ写し、`Fill in:`の行を全て書き換え、Componentsの節に外のサービスごとに確かめた日を書きます
-4. `verify`を動かして名指された節を直し、`references/checklist.md`で設計を見直し、破った決まりを全て直します
+3. `design-doc`の設計書の書式で、`docs/design/<topic>.md`か、利用者かプロジェクトが設計書を置く所へ設計書を書き、書式が示す所に`templates/sections.md`の節を置き、`Fill in:`の行を全て書き換え、Componentsの節に外のサービスごとに確かめた日を書きます
+4. `templates/sections.md`を渡して`design-doc`の`verify`を動かし、名指された節を直し、`references/checklist.md`で設計を見直し、破った決まりを全て直します
 5. 判断できなかった決まりと未決を利用者に伝えます
 
 確かめの表は、設計が破ってはならない決まりを持ちます。
@@ -463,16 +459,15 @@ EVMの版は`homestead`から`osaka`までで、知らない版は2で終わり�
 |---|---|
 | `check` | 全ての項目が4つの欄と、知っている規格と、実在する日付を持つかを確かめます。持たない項目を名指して1で終わります |
 | `list` | 項目ごとに1行で、`ok`か`stale`と、規格と、版と、確かめた日と、名前を出し、最後に件数を出します |
-| `verify <file>` | 設計書が雛形の9つの節を順に持ち、どの節も中身を持って`Fill in:`の行が残らず、Standard and businessの節が日付を持つかを確かめます。満たさない節と、設計書が挙げたのにOpen decisionsの表のどの行にも無いD9のような決めごとの番号を名指して1で終わります |
 
-`verify`は渡された設計書だけを読み、節の名前と決めごとの番号と何が足りないかを出し、設計書の文は出しません。
+設計書は[doc-formats](../../doc-formats/docs/how-it-works.ja.md)の`design-doc`のスキルの`verify`が確かめます。`verify`は設計書とこのスキルの`templates/sections.md`だけを読み、Standard and businessの節に日付を求めます。
 
 ## エージェントの設計書の書き方
 
 1. `list`を動かし、依頼の規格の項目を読み、`stale`の印の項目は確かめ直します。ERC-3643のようなERCとEIPの状態は`evm-standards`で確かめます
 2. 決めることを1つずつ、勧める案を添えて尋ね、依頼が既に答えている事は尋ねません。尋ねられない時は勧める案を採り、Open decisionsの節に仮定として書きます
-3. `templates/design.md`を`docs/design/<topic>.md`か、利用者かプロジェクトが設計書を置く所へ写し、`Fill in:`の行を全て書き換えます
-4. `verify`を動かして名指された節を直し、`references/checklist.md`で設計を見直し、破った決まりを全て直します
+3. `design-doc`の設計書の書式で、`docs/design/<topic>.md`か、利用者かプロジェクトが設計書を置く所へ設計書を書き、書式が示す所に`templates/sections.md`の節を置き、`Fill in:`の行を全て書き換えます
+4. `templates/sections.md`を渡して`design-doc`の`verify`を動かし、名指された節を直し、`references/checklist.md`で設計を見直し、破った決まりを全て直します
 5. 判断できなかった決まりと未決を利用者に伝えます
 
 確かめの表は、設計が破ってはならない決まりを持ちます。

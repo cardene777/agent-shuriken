@@ -1,9 +1,3 @@
-# Fill in: the name of the app and of this design across chains
-
-Fill in: one paragraph on which chains the app runs on, what moves between them, and what this design leaves out.
-
-Each section decides one part and points to the others instead of repeating them. Open decisions holds every decision, assumption, and open question; other sections link to it.
-
 ## Purpose and chains
 
 Fill in: what the app does on each chain, who uses it there, the chains and their chain IDs, and why each chain is in scope.
@@ -43,7 +37,3 @@ Fill in: the fees users see before they confirm, and how fee changes are handled
 
 Fill in: what is watched on every chain (supply across chains, rate limit use, stuck messages, admin changes, verifier configuration), and where alerts go.
 Fill in: the test networks used for each chain pair, and which keys, addresses, and configurations are separate per environment.
-
-## Open decisions
-
-Fill in: each open question and assumption, the candidates, what it affects, who decides, and by when or under what condition.

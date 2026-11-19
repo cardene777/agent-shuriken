@@ -3,9 +3,11 @@
 # SafeERC20, anyone can finish the sale when it ends, and no service that had been deprecated when
 # the case was written is chosen (Chainlink Automation on 31 July 2026, Chainlink Functions on
 # 30 June 2026, OpenZeppelin Defender on 1 July 2026).
+# design-format-read checks that contract-design opens the design-doc skill of doc-formats to read
+# the design format.
 schema_version: "1.1"
 name: token-sale-contracts
-plugins: ["../.."]
+plugins: ["../..", "../../../doc-formats"]
 execution:
   prompt: |
     Design the contracts of this token sale before we write them: how they are split, the token standard, the invariants, the roles, whether they are upgradeable, how prices are read, and the external calls. Write the design to docs/design/token-sale.md. Do not ask me questions; decide, and write down your assumptions.
@@ -19,6 +21,11 @@ graders:
     type: tool_used
     tool: Skill
     input_match: 'contract-design'
+    arm: with-only
+  - name: design-format-read
+    type: tool_used
+    tool: Skill
+    input_match: 'design-doc'
     arm: with-only
   - name: stale-price-check
     type: regex

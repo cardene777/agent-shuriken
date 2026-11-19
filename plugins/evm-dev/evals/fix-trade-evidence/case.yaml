@@ -3,7 +3,7 @@
 # refers to the earlier one, and evidence is a salted commitment that cannot be replayed.
 schema_version: "1.1"
 name: fix-trade-evidence
-plugins: ["../.."]
+plugins: ["../..", "../../../doc-formats"]
 execution:
   prompt: |
     Design how the brokers' FIX execution reports become trade evidence in the on-chain trade register, including corrections and cancellations. Write the design to docs/design/fix-trade-evidence.md. Do not ask me questions; decide, and write down your assumptions.

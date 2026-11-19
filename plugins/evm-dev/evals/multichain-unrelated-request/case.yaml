@@ -2,7 +2,7 @@
 # multichain-design skill but asks for no design, so the design skill must not start.
 schema_version: "1.1"
 name: multichain-unrelated-request
-plugins: ["../.."]
+plugins: ["../..", "../../../doc-formats"]
 execution:
   prompt: |
     In script/Deploy.s.sol, which chain ID does the script require? Answer in one sentence.

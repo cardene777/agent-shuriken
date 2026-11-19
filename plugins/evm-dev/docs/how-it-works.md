@@ -291,16 +291,15 @@ When that skill is not installed, the agent checks those services against their 
 |---|---|
 | `check` | Checks that every item has its four fields, a known topic, and a real date. It names each item that does not and exits 1 |
 | `list` | Prints one line per item: `ok` or `stale`, the topic, the date it was checked, its name, and its subject, then a count |
-| `verify <file>` | Checks that a design has the nine sections of the template in order, each with text and no `Fill in:` line left, and a date in Contracts. It names each section that does not, and each decision ID, such as D9, that the design cites but no row of its Open decisions table defines, and exits 1 |
 
-`verify` reads only the design file it is given, and prints section names, decision IDs, and what is wrong with them, never the design's text.
+The design is checked by `verify` of the `design-doc` skill in [doc-formats](../../doc-formats/docs/how-it-works.md), which reads only the design and this skill's `templates/sections.md`, and needs a date in Contracts.
 
 ## How the agent designs contracts
 
 1. It runs `list`, reads the items the design may rely on, and re-checks the ones marked `stale`; for the status of an ERC or EIP, such as ERC-4626, it uses `evm-standards`
 2. It asks the decisions one at a time, each with a recommended choice, and skips what the request already answers. When it cannot ask, it takes the recommended choice and records it as an assumption under Open decisions
-3. It copies `templates/design.md` to `docs/design/<topic>.md`, or where the user or the project keeps designs, replaces every `Fill in:` line, and writes in Contracts the library and compiler versions and the date it checked each service
-4. It runs `verify`, fixes each section it names, then goes through `references/checklist.md` and fixes every rule the design breaks
+3. It writes the design in the design format of `design-doc` to `docs/design/<topic>.md`, or where the user or the project keeps designs, puts the sections of `templates/sections.md` where the format says, replaces every `Fill in:` line, and writes in Contracts the library and compiler versions and the date it checked each service
+4. It runs `verify` of `design-doc` with `templates/sections.md`, fixes each section it names, then goes through `references/checklist.md` and fixes every rule the design breaks
 5. It tells the user the rules it could not judge and the open decisions
 
 The checklist holds the rules a design must never break: an owner for every state change, invariants a test can check, exact decimals and rounding, locked initializers, a storage layout that survives upgrades, checked prices and sequencer uptime, randomness nobody can choose, slippage limits and deadlines, no reentrancy, pull payments where pushing can fail, SafeERC20 and fee-on-transfer tokens, no single key in control with a two-step transfer and a pauser, changes delayed by a timelock, no dependence on one keeper, and bounded loops.
@@ -329,16 +328,15 @@ Relayers and monitoring services are dated in the dApp service items, so `wallet
 |---|---|
 | `check` | Checks that every item has its four fields, a known topic, and a real date. It names each item that does not and exits 1 |
 | `list` | Prints one line per item: `ok` or `stale`, the topic, the date it was checked, its name, and its subject, then a count |
-| `verify <file>` | Checks that a design has the nine sections of the template in order, each with text and no `Fill in:` line left, and a date in Accounts. It names each section that does not, and each decision ID, such as D9, that the design cites but no row of its Open decisions table defines, and exits 1 |
 
-`verify` reads only the design file it is given, and prints section names, decision IDs, and what is wrong with them, never the design's text.
+The design is checked by `verify` of the `design-doc` skill in [doc-formats](../../doc-formats/docs/how-it-works.md), which reads only the design and this skill's `templates/sections.md`, and needs a date in Accounts.
 
 ## How the agent designs wallets
 
 1. It runs `list`, reads the items the design may rely on, and re-checks the ones marked `stale`; for the status of an ERC or EIP, such as ERC-4337 or EIP-7702, it uses `evm-standards`
 2. It asks the decisions one at a time, each with a recommended choice, and skips what the request already answers. When it cannot ask, it takes the recommended choice and records it as an assumption under Open decisions
-3. It copies `templates/design.md` to `docs/design/<topic>.md`, or where the user or the project keeps designs, replaces every `Fill in:` line, and writes in Accounts the account contract, the EntryPoint version, and the date it checked each service
-4. It runs `verify`, fixes each section it names, then goes through `references/checklist.md` and fixes every rule the design breaks
+3. It writes the design in the design format of `design-doc` to `docs/design/<topic>.md`, or where the user or the project keeps designs, puts the sections of `templates/sections.md` where the format says, replaces every `Fill in:` line, and writes in Accounts the account contract, the EntryPoint version, and the date it checked each service
+4. It runs `verify` of `design-doc` with `templates/sections.md`, fixes each section it names, then goes through `references/checklist.md` and fixes every rule the design breaks
 5. It tells the user the rules it could not judge and the open decisions
 
 The checklist holds the rules a design must never break: no key in a `.env` file, an environment variable, or code, a recovery path and a way to rotate keys, EIP-712 signatures with the chain ID, a nonce, and a deadline, ERC-1271 and ERC-6492 for smart account signatures, permissions and approvals bounded in scope, amount, and time and revocable by users, a pinned EntryPoint version, EIP-7702 delegates that nobody else can initialize and that leave no traps in old storage, sponsorship with limits, agents with spending limits and allowed payees, and signing requests users can read.
@@ -367,16 +365,15 @@ Relayers and monitoring services are dated in the dApp service items, so `multic
 |---|---|
 | `check` | Checks that every item has its four fields, a known topic, and a real date. It names each item that does not and exits 1 |
 | `list` | Prints one line per item: `ok` or `stale`, the topic, the date it was checked, its name, and its subject, then a count |
-| `verify <file>` | Checks that a design has the nine sections of the template in order, each with text and no `Fill in:` line left, and a date in Messages and verification. It names each section that does not, and each decision ID, such as D9, that the design cites but no row of its Open decisions table defines, and exits 1 |
 
-`verify` reads only the design file it is given, and prints section names, decision IDs, and what is wrong with them, never the design's text.
+The design is checked by `verify` of the `design-doc` skill in [doc-formats](../../doc-formats/docs/how-it-works.md), which reads only the design and this skill's `templates/sections.md`, and needs a date in Messages and verification.
 
 ## How the agent designs across chains
 
 1. It runs `list`, reads the items the design may rely on, and re-checks the ones marked `stale`; for the status of an ERC or EIP, such as ERC-7802 or ERC-7955, it uses `evm-standards`
 2. It asks the decisions one at a time, each with a recommended choice, and skips what the request already answers. When it cannot ask, it takes the recommended choice and records it as an assumption under Open decisions
-3. It copies `templates/design.md` to `docs/design/<topic>.md`, or where the user or the project keeps designs, replaces every `Fill in:` line, and writes in Messages and verification each protocol, its version, and the date it checked it
-4. It runs `verify`, fixes each section it names, then goes through `references/checklist.md` and fixes every rule the design breaks
+3. It writes the design in the design format of `design-doc` to `docs/design/<topic>.md`, or where the user or the project keeps designs, puts the sections of `templates/sections.md` where the format says, replaces every `Fill in:` line, and writes in Messages and verification each protocol, its version, and the date it checked it
+4. It runs `verify` of `design-doc` with `templates/sections.md`, fixes each section it names, then goes through `references/checklist.md` and fixes every rule the design breaks
 5. It tells the user the rules it could not judge and the open decisions
 
 The checklist holds the rules a design must never break: the same code at the same address, messages bound to their chains, sender, and nonce and processed once, a whole supply and one canonical token, respect for finality, no single verifier, rate limits in every direction, recovery for stuck and failed messages, a pause on every chain, admin keys not shared across chains, matching decimals, and destination gas that someone pays.
@@ -404,16 +401,15 @@ A service item counts as out of date 90 days after it was checked, since hosted 
 |---|---|
 | `check` | Checks that every item has its four fields, a known topic, and a real date. It names each item that does not and exits 1 |
 | `list` | Prints one line per item: `ok` or `stale`, the topic, the date it was checked, its name, and its subject, then a count |
-| `verify <file>` | Checks that a design has the nine sections of the template in order, each with text and no `Fill in:` line left, and a date in Components. It names each section that does not, and each decision ID, such as D9, that the design cites but no row of its Open decisions table defines, and exits 1 |
 
-`verify` reads only the design file it is given, and prints section names, decision IDs, and what is wrong with them, never the design's text.
+The design is checked by `verify` of the `design-doc` skill in [doc-formats](../../doc-formats/docs/how-it-works.md), which reads only the design and this skill's `templates/sections.md`, and needs a date in Components.
 
 ## How the agent plans an architecture
 
 1. It runs `list`, reads the items for the services the design may use, and re-checks the ones marked `stale`; for the status of an ERC or EIP, such as ERC-4337 or EIP-7702, it uses `evm-standards`
 2. It asks the decisions one at a time, each with a recommended choice, and skips what the request already answers. When it cannot ask, it takes the recommended choice and records it as an assumption under Open decisions
-3. It copies `templates/design.md` to `docs/design/<topic>.md`, or where the user or the project keeps designs, replaces every `Fill in:` line, and writes in Components the date it checked each third-party service
-4. It runs `verify`, fixes each section it names, then goes through `references/checklist.md` and fixes every rule the design breaks
+3. It writes the design in the design format of `design-doc` to `docs/design/<topic>.md`, or where the user or the project keeps designs, puts the sections of `templates/sections.md` where the format says, replaces every `Fill in:` line, and writes in Components the date it checked each third-party service
+4. It runs `verify` of `design-doc` with `templates/sections.md`, fixes each section it names, then goes through `references/checklist.md` and fixes every rule the design breaks
 5. It tells the user the rules it could not judge and the open decisions
 
 The checklist holds the rules a design must never break: nothing secret or personal on chain, a sender and a payer for every write path, relayer keys kept apart from admin keys, sponsored signatures bound to the chain ID, a nonce, and a deadline, screens that read from an indexer or a database, reads that survive reorganizations, indexing that is idempotent and can be rebuilt from the deployment block, no single key in control, changes delayed by a timelock, a separate pauser, and one set of keys and addresses per environment.
@@ -441,16 +437,15 @@ A standard item counts as out of date 180 days after it was checked, since these
 |---|---|
 | `check` | Checks that every item has its four fields, a known standard, and a real date. It names each item that does not and exits 1 |
 | `list` | Prints one line per item: `ok` or `stale`, the standard, the version, the date it was checked, and its name, then a count |
-| `verify <file>` | Checks that a design has the nine sections of the template in order, each with text and no `Fill in:` line left, and a date in Standard and business. It names each section that does not, and each decision ID, such as D9, that the design cites but no row of its Open decisions table defines, and exits 1 |
 
-`verify` reads only the design file it is given, and prints section names, decision IDs, and what is wrong with them, never the design's text.
+The design is checked by `verify` of the `design-doc` skill in [doc-formats](../../doc-formats/docs/how-it-works.md), which reads only the design and this skill's `templates/sections.md`, and needs a date in Standard and business.
 
 ## How the agent writes a design
 
 1. It runs `list`, reads the items for the standards in the request, and re-checks the ones marked `stale`; for the status of an ERC or EIP, such as ERC-3643, it uses `evm-standards`
 2. It asks the decisions one at a time, each with a recommended choice, and skips what the request already answers. When it cannot ask, it takes the recommended choice and records it as an assumption under Open decisions
-3. It copies `templates/design.md` to `docs/design/<topic>.md`, or where the user or the project keeps designs, and replaces every `Fill in:` line
-4. It runs `verify`, fixes each section it names, then goes through `references/checklist.md` and fixes every rule the design breaks
+3. It writes the design in the design format of `design-doc` to `docs/design/<topic>.md`, or where the user or the project keeps designs, puts the sections of `templates/sections.md` where the format says, and replaces every `Fill in:` line
+4. It runs `verify` of `design-doc` with `templates/sections.md`, fixes each section it names, then goes through `references/checklist.md` and fixes every rule the design breaks
 5. It tells the user the rules it could not judge and the open decisions
 
 The checklist holds the rules a design must never break: nothing private on chain, salted commitments bound to a domain instead of bare hashes, a contract that accepts only signed evidence and never parses XML, correlation by an internal case ID, reports that are not settlement, a ledger that is not legal finality, revocable permissions, corrections that append, a pinned version and profile, separated off-chain responsibilities, evidence that cannot be replayed, and idempotent writes.

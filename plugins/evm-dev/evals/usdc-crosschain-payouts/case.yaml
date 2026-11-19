@@ -4,7 +4,7 @@
 # pays the gas on Base, and a payout that fails after the USDC arrives leaves the funds recoverable.
 schema_version: "1.1"
 name: usdc-crosschain-payouts
-plugins: ["../.."]
+plugins: ["../..", "../../../doc-formats"]
 execution:
   prompt: |
     Design how the day's USDC moves from Arbitrum to Base and pays the sellers: the protocol, what happens if the transfer or the payout fails, the limits, and who pays the fees. Write the design to docs/design/payouts-multichain.md. Do not ask me questions; decide, and write down your assumptions.

@@ -1,9 +1,3 @@
-# Fill in: the name of the dApp and of this design
-
-Fill in: one paragraph on what this design lets the team build, what it covers, and what it leaves out.
-
-Each section decides one part and points to the others instead of repeating them. Open decisions holds every decision, assumption, and open question; other sections link to it.
-
 ## Purpose and users
 
 Fill in: what the dApp does, who uses it (wallet users, operators, administrators, other contracts or services), and what each of them can do.
@@ -44,7 +38,3 @@ Fill in: which keys are kept apart, how a key is rotated or revoked, and how an 
 
 Fill in: what is watched (admin actions, paused state, large transfers, failed transactions, relayer balance, indexer lag, RPC errors), how alerts reach the people on call, and the runbook for an incident, a pause, and a key compromise.
 Fill in: who operates each component, backups, and how the dApp recovers when a third-party service stops.
-
-## Open decisions
-
-Fill in: each open question and assumption, the candidates, what it affects, who decides, and by when or under what condition.

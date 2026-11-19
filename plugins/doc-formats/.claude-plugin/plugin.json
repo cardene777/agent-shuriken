@@ -1,0 +1,20 @@
+{
+  "name": "doc-formats",
+  "displayName": "Doc Formats",
+  "version": "0.1.0",
+  "description": "Shared document formats that other skills follow, starting with the format of a design document and a script that checks every section is filled in",
+  "author": {
+    "name": "cardene777",
+    "url": "https://github.com/cardene777"
+  },
+  "homepage": "https://github.com/cardene777/agent-shuriken/tree/main/plugins/doc-formats",
+  "repository": "https://github.com/cardene777/agent-shuriken",
+  "license": "MIT",
+  "keywords": [
+    "design",
+    "documents",
+    "format",
+    "template",
+    "musubi"
+  ]
+}

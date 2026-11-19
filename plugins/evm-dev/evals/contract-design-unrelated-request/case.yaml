@@ -2,7 +2,7 @@
 # skill but asks for no design, so the design skill must not start.
 schema_version: "1.1"
 name: contract-design-unrelated-request
-plugins: ["../.."]
+plugins: ["../..", "../../../doc-formats"]
 execution:
   prompt: |
     In contracts/Sale.sol, what happens when someone calls buy after endTime? Answer in one sentence.

@@ -5,6 +5,13 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+### Changed
+
+- The five design skills, `contract-design`, `wallet-design`, `multichain-design`, `dapp-architecture`, and `financial-standards`, write in the design format of the `design-doc` skill in the new doc-formats plugin, which Claude Code installs with evm-dev, and check a design with its `verify`, passing their own `templates/sections.md`. The designs they write keep the same sections
+- Each design skill declares in `musubi.json` the version range and fingerprint of the format and `verify` it follows, and stops when `design-doc` is not installed
+- Each design skill has a finished example design in `examples/`, and its script keeps only `check` and `list`
+- The eval cases of the five design skills load doc-formats too, so they run from the repository root with `claude plugin eval . --eval-dir plugins/evm-dev/evals`; `token-sale-contracts` also checks that `contract-design` opens `design-doc`
+
 ## [0.5.0] - 2026-11-18
 
 ### Added

@@ -4,7 +4,7 @@
 # since Swift deferred the payments part of SR2026 in August 2026).
 schema_version: "1.1"
 name: iso20022-settlement
-plugins: ["../.."]
+plugins: ["../..", "../../../doc-formats"]
 execution:
   prompt: |
     Design how this project maps ISO 20022 payment messages, the pacs.008 credit transfer and the pacs.002 status report, onto the settlement contract. Write the design to docs/design/iso20022-settlement.md. Do not ask me questions; decide, and write down your assumptions.

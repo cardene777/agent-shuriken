@@ -5,7 +5,7 @@
 # the sponsorship.
 schema_version: "1.1"
 name: smart-account-choice
-plugins: ["../.."]
+plugins: ["../..", "../../../doc-formats"]
 execution:
   prompt: |
     Decide whether our users get ERC-4337 smart accounts or use EIP-7702 with the wallets they already have, and design the wallet and signing side: the accounts, the keys, what users sign and approve, and who pays gas. Write the design to docs/design/wallet.md. Do not ask me questions; decide, and write down your assumptions.

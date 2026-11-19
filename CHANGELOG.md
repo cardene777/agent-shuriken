@@ -7,6 +7,7 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ## [Unreleased]
 
+- The doc-formats plugin, whose design-doc skill holds the shared format of a design document and the verify script that checks one. The five design skills of evm-dev now follow it through musubi
 - The `agent-shared` command, installed with `uv tool install`, which links the skills and rules in `~/.shared` into Claude Code and the agents that read `~/.agents/skills`, writes the rules into `~/.codex/AGENTS.md` and the hooks into both agents' settings with Codex's trust, links a repository's `.shared` skills into its own folders, and removes only what it placed. It is now the main feature of the repository, and the plugins are listed after it
 - Getting started now places Codex skills in `~/.agents/skills` instead of `~/.codex/skills`, which Codex keeps only for older setups
 - The diagram-composer plugin, which designs the diagram area of a slide with one visual metaphor, a meaning for every connector, and labels kept off the lines, and checks the diagram's geometry with a script before the slide is rendered

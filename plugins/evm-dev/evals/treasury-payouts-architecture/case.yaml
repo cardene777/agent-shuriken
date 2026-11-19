@@ -5,7 +5,7 @@
 # on 1 July 2026).
 schema_version: "1.1"
 name: treasury-payouts-architecture
-plugins: ["../.."]
+plugins: ["../..", "../../../doc-formats"]
 execution:
   prompt: |
     Plan the architecture of this payout dApp: the parts, what triggers each monthly payout and who pays for it, how the web page reads the payouts, the environments, who holds the admin roles, and how the council is alerted. Write the design to docs/design/payouts-architecture.md. Do not ask me questions; decide, and write down your assumptions.

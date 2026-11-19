@@ -1,0 +1,14 @@
+{
+  "musubi": "2026-11-19",
+  "provides": {
+    "design": {
+      "version": "1.0.0",
+      "file": "formats/design.md",
+      "check": "checks/design.json"
+    },
+    "verify": {
+      "version": "1.0.0",
+      "file": "scripts/design-doc.py"
+    }
+  }
+}

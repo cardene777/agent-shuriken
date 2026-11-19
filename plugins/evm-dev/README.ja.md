@@ -42,9 +42,11 @@ financial-standards:  Read the items ──> Ask the decisions ──> Write the
 
 codex plugin marketplace add cardene777/agent-shuriken   # Codex
 codex plugin add evm-dev@agent-shuriken
+codex plugin add doc-formats@agent-shuriken
 
 copilot plugin marketplace add cardene777/agent-shuriken # GitHub Copilot CLI
 copilot plugin install evm-dev@agent-shuriken
+copilot plugin install doc-formats@agent-shuriken
 
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/evm-standards   # Gemini CLI
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/solidity-code
@@ -56,8 +58,11 @@ gemini skills install https://github.com/cardene777/agent-shuriken.git --path pl
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/multichain-design
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/dapp-architecture
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/financial-standards
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/doc-formats/skills/design-doc
 ```
 
+5つの設計のスキルは、[doc-formats](../doc-formats)のpluginの`design-doc`のスキルが持つ設計書の書式で書きます。
+Claude Codeはevm-devと一緒にdoc-formatsを入れます。Codex、GitHub Copilot CLI、Gemini CLIでは、上の行のうちdoc-formatsを名指す行で入れます。
 `SKILL.md`を読むほかのエージェントでは、各リリースに付いているスキルのzipをエージェントのスキルのフォルダに展開します。
 手順は[はじめに](../../docs/getting-started.ja.md#マーケットプレイスを使わずにインストールする)にあります。
 
@@ -248,7 +253,7 @@ opcodes: 3 opcodes the shanghai EVM lacks in 1 contract
 
 1. エージェントがプロキシ、権限の管理、価格のフィード、乱数、非公開の中継、トークンの扱いの項目を並べ、古い項目は確かめ直します
 2. エージェントが決めることを1つずつ、勧める案を添えて尋ねます。コントラクトがすることと守る上限、トークンとその規格、役割を誰が持つか、更新できるようにするか、価格と乱数をどこから取るかを尋ねます。尋ねられない時は勧める案を採り、仮定として書きます
-3. エージェントが雛形をプロジェクトに写し(既定は`docs/design/<topic>.md`)、9つの節を埋めます。節は目的と範囲、コントラクト、トークンの規格、状態と不変条件、役割と統治、更新、価格と取引の順と乱数、外への呼び出しと失敗、未決です
+3. エージェントが`design-doc`の設計書の書式でプロジェクトに設計書を書き(既定は`docs/design/<topic>.md`)、9つの節を埋めます。節は目的と範囲、コントラクト、トークンの規格、状態と不変条件、役割と統治、更新、価格と取引の順と乱数、外への呼び出しと失敗、未決です
 4. エージェントが節を確かめ、確かめの表で設計を見直し、判断できなかった決まりと未決の事を伝えます
 
 項目は次のように並びます。
@@ -273,7 +278,7 @@ contract-design: 2 problems; fill in or add each section named above
 
 1. エージェントがEntryPointの版、EIP-7702の委任、ウォレットの権限、Permit2、paymasterのサービス、x402の項目を並べ、古い項目は確かめ直します
 2. エージェントが決めることを1つずつ、勧める案を添えて尋ねます。ウォレットを使う人と守る上限、利用者とエージェントが持つアカウントの種類、鍵を誰が持ち失くした鍵をどう取り戻すか、利用者が何に署名し何を承認するか、ガス代を誰が払いAIエージェントがどう払うかを尋ねます。尋ねられない時は勧める案を採り、仮定として書きます
-3. エージェントが雛形をプロジェクトに写し(既定は`docs/design/<topic>.md`)、9つの節を埋めます。節は目的と使う人、アカウント、鍵と取り戻し方、署名と許可、承認、ガス代と肩代わり、エージェントの支払い、チェーンと環境、未決です
+3. エージェントが`design-doc`の設計書の書式でプロジェクトに設計書を書き(既定は`docs/design/<topic>.md`)、9つの節を埋めます。節は目的と使う人、アカウント、鍵と取り戻し方、署名と許可、承認、ガス代と肩代わり、エージェントの支払い、チェーンと環境、未決です
 4. エージェントが節を確かめ、確かめの表で設計を見直し、判断できなかった決まりと未決の事を伝えます
 
 項目は次のように並びます。
@@ -298,7 +303,7 @@ wallet-design: 2 problems; fill in or add each section named above
 
 1. エージェントがCREATE2の工場、CircleのCCTP、LayerZeroの検証者の設定、ChainlinkのCross-Chain Tokenの規格、Superchainの連携の項目を並べ、古い項目は確かめ直します
 2. エージェントが決めることを1つずつ、勧める案を添えて尋ねます。どのチェーンで何を動かすか、どのコントラクトに同じアドレスが要るか、各資産をどのチェーンが発行するか、どのプロトコルがメッセージを運び誰が検証するか、片側だけ終わった時にどうするかを尋ねます。尋ねられない時は勧める案を採り、仮定として書きます
-3. エージェントが雛形をプロジェクトに写し(既定は`docs/design/<topic>.md`)、9つの節を埋めます。節は目的とチェーン、展開とアドレス、チェーンをまたぐ資産、メッセージと検証、片側だけ終わった時、役割と上限、手数料とガス代、監視と環境、未決です
+3. エージェントが`design-doc`の設計書の書式でプロジェクトに設計書を書き(既定は`docs/design/<topic>.md`)、9つの節を埋めます。節は目的とチェーン、展開とアドレス、チェーンをまたぐ資産、メッセージと検証、片側だけ終わった時、役割と上限、手数料とガス代、監視と環境、未決です
 4. エージェントが節を確かめ、確かめの表で設計を見直し、判断できなかった決まりと未決の事を伝えます
 
 項目は次のように並びます。
@@ -323,7 +328,7 @@ multichain-design: 2 problems; fill in or add each section named above
 
 1. エージェントがインデクサ、取引の中継、自動実行、監視、テストネット、マルチシグ、保存の項目を並べ、古い項目は確かめ直します
 2. エージェントが決めることを1つずつ、勧める案を添えて尋ねます。使う人とチェーン、取引を誰が送りガス代を誰が払うか、チェーンのデータをどう読むか、何をどこに置くか、管理の役割を誰が持つか、どのサービスを自分で動かすかを尋ねます。尋ねられない時は勧める案を採り、仮定として書きます
-3. エージェントが雛形をプロジェクトに写し(既定は`docs/design/<topic>.md`)、9つの節を埋めます。節は目的と使う人、部品、取引とガス代、チェーンの読み取り、データの置き場所、環境、鍵と管理、監視と運用、未決です
+3. エージェントが`design-doc`の設計書の書式でプロジェクトに設計書を書き(既定は`docs/design/<topic>.md`)、9つの節を埋めます。節は目的と使う人、部品、取引とガス代、チェーンの読み取り、データの置き場所、環境、鍵と管理、監視と運用、未決です
 4. エージェントが節を確かめ、確かめの表で設計を見直し、判断できなかった決まりと未決の事を伝えます
 
 項目は次のように並びます。
@@ -349,7 +354,7 @@ dapp-architecture: 2 problems; fill in or add each section named above
 
 1. エージェントが規格の版の項目を並べ、古い項目は確かめ直します
 2. エージェントが決めることを1つずつ、勧める案を添えて尋ねます。規格とprofile、業務の流れ、チェーン、チェーンに置く物と署名する人、法的な最終性の置き場、資産をトークンにするかを尋ねます。尋ねられない時は勧める案を採り、仮定として書きます
-3. エージェントが雛形をプロジェクトに写し(既定は`docs/design/<topic>.md`)、9つの節を埋めます。節は規格と業務、アプリ、データと保存、オンチェーン、オフチェーン、接続、安全と運用、確かめと導入、未決です
+3. エージェントが`design-doc`の設計書の書式でプロジェクトに設計書を書き(既定は`docs/design/<topic>.md`)、9つの節を埋めます。節は規格と業務、アプリ、データと保存、オンチェーン、オフチェーン、接続、安全と運用、確かめと導入、未決です
 4. エージェントが節を確かめ、確かめの表で設計を見直し、判断できなかった決まりと未決を伝えます
 
 項目は次のように出ます。
