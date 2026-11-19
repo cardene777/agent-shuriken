@@ -1,4 +1,4 @@
-"""Plans and writes what agent-shared places in each agent.
+"""Plans and writes what agent-shared places in each agent, and reads back what a source placed.
 
 A source is a folder with the `.shared` layout: `skills/<name>/SKILL.md`, `rules/*.md`, and
 `hooks.json` (the `hooks` object of Claude Code's settings). The agent table says where each agent
@@ -301,6 +301,11 @@ def find_repo(argument):
         here = parent
 
 
+def still_placed(place, target):
+    """Whether `place` is still the link agent-shared placed there, pointing at the target it was given."""
+    return os.path.islink(place) and os.readlink(place) == target
+
+
 def is_marked(hook, ids=None):
     """Whether agent-shared placed the hook, from any source or from one of `ids`."""
     command = hook.get("command") if isinstance(hook, dict) else None
@@ -508,22 +513,37 @@ def trust_codex_hooks(place):
         server.close()
 
 
+def existing_source(path):
+    """The source folder named on the command line, which must exist."""
+    path = expand(path)
+    if not os.path.isdir(path):
+        raise Usage("the source folder {} does not exist".format(shown(path)))
+    return Source(path)
+
+
 def user_sources(extra_sources):
     """~/.shared when it exists, then every --source folder once, in the order given."""
     main_path = os.path.join(home(), ".shared")
     sources = [Source(main_path)] if os.path.isdir(main_path) else []
     for path in extra_sources:
-        path = expand(path)
-        if not os.path.isdir(path):
-            raise Usage("the source folder {} does not exist".format(shown(path)))
-        if source_id(path) not in {source.id for source in sources}:
-            sources.append(Source(path))
+        source = existing_source(path)
+        if source.id not in {known.id for known in sources}:
+            sources.append(source)
     return sources
 
 
 def agent_table():
     main_path = os.path.join(home(), ".shared")
     return load_table(os.path.join(main_path, "agents.json") if os.path.isdir(main_path) else None)
+
+
+def agent_places(row):
+    """Where one agent of the table keeps what agent-shared places in the home folder: the skills folder,
+    the rules place and form (None without rules), and the hook file (None without hooks)."""
+    rules = row.get("rules")
+    return (expand(row["skills"]),
+            (expand(rules["place"]), rules["form"]) if rules else None,
+            expand(row["hooks"]["file"]) if "hooks" in row else None)
 
 
 def agent_hook_groups(declared, agent_name):
@@ -554,6 +574,72 @@ def hooks(agent_name, extra_sources):
         declared = [(source,) + hook for source in sources for hook in source.hooks(agent_names)]
         groups, _commands = agent_hook_groups(declared, agent_name)
     print(json.dumps({"hooks": groups}, ensure_ascii=False, indent=2))
+    return 0
+
+
+def linked_names(links, folder):
+    """The names of the links in `folder` that a source placed and that still point at their target."""
+    return sorted(os.path.basename(place) for place, target in links.items()
+                  if os.path.dirname(place) == folder and still_placed(place, target))
+
+
+def block_rule_names(path, sid, refusals):
+    """The names of the rules in the source's block of a rules file, [] when the file or the block is missing."""
+    if not os.path.exists(path):
+        return []
+    try:
+        with open(path, encoding="utf-8") as handle:
+            lines = handle.read().splitlines(keepends=True)
+    except (OSError, UnicodeError) as error:
+        refusals.append("{} cannot be read ({})".format(shown(path), error))
+        return []
+    found = block_lines(lines, sid, path, refusals)
+    if not found:
+        return []
+    head, tail = RULE.split("{}")
+    names = [line.rstrip("\n") for line in lines[found[0] + 1:found[1]]]
+    return sorted(line[len(head):len(line) - len(tail)] for line in names if line.startswith(head) and line.endswith(tail))
+
+
+def marked_hooks(path, sid, refusals):
+    """The hooks the source placed in an agent's hook file, in file order, each as its event, the group's
+    matcher when it has one, and the command without the mark."""
+    data = read_agent_json(path, refusals)
+    if data is None:
+        return []
+    found = []
+    for event, groups in data.get("hooks", {}).items():
+        for group in groups:
+            if not isinstance(group, dict):
+                continue
+            for hook in group.get("hooks", []):
+                if is_marked(hook, {sid}):
+                    entry = {"event": event}
+                    if "matcher" in group:
+                        entry["matcher"] = group["matcher"]
+                    entry["command"] = hook["command"].rsplit("\n", 1)[0]
+                    found.append(entry)
+    return found
+
+
+def placed(source_path):
+    """Prints, as JSON, the skills, rules, and hooks one source placed in each agent of the table that are
+    still there. Writes nothing. Returns 0."""
+    source = existing_source(source_path)
+    table = agent_table()
+    links = Record().links({source.id})
+    refusals, agents = [], {}
+    for row in table:
+        skills_dir, rules_at, hook_file = agent_places(row)
+        rules = []
+        if rules_at:
+            place, form = rules_at
+            rules = linked_names(links, place) if form == "link" else block_rule_names(place, source.id, refusals)
+        agents[row["name"]] = {"skills": linked_names(links, skills_dir), "rules": rules,
+                               "hooks": marked_hooks(hook_file, source.id, refusals) if hook_file else []}
+    if refusals:
+        raise Usage("; ".join(dict.fromkeys(refusals)))
+    print(json.dumps({"source": source.path, "agents": agents}, ensure_ascii=False, indent=2))
     return 0
 
 
@@ -593,23 +679,22 @@ def deploy(extra_sources, repo_argument):
         if kind and kind not in plugin_cache:
             plugin_cache[kind] = (claude_plugin_skills if kind == "claude" else codex_plugin_skills)(warnings)
         plugins = plugin_cache.get(kind, {})
-        base = expand(row["skills"])
+        skills_dir, rules_at, hook_file = agent_places(row)
         for name, (path, source) in skills.items():
             if name in plugins:
                 notes.append("skipped the skill {} for {}: the plugin {} already has it".format(name, row["name"], plugins[name]))
             else:
-                wanted[os.path.join(base, name)] = (path, source)
-        if "rules" in row:
-            place = expand(row["rules"]["place"])
-            if row["rules"]["form"] == "link":
+                wanted[os.path.join(skills_dir, name)] = (path, source)
+        if rules_at:
+            place, form = rules_at
+            if form == "link":
                 for name, (path, source) in rules.items():
                     wanted[os.path.join(place, name)] = (path, source)
             else:
                 blocks[place] = {source.id: sorted((name, path) for name, (path, owner) in rules.items() if owner is source)
                                  for source in sources}
-        if "hooks" in row:
-            place = expand(row["hooks"]["file"])
-            entry = hook_files.setdefault(place, {"trust": row["hooks"].get("trust"), "groups": {}, "commands": set()})
+        if hook_file:
+            entry = hook_files.setdefault(hook_file, {"trust": row["hooks"].get("trust"), "groups": {}, "commands": set()})
             groups, commands = agent_hook_groups(declared, row["name"])
             entry["commands"] |= commands
             for event, added in groups.items():
@@ -625,8 +710,7 @@ def deploy(extra_sources, repo_argument):
         if owner is not None and owner not in run_ids:
             refusals.append("{} was placed from another source, {}; deploy both sources in one run"
                             .format(shown(place), shown(entry.get("path", "?"))))
-        elif os.path.lexists(place) and not (owner is not None and os.path.islink(place)
-                                              and os.readlink(place) == record.sources[owner]["links"][place]):
+        elif os.path.lexists(place) and not (owner is not None and still_placed(place, record.sources[owner]["links"][place])):
             refusals.append("{} is in the way: agent-shared did not place it".format(shown(place)))
 
     blocks_text = {}
@@ -672,16 +756,16 @@ def deploy(extra_sources, repo_argument):
         raise Refused(refusals)
 
     # Write: take out links this run no longer places, then place the rest.
-    placed = {source.id: {} for source in run}
+    placed_links = {source.id: {} for source in run}
     for place, target in sorted(record.links(run_ids).items()):
         if place in wanted and wanted[place][0] == target:
             continue
-        if os.path.islink(place) and os.readlink(place) == target:
+        if still_placed(place, target):
             os.unlink(place)
             notes.append("removed {}".format(shown(place)))
     for place, (target, source) in sorted(wanted.items()):
-        placed[source.id][place] = target
-        if os.path.islink(place) and os.readlink(place) == target:
+        placed_links[source.id][place] = target
+        if still_placed(place, target):
             continue
         os.makedirs(os.path.dirname(place), exist_ok=True)
         os.symlink(target, place)
@@ -692,7 +776,7 @@ def deploy(extra_sources, repo_argument):
     for place, text in sorted(hooks_text.items()):
         write_text(place, text)
         notes.append("wrote the hooks in {}".format(shown(place)))
-    record.save(run, placed)
+    record.save(run, placed_links)
 
     for place, entry in sorted(hook_files.items()):
         if entry["trust"] != "codex-app-server" or not os.path.exists(place):

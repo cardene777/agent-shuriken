@@ -19,7 +19,7 @@
 | 置いた物の記録は`~/.local/share/agent-shared/`の下 (環境変数で替えられる) に在り、本人だけが読める権限を持つ | `bash agent-shared/tests/test-agent-shared.sh`の検査`"the record of placed items is kept readable only by the user"`が通る | #250 |
 | `README.md`と`README.ja.md`は、`agent-shared`の節をpluginの一覧の節より前に置く | `bash agent-shared/tests/test-agent-shared.sh`の検査`"the READMEs put agent-shared before the plugins"`が通る | #250 |
 | `docs/getting-started.md`と`docs/getting-started.ja.md`は、Codexのskillの置き場を`~/.agents/skills`と書き、`~/.codex/skills`を書かない | `bash agent-shared/tests/test-agent-shared.sh`の検査`"getting started no longer points Codex at its deprecated skills folder"`が通る | #250 |
-| repoの検査が全て通る | `bash scripts/check.sh`が終了0 | #250 |
+| repoの検査が全て通る | `bash scripts/check.sh`が終了0 | #250 #258 |
 | `agent-shared hooks --agent "Claude Code"`が出すJSONの`hooks`の欄は、同じ元で`agent-shared deploy`が`~/.claude/settings.json`へ足した印付きのhookの組と一致する | `bash agent-shared/tests/test-agent-shared.sh`の検査`"hooks prints the groups deploy adds for an agent"`が通る | #256 |
 | `agent-shared hooks --agent Codex`は、宣言の`tools`がCodexを名指さないhookを出さない | `bash agent-shared/tests/test-agent-shared.sh`の検査`"hooks leaves out a hook whose tools name another agent"`が通る | #256 |
 | `agent-shared hooks`は、`--source`で渡したfolderの宣言のhookも出す | `bash agent-shared/tests/test-agent-shared.sh`の検査`"hooks includes the hooks of every source"`が通る | #256 |
@@ -27,3 +27,16 @@
 | agentの表に無い名前を`--agent`に渡すと、`agent-shared hooks`は標準出力に何も出さず、その名前を名指して終わり方2で断る | `bash agent-shared/tests/test-agent-shared.sh`の検査`"hooks refuses an agent the table does not have"`が通る | #256 |
 | `--agent`を渡さないと、`agent-shared hooks`は`--agent`を名指して終わり方2で断る | `bash agent-shared/tests/test-agent-shared.sh`の検査`"hooks refuses a call without --agent"`が通る | #256 |
 | `agent-shared deploy`は今どおり印付きのhookを足し、ほかの設定を変えない | `bash agent-shared/tests/test-agent-shared.sh`の検査`"deploy adds marked hooks and keeps the other settings"`が通る | #256 |
+| `agent-shared deploy --source <folder>`の後に`agent-shared placed --source <folder>`を打つと、`agents`の`Claude Code`と`Codex`の欄に、その元が置いた技の名前とruleの名前とhookを返す。CodexのruleはAGENTS.mdの塊から読む | `bash agent-shared/tests/test-agent-shared.sh`の検査`"placed lists what a source placed for each agent"`が通る | #258 |
+| `agent-shared placed`が返すhookは、`event`と、組が持つ時だけの`matcher`と、印の行を除いた`command`を持つ | `bash agent-shared/tests/test-agent-shared.sh`の検査`"placed prints each hook without the mark"`が通る | #258 |
+| `agent-shared placed --source <folder>`は、`~/.shared`のように別の元が置いた技とruleとhookを返さない | `bash agent-shared/tests/test-agent-shared.sh`の検査`"placed leaves out what another source placed"`が通る | #258 |
+| agentに入っているpluginが同じ名前の技を持つために置かなかった技を、`agent-shared placed`はそのagentの欄に返さず、置いた別のagentの欄には返す | `bash agent-shared/tests/test-agent-shared.sh`の検査`"placed leaves out a skill a plugin already has"`が通る | #258 |
+| 配った後に本人が消したlinkと、印の無いhookと、本人が置いた技のfolderを、`agent-shared placed`は返さない | `bash agent-shared/tests/test-agent-shared.sh`の検査`"placed counts only what still carries the mark"`が通る | #258 |
+| `agent-shared placed`は終わり方0で終え、打った後のホームと記録の置き場のfileの中身が打つ前と同じ | `bash agent-shared/tests/test-agent-shared.sh`の検査`"placed writes nothing"`が通る | #258 |
+| 1度も配っていない元を渡すと、`agent-shared placed`はagentの表の全てのagentを表の順に、技とrulesとhookを空の配列にして返し、終わり方0で終わる | `bash agent-shared/tests/test-agent-shared.sh`の検査`"placed prints empty lists for a source never deployed"`が通る | #258 |
+| agentのhookのfileがJSONで読めない時、`agent-shared placed`は標準出力に何も出さず、そのfileを名指して終わり方2で断る | `bash agent-shared/tests/test-agent-shared.sh`の検査`"placed refuses a hook file it cannot read"`が通る | #258 |
+| rulesの塊の印の行が壊れている時、`agent-shared placed`は標準出力に何も出さず、そのfileを名指して終わり方2で断る | `bash agent-shared/tests/test-agent-shared.sh`の検査`"placed refuses a broken rules block"`が通る | #258 |
+| `--source`を渡さない呼び方と、在らないfolderを渡す呼び方を、`agent-shared placed`は標準出力に何も出さず、`--source`かそのfolderを名指して終わり方2で断る | `bash agent-shared/tests/test-agent-shared.sh`の検査`"placed refuses a call without an existing source"`が通る | #258 |
+| `agent-shared deploy`は今どおり技とruleのlinkを置き、Codexのrulesを1つの塊に書く | `bash agent-shared/tests/test-agent-shared.sh`の検査`"deploy writes rules as links for Claude Code and one block for Codex"`が通る | #258 |
+| `agent-shared deploy`は今どおり、pluginが同じ名前の技を持つagentへその技を置かない | `bash agent-shared/tests/test-agent-shared.sh`の検査`"a skill an installed plugin already has is not placed for that agent"`が通る | #258 |
+| `agent-shared hooks`は今どおり、`deploy`が足すhookの組を返す | `bash agent-shared/tests/test-agent-shared.sh`の検査`"hooks prints the groups deploy adds for an agent"`が通る | #258 |

@@ -472,6 +472,251 @@ hooks_need_agent() {
   grep -q -- '--agent' "$T/hooks.err" || { why="the refusal does not name --agent: $(tail -1 "$T/hooks.err")"; return 1; }
 }
 
+# Runs `agent-shared placed` with stdout and stderr kept apart in $T/placed.out and $T/placed.err.
+placed_run() {
+  (cd "$RUN_DIR" && PYTHONPATH="$PKG/src" python3 -m agent_shared placed "$@") > "$T/placed.out" 2> "$T/placed.err"
+  rc=$?
+}
+placed_ok() {
+  placed_run "$@"
+  [ "$rc" = 0 ] || { why="placed exited $rc: $(tail -1 "$T/placed.err")"; return 1; }
+}
+
+# A second source in $T/source-$1, deployed with ~/.shared: two skills, one rule, the same hook command
+# under two matchers with ${CLAUDE_PLUGIN_ROOT}, a Stop hook without a matcher, and a hook for Claude
+# Code only. $SRC names the folder.
+full_source() {
+  SRC="$T/source-$1"
+  mkdir -p "$SRC/skills/delta" "$SRC/skills/epsilon" "$SRC/rules"
+  printf -- '---\nname: delta\ndescription: Delta.\n---\nDelta.\n' > "$SRC/skills/delta/SKILL.md"
+  printf -- '---\nname: epsilon\ndescription: Epsilon.\n---\nEpsilon.\n' > "$SRC/skills/epsilon/SKILL.md"
+  printf '# Three\nRule three.\n' > "$SRC/rules/three.md"
+  cat > "$SRC/hooks.json" <<'JSON'
+{"hooks": {
+  "PreToolUse": [
+    {"matcher": "Bash", "hooks": [{"type": "command", "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/check.sh"}]},
+    {"matcher": "Edit", "hooks": [{"type": "command", "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/check.sh", "timeout": 5}]}
+  ],
+  "Stop": [
+    {"hooks": [{"type": "command", "command": "echo source-stop"}]},
+    {"hooks": [{"type": "command", "command": "echo claude-only", "tools": ["Claude Code"]}]}
+  ]
+}}
+JSON
+}
+
+# Reads $T/placed.out and runs the Python check on stdin with `out` (the JSON, keys in order), `src`,
+# and `home` defined. The check calls fail(<reason>) when it does not hold.
+placed_holds() {
+  python3 - "$T/placed.out" "${SRC:-}" "$HOME" "$T/placed.why" 3<&0 <<'PY' || { why="$(cat "$T/placed.why" 2>/dev/null)"; return 1; }
+import json, os, sys
+path, src, home, why = sys.argv[1:]
+def fail(reason):
+    open(why, "w").write(reason)
+    sys.exit(1)
+try:
+    out = json.load(open(path), object_pairs_hook=lambda pairs: dict(pairs))
+except ValueError as error:
+    fail("placed did not print JSON (%s)" % error)
+exec(os.fdopen(3).read())
+PY
+}
+
+placed_lists() {
+  fresh placed-lists
+  full_source lists
+  run deploy --source "$SRC"
+  [ "$rc" = 0 ] || { why="deploy exited $rc: $(tail -1 "$T/out")"; return 1; }
+  placed_ok --source "$SRC" || return 1
+  placed_holds <<'PY'
+if out.get("source") != src:
+    fail("source is %r, not the folder passed" % out.get("source"))
+agents = out.get("agents") or {}
+for name, hooks in (("Claude Code", 4), ("Codex", 3)):
+    agent = agents.get(name)
+    if not isinstance(agent, dict):
+        fail("%s is missing from agents" % name)
+    if agent.get("skills") != ["delta", "epsilon"]:
+        fail("%s skills are %r" % (name, agent.get("skills")))
+    if agent.get("rules") != ["three.md"]:
+        fail("%s rules are %r" % (name, agent.get("rules")))
+    if len(agent.get("hooks") or []) != hooks:
+        fail("%s has %d hooks, not the %d the source declared for it" % (name, len(agent.get("hooks") or []), hooks))
+PY
+}
+
+placed_hook_shape() {
+  fresh placed-hooks
+  full_source hooks
+  run deploy --source "$SRC"
+  [ "$rc" = 0 ] || { why="deploy exited $rc: $(tail -1 "$T/out")"; return 1; }
+  placed_ok --source "$SRC" || return 1
+  placed_holds <<'PY'
+check = "bash %s/hooks/check.sh" % src
+want = {
+    "Claude Code": [
+        {"event": "PreToolUse", "matcher": "Bash", "command": check},
+        {"event": "PreToolUse", "matcher": "Edit", "command": check},
+        {"event": "Stop", "command": "echo source-stop"},
+        {"event": "Stop", "command": "echo claude-only"},
+    ],
+    "Codex": [
+        {"event": "PreToolUse", "matcher": "Bash", "command": check},
+        {"event": "PreToolUse", "matcher": "Edit", "command": check},
+        {"event": "Stop", "command": "echo source-stop"},
+    ],
+}
+key = lambda hook: json.dumps(hook, sort_keys=True)
+for name, hooks in want.items():
+    got = (out.get("agents") or {}).get(name, {}).get("hooks")
+    if not isinstance(got, list) or sorted(got, key=key) != sorted(hooks, key=key):
+        fail("%s hooks are %r" % (name, got))
+PY
+}
+
+placed_other_source() {
+  fresh placed-other
+  # The shape of an app's own folder: skills only, an empty rules folder, and no hooks.
+  SRC="$T/source-other"
+  mkdir -p "$SRC/skills/gamma" "$SRC/rules"
+  printf -- '---\nname: gamma\ndescription: Gamma.\n---\nGamma.\n' > "$SRC/skills/gamma/SKILL.md"
+  printf '{"hooks": {}}\n' > "$SRC/hooks.json"
+  run deploy --source "$SRC"
+  [ "$rc" = 0 ] || { why="deploy exited $rc: $(tail -1 "$T/out")"; return 1; }
+  [ -L "$HOME/.claude/skills/alpha" ] || { why="deploy did not place ~/.shared's skills to leave out"; return 1; }
+  placed_ok --source "$SRC" || return 1
+  placed_holds <<'PY'
+for name in ("Claude Code", "Codex"):
+    agent = (out.get("agents") or {}).get(name)
+    if agent != {"skills": ["gamma"], "rules": [], "hooks": []}:
+        fail("%s is %r, with something ~/.shared placed or without gamma" % (name, agent))
+PY
+}
+
+placed_plugin_skill() {
+  fresh placed-plugin
+  full_source plugin
+  local cache="$HOME/.claude/plugins/cache/market/kit/1.0.0"
+  mkdir -p "$cache/skills/delta"
+  printf -- '---\nname: delta\ndescription: Delta from a plugin.\n---\n' > "$cache/skills/delta/SKILL.md"
+  printf '{"version": 2, "plugins": {"kit@market": [{"scope": "user", "installPath": "%s", "version": "1.0.0"}]}}\n' "$cache" \
+    > "$HOME/.claude/plugins/installed_plugins.json"
+  run deploy --source "$SRC"
+  [ "$rc" = 0 ] || { why="deploy exited $rc: $(tail -1 "$T/out")"; return 1; }
+  placed_ok --source "$SRC" || return 1
+  placed_holds <<'PY'
+agents = out.get("agents") or {}
+if (agents.get("Claude Code") or {}).get("skills") != ["epsilon"]:
+    fail("Claude Code skills are %r, though its plugin has delta" % (agents.get("Claude Code") or {}).get("skills"))
+if (agents.get("Codex") or {}).get("skills") != ["delta", "epsilon"]:
+    fail("Codex skills are %r, though delta was placed for it" % (agents.get("Codex") or {}).get("skills"))
+PY
+}
+
+placed_marked_only() {
+  fresh placed-marked
+  full_source marked
+  run deploy --source "$SRC"
+  [ "$rc" = 0 ] || { why="deploy exited $rc: $(tail -1 "$T/out")"; return 1; }
+  # The user removes one link, points another somewhere else, and adds a skill and a hook by hand.
+  rm "$HOME/.claude/skills/delta"
+  rm "$HOME/.agents/skills/epsilon"
+  ln -s "$T" "$HOME/.agents/skills/epsilon"
+  mkdir -p "$HOME/.claude/skills/mine"
+  printf 'my own skill\n' > "$HOME/.claude/skills/mine/SKILL.md"
+  python3 - "$HOME/.codex/hooks.json" <<'PY'
+import json, sys
+path = sys.argv[1]
+data = json.load(open(path))
+data["hooks"]["Stop"].append({"hooks": [{"type": "command", "command": "echo source-stop-by-hand"}]})
+open(path, "w").write(json.dumps(data, indent=2) + "\n")
+PY
+  placed_ok --source "$SRC" || return 1
+  placed_holds <<'PY'
+agents = out.get("agents") or {}
+if (agents.get("Claude Code") or {}).get("skills") != ["epsilon"]:
+    fail("Claude Code skills are %r, with the removed link or the hand-made skill" % (agents.get("Claude Code") or {}).get("skills"))
+if (agents.get("Codex") or {}).get("skills") != ["delta"]:
+    fail("Codex skills are %r, with the link that now points elsewhere" % (agents.get("Codex") or {}).get("skills"))
+commands = [h.get("command") for a in agents.values() for h in a.get("hooks") or []]
+for mine in ("echo mine", "echo my-codex-hook", "echo source-stop-by-hand"):
+    if mine in commands:
+        fail("the hook %r without the mark was listed" % mine)
+PY
+}
+
+placed_write_nothing() {
+  fresh placed-quiet
+  full_source quiet
+  run deploy --source "$SRC"
+  [ "$rc" = 0 ] || { why="deploy exited $rc: $(tail -1 "$T/out")"; return 1; }
+  { snapshot "$HOME"; snapshot "$SRC"; } > "$T/before.txt"
+  placed_ok --source "$SRC" || return 1
+  { snapshot "$HOME"; snapshot "$SRC"; } > "$T/after.txt"
+  cmp -s "$T/before.txt" "$T/after.txt" || { why="placed changed $(diff "$T/before.txt" "$T/after.txt" | sed -n 2p)"; return 1; }
+}
+
+placed_never_deployed() {
+  fresh placed-never
+  SRC="$T/source-never"
+  mkdir -p "$SRC/skills/zeta"
+  printf -- '---\nname: zeta\ndescription: Zeta.\n---\nZeta.\n' > "$SRC/skills/zeta/SKILL.md"
+  # Before any deploy there is no record, and after deploying only ~/.shared the record names another source.
+  placed_ok --source "$SRC" || return 1
+  placed_holds <<'PY' || return 1
+empty = {"skills": [], "rules": [], "hooks": []}
+if out != {"source": src, "agents": {"Claude Code": empty, "Codex": empty}} or list(out["agents"]) != ["Claude Code", "Codex"]:
+    fail("before any deploy placed printed %r" % out)
+PY
+  printf '{"version": 1, "agents": [{"name": "tester", "skills": "~/.tester/skills"}]}\n' > "$HOME/.shared/agents.json"
+  deployed || return 1
+  placed_ok --source "$SRC" || return 1
+  placed_holds <<'PY'
+agents = out.get("agents") or {}
+if list(agents) != ["Claude Code", "Codex", "tester"]:
+    fail("the agents are %r, not every agent of the table in its order" % list(agents))
+for name, agent in agents.items():
+    if agent != {"skills": [], "rules": [], "hooks": []}:
+        fail("%s is %r for a source never deployed" % (name, agent))
+PY
+}
+
+placed_bad_hook_file() {
+  fresh placed-badhooks
+  full_source badhooks
+  run deploy --source "$SRC"
+  [ "$rc" = 0 ] || { why="deploy exited $rc: $(tail -1 "$T/out")"; return 1; }
+  printf '{"hooks": \n' > "$HOME/.codex/hooks.json"
+  placed_run --source "$SRC"
+  [ "$rc" = 2 ] || { why="placed exited $rc with a hook file that is not JSON"; return 1; }
+  [ ! -s "$T/placed.out" ] || { why="placed printed something though it could not read a hook file"; return 1; }
+  grep -q 'codex/hooks.json' "$T/placed.err" || { why="the refusal does not name the file: $(tail -1 "$T/placed.err")"; return 1; }
+}
+
+placed_broken_block() {
+  fresh placed-block
+  full_source block
+  run deploy --source "$SRC"
+  [ "$rc" = 0 ] || { why="deploy exited $rc: $(tail -1 "$T/out")"; return 1; }
+  grep '^<!-- agent-shared begin' "$HOME/.codex/AGENTS.md" | tail -1 >> "$HOME/.codex/AGENTS.md"
+  placed_run --source "$SRC"
+  [ "$rc" = 2 ] || { why="placed exited $rc with a broken rules block"; return 1; }
+  [ ! -s "$T/placed.out" ] || { why="placed printed something though the rules block is broken"; return 1; }
+  grep -q 'AGENTS.md' "$T/placed.err" || { why="the refusal does not name the file: $(tail -1 "$T/placed.err")"; return 1; }
+}
+
+placed_needs_source() {
+  fresh placed-nosource
+  placed_run
+  [ "$rc" = 2 ] || { why="placed without --source exited $rc"; return 1; }
+  [ ! -s "$T/placed.out" ] || { why="placed without --source printed something"; return 1; }
+  grep -q -- '--source' "$T/placed.err" || { why="the refusal does not name --source: $(tail -1 "$T/placed.err")"; return 1; }
+  placed_run --source "$T/no-such-source"
+  [ "$rc" = 2 ] || { why="placed with a missing folder exited $rc"; return 1; }
+  [ ! -s "$T/placed.out" ] || { why="placed with a missing folder printed something"; return 1; }
+  grep -q "$T/no-such-source" "$T/placed.err" || { why="the refusal does not name the folder: $(tail -1 "$T/placed.err")"; return 1; }
+}
+
 check "uv tool install puts agent-shared on PATH without any plugin" uv_installs
 check "deploy links every skill into the Claude Code and shared agent folders" links_skills
 check "deploy places nothing in the deprecated Codex skills folder" no_codex_skills
@@ -495,6 +740,16 @@ check "hooks includes the hooks of every source" hooks_every_source
 check "hooks writes nothing" hooks_write_nothing
 check "hooks refuses an agent the table does not have" hooks_unknown_agent
 check "hooks refuses a call without --agent" hooks_need_agent
+check "placed lists what a source placed for each agent" placed_lists
+check "placed prints each hook without the mark" placed_hook_shape
+check "placed leaves out what another source placed" placed_other_source
+check "placed leaves out a skill a plugin already has" placed_plugin_skill
+check "placed counts only what still carries the mark" placed_marked_only
+check "placed writes nothing" placed_write_nothing
+check "placed prints empty lists for a source never deployed" placed_never_deployed
+check "placed refuses a hook file it cannot read" placed_bad_hook_file
+check "placed refuses a broken rules block" placed_broken_block
+check "placed refuses a call without an existing source" placed_needs_source
 
 printf '%d passed, %d failed (%d ran)\n' "$PASS" "$FAIL" "$((PASS + FAIL))"
 [ "$FAIL" -eq 0 ]

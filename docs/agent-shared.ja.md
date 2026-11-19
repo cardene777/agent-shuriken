@@ -97,7 +97,7 @@ Claude CodeかCodexに入れたプラグインが、フォルダーのスキル�
 
 | 種類 | 場所 |
 |---|---|
-| 読む物 | 配る元のフォルダー、`~/.claude/plugins/installed_plugins.json`、`~/.claude/settings.json`の`enabledPlugins`、`~/.codex/config.toml`、`~/.codex/plugins/cache`の下のスキルのフォルダー |
+| 読む物 | 配る元のフォルダー、`~/.claude/plugins/installed_plugins.json`、`~/.claude/settings.json`の`enabledPlugins`、`~/.codex/config.toml`、`~/.codex/plugins/cache`の下のスキルのフォルダー。`placed`は記録とエージェントの表の置き場だけを読む |
 | 書く物 | エージェントの表の置き場。自分が置いた物だけ |
 | 残す物 | `~/.local/share/agent-shared/placed.json`。あなただけが読め、置いたリンクを1つずつ記録する。`AGENT_SHARED_STATE`でフォルダーを変えられる |
 | 動かす物 | `codex app-server`。置いたhookにCodexの信頼の印を書くため。`AGENT_SHARED_CODEX_BIN`で別の`codex`のコマンドを指せる |
@@ -127,6 +127,48 @@ agent-shared hooks --agent Codex --source ~/work/team-shared
 読む元は`deploy`と同じで、`~/.shared`と、`--source`で渡した全てのフォルダーです。
 `--agent`にはエージェントの表の名前を渡し、`tools`がそのエージェントを含まないhookは出しません。
 表に無い名前と、`--agent`の無い呼び方は、何も出さずに終わり方2で終わります。
+
+## 配る元が置いた物を出す
+
+`agent-shared placed`は、1つの配る元のフォルダーが各エージェントへ置き、今も残っているスキルとルールとhookをJSONで出します。
+何も書かないので、ikkan-studioのように自分のフォルダーを配るアプリは、各エージェントの置き場をもう1か所に持たずに、各エージェントへ何が置かれたかを一覧にできます。
+
+```
+agent-shared placed --source ~/apps/my-tool/.shared
+agent-shared placed --source ~/.shared
+```
+
+```json
+{
+  "source": "/path/to/apps/my-tool/.shared",
+  "agents": {
+    "Claude Code": {
+      "skills": ["review", "release-notes"],
+      "rules": ["writing.md"],
+      "hooks": [{"event": "PreToolUse", "matcher": "Bash", "command": "bash /path/to/apps/my-tool/.shared/hooks/guard.sh"}]
+    },
+    "Codex": {
+      "skills": ["review", "release-notes"],
+      "rules": ["writing.md"],
+      "hooks": []
+    }
+  }
+}
+```
+
+| 欄 | 意味 |
+|---|---|
+| `source` | 配る元のフォルダーのフルパス |
+| `agents` | エージェントの表の全てのエージェントを表の順に並べ、それぞれが`skills`と`rules`と`hooks`を持つ |
+| `skills` | 配る元がそのエージェントへ置き、今も置いた時の先を指すスキルのリンクの名前 |
+| `rules` | ルールのリンクのファイル名か、ルールのファイルの中のその配る元の囲みにあるルールのファイル名 |
+| `hooks` | その配る元の印を持つhook。`event`と、組が持つ時だけの`matcher`と、印の行を除いた`command`を持つ |
+
+`--source`は1つのフォルダーを名指し、そのフォルダーが置いた物だけを出します。
+プラグインが既に持つスキルはそのエージェントへ置いていないので、出しません。
+あなたが消したか別の先へ向けたリンクと、印の無いhookも出しません。
+1度も配っていないフォルダーには、全てのエージェントを空の配列で出し、終わり方0で終わります。
+`--source`の無い呼び方、在らないフォルダー、JSONでない記録かhookのファイル、崩れたルールの囲みは、何も出さずに終わり方2で終わります。
 
 ## 断る時
 
