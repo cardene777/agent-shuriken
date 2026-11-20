@@ -12,11 +12,13 @@ SCRIPT="$SKILL_DIR/scripts/convey.py"
 PY="$(command -v python3)"
 PASS=0
 FAIL=0
+SKIP=0
 T="$(mktemp -d)"
 trap 'rm -rf "$T"' EXIT
 
 ok() { PASS=$((PASS + 1)); printf 'ok    %s\n' "$1"; }
 ng() { FAIL=$((FAIL + 1)); printf 'FAIL  %s\n' "$1"; }
+skip() { SKIP=$((SKIP + 1)); printf 'skip  %s (%s)\n' "$1" "$2"; }
 check() { if eval "$2"; then ok "$1"; else ng "$1"; fi; }
 convey() { PYTHONDONTWRITEBYTECODE=1 "$PY" "$SCRIPT" "$@"; }
 
@@ -363,5 +365,98 @@ PY
 }
 check "the handoff and long-report cases grade that sentences are connected" "connected_grader"
 
-printf '\n%d passed, %d failed, 0 skipped (%d ran)\n' "$PASS" "$FAIL" "$((PASS + FAIL))"
+# convey reads the connecting guide of japanese-writing through musubi, as an optional follow, so it
+# still works when japanese-writing is not installed. The musubi checks run only when the musubi
+# command is on PATH, and are reported as skipped, never as passed, when it is not.
+REPO="$(cd "$PLUGIN_DIR/../.." && pwd)"
+
+follows_connecting() {
+  [ -f "$SKILL_DIR/musubi.json" ] || return 1
+  "$PY" - "$SKILL_DIR/musubi.json" <<'PY'
+import json, re, sys
+declaration = json.load(open(sys.argv[1], encoding="utf-8"))
+follows = declaration.get("follows", {})
+follow = follows.get("japanese-writing/connecting", {})
+ok = (
+    declaration.get("musubi") == "2026-11-20"
+    and "provides" not in declaration
+    and list(follows) == ["japanese-writing/connecting"]
+    and follow.get("version") == "^1.0.0"
+    and follow.get("optional") is True
+    and re.fullmatch(r"sha256-[A-Za-z0-9+/]{43}=", str(follow.get("integrity", ""))) is not None
+)
+sys.exit(0 if ok else 1)
+PY
+}
+check "convey follows connecting of japanese-writing as an optional follow" "follows_connecting"
+
+musubi_lines() {
+  has_phrases "$SKILL_DIR/SKILL.md" \
+    'When the `japanese-writing` skill is installed, write in the `connecting` format of the `japanese-writing` skill: open the `japanese-writing` skill by name and read the file it names for `connecting`.' \
+    'If the `musubi` command is available, run `musubi check` before reading, and stop if it fails.' \
+    'If the `japanese-writing` skill is not installed, go on without the `connecting` of `japanese-writing`.'
+}
+check "the SKILL.md carries the musubi lines for connecting of japanese-writing" "musubi_lines"
+
+no_dependency() {
+  "$PY" - "$PLUGIN_DIR/.claude-plugin/plugin.json" "$PLUGIN_DIR/.codex-plugin/plugin.json" <<'PY'
+import json, sys
+for path in sys.argv[1:]:
+    if "dependencies" in json.load(open(path, encoding="utf-8")):
+        sys.exit(1)
+PY
+}
+check "convey does not depend on japanese-writing" "no_dependency"
+
+pages_musubi() {
+  local page
+  for page in README.md README.ja.md docs/how-it-works.md docs/how-it-works.ja.md; do
+    has_phrases "$PLUGIN_DIR/$page" "musubi.json" "japanese-writing/connecting" "optional" || return 1
+  done
+}
+check "the pages describe musubi.json and the optional follow" "pages_musubi"
+
+musubi_accepts() {
+  musubi check "$REPO/plugins/japanese-writing/skills" "$REPO/plugins/convey/skills" > "$T/musubi.out" 2>&1 \
+    || { sed 's/^/      /' "$T/musubi.out"; return 1; }
+  grep -q 'follows=1)' "$T/musubi.out" && ! grep -q 'was skipped' "$T/musubi.out"
+}
+
+# Without japanese-writing the optional follow is skipped with a warning, and the check still passes.
+musubi_skips_missing() {
+  musubi check "$REPO/plugins/convey/skills" > "$T/musubi-alone.out" 2>&1 \
+    || { sed 's/^/      /' "$T/musubi-alone.out"; return 1; }
+  grep -q 'convey follows japanese-writing/connecting only when japanese-writing is installed' "$T/musubi-alone.out"
+}
+
+# A changed guide must stop convey until its fingerprint is checked again.
+musubi_refuses_changed() {
+  local d="$T/copies"
+  mkdir -p "$d"
+  cp -R "$REPO/plugins/japanese-writing" "$REPO/plugins/convey" "$d/" || return 1
+  printf '\nA changed line.\n' >> "$d/japanese-writing/skills/japanese-writing/references/connecting.md"
+  musubi check "$d/japanese-writing/skills" "$d/convey/skills" > "$T/musubi-changed.out" 2>&1
+  [ $? -eq 1 ] || return 1
+  grep -q 'convey/musubi.json' "$T/musubi-changed.out" && grep -q 'fingerprint of japanese-writing/connecting' "$T/musubi-changed.out"
+}
+
+if command -v musubi > /dev/null 2>&1; then
+  check "musubi check accepts convey and japanese-writing" musubi_accepts
+  check "musubi check skips connecting when japanese-writing is not installed" musubi_skips_missing
+  check "musubi check refuses convey after connecting changes" musubi_refuses_changed
+else
+  skip "musubi check accepts convey and japanese-writing" "the musubi command is not on PATH"
+  skip "musubi check skips connecting when japanese-writing is not installed" "the musubi command is not on PATH"
+  skip "musubi check refuses convey after connecting changes" "the musubi command is not on PATH"
+fi
+
+releasing_step() {
+  local page
+  for page in docs/releasing.md docs/releasing.ja.md; do
+    grep -qF 'musubi check plugins/japanese-writing/skills plugins/convey/skills' "$REPO/$page" || return 1
+  done
+}
+check "the releasing pages run musubi check before convey or japanese-writing is released" releasing_step
+
+printf '\n%d passed, %d failed, %d skipped (%d ran)\n' "$PASS" "$FAIL" "$SKIP" "$((PASS + FAIL))"
 [ "$FAIL" = 0 ]

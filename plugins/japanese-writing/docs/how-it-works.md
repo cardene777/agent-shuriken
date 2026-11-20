@@ -12,10 +12,11 @@ Paths are relative to `skills/japanese-writing/`.
 
 | Path | From | What it holds |
 |---|---|---|
-| `SKILL.md` | This plugin | What to read first and how to run the scripts |
+| `SKILL.md` | This plugin | What to read first, the content other skills follow, and how to run the scripts |
 | `references/rules.md` | This plugin | The order of precedence, the format for Markdown kept in a repository, the plugin's own rules, when to read each of its references, and how to return a fix |
 | `references/terminology.md`, `subject-and-verb.md`, `ai-smell.md`, `explaining.md`, `asking.md`, `natural-explanation.md`, `sentence-forms.md` | This plugin | Choosing terms, rewriting things used as subjects with metaphor verbs, three shapes of AI-like text, building an explanation, writing questions and options, opening an article, and eight sentence forms |
 | `references/connecting.md` | This plugin, edited from two documents of the Agency for Cultural Affairs | Cutting long sentences in messages for people, connecting them with a conjunction for each relation, and putting the conclusion first |
+| `musubi.json` | This plugin | The content `connecting`, version 1.0.0, that other skills follow through musubi: the file `references/connecting.md` |
 | `references/metaphor-words.tsv` | This plugin | The metaphor words and the patterns `suspects.py` matches |
 | `scripts/suspects.py` | This plugin | Points at the forms `lint.py` does not count |
 | `upstream-manifest.txt` | This plugin | The SHA-256 of every file copied from upstream |

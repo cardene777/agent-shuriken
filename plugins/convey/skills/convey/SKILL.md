@@ -51,7 +51,11 @@ Keep a fact the reader needs to act or decide even when it is short, such as a b
 - Start a sentence with a connecting word when the reader would otherwise have to guess how it follows from the one before: a reason or result ("so", "because of this"), a contrast ("but", "however"), an order ("first", "then"), or an addition ("also", "note that"). Leave it out where the relation is plain, and do not start every sentence with one
 - A message with three parts or fewer gets no headings; separate its parts with blank lines
 - Slack: `*bold*` with one asterisk, `-` lists, and URLs pasted as they are. Discord: Markdown without tables. Email: a `Subject:` line, a blank line, then plain text. GitHub: Markdown
-- For Japanese, follow the rules of the `japanese-writing` skill when it is installed, and read `references/connecting.md` in that skill's folder before writing; it shows how to cut a long sentence and connect the short ones with conjunctions
+- For Japanese, follow the rules of the `japanese-writing` skill when it is installed, and read its `connecting`, the file `references/connecting.md` in that skill's folder, before writing, as the three lines below say; it shows how to cut a long sentence and connect the short ones with conjunctions
+
+When the `japanese-writing` skill is installed, write in the `connecting` format of the `japanese-writing` skill: open the `japanese-writing` skill by name and read the file it names for `connecting`.
+If the `musubi` command is available, run `musubi check` before reading, and stop if it fails.
+If the `japanese-writing` skill is not installed, go on without the `connecting` of `japanese-writing`.
 
 ## 5. Check, copy, and show
 

@@ -78,6 +78,7 @@ note、ブログ、エッセイのような記事には当てず、上流の`ref
 | `references/natural-explanation.md` | 読者向けの解説、記事、投稿の導入を書く時と書き直す時 |
 | `references/sentence-forms.md` | 文の形を決める時 (§2) |
 | `references/connecting.md` | 人に伝える文 (チャットの投稿、引き継ぎ、報告、依頼) を書く時と直す時。文化庁の2つの資料を加工して作成した (§2) |
+| `musubi.json` | 読まない。`convey`のようなほかのスキルが、musubiで`references/connecting.md`にコンテンツ`connecting`として準拠するための宣言で、`musubi`の命令が読む |
 | `references/metaphor-words.tsv` | `scripts/suspects.py`が読む比喩の語の一覧。人が読むのは語を足す時だけ |
 | `scripts/suspects.py` | 上流の`lint.py`が数えない形を行ごとに指す時 (§5) |
 

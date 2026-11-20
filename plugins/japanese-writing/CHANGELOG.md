@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- `musubi.json` declares `references/connecting.md` as the content `connecting`, version 1.0.0, so that other skills such as convey follow it through musubi and are checked again when it changes
+
 ## [0.2.0] - 2026-11-16
 
 - A new reference, `references/connecting.md`, shows how to cut a long sentence in a message for people and connect the short ones with conjunctions, and how to put the conclusion first. It is edited from two documents of Japan's Agency for Cultural Affairs, credited in `THIRD_PARTY_NOTICES.md`

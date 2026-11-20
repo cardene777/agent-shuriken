@@ -277,5 +277,30 @@ pages_say() {
 }
 check "the README and how-it-works say what uv downloads and that no text is sent" "pages_say"
 
+# Other skills, such as convey, follow the connecting guide through musubi (#260).
+provides_connecting() {
+  [ -f "$SKILL_DIR/musubi.json" ] || return 1
+  python3 - "$SKILL_DIR/musubi.json" <<'PY'
+import json, sys
+declaration = json.load(open(sys.argv[1], encoding="utf-8"))
+want = {"connecting": {"version": "1.0.0", "file": "references/connecting.md"}}
+sys.exit(0 if declaration.get("musubi") == "2026-11-19" and declaration.get("provides") == want and "follows" not in declaration else 1)
+PY
+}
+check "japanese-writing provides connecting in musubi.json" "provides_connecting"
+
+names_connecting() {
+  grep -E '`connecting`' "$SKILL_DIR/SKILL.md" | grep -qF '`references/connecting.md`'
+}
+check "the SKILL.md names the file of connecting" "names_connecting"
+
+pages_musubi() {
+  local page
+  for page in README.md README.ja.md docs/how-it-works.md docs/how-it-works.ja.md; do
+    grep -qF 'musubi.json' "$PLUGIN_DIR/$page" && grep -qF '`connecting`' "$PLUGIN_DIR/$page" || return 1
+  done
+}
+check "the pages describe musubi.json and connecting" "pages_musubi"
+
 printf '\n%d passed, %d failed, %d skipped (%d ran)\n' "$PASS" "$FAIL" "$SKIP" "$((PASS + FAIL))"
 [ "$FAIL" = 0 ]

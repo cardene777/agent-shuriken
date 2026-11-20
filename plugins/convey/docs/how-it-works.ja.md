@@ -15,6 +15,7 @@
 | `references/types.md` | 7つの型と、結論から始まる各型の項目の順 |
 | `references/filler-phrases.tsv` | `check`が注意として出す日本語と英語の決まり文句と、それぞれの直し方 |
 | `scripts/convey.py` | `check`、`copy`、`formats`の3つのコマンド |
+| `musubi.json` | musubiでの`japanese-writing/connecting`への任意の準拠。バージョンの範囲`^1.0.0`と、最後に確かめた時の手引きのフィンガープリントと、`"optional": true`を持つ |
 | `agents/openai.yaml` | Codexでのスキルの名前と既定の頼み方 |
 | `tests/test-convey.sh` | プラグインの検査 |
 
@@ -42,6 +43,7 @@
 - `copy --to <貼る先> [--lines A-B] [ファイル]`は、文か、A行目からB行目までに同じ確かめを回し、直す行があれば1で断ります。無ければ`PATH`から`pbcopy`、`wl-copy`、`xclip`、`xsel`、`clip.exe`の順に探し、最初に成功した道具へ文を渡します。`clip.exe`にはUTF-16で渡します。1つも見つからない時と全て失敗した時は、`not copied`を出して3で終わります
 - エージェントが`gh issue view`、`gh pr view`、`git log`、`git show`を動かすのは、Issue、PR、commitを指した時だけです。`gh`はあなたのサインインを使います
 - 日本語の文を書く時に`japanese-writing`のスキルが入っていれば、エージェントはそのスキルの決まりと`references/connecting.md`を読みます。`references/connecting.md`は、長い文を区切って短い文を接続詞で結ぶ手引きです。ほかのプラグインからはこれ以外を読みません
+- この手引きはコンテンツ`japanese-writing/connecting`で、`musubi.json`が任意の準拠で従います。`musubi`のコマンドが入っていれば、エージェントは手引きを読む前に`musubi check`を回し、失敗したら止まります。`japanese-writing`が入っていない時、`musubi check`は警告を出してこの準拠を飛ばします。手引きが変わると、フィンガープリントを確かめ直すまで`musubi check`は`convey`を拒否します
 - どこへも送らず、プラグインが投稿することはありません。道具は文を1つ読み、端末に出すだけです
 
 ## 残す物

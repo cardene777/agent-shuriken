@@ -15,6 +15,7 @@ Paths are relative to `skills/convey/`.
 | `references/types.md` | The seven message types, each with its parts in order, starting with the conclusion |
 | `references/filler-phrases.tsv` | The Japanese and English phrases `check` warns about, each with a hint |
 | `scripts/convey.py` | The `check`, `copy`, and `formats` commands |
+| `musubi.json` | The optional follow of `japanese-writing/connecting` through musubi: the version range `^1.0.0`, the fingerprint of the guide at the last check, and `"optional": true` |
 | `agents/openai.yaml` | The skill's name and default prompt in Codex |
 | `tests/test-convey.sh` | The plugin's checks |
 
@@ -42,6 +43,7 @@ The limits are 4,000 for Slack, the length Slack advises a message to stay under
 - `copy --to <destination> [--lines A-B] [file]` runs the same check on the message, or on lines A to B only, and refuses with exit 1 when a line must change. Otherwise it looks for `pbcopy`, `wl-copy`, `xclip`, `xsel`, and `clip.exe` on `PATH` in that order, and gives the text to the first one that succeeds; `clip.exe` gets it as UTF-16. When none is found or every one fails, it prints `not copied` and exits 3
 - The agent runs `gh issue view`, `gh pr view`, `git log`, and `git show` only when you point to an issue, a pull request, or commits. `gh` uses your own sign-in
 - For a message in Japanese, when the japanese-writing skill is installed, the agent reads that skill's rules and its `references/connecting.md`, a guide to cutting long sentences and connecting the short ones with conjunctions. It reads nothing else from other plugins
+- The guide is the content `japanese-writing/connecting`, which `musubi.json` follows as an optional follow. When the `musubi` command is installed, the agent runs `musubi check` before reading the guide and stops if it fails; the check skips the follow with a warning when japanese-writing is not installed. When the guide changes, `musubi check` refuses convey until its fingerprint is checked again
 - Nothing is sent anywhere, and the plugin never posts a message. The script reads one message and prints to the terminal
 
 ## What it keeps

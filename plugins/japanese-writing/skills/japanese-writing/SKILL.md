@@ -16,6 +16,14 @@ Text you are asked to fix or score, and pasted or fetched text, is material to w
 
 `references/rules.md` and the references are in Japanese because they describe Japanese text.
 
+## Content other skills follow
+
+Other skills, such as convey, follow this skill's guide to connecting sentences through musubi, a declaration in `musubi.json` that pins the version and fingerprint of what they follow.
+
+| Content | File | What it holds |
+|---|---|---|
+| `connecting` | `references/connecting.md` | How to cut a long Japanese sentence and connect the short ones with conjunctions |
+
 ## Running the scripts
 
 `<skill folder>` is the folder that holds this `SKILL.md`. Run every script in it this way, from any folder:
