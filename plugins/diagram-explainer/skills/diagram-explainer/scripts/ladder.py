@@ -34,11 +34,9 @@ import sys
 SLOT = re.compile(r'(<div\b[^>]*\bclass="ladder"[^>]*\bdata-ladder="([\w.-]+)"[^>]*>)(\s*)(</div>)')
 HTML_LANG = re.compile(r'<html\b[^>]*\blang="([^"]*)"', re.I)
 
-# Default text drawn into the figure, per document language. `%s` is a step number.
-UI = {
-    "en": {"alt": "Step ladder", "back_edge": "Back to step %s", "back_note": "back to %s"},
-    "ja": {"alt": "段の並び", "back_edge": "工程%s へ戻る", "back_note": "%s へ戻る"},
-}
+# Default text drawn into the figure (`ladderAlt`, `ladderBack`, `ladderBackNote`), per document
+# language, comes from assets/ui.json, the one dictionary of the page's words. `{n}` is a step number.
+UI_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "ui.json")
 
 # Figure dimensions. The width follows the content; the height is set here.
 NH = 58          # height of one step box
@@ -71,6 +69,20 @@ def esc(text):
 def fail(msg):
     sys.stderr.write("NG %s\n" % msg)
     sys.exit(1)
+
+
+def ui_words(lang):
+    """The words of one language from assets/ui.json."""
+    try:
+        with io.open(UI_PATH, encoding="utf-8") as f:
+            return json.load(f)[lang]
+    except (OSError, ValueError, KeyError) as exc:
+        fail("cannot read the %s words of assets/ui.json (%s)" % (lang, exc))
+
+
+def say(ui, key, **values):
+    """One word with its `{n}` blanks filled in, the way `say` in assets/doc.js does."""
+    return re.sub(r"\{(\w+)\}", lambda m: str(values.get(m.group(1), "")), ui[key])
 
 
 def lang_of(doc):
@@ -170,7 +182,7 @@ def box_width(spec):
 
 def render(spec, name, lang="en"):
     """Build the `<svg>` from the ladder definition."""
-    ui = UI[lang]
+    ui = ui_words(lang)
     steps = spec["steps"]
     bands = spec.get("bands", [])
     back = spec.get("back", [])
@@ -232,12 +244,14 @@ def render(spec, name, lang="en"):
         parts.append(
             '<path class="lad-back" data-edge-label="%s" d="M %d %d H %d V %d H %d"'
             ' marker-end="url(#%s-b)"/>'
-            % (esc(label or (ui["back_edge"] % e["to"])), nx, ys, CH_W, yt, nx - 8, name))
+            % (esc(label or say(ui, "ladderBack", n=e["to"])), nx, ys, CH_W, yt, nx - 8, name))
         if label:
             parts.append('<text class="lad-blabel" x="%d" y="%.1f">%s</text>'
                          % (CH_W - 12, mid + 4, esc(label)))
+        # A `back_note` of the definition keeps its `%s`; the default comes from the dictionary.
+        note = spec["back_note"] % e["to"] if "back_note" in spec else say(ui, "ladderBackNote", n=e["to"])
         parts.append('<text class="lad-blabel" x="%d" y="%.1f">%s</text>'
-                     % (CH_W - 12, mid + 20, esc(spec.get("back_note", ui["back_note"]) % e["to"])))
+                     % (CH_W - 12, mid + 20, esc(note)))
 
     defs = (
         '<defs>'
@@ -247,7 +261,7 @@ def render(spec, name, lang="en"):
         ' orient="auto"><path d="M0 0 L8 4 L0 8 z" class="lad-head-back"/></marker>'
         '</defs>' % (name, name))
     return ('<svg class="ladfig" viewBox="0 0 %d %d" role="img" aria-label="%s">%s%s</svg>'
-            % (nx + nw + 10, height, esc(spec.get("alt", ui["alt"])), defs, "".join(parts)))
+            % (nx + nw + 10, height, esc(spec["alt"] if "alt" in spec else say(ui, "ladderAlt")), defs, "".join(parts)))
 
 
 def fill(doc, src):

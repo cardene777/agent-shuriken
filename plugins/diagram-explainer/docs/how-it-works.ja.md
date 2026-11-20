@@ -49,6 +49,7 @@
 |---|---|
 | `templates/starter-doc.html` | 資料の枠。ヘッダー、目次、切り替えと、`build.py`が`assets/`の中身を入れる目印を持ちます |
 | `assets/` | どの資料にも写すスタイルとスクリプト。画面の配置と明るい色と暗い色、グラフ、段の並び、印刷の形、切り替えのスクリプトです |
+| `assets/ui.json` | 英語と日本語の画面の文字。ここにだけ書きます。`render.py`と`ladder.py`がページを書く時に読み、`build.py`がページへ写し、切り替えがそれを読みます |
 | `musubi.json` | musubiでの`page-design/structure`、`page-design/look`、`page-design/document`、`page-design/verify`への任意の準拠。それぞれにバージョンの範囲`^1.0.0`と、最後に確かめた時のコンテンツのフィンガープリントと、`"optional": true`を持つ |
 
 資料のヘッダーには、2つの切り替えが並びます。言語の切り替え (English / 日本語) は、目次のボタン、前と次のボタン、PDFのメニュー、グラフの単位のような画面の文字だけを変えます。もう1つは明るい色と暗い色の切り替えです。

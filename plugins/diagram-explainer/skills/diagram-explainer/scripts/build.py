@@ -38,8 +38,9 @@ LITERAL = [
 ]
 
 # Asset markers are replaced with the skill's asset files. Write each marker on its own line:
-# `/* diagram-explainer:asset doc.css */` inside `<style>`, and
-# `// diagram-explainer:asset print.js` inside `<script>`.
+# `/* diagram-explainer:asset doc.css */` inside `<style>`,
+# `// diagram-explainer:asset print.js` inside `<script>`, and
+# `// diagram-explainer:asset ui.json` inside `<script type="application/json" id="dx-ui">`.
 # The assets stay in one place and the shared document is still a single file.
 ASSET_MARK = re.compile(r"^[ \t]*(?:/\*|//)\s*diagram-explainer:asset\s+([\w.-]+)\s*(?:\*/)?[ \t]*$",
                         re.M)
@@ -57,7 +58,11 @@ def inline_assets(doc, die):
             die("the body points to a missing asset (%s)" % name)
         used.append(name)
         with io.open(path, encoding="utf-8") as f:
-            return f.read().rstrip("\n")
+            text = f.read().rstrip("\n")
+        if name.endswith(".json"):
+            # JSON sits inside a <script> element; `<` is written as an escape so no value can end it.
+            text = text.replace("<", "\\u003c")
+        return text
 
     return ASSET_MARK.sub(take, doc), used
 

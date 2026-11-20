@@ -49,6 +49,7 @@ The buttons and labels of the document start in its language, English or Japanes
 |---|---|
 | `templates/starter-doc.html` | The frame of the document: the header, the contents list, the switches, and the markers where `build.py` puts the assets |
 | `assets/` | The styles and scripts copied into every document: the layout and its light and dark colors, charts, step ladders, the print layout, and the script of the switches |
+| `assets/ui.json` | The interface words in English and Japanese, defined only here. `render.py` and `ladder.py` read it when they write the page, and `build.py` copies it into the page, where the switches read it |
 | `musubi.json` | The optional follows of `page-design/structure`, `page-design/look`, `page-design/document`, and `page-design/verify` through musubi: for each, the version range `^1.0.0`, the fingerprint of the content at the last check, and `"optional": true` |
 
 The document header holds two switches side by side: a language switch (English / 日本語) that changes only the interface text, such as the contents button, the previous and next buttons, the PDF menu, and chart units, and a light and dark switch.
