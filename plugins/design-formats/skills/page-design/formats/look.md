@@ -80,6 +80,7 @@ A list shows the summary, and the details of one item sit beside it.
 - A chart shows values that the text and the tables do not already show. Never draw the rows of a list again as a chart. Steps in a row and a flow show the order of the steps, and the amounts stay in the text of the steps
 - Write each figure as a still dragon block, `<pre class="dragon" data-still>`, which shows the last step as one picture with no player. The notation comes from the dragon skill
 - Keep one block per language, each inside `<div data-figure-lang="en">` or `<div data-figure-lang="ja">`, and hide the other language with `html[lang="en"] [data-figure-lang="ja"], html[lang="ja"] [data-figure-lang="en"] { display: none; }`
+- Give the card that holds a figure, and the enlarged view, the card's own color as `--dragon-figure-background`, for example `.figure { --dragon-figure-background: var(--surface); }`. dragon paints the figure's background, line outlines, and label plates with it, so the figure matches its card in both themes
 - While the page is written, it carries the dragon entry line `<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@<major.minor>/dist/cdn/dragon.js"></script>`. Before the page is handed over, run `npx -y @cardenelabs/dragon@<major.minor> embed page.html --out page.html`. `dragon embed` draws every still block as an SVG and removes the entry line, so the page reads no other file
 - A chart shows its own title, which says what it compares; give other figures a caption. Open every figure larger when pressed
 
