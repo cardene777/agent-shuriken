@@ -90,7 +90,7 @@ want = {
     "choice": {"version": "1.0.0", "file": "templates/choice.html"},
     "verify": {"version": "1.0.0", "file": "scripts/page-design.py"},
 }
-if declaration.get("musubi") != "2026-11-20" or declaration.get("provides") != want or "follows" in declaration:
+if declaration.get("musubi") != "2026-11-20" or declaration.get("provides") != want:
     print("      musubi.json declares %s" % json.dumps(declaration, sort_keys=True))
     sys.exit(1)
 for content in want.values():
@@ -120,7 +120,7 @@ templates_pass() {
     f="$SKILL_DIR/templates/$t.html"
     [ -f "$f" ] || { echo "      missing templates/$t.html"; return 1; }
     grep -qE '<html lang="en"' "$f" || { echo "      $t.html is not English by default"; return 1; }
-    run verify "$f" > "$T/template-$t.out" 2>&1 || { sed 's/^/      /' "$T/template-$t.out"; return 1; }
+    run verify --source "$f" > "$T/template-$t.out" 2>&1 || { sed 's/^/      /' "$T/template-$t.out"; return 1; }
   done
 }
 check "verify accepts every page type template" templates_pass
@@ -157,6 +157,128 @@ sys.exit(1 if problems else 0)
 PYEOF
 }
 check "the report template keeps facts apart from results, shows row values, and hides a one-page pager" report_layout
+
+look_figures() {
+  has "$LOOK" "## Figures" "[shape: bar]" "[shape: donut]" '`flow`' '`architecture`' '`sequence`' "line chart" \
+    'data-still' 'dragon embed' 'data-figure-lang'
+}
+check "the look format maps each kind of information to a still dragon figure" look_figures
+
+# figures <template> <shape>...: prints a problem for each language that lacks a still block of a shape.
+figures() {
+  python3 - "$@" <<'PYEOF'
+import re, sys
+path, shapes = sys.argv[1], sys.argv[2:]
+text = open(path, encoding="utf-8").read()
+blocks = re.findall(r'<div[^>]*\bdata-figure-lang="(en|ja)"[^>]*>\s*<pre class="dragon" data-still>(.*?)</pre>', text, re.S)
+problems = []
+for lang in ("en", "ja"):
+    mine = [body for found, body in blocks if found == lang]
+    for shape in shapes:
+        if not any(shape in body for body in mine):
+            problems.append("no still %s block for %s" % (shape.strip(), lang))
+for rule in ('html[lang="en"] [data-figure-lang="ja"]', 'html[lang="ja"] [data-figure-lang="en"]'):
+    if rule not in text:
+        problems.append("the figures of the other language are not hidden by " + rule)
+if "cdn.jsdelivr.net/npm/@cardenelabs/dragon@" not in text:
+    problems.append("the dragon entry line is missing")
+for problem in problems:
+    print("      " + problem)
+sys.exit(1 if problems else 0)
+PYEOF
+}
+
+report_figures() {
+  figures "$SKILL_DIR/templates/report.html" "[shape: bar]" "[shape: donut]" || return 1
+  # The figures show values that the rows do not, so no value is shown twice.
+  python3 - "$SKILL_DIR/templates/report.html" <<'PYEOF'
+import re, sys
+text = open(sys.argv[1], encoding="utf-8").read()
+blocks = re.findall(r'<pre class="dragon" data-still>(.*?)</pre>', text, re.S)
+values = {int(v) for body in blocks for v in re.findall(r"^\s*set \w+: (\d+)\s*$", body, re.M)}
+scores = [int(v) for v in re.findall(r"\bscore: (\d+)", text)]
+rows = set(scores) | {round(v / 1000) for v in scores}
+shared = sorted(values & rows)
+if not values:
+    print("      the figures set no values")
+    sys.exit(1)
+if shared:
+    print("      the figures repeat the row values " + ", ".join(map(str, shared)))
+    sys.exit(1)
+PYEOF
+}
+check "the report template holds a still bar chart and a still donut in both languages" report_figures
+
+document_figures() {
+  figures "$SKILL_DIR/templates/document.html" "flow " || return 1
+  ! grep -qF 'const FLOW = {' "$SKILL_DIR/templates/document.html" || { echo "      the boxes drawn by hand are still there"; return 1; }
+}
+check "the document template holds a still flow of the steps in both languages" document_figures
+
+# still_page <name> <entry line>: the good page with a still bar chart block, and the entry line when given.
+still_page() {
+  page "$T/html/$1.html"
+  python3 - "$T/html/$1.html" "$2" "${3:-still}" <<'PYEOF'
+import sys
+path, entry, kind = sys.argv[1], sys.argv[2], sys.argv[3]
+block = '<pre class="dragon"%s>chart Sales [shape: bar]\nitem a as A\nstep Week\n  say Sales.\n  set a: 3\n</pre>' % (" data-still" if kind == "still" else "")
+text = open(path, encoding="utf-8").read().replace("<p>SECRET_TEXT_MARKER", block + "<p>SECRET_TEXT_MARKER")
+if entry:
+    text = text.replace("</head>", entry + "</head>")
+open(path, "w", encoding="utf-8").write(text)
+PYEOF
+}
+ENTRY_LINE='<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.80/dist/cdn/dragon.js"></script>'
+
+verify_figure_blocks() {
+  still_page fig-block ""
+  run verify "$T/html/fig-block.html" > "$T/fig-block.out" 2>&1
+  [ $? -eq 1 ] || { echo "      a page with a dragon block did not exit 1"; return 1; }
+  grep -Eq '^.*fig-block\.html:[0-9]+: figure-not-embedded: .*dragon embed' "$T/fig-block.out" || { echo "      the block was not named with dragon embed"; return 1; }
+}
+check "verify refuses a page that still holds a dragon block" verify_figure_blocks
+
+verify_source_figures() {
+  still_page fig-source "$ENTRY_LINE"
+  run verify --source "$T/html/fig-source.html" > "$T/fig-source.out" 2>&1 || { sed 's/^/      /' "$T/fig-source.out"; return 1; }
+  still_page fig-moving "$ENTRY_LINE" moving
+  run verify --source "$T/html/fig-moving.html" > "$T/fig-moving.out" 2>&1
+  [ $? -eq 1 ] || { echo "      a block without data-still did not exit 1"; return 1; }
+  grep -Eq '^.*fig-moving\.html:[0-9]+: figure-not-still: .+' "$T/fig-moving.out" || { echo "      the block was not named figure-not-still"; return 1; }
+  # Outside --source, the entry line still reads a file from outside.
+  run verify "$T/html/fig-source.html" > "$T/fig-source-page.out" 2>&1
+  grep -q ': external-file: ' "$T/fig-source-page.out" || { echo "      the entry line passed outside --source"; return 1; }
+}
+check "verify --source refuses a dragon block that is not still" verify_source_figures
+
+verify_figure_text() {
+  breaks fig-embedded 'text.replace("<p>SECRET_TEXT_MARKER", "<div class=\"dragon-figure dragon-still\"><svg class=\"dg dg-a1\" style=\"display:block;max-width:100%\"><style>.dg-a1 .t{font-size:9px}</style><text style=\"font-size:10px\">Week: 3</text></svg></div><p>SECRET_TEXT_MARKER")'
+  run verify "$T/html/fig-embedded.html" > "$T/fig-embedded.out" 2>&1 || { sed 's/^/      /' "$T/fig-embedded.out"; return 1; }
+}
+check "verify accepts the text inside an embedded dragon figure" verify_figure_text
+
+follows_dragon() {
+  python3 - "$DECLARATION" <<'PYEOF' || return 1
+import json, sys
+follows = json.load(open(sys.argv[1], encoding="utf-8")).get("follows", {})
+want = ["dragon/notation", "dragon/embed", "dragon/chart", "dragon/flow", "dragon/architecture", "dragon/sequence"]
+problems = [ref for ref in want if not (follows.get(ref, {}).get("optional") is True and follows[ref].get("version") and follows[ref].get("integrity"))]
+for ref in problems:
+    print("      musubi.json does not follow %s as an optional follow" % ref)
+sys.exit(1 if problems else 0)
+PYEOF
+  has "$SKILL" 'When the `dragon` skill is installed' 'If the `dragon` skill is not installed' "npx -y @cardenelabs/dragon@" "dragon embed"
+}
+check "page-design follows the dragon skill for figures" follows_dragon
+
+npx_pages() {
+  local page
+  for page in README.md README.ja.md docs/how-it-works.md docs/how-it-works.ja.md; do
+    has "$PLUGIN/$page" "npx -y @cardenelabs/dragon@" || return 1
+  done
+  grep -m1 'Keep runtime dependencies small' "$REPO/AGENTS.md" | grep -qF '`design-formats`' || { echo "      AGENTS.md does not name design-formats in the dependency rule"; return 1; }
+}
+check "the pages say page-design fetches dragon through npx" npx_pages
 
 copy_back() {
   local t f
