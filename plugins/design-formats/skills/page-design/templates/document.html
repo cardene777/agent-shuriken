@@ -61,7 +61,7 @@ figure svg { display: block; width: 100%; height: auto; }
 figcaption { margin-top: 8px; font-size: 14px; color: var(--sub); }
 ol.steps { margin: 0; padding-left: 1.4em; display: grid; gap: 12px; }
 ol.steps li > span { display: block; }
-pre { margin: 6px 0 0; padding: 12px 14px; border-radius: 8px; background: var(--code); font: 13.5px/1.6 var(--mono); overflow-x: auto; }
+pre { margin: 6px 0 0; padding: 10px 14px; border-radius: 8px; background: var(--code); font: 14px/1.6 var(--sans); white-space: pre-wrap; }
 dl.glossary { margin: 0; display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 0; border-top: 1px solid var(--line); }
 dl.glossary dt, dl.glossary dd { margin: 0; padding: 10px 0; border-bottom: 1px solid var(--line); }
 dl.glossary dt { font-weight: 600; scroll-margin-top: 70px; }
@@ -120,43 +120,43 @@ dialog::backdrop { background: rgba(10, 14, 20, .55); }
 // One dictionary for every UI string. The explanation itself is in DATA.
 const TEXT = {
   en: {
-    light: "Light", dark: "Dark", updated: "Updated", reading: "Reading time", owner: "Kept by",
+    light: "Light", dark: "Dark", updated: "Updated", brewTime: "Time to brew", makes: "Makes",
     helpTitle: "How to read this page",
-    helpBody: "The first section shows every part at once. Each later section explains one part in the order of the flow. Underlined terms open their meaning in the glossary at the end.",
+    helpBody: "The first section shows every step at once. Each later section explains one step in order. Underlined words open their meaning in the glossary at the end.",
   },
   ja: {
-    light: "明るい", dark: "暗い", updated: "直した日", reading: "読む時間", owner: "持ち主",
+    light: "明るい", dark: "暗い", updated: "直した日", brewTime: "淹れる時間", makes: "できる量",
     helpTitle: "この頁の読み方",
-    helpBody: "最初の節で全ての部品を一度に見せます。後の節は流れの順に部品を1つずつ説明します。下線の付いた用語を押すと、最後の用語集で意味を開きます。",
+    helpBody: "最初の節で全ての手順を一度に見せます。後の節は手順を1つずつ順に説明します。下線の付いた言葉を押すと、最後の用語集で意味を開きます。",
   },
 };
 
 // The explanation. A following skill writes this object. Text may hold links to the glossary as
 // [[term-id|shown words]].
 const DATA = {
-  title: { en: "How a report page is made", ja: "レポートの頁ができるまで" },
-  lead: { en: "A skill measures the repository, writes the numbers into the report page, and checks the page before you open it.", ja: "スキルがリポジトリを測り、数をレポートの頁に書き、開く前に頁を確かめます。" },
-  facts: [["updated", "2026-11-20"], ["reading", { en: "4 minutes", ja: "4分" }], ["owner", "design-formats"]],
+  title: { en: "How to brew pour-over coffee", ja: "ハンドドリップのコーヒーの淹れ方" },
+  lead: { en: "Weigh the beans, grind them, and pour hot water in three turns. This page shows the whole flow first, then each step.", ja: "豆を量って挽き、お湯を3回に分けて注ぎます。この頁は先に全体の流れを見せ、そのあと手順を1つずつ説明します。" },
+  facts: [["updated", "2026-11-20"], ["brewTime", { en: "4 minutes", ja: "4分" }], ["makes", { en: "1 cup, 250 ml", ja: "1杯、250ml" }]],
   sections: [
-    { id: "whole", title: { en: "The whole picture", ja: "全体の流れ" }, blocks: [
-      { figure: "flow", caption: { en: "From the repository to the page you open. Press the figure to enlarge it.", ja: "リポジトリから開く頁までの流れ。図を押すと大きく開きます。" } },
-      { p: { en: "The skill reads the [[git|git history]] and the files, scores each file, and fills the [[template|template]]. [[verify|verify]] checks the page before it is shown.", ja: "スキルが[[git|gitの履歴]]とファイルを読み、ファイルごとに点数を付けて[[template|雛形]]を埋めます。見せる前に[[verify|verify]]が頁を確かめます。" } },
+    { id: "whole", title: { en: "The whole flow", ja: "全体の流れ" }, blocks: [
+      { figure: "flow", caption: { en: "From the beans to the cup. Press the figure to enlarge it.", ja: "豆からカップまでの流れ。図を押すと大きく開きます。" } },
+      { p: { en: "Grind the beans to a [[grind|medium grind]], wet them first to let them [[bloom|bloom]], then pour hot water in turns until the cup is full. The [[ratio|ratio]] of beans to water sets the strength.", ja: "豆を[[grind|中挽き]]にし、先に少しのお湯で[[bloom|蒸らして]]から、カップが満ちるまで何回かに分けて注ぎます。豆とお湯の[[ratio|比率]]で濃さが決まります。" } },
     ] },
-    { id: "measure", title: { en: "Measuring the repository", ja: "リポジトリを測る" }, blocks: [
-      { p: { en: "Each file gets a score from how often it changed in the last 12 months, its size, and its long functions. Nothing is downloaded and nothing leaves the machine.", ja: "直近12か月に変わった回数、大きさ、長い関数から、ファイルごとに点数を付けます。何も取りに行かず、何もこのPCの外へ出しません。" } },
+    { id: "beans", title: { en: "Choosing the beans", ja: "豆を選ぶ" }, blocks: [
+      { p: { en: "Use medium roast beans roasted within the last month. Dark roast tastes bitter with this recipe, so use 1 g less of it.", ja: "焙煎から1か月以内の中煎りの豆を使います。深煎りはこの淹れ方だと苦く出るので、1g減らします。" } },
     ] },
-    { id: "steps", title: { en: "Making the page", ja: "頁を作る" }, blocks: [
+    { id: "brew", title: { en: "Brewing a cup", ja: "1杯を淹れる" }, blocks: [
       { steps: [
-        { text: { en: "Run the skill in the repository.", ja: "リポジトリでスキルを実行します。" }, output: "techdebt: scanned 26 files and 199 commits" },
-        { text: { en: "Open the page it names.", ja: "スキルが名指した頁を開きます。" }, output: "report: ~/.local/share/techdebt/shop/report.html" },
-        { text: { en: "Press a row to read its details beside the list.", ja: "行を押すと、一覧の横に詳細が出ます。" } },
+        { text: { en: "Weigh 15 g of beans and grind them.", ja: "豆を15g量って挽きます。" }, output: { en: "15 g of ground coffee, about as fine as coarse sand", ja: "挽いた粉15g。粗い砂くらいの細かさ" } },
+        { text: { en: "Pour 30 ml of water at 90 degrees and wait 30 seconds.", ja: "90度のお湯を30ml注ぎ、30秒待ちます。" }, output: { en: "The grounds swell like a dome and stop bubbling", ja: "粉がドームのように膨らみ、泡が止まる" } },
+        { text: { en: "Pour the rest in three turns, up to 250 ml.", ja: "残りを3回に分けて、250mlまで注ぎます。" }, output: { en: "One cup of coffee in about 3 minutes", ja: "約3分で1杯のコーヒー" } },
       ] },
     ] },
     { id: "glossary", title: { en: "Glossary", ja: "用語集" }, blocks: [
       { glossary: [
-        { id: "git", term: { en: "Git history", ja: "gitの履歴" }, meaning: { en: "The record of every commit, used here to count how often each file changed.", ja: "全てのコミットの記録。ここではファイルごとに変わった回数を数えるために使います。" } },
-        { id: "template", term: { en: "Template", ja: "雛形" }, meaning: { en: "The HTML page with the frame and no numbers, which the skill fills in.", ja: "枠だけを持ち数を持たないHTMLの頁。スキルが中身を埋めます。" } },
-        { id: "verify", term: { en: "verify", ja: "verify" }, meaning: { en: "The script that checks the page against the look rules and names each line to fix.", ja: "頁を見た目の決まりと照らし、直す行を名指すscript。" } },
+        { id: "grind", term: { en: "Medium grind", ja: "中挽き" }, meaning: { en: "Beans ground about as fine as coarse sand. Finer grinds taste stronger and more bitter.", ja: "粗い砂くらいの細かさに挽いた豆。細かいほど濃く苦くなります。" } },
+        { id: "bloom", term: { en: "Bloom", ja: "蒸らし" }, meaning: { en: "Wetting the grounds with a little water first, so gas escapes and the later water draws out the taste evenly.", ja: "先に少しのお湯で粉を湿らせること。ガスが抜け、後のお湯で味が均一に出ます。" } },
+        { id: "ratio", term: { en: "Ratio", ja: "比率" }, meaning: { en: "Grams of beans to milliliters of water. This page uses 15 g to 250 ml.", ja: "豆のグラムとお湯のミリリットルの割合。この頁では15gに250mlです。" } },
       ] },
     ] },
   ],
@@ -173,7 +173,7 @@ const FIGURES = {
     return `<svg viewBox="0 0 990 164" role="img" aria-label="${labels.join(", ")}"><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="var(--sub)"/></marker></defs>${boxes}</svg>`;
   },
 };
-const FLOW = { en: ["Repository", "Skill", "Template", "verify"], ja: ["リポジトリ", "スキル", "雛形", "verify"] };
+const FLOW = { en: ["Beans", "Grind", "Pour", "Cup"], ja: ["豆", "挽く", "注ぐ", "カップ"] };
 
 const state = { lang: "en" };
 const $ = (id) => document.getElementById(id);
@@ -185,7 +185,7 @@ const linked = (s) => esc(s).replace(/\[\[([\w-]+)\|([^\]]+)\]\]/g, (_, id, word
 function block(b) {
   if (b.p) return `<p>${linked(pick(b.p))}</p>`;
   if (b.figure) return `<figure data-figure="${b.figure}">${FIGURES[b.figure](FLOW[state.lang])}<figcaption>${esc(pick(b.caption))}</figcaption></figure>`;
-  if (b.steps) return `<ol class="steps">${b.steps.map((s) => `<li><span>${linked(pick(s.text))}</span>${s.output ? `<pre>${esc(s.output)}</pre>` : ""}</li>`).join("")}</ol>`;
+  if (b.steps) return `<ol class="steps">${b.steps.map((s) => `<li><span>${linked(pick(s.text))}</span>${s.output ? `<pre>${esc(pick(s.output))}</pre>` : ""}</li>`).join("")}</ol>`;
   if (b.glossary) return `<dl class="glossary">${b.glossary.map((g) => `<dt id="g-${g.id}">${esc(pick(g.term))}</dt><dd>${esc(pick(g.meaning))}</dd>`).join("")}</dl>`;
   return "";
 }

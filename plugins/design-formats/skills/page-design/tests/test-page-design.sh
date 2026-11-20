@@ -151,7 +151,7 @@ page() {
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Shop technical debt</title>
+<title>Weekly sales of the bakery</title>
 <style>
 :root { --bg: #fff; --ink: #111; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #111; --ink: #eee; } }
@@ -160,13 +160,13 @@ body { background: var(--bg); color: var(--ink); font-size: 15px; }
 </style>
 </head>
 <body>
-<header><h1 data-t="title">Shop technical debt</h1>
+<header><h1 data-t="title">Weekly sales of the bakery</h1>
 <button type="button" data-lang="en">English</button><button type="button" data-lang="ja">日本語</button>
 <button type="button" data-theme-choice="light">Light</button><button type="button" data-theme-choice="dark">Dark</button></header>
-<table><tr><th>Commit</th><td>61d7f14</td></tr><tr><th>Files</th><td>26</td></tr></table>
-<p>SECRET_TEXT_MARKER Fixing the top files pays off first.</p>
+<table><tr><th>Store</th><td>Main street</td></tr><tr><th>Products</th><td>24</td></tr></table>
+<p>SECRET_TEXT_MARKER Croissants sold out on three days.</p>
 <script>
-const TEXT = { en: { title: "Shop technical debt" }, ja: { title: "shopの技術的負債" } };
+const TEXT = { en: { title: "Weekly sales of the bakery" }, ja: { title: "パン屋の週の売り上げ" } };
 </script>
 </body>
 </html>
@@ -188,16 +188,18 @@ verify_html_refusals() {
   local name rule
   page "$T/html/good.html"
   run verify "$T/html/good.html" > "$T/html-good.out" 2>&1 || { sed 's/^/      /' "$T/html-good.out"; return 1; }
-  breaks colon-heading 'text.replace("<h1 data-t=\"title\">Shop technical debt</h1>", "<h1>shop: technical debt</h1>")'
-  breaks ja-heading 'text.replace("<h1 data-t=\"title\">Shop technical debt</h1>", "<h1>shopの技術的負債、一覧</h1>")'
-  breaks facts-line 'text.replace("<p>SECRET_TEXT_MARKER", "<p>61d7f14 on main, 26 source files, 199 commits in the last 12 months, generated 2026-11-13 21:05</p><p>SECRET_TEXT_MARKER")'
-  breaks label-colon 'text.replace("<p>SECRET_TEXT_MARKER", "<p>Why it costs: it changed 31 times</p><p>SECRET_TEXT_MARKER")'
+  breaks colon-heading 'text.replace("<h1 data-t=\"title\">Weekly sales of the bakery</h1>", "<h1>Bakery: weekly sales</h1>")'
+  breaks ja-heading 'text.replace("<h1 data-t=\"title\">Weekly sales of the bakery</h1>", "<h1>パン屋の売り上げ、一覧</h1>")'
+  breaks data-heading 'text.replace("</script>", "const DATA = { title: { en: \"Bakery: weekly sales\", ja: \"パン屋の週の売り上げ\" } };\n</script>")'
+  breaks facts-line 'text.replace("<p>SECRET_TEXT_MARKER", "<p>Main street store, 2026-11-10 to 2026-11-16, 24 products, 1,240 customers, generated 2026-11-17 08:00</p><p>SECRET_TEXT_MARKER")'
+  breaks label-colon 'text.replace("<p>SECRET_TEXT_MARKER", "<p>Why it sold: it sold out by noon</p><p>SECRET_TEXT_MARKER")'
   breaks small-text 'text.replace("font-size: 15px", "font-size: 10px")'
   breaks no-switch 'text.replace("<button type=\"button\" data-lang=\"en\">English</button><button type=\"button\" data-lang=\"ja\">日本語</button>", "")'
-  breaks no-dictionary 'text.replace("const TEXT = { en: { title: \"Shop technical debt\" }, ja: { title: \"shopの技術的負債\" } };", "")'
+  breaks no-dictionary 'text.replace("const TEXT = { en: { title: \"Weekly sales of the bakery\" }, ja: { title: \"パン屋の週の売り上げ\" } };", "")'
   breaks no-dark 'text.replace("@media (prefers-color-scheme: dark) { :root:not([data-theme=\"light\"]) { --bg: #111; --ink: #eee; } }", "")'
   breaks external 'text.replace("</head>", "<script src=\"https://cdn.example.com/lib.js\"></script></head>")'
-  for name in colon-heading:heading-punctuation ja-heading:heading-punctuation facts-line:facts-in-one-line \
+  for name in colon-heading:heading-punctuation ja-heading:heading-punctuation data-heading:heading-punctuation \
+    facts-line:facts-in-one-line \
     label-colon:label-colon small-text:small-text no-switch:missing-language-switch \
     no-dictionary:missing-dictionary no-dark:missing-dark-colors external:external-file; do
     rule="${name#*:}"
@@ -212,12 +214,12 @@ check "verify refuses an HTML page that breaks a rule" verify_html_refusals
 verify_markdown_refusals() {
   local d="$T/md" name rule
   mkdir -p "$d"
-  printf '# Token sale design\n\nThe sale sells tokens for a week. SECRET_TEXT_MARKER\n\n| Item | Value |\n|---|---|\n| Commit | 61d7f14 |\n\n```text\nWhy: this colon is inside a code block\n```\n' > "$d/good.md"
+  printf '# Weekly sales of the bakery\n\nCroissants sold out on three days. SECRET_TEXT_MARKER\n\n| Item | Value |\n|---|---|\n| Store | Main street |\n\n```text\nWhy: this colon is inside a code block\n```\n' > "$d/good.md"
   run verify "$d/good.md" > "$T/md-good.out" 2>&1 || { sed 's/^/      /' "$T/md-good.out"; return 1; }
-  printf '# Design: token sale\n\nText.\n' > "$d/colon-heading.md"
-  printf '## 決めたこと、理由\n\nText.\n' > "$d/ja-heading.md"
-  printf '# Sale\n\n- Why it costs: it changed 31 times\n' > "$d/label-colon.md"
-  printf '# Sale\n\n61d7f14 on main, 26 source files, 199 commits in the last 12 months, generated 2026-11-13\n' > "$d/facts-line.md"
+  printf '# Bakery: weekly sales\n\nText.\n' > "$d/colon-heading.md"
+  printf '## 売れた商品、理由\n\nText.\n' > "$d/ja-heading.md"
+  printf '# Sales\n\n- Why it sold: it sold out by noon\n' > "$d/label-colon.md"
+  printf '# Sales\n\nMain street store, 2026-11-10 to 2026-11-16, 24 products, 1,240 customers, generated 2026-11-17 08:00\n' > "$d/facts-line.md"
   for name in colon-heading:heading-punctuation ja-heading:heading-punctuation label-colon:label-colon facts-line:facts-in-one-line; do
     rule="${name#*:}"
     name="${name%%:*}"
@@ -233,7 +235,7 @@ verify_quiet() {
   [ -f "$SCRIPT" ] || return 1
   for f in "$T"/html/*.html "$T"/md/*.md; do
     run verify "$f" > "$T/quiet.out" 2>&1
-    ! grep -q 'SECRET_TEXT_MARKER\|shop: technical\|Why it costs\|199 commits' "$T/quiet.out" || { echo "      $(basename "$f") printed its text"; return 1; }
+    ! grep -q 'SECRET_TEXT_MARKER\|Bakery: weekly\|Why it sold\|1,240 customers' "$T/quiet.out" || { echo "      $(basename "$f") printed its text"; return 1; }
   done
   run verify "$T/none.html" > "$T/none.out" 2>&1
   [ $? -eq 2 ] || { echo "      a missing file did not exit 2"; return 1; }

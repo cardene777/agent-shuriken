@@ -50,7 +50,7 @@ When the browser refuses to copy, the page selects the text and says to copy it 
 
 | Rule | What it finds | Pages | Documents |
 |---|---|---|---|
-| `heading-punctuation` | A heading, a title, or a dictionary entry whose name holds title or heading, with a colon or a Japanese comma or period | Yes | Yes |
+| `heading-punctuation` | A heading, a title, or a dictionary entry whose name holds title or heading, including each language's text in an entry such as `title: { en, ja }`, with a colon or a Japanese comma or period | Yes | Yes |
 | `facts-in-one-line` | Three or more facts with numbers joined by commas in one line | Yes | Yes |
 | `label-colon` | A label and a value joined with a colon or `=` | Yes | Yes |
 | `small-text` | A font size under 12px or 0.75rem | Yes | No |

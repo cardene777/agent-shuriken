@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Report</title>
 <!--
-  page-design report: facts about the run, the result numbers, and a list with the details of the
+  page-design report: facts about the period, the result numbers, and a list with the details of the
   pressed row beside it. A following skill replaces DATA and the words in TEXT, and keeps the frame.
 -->
 <style>
@@ -65,7 +65,7 @@ main { max-width: 1200px; margin: 0 auto; padding: 22px 24px 48px; display: grid
 .row:hover { background: var(--bg); }
 .row[aria-pressed="true"] { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
 .rank { font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
-.path { font-family: var(--mono); font-size: 14px; overflow-wrap: anywhere; }
+.name { font-weight: 600; overflow-wrap: anywhere; }
 .row small { display: block; font-family: var(--sans); font-size: 13px; color: var(--sub); }
 .bar { height: 6px; border-radius: 3px; background: var(--bar); overflow: hidden; }
 .bar span { display: block; height: 100%; background: var(--accent); }
@@ -76,7 +76,7 @@ main { max-width: 1200px; margin: 0 auto; padding: 22px 24px 48px; display: grid
 
 .detail { position: sticky; top: 84px; padding: 18px 20px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); display: grid; gap: 12px; animation: show .2s ease-out; }
 .detail-head { display: flex; gap: 12px; align-items: flex-start; }
-.detail h2 { margin: 0; font: 600 17px/1.4 var(--mono); overflow-wrap: anywhere; }
+.detail h2 { margin: 0; font-size: 18px; line-height: 1.4; overflow-wrap: anywhere; }
 .detail-head .icon { margin-left: auto; flex: none; }
 .tags { display: flex; flex-wrap: wrap; gap: 6px; }
 .tags span { padding: 2px 10px; border-radius: 999px; background: var(--accent-soft); font-size: 13px; }
@@ -144,73 +144,71 @@ dialog::backdrop { background: rgba(10, 14, 20, .55); }
 // One dictionary for every UI string. The words of the report itself are in DATA.
 const TEXT = {
   en: {
-    title: "Technical debt in {repo}",
-    lead: "Files ranked by how often they change, their size, long functions, markers, and missing tests. Fixing the top files pays off first.",
+    lead: "Products ranked by sales this week. The details beside the list say why each one sold and what to try next week.",
     light: "Light", dark: "Dark",
-    commit: "Commit", branch: "Branch", files: "Source files", commits: "Commits in 12 months", generated: "Generated",
-    ranked: "Files ranked", hotspots: "Hotspots", markers: "Markers", untested: "Untested files", long: "Long functions",
-    start: "Start here",
-    what: "What it is", why: "Why it costs", first: "First step",
-    enlarge: "Enlarge", previous: "Previous page", next: "Next page",
-    helpTitle: "How files are ranked",
-    helpBody: "Each file gets a score from how often it changed in the last 12 months, its size, and its long functions. Markers and missing tests raise it. The bar shows the score against the top file.",
+    period: "Week", store: "Store", products: "Products", customers: "Customers", generated: "Generated",
+    sales: "Sales", visits: "Customers", average: "Average spend", soldOut: "Sold out", newItems: "New items",
+    all: "All", bread: "Bread", sweets: "Sweets", drinks: "Drinks",
+    what: "What it is", why: "Why it sold", next: "Next week",
+    enlarge: "Enlarge", previous: "Previous page", next_page: "Next page",
+    helpTitle: "How products are ranked",
+    helpBody: "Products are ranked by their sales in yen for the week. The bar shows each product's sales against the best seller.",
   },
   ja: {
-    title: "{repo}の技術的負債",
-    lead: "変わる回数、大きさ、長い関数、目印、テストの有無で並べたファイルです。上のファイルから直すと効果が早く出ます。",
+    lead: "今週の売り上げの順に並べた商品です。一覧の横の詳細に、売れた理由と来週に試すことを書いています。",
     light: "明るい", dark: "暗い",
-    commit: "コミット", branch: "ブランチ", files: "ソースファイル", commits: "直近12か月のコミット", generated: "作った日時",
-    ranked: "順位を付けたファイル", hotspots: "よく変わるファイル", markers: "目印", untested: "テストの無いファイル", long: "長い関数",
-    start: "最初に見る",
-    what: "何か", why: "困る理由", first: "最初の一手",
-    enlarge: "大きく見る", previous: "前の頁", next: "次の頁",
-    helpTitle: "ファイルの順位の付け方",
-    helpBody: "直近12か月に変わった回数、大きさ、長い関数から点数を付けます。目印とテストが無いことで点数が上がります。棒は一番上のファイルに対する点数を表します。",
+    period: "週", store: "店", products: "商品の数", customers: "来た人", generated: "作った日時",
+    sales: "売り上げ", visits: "来た人", average: "1人あたり", soldOut: "売り切れた商品", newItems: "新しい商品",
+    all: "全て", bread: "パン", sweets: "菓子パン", drinks: "飲み物",
+    what: "何か", why: "売れた理由", next: "来週に試すこと",
+    enlarge: "大きく見る", previous: "前の頁", next_page: "次の頁",
+    helpTitle: "商品の並べ方",
+    helpBody: "その週の売り上げの金額で商品を並べます。棒は一番売れた商品に対する売り上げを表します。",
   },
 };
 
 // The report. A following skill writes this object; every value shown to people is here.
 const DATA = {
-  repo: "shop",
-  facts: [["commit", "61d7f14"], ["branch", "main"], ["files", "26"], ["commits", "199"], ["generated", "2026-11-13 21:05"]],
-  stats: [["ranked", 20], ["hotspots", 19], ["markers", 6], ["untested", 15], ["long", 7]],
-  tabs: ["start", "hotspots", "markers", "untested", "long"],
+  title: { en: "Weekly sales of the bakery", ja: "パン屋の週の売り上げ" },
+  facts: [["period", { en: "Nov 10 to 16", ja: "11月10日から16日" }], ["store", { en: "Main street", ja: "本通り店" }], ["products", "24"], ["customers", "1,240"], ["generated", "2026-11-17 08:00"]],
+  stats: [["sales", { en: "¥482,300", ja: "482,300円" }], ["visits", "1,240"], ["average", { en: "¥389", ja: "389円" }], ["soldOut", "3"], ["newItems", "1"]],
+  tabs: ["all", "bread", "sweets", "drinks"],
   items: [
-    { path: "src/billing/invoice.py", score: 97, tabs: ["start", "hotspots", "untested"],
-      tags: { en: ["changed 31 times", "543 lines", "no test file"], ja: ["31回変更", "543行", "テスト無し"] },
-      what: { en: "Builds invoices, computes their totals, and renders the PDF", ja: "請求書を作り、合計を計算し、PDFに書き出す" },
-      why: { en: "It changed 31 times this year with no test to catch a wrong total", ja: "今年31回変わり、合計の誤りを捕まえるテストが無い" },
-      first: { en: "Add a test for invoice_total, then move render_pdf into its own module", ja: "invoice_totalのテストを足し、render_pdfを別のモジュールに移す" } },
-    { path: "src/api/orders.ts", score: 67, tabs: ["start", "hotspots"],
-      tags: { en: ["changed 44 times", "331 lines", "9 duplicated lines"], ja: ["44回変更", "331行", "重複9行"] },
-      what: { en: "The HTTP handlers that create and update orders", ja: "注文を作って更新するHTTPの処理" },
-      why: { en: "The most changed file, and its orderTotal is copied in returns.ts", ja: "一番よく変わり、orderTotalがreturns.tsに写されている" },
-      first: { en: "Move orderTotal into src/lib/money.ts and call it from both handlers", ja: "orderTotalをsrc/lib/money.tsへ移し、両方の処理から呼ぶ" } },
-    { path: "src/web/checkout.tsx", score: 52, tabs: ["start", "long"],
-      tags: { en: ["changed 18 times", "402 lines", "2 long functions"], ja: ["18回変更", "402行", "長い関数2つ"] },
-      what: { en: "The checkout page", ja: "購入の画面" },
-      why: { en: "Two handlers of about 80 lines hold the payment and the address form", ja: "約80行の処理2つが支払いと住所のフォームを持つ" },
-      first: { en: "Split the payment form into its own component", ja: "支払いのフォームを別の部品に分ける" } },
-    { path: "src/lib/tax.py", score: 41, tabs: ["hotspots", "markers"],
-      tags: { en: ["changed 12 times", "3 TODO markers"], ja: ["12回変更", "TODOの目印3つ"] },
-      what: { en: "Tax rates by region", ja: "地域ごとの税率" },
-      why: { en: "Three TODO markers point at rates that are hard-coded", ja: "TODOの目印3つが、決め打ちの税率を指している" },
-      first: { en: "Read the rates from config/tax.json", ja: "税率をconfig/tax.jsonから読む" } },
-    { path: "src/jobs/sync.ts", score: 33, tabs: ["untested", "long"],
-      tags: { en: ["no test file", "1 long function"], ja: ["テスト無し", "長い関数1つ"] },
-      what: { en: "The nightly job that copies orders to the warehouse", ja: "注文を倉庫へ写す夜間の処理" },
-      why: { en: "A 120-line function retries without a limit", ja: "120行の関数が回数の上限なしに再試行する" },
-      first: { en: "Add a test for the retry, then cap it at five tries", ja: "再試行のテストを足し、5回で止める" } },
-    { path: "src/web/cart.tsx", score: 24, tabs: ["markers"],
-      tags: { en: ["2 FIXME markers"], ja: ["FIXMEの目印2つ"] },
-      what: { en: "The cart drawer", ja: "カートの引き出し" },
-      why: { en: "Two FIXME markers note a rounding error in the subtotal", ja: "FIXMEの目印2つが、小計の端数の誤りを記している" },
-      first: { en: "Use the money helpers from src/lib/money.ts", ja: "src/lib/money.tsの金額の処理を使う" } },
+    { name: { en: "Croissant", ja: "クロワッサン" }, score: 128520, tabs: ["all", "bread"],
+      tags: { en: ["612 sold", "¥128,520", "sold out on 3 days"], ja: ["612個", "128,520円", "3日売り切れ"] },
+      what: { en: "A butter croissant baked at 7 and at 11 in the morning", ja: "朝7時と11時に焼くバターのクロワッサン" },
+      why: { en: "It sold out by noon on three days, and the 11 o'clock batch went fastest", ja: "3日は昼までに売り切れ、11時の焼き上がりが一番早く売れた" },
+      next: { en: "Bake 40 more at 11 on weekdays", ja: "平日の11時の焼き上がりを40個増やす" } },
+    { name: { en: "Melon bun", ja: "メロンパン" }, score: 81900, tabs: ["all", "sweets"],
+      tags: { en: ["455 sold", "¥81,900"], ja: ["455個", "81,900円"] },
+      what: { en: "A sweet bun with a crisp cookie crust", ja: "さくさくのクッキー生地をのせた甘いパン" },
+      why: { en: "Families bought it most after school, from 3 to 5 in the afternoon", ja: "15時から17時に、学校帰りの家族が多く買った" },
+      next: { en: "Put out a second tray at 3", ja: "15時に2回目の棚を出す" } },
+    { name: { en: "White loaf", ja: "食パン" }, score: 73500, tabs: ["all", "bread"],
+      tags: { en: ["210 sold", "¥73,500", "64 reserved"], ja: ["210本", "73,500円", "予約64本"] },
+      what: { en: "A soft white loaf, sliced as the customer asks", ja: "注文に合わせて切る柔らかい食パン" },
+      why: { en: "Customers reserved 64 loaves the day before", ja: "前の日に64本の予約があった" },
+      next: { en: "Put the reservation sheet beside the register", ja: "予約の用紙をレジの横に置く" } },
+    { name: { en: "Curry bun", ja: "カレーパン" }, score: 66440, tabs: ["all", "bread"],
+      tags: { en: ["302 sold", "¥66,440"], ja: ["302個", "66,440円"] },
+      what: { en: "A fried bun filled with beef curry", ja: "牛肉のカレーを包んで揚げたパン" },
+      why: { en: "Sales rose on the two cold days", ja: "寒かった2日に売り上げが伸びた" },
+      next: { en: "Fry more when the forecast is under 10 degrees", ja: "予報が10度を下回る日は多めに揚げる" } },
+    { name: { en: "Hot coffee", ja: "ホットコーヒー" }, score: 58200, tabs: ["all", "drinks"],
+      tags: { en: ["388 cups", "¥58,200"], ja: ["388杯", "58,200円"] },
+      what: { en: "Drip coffee, brewed ten cups at a time", ja: "10杯ずつ淹れるドリップのコーヒー" },
+      why: { en: "Seven in ten people who bought a croissant also bought a coffee", ja: "クロワッサンを買った人の10人に7人が一緒に買った" },
+      next: { en: "Offer a croissant and coffee set", ja: "クロワッサンとコーヒーのセットを出す" } },
+    { name: { en: "Strawberry tart", ja: "いちごのタルト" }, score: 41300, tabs: ["all", "sweets"],
+      tags: { en: ["118 sold", "¥41,300", "new"], ja: ["118個", "41,300円", "新しい商品"] },
+      what: { en: "A new tart topped with fresh strawberries", ja: "生のいちごをのせた新しいタルト" },
+      why: { en: "It sold about the same every day from its first day, Thursday", ja: "木曜の初日から毎日同じくらい売れた" },
+      next: { en: "Keep it on the shelf through December", ja: "12月まで棚に置き続ける" } },
   ],
 };
 
 const PAGE_SIZE = 50;
-const state = { lang: "en", tab: "start", page: 1, pick: 0 };
+const state = { lang: "en", tab: "all", page: 1, pick: 0 };
 const $ = (id) => document.getElementById(id);
 const t = (key) => TEXT[state.lang][key] ?? key;
 const pick = (value) => (value && typeof value === "object" && !Array.isArray(value) ? value[state.lang] : value);
@@ -220,13 +218,13 @@ function shown() { return DATA.items.filter((item) => item.tabs.includes(state.t
 
 function render() {
   document.documentElement.lang = state.lang;
-  const title = t("title").replace("{repo}", DATA.repo);
+  const title = pick(DATA.title);
   document.title = title;
   $("title").textContent = title;
   document.querySelectorAll("[data-t]").forEach((el) => { el.textContent = t(el.dataset.t); });
   document.querySelectorAll("[data-lang]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.lang === state.lang)));
-  $("facts").innerHTML = DATA.facts.map(([k, v]) => `<div><dt>${esc(t(k))}</dt><dd>${esc(v)}</dd></div>`).join("");
-  $("stats").innerHTML = DATA.stats.map(([k, v]) => `<div class="stat"><b>${v}</b><span>${esc(t(k))}</span></div>`).join("");
+  $("facts").innerHTML = DATA.facts.map(([k, v]) => `<div><dt>${esc(t(k))}</dt><dd>${esc(pick(v))}</dd></div>`).join("");
+  $("stats").innerHTML = DATA.stats.map(([k, v]) => `<div class="stat"><b>${esc(pick(v))}</b><span>${esc(t(k))}</span></div>`).join("");
   $("tabs").innerHTML = DATA.tabs.map((k) => {
     const count = DATA.items.filter((item) => item.tabs.includes(k)).length;
     return `<button type="button" role="tab" data-tab="${k}" aria-selected="${k === state.tab}">${esc(t(k))}<em>${count}</em></button>`;
@@ -238,7 +236,7 @@ function render() {
   const top = items[0] ? items[0].score : 1;
   $("rows").innerHTML = items.slice(from, from + PAGE_SIZE).map((item, i) => {
     const n = from + i;
-    return `<button type="button" class="row" data-pick="${n}" aria-pressed="${n === state.pick}"><span class="rank">${n + 1}</span><span class="path">${esc(item.path)}<small>${esc(pick(item.what))}</small></span><span class="bar"><span style="width:${Math.round(item.score / top * 100)}%"></span></span></button>`;
+    return `<button type="button" class="row" data-pick="${n}" aria-pressed="${n === state.pick}"><span class="rank">${n + 1}</span><span class="name">${esc(pick(item.name))}<small>${esc(pick(item.what))}</small></span><span class="bar"><span style="width:${Math.round(item.score / top * 100)}%"></span></span></button>`;
   }).join("");
   ["pager-top", "pager-bottom"].forEach((id) => { $(id).innerHTML = pager(pages); });
   renderDetail(items[state.pick]);
@@ -247,18 +245,18 @@ function render() {
 function pager(pages) {
   const buttons = [`<button type="button" data-page="${state.page - 1}" aria-label="${esc(t("previous"))}" ${state.page === 1 ? "disabled" : ""}>&#x2039;</button>`];
   for (let p = 1; p <= pages; p++) buttons.push(`<button type="button" data-page="${p}" ${p === state.page ? 'aria-current="page"' : ""}>${p}</button>`);
-  buttons.push(`<button type="button" data-page="${state.page + 1}" aria-label="${esc(t("next"))}" ${state.page === pages ? "disabled" : ""}>&#x203A;</button>`);
+  buttons.push(`<button type="button" data-page="${state.page + 1}" aria-label="${esc(t("next_page"))}" ${state.page === pages ? "disabled" : ""}>&#x203A;</button>`);
   return buttons.join("");
 }
 
 function detailBody(item) {
   return `<div class="tags">${pick(item.tags).map((g) => `<span>${esc(g)}</span>`).join("")}</div>
-    <table class="kv"><tr><th>${esc(t("what"))}</th><td>${esc(pick(item.what))}</td></tr><tr><th>${esc(t("why"))}</th><td>${esc(pick(item.why))}</td></tr><tr><th>${esc(t("first"))}</th><td>${esc(pick(item.first))}</td></tr></table>`;
+    <table class="kv"><tr><th>${esc(t("what"))}</th><td>${esc(pick(item.what))}</td></tr><tr><th>${esc(t("why"))}</th><td>${esc(pick(item.why))}</td></tr><tr><th>${esc(t("next"))}</th><td>${esc(pick(item.next))}</td></tr></table>`;
 }
 
 function renderDetail(item) {
   if (!item) { $("detail").innerHTML = ""; return; }
-  $("detail").innerHTML = `<div class="detail-head"><h2>${esc(item.path)}</h2><button type="button" class="icon" id="zoom-open" aria-label="${esc(t("enlarge"))}">&#x2922;</button></div>${detailBody(item)}`;
+  $("detail").innerHTML = `<div class="detail-head"><h2>${esc(pick(item.name))}</h2><button type="button" class="icon" id="zoom-open" aria-label="${esc(t("enlarge"))}">&#x2922;</button></div>${detailBody(item)}`;
 }
 
 function setTheme(mode) {
@@ -281,7 +279,7 @@ document.addEventListener("click", (e) => {
   if (e.target.closest("#help-open")) { $("help").showModal(); return; }
   if (e.target.closest("#zoom-open")) {
     const item = shown()[state.pick];
-    $("zoom-title").textContent = item.path;
+    $("zoom-title").textContent = pick(item.name);
     $("zoom-body").innerHTML = detailBody(item);
     $("zoom").showModal();
     return;

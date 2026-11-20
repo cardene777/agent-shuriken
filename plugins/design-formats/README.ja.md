@@ -48,7 +48,7 @@ GitHub Copilot CLIでは依頼の中に`/page-design`と書き、Gemini CLIで�
 | `choice` | `templates/choice.html` | 案を選ぶ頁です。依頼、今の形、横に並べた案、貼り返す文を持ちます |
 | `verify` | `scripts/page-design.py` | 頁とドキュメントが、scriptで見られる決まりを守るかを確かめます |
 
-題が「shop: technical debt」の頁では、`verify`が行と直し方を出して1で終わります。
+題が「パン屋: 週の売り上げ」の頁では、`verify`が行と直し方を出して1で終わります。
 
 ```text
 report.html:42: heading-punctuation: take the colon and any Japanese comma or period out of the heading; keep the name as the title and put the detail on the line under it

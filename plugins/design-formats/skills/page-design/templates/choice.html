@@ -149,50 +149,50 @@ dialog::backdrop { background: rgba(10, 14, 20, .55); }
 const TEXT = {
   en: {
     light: "Light", dark: "Dark",
-    request: "The request", today: "Today's pages", options: "Options", choose: "Choose",
-    todayNote: "Press a page to see it larger.",
-    optionsNote: "Every option shows the same sample. Press one to pick it; today's version stays one of the options.",
-    issue: "Issue", asked: "Asked on", count: "Options",
+    request: "The request", today: "Today's menus", options: "Options", choose: "Choose",
+    todayNote: "Press one to see it larger.",
+    optionsNote: "Every option draws the same menu. Press one to pick it; today's board stays one of the options.",
+    store: "Store", asked: "Asked on", count: "Options",
     enlarge: "Enlarge", none: "Nothing picked yet", pickedAs: "Picked",
     noteLabel: "What to change, or which options to mix",
     copyLabel: "Text to paste in the chat",
     copy: "Copy", copied: "Copied. Paste it in the chat.",
     copyFailed: "Could not copy. The text is selected; press Command+C or Ctrl+C to copy it.",
     helpTitle: "How to choose",
-    helpBody: "Look at today's pages, then press the option that reads best. Write what to change in the box, press Copy, and paste the text in the chat.",
+    helpBody: "Look at today's menus, then press the option where a customer finds a bread fastest. Write what to change in the box, press Copy, and paste the text in the chat.",
   },
   ja: {
     light: "明るい", dark: "暗い",
-    request: "依頼", today: "今の頁", options: "案", choose: "選ぶ",
-    todayNote: "頁を押すと大きく開きます。",
-    optionsNote: "どの案も同じ見本を描いています。押すと選べます。今の形も案の1つとして残しています。",
-    issue: "課題", asked: "頼んだ日", count: "案の数",
+    request: "依頼", today: "今のメニュー", options: "案", choose: "選ぶ",
+    todayNote: "押すと大きく開きます。",
+    optionsNote: "どの案も同じメニューを描いています。押すと選べます。今の形も案の1つとして残しています。",
+    store: "店", asked: "頼んだ日", count: "案の数",
     enlarge: "大きく見る", none: "まだ選んでいません", pickedAs: "選んだ案",
     noteLabel: "直したい所、または混ぜたい案",
     copyLabel: "チャットに貼る文",
     copy: "コピー", copied: "コピーしました。チャットに貼ってください。",
     copyFailed: "コピーできませんでした。文を選んだので、Command+CかCtrl+Cでコピーしてください。",
     helpTitle: "選び方",
-    helpBody: "今の頁を見てから、読みやすい案を押します。直したい所を欄に書き、コピーを押して、チャットに貼ります。",
+    helpBody: "今のメニューを見てから、お客さんがパンを一番早く見つけられる案を押します。直したい所を欄に書き、コピーを押して、チャットに貼ります。",
   },
 };
 
 // The choice. A following skill writes this object. Each layout names a wireframe in WIRES.
 const DATA = {
-  topic: "report-frame",
-  title: { en: "Choose the report frame", ja: "レポートの枠を選ぶ" },
-  request: { en: "Pick the frame that every report page will share. Judge how easy it is to read.", ja: "全てのレポートの頁がそろえる枠を選んでください。読みやすさで決めてください。" },
-  facts: [["issue", "#263"], ["asked", "2026-11-20"], ["count", "4"]],
+  topic: "menu-board",
+  title: { en: "Choose the layout of the menu board", ja: "メニュー表の配置を選ぶ" },
+  request: { en: "Pick the layout of the menu board on the screen beside the register. Judge it by how fast a customer finds one bread.", ja: "レジの横の画面に出すメニュー表の配置を選んでください。お客さんがパンを1つ見つけるまでの速さで決めてください。" },
+  facts: [["store", { en: "Main street", ja: "本通り店" }], ["asked", "2026-11-20"], ["count", "4"]],
   today: [
-    { name: "techdebt", wire: "cards" },
-    { name: "machine-cleanup", wire: "split" },
-    { name: "compare-report", wire: "doc" },
+    { name: { en: "Menu board", ja: "メニュー表" }, wire: "doc" },
+    { name: { en: "Window poster", ja: "窓の貼り紙" }, wire: "cards" },
+    { name: { en: "Order page", ja: "注文の頁" }, wire: "split" },
   ],
   options: [
-    { key: "A", wire: "split", name: { en: "List and details", ja: "一覧と横の詳細" }, about: { en: "Numbers on one strip, the list on the left, and the pressed row's details on the right.", ja: "数を1本の帯にまとめ、左の一覧で押した行の詳細を右に出します。" } },
-    { key: "B", wire: "cards", name: { en: "Stacked cards", ja: "縦に並ぶ札" }, about: { en: "Number cards, then one card per item with its details inside.", ja: "数の札の下に、詳細を中に持つ項目の札を縦に並べます。" } },
-    { key: "C", wire: "doc", name: { en: "Document", ja: "文書" }, about: { en: "Contents on the left and numbered sections divided by lines.", ja: "左に目次を置き、番号付きの節を線で区切ります。" } },
-    { key: "today", wire: "mixed", name: { en: "Keep today's pages", ja: "今のまま" }, about: { en: "Each page keeps its own look.", ja: "頁ごとに今の形を残します。" } },
+    { key: "A", wire: "split", name: { en: "List with details beside", ja: "一覧と横の詳細" }, about: { en: "Today's specials on one strip, the items on the left, and the touched item's price and description on the right.", ja: "今日のおすすめを1本の帯にまとめ、左の商品を触ると右に値段と説明を出します。" } },
+    { key: "B", wire: "cards", name: { en: "Photo cards", ja: "写真の札" }, about: { en: "One card per item with its photo, price, and description, stacked by kind.", ja: "商品ごとに写真と値段と説明を載せた札を、種類ごとに縦に並べます。" } },
+    { key: "C", wire: "doc", name: { en: "Sections by kind", ja: "種類ごとの節" }, about: { en: "The kinds on the left, and bread, sweets, and drinks in sections divided by lines.", ja: "左に種類を並べ、パンと菓子パンと飲み物を線で区切った節に分けます。" } },
+    { key: "today", wire: "mixed", name: { en: "Keep today's board", ja: "今のまま" }, about: { en: "The board, the window poster, and the order page each keep their own look.", ja: "メニュー表と窓の貼り紙と注文の頁が、それぞれ今の形を残します。" } },
   ],
 };
 
@@ -233,8 +233,8 @@ function render() {
   document.querySelectorAll("[data-t]").forEach((el) => { el.textContent = t(el.dataset.t); });
   document.querySelectorAll("[data-lang]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.lang === state.lang)));
   $("request").textContent = pick(DATA.request);
-  $("facts").innerHTML = DATA.facts.map(([k, v]) => `<div><dt>${esc(t(k))}</dt><dd>${esc(v)}</dd></div>`).join("");
-  $("today").innerHTML = DATA.today.map((p, i) => `<button type="button" class="shot" data-today="${i}">${wire(p.wire)}<span>${esc(p.name)}</span></button>`).join("");
+  $("facts").innerHTML = DATA.facts.map(([k, v]) => `<div><dt>${esc(t(k))}</dt><dd>${esc(pick(v))}</dd></div>`).join("");
+  $("today").innerHTML = DATA.today.map((p, i) => `<button type="button" class="shot" data-today="${i}">${wire(p.wire)}<span>${esc(pick(p.name))}</span></button>`).join("");
   $("options").style.setProperty("--count", DATA.options.length);
   $("options").innerHTML = DATA.options.map((o) => `<div class="option" role="button" tabindex="0" data-choice="${o.key}" aria-pressed="${o.key === state.chosen}">${wire(o.wire)}<div class="option-body"><span class="option-name">${o.key === "today" ? "" : `<code>${o.key}</code>`}${esc(pick(o.name))}</span><p>${esc(pick(o.about))}</p><button type="button" class="zoom" data-zoom="${o.key}">${esc(t("enlarge"))}</button></div></div>`).join("");
   const chosen = DATA.options.find((o) => o.key === state.chosen);
@@ -263,7 +263,7 @@ document.addEventListener("click", (e) => {
   const z = e.target.closest("[data-zoom]");
   if (z) { const o = DATA.options.find((x) => x.key === z.dataset.zoom); zoom(pick(o.name), o.wire); return; }
   const shot = e.target.closest("[data-today]");
-  if (shot) { const p = DATA.today[Number(shot.dataset.today)]; zoom(p.name, p.wire); return; }
+  if (shot) { const p = DATA.today[Number(shot.dataset.today)]; zoom(pick(p.name), p.wire); return; }
   const choice = e.target.closest("[data-choice]");
   if (choice) { state.chosen = choice.dataset.choice; render(); return; }
   if (e.target.closest("#copy")) {

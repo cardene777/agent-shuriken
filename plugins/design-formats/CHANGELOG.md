@@ -5,6 +5,10 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The samples in the four page templates, `formats/look.md`, and the README all use one small bakery: the weekly sales report, the items to take off the winter menu, how to brew pour-over coffee, and the layout of the menu board
+- `verify` also names a title kept per language, such as `title: { en: "Bakery: weekly sales", ja: "..." }` in a page's data, when one of its texts has a colon or a Japanese comma or period
+- The report template shows facts and numbers that differ by language, and the approval sheet writes amounts with the yen sign in English and with the Japanese word for yen after the number in Japanese
+
 ## [0.1.0] - 2026-11-20
 
 First public release.
