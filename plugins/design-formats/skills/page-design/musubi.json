@@ -33,7 +33,7 @@
   "follows": {
     "dragon/notation": {
       "version": "^1.0.0",
-      "integrity": "sha256-ue5sRPU0pu0D4+lCBpkW37rUyQa425dDbMklYdwjsGc=",
+      "integrity": "sha256-HPVUqzqCWk31GEYuwXFQPWLLRoscEBrMwLFerX5kxBo=",
       "optional": true
     },
     "dragon/embed": {
@@ -43,7 +43,7 @@
     },
     "dragon/chart": {
       "version": "^1.0.0",
-      "integrity": "sha256-vPhw6/HPYzXbZGHkCcqp/w6mehQ0TYLVwFyzieJx+tg=",
+      "integrity": "sha256-O5uaY4SekE7/e/lo/sRyJm6u7INDGxClWvDceIckfF8=",
       "optional": true
     },
     "dragon/flow": {

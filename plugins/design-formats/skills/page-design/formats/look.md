@@ -75,9 +75,10 @@ A list shows the summary, and the details of one item sit beside it.
 | A procedure that branches at choices | Flow | `flow` |
 | The parts of a system and what passes between them | Architecture | `architecture` |
 | Messages between parties in time order | Sequence | `sequence` |
-| A change over time | Line chart | Not in dragon yet; show a table until dragon draws a line chart |
+| A change over time | Line chart | `chart <title> [shape: line]` |
 
 - A chart shows values that the text and the tables do not already show. Never draw the rows of a list again as a chart. Steps in a row and a flow show the order of the steps, and the amounts stay in the text of the steps
+- In a line chart, each item is one line and each step is one point in time, named with a short time such as `Tue`. Give the line chart the full width of the figures, so the names of the points do not crowd
 - Write each figure as a still dragon block, `<pre class="dragon" data-still>`, which shows the last step as one picture with no player. The notation comes from the dragon skill
 - Keep one block per language, each inside `<div data-figure-lang="en">` or `<div data-figure-lang="ja">`, and hide the other language with `html[lang="en"] [data-figure-lang="ja"], html[lang="ja"] [data-figure-lang="en"] { display: none; }`
 - Give the card that holds a figure, and the enlarged view, the card's own color as `--dragon-figure-background`, for example `.figure { --dragon-figure-background: var(--surface); }`. dragon paints the figure's background, line outlines, and label plates with it, so the figure matches its card in both themes
