@@ -57,24 +57,6 @@ HTMLの目次には番号を付けません。
 - 出典の節が1つ以上のページへリンクしている
 - 表紙の作者の行は、空で隠れているか名前が入っており、空白だけではない
 
-## レポートのページと切り替え
-
-エージェントは、スキルのひな形にレポートを書きます。表のパスは`skills/compare-report/`から見た位置です。
-
-| ファイル | 持つ物 |
-|---|---|
-| `templates/base.html` | レポートのページ。スタイル、明るい色と暗い色、切り替えのスクリプトを中に持ちます |
-| `musubi.json` | musubiでの`page-design/structure`、`page-design/look`、`page-design/report`、`page-design/verify`への任意の準拠。それぞれにバージョンの範囲`^1.0.0`と、最後に確かめた時のコンテンツのフィンガープリントと、`"optional": true`を持つ |
-
-レポートの表紙の右上には2つの切り替えがあります。English / 日本語は切り替えの言葉を変え、明るい / 暗いは色を変えます。
-レポートの本文は、書いた言語のままです。
-選ぶまでは色がシステムの設定に従い、選んだ物はブラウザーがローカルストレージに`compare-report-theme`と`compare-report-lang`の名前で覚えます。どこへも送りません。
-PDFは切り替えを除き、いつも明るい色で印刷します。
-
-- `design-formats`のプラグインの`page-design`のスキルが入っていれば、エージェントはその形式`structure`と`look`、ページの型`report`を読みます。`musubi.json`はこれらに任意の準拠で従います。`scripts/check-report.py`が通った後、レポートに`page-design`の`verify`を回し、`ok`が出るまで、名指された行を書いた文の中で直します。ほかのプラグインからはこれ以外を読みません
-- `musubi`のコマンドが入っていれば、エージェントはこれらを読む前に`musubi check`を回し、失敗したら止まります。`design-formats`が入っていない時、`musubi check`は警告を出してこれらの準拠を飛ばします。従うコンテンツが変わると、フィンガープリントを確かめ直すまで`musubi check`は`compare-report`を拒否します
-- `page-design`が無ければ、`templates/base.html`だけでレポートを書きます。プラグインのどこも`design-formats`を求めません
-
 ## ファイルを置く場所
 
 レポートごとに`~/.local/share/compare-report/<題材>-<日付>/`のフォルダーを作り、`report.html`と`report.pdf`を置きます。

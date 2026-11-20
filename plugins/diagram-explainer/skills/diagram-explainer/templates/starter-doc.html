@@ -4,16 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Document title</title>
-<script>
-(function (root) {
-  root.className += ' doc-js';
-  // A light or dark choice the reader made before, applied before the page is drawn (doc.js keeps it).
-  try {
-    var theme = window.localStorage.getItem('diagram-explainer-theme');
-    if (theme === 'light' || theme === 'dark') root.setAttribute('data-theme', theme);
-  } catch (e) { /* storage blocked: the page follows the system setting */ }
-})(document.documentElement);
-</script>
+<script>document.documentElement.className += ' doc-js';</script>
 <style>
 /* Layout and colors, charts, step ladders, and the print layout. build.py inlines each file from assets/. */
 /* diagram-explainer:asset doc.css */
@@ -24,19 +15,15 @@
 </head>
 <body>
 <!-- diagram-explainer:content:start -->
-<aside class="doc-side" id="doc-side" data-ui-label="contents" aria-label="Contents">
+<aside class="doc-side" id="doc-side" aria-label="Contents">
   <p class="doc-brand">Document title</p>
   <p class="doc-date">Date</p>
-  <div class="doc-ctrl">
-    <div class="doc-seg" role="group" data-ui-label="language" aria-label="Language"><button type="button" data-lang="en" lang="en" aria-pressed="false">English</button><button type="button" data-lang="ja" lang="ja" aria-pressed="false">日本語</button></div>
-    <div class="doc-seg" role="group" data-ui-label="theme" aria-label="Light or dark"><button type="button" data-theme-choice="light" data-ui-label="light" data-ui-title="light" aria-label="Light" title="Light" aria-pressed="false"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="3"/><path d="M8 1.5V3M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1"/></svg></button><button type="button" data-theme-choice="dark" data-ui-label="dark" data-ui-title="dark" aria-label="Dark" title="Dark" aria-pressed="false"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M13.4 10.1A5.6 5.6 0 0 1 5.9 2.6a5.6 5.6 0 1 0 7.5 7.5z"/></svg></button></div>
-  </div>
-  <nav class="doc-toc" data-page="a" data-ui-label="pageContents" data-ui-name="Document title" aria-label="Document title contents">
+  <nav class="doc-toc" data-page="a" aria-label="Document title contents">
     <button type="button" data-sec="a-s1">What it does</button>
     <button type="button" data-sec="a-s2">Terms</button>
   </nav>
 </aside>
-<div class="doc-mbar"><button type="button" data-ui="contents" data-ui-icon="☰" aria-controls="doc-side" aria-expanded="false">☰ Contents</button><span class="doc-here"></span><span class="doc-count"></span></div>
+<div class="doc-mbar"><button type="button" aria-controls="doc-side" aria-expanded="false">☰ Contents</button><span class="doc-here"></span><span class="doc-count"></span></div>
 <main class="doc-main">
 <div class="doc-page" data-page="a">
 
@@ -59,16 +46,15 @@
 </section>
 
 </div>
-<div class="doc-step"><button type="button" data-ui="prev" data-step="-1">Previous section</button><span class="doc-count"></span><button type="button" data-ui="next" data-step="1">Next section</button></div>
+<div class="doc-step"><button type="button" data-step="-1">Previous section</button><span class="doc-count"></span><button type="button" data-step="1">Next section</button></div>
 </main>
 <div class="doc-scrim"></div>
 <!-- diagram-explainer:content:end -->
 <script>
-// The interface text of the page and the switches; load it before charts.js and print.js.
-// diagram-explainer:asset doc.js
+// diagram-explainer:asset charts.js
 </script>
 <script>
-// diagram-explainer:asset charts.js
+// diagram-explainer:asset doc.js
 </script>
 <script>
 // diagram-explainer:asset print.js

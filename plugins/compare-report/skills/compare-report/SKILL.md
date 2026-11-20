@@ -70,10 +70,6 @@ It prints the path of `report.html`, under `~/.local/share/compare-report/<topic
 When the user named a folder for the report, put `COMPARE_REPORT_HOME=<that folder>` before the command.
 The topic slug uses lowercase letters, digits, and hyphens, such as `static-site-generators`.
 
-When the `page-design` skill is installed, follow the `structure` and `look` formats and the `report` page type of the `page-design` skill: open the `page-design` skill by name and read the files it names for `structure`, `look`, `report`, and `verify`.
-If the `musubi` command is available, run `musubi check` before reading, and stop if it fails.
-If the `page-design` skill is not installed, go on with the templates of this skill, without the formats of `page-design`.
-
 Fill the template as `references/report-structure.md` describes: the cover, the contents, the summary, the candidates, one section per axis, the risks, the ranking, and the sources.
 Every table with a score or a risk label has a rationale column, and the ranking gives a first choice, an alternative, and a fallback with the conditions for each.
 Use only the components in `references/report-structure.md`, and do not add a stylesheet, script, web font, or image from the network.
@@ -85,8 +81,6 @@ Check the report, fix every line it prints, and run it again until it prints `ok
 ```bash
 D=<folder>; python3 "$D/scripts/check-report.py" <path of report.html>
 ```
-
-When the `page-design` skill is installed, run its `verify` on the finished page: run the file it names for `verify` as a shell command, `python3 <that file> verify <path of report.html>`, fix each line it names in the text you wrote, and run it again until it prints `ok`. Tell the user about any line it names in the frame of this skill's template.
 
 Then read the report once as the user would, and confirm:
 

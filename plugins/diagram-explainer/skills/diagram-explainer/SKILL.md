@@ -80,10 +80,6 @@ Adjust it until they agree, and write nothing before they do.
 
 ### 3. Write the content JSON
 
-When the `page-design` skill is installed, follow the `structure` and `look` formats and the `document` page type of the `page-design` skill: open the `page-design` skill by name and read the files it names for `structure`, `look`, `document`, and `verify`.
-If the `musubi` command is available, run `musubi check` before reading, and stop if it fails.
-If the `page-design` skill is not installed, go on with the templates of this skill, without the formats of `page-design`.
-
 Start from `examples/content.sample.json` (or `content.sample.ja.json`) and `references/document-shape.md`.
 The fields are in `references/content.schema.json`; charts in `references/chart-shape.md`; ladders in `references/ladder-shape.md`.
 
@@ -156,8 +152,6 @@ When it finds no browser, ask the user which Chromium-based browser they use and
 
 `NG` lines fail and name what to fix; `--` lines only count.
 Fix every `NG` in `content.json` (or the ladder JSON) and build again until `check.py` exits 0.
-
-When the `page-design` skill is installed, run its `verify` on the finished page: run the file it names for `verify` as a shell command, `python3 <that file> verify "$X/<slug>.html"`, fix each line it names in `content.json`, and build and check again until it prints `ok`. Tell the user about any line it names in the frame of this skill's template.
 The document's language comes from `<html lang>`: Japanese documents get every wording rule, other documents get the language-independent checks and the term tables.
 
 ### 6. Reread the text
@@ -174,7 +168,6 @@ A step ladder keeps its width on a phone and scrolls sideways inside its frame.
 
 Give the user the path of the finished HTML file.
 It opens in any browser, and its PDF button prints either the current page or all pages.
-Its header has a language switch for the interface text, such as the contents and the PDF menu, and a light and dark switch; the document's own text stays in the language it was written in, and printing always uses the light colors.
 When the user wants a PDF file, print it:
 
 ```bash

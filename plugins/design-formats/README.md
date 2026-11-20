@@ -56,27 +56,6 @@ report.html:42: heading-punctuation: take the colon and any Japanese comma or pe
 page-design: 1 problem; fix each line named above and run verify again
 ```
 
-## Skills that follow it
-
-Ten skills in this repository follow page-design through musubi, each as an optional follow with the version range `^1.0.0` and `"optional": true`.
-Each one reads page-design when it is installed and works alone when it is not.
-
-| Skill | Plugin | What it follows |
-|---|---|---|
-| `techdebt` | techdebt | `structure`, `look`, `report`, `verify` |
-| `compare-report` | compare-report | `structure`, `look`, `report`, `verify` |
-| `machine-cleanup` | machine-cleanup | `structure`, `look`, `sheet`, `verify` |
-| `account-cleanup` | account-cleanup | `structure`, `look`, `sheet`, `verify` |
-| `diagram-explainer` | diagram-explainer | `structure`, `look`, `document`, `verify` |
-| `repo-progress` | repo-progress | `structure` |
-| `secure-dotfile` | secure-dotfile | `structure` |
-| `init-project` | init-project | `structure` |
-| `release-check` | evm-dev | `structure` |
-| `portman` | portman | `structure` |
-
-The five skills that write HTML pages keep their own templates and run `verify` on the finished page.
-The five that report in the chat write the report in the order of `structure`.
-
 ## Requirements
 
 | Tool | When it's needed |

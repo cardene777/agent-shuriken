@@ -5,8 +5,6 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
-- The chat report follows the `structure` format of page-design in the design-formats plugin through musubi, as an optional follow declared in `skills/init-project/musubi.json`: the result first, what was written and skipped with the reasons, values not measured written as not measured, and the user's steps last. When the `musubi` command is installed, the agent runs `musubi check` before reading the format. Without design-formats, the skill reports in its own order
-
 ## [0.3.0] - 2026-11-16
 
 - The skill's description is half as long, so every session that lists the installed skills reads less, and its instructions are shorter: the tables of project kinds, `plan` flags, plan marks, and exit codes are gone, since `detect`, `plan --help`, and each command's own messages say the same. The rules that keep env values away from the agent, ask before writing, and keep existing files are unchanged. An eval suite under `evals/` measures it with `claude plugin eval`, and no case scored lower

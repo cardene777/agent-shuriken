@@ -56,27 +56,6 @@ report.html:42: heading-punctuation: take the colon and any Japanese comma or pe
 page-design: 1 problem; fix each line named above and run verify again
 ```
 
-## このスキルに従うスキル
-
-このリポジトリの10のスキルが、musubiで`page-design`に従います。どれもバージョンの範囲`^1.0.0`と`"optional": true`を持つ任意の準拠です。
-各スキルは`page-design`が入っている時はそれを読み、入っていない時は単独で動きます。
-
-| スキル | plugin | 従う中身 |
-|---|---|---|
-| `techdebt` | techdebt | `structure`、`look`、`report`、`verify` |
-| `compare-report` | compare-report | `structure`、`look`、`report`、`verify` |
-| `machine-cleanup` | machine-cleanup | `structure`、`look`、`sheet`、`verify` |
-| `account-cleanup` | account-cleanup | `structure`、`look`、`sheet`、`verify` |
-| `diagram-explainer` | diagram-explainer | `structure`、`look`、`document`、`verify` |
-| `repo-progress` | repo-progress | `structure` |
-| `secure-dotfile` | secure-dotfile | `structure` |
-| `init-project` | init-project | `structure` |
-| `release-check` | evm-dev | `structure` |
-| `portman` | portman | `structure` |
-
-HTMLの頁を書く5つのスキルは自分の雛形を持ち続け、仕上げた頁に`verify`を回します。
-チャットで報告する5つのスキルは、`structure`の順で報告を書きます。
-
 ## 必要なもの
 
 | 道具 | 要る時 |

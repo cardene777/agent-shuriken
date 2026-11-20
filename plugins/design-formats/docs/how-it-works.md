@@ -20,7 +20,6 @@ The agent of a following skill writes the page or the document; the script in `s
 | `templates/choice.html` | The choice page type |
 | `scripts/page-design.py` | `verify`, the check of a page or a document |
 | `tests/test-page-design.sh` | Tests of `verify`, the formats, the templates, the declaration, and the plugin |
-| `tests/test-followers.sh` | Tests that the report skills of this repository follow page-design, run from a checkout of the repository |
 
 ## How a skill follows page-design
 
@@ -35,26 +34,6 @@ The agent copies the template of the page type, replaces `DATA` and the words in
 | `musubi.json` | The following skill | The range and fingerprint of each content it follows |
 
 When a format, a template, or the script changes, its fingerprint changes, and `musubi check` refuses every following skill until that skill is checked again and its fingerprint is updated.
-
-Ten skills in this repository follow page-design, each as an optional follow with the version range `^1.0.0` and `"optional": true`, so each plugin still installs and works alone.
-
-| Skill | Plugin | What it follows |
-|---|---|---|
-| `techdebt` | techdebt | `structure`, `look`, `report`, `verify` |
-| `compare-report` | compare-report | `structure`, `look`, `report`, `verify` |
-| `machine-cleanup` | machine-cleanup | `structure`, `look`, `sheet`, `verify` |
-| `account-cleanup` | account-cleanup | `structure`, `look`, `sheet`, `verify` |
-| `diagram-explainer` | diagram-explainer | `structure`, `look`, `document`, `verify` |
-| `repo-progress` | repo-progress | `structure` |
-| `secure-dotfile` | secure-dotfile | `structure` |
-| `init-project` | init-project | `structure` |
-| `release-check` | evm-dev | `structure` |
-| `portman` | portman | `structure` |
-
-The five skills with HTML pages keep their own templates, because a plugin's scripts never read outside their own skill folder, and run `verify` on the finished page.
-The five skills that report in the chat write the report in the order of `structure`: the result first, what was done and skipped with the reasons, values not measured written as not measured, and the user's steps last.
-When design-formats is not installed, `musubi check` skips these follows with a warning, and each skill works without page-design.
-`tests/test-followers.sh` checks the declarations, the lines in each `SKILL.md`, the templates, and `musubi check` with and without design-formats, from a checkout of this repository.
 
 ## How the templates work
 

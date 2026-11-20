@@ -55,8 +55,6 @@ GitHub Copilot CLIでは依頼の中に`/compare-report`と書き、Gemini CLI�
 
 レポートには、表紙、上位3つの推奨を含む要約、候補ごとのカード、表とグラフを含む観点ごとの節、リスク、推奨を含む採点表、番号付きの出典が入ります。
 レポートは、あなたが書いた言語で書かれます。
-表紙の右上には2つの切り替えがあります。English / 日本語は切り替えの言葉を変え、明るい / 暗いは色を変えます。レポートの本文は、書いた言語のままです。
-選ぶまでは、色はシステムの設定に従います。PDFは切り替えを除き、いつも明るい色で印刷します。
 
 ## 必要な物
 
@@ -65,8 +63,6 @@ GitHub Copilot CLIでは依頼の中に`/compare-report`と書き、Gemini CLI�
 | エージェントのWeb検索 | 常に。Claude CodeにもCodexにもあります。ほかのエージェントでは、Web検索が使える状態かを確かめてください |
 | `python3` | レポートを確かめる時。macOSに最初から入っている物で動きます |
 | Chrome、Chromium、Edge、Braveのどれか | PDFにする時。無い時はHTMLを渡すので、どのブラウザーからでも印刷できます |
-| `design-formats`のプラグイン | 任意です。`page-design`のスキルが入っていれば、エージェントはその形式に沿ってレポートを書き、仕上がったページにその`verify`を回します |
-| `musubi`のコマンド | 任意です。入っていれば、エージェントは`page-design`の形式を読む前に`musubi check`を回します |
 
 ## 読む物と実行する物と送る物
 
@@ -78,8 +74,7 @@ GitHub Copilot CLIでは依頼の中に`/compare-report`と書き、Gemini CLI�
 - レポートは`~/.local/share/compare-report/<題材>-<日付>/`に置き、`COMPARE_REPORT_HOME`を設定した時はそちらに置きます。あなただけが読めます
 - 表紙に載せると伝えた作者名か、載せないと選んだことを、同じフォルダーの`author.txt`に、あなただけが読める形で残します。名前を`git config`やシステムから取ることはありません
 - PDFは、ブラウザーを画面に出さずに動かして作ります。使い捨てのプロフィールを使い、終わったら消すので、あなたのブラウザーのプロフィールは使いません
-- レポートを開いても、ネットからは何も読み込みません。切り替えで選んだ物は、ブラウザーがローカルストレージに`compare-report-theme`と`compare-report-lang`の名前で覚え、どこへも送りません
-- `skills/compare-report/musubi.json`は、`compare-report`が`design-formats`のプラグインにある`page-design`の形式`structure`と`look`、ページの型`report`、`verify`に、`"optional": true`の任意の準拠で従うことをmusubiで宣言します。エージェントは`page-design`が入っている時だけこれらを読み、仕上がったレポートに`page-design`の`verify`を回します。入っていなければ、スキルのひな形で書きます。ほかのプラグインからはこれ以外を読みません
+- レポートを開いても、ネットからは何も読み込みません
 
 ## ライセンス
 

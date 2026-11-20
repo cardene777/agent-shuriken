@@ -265,12 +265,6 @@ The EVM versions run from `homestead` to `osaka`, and an unknown version exits 2
 4. It runs `layout` and `abi` on the two versions and `opcodes` with each target chain's EVM version, and runs `npx @openzeppelin/upgrades-core validate` as well when the project has it
 5. It compares gas with `forge snapshot --diff` and sizes with `forge build --sizes`, checks each deployment transaction against the chain's per-transaction gas cap (EIP-7825), reports each finding with what to do, and removes the temporary worktree with `git worktree remove --force`, which a worktree with submodules needs
 
-When the page-design skill of the design-formats plugin is installed, the agent writes the report of step 5 in the order of page-design's `structure` format: the result first, then what was checked and what was skipped with the reasons, values that could not be measured written as not measured, and your steps last.
-The format is the content `page-design/structure`, which `skills/release-check/musubi.json` follows as an optional follow: the version range `^1.0.0`, the fingerprint of the format at the last check, and `"optional": true`.
-When the `musubi` command is installed, the agent runs `musubi check` before reading the format and stops if it fails; the check skips the follow with a warning when design-formats is not installed, and the agent then reports in its own order.
-When the format changes, `musubi check` refuses release-check until its fingerprint is checked again.
-`release-check` reads nothing else from other plugins.
-
 ## The contract design items
 
 `contract-design` keeps its items in `skills/contract-design/references/items/`, one Markdown file per library, service, or practice, such as `openzeppelin-5-proxies.md` or `chainlink-vrf.md`.

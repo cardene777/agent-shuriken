@@ -44,9 +44,6 @@ When the design format or `verify` of `design-doc` changed, check each design sk
 Before releasing convey or japanese-writing, run `musubi check plugins/japanese-writing/skills plugins/convey/skills` the same way, and release only when it prints `ok`.
 When `references/connecting.md` or the `SKILL.md` of japanese-writing changed, check convey against the change first, then run the same command with `--update` and commit the new fingerprint.
 
-Before releasing design-formats or a plugin whose skill follows page-design, run `musubi check plugins/design-formats/skills plugins/doc-formats/skills plugins/techdebt/skills plugins/compare-report/skills plugins/machine-cleanup/skills plugins/account-cleanup/skills plugins/diagram-explainer/skills plugins/repo-progress/skills plugins/secure-dotfile/skills plugins/init-project/skills plugins/evm-dev/skills plugins/portman/skills` the same way, and release only when it prints `ok`.
-When a format, a template, or `verify` of page-design changed, check each following skill against the change first, then run the same command with `--update` and commit the new fingerprints.
-
 The script refuses unless it runs on an up-to-date `main` with a clean working tree, `scripts/check.sh` passes, and the version matches the plugin's changelog and manifests.
 It then tags `<name>--vX.Y.Z`, pushes the tag, and creates a GitHub release with the changelog section as notes and two zips:
 

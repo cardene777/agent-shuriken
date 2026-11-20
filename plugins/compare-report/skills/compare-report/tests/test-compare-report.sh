@@ -210,38 +210,6 @@ done
 check "report-structure.md lists every placeholder in the template" \
   '[ -z "$missing" ] && grep -qF "{{AUTHOR}}" "$TEMPLATE" && grep -qF "| \`{{AUTHOR}}\` |" "$structure"'
 
-# The colors: every rule takes its color from a token, the dark tokens apply on screens only, so the
-# PDF always prints in the light colors, and print hides the switches.
-template_colors() {
-  python3 - "$TEMPLATE" <<'PYEOF'
-import re, sys
-style = re.search(r"<style>(.*?)</style>", open(sys.argv[1], encoding="utf-8").read(), re.S).group(1)
-problems = []
-for number, line in enumerate(style.splitlines(), 1):
-    # Token definitions hold the colors; the page number at the bottom is drawn outside the page's elements.
-    if re.search(r"#[0-9a-fA-F]{3,8}\b|rgba?\(", line) and not line.strip().startswith("--") and "@bottom-center" not in line:
-        problems.append("style line %d sets a color without a token: %s" % (number, line.strip()))
-if not re.search(r'@media screen and \(prefers-color-scheme: dark\) \{\s*:root:not\(\[data-theme="light"\]\) \{', style):
-    problems.append("the dark colors for a dark system are not limited to screens")
-if not re.search(r'@media screen \{\s*:root\[data-theme="dark"\] \{', style):
-    problems.append("the dark colors the reader chooses are not limited to screens")
-if style.count('data-theme="dark"') != 1 or style.count(':root:not([data-theme="light"])') != 1:
-    problems.append("the dark colors are defined outside the two screen blocks")
-light = set(re.findall(r"--([\w-]+):", re.search(r":root \{(.*?)\}", style, re.S).group(1)))
-for block in re.findall(r':root(?::not\(\[data-theme="light"\]\)|\[data-theme="dark"\]) \{(.*?)\}', style, re.S):
-    unknown = set(re.findall(r"--([\w-]+):", block)) - light
-    if unknown:
-        problems.append("dark tokens without a light value: " + ", ".join(sorted(unknown)))
-printing = re.search(r"@media print \{(.*?)\n\}", style, re.S)
-if not printing or not re.search(r"\.controls \{ display: none; \}", printing.group(1)):
-    problems.append("print does not hide the switches")
-for p in problems:
-    print("      " + p)
-sys.exit(1 if problems else 0)
-PYEOF
-}
-check "the template takes every color from a token, keeps dark colors to screens, and hides the switches in print" template_colors
-
 plugin="$HERE/../../.."
 undocumented=""
 for f in README.md README.ja.md docs/how-it-works.md docs/how-it-works.ja.md; do
@@ -404,23 +372,7 @@ real_checks=(
   "printing leaves report.html unchanged and no copy in its folder"
   "report.html in a browser has no page numbers in its contents"
   "a contents link to a missing section keeps titles only and names the section"
-  "the PDF does not show the switches"
-  "the script shows the switches in English for a report in English"
-  "the script shows the switches in Japanese for a report in Japanese"
 )
-
-# switch_state <file>: the switches after the script ran, as "<shown or hidden> <lang of the switches>
-# <pressed language> <label of the dark button>", the label escaped so that this file stays in English.
-switch_state() {
-  dump_dom "file://$1" | python3 -c 'import re, sys
-dom = sys.stdin.read()
-head = re.search(r"<header\b[^>]*\bid=\"controls\"[^>]*>", dom)
-lang = re.search(r"\blang=\"(\w+)\"", head.group(0)) if head else None
-pressed = re.findall(r"<button\b[^>]*\bdata-lang=\"(\w+)\"[^>]*\baria-pressed=\"true\"", dom)
-dark = re.search(r"<button\b[^>]*\bdata-theme-choice=\"dark\"[^>]*>([^<]*)</button>", dom)
-print("hidden" if not head or re.search(r"\shidden\b", head.group(0)) else "shown", lang.group(1) if lang else "-",
-      ",".join(pressed) or "-", dark.group(1).encode("unicode_escape").decode() if dark else "-")'
-}
 if [ -z "$real_browser" ] || [ -z "$pdftotext_cmd" ]; then
   for name in "${real_checks[@]}"; do printf 'skip  %s (needs a Chromium-based browser and pdftotext)\n' "$name"; done
 else
@@ -450,16 +402,6 @@ print(re.sub(r"<[^>]+>", " ", m.group(1)) if m else "")')"
   pdf_pages "$T/missing/report.pdf" > "$T/missing-pages"
   check "a contents link to a missing section keeps titles only and names the section" \
     '[ "$rc" = 0 ] && [ "$out" = "$T/missing/report.pdf" ] && [ "$(wc -l < "$T/missing-err" | tr -d " ")" = 1 ] && grep -q "^The PDF contents show titles only" "$T/missing-err" && grep -qF "#axis-missing" "$T/missing-err" && LC_ALL=C awk "/^contents /{ n++; if (\$(NF-2) != \"None\") bad++ } END { exit !(n == 9 && bad == 0) }" "$T/missing-pages"'
-
-  check "the PDF does not show the switches" \
-    '"$pdftotext_cmd" "$T/real/report.pdf" - | grep -q "Build speed" && ! "$pdftotext_cmd" "$T/real/report.pdf" - | grep -qE "English|Light|Dark"'
-  mkdir -p "$T/switch-en" "$T/switch-ja"
-  long_report "$T/switch-en/report.html"
-  sed 's/<html lang="en">/<html lang="ja">/' "$T/switch-en/report.html" > "$T/switch-ja/report.html"
-  state="$(switch_state "$T/switch-en/report.html")"
-  check "the script shows the switches in English for a report in English" '[ "$state" = "shown en en Dark" ] || { echo "      the switches show: $state"; false; }'
-  state="$(switch_state "$T/switch-ja/report.html")"
-  check "the script shows the switches in Japanese for a report in Japanese" '[ "$state" = "shown ja ja \u6697\u3044" ] || { echo "      the switches show: $state"; false; }'
 fi
 
 # --- what to-pdf says in place of the step the SKILL.md no longer describes
@@ -559,7 +501,7 @@ results_ignored() {
 check "eval results are ignored by git" results_ignored
 
 # The body is counted in words and the description in characters, as the size the agent reads.
-SKILL_WORDS_MAX=1055
+SKILL_WORDS_MAX=916
 SKILL_DESCRIPTION_MAX=320
 skill_size() {
   python3 - "$SKILL" "$SKILL_WORDS_MAX" "$SKILL_DESCRIPTION_MAX" <<'PYEOF'

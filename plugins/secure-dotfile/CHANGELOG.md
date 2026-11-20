@@ -5,8 +5,6 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
-- The chat report follows the `structure` format of page-design in the design-formats plugin through musubi, as an optional follow declared in `skills/secure-dotfile/musubi.json`: the result first, what was moved and skipped with the reasons, values not measured written as not measured, and the user's steps last. When the `musubi` command is installed, the agent runs `musubi check` before reading the format. Without design-formats, the skill reports in its own order
-
 ## [0.7.1] - 2026-11-16
 
 - Every error and skip reason says what to do next, such as `unlock the keyring in your desktop session and run the move again`, so the agent passes it on instead of reading a table of reasons. The skill's instructions are less than half as long, and the agent reads them each time the skill starts

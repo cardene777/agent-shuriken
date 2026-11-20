@@ -147,10 +147,6 @@ Run that only when the user asks.
 
 ## 9. Report
 
-When the `page-design` skill is installed, write the report in the `structure` format of the `page-design` skill: open the `page-design` skill by name and read the file it names for `structure`.
-If the `musubi` command is available, run `musubi check` before reading, and stop if it fails.
-If the `page-design` skill is not installed, go on without the `structure` of `page-design`.
-
 From the output of `apply`, tell the user these things.
 
 - The project, its kind, and the local port

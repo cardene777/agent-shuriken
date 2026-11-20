@@ -90,7 +90,6 @@ When an agent's sandbox asks, as Codex can, approve the commands, because they r
 | `git` | To tell whether a value is in a file's git history |
 | `zsh`, `bash`, or `fish` | To check the syntax of an edited file. A file whose shell is missing is edited but not checked |
 | `chezmoi` | Only when your dotfiles are managed by chezmoi |
-| The `musubi` command | Optional. When it is installed, the agent runs `musubi check` before reading the page-design format |
 
 ## What it reads, runs, and sends
 
@@ -102,7 +101,6 @@ In short:
 - It stores only the values you pick, in your default keychain on macOS, your default secret service collection on Linux, your password store, or your 1Password vault named Private, Personal, or Employee, and never overwrites a different value stored under the same name. When the password store is a git repository, `pass` commits each new entry there, encrypted, and pushing it is up to you
 - It edits only the lines of the values it moved, plus one export line added to your shell's startup file for each npm token, keeps each file's permissions and symlinks, and checks the syntax of each edited shell file
 - It connects to nothing on the network itself and keeps no files of its own. On Linux, `secret-tool` reaches the secret service over your login session's local message bus (D-Bus). With `--store 1password`, `op` talks to the 1Password app or to 1Password's servers to read and store the items in your account, and only a scan or move that picks 1Password runs `op`
-- `skills/secure-dotfile/musubi.json` declares through musubi that secure-dotfile follows `page-design/structure`, the order of a report, as an optional follow with `"optional": true`. The agent reads the format only when page-design is installed, and reports in its own order otherwise. It reads nothing else from other plugins
 
 ## License
 

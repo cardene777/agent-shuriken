@@ -69,7 +69,6 @@ Start here
 順位は20位まで続き、最後の2行にデータと報告のページの置き場が出ます。
 
 報告のページには、順位のタブと項目ごとのタブがあり、英語と日本語を切り替えられます。
-見出しの帯には、言語の切り替えの隣に明るい色と暗い色の切り替えがあります。選ぶまではシステムの設定に従い、選んだ色はブラウザのローカルストレージに`techdebt-theme`の名前で残ります。
 使っていない依存は、knipが無い時も、import、設定のファイル、`scripts`で名前を探して見つけるので、その数は概算です。knipが入っている時は、knipの結果を使います。
 非推奨の呼び出しは、すでに入っている道具で探します。ruffは非推奨の規則で、semgrepはプロジェクトの規則のfileだけを`--metrics off`で、ESLintは設定が非推奨の規則を有効にしている時だけ回します。semgrepのセキュリティの規則の結果は出しません。
 
@@ -83,8 +82,6 @@ Start here
 | `ruff` | 任意です。`.venv/bin`か`PATH`に入っている時に使います |
 | `semgrep` | 任意です。`.venv/bin`か`PATH`に入っていて、プロジェクトが規則のfile(`.semgrep.yml`、`.semgrep.yaml`、`.semgrep/`)を持つ時に使います |
 | `eslint` | 任意です。プロジェクトの`node_modules/.bin`に入っていて、設定が非推奨の規則を有効にしている時に使います |
-| `design-formats`のプラグイン | 任意です。`page-design`のスキルが入っていれば、エージェントはその形式を読み、scriptが書いた報告のページにその`verify`を回します |
-| `musubi`のコマンド | 任意です。入っていれば、エージェントは`page-design`の形式を読む前に`musubi check`を回します |
 
 ## 読む物と動かす物と送る物
 
@@ -98,7 +95,6 @@ Start here
 - ネットワークにはつなぎません
 - `scan.json`、エージェントの説明、`report.html`を`~/.local/share/techdebt/<project>/`に置き、あなただけが読めるようにします。消すまで残ります
 - 目印のある行は200文字まで残します。鍵、トークン、パスワードに見える文字列は`***`に、ホームフォルダは`~`に置き換えます
-- `skills/techdebt/musubi.json`は、`techdebt`が`design-formats`のプラグインにある`page-design`の形式`structure`と`look`、ページの型`report`、`verify`に、`"optional": true`の任意の準拠で従うことをmusubiで宣言します。エージェントは`page-design`が入っている時だけこれらを読み、仕上がった報告のページに`page-design`の`verify`を回します。入っていなければ、スキルのひな形で作ります。ほかのプラグインからはこれ以外を読みません
 
 ## ライセンス
 

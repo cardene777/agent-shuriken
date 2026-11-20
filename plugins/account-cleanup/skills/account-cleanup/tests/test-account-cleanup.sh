@@ -460,7 +460,7 @@ check "eval results are ignored by git" "eval_results_ignored"
 
 # The limits are the sizes of the shortened SKILL.md. Every agent that starts the skill reads the
 # whole body, and every session reads the description, so raise a limit only with a reason.
-SKILL_WORDS_MAX=2340
+SKILL_WORDS_MAX=2187
 SKILL_DESCRIPTION_MAX=445
 skill_size() {
   python3 - "$SKILL" "$SKILL_WORDS_MAX" "$SKILL_DESCRIPTION_MAX" <<'PY'

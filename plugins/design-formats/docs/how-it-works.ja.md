@@ -20,7 +20,6 @@
 | `templates/choice.html` | 案を選ぶ頁の型 |
 | `scripts/page-design.py` | 頁とドキュメントを確かめる`verify` |
 | `tests/test-page-design.sh` | `verify`、書式、雛形、宣言、pluginのテスト |
-| `tests/test-followers.sh` | このリポジトリのレポートを書くスキルが`page-design`に従うかのテスト。リポジトリを取り出した写しから回します |
 
 ## スキルがpage-designに従う形
 
@@ -35,26 +34,6 @@ agentは頁の型の雛形を写し、`DATA`と`TEXT`の言葉を書き換え、
 | `musubi.json` | 従うスキル | 従う中身ごとのバージョンの範囲と指紋 |
 
 書式か雛形かscriptが変わると指紋が変わり、従うスキルを確かめ直して指紋を書き直すまで、`musubi check`がそのスキルを拒みます。
-
-このリポジトリの10のスキルが`page-design`に従います。どれもバージョンの範囲`^1.0.0`と`"optional": true`を持つ任意の準拠なので、各pluginは単独でも入れて動かせます。
-
-| スキル | plugin | 従う中身 |
-|---|---|---|
-| `techdebt` | techdebt | `structure`、`look`、`report`、`verify` |
-| `compare-report` | compare-report | `structure`、`look`、`report`、`verify` |
-| `machine-cleanup` | machine-cleanup | `structure`、`look`、`sheet`、`verify` |
-| `account-cleanup` | account-cleanup | `structure`、`look`、`sheet`、`verify` |
-| `diagram-explainer` | diagram-explainer | `structure`、`look`、`document`、`verify` |
-| `repo-progress` | repo-progress | `structure` |
-| `secure-dotfile` | secure-dotfile | `structure` |
-| `init-project` | init-project | `structure` |
-| `release-check` | evm-dev | `structure` |
-| `portman` | portman | `structure` |
-
-HTMLの頁を持つ5つのスキルは、自分の雛形を持ち続け、仕上げた頁に`verify`を回します。pluginのscriptは自分のスキルのフォルダーの外を読まないためです。
-チャットで報告する5つのスキルは、`structure`の順で報告を書きます。結果を先に書き、したことと飛ばしたことを理由とともに書き、測れなかった値は測れなかったと書き、使う人の手順を最後に書きます。
-design-formatsが入っていない時、`musubi check`は警告を出してこれらの準拠を飛ばし、各スキルは`page-design`無しで動きます。
-`tests/test-followers.sh`は、宣言、各`SKILL.md`の行、雛形、design-formatsが有る時と無い時の`musubi check`を、このリポジトリを取り出した写しから確かめます。
 
 ## 雛形の作り
 

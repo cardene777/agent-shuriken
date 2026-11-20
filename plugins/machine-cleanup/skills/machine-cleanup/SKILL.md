@@ -38,12 +38,6 @@ Add `--root <folder>` (repeatable) to look for build output and large files some
 
 ## 2. Show the page
 
-When the `page-design` skill is installed, follow the `structure` and `look` formats and the `sheet` page type of the `page-design` skill: open the `page-design` skill by name and read the files it names for `structure`, `look`, `sheet`, and `verify`.
-If the `musubi` command is available, run `musubi check` before reading, and stop if it fails.
-If the `page-design` skill is not installed, go on with the templates of this skill, without the formats of `page-design`.
-
-When the `page-design` skill is installed, run its `verify` on the finished page: `serve` builds the page in memory from `templates/sheet.html` next to this `SKILL.md`, so run the file it names for `verify` on that template as a shell command, `python3 <that file> verify <folder of this SKILL.md>/templates/sheet.html`, and tell the user about any line it names.
-
 ```bash
 S=<skill folder>/scripts; python3 "$S/machine_cleanup.py" serve
 ```

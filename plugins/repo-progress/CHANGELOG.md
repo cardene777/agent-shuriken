@@ -5,8 +5,6 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
-- The chat report follows the `structure` format of page-design in the design-formats plugin through musubi, as an optional follow declared in `skills/repo-progress/musubi.json`: the result first, what was done and skipped with the reasons, values not measured written as not measured, and the user's steps last. When the `musubi` command is installed, the agent runs `musubi check` before reading the format. Without design-formats, the skill reports in its own order
-
 ## [0.1.2] - 2026-11-16
 
 - The `SKILL.md` is shorter: the tables of columns and of one repository's sections, which `docs/how-it-works.md` gives, the table of exit codes, which is now two sentences, and the list of common root folders, which `--show-roots` prints, are gone, and the description says only what the skill does and when to use it

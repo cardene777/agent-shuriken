@@ -144,7 +144,6 @@ If yours does not, pass the port on the command line, for example `--port $PORT_
 | `lsof` | To name the program that holds a port. Built into macOS. Without it, Linux reads `/proc/net` and other systems test each port, and the program shows as one that could not be named |
 | `docker` | Optional. When it is installed and running, ports published by containers are named, and the installed Compose version is checked |
 | `git` | Optional. To find the project folder and to tell you when `.env.local` is not ignored by git |
-| The `musubi` command | Optional. When it is installed, the agent runs `musubi check` before reading the page-design format |
 
 ## What it reads, runs, and sends
 
@@ -156,7 +155,6 @@ In short:
 - It writes its registry, and in a project only `.env.local` and the Compose override, after you approve the change it shows
 - It never stops a program or a container, and sends nothing over the network
 - It keeps the registry in `~/.local/share/portman/`, readable only by you, until you delete it
-- `skills/portman/musubi.json` declares through musubi that portman follows `page-design/structure`, the order of a report, as an optional follow with `"optional": true`. The agent reads the format only when page-design is installed, and reports in its own order otherwise. It reads nothing else from other plugins
 
 ## License
 

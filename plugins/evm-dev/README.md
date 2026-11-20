@@ -392,7 +392,6 @@ financial-standards: 2 problems; fill in or add each section named above
 | The kiwa plugin | Optional. When its skills are installed, `contract-tests` has kiwa write the tests |
 | Web access in the agent | To re-check an out-of-date item. Without it the agent answers from the item and says it could not confirm it |
 | Network access to `cardene.dev` | To link bitsumi articles. Without it `evm-standards` searches only its items and says it could not read the article index |
-| The `musubi` command | Optional. When it is installed, the agent runs `musubi check` before a design skill reads the `design-doc` format and before `release-check` reads the page-design format |
 
 ## What it reads, runs, and sends
 
@@ -409,7 +408,6 @@ In short:
 - `contract-deploy` writes the deploy script, simulates it, and looks up transactions and code through the project's RPC endpoints. You run the command that broadcasts. Verification sends the contracts' source code to Sourcify, Etherscan, or Blockscout to publish it, so the agent asks before it runs
 - `release-check` runs `release-check.py`, which reads only the storage layouts, ABIs, and bytecode in the build output and JSON files it is given, and prints one line per finding. It writes nothing, and never reads `.env` files or keys
 - `release-check` checks out the deployed version in a temporary git worktree, builds both versions and runs the tests with the project's tools, and removes the worktree when it is done. OpenZeppelin's check, when the project has it, may download a matching solc from the Solidity binaries server to check namespaced storage
-- `skills/release-check/musubi.json` declares through musubi that release-check follows `page-design/structure`, the order of a report, as an optional follow with `"optional": true`. The agent reads the format only when page-design is installed, and reports in its own order otherwise. `release-check` reads nothing else from other plugins
 - `contract-design` runs `contract-design.py`, which reads its items and the design file it writes, and prints only section names when it checks the design. It writes only the design file, and never reads `.env` files or keys
 - `wallet-design` runs `wallet-design.py`, which reads its items and the design file it writes, and prints only section names when it checks the design. It writes only the design file, never reads `.env` files or keys, never signs, and refuses a command that passes a key
 - `multichain-design` runs `multichain-design.py`, which reads its items and the design file it writes, and prints only section names when it checks the design. It writes only the design file, never reads `.env` files or keys, never signs, and refuses a command that passes a key

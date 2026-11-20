@@ -161,7 +161,6 @@ When the project already has a compose file, the plugin keeps it and adds only t
 | `git` | To check which files git already ignores and which env files are committed. Outside a git repository, `.gitignore` lines are compared as text |
 | `docker` | To run the Docker setup. Writing the files does not need it |
 | `op` (1Password CLI) | For the 1Password part, signed in to your account. Without it, the other parts still work |
-| The `musubi` command | Optional. When it is installed, the agent runs `musubi check` before reading the page-design format |
 
 ## What it reads, runs, and sends
 
@@ -174,7 +173,6 @@ In short:
 - The commands for 1Password are run by you, in your own terminal, and send your values to 1Password with your own sign-in
 - It keeps only the ports it assigned with their project folders, and plans waiting for approval for at most a day, in `~/.local/share/init-project/`, readable only by you
 - When the portman plugin is installed, it runs portman's `list` command to read the registry and its `add` command to register a port, and never edits portman's files itself
-- `skills/init-project/musubi.json` declares through musubi that init-project follows `page-design/structure`, the order of a report, as an optional follow with `"optional": true`. The agent reads the format only when page-design is installed, and reports in its own order otherwise. Apart from portman's commands, it reads nothing else from other plugins
 
 ## License
 

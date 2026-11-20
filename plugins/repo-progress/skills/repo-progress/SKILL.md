@@ -32,10 +32,6 @@ Add `--author "<name>"` when the user commits under a name other than their glob
 
 ## 2. Report
 
-When the `page-design` skill is installed, write the report in the `structure` format of the `page-design` skill: open the `page-design` skill by name and read the file it names for `structure`.
-If the `musubi` command is available, run `musubi check` before reading, and stop if it fails.
-If the `page-design` skill is not installed, go on without the `structure` of `page-design`.
-
 The plugin's `docs/how-it-works.md` describes each column of the table.
 Rows are sorted by `idle`, so stalled repositories come first.
 `idle` does not say how important a repository is; it only measures how long open work has waited.

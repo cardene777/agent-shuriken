@@ -1,8 +1,7 @@
 # Report structure
 
 What goes in each section of the report, and the markup of every component the template styles.
-`templates/base.html` holds the theme, with light and dark colors, and the language and light/dark switches with the script that runs them.
-Write only the markup below inside it, leave the switches and their script as they are, and add no stylesheet, script, or color of your own.
+`templates/base.html` holds the theme; write only the markup below inside it, and add no stylesheet or script.
 
 ## Placeholders
 
@@ -10,7 +9,7 @@ Replace every placeholder in the template. `scripts/check-report.py` fails while
 
 | Placeholder | What to put there |
 |---|---|
-| `{{LANG}}` | The language code of the report, such as `en` or `ja`. The report's text stays in this language; the language switch starts from it and changes only the words of the switches |
+| `{{LANG}}` | The language code of the report, such as `en` or `ja` |
 | `{{TITLE}}` | The report title, such as "Static site generators compared" |
 | `{{EYEBROW}}` | A short label above the title, such as "Comparison report" |
 | `{{SUBTITLE}}` | One sentence on what was compared and for whom |
@@ -175,13 +174,6 @@ Use `muted` for a candidate whose value was not disclosed, with a width of 0%.
   <li><a href="https://example.com/pricing">Example pricing</a> <span class="accessed">read 2026-11-12</span></li>
 </ol>
 ```
-
-## Colors and switches
-
-Every color in the template is a token with a light and a dark value, so every component above follows the reader's light or dark choice on screen, and the PDF always prints in the light colors.
-Write no color in the markup, such as `style="color: ..."`; the only style attribute is the width of a bar's fill.
-The switches sit at the top right of the cover: English and 日本語 change the words of the switches, and Light and Dark change the colors.
-The browser remembers the reader's choice, and print hides the switches.
 
 ## Page breaks
 

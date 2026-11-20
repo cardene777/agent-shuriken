@@ -20,7 +20,6 @@ JA_ALLOWED=(
   plugins/account-cleanup/skills/account-cleanup/templates/sheet.html
   plugins/account-cleanup/skills/account-cleanup/templates/followups.html
   plugins/machine-cleanup/skills/machine-cleanup/templates/sheet.html
-  plugins/compare-report/skills/compare-report/templates/base.html
   plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh
   plugins/account-cleanup/skills/account-cleanup/scripts/browser.mjs
   plugins/account-cleanup/skills/account-cleanup/scripts/connections-guide.sh

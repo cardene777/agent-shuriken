@@ -47,7 +47,6 @@ GitHub Copilot CLIでは依頼の文に`/machine-cleanup`と書き、Gemini CLI�
 ![プロセスのタブ。行がおすすめ、確かめて選ぶ、慎重に、使用中の段に分かれ、Vite dev serverの詳しい情報のモーダルに理由、メモリ、CPU、開始、作業フォルダ、コマンド、選ぶボタンが出ている](assets/screenshot-details.png)
 
 ページは英語で開き、ヘッダーにEnglish / 日本語の切り替えがあります。
-その隣の明るい色と暗い色の切り替えで、色を変えられます。選ぶまではシステムの設定に従い、選んだ色はブラウザのローカルストレージに`machine-cleanup-theme`の名前で残ります。
 エージェントがページを待つのをやめていた時は、**選択を写す**を押して、チャットに貼ります。
 
 ## 見つける物
@@ -85,8 +84,6 @@ GitHub Copilot CLIでは依頼の文に`/machine-cleanup`と書き、Gemini CLI�
 | npm、pnpm、Yarn、Bun、pip、uv、Homebrew、Go、CocoaPods | 無くても動きます。入っている時は、その道具の消す命令でキャッシュを空けます。無い時はキャッシュのフォルダを消します |
 | `flatpak` | 無くても動きます。LinuxでFlatpakのアプリを並べるため |
 | ブラウザ | ページで選ぶため |
-| `design-formats`のプラグイン | 無くても動きます。`page-design`のスキルが入っていれば、エージェントはページのひな形をその`verify`で確かめます |
-| `musubi`のコマンド | 無くても動きます。入っていれば、エージェントは`page-design`の形式を読む前に`musubi check`を回します |
 
 ## 読む物と動かす物と送る物
 
@@ -100,7 +97,6 @@ GitHub Copilot CLIでは依頼の文に`/machine-cleanup`と書き、Gemini CLI�
 - 選んだ物だけを、確かめ直してから変えます。管理者のパスワードを求めず、使いません
 - 名前がトークン、秘密、パスワード、APIキーを思わせるコマンドの引数と環境変数の値は、プロセスの命令の文がページやファイルに届く前に伏せます
 - 調べた結果、ページの接続の記録、`restore`に要る物を、自分だけが読める`~/.local/share/machine-cleanup/`に置きます。`finish`は元に戻すための記録以外を消します
-- `skills/machine-cleanup/musubi.json`は、`machine-cleanup`が`design-formats`のプラグインにある`page-design`の形式`structure`と`look`、ページの型`sheet`、`verify`に、`"optional": true`の任意の準拠で従うことをmusubiで宣言します。エージェントは`page-design`が入っている時だけこれらを読み、ページのひな形に`page-design`の`verify`を回します。入っていなければ、スキルのひな形を使います。ほかのプラグインからはこれ以外を読みません
 
 ## ライセンス
 

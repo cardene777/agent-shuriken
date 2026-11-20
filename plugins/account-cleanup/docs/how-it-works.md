@@ -52,23 +52,6 @@ Development addresses and items without a URL are never contacted.
 
 It sends nothing else, and it never sends your candidate list anywhere.
 
-## The two pages
-
-`build-sheet.sh` writes the candidate sheet from a template of the skill, and `followup.sh page` writes the follow-up page from another. Paths in the table are relative to `skills/account-cleanup/`.
-
-| File | What it holds |
-|---|---|
-| `templates/sheet.html` | The candidate sheet, with its styles, its English and Japanese words, and its script inside |
-| `templates/followups.html` | The follow-up page, which lists what is left to do, such as erasure requests, built the same way |
-| `musubi.json` | The optional follows of `page-design/structure`, `page-design/look`, `page-design/sheet`, and `page-design/verify` through musubi: for each, the version range `^1.0.0`, the fingerprint of the content at the last check, and `"optional": true` |
-
-Both pages have an English / 日本語 switch and, next to it, a Light and Dark switch.
-The colors follow the system setting until you choose, and both pages share your choices in the browser's local storage under `account-cleanup-lang` and `account-cleanup-theme`. Nothing is sent anywhere.
-
-- When the page-design skill of the design-formats plugin is installed, the agent reads its `structure` and `look` formats and its `sheet` page type, which `musubi.json` follows as optional follows. It runs page-design's `verify` on the candidate sheet and on the follow-up page, fixes each line it names in the text it wrote with `annotate.sh`, and tells you about any line it names in the frame of the templates. It reads nothing else from other plugins
-- When the `musubi` command is installed, the agent runs `musubi check` before reading them and stops if it fails; the check skips the follows with a warning when design-formats is not installed. When a followed content changes, `musubi check` refuses account-cleanup until its fingerprint is checked again
-- Without page-design, the pages come from the two templates alone. Nothing in the plugin requires design-formats
-
 ## What it keeps
 
 Everything lives in `~/.local/share/account-cleanup/`, or in `ACCOUNT_CLEANUP_HOME` when it is set, with permissions only you can read.

@@ -122,16 +122,6 @@ For each file with secrets inside a git repository, the script reads `git log --
 `no` means the value is not in that file's history, but it may still be in other files, in backups, or in the shell history.
 `unknown` means the history could not be read: git is not installed, git could not run, as the macOS `/usr/bin/git` cannot inside a sandbox that hides Xcode, or the history is larger than 64 MB. The value says which, and what to do, such as scanning again where git works.
 
-## The order of the report
-
-When the page-design skill of the design-formats plugin is installed, the agent writes its report in the order of page-design's `structure` format: the result first, then what was moved and what was skipped with the reasons, values that could not be measured written as not measured, and your steps last.
-The format is the content `page-design/structure`, which `skills/secure-dotfile/musubi.json` follows as an optional follow: the version range `^1.0.0`, the fingerprint of the format at the last check, and `"optional": true`.
-
-- When the `musubi` command is installed, the agent runs `musubi check` before reading the format and stops if it fails
-- When design-formats is not installed, `musubi check` skips the follow with a warning, and the agent reports in its own order
-- When the format changes, `musubi check` refuses secure-dotfile until its fingerprint is checked again
-- It reads nothing else from other plugins, and the report never holds any part of a value
-
 ## What it never does
 
 - Print, log, or send any part of a value

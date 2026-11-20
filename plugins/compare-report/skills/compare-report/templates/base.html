@@ -4,120 +4,37 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{TITLE}}</title>
-<script>
-// Applies the light or dark choice the reader made before, ahead of drawing the page, so it never flashes in the other colors.
-try { const saved = localStorage.getItem("compare-report-theme"); if (saved === "light" || saved === "dark") document.documentElement.dataset.theme = saved; } catch (e) {}
-</script>
 <style>
 /* The theme of every report. The report loads nothing from the network, so it opens offline and prints the same way every time.
-   The components and the markup that uses them are listed in references/report-structure.md.
-   Every color is a token. :root holds the light colors, which print always uses; the two blocks after it
-   redefine the tokens on screens only, for a reader whose system is dark and for a reader who chose dark. */
+   The components and the markup that uses them are listed in references/report-structure.md. */
 :root {
-  color-scheme: light;
-  --bg: #ffffff;
   --ink: #111827;
   --muted: #4b5563;
   --faint: #6b7280;
   --line: #e5e7eb;
-  --line-strong: #d1d5db;
   --surface: #f6f7f9;
   --accent: #2f5bd3;
-  --accent-ink: #ffffff;
   --accent-soft: #eef2fd;
   --warn: #b42318;
   --warn-soft: #fdf0ee;
   --cover: #121826;
-  --cover-ink: #f3f4f6;
-  --cover-sub: #d1d5db;
-  --cover-muted: #9ca3af;
-  --cover-eyebrow: #9fb3f5;
-  --cover-line: #374151;
   --s-ink: #1e40af; --s-bg: #dbe6fe;
   --a-ink: #05603a; --a-bg: #d3f3e4;
   --b-ink: #3f6212; --b-bg: #e9f7cf;
   --c-ink: #93370d; --c-bg: #fcefd2;
   --d-ink: #a11b1b; --d-bg: #fde3e3;
-  --e-ink: #5b34b4; --e-bg: #ede7fb;
-  --critical-ink: #ffffff; --critical-bg: #a11b1b;
-  --gold: #946210; --silver: #6b7280; --bronze: #a0522d; --place-ink: #ffffff;
-  --bar-muted: #9ca3af;
-}
-@media screen and (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --bg: #0f1217;
-    --ink: #e5e8ee;
-    --muted: #b3bbc7;
-    --faint: #98a2b0;
-    --line: #2a303a;
-    --line-strong: #3b4350;
-    --surface: #181c24;
-    --accent: #86a4ff;
-    --accent-ink: #0d1322;
-    --accent-soft: #1a2440;
-    --warn: #f28b82;
-    --warn-soft: #351b1b;
-    --cover: #161d2c;
-    --s-ink: #b0c6ff; --s-bg: #1c2a52;
-    --a-ink: #8ae0b6; --a-bg: #0f3726;
-    --b-ink: #c4e48b; --b-bg: #283713;
-    --c-ink: #f5c27f; --c-bg: #402810;
-    --d-ink: #ffa8a8; --d-bg: #47191b;
-    --e-ink: #d0bcff; --e-bg: #30235a;
-    --critical-ink: #ffffff; --critical-bg: #c23434;
-    --gold: #e3ae52; --silver: #aab3bf; --bronze: #e39a70; --place-ink: #111317;
-    --bar-muted: #5d6675;
-  }
-}
-@media screen {
-  :root[data-theme="dark"] {
-    color-scheme: dark;
-    --bg: #0f1217;
-    --ink: #e5e8ee;
-    --muted: #b3bbc7;
-    --faint: #98a2b0;
-    --line: #2a303a;
-    --line-strong: #3b4350;
-    --surface: #181c24;
-    --accent: #86a4ff;
-    --accent-ink: #0d1322;
-    --accent-soft: #1a2440;
-    --warn: #f28b82;
-    --warn-soft: #351b1b;
-    --cover: #161d2c;
-    --s-ink: #b0c6ff; --s-bg: #1c2a52;
-    --a-ink: #8ae0b6; --a-bg: #0f3726;
-    --b-ink: #c4e48b; --b-bg: #283713;
-    --c-ink: #f5c27f; --c-bg: #402810;
-    --d-ink: #ffa8a8; --d-bg: #47191b;
-    --e-ink: #d0bcff; --e-bg: #30235a;
-    --critical-ink: #ffffff; --critical-bg: #c23434;
-    --gold: #e3ae52; --silver: #aab3bf; --bronze: #e39a70; --place-ink: #111317;
-    --bar-muted: #5d6675;
-  }
+  --gold: #b7791f; --silver: #6b7280; --bronze: #a0522d;
 }
 * { box-sizing: border-box; }
 html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 body {
   margin: 0;
-  background: var(--bg);
+  background: #ffffff;
   color: var(--ink);
   font: 15px/1.75 system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Noto Sans CJK JP", "Yu Gothic", Meiryo, sans-serif;
   font-variant-numeric: tabular-nums;
 }
 a { color: var(--accent); }
-a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-/* The language and light/dark switches, side by side at the top right of the cover. The script shows them, and print hides them. */
-.controls { position: absolute; top: 16px; right: 16px; z-index: 1; display: flex; flex-wrap: nowrap; gap: 8px; }
-.controls[hidden] { display: none; }
-.seg { display: inline-flex; border: 1px solid var(--cover-line); border-radius: 8px; overflow: hidden; background: var(--cover); }
-.seg button { margin: 0; padding: 5px 12px; border: 0; background: transparent; color: var(--cover-sub); font: inherit; font-size: 13px; line-height: 1.5; white-space: nowrap; cursor: pointer; transition: background-color 0.15s, color 0.15s; }
-.seg button + button { border-left: 1px solid var(--cover-line); }
-.seg button:hover { color: var(--cover-ink); }
-.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
-.seg button:focus-visible { outline: 2px solid var(--cover-ink); outline-offset: -2px; box-shadow: inset 0 0 0 4px var(--cover); }
 
 /* Cover */
 .cover {
@@ -127,20 +44,20 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   min-height: 720px;
   padding: 72px 64px 48px;
   background: var(--cover);
-  color: var(--cover-ink);
+  color: #f3f4f6;
 }
-.cover .eyebrow { margin: 0 0 20px; color: var(--cover-eyebrow); font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
+.cover .eyebrow { margin: 0 0 20px; color: #9fb3f5; font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
 .cover h1 { margin: 0; max-width: 720px; font-size: 44px; line-height: 1.25; font-weight: 700; }
 .cover hr { width: 72px; height: 4px; margin: 32px 0; border: 0; background: var(--accent); }
-.cover .subtitle { margin: 0; max-width: 680px; color: var(--cover-sub); font-size: 18px; }
+.cover .subtitle { margin: 0; max-width: 680px; color: #d1d5db; font-size: 18px; }
 .cover .stats { display: flex; flex-wrap: wrap; gap: 0; margin: 48px 0 0; }
-.cover .stats div { min-width: 140px; padding: 4px 28px 4px 0; margin-right: 28px; border-right: 1px solid var(--cover-line); }
+.cover .stats div { min-width: 140px; padding: 4px 28px 4px 0; margin-right: 28px; border-right: 1px solid #374151; }
 .cover .stats div:last-child { border-right: 0; }
-.cover .stats dt { color: var(--cover-muted); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
+.cover .stats dt { color: #9ca3af; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
 .cover .stats dd { margin: 4px 0 0; font-size: 28px; font-weight: 700; }
-.cover .cover-foot { margin: 48px 0 0; color: var(--cover-muted); font-size: 13px; }
+.cover .cover-foot { margin: 48px 0 0; color: #9ca3af; font-size: 13px; }
 .cover .cover-foot p { margin: 0; }
-.cover .cover-foot .cover-author { margin-top: 6px; color: var(--cover-sub); font-size: 14px; }
+.cover .cover-foot .cover-author { margin-top: 6px; color: #d1d5db; font-size: 14px; }
 .cover .cover-foot .cover-author:empty { display: none; }
 
 /* Body */
@@ -171,7 +88,7 @@ h2, h3 { line-height: 1.35; }
 .pick.gold { border-top-color: var(--gold); }
 .pick.silver { border-top-color: var(--silver); }
 .pick.bronze { border-top-color: var(--bronze); }
-.pick .place { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; color: var(--place-ink); background: var(--silver); font-size: 13px; font-weight: 700; }
+.pick .place { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; color: #ffffff; background: var(--silver); font-size: 13px; font-weight: 700; }
 .pick.gold .place { background: var(--gold); }
 .pick.bronze .place { background: var(--bronze); }
 .pick h3 { margin: 10px 0 4px; font-size: 18px; }
@@ -191,7 +108,7 @@ h2, h3 { line-height: 1.35; }
 .tag.t1 { background: var(--s-bg); color: var(--s-ink); }
 .tag.t2 { background: var(--a-bg); color: var(--a-ink); }
 .tag.t3 { background: var(--c-bg); color: var(--c-ink); }
-.tag.t4 { background: var(--e-bg); color: var(--e-ink); }
+.tag.t4 { background: #ede7fb; color: #5b34b4; }
 .tag.t5 { background: var(--surface); color: var(--muted); }
 
 /* Tables */
@@ -203,7 +120,7 @@ td.num, th.num { text-align: right; white-space: nowrap; }
 td.center, th.center { text-align: center; }
 th.rationale { width: 38%; white-space: normal; }
 td.rationale { color: var(--muted); }
-tbody tr:last-child td { border-bottom: 1px solid var(--line-strong); }
+tbody tr:last-child td { border-bottom: 1px solid #d1d5db; }
 
 /* Scores and risk labels */
 .score { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; font-size: 14px; font-weight: 800; }
@@ -213,13 +130,13 @@ tbody tr:last-child td { border-bottom: 1px solid var(--line-strong); }
 .score.c { background: var(--c-bg); color: var(--c-ink); }
 .score.d { background: var(--d-bg); color: var(--d-ink); }
 .risk { display: inline-block; padding: 2px 10px; border-radius: 6px; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
-.risk.critical { background: var(--critical-bg); color: var(--critical-ink); }
+.risk.critical { background: var(--d-ink); color: #ffffff; }
 .risk.high { background: var(--d-bg); color: var(--d-ink); }
 .risk.medium { background: var(--c-bg); color: var(--c-ink); }
 .risk.low { background: var(--a-bg); color: var(--a-ink); }
 .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 8px 0 0; color: var(--faint); font-size: 12.5px; }
 .legend span { display: inline-flex; gap: 6px; align-items: center; }
-.legend .score { width: 20px; height: 20px; font-size: 12px; border-radius: 5px; }
+.legend .score { width: 20px; height: 20px; font-size: 11px; border-radius: 5px; }
 
 /* Bar charts */
 .bars { margin: 16px 0; padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px; }
@@ -228,7 +145,7 @@ tbody tr:last-child td { border-bottom: 1px solid var(--line-strong); }
 .bar .label { color: var(--muted); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bar .track { display: block; height: 14px; border-radius: 7px; background: var(--surface); overflow: hidden; }
 .bar .fill { display: block; height: 100%; min-width: 4px; border-radius: 7px; background: var(--accent); }
-.bar.muted .fill { min-width: 0; background: var(--bar-muted); }
+.bar.muted .fill { min-width: 0; background: #9ca3af; }
 .bar .value { font-weight: 700; white-space: nowrap; }
 
 /* Sources */
@@ -238,19 +155,14 @@ tbody tr:last-child td { border-bottom: 1px solid var(--line-strong); }
 .report-foot { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--faint); font-size: 12.5px; }
 
 @media (max-width: 720px) {
-  .controls { top: 12px; right: 12px; }
-  .cover { padding: 64px 24px 32px; }
+  .cover { padding: 48px 24px 32px; }
   .cover h1 { font-size: 32px; }
   main { padding: 40px 16px 56px; }
   .picks, .cards { grid-template-columns: 1fr; }
   .sources { columns: 1; }
   .bar { grid-template-columns: 96px 1fr 80px; }
 }
-@media (prefers-reduced-motion: reduce) {
-  * { transition: none !important; animation: none !important; }
-}
 
-/* Print uses the light colors of :root. The page numbers are drawn outside the page's elements, so they take their color directly. */
 @page {
   size: A4;
   margin: 16mm 14mm;
@@ -259,7 +171,6 @@ tbody tr:last-child td { border-bottom: 1px solid var(--line-strong); }
 @page :first { margin: 0; @bottom-center { content: none; } }
 @media print {
   body { font-size: 10.5pt; }
-  .controls { display: none; }
   .cover { min-height: 297mm; padding: 34mm 22mm 20mm; }
   main { max-width: none; padding: 0; }
   .chapter { margin-top: 28px; }
@@ -272,15 +183,6 @@ tbody tr:last-child td { border-bottom: 1px solid var(--line-strong); }
 </style>
 </head>
 <body>
-
-<header class="controls" id="controls" aria-label="Page settings" hidden>
-  <div class="seg" role="group" aria-label="Language" data-t-label="language">
-    <button type="button" data-lang="en" lang="en" aria-pressed="false">English</button><button type="button" data-lang="ja" lang="ja" aria-pressed="false">日本語</button>
-  </div>
-  <div class="seg" role="group" aria-label="Theme" data-t-label="theme">
-    <button type="button" data-theme-choice="light" data-t="light" aria-pressed="false">Light</button><button type="button" data-theme-choice="dark" data-t="dark" aria-pressed="false">Dark</button>
-  </div>
-</header>
 
 <section class="cover">
   <div>
@@ -312,59 +214,5 @@ tbody tr:last-child td { border-bottom: 1px solid var(--line-strong); }
 
 <footer class="report-foot">{{FOOTER}}</footer>
 </main>
-
-<script>
-// The language and light/dark switches. TEXT holds the frame's own words, the only words the language
-// switch changes: the report's text stays in the language it was written in. The language starts from the
-// report's own and the colors from the system, until the reader chooses; this browser remembers the choice.
-const TEXT = {
-  en: { settings: "Page settings", language: "Language", theme: "Theme", light: "Light", dark: "Dark" },
-  ja: { settings: "ページの設定", language: "言語", theme: "画面の色", light: "明るい", dark: "暗い" },
-};
-const controls = document.getElementById("controls");
-const darkSystem = window.matchMedia("(prefers-color-scheme: dark)");
-
-function remember(key, value) {
-  try { localStorage.setItem(key, value); } catch (e) {}
-}
-
-function recalled(key, allowed) {
-  try { const value = localStorage.getItem(key); return allowed.includes(value) ? value : null; } catch (e) { return null; }
-}
-
-function showLanguage(lang) {
-  const words = TEXT[lang];
-  controls.lang = lang;
-  controls.setAttribute("aria-label", words.settings);
-  controls.querySelectorAll("[data-t]").forEach((el) => { el.textContent = words[el.dataset.t]; });
-  controls.querySelectorAll("[data-t-label]").forEach((el) => { el.setAttribute("aria-label", words[el.dataset.tLabel]); });
-  controls.querySelectorAll("[data-lang]").forEach((b) => { b.setAttribute("aria-pressed", String(b.dataset.lang === lang)); });
-}
-
-function showTheme(mode) {
-  controls.querySelectorAll("[data-theme-choice]").forEach((b) => { b.setAttribute("aria-pressed", String(b.dataset.themeChoice === mode)); });
-}
-
-function setTheme(mode) {
-  document.documentElement.dataset.theme = mode;
-  showTheme(mode);
-}
-
-controls.addEventListener("click", (e) => {
-  const lang = e.target.closest("[data-lang]");
-  if (lang) { showLanguage(lang.dataset.lang); remember("compare-report-lang", lang.dataset.lang); return; }
-  const theme = e.target.closest("[data-theme-choice]");
-  if (theme) { setTheme(theme.dataset.themeChoice); remember("compare-report-theme", theme.dataset.themeChoice); }
-});
-
-// Until the reader chooses, the colors follow the system, and the pressed button follows with them.
-if (darkSystem.addEventListener) {
-  darkSystem.addEventListener("change", () => { if (!document.documentElement.dataset.theme) showTheme(darkSystem.matches ? "dark" : "light"); });
-}
-
-showLanguage(recalled("compare-report-lang", ["en", "ja"]) || (document.documentElement.lang.toLowerCase().startsWith("ja") ? "ja" : "en"));
-showTheme(document.documentElement.dataset.theme || (darkSystem.matches ? "dark" : "light"));
-controls.hidden = false;
-</script>
 </body>
 </html>

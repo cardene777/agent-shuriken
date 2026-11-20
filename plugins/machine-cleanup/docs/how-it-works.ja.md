@@ -149,22 +149,6 @@ Ollamaのモデルの大きさは、ほかのモデルが使わないblobだけ�
 `--wait`秒 (既定は540秒) 待っても届かない時は終わり方4で終わり、開いているページはエージェントが待っていないことを示して「選択を写す」を出します。これは同じ行を写します。
 この行はページの言語に依りません。
 
-## ページのひな形
-
-`serve`は、スキルのひな形からページをメモリの上で組み立てます。表のパスは`skills/machine-cleanup/`から見た位置です。
-
-| ファイル | 中身 |
-|---|---|
-| `templates/sheet.html` | ページ。スタイル、英語と日本語の言葉、スクリプトを中に持ちます。`serve`が調べた結果を埋め込みます |
-| `musubi.json` | musubiでの`page-design/structure`、`page-design/look`、`page-design/sheet`、`page-design/verify`への任意の準拠。それぞれにバージョンの範囲`^1.0.0`と、最後に確かめた時のコンテンツのフィンガープリントと、`"optional": true`を持つ |
-
-ページのヘッダーには、English / 日本語の切り替えと、その隣に明るい色と暗い色の切り替えがあります。
-選ぶまでは色がシステムの設定に従い、ブラウザは選んだ言語と色をローカルストレージに`machine-cleanup-lang`と`machine-cleanup-theme`の名前で残します。どこへも送りません。
-
-- `design-formats`のプラグインの`page-design`のスキルが入っていれば、エージェントはその形式`structure`と`look`、ページの型`sheet`を読みます。`musubi.json`はこれらに任意の準拠で従います。`serve`がページをメモリの上で組み立てるので、エージェントは`templates/sheet.html`に`page-design`の`verify`を回し、名指された行をあなたに伝えます。ほかのプラグインからはこれ以外を読みません
-- `musubi`のコマンドが入っていれば、エージェントはこれらを読む前に`musubi check`を回し、失敗したら止まります。`design-formats`が入っていない時、`musubi check`は警告を出してこれらの準拠を飛ばします。従うコンテンツが変わると、フィンガープリントを確かめ直すまで`musubi check`は`machine-cleanup`を拒否します
-- `page-design`が無ければ、ページは`templates/sheet.html`だけから作ります。プラグインのどこも`design-formats`を求めません
-
 ## 項目ごとの空け方
 
 `apply`はその行か、識別子だけを受け取ります。

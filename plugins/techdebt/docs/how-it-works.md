@@ -70,23 +70,6 @@ For the top files, the agent reads each file and its history and writes three th
 `explain --notes` saves them only when every entry names a ranked file and fills all three; otherwise it saves nothing and exits with code 2.
 Notes stay with the same file in later scans while the file is still ranked.
 
-## The report page
-
-`report` writes `report.html` from the template of the skill. Paths in the table are relative to `skills/techdebt/`.
-
-| File | What it holds |
-|---|---|
-| `templates/base.html` | The report page, with its styles and script inside. `report` puts the scan, the notes, and the project name into it |
-| `musubi.json` | The optional follows of `page-design/structure`, `page-design/look`, `page-design/report`, and `page-design/verify` through musubi: for each, the version range `^1.0.0`, the fingerprint of the content at the last check, and `"optional": true` |
-
-The report is titled `Technical debt in <project>`.
-Its header has the language switch and, next to it, a Light and Dark switch.
-The colors follow the system setting until the reader chooses, and the browser keeps both choices in its local storage under `techdebt-lang` and `techdebt-theme`. Nothing is sent anywhere.
-
-- When the page-design skill of the design-formats plugin is installed, the agent reads its `structure` and `look` formats and its `report` page type, which `musubi.json` follows as optional follows, and runs page-design's `verify` on the finished `report.html`. It reads nothing else from other plugins
-- When the `musubi` command is installed, the agent runs `musubi check` before reading them and stops if it fails; the check skips the follows with a warning when design-formats is not installed. When a followed content changes, `musubi check` refuses techdebt until its fingerprint is checked again
-- Without page-design, the report is built from `templates/base.html` alone. Nothing in the plugin requires design-formats
-
 ## What it keeps
 
 The plugin keeps three files per scanned folder in `~/.local/share/techdebt/<folder name>-<hash>/`, or under `TECHDEBT_HOME` when it is set.

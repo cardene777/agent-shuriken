@@ -1,13 +1,12 @@
 /* Step ladder figures, inserted by ladder.py.
-   Colors use the body's CSS variables, so the ladder follows the light and dark tokens of doc.css,
-   with defaults for when they are missing.
+   Colors use the body's CSS variables, with defaults for when they are missing.
    Keep markup-like text out of this comment: build.py copies the file into the page style,
    and the checks scan the page text for figure markup. */
 .ladder {
-  --lad-emphasis: var(--edge-emphasis, #047857);
+  --lad-emphasis: var(--edge-emphasis, #10b981);
   --lad-plain: var(--edge, #64748b);
   --lad-strong: var(--ink, #1a1d24);
-  --lad-back: var(--edge-dashed, #8b5cf6);
+  --lad-back: var(--edge-dashed, #a78bfa);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -45,4 +44,4 @@
 .ladfig .lad-place { font-size: 12px; fill: var(--ink-sub, #545a66); text-anchor: end; }
 .ladfig .lad-who { font-size: 12px; font-weight: 700; text-anchor: end; }
 .ladfig .lad-band { font-size: 13px; font-weight: 700; letter-spacing: 0.14em; }
-.ladfig .lad-blabel { font-size: 12px; fill: var(--ink-sub, #545a66); text-anchor: end; }
+.ladfig .lad-blabel { font-size: 11.5px; fill: var(--ink-sub, #545a66); text-anchor: end; }
