@@ -32,7 +32,10 @@ body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.6 var(--
 header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
   padding: 16px 24px; border-bottom: 1px solid var(--line); background: var(--card); }
 header h1 { margin: 0; font-size: 20px; }
-header .meta { color: var(--muted); font-size: 13px; }
+.facts { margin: 4px 0 0; display: flex; flex-wrap: wrap; gap: 2px 24px; font-size: 13px; }
+.facts div { display: flex; gap: 6px; align-items: baseline; }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
 .controls { display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; }
 .seg { display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
 .seg button { border: 0; background: transparent; color: var(--fg); padding: 6px 14px; font: inherit; cursor: pointer; white-space: nowrap; }
@@ -83,9 +86,9 @@ td code, .mono { font-family: var(--mono); font-size: 13px; word-break: break-al
 .legend { display: flex; gap: 16px; font-size: 13px; color: var(--muted); margin: 4px 4px 0; }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
 .tool { margin-bottom: 20px; }
-.tool h3 { margin: 0 0 6px; font-size: 16px; }
-.status { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 4px; font-size: 14px; }
-.status b { font-family: var(--mono); font-weight: 600; }
+.tool h3 { margin: 0 0 2px; font-size: 16px; }
+.tool .state { margin: 0 0 8px; color: var(--muted); font-size: 14px; }
+.status { margin: 0 0 14px; }
 .empty { background: var(--card); border: 1px dashed var(--line); border-radius: var(--radius); padding: 16px; color: var(--muted); }
 @media (max-width: 640px) {
   header { padding: 12px 16px; }
@@ -98,7 +101,7 @@ td code, .mono { font-family: var(--mono); font-size: 13px; word-break: break-al
 <header>
   <div>
     <h1 id="title"></h1>
-    <div class="meta" id="meta"></div>
+    <dl class="facts" id="facts"></dl>
   </div>
   <div class="controls">
     <div class="seg" id="lang-group" role="group" aria-label="Language">
@@ -122,8 +125,8 @@ const I18N = {
   en: {
     title: "Technical debt in {p}",
     langGroup: "Language", themeGroup: "Theme", light: "Light", dark: "Dark",
-    meta: "{head} on {branch}, {files} source files, {commits} commits in the last {months} months, generated {at}",
-    metaNoGit: "Not a git repository, {files} source files, generated {at}",
+    factCommit: "Commit", factBranch: "Branch", factFiles: "Source files", factCommits: "Commits in the last {months} months",
+    factGenerated: "Generated", factGit: "Git history", notGit: "Not a git repository",
     start: "Start here", hotspots: "Hotspots", markers: "Markers", untested: "Untested", functions: "Long functions",
     large: "Large files", dup: "Duplication", deps: "Unused dependencies", deprecated: "Deprecated calls", tools: "Tools",
     cStart: "files ranked", cHot: "hotspots", cMarkers: "markers", cUntested: "untested files",
@@ -140,7 +143,7 @@ const I18N = {
     noPackage: "There is no package.json, so dependencies were not checked.",
     manifest: "package.json", depName: "Dependency", depKind: "Listed under",
     leadDeprecated: "Calls to APIs that a library or the language marks as deprecated, found by tools already installed in the project. ruff uses its rules for deprecated imports, aliases, and functions. semgrep runs only the project's own rules, with metrics off, and its findings about deprecation are listed here. ESLint runs when its config turns on a deprecation rule. A tool that did not run is listed with the reason.",
-    noCallTool: "No tool looked for deprecated calls, for the reasons above.", toolName: "Tool",
+    noCallTool: "No tool looked for deprecated calls, for the reasons above.", toolName: "Tool", result: "Result",
     leadTools: "Tools that were already installed in the project or on PATH. Nothing is downloaded.",
     what: "What", why: "Why it costs", action: "First step",
     rChanges: "changed {v} times", rChangesOne: "changed once", rLines: "{v} lines", rLong: "{v} long functions", rLongOne: "1 long function", rMarkers: "marker weight {v}",
@@ -149,15 +152,15 @@ const I18N = {
     fn: "Function", range: "Lines in file", length: "Length", complexity: "Branches", measure: "Measured",
     exact: "exact", approx: "approximate", first: "First place", second: "Second place", rule: "Rule", message: "Finding",
     notCommitted: "not committed", days: "{n} days", months: "{n} months", years: "{n} years {m} months",
-    nothing: "Nothing found.", notRun: "Not run: {r}", ran: "{n} findings",
+    nothing: "Nothing found.", notRun: "Not run because {r}", ran: "{n} findings",
     prev: "Previous", next: "Next", page: "Page {n}",
     chartChanges: "changes", chartLines: "non-blank lines"
   },
   ja: {
     title: "{p}の技術的負債",
     langGroup: "言語", themeGroup: "配色", light: "明るい", dark: "暗い",
-    meta: "{branch}の{head}、ソースファイル{files}個、直近{months}か月のコミット{commits}件、{at}に作成",
-    metaNoGit: "gitのリポジトリではありません、ソースファイル{files}個、{at}に作成",
+    factCommit: "コミット", factBranch: "ブランチ", factFiles: "ソースファイル", factCommits: "直近{months}か月のコミット",
+    factGenerated: "作成日時", factGit: "gitの履歴", notGit: "gitのリポジトリではありません",
     start: "最初に直す物", hotspots: "変更の集中", markers: "目印", untested: "テストの無いファイル", functions: "長い関数",
     large: "大きいファイル", dup: "重複", deps: "使っていない依存", deprecated: "非推奨の呼び出し", tools: "道具",
     cStart: "順位付け", cHot: "変更の集中", cMarkers: "目印", cUntested: "テスト無し",
@@ -174,7 +177,7 @@ const I18N = {
     noPackage: "package.jsonが無いので、依存は調べていません。",
     manifest: "package.json", depName: "依存", depKind: "書かれた欄",
     leadDeprecated: "ライブラリや言語が非推奨とするAPIを呼んでいる所です。プロジェクトにすでに入っている道具で探しています。ruffは非推奨のimport、別名、関数の規則を使います。semgrepはプロジェクトの規則だけを送信を切って回し、非推奨に関わる結果をここに出します。ESLintは設定が非推奨の規則を有効にしている時だけ回します。動かなかった道具は理由と一緒に挙げています。",
-    noCallTool: "上の理由で、非推奨の呼び出しを探せた道具がありません。", toolName: "道具",
+    noCallTool: "上の理由で、非推奨の呼び出しを探せた道具がありません。", toolName: "道具", result: "結果",
     leadTools: "プロジェクトかPATHにすでに入っていた道具の結果です。何も取り寄せていません。",
     what: "何か", why: "負担になる理由", action: "最初の一手",
     rChanges: "変更{v}回", rChangesOne: "変更1回", rLines: "{v}行", rLong: "長い関数{v}個", rLongOne: "長い関数1個", rMarkers: "目印の重み{v}",
@@ -376,8 +379,10 @@ const PANELS = {
   deprecated() {
     const c = D.deprecated_calls;
     const box = el("div", null, el("p", {class: "lead"}, t("leadDeprecated")),
-      el("ul", {class: "status"}, c.tools.map(s => el("li", null, el("b", null, s.tool), " — ",
-        s.ran ? t("ran", {n: c.items.filter(i => i.tool === s.tool).length}) : t("notRun", {r: s.reason})))));
+      el("div", {class: "tablewrap status"}, el("table", null,
+        el("thead", null, el("tr", null, el("th", null, t("toolName")), el("th", null, t("result")))),
+        el("tbody", null, c.tools.map(s => el("tr", null, tdc(s.tool),
+          td(s.ran ? t("ran", {n: c.items.filter(i => i.tool === s.tool).length}) : t("notRun", {r: s.reason}))))))));
     if (!c.tools.some(s => s.ran)) return box.appendChild(el("div", {class: "empty"}, t("noCallTool"))) && box;
     box.append(paged("deprecated", c.items, [["file"], ["toolName"], ["rule"], ["message"]],
       i => el("tr", null, tdc(i.file + (i.line ? ":" + i.line : "")), td(i.tool), tdc(i.rule), td(i.message))));
@@ -387,7 +392,8 @@ const PANELS = {
     const box = el("div", null, el("p", {class: "lead"}, t("leadTools")));
     if (!D.tools.length) return box.appendChild(el("div", {class: "empty"}, t("nothing"))) && box;
     for (const tool of D.tools) {
-      const sec = el("section", {class: "tool"}, el("h3", null, tool.tool + " — " + (tool.ran ? t("ran", {n: tool.findings.length}) : t("notRun", {r: tool.reason}))));
+      const sec = el("section", {class: "tool"}, el("h3", null, tool.tool),
+        el("p", {class: "state"}, tool.ran ? t("ran", {n: tool.findings.length}) : t("notRun", {r: tool.reason})));
       if (tool.ran) sec.append(paged("tool-" + tool.tool, tool.findings, [["file"], ["rule"], ["message"]],
         f => el("tr", null, tdc(f.file + (f.line ? ":" + f.line : "")), tdc(f.rule), td(f.message))));
       box.append(sec);
@@ -400,9 +406,13 @@ function render() {
   document.documentElement.lang = lang;
   document.title = t("title", {p: D.project});
   document.getElementById("title").textContent = t("title", {p: D.project});
-  document.getElementById("meta").textContent = D.git
-    ? t("meta", {head: D.head, branch: D.branch, files: D.files, commits: D.commits, months: D.months, at: D.generated_at.slice(0, 16).replace("T", " ")})
-    : t("metaNoGit", {files: D.files, at: D.generated_at.slice(0, 16).replace("T", " ")});
+  // One name and value per fact, as the report page of page-design shows them, never one sentence.
+  const at = D.generated_at.slice(0, 16).replace("T", " ");
+  const facts = D.git
+    ? [["factCommit", D.head], ["factBranch", D.branch], ["factFiles", D.files], ["factCommits", D.commits], ["factGenerated", at]]
+    : [["factGit", t("notGit")], ["factFiles", D.files], ["factGenerated", at]];
+  document.getElementById("facts").replaceChildren(...facts.map(([k, v]) =>
+    el("div", null, el("dt", null, t(k, {months: D.months})), el("dd", null, v))));
   for (const b of document.querySelectorAll("[data-lang]")) b.setAttribute("aria-pressed", String(b.dataset.lang === lang));
   for (const b of document.querySelectorAll("[data-theme-choice]")) b.textContent = t(b.dataset.themeChoice);
   document.getElementById("lang-group").setAttribute("aria-label", t("langGroup"));
