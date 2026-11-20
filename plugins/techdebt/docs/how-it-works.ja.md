@@ -80,6 +80,7 @@ Ruby、Lua、シェル、Elixir、Clojure、Haskellでは関数の長さを測�
 | `musubi.json` | musubiでの`page-design/structure`、`page-design/look`、`page-design/report`、`page-design/verify`への任意の準拠。それぞれにバージョンの範囲`^1.0.0`と、最後に確かめた時のコンテンツのフィンガープリントと、`"optional": true`を持つ |
 
 報告の題は`<project>の技術的負債`です。
+題の下には、調べた時の事実を名前と値の組で1行に並べます。並べるのは、コミット、ブランチ、ソースファイルの数、調べた期間のコミットの数、報告を作った日時です。gitの外では、最初の組がgitの履歴が無いことを示します。
 見出しの帯には、言語の切り替えと、その隣に明るい色と暗い色の切り替えがあります。
 選ぶまでは色がシステムの設定に従い、ブラウザは選んだ言語と色をローカルストレージに`techdebt-lang`と`techdebt-theme`の名前で残します。どこへも送りません。
 

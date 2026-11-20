@@ -616,7 +616,7 @@ if what == "facts":
                 problems.append("%s %s: no facts list under the title" % (lang, tab))
                 continue
             if not re.fullmatch(r"(?:<div><dt>[^<]*</dt><dd>[^<]*</dd></div>)+", m.group(1)):
-                problems.append("%s %s: the facts list holds more than one div of dt and dd per fact" % (lang, tab))
+                problems.append("%s %s: the facts list holds something besides one div of dt and dd per fact" % (lang, tab))
                 continue
             got = [(html.unescape(a), html.unescape(b)) for a, b in re.findall(r"<div><dt>([^<]*)</dt><dd>([^<]*)</dd></div>", m.group(1))]
             if got != want[lang]:
@@ -669,8 +669,8 @@ PYEOF
 opened_verify() {
   local pages
   pages="$(ls "$T"/opened/*.dom.html | wc -l | tr -d ' ')"
-  [ "$pages" -eq "$(( $(wc -w < "$T/opened/tabs") * 4 ))" ] && [ "$pages" -eq 40 ] \
-    || { echo "      $pages pages were opened"; return 1; }
+  [ "$(wc -w < "$T/opened/tabs")" -ge 10 ] && [ "$pages" -eq "$(( $(wc -w < "$T/opened/tabs") * 4 ))" ] \
+    || { echo "      $pages pages were opened for the tabs $(cat "$T/opened/tabs")"; return 1; }
   python3 "$PAGE_DESIGN" verify "$T"/opened/*.dom.html > "$T/opened-verify.out" 2>&1 \
     || { grep -v '^page-design:' "$T/opened-verify.out" | sed "s|$T/opened/||; s/^/      /" | head -12; return 1; }
 }

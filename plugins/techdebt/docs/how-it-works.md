@@ -80,6 +80,7 @@ Notes stay with the same file in later scans while the file is still ranked.
 | `musubi.json` | The optional follows of `page-design/structure`, `page-design/look`, `page-design/report`, and `page-design/verify` through musubi: for each, the version range `^1.0.0`, the fingerprint of the content at the last check, and `"optional": true` |
 
 The report is titled `Technical debt in <project>`.
+Under the title, the facts about the scan sit on one line as pairs of a name and a value: the commit, the branch, the number of source files, the commits in the window, and when the report was generated. Outside git, the first pair says that there is no git history.
 Its header has the language switch and, next to it, a Light and Dark switch.
 The colors follow the system setting until the reader chooses, and the browser keeps both choices in its local storage under `techdebt-lang` and `techdebt-theme`. Nothing is sent anywhere.
 
