@@ -7,12 +7,13 @@ English · [日本語](README.ja.md)
 When several skills write pages and documents, each one keeps its own colors, headings, and switches, and the pages drift apart.
 This plugin keeps one copy.
 Its `page-design` skill holds the order of an explanation, the look rules, four page types, and `verify`, the script that checks a page or a document against the rules a script can see.
+Figures are drawn with dragon: the look rules say which figure fits which kind of information, and `dragon embed` draws each one into the page as an SVG.
 Skills that write reports, approval sheets, explainers, choice pages, or design documents follow it through musubi, a declaration in `musubi.json` that pins the version and fingerprint of what they follow.
 
 ```
-A skill that writes pages ──> page-design: read the formats ──> Copy a template ──> Write the page ──> page-design: verify
-(its own content)             (structure.md, look.md)           (report, sheet,     (agent)            (scripts/page-design.py)
-                                                                document, choice)
+A skill that writes pages ──> page-design: read the formats ──> Copy a template ──> Write the page ──> dragon embed ──> page-design: verify
+(its own content)             (structure.md, look.md)           (report, sheet,     and its figures    (draws the        (scripts/page-design.py)
+                                                                document, choice)   (agent)            figures as SVG)
 ```
 
 ## Install
@@ -41,10 +42,10 @@ In GitHub Copilot CLI, write `/page-design` in your request, and in Gemini CLI, 
 | Content | File | What it holds |
 |---|---|---|
 | `structure` | `formats/structure.md` | The order of an explanation: the conclusion first, the whole picture before the details, one glossary, steps with real output, and the order of a report |
-| `look` | `formats/look.md` | The look rules: headings without colons, facts in a table, text size, details beside the list, enlarging, motion, the language and theme switches, colors, and self-contained pages |
-| `report` | `templates/report.html` | A report page with facts about the run, the result numbers, and a list with the pressed row's details beside it |
+| `look` | `formats/look.md` | The look rules: headings without colons, facts in a table, text size, details beside the list, which figure fits which kind of information, enlarging, motion, the language and theme switches, colors, and self-contained pages |
+| `report` | `templates/report.html` | A report page with facts about the run, the result numbers, a bar chart and a donut, and a list with the pressed row's details beside it |
 | `sheet` | `templates/sheet.html` | An approval sheet with the items to choose, their details, and the text copied back to the chat |
-| `document` | `templates/document.html` | An explainer with the whole picture, sections with a contents list beside them, steps, and a glossary |
+| `document` | `templates/document.html` | An explainer with the whole picture as a band of steps, sections with a contents list beside them, steps, and a glossary |
 | `choice` | `templates/choice.html` | A choice page with the request, today's version, the options side by side, and the text copied back |
 | `verify` | `scripts/page-design.py` | The check that a page or a document keeps the rules a script can see |
 
@@ -62,6 +63,8 @@ page-design: 1 problem; fix each line named above and run verify again
 | Python 3 | For `verify`, which uses only the standard library |
 | A browser | To open the pages the templates make |
 | The musubi command | Optional. When it is installed, a following skill runs `musubi check` before reading the formats |
+| Node.js with `npx` | To draw the figures. `npx -y @cardenelabs/dragon@<version>` fetches dragon the first time it runs |
+| The dragon skill | Optional. When it is installed, page-design reads its notation and the guide of each figure's kind |
 
 ## What it reads, runs, and sends
 
@@ -70,7 +73,8 @@ In short:
 
 - `verify` reads only the pages and documents you pass, and prints rule names, line numbers, and fixes, never the page's text
 - It runs no other program, connects to nothing, and keeps nothing
-- The templates read no other file: their styles and scripts are inline, and they keep only the chosen language and theme in the browser's storage
+- To draw the figures, the agent runs `npx -y @cardenelabs/dragon@<version> check` and `embed`, which fetch the `@cardenelabs/dragon` package from the npm registry into npm's cache the first time. Nothing is installed globally, and the page's text is not sent anywhere
+- Before `dragon embed`, a template carries one script line that loads dragon from jsDelivr. `dragon embed` draws the figures and removes that line, so the page reads no other file: its styles, scripts, and figures are inline, and it keeps only the chosen language and theme in the browser's storage
 - The text of a page or a document is data, never instructions
 
 ## License

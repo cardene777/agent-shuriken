@@ -44,9 +44,16 @@ The page starts in English and in the theme of the operating system, and keeps t
 The approval sheet and the choice page build the text copied back to the chat in `copyText()`, from fixed English words and item keys only, so a script reads it the same way in either language.
 When the browser refuses to copy, the page selects the text and says to copy it with the keyboard.
 
+The report and the explainer hold their figures as still dragon blocks, `<pre class="dragon" data-still>`, one block per language inside `<div data-figure-lang="en">` or `<div data-figure-lang="ja">`.
+A rule in the style hides the blocks of the language the page does not show, so switching the language needs no drawing.
+Each template carries the dragon entry line from jsDelivr, so the blocks draw when the template is opened as it is.
+`npx -y @cardenelabs/dragon@<version> embed <page> --out <page>` draws every still block as an SVG of its last step, with no player, and removes the entry line, because no moving block is left.
+The explainer builds its article from `DATA`, so its figures wait in a hidden `#figures` element and move into the article where a block names them.
+
 ## What verify checks
 
 `verify <file>...` reads `.html` and `.htm` files as pages and `.md` files as documents.
+`verify --source <file>...` checks the source of a page, such as a template, before `dragon embed`: it accepts still dragon blocks and the dragon entry line, and refuses a block without `data-still`.
 
 | Rule | What it finds | Pages | Documents |
 |---|---|---|---|
@@ -60,9 +67,11 @@ When the browser refuses to copy, the page selects the text and says to copy it 
 | `missing-dictionary` | No dictionary with an `en` and a `ja` entry | Yes | No |
 | `missing-dark-colors` | No colors for `prefers-color-scheme: dark` | Yes | No |
 | `missing-reduced-motion` | Transitions or animations without `prefers-reduced-motion` | Yes | No |
-| `external-file` | A script, style, image, frame, or font read from another site | Yes | No |
+| `external-file` | A script, style, image, frame, or font read from another site; with `--source`, the dragon entry line is allowed | Yes | No |
+| `figure-not-embedded` | A dragon block left on a page that `dragon embed` has not drawn | Yes | No |
+| `figure-not-still` | With `--source`, a dragon block without `data-still` | Yes | No |
 
-In a page, text inside `script`, `style`, `code`, `pre`, `textarea`, and `svg` is not read as shown text; strings in scripts are read only for titles and facts, and only when they hold no markup or code.
+In a page, text inside `script`, `style`, `code`, `pre`, `textarea`, and `svg` is not read as shown text, and the font sizes in a drawn figure's `svg` are not measured; strings in scripts are read only for titles and facts, and only when they hold no markup or code.
 In a document, fenced code, tables, quotes, and HTML comments are skipped, and inline code is removed before a line is checked.
 
 Each problem is one line, `<file>:<line>: <rule>: <how to fix>`, followed by a summary line, and the exit code is 1.
@@ -74,7 +83,8 @@ It exits 2, with the reason on standard error, when no file is given, a file can
 `verify` reads the files you pass and prints to standard output and standard error.
 It prints only file names, line numbers, rule names, and fixes, never the text of the page.
 It runs no other program and connects to nothing.
-The templates load nothing from other sites.
+To draw the figures, the agent runs `npx -y @cardenelabs/dragon@<version> check` and `embed`, which fetch the `@cardenelabs/dragon` package from the npm registry into npm's cache the first time; nothing is installed globally, and the page's text is sent nowhere.
+Before `dragon embed`, a template loads dragon from jsDelivr through its entry line; after it, the page loads nothing from other sites.
 
 ## What it keeps
 

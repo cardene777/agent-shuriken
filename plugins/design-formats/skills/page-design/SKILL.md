@@ -25,14 +25,31 @@ The files are next to this `SKILL.md`.
 1. Read `formats/structure.md` and `formats/look.md`.
 2. For an HTML page, copy the template of its type to where the following skill says, keep the frame, and replace `DATA` and the words in `TEXT`. Keep `copyText()` free of `TEXT`, so the text copied back never depends on the page's language.
 3. For a Markdown document, write it in the order of `structure.md`, with facts in a table and headings without colons.
-4. Run `verify` and fix every line it names, then run it again until it prints `ok`.
+4. Draw the figures as the next section says.
+5. Run `verify` and fix every line it names, then run it again until it prints `ok`.
 
 When the user asks for a page and no skill sent you here, pick the page type that fits, follow the same steps, and tell the user where the page is.
+
+## Draw the figures
+
+Figures are drawn with dragon, and `formats/look.md` says which figure fits which kind of information.
+
+1. When the `dragon` skill is installed, write each figure in the `notation` format of the `dragon` skill: open the `dragon` skill by name and read the files it names for `notation`, for `embed`, and for the kind of the figure, `chart`, `cycle`, `flow`, `architecture`, or `sequence`.
+   If the `musubi` command is available, run `musubi check` before reading, and stop if it fails.
+   If the `dragon` skill is not installed, go on without the `notation` of `dragon`, and write the blocks in the same form as the ones in the templates.
+2. Put each figure in the page as a still block, `<pre class="dragon" data-still>`, one block per language as `formats/look.md` says, and keep the dragon entry line in `<head>`.
+3. Write each block's notation to a temporary `.dragon` file, run `npx -y @cardenelabs/dragon@<version> check <file>` and the same command with `--layout`, fix what they name, and remove the file.
+4. Run `verify --source <page>`, then `npx -y @cardenelabs/dragon@<version> embed <page> --out <page>`. `dragon embed` draws every still block as an SVG and removes the entry line, so the page reads no other file.
+
+`<version>` is the `<major>.<minor>` in the template's entry line.
+`npx` fetches the `@cardenelabs/dragon` package from the npm registry into npm's cache the first time it runs, and installs nothing globally.
+Without Node.js, leave the blocks in the page and tell the user that the page still needs `dragon embed`.
 
 ## Check a page or a document
 
 Run `verify` as a shell command, `python3 <folder of this SKILL.md>/scripts/page-design.py verify <file>...`.
 It reads `.html` and `.htm` files as pages and `.md` files as documents.
+A page that still holds a dragon block fails; `verify --source <file>` checks a template or a page before `dragon embed`, and accepts still blocks and the dragon entry line.
 It prints each problem as `<file>:<line>: <rule>: <how to fix>`, never the text of the page, and exits 0 when every file keeps the rules, 1 when it names problems, and 2 when it was called wrongly.
 The rules it checks are listed at the end of `formats/look.md`; the other rules are checked by eye.
 

@@ -8,7 +8,10 @@
   page-design document: the whole picture first, sections in reading order with a contents list
   beside them, steps with real output, and one glossary that every use links to. A following skill
   replaces DATA and the words in TEXT, and keeps the frame.
+  The figures are still dragon blocks kept in #figures and moved into the article; a following skill
+  replaces their notation and runs dragon embed before handing the page over.
 -->
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.80/dist/cdn/dragon.js"></script>
 <style>
 :root {
   --bg: #ffffff; --side: #f6f7f9; --surface: #ffffff; --ink: #1b2129; --sub: #4d5664; --line: #dfe3e8;
@@ -58,6 +61,8 @@ article h2 { margin: 18px 0 0; font-size: 23px; line-height: 1.4; padding-bottom
 article p { margin: 0; }
 figure { margin: 0; padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); cursor: zoom-in; }
 figure svg { display: block; width: 100%; height: auto; }
+figure pre { margin: 0; white-space: pre-wrap; font: 13px/1.5 var(--mono); color: var(--sub); background: transparent; }
+html[lang="en"] [data-figure-lang="ja"], html[lang="ja"] [data-figure-lang="en"] { display: none; }
 figcaption { margin-top: 8px; font-size: 14px; color: var(--sub); }
 ol.steps { margin: 0; padding-left: 1.4em; display: grid; gap: 12px; }
 ol.steps li > span { display: block; }
@@ -106,6 +111,60 @@ dialog::backdrop { background: rgba(10, 14, 20, .55); }
   <aside class="side"><nav class="toc" id="toc" aria-label="Contents"></nav></aside>
   <article id="doc"></article>
 </div>
+<!-- The figures, moved into the article where a block names them. -->
+<div id="figures" hidden>
+  <figure data-figure="steps" tabindex="0" role="button">
+    <div data-figure-lang="en"><pre class="dragon" data-still>
+cycle From the beans to the cup [shape: band]
+
+box weigh as Weigh the beans
+box grind as Grind them
+box bloom as Let them bloom
+box pour as Pour in three turns
+box cup as A cup of coffee
+
+step Weigh
+  say Weigh the beans.
+step Grind
+  say Grind the beans.
+  weigh -&gt; grind [carry: none]
+step Bloom
+  say Let the grounds bloom.
+  grind -&gt; bloom [carry: none]
+step Pour
+  say Pour the rest of the water.
+  bloom -&gt; pour [carry: none]
+step Serve
+  say The coffee is ready.
+  pour -&gt; cup [carry: none]
+</pre></div>
+    <div data-figure-lang="ja"><pre class="dragon" data-still>
+cycle 豆からカップまで [shape: band]
+
+box weigh as 豆を量る
+box grind as 挽く
+box bloom as 蒸らす
+box pour as 3回に分けて注ぐ
+box cup as 1杯のコーヒー
+
+step 量る
+  say 豆を量る。
+step 挽く
+  say 豆を挽く。
+  weigh -&gt; grind [carry: none]
+step 蒸らす
+  say 粉を蒸らす。
+  grind -&gt; bloom [carry: none]
+step 注ぐ
+  say 残りのお湯を注ぐ。
+  bloom -&gt; pour [carry: none]
+step できあがり
+  say コーヒーができる。
+  pour -&gt; cup [carry: none]
+</pre></div>
+    <figcaption></figcaption>
+  </figure>
+</div>
 
 <dialog id="help">
   <div class="dialog-head"><h2 data-t="helpTitle"></h2><button type="button" class="icon" data-close aria-label="Close">&#x2715;</button></div>
@@ -139,7 +198,7 @@ const DATA = {
   facts: [["updated", "2026-11-20"], ["brewTime", { en: "4 minutes", ja: "4分" }], ["makes", { en: "1 cup, 250 ml", ja: "1杯、250ml" }]],
   sections: [
     { id: "whole", title: { en: "The whole flow", ja: "全体の流れ" }, blocks: [
-      { figure: "flow", caption: { en: "From the beans to the cup. Press the figure to enlarge it.", ja: "豆からカップまでの流れ。図を押すと大きく開きます。" } },
+      { figure: "steps", caption: { en: "From the beans to the cup. Press the figure to enlarge it.", ja: "豆からカップまでの流れ。図を押すと大きく開きます。" } },
       { p: { en: "Grind the beans to a [[grind|medium grind]], wet them first to let them [[bloom|bloom]], then pour hot water in turns until the cup is full. The [[ratio|ratio]] of beans to water sets the strength.", ja: "豆を[[grind|中挽き]]にし、先に少しのお湯で[[bloom|蒸らして]]から、カップが満ちるまで何回かに分けて注ぎます。豆とお湯の[[ratio|比率]]で濃さが決まります。" } },
     ] },
     { id: "beans", title: { en: "Choosing the beans", ja: "豆を選ぶ" }, blocks: [
@@ -162,19 +221,6 @@ const DATA = {
   ],
 };
 
-const FIGURES = {
-  flow: (labels) => {
-    const boxes = labels.map((label, i) => {
-      const x = 20 + i * 250;
-      return `<rect x="${x}" y="30" width="200" height="104" rx="12" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2.5"/>
-        <text x="${x + 100}" y="91" text-anchor="middle" font-size="26" font-weight="600" fill="var(--ink)">${label}</text>` +
-        (i < labels.length - 1 ? `<path d="M${x + 204} 82 H${x + 244}" stroke="var(--sub)" stroke-width="2" marker-end="url(#arrow)" fill="none"/>` : "");
-    }).join("");
-    return `<svg viewBox="0 0 990 164" role="img" aria-label="${labels.join(", ")}"><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="var(--sub)"/></marker></defs>${boxes}</svg>`;
-  },
-};
-const FLOW = { en: ["Beans", "Grind", "Pour", "Cup"], ja: ["豆", "挽く", "注ぐ", "カップ"] };
-
 const state = { lang: "en" };
 const $ = (id) => document.getElementById(id);
 const t = (key) => TEXT[state.lang][key] ?? key;
@@ -184,13 +230,15 @@ const linked = (s) => esc(s).replace(/\[\[([\w-]+)\|([^\]]+)\]\]/g, (_, id, word
 
 function block(b) {
   if (b.p) return `<p>${linked(pick(b.p))}</p>`;
-  if (b.figure) return `<figure data-figure="${b.figure}">${FIGURES[b.figure](FLOW[state.lang])}<figcaption>${esc(pick(b.caption))}</figcaption></figure>`;
+  if (b.figure) return `<div data-figure-slot="${b.figure}" data-caption="${esc(pick(b.caption))}"></div>`;
   if (b.steps) return `<ol class="steps">${b.steps.map((s) => `<li><span>${linked(pick(s.text))}</span>${s.output ? `<pre>${esc(pick(s.output))}</pre>` : ""}</li>`).join("")}</ol>`;
   if (b.glossary) return `<dl class="glossary">${b.glossary.map((g) => `<dt id="g-${g.id}">${esc(pick(g.term))}</dt><dd>${esc(pick(g.meaning))}</dd>`).join("")}</dl>`;
   return "";
 }
 
 function render() {
+  // Put the figures back before the article is written again, so the drawn figures are kept.
+  document.querySelectorAll("#doc figure[data-figure]").forEach((f) => $("figures").appendChild(f));
   document.documentElement.lang = state.lang;
   const title = pick(DATA.title);
   document.title = title;
@@ -201,6 +249,12 @@ function render() {
   $("doc").innerHTML = `<p class="lead">${esc(pick(DATA.lead))}</p>
     <dl class="facts">${DATA.facts.map(([k, v]) => `<div><dt>${esc(t(k))}</dt><dd>${esc(pick(v))}</dd></div>`).join("")}</dl>` +
     DATA.sections.map((s) => `<h2 id="${s.id}">${esc(pick(s.title))}</h2>${s.blocks.map(block).join("")}`).join("");
+  document.querySelectorAll("[data-figure-slot]").forEach((slot) => {
+    const figure = $("figures").querySelector(`[data-figure="${slot.dataset.figureSlot}"]`);
+    if (!figure) return;
+    figure.querySelector("figcaption").textContent = slot.dataset.caption;
+    slot.replaceWith(figure);
+  });
   watch();
 }
 
@@ -216,6 +270,19 @@ function watch() {
   document.querySelectorAll("article h2").forEach((h) => observer.observe(h));
 }
 
+// A figure opens larger in the dialog, in the language the page shows.
+function openFigure(figure) {
+  const shownFigure = figure.querySelector(`[data-figure-lang="${state.lang}"]`);
+  $("zoom-title").textContent = figure.querySelector("figcaption").textContent;
+  $("zoom-body").innerHTML = shownFigure ? shownFigure.innerHTML : "";
+  $("zoom").showModal();
+}
+
+document.addEventListener("keydown", (e) => {
+  const figure = e.target.closest && e.target.closest("[data-figure]");
+  if (figure && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openFigure(figure); }
+});
+
 function setTheme(mode) {
   document.documentElement.dataset.theme = mode;
   document.querySelectorAll("[data-theme-choice]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.themeChoice === mode)));
@@ -229,12 +296,7 @@ document.addEventListener("click", (e) => {
   if (theme) { setTheme(theme.dataset.themeChoice); return; }
   if (e.target.closest("#help-open")) { $("help").showModal(); return; }
   const figure = e.target.closest("[data-figure]");
-  if (figure) {
-    $("zoom-title").textContent = figure.querySelector("figcaption").textContent;
-    $("zoom-body").innerHTML = FIGURES[figure.dataset.figure](FLOW[state.lang]);
-    $("zoom").showModal();
-    return;
-  }
+  if (figure) { openFigure(figure); return; }
   if (e.target.closest("[data-close]")) e.target.closest("dialog").close();
 });
 

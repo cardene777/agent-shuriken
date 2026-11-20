@@ -29,5 +29,42 @@
       "version": "1.0.0",
       "file": "scripts/page-design.py"
     }
+  },
+  "follows": {
+    "dragon/notation": {
+      "version": "^1.0.0",
+      "integrity": "sha256-ue5sRPU0pu0D4+lCBpkW37rUyQa425dDbMklYdwjsGc=",
+      "optional": true
+    },
+    "dragon/embed": {
+      "version": "^1.0.0",
+      "integrity": "sha256-0qw9ThhTZkANi/HG8QH8RNpho/yS00Y2eEQFbWxN6Xs=",
+      "optional": true
+    },
+    "dragon/chart": {
+      "version": "^1.0.0",
+      "integrity": "sha256-UBOOV+5HjP9BO+exDHwLPE55OjGEYoEahOuvnQqN0rI=",
+      "optional": true
+    },
+    "dragon/flow": {
+      "version": "^1.0.0",
+      "integrity": "sha256-N5pAa5JFTQdONN8wGBwn857wBRydXvaIAfiTc10lOso=",
+      "optional": true
+    },
+    "dragon/architecture": {
+      "version": "^1.0.0",
+      "integrity": "sha256-XA1FO7I+Yjn+NGpfWUknNVLSSHHPlclOvfvXrqpv8s8=",
+      "optional": true
+    },
+    "dragon/sequence": {
+      "version": "^1.0.0",
+      "integrity": "sha256-8vK1XSsyc/RfIYhhbeHqndexzLXvb/kaxYVLgE+zXMs=",
+      "optional": true
+    },
+    "dragon/cycle": {
+      "version": "^1.0.0",
+      "integrity": "sha256-XZL/DtRC5LGPnCuei6fYUX7G17kuyPfn9pUwOosKT4U=",
+      "optional": true
+    }
   }
 }

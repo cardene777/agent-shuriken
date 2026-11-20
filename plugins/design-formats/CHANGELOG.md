@@ -5,6 +5,7 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- Pages draw their figures with dragon. `formats/look.md` says which figure fits which kind of information, the report template shows the sales by time of day as a bar chart and each kind's share as a donut, and the explainer shows the steps as a band of steps. Each figure is a still dragon block per language that `dragon embed` draws as an SVG. `verify` names a page that still holds a block, and `verify --source` checks a template before `dragon embed`. page-design follows the dragon skill's notation, embed guide, and the guides of the chart, cycle, flow, architecture, and sequence kinds through musubi as optional follows
 - The report template puts the facts about the page on one quiet line under the title and the result numbers on one band, shows each value once, gives each row its amount instead of an unlabeled bar, and shows no paging when the list fits on one page. `formats/look.md` holds these as rules
 
 - The samples in the four page templates, `formats/look.md`, and the README all use one small bakery: the weekly sales report, the items to take off the winter menu, how to brew pour-over coffee, and the layout of the menu board
