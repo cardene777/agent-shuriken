@@ -24,5 +24,8 @@
 | `verify`は、`dragon embed`で埋めた図のSVGの中の字の大きさを小さい字の規則で拒まない | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"verify accepts the text inside an embedded dragon figure"`が通る | #270 |
 | `page-design`の`musubi.json`が、任意の従う先としてdragonのスキル`dragon`を名指し、`SKILL.md`が図の書き方をそのスキルへ渡す | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"page-design follows the dragon skill for figures"`が通る | #270 |
 | `design-formats`の英語と日本語のREADMEと`docs/how-it-works.md`が、`npx`でnpmの置き場からdragonを取りに行くことを書き、AGENTS.mdの依存の例外の行が`design-formats`を名指す | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"the pages say page-design fetches dragon through npx"`が通る | #270 |
-| 4つの頁の型の雛形は、雛形を確かめる`verify --source`を通る | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"verify accepts every page type template"`が通る | #270 |
-| repoの検査`scripts/check.sh`が通る | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"the repository checks pass"`が通る | #270 |
+| 4つの頁の型の雛形は、雛形を確かめる`verify --source`を通る | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"verify accepts every page type template"`が通る | #270 #273 |
+| repoの検査`scripts/check.sh`が通る | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"the repository checks pass"`が通る | #270 #273 |
+| レポートの雛形の`.figure`と`#zoom-body`、説明の雛形の`figure`と`#zoom-body`が、`--dragon-figure-background: var(--surface)`を持つ | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"the figure cards pass the card color to dragon"`が通る | #273 |
+| レポートの雛形の`.figure`が、縦に並べる`flex`と`justify-content: center`を持ち、図を枠の上下の真ん中に置く | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"the report figures sit in the middle of their cards"`が通る | #273 |
+| `formats/look.md`の図の節が、図を置く枠で`--dragon-figure-background`に枠の地の色を渡すことを書く | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"the look format says to pass the card color to dragon"`が通る | #273 |
