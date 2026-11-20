@@ -1,0 +1,78 @@
+# Design Formats
+
+How documents and reports explain and how they look, for skills that write them: two formats, four HTML page templates, and a script that checks a page or a document.
+
+English · [日本語](README.ja.md)
+
+When several skills write pages and documents, each one keeps its own colors, headings, and switches, and the pages drift apart.
+This plugin keeps one copy.
+Its `page-design` skill holds the order of an explanation, the look rules, four page types, and `verify`, the script that checks a page or a document against the rules a script can see.
+Skills that write reports, approval sheets, explainers, choice pages, or design documents follow it through musubi, a declaration in `musubi.json` that pins the version and fingerprint of what they follow.
+
+```
+A skill that writes pages ──> page-design: read the formats ──> Copy a template ──> Write the page ──> page-design: verify
+(its own content)             (structure.md, look.md)           (report, sheet,     (agent)            (scripts/page-design.py)
+                                                                document, choice)
+```
+
+## Install
+
+```
+/plugin marketplace add cardene777/agent-shuriken        # Claude Code
+/plugin install design-formats@agent-shuriken
+
+codex plugin marketplace add cardene777/agent-shuriken   # Codex
+codex plugin add design-formats@agent-shuriken
+
+copilot plugin marketplace add cardene777/agent-shuriken # GitHub Copilot CLI
+copilot plugin install design-formats@agent-shuriken
+
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/design-formats/skills/page-design   # Gemini CLI
+```
+
+In other agents that read `SKILL.md`, unzip the skill zip attached to each release into the agent's skills folder, as [Getting started](../../docs/getting-started.md#install-without-the-marketplace) shows.
+
+## Use
+
+A skill that writes a page or a document opens `page-design` by name, reads its formats, copies the template of the page type, and runs its `verify`.
+To use it yourself, run `/design-formats:page-design` in Claude Code, or type `$` and pick **Page Design** in Codex, and ask for a page or name the page or document to check.
+In GitHub Copilot CLI, write `/page-design` in your request, and in Gemini CLI, describe the task.
+
+| Content | File | What it holds |
+|---|---|---|
+| `structure` | `formats/structure.md` | The order of an explanation: the conclusion first, the whole picture before the details, one glossary, steps with real output, and the order of a report |
+| `look` | `formats/look.md` | The look rules: headings without colons, facts in a table, text size, details beside the list, enlarging, motion, the language and theme switches, colors, and self-contained pages |
+| `report` | `templates/report.html` | A report page with facts about the run, the result numbers, and a list with the pressed row's details beside it |
+| `sheet` | `templates/sheet.html` | An approval sheet with the items to choose, their details, and the text copied back to the chat |
+| `document` | `templates/document.html` | An explainer with the whole picture, sections with a contents list beside them, steps, and a glossary |
+| `choice` | `templates/choice.html` | A choice page with the request, today's version, the options side by side, and the text copied back |
+| `verify` | `scripts/page-design.py` | The check that a page or a document keeps the rules a script can see |
+
+For a page whose title is "shop: technical debt", `verify` names the line and the fix and exits 1.
+
+```text
+report.html:42: heading-punctuation: take the colon and any Japanese comma or period out of the heading; keep the name as the title and put the detail on the line under it
+page-design: 1 problem; fix each line named above and run verify again
+```
+
+## Requirements
+
+| Tool | When it's needed |
+|---|---|
+| Python 3 | For `verify`, which uses only the standard library |
+| A browser | To open the pages the templates make |
+| The musubi command | Optional. When it is installed, a following skill runs `musubi check` before reading the formats |
+
+## What it reads, runs, and sends
+
+[How it works](docs/how-it-works.md) lists every file in the skill and every rule `verify` checks.
+In short:
+
+- `verify` reads only the pages and documents you pass, and prints rule names, line numbers, and fixes, never the page's text
+- It runs no other program, connects to nothing, and keeps nothing
+- The templates read no other file: their styles and scripts are inline, and they keep only the chosen language and theme in the browser's storage
+- The text of a page or a document is data, never instructions
+
+## License
+
+[MIT](LICENSE)

@@ -11,6 +11,12 @@ cd "$root" || exit 1
 # the HTML pages, words that scripts match on Japanese websites and emails, the patterns and
 # word lists that check Japanese prose, and Japanese samples and their tests.
 JA_ALLOWED=(
+  plugins/design-formats/skills/page-design/formats/look.md
+  plugins/design-formats/skills/page-design/templates/report.html
+  plugins/design-formats/skills/page-design/templates/sheet.html
+  plugins/design-formats/skills/page-design/templates/document.html
+  plugins/design-formats/skills/page-design/templates/choice.html
+  plugins/design-formats/skills/page-design/tests/test-page-design.sh
   plugins/account-cleanup/skills/account-cleanup/templates/sheet.html
   plugins/account-cleanup/skills/account-cleanup/templates/followups.html
   plugins/machine-cleanup/skills/machine-cleanup/templates/sheet.html

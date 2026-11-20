@@ -1,0 +1,33 @@
+{
+  "musubi": "2026-11-20",
+  "provides": {
+    "structure": {
+      "version": "1.0.0",
+      "file": "formats/structure.md"
+    },
+    "look": {
+      "version": "1.0.0",
+      "file": "formats/look.md"
+    },
+    "report": {
+      "version": "1.0.0",
+      "file": "templates/report.html"
+    },
+    "sheet": {
+      "version": "1.0.0",
+      "file": "templates/sheet.html"
+    },
+    "document": {
+      "version": "1.0.0",
+      "file": "templates/document.html"
+    },
+    "choice": {
+      "version": "1.0.0",
+      "file": "templates/choice.html"
+    },
+    "verify": {
+      "version": "1.0.0",
+      "file": "scripts/page-design.py"
+    }
+  }
+}

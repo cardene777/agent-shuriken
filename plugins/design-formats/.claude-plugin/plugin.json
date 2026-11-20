@@ -1,0 +1,21 @@
+{
+  "name": "design-formats",
+  "displayName": "Design Formats",
+  "version": "0.1.0",
+  "description": "How documents and reports explain and look, for skills that write them: two formats, four HTML page templates, and a script that checks a page or a document",
+  "author": {
+    "name": "cardene777",
+    "url": "https://github.com/cardene777"
+  },
+  "homepage": "https://github.com/cardene777/agent-shuriken/tree/main/plugins/design-formats",
+  "repository": "https://github.com/cardene777/agent-shuriken",
+  "license": "MIT",
+  "keywords": [
+    "design",
+    "documents",
+    "reports",
+    "html",
+    "template",
+    "musubi"
+  ]
+}

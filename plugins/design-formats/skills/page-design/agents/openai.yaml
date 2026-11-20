@@ -1,0 +1,7 @@
+interface:
+  display_name: "Page Design"
+  short_description: "How documents and reports explain and look, with four page templates and a script that checks a page"
+  default_prompt: "Use $page-design to check this page against the page design rules."
+
+policy:
+  allow_implicit_invocation: true

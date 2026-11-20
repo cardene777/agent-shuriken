@@ -1,0 +1,278 @@
+#!/usr/bin/env bash
+# Tests for page-design: the plugin files, the musubi declaration, the two formats, the four page
+# type templates, and page-design.py verify. Pages written here live in a throwaway folder; nothing
+# reaches the network. The musubi check runs only when the musubi command is on PATH, and is
+# reported as skipped, never as passed, when it is not.
+set -u
+
+HERE="$(cd "$(dirname "$0")" && pwd)"
+SKILL_DIR="$(cd "$HERE/.." && pwd)"
+SCRIPT="$SKILL_DIR/scripts/page-design.py"
+STRUCTURE="$SKILL_DIR/formats/structure.md"
+LOOK="$SKILL_DIR/formats/look.md"
+DECLARATION="$SKILL_DIR/musubi.json"
+SKILL="$SKILL_DIR/SKILL.md"
+PLUGIN="$(cd "$SKILL_DIR/../.." && pwd)"
+REPO="$(cd "$PLUGIN/../.." && pwd)"
+TYPES=(report sheet document choice)
+PASS=0
+FAIL=0
+SKIP=0
+T="$(mktemp -d)"
+trap 'rm -rf "$T"' EXIT
+
+ok() { PASS=$((PASS + 1)); printf 'ok    %s\n' "$1"; }
+ng() { FAIL=$((FAIL + 1)); printf 'FAIL  %s\n' "$1"; }
+skip() { SKIP=$((SKIP + 1)); printf 'skip  %s (%s)\n' "$1" "$2"; }
+check() { if eval "$2"; then ok "$1"; else ng "$1"; fi; }
+
+run() { [ -f "$SCRIPT" ] || return 3; python3 "$SCRIPT" "$@"; }
+
+# has <file> <text>...: every text appears in the file.
+has() {
+  local f="$1" s
+  shift
+  [ -f "$f" ] || { echo "      missing $f"; return 1; }
+  for s in "$@"; do
+    grep -qF -- "$s" "$f" || { echo "      $(basename "$f") lacks: $s"; return 1; }
+  done
+}
+
+plugin_files() {
+  local f
+  for f in .claude-plugin/plugin.json .codex-plugin/plugin.json README.md README.ja.md CHANGELOG.md LICENSE \
+    assets/icon.svg docs/how-it-works.md docs/how-it-works.ja.md skills/page-design/SKILL.md \
+    skills/page-design/agents/openai.yaml; do
+    [ -f "$PLUGIN/$f" ] || { echo "      missing $f"; return 1; }
+  done
+  python3 - "$PLUGIN" <<'PYEOF'
+import json, sys
+root = sys.argv[1]
+for path in (".claude-plugin/plugin.json", ".codex-plugin/plugin.json"):
+    manifest = json.load(open("%s/%s" % (root, path), encoding="utf-8"))
+    if manifest.get("name") != "design-formats" or manifest.get("version") != "0.1.0":
+        print("      %s is %s %s" % (path, manifest.get("name"), manifest.get("version")))
+        sys.exit(1)
+PYEOF
+}
+check "design-formats holds the files of a plugin at version 0.1.0" plugin_files
+
+listed() {
+  local page
+  python3 - "$REPO/.claude-plugin/marketplace.json" <<'PYEOF' || return 1
+import json, sys
+plugins = json.load(open(sys.argv[1], encoding="utf-8"))["plugins"]
+sys.exit(0 if any(p["name"] == "design-formats" and p["source"] == "./plugins/design-formats" for p in plugins) else 1)
+PYEOF
+  for page in README.md README.ja.md; do
+    grep -qE '^\| \[design-formats\]\(plugins/design-formats\) \|' "$REPO/$page" || return 1
+    grep -qF '/design-formats:page-design' "$REPO/$page" || return 1
+  done
+  for page in docs/publishing.md docs/publishing.ja.md; do
+    grep -qE '^\| design-formats \|' "$REPO/$page" || return 1
+    grep -qE '^\| (Question|質問) \|.*\| design-formats \|' "$REPO/$page" || return 1
+  done
+}
+check "the marketplace and the repository pages list design-formats" listed
+
+provides() {
+  [ -f "$DECLARATION" ] || return 1
+  python3 - "$SKILL_DIR" <<'PYEOF'
+import json, os, sys
+skill = sys.argv[1]
+declaration = json.load(open(os.path.join(skill, "musubi.json"), encoding="utf-8"))
+want = {
+    "structure": {"version": "1.0.0", "file": "formats/structure.md"},
+    "look": {"version": "1.0.0", "file": "formats/look.md"},
+    "report": {"version": "1.0.0", "file": "templates/report.html"},
+    "sheet": {"version": "1.0.0", "file": "templates/sheet.html"},
+    "document": {"version": "1.0.0", "file": "templates/document.html"},
+    "choice": {"version": "1.0.0", "file": "templates/choice.html"},
+    "verify": {"version": "1.0.0", "file": "scripts/page-design.py"},
+}
+if declaration.get("musubi") != "2026-11-20" or declaration.get("provides") != want or "follows" in declaration:
+    print("      musubi.json declares %s" % json.dumps(declaration, sort_keys=True))
+    sys.exit(1)
+for content in want.values():
+    if not os.path.isfile(os.path.join(skill, content["file"])):
+        print("      %s is missing" % content["file"])
+        sys.exit(1)
+PYEOF
+}
+check "page-design provides structure, look, four page types, and verify in musubi.json" provides
+
+structure_format() {
+  has "$STRUCTURE" "## Conclusion first" "## The whole picture before the details" \
+    "## One glossary, linked from every use" "## Steps with real output" "## Only what to do"
+}
+check "the structure format holds the order of an explanation" structure_format
+
+look_format() {
+  has "$LOOK" "## Headings" "## Facts in a table" "## Joining items" "## Text size and weight" \
+    "## Explanations and help" "## Details beside the list" "## Enlarging" "## Motion" \
+    "## Header controls" "## Self-contained pages" "data-lang" "data-theme-choice" "prefers-reduced-motion"
+}
+check "the look format holds the rules of headings, facts, text, details, and motion" look_format
+
+templates_pass() {
+  local t f
+  for t in "${TYPES[@]}"; do
+    f="$SKILL_DIR/templates/$t.html"
+    [ -f "$f" ] || { echo "      missing templates/$t.html"; return 1; }
+    grep -qE '<html lang="en"' "$f" || { echo "      $t.html is not English by default"; return 1; }
+    run verify "$f" > "$T/template-$t.out" 2>&1 || { sed 's/^/      /' "$T/template-$t.out"; return 1; }
+  done
+}
+check "verify accepts every page type template" templates_pass
+
+copy_back() {
+  local t f
+  for t in sheet choice; do
+    f="$SKILL_DIR/templates/$t.html"
+    [ -f "$f" ] || return 1
+    grep -qF 'navigator.clipboard.writeText' "$f" || { echo "      $t.html does not copy"; return 1; }
+    grep -qF 'select()' "$f" || { echo "      $t.html has no fallback that selects the text"; return 1; }
+    # The copied text is built from fixed English words, never from the dictionary.
+    python3 - "$f" <<'PYEOF' || { echo "      $t.html builds the copied text from the dictionary"; return 1; }
+import re, sys
+text = open(sys.argv[1], encoding="utf-8").read()
+body = re.search(r"function copyText\(\)\s*\{(.*?)\n\}", text, re.S)
+sys.exit(0 if body and "TEXT[" not in body.group(1) and "t(" not in body.group(1) else 1)
+PYEOF
+  done
+}
+check "the sheet and choice templates copy text that does not depend on the language" copy_back
+
+# page <file>: a page that keeps every rule. Each broken page below breaks one of them.
+page() {
+  mkdir -p "$(dirname "$1")"
+  cat > "$1" <<'HTMLEOF'
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Shop technical debt</title>
+<style>
+:root { --bg: #fff; --ink: #111; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #111; --ink: #eee; } }
+:root[data-theme="dark"] { --bg: #111; --ink: #eee; }
+body { background: var(--bg); color: var(--ink); font-size: 15px; }
+</style>
+</head>
+<body>
+<header><h1 data-t="title">Shop technical debt</h1>
+<button type="button" data-lang="en">English</button><button type="button" data-lang="ja">日本語</button>
+<button type="button" data-theme-choice="light">Light</button><button type="button" data-theme-choice="dark">Dark</button></header>
+<table><tr><th>Commit</th><td>61d7f14</td></tr><tr><th>Files</th><td>26</td></tr></table>
+<p>SECRET_TEXT_MARKER Fixing the top files pays off first.</p>
+<script>
+const TEXT = { en: { title: "Shop technical debt" }, ja: { title: "shopの技術的負債" } };
+</script>
+</body>
+</html>
+HTMLEOF
+}
+
+# breaks <name> <python expression on text>: a copy of the good page with one rule broken.
+breaks() {
+  page "$T/html/$1.html"
+  python3 - "$T/html/$1.html" "$2" <<'PYEOF'
+import sys
+path, expression = sys.argv[1], sys.argv[2]
+text = open(path, encoding="utf-8").read()
+open(path, "w", encoding="utf-8").write(eval(expression, {"text": text}))
+PYEOF
+}
+
+verify_html_refusals() {
+  local name rule
+  page "$T/html/good.html"
+  run verify "$T/html/good.html" > "$T/html-good.out" 2>&1 || { sed 's/^/      /' "$T/html-good.out"; return 1; }
+  breaks colon-heading 'text.replace("<h1 data-t=\"title\">Shop technical debt</h1>", "<h1>shop: technical debt</h1>")'
+  breaks ja-heading 'text.replace("<h1 data-t=\"title\">Shop technical debt</h1>", "<h1>shopの技術的負債、一覧</h1>")'
+  breaks facts-line 'text.replace("<p>SECRET_TEXT_MARKER", "<p>61d7f14 on main, 26 source files, 199 commits in the last 12 months, generated 2026-11-13 21:05</p><p>SECRET_TEXT_MARKER")'
+  breaks label-colon 'text.replace("<p>SECRET_TEXT_MARKER", "<p>Why it costs: it changed 31 times</p><p>SECRET_TEXT_MARKER")'
+  breaks small-text 'text.replace("font-size: 15px", "font-size: 10px")'
+  breaks no-switch 'text.replace("<button type=\"button\" data-lang=\"en\">English</button><button type=\"button\" data-lang=\"ja\">日本語</button>", "")'
+  breaks no-dictionary 'text.replace("const TEXT = { en: { title: \"Shop technical debt\" }, ja: { title: \"shopの技術的負債\" } };", "")'
+  breaks no-dark 'text.replace("@media (prefers-color-scheme: dark) { :root:not([data-theme=\"light\"]) { --bg: #111; --ink: #eee; } }", "")'
+  breaks external 'text.replace("</head>", "<script src=\"https://cdn.example.com/lib.js\"></script></head>")'
+  for name in colon-heading:heading-punctuation ja-heading:heading-punctuation facts-line:facts-in-one-line \
+    label-colon:label-colon small-text:small-text no-switch:missing-language-switch \
+    no-dictionary:missing-dictionary no-dark:missing-dark-colors external:external-file; do
+    rule="${name#*:}"
+    name="${name%%:*}"
+    run verify "$T/html/$name.html" > "$T/html-$name.out" 2>&1
+    [ $? -eq 1 ] || { echo "      $name did not exit 1"; return 1; }
+    grep -Eq "^.*$name\.html:[0-9]+: $rule: .+" "$T/html-$name.out" || { echo "      $name did not name $rule with a line and a fix"; return 1; }
+  done
+}
+check "verify refuses an HTML page that breaks a rule" verify_html_refusals
+
+verify_markdown_refusals() {
+  local d="$T/md" name rule
+  mkdir -p "$d"
+  printf '# Token sale design\n\nThe sale sells tokens for a week. SECRET_TEXT_MARKER\n\n| Item | Value |\n|---|---|\n| Commit | 61d7f14 |\n\n```text\nWhy: this colon is inside a code block\n```\n' > "$d/good.md"
+  run verify "$d/good.md" > "$T/md-good.out" 2>&1 || { sed 's/^/      /' "$T/md-good.out"; return 1; }
+  printf '# Design: token sale\n\nText.\n' > "$d/colon-heading.md"
+  printf '## 決めたこと、理由\n\nText.\n' > "$d/ja-heading.md"
+  printf '# Sale\n\n- Why it costs: it changed 31 times\n' > "$d/label-colon.md"
+  printf '# Sale\n\n61d7f14 on main, 26 source files, 199 commits in the last 12 months, generated 2026-11-13\n' > "$d/facts-line.md"
+  for name in colon-heading:heading-punctuation ja-heading:heading-punctuation label-colon:label-colon facts-line:facts-in-one-line; do
+    rule="${name#*:}"
+    name="${name%%:*}"
+    run verify "$d/$name.md" > "$T/md-$name.out" 2>&1
+    [ $? -eq 1 ] || { echo "      $name did not exit 1"; return 1; }
+    grep -Eq "^.*$name\.md:[0-9]+: $rule: .+" "$T/md-$name.out" || { echo "      $name did not name $rule with a line and a fix"; return 1; }
+  done
+}
+check "verify refuses a Markdown document that breaks a rule" verify_markdown_refusals
+
+verify_quiet() {
+  local f
+  [ -f "$SCRIPT" ] || return 1
+  for f in "$T"/html/*.html "$T"/md/*.md; do
+    run verify "$f" > "$T/quiet.out" 2>&1
+    ! grep -q 'SECRET_TEXT_MARKER\|shop: technical\|Why it costs\|199 commits' "$T/quiet.out" || { echo "      $(basename "$f") printed its text"; return 1; }
+  done
+  run verify "$T/none.html" > "$T/none.out" 2>&1
+  [ $? -eq 2 ] || { echo "      a missing file did not exit 2"; return 1; }
+  printf 'x\n' > "$T/page.txt"
+  run verify "$T/page.txt" > "$T/txt.out" 2>&1
+  [ $? -eq 2 ] || { echo "      a file that is neither HTML nor Markdown did not exit 2"; return 1; }
+}
+check "verify prints rule names and line numbers, never the page's text" verify_quiet
+
+skill_steps() {
+  has "$SKILL" "name: page-design" "formats/structure.md" "formats/look.md" "templates/report.html" \
+    "templates/sheet.html" "templates/document.html" "templates/choice.html" "scripts/page-design.py verify" \
+    "musubi.json" "Claude Code" "Codex"
+}
+check "the skill tells a following skill how to read the formats and run verify" skill_steps
+
+musubi_accepts() {
+  musubi check "$PLUGIN/skills" > "$T/musubi.out" 2>&1 || { sed 's/^/      /' "$T/musubi.out"; return 1; }
+  # musubi prints counts, not names; the folder holds one skill, page-design.
+  grep -q 'skills=1' "$T/musubi.out"
+}
+if command -v musubi > /dev/null 2>&1; then
+  check "musubi check accepts page-design" musubi_accepts
+else
+  skip "musubi check accepts page-design" "the musubi command is not on PATH"
+fi
+
+# unreleased <changelog>: the lines between ## [Unreleased] and the next release.
+unreleased() { awk '/^## \[Unreleased\]/{on=1; next} /^## \[/{on=0} on' "$1"; }
+
+changelogs() {
+  [ -f "$PLUGIN/CHANGELOG.md" ] || return 1
+  awk '/^## \[0\.1\.0\]/{on=1; next} /^## \[/{on=0} on' "$PLUGIN/CHANGELOG.md" | grep -q 'page-design' || return 1
+  unreleased "$REPO/CHANGELOG.md" | grep -q 'design-formats'
+}
+check "the changelogs name page-design" changelogs
+
+repo_checks() { bash "$REPO/scripts/check.sh" > "$T/check.out" 2>&1 || { tail -5 "$T/check.out" | sed 's/^/      /'; return 1; }; }
+check "the repository checks pass" repo_checks
+
+printf '%d passed, %d failed (%d ran, %d skipped)\n' "$PASS" "$FAIL" "$((PASS + FAIL))" "$SKIP"
+[ "$FAIL" -eq 0 ]
