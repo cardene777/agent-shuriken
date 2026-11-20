@@ -2,11 +2,17 @@
 """Check HTML pages and Markdown documents against the look rules of page-design.
 
 Usage:
-  page-design.py verify <file>...
+  page-design.py verify [--source] <file>...
 
 Each file ending in .html or .htm is read as a page, and each file ending in .md as a document.
 Every problem is printed as one line, <file>:<line>: <rule>: <how to fix>. The text of the page is
 never printed, only rule names, line numbers, and fixes.
+
+A page holds its figures as dragon blocks (<pre class="dragon" data-still>) while it is written, and
+`dragon embed` draws each one as an SVG. A page that still holds a block is refused. With --source,
+the file is checked as the source of a page, such as a template: it may hold still dragon blocks and
+the dragon entry line, and a block without data-still is refused. The text inside a block and inside
+a drawn figure is the figure's own, so the text rules do not read it.
 
 Exit codes:
   0  every file keeps the rules
@@ -33,6 +39,8 @@ FIXES = {
     "missing-dark-colors": 'redefine the color tokens under @media (prefers-color-scheme: dark) and :root[data-theme="dark"]',
     "missing-reduced-motion": "add @media (prefers-reduced-motion: reduce) that turns the transitions and animations off",
     "external-file": "inline it or embed it as a data: URI; the page reads no other file",
+    "figure-not-embedded": "run dragon embed on the page (npx -y @cardenelabs/dragon@<version> embed <page> --out <page>), which draws each still block as an SVG",
+    "figure-not-still": "add data-still to the dragon block, so the page shows the last step as one picture",
 }
 
 HEADING_MARKS = re.compile("[:\uff1a\u3001\u3002]")
@@ -41,6 +49,8 @@ LABEL_COLON = re.compile(r"^(\*\*[^*]{1,40}\*\*|[^\s:\uff1a|`][^:\uff1a|`]{0,39}
 LABEL_EQUALS = re.compile(r"\S\s=\s\S")
 INLINE_CODE = re.compile(r"`[^`]*`")
 EXTERNAL = re.compile(r"^\s*(https?:)?//", re.I)
+# The line that loads dragon from jsDelivr, which a source page carries until dragon embed replaces it.
+DRAGON_ENTRY = re.compile(r"^https://cdn\.jsdelivr\.net/npm/@cardenelabs/dragon@[0-9.]+/dist/cdn/dragon\.js$")
 SMALL_FONT = re.compile(r"font(-size)?\s*:\s*([^;}\"']+)", re.I)
 SIZE = re.compile(r"(\d+(?:\.\d+)?)(px|rem|em)\b", re.I)
 SCRIPT_HEADING = re.compile(r"""\b(\w*(?:title|heading|Title|Heading)\w*)\s*:\s*(["'])((?:(?!\2).){1,200})\2""")
@@ -87,8 +97,9 @@ class Page(HTMLParser):
     SKIP = {"script", "style", "code", "pre", "textarea", "template", "svg", "math"}
     HEADINGS = {"h1", "h2", "h3", "h4", "h5", "h6", "title"}
 
-    def __init__(self):
+    def __init__(self, source=False):
         super().__init__(convert_charrefs=True)
+        self.source = source
         self.problems = []
         self.skip = []
         self.heading = None
@@ -97,6 +108,7 @@ class Page(HTMLParser):
         self.langs = set()
         self.themes = set()
         self.styles = []
+        self.figure_styles = []
         self.scripts = []
         self.current = None
 
@@ -113,7 +125,13 @@ class Page(HTMLParser):
             self.langs.add(values["data-lang"].strip())
         if values.get("data-theme-choice"):
             self.themes.add(values["data-theme-choice"].strip())
-        if values.get("style"):
+        in_figure = "svg" in self.skip or tag == "svg"
+        if tag == "pre" and "dragon" in values.get("class", "").split():
+            if not self.source:
+                self.problem(line, "figure-not-embedded")
+            elif "data-still" not in values:
+                self.problem(line, "figure-not-still")
+        if values.get("style") and not in_figure:
             for _ in small_sizes(values["style"]):
                 self.problem(line, "small-text")
             if re.search(r"url\(\s*['\"]?(https?:)?//", values["style"], re.I):
@@ -125,12 +143,13 @@ class Page(HTMLParser):
             source = values.get("href")
         elif tag == "object":
             source = values.get("data")
-        if source and EXTERNAL.match(source):
+        if source and EXTERNAL.match(source) and not (self.source and tag == "script" and DRAGON_ENTRY.match(source.strip())):
             self.problem(line, "external-file")
         if tag in ("iframe", "object", "embed") and not source:
             self.problem(line, "external-file")
         if tag in ("style", "script"):
-            self.current = (tag, line, [])
+            # A figure's own style sizes its text to the figure, so only the page's style is measured.
+            self.current = (tag, line, [], in_figure)
         if tag in self.SKIP:
             self.skip.append(tag)
         elif tag in self.HEADINGS and not self.skip:
@@ -138,8 +157,11 @@ class Page(HTMLParser):
 
     def handle_endtag(self, tag):
         if self.current and tag == self.current[0]:
-            kind, line, parts = self.current
-            (self.styles if kind == "style" else self.scripts).append((line, "".join(parts)))
+            kind, line, parts, in_figure = self.current
+            if kind == "style" and in_figure:
+                self.figure_styles.append((line, "".join(parts)))
+            else:
+                (self.styles if kind == "style" else self.scripts).append((line, "".join(parts)))
             self.current = None
         if self.skip and tag == self.skip[-1]:
             self.skip.pop()
@@ -172,6 +194,7 @@ class Page(HTMLParser):
         for line, text in self.styles:
             for offset in small_sizes(text):
                 self.problem(line_at(text, offset, line), "small-text")
+        for line, text in self.styles + self.figure_styles:
             for match in re.finditer(r"@import|url\(\s*['\"]?(https?:)?//", text, re.I):
                 self.problem(line_at(text, match.start(), line), "external-file")
         for line, text in self.scripts:
@@ -203,8 +226,8 @@ class Page(HTMLParser):
             self.problem(1, "missing-reduced-motion")
 
 
-def check_html(text):
-    page = Page()
+def check_html(text, source=False):
+    page = Page(source)
     page.feed(text)
     page.close()
     page.finish()
@@ -256,10 +279,11 @@ def check_markdown(text):
 
 
 def main(argv):
-    if len(argv) < 2 or argv[0] != "verify":
-        print("usage: page-design.py verify <file>...", file=sys.stderr)
+    source = len(argv) > 1 and argv[1] == "--source"
+    files = argv[2:] if source else argv[1:]
+    if not argv or argv[0] != "verify" or not files:
+        print("usage: page-design.py verify [--source] <file>...", file=sys.stderr)
         return 2
-    files = argv[1:]
     for path in files:
         if not re.search(r"\.(html?|md)$", path, re.I):
             print("page-design: %s is neither HTML (.html) nor Markdown (.md)" % path, file=sys.stderr)
@@ -272,7 +296,7 @@ def main(argv):
     count = 0
     for path in files:
         text = open(path, encoding="utf-8", errors="replace").read()
-        found = check_markdown(text) if path.lower().endswith(".md") else check_html(text)
+        found = check_markdown(text) if path.lower().endswith(".md") else check_html(text, source)
         for line, rule in sorted(set(found)):
             print("%s:%d: %s: %s" % (path, line, rule, FIXES[rule]))
             count += 1

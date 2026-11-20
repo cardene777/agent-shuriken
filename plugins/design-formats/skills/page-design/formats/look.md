@@ -63,6 +63,26 @@ A list shows the summary, and the details of one item sit beside it.
 - Let people choose by pressing a row or a card, not by aiming at a small checkbox
 - Keep a way back to the whole list
 
+## Figures
+
+- Show amounts, shares, steps, parts, and order as figures, not only as numbers in a table. Pick the figure from what the reader compares
+
+| What the reader compares | Figure | dragon notation |
+|---|---|---|
+| The amounts of a few items | Bar chart | `chart <title> [shape: bar]` |
+| The shares of one whole | Donut | `chart <title> [shape: donut]` |
+| The steps of a procedure, in order, with no choices | Steps in a row | `cycle <title> [shape: band]`, with no line back to the first step and `[carry: none]` on each line |
+| A procedure that branches at choices | Flow | `flow` |
+| The parts of a system and what passes between them | Architecture | `architecture` |
+| Messages between parties in time order | Sequence | `sequence` |
+| A change over time | Line chart | Not in dragon yet; show a table until dragon draws a line chart |
+
+- A chart shows values that the text and the tables do not already show. Never draw the rows of a list again as a chart. Steps in a row and a flow show the order of the steps, and the amounts stay in the text of the steps
+- Write each figure as a still dragon block, `<pre class="dragon" data-still>`, which shows the last step as one picture with no player. The notation comes from the dragon skill
+- Keep one block per language, each inside `<div data-figure-lang="en">` or `<div data-figure-lang="ja">`, and hide the other language with `html[lang="en"] [data-figure-lang="ja"], html[lang="ja"] [data-figure-lang="en"] { display: none; }`
+- While the page is written, it carries the dragon entry line `<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@<major.minor>/dist/cdn/dragon.js"></script>`. Before the page is handed over, run `npx -y @cardenelabs/dragon@<major.minor> embed page.html --out page.html`. `dragon embed` draws every still block as an SVG and removes the entry line, so the page reads no other file
+- A chart shows its own title, which says what it compares; give other figures a caption. Open every figure larger when pressed
+
 ## Enlarging
 
 - HTML: figures, screenshots, and long text open larger when pressed, in a dialog that shows the whole
@@ -119,5 +139,9 @@ A list shows the summary, and the details of one item sit beside it.
 | `missing-dark-colors` | No colors for `prefers-color-scheme: dark` | Yes | No |
 | `missing-reduced-motion` | Motion without `prefers-reduced-motion` | Yes | No |
 | `external-file` | A script, style, image, or frame read from another site | Yes | No |
+| `figure-not-embedded` | A dragon block left on a page that `dragon embed` has not drawn | Yes | No |
+| `figure-not-still` | With `--source`, a dragon block without `data-still` | Yes | No |
 
+`verify --source` checks the source of a page, such as a template, before `dragon embed`. It accepts still dragon blocks and the dragon entry line.
+The text inside a dragon block and inside a drawn figure belongs to the figure, so the text rules do not read it.
 The other rules in this file are kept by the writer and checked by eye.
