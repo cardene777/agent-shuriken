@@ -1,0 +1,18 @@
+# page-design
+
+| 条件 | 確かめ方 | 出元 |
+|---|---|---|
+| `design-formats`がpluginの一式 (2つの`plugin.json`を版`0.1.0`で、英語と日本語のREADME、`CHANGELOG.md`、`LICENSE`、`assets/icon.svg`、英語と日本語の`docs/how-it-works.md`、`skills/page-design/SKILL.md`、`agents/openai.yaml`) を持つ | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"design-formats holds the files of a plugin at version 0.1.0"`が通る | #265 |
+| marketplaceと、repoの英語と日本語のREADMEと`docs/publishing.md`が`design-formats`を載せる | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"the marketplace and the repository pages list design-formats"`が通る | #265 |
+| `musubi.json`が中身`structure`と`look` (`formats/<名前>.md`)、頁の型`report`と`sheet`と`document`と`choice` (`templates/<名前>.html`)、`verify` (`scripts/page-design.py`) を版`1.0.0`で出し、名指したfileが全て在る | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"page-design provides structure, look, four page types, and verify in musubi.json"`が通る | #265 |
+| `formats/structure.md`は、結論を先に書くこと、全体像を先に置いて詳細を段階的に出すこと、用語の説明を1か所に置いて各所から繋ぐこと、手順に生成物の実例を添えること、どうするかだけを書くことを返す | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"the structure format holds the order of an explanation"`が通る | #265 |
+| `formats/look.md`は、見出しにコロンと読点と句点を入れないこと、付帯の情報を表で見せること、項目を・やコロンや=でつながないこと、文字の大きさと濃さ、説明を隠さず補足は?から出すこと、詳細を横に置くこと、押すと拡大すること、動きと動きを減らす設定、英語と日本語の切り替えと明るい色と暗い色の切り替えをヘッダーに置くこと、外のfileを読まないことを返す | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"the look format holds the rules of headings, facts, text, details, and motion"`が通る | #265 |
+| 4つの頁の型の雛形は、英語を既定にした`lang`、ヘッダーの英語と日本語の切り替えと明るい色と暗い色の切り替え、頁ごとに1つの辞書、明るい色と暗い色の色の決まりを持ち、`verify`を通る | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"verify accepts every page type template"`が通る | #265 |
+| `sheet`と`choice`の雛形は、画面の言語に依らない貼り返す文をコピーでき、コピーが失敗した時は文を選んでコピーする案内を出す | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"the sheet and choice templates copy text that does not depend on the language"`が通る | #265 |
+| `verify`は、コロンか読点か句点を持つ見出し、1行に並べた付帯の情報、コロンでつないだラベル、12pxより小さい文字、言語の切り替えか辞書か暗い色の決まりの欠け、外のfileの読み込みを持つHTMLの頁を、行の番号と直し方を名指して拒む | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"verify refuses an HTML page that breaks a rule"`が通る | #265 |
+| `verify`は、コロンか読点か句点を持つ見出し、コロンでつないだラベルの行、1行に並べた付帯の情報を持つMarkdownのドキュメントを、行の番号と直し方を名指して拒む | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"verify refuses a Markdown document that breaks a rule"`が通る | #265 |
+| `verify`は頁の文を出力しない | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"verify prints rule names and line numbers, never the page's text"`が通る | #265 |
+| `SKILL.md`は、従うスキルがこのスキルを名前で開き、2つの書式を読み、頁の型の雛形を写し、`verify`を回す手順を返し、Claude Code以外のエージェントでの読み方も書く | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"the skill tells a following skill how to read the formats and run verify"`が通る | #265 |
+| `musubi check`が`page-design`を通す | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"musubi check accepts page-design"`が通る | #265 |
+| `design-formats`の`CHANGELOG.md`が版`0.1.0`の節で、repoの`CHANGELOG.md`が`## [Unreleased]`の下で`page-design`を名指す | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"the changelogs name page-design"`が通る | #265 |
+| repoの検査`scripts/check.sh`が、新しいplugin`design-formats`を含めて通る | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"the repository checks pass"`が通る | #265 |
