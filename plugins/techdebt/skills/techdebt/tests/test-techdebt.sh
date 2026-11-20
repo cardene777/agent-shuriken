@@ -7,8 +7,27 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 SCRIPT="$HERE/../scripts/techdebt.py"
 PASS=0
 FAIL=0
+SKIP=0
 T="$(mktemp -d)"
 trap 'rm -rf "$T"' EXIT
+
+# A Chromium-based browser opens the report as a reader does, for the checks on the opened page.
+# TECHDEBT_TEST_BROWSER names the browser; otherwise the usual apps, the headless browsers Playwright
+# downloaded, and then the usual commands are tried, all before HOME is replaced below. The commands
+# come last because a command can be a wrapper that finds its browser through HOME. Without a
+# browser, those checks are skipped.
+real_browser=""
+for b in "${TECHDEBT_TEST_BROWSER:-}" \
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+  "/Applications/Chromium.app/Contents/MacOS/Chromium" \
+  "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge" \
+  "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser" \
+  "$HOME"/Library/Caches/ms-playwright/chromium_headless_shell-*/*/chrome-headless-shell \
+  "$HOME"/.cache/ms-playwright/chromium_headless_shell-*/*/chrome-headless-shell \
+  "$(command -v google-chrome 2>/dev/null)" "$(command -v chromium 2>/dev/null)" "$(command -v chromium-browser 2>/dev/null)"; do
+  if [ -n "$b" ] && [ -x "$b" ]; then real_browser="$b"; break; fi
+done
+
 export TECHDEBT_HOME="$T/state"
 export HOME="$T/home/someone"
 R="$T/repo"
@@ -16,6 +35,7 @@ mkdir -p "$R" "$HOME"
 
 ok() { PASS=$((PASS + 1)); printf 'ok    %s\n' "$1"; }
 ng() { FAIL=$((FAIL + 1)); printf 'FAIL  %s\n' "$1"; }
+skip() { SKIP=$((SKIP + 1)); printf 'skip  %s (%s)\n' "$1" "$2"; }
 check() { if eval "$2"; then ok "$1"; else ng "$1"; fi; }
 
 g() { git -C "$R" -c user.name=test -c user.email=test@example.com "$@"; }
@@ -489,5 +509,197 @@ skill_rules() {
 }
 check "the SKILL.md keeps its rules on code, issues, quoting, and tools" skill_rules
 
-printf '\n%d passed, %d failed (%d ran)\n' "$PASS" "$FAIL" "$((PASS + FAIL))"
+# --- The report as a reader opens it
+# The page's script writes the facts under the title and the words of each tab when the page opens,
+# and page-design's verify does not run that script, so verify on report.html cannot see them.
+# Each report here is opened in a real browser, tab by tab, in English and Japanese, and the checks
+# and verify read the page the browser drew. A throwaway git repository with a row in every tab and
+# a folder outside git are scanned with only git on PATH, so no tool runs and every line on the pages
+# is written by the report itself. Japanese is opened from a copy that starts in Japanese, as the page
+# does after a reader chooses it.
+O="$T/opened-git"
+OP="$T/opened-plain"
+mkdir -p "$O/src" "$OP" "$T/onlygit" "$T/opened"
+ln -s "$(command -v git)" "$T/onlygit/git"
+python3 - "$O" <<'PYEOF'
+import os, sys
+root = sys.argv[1]
+def w(path, text):
+    with open(os.path.join(root, path), "w", encoding="utf-8") as fh:
+        fh.write(text)
+w("src/app.py", "# TODO: split the loop into steps\n\ndef run(values):\n    total = 0\n"
+  + "".join("    total += values[%d] * %d\n" % (i, i) for i in range(64)) + "    return total\n")
+w("src/util.py", "".join("def u%d(x):\n    return x + %d\n\n" % (i, i) for i in range(10)))
+block = "".join("    value%d = data[%d] + offset\n" % (i, i) for i in range(10))
+w("src/copy_a.py", "def first(data, offset):\n" + block + "    return value0\n")
+w("src/copy_b.py", "def second(data, offset):\n" + block + "    return value1\n")
+w("src/table.py", "".join("ROW_%d = %d\n" % (i, i) for i in range(510)))
+w("package.json", '{"name": "opened", "dependencies": {"left-pad-lite": "1.0.0"}}\n')
+PYEOF
+go() { git -C "$O" -c user.name=test -c user.email=test@example.com "$@"; }
+go init -q
+go add -A
+go commit -qm first
+printf '# changed\n' >> "$O/src/app.py"
+go commit -qam second
+cp "$O/src/app.py" "$O/src/util.py" "$OP/"
+PATH="$T/onlygit" "$(command -v python3)" "$SCRIPT" scan "$O" > /dev/null 2>&1
+PATH="$T/onlygit" "$(command -v python3)" "$SCRIPT" scan "$OP" > /dev/null 2>&1
+OSTATE="$(ls -d "$TECHDEBT_HOME"/opened-git-*)"
+PSTATE="$(ls -d "$TECHDEBT_HOME"/opened-plain-*)"
+PAGE_DESIGN="$PLUGIN/../design-formats/skills/page-design/scripts/page-design.py"
+
+# The tabs, read from the page itself, so a tab added later is opened too.
+python3 - "$OSTATE/report.html" > "$T/opened/tabs" <<'PYEOF'
+import re, sys
+page = open(sys.argv[1], encoding="utf-8").read()
+block = re.search(r"^const TABS = \[(.*?)^\];", page, re.S | re.M).group(1)
+print(" ".join(re.findall(r'^\s*\["(\w+)"', block, re.M)))
+PYEOF
+
+# open_report <state folder> <name>: writes each tab of the report as the browser drew it to
+# $T/opened/<name>-<lang>-<tab>.dom.html.
+open_report() {
+  local lang tab copy
+  for lang in en ja; do
+    copy="$T/opened/$2-$lang.html"
+    sed "s/^let lang = \"en\"/let lang = \"$lang\"/" "$1/report.html" > "$copy"
+    grep -q "^let lang = \"$lang\"" "$copy" || return 1
+    for tab in $(cat "$T/opened/tabs"); do
+      "$real_browser" --headless --disable-gpu --no-first-run --user-data-dir="$T/browser-profile" \
+        --dump-dom "file://$copy#$tab" > "$T/opened/$2-$lang-$tab.dom.html" 2>/dev/null || return 1
+    done
+  done
+}
+
+# opened_check <what> <state folder> <name>: reads the opened pages of one report.
+opened_check() {
+  python3 - "$1" "$2" "$T/opened" "$3" <<'PYEOF'
+import html, json, re, sys
+what, state, folder, name = sys.argv[1:5]
+d = json.load(open(state + "/scan.json", encoding="utf-8"))
+tabs = open(folder + "/tabs", encoding="utf-8").read().split()
+problems = []
+
+def page(lang, tab):
+    with open("%s/%s-%s-%s.dom.html" % (folder, name, lang, tab), encoding="utf-8") as fh:
+        return fh.read()
+
+def text(s):
+    return html.unescape(re.sub(r"<[^>]+>", "", s)).strip()
+
+def panel(dom):
+    return dom[dom.find('id="panel"'):]
+
+def status(lang, tool, found):
+    if tool["ran"]:
+        return {"en": "%d findings", "ja": "%d件"}[lang] % found
+    return {"en": "Not run because ", "ja": "動かしていません。"}[lang] + tool["reason"]
+
+if what == "facts":
+    at = d["generated_at"][:16].replace("T", " ")
+    files = str(d["files"])
+    if d["git"]:
+        if not d["head"]:
+            problems.append("the git repository was scanned without a commit")
+        want = {"en": [("Commit", d["head"]), ("Branch", d["branch"]), ("Source files", files),
+                       ("Commits in the last %d months" % d["months"], str(d["commits"])), ("Generated", at)],
+                "ja": [("コミット", d["head"]), ("ブランチ", d["branch"]), ("ソースファイル", files),
+                       ("直近%dか月のコミット" % d["months"], str(d["commits"])), ("作成日時", at)]}
+    else:
+        want = {"en": [("Git history", "Not a git repository"), ("Source files", files), ("Generated", at)],
+                "ja": [("gitの履歴", "gitのリポジトリではありません"), ("ソースファイル", files), ("作成日時", at)]}
+    for lang in ("en", "ja"):
+        for tab in tabs:
+            m = re.search(r'<h1 id="title">[^<]*</h1>\s*<dl class="facts" id="facts">(.*?)</dl>', page(lang, tab), re.S)
+            if not m:
+                problems.append("%s %s: no facts list under the title" % (lang, tab))
+                continue
+            if not re.fullmatch(r"(?:<div><dt>[^<]*</dt><dd>[^<]*</dd></div>)+", m.group(1)):
+                problems.append("%s %s: the facts list holds more than one div of dt and dd per fact" % (lang, tab))
+                continue
+            got = [(html.unescape(a), html.unescape(b)) for a, b in re.findall(r"<div><dt>([^<]*)</dt><dd>([^<]*)</dd></div>", m.group(1))]
+            if got != want[lang]:
+                problems.append("%s %s: facts %r, wanted %r" % (lang, tab, got, want[lang]))
+
+elif what == "no-sentence":
+    report = open(state + "/report.html", encoding="utf-8").read()
+    for key in re.findall(r"(?:^|[\s,{])(meta|metaNoGit)\s*:\s*\"", report, re.M):
+        problems.append("the dictionary still has %s" % key)
+    for lang in ("en", "ja"):
+        for tab in tabs:
+            head = re.search(r"<header>(.*?)</header>", page(lang, tab), re.S)
+            rest = re.sub(r"<h1\b.*?</h1>|<dl class=\"facts\".*?</dl>|<button\b.*?</button>", "", head.group(1) if head else "", flags=re.S)
+            if not head or text(rest):
+                problems.append("%s %s: the header has text besides the title and the facts: %r" % (lang, tab, text(rest)))
+
+elif what == "tools":
+    for lang in ("en", "ja"):
+        sections = re.findall(r'<section class="tool">(.*?)</section>', panel(page(lang, "tools")), re.S)
+        if len(sections) != len(d["tools"]) or not sections:
+            problems.append("%s: %d tool sections for %d tools" % (lang, len(sections), len(d["tools"])))
+            continue
+        for tool, section in zip(d["tools"], sections):
+            m = re.match(r"<h3>([^<]*)</h3><p\b[^>]*>([^<]*)</p>", section)
+            want = (tool["tool"], status(lang, tool, len(tool["findings"])))
+            got = (html.unescape(m.group(1)), html.unescape(m.group(2))) if m else None
+            if got != want:
+                problems.append("%s: tool section %r, wanted the heading and the line under it %r" % (lang, got or text(section)[:80], want))
+
+elif what == "deprecated":
+    calls = d["deprecated_calls"]
+    for lang in ("en", "ja"):
+        table = re.search(r"<table>(.*?)</table>", panel(page(lang, "deprecated")), re.S)
+        if not table:
+            problems.append("%s: the deprecated calls tab has no table of the tools" % lang)
+            continue
+        heads = [text(x) for x in re.findall(r"<th\b[^>]*>(.*?)</th>", table.group(1))]
+        rows = [(html.unescape(a), html.unescape(b)) for a, b in re.findall(r"<tr><td><code>([^<]*)</code></td><td>([^<]*)</td></tr>", table.group(1))]
+        want_heads = {"en": ["Tool", "Result"], "ja": ["道具", "結果"]}[lang]
+        want_rows = [(s["tool"], status(lang, s, sum(1 for i in calls["items"] if i["tool"] == s["tool"]))) for s in calls["tools"]]
+        if heads != want_heads or rows != want_rows or not rows:
+            problems.append("%s: the table has %r and %r, wanted %r and %r" % (lang, heads, rows, want_heads, want_rows))
+
+for p in problems[:8]:
+    print("      " + p)
+sys.exit(1 if problems else 0)
+PYEOF
+}
+
+opened_verify() {
+  local pages
+  pages="$(ls "$T"/opened/*.dom.html | wc -l | tr -d ' ')"
+  [ "$pages" -eq "$(( $(wc -w < "$T/opened/tabs") * 4 ))" ] && [ "$pages" -eq 40 ] \
+    || { echo "      $pages pages were opened"; return 1; }
+  python3 "$PAGE_DESIGN" verify "$T"/opened/*.dom.html > "$T/opened-verify.out" 2>&1 \
+    || { grep -v '^page-design:' "$T/opened-verify.out" | sed "s|$T/opened/||; s/^/      /" | head -12; return 1; }
+}
+
+OPENED_CHECKS=(
+  "the opened report of a git repository lists its facts one per item in English and Japanese"
+  "the opened report of a folder outside git lists its facts one per item in English and Japanese"
+  "the report keeps no sentence that joins the facts"
+  "the tools tab heads each tool with its name and says under it whether it ran"
+  "the deprecated calls tab lists each tool and its result in a table"
+)
+VERIFY_CHECK="every tab of the opened reports passes the verify of page-design in English and Japanese"
+if [ -z "$real_browser" ]; then
+  for name in "${OPENED_CHECKS[@]}" "$VERIFY_CHECK"; do skip "$name" "needs a Chromium-based browser"; done
+elif ! open_report "$OSTATE" git || ! open_report "$PSTATE" plain; then
+  for name in "${OPENED_CHECKS[@]}" "$VERIFY_CHECK"; do ng "$name"; done
+  echo "      the browser could not open the reports"
+else
+  check "${OPENED_CHECKS[0]}" 'opened_check facts "$OSTATE" git'
+  check "${OPENED_CHECKS[1]}" 'opened_check facts "$PSTATE" plain'
+  check "${OPENED_CHECKS[2]}" 'opened_check no-sentence "$OSTATE" git && opened_check no-sentence "$PSTATE" plain'
+  check "${OPENED_CHECKS[3]}" 'opened_check tools "$OSTATE" git && opened_check tools "$PSTATE" plain'
+  check "${OPENED_CHECKS[4]}" 'opened_check deprecated "$OSTATE" git && opened_check deprecated "$PSTATE" plain'
+  if [ -f "$PAGE_DESIGN" ]; then
+    check "$VERIFY_CHECK" opened_verify
+  else
+    skip "$VERIFY_CHECK" "needs page-design of design-formats next to this plugin"
+  fi
+fi
+
+printf '\n%d passed, %d failed (%d ran, %d skipped)\n' "$PASS" "$FAIL" "$((PASS + FAIL))" "$SKIP"
 [ "$FAIL" -eq 0 ]
