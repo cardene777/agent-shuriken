@@ -44,6 +44,9 @@ EXTERNAL = re.compile(r"^\s*(https?:)?//", re.I)
 SMALL_FONT = re.compile(r"font(-size)?\s*:\s*([^;}\"']+)", re.I)
 SIZE = re.compile(r"(\d+(?:\.\d+)?)(px|rem|em)\b", re.I)
 SCRIPT_HEADING = re.compile(r"""\b(\w*(?:title|heading|Title|Heading)\w*)\s*:\s*(["'])((?:(?!\2).){1,200})\2""")
+# A heading kept per language, such as title: { en: "...", ja: "..." } in DATA.
+SCRIPT_HEADING_SET = re.compile(r"""\b\w*(?:title|heading|Title|Heading)\w*\s*:\s*\{([^{}]{1,600})\}""")
+QUOTED = re.compile(r"""(["'])((?:(?!\1).){1,200})\1""")
 SCRIPT_STRING = re.compile(r"""(["'`])((?:(?!\1)[^\\\n]){12,300})\1""")
 CODE_MARKS = re.compile(r"[<>{}()=;$\[\]]")
 
@@ -175,6 +178,10 @@ class Page(HTMLParser):
             for match in SCRIPT_HEADING.finditer(text):
                 if HEADING_MARKS.search(match.group(3)):
                     self.problem(line_at(text, match.start(), line), "heading-punctuation")
+            for match in SCRIPT_HEADING_SET.finditer(text):
+                for value in QUOTED.finditer(match.group(1)):
+                    if HEADING_MARKS.search(value.group(2)):
+                        self.problem(line_at(text, match.start(1) + value.start(), line), "heading-punctuation")
             for match in SCRIPT_STRING.finditer(text):
                 # Only strings that read as prose; markup and code built in strings are skipped.
                 if CODE_MARKS.search(match.group(2)):
