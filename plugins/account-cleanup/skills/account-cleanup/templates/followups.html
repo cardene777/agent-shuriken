@@ -7,16 +7,18 @@
 <meta name="referrer" content="no-referrer">
 <title>Things to clean up later</title>
 <style>
-:root { --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --sub: #5b6475; --line: #dfe3ea; --accent: #2f5bd3; --accent-text: #ffffff; }
-@media (prefers-color-scheme: dark) { :root { --bg: #12151b; --panel: #1b2029; --text: #e7eaf0; --sub: #a3abba; --line: #2c3340; --accent: #6d8ff0; --accent-text: #0d1117; } }
+:root { --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --sub: #5b6475; --line: #dfe3ea; --accent: #2f5bd3; --accent-text: #ffffff; color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #12151b; --panel: #1b2029; --text: #e7eaf0; --sub: #a3abba; --line: #2c3340; --accent: #6d8ff0; --accent-text: #0d1117; color-scheme: dark; } }
+:root[data-theme="dark"] { --bg: #12151b; --panel: #1b2029; --text: #e7eaf0; --sub: #a3abba; --line: #2c3340; --accent: #6d8ff0; --accent-text: #0d1117; color-scheme: dark; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif; }
 main { max-width: 960px; margin: 0 auto; padding: 24px 16px; }
 .head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin: 0 0 8px; }
 h1 { font-size: 22px; margin: 0; }
-.lang { display: inline-flex; flex-shrink: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-.lang button { font: inherit; font-size: 14px; color: inherit; background: var(--panel); border: 0; padding: 4px 12px; cursor: pointer; }
-.lang button + button { border-left: 1px solid var(--line); }
-.lang button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); font-weight: 600; }
+.switches { display: flex; flex-wrap: nowrap; flex-shrink: 0; align-items: center; gap: 8px; }
+.seg { display: inline-flex; flex-shrink: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { font: inherit; font-size: 14px; color: inherit; background: var(--panel); border: 0; padding: 4px 12px; cursor: pointer; white-space: nowrap; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); font-weight: 600; }
 p { color: var(--sub); margin: 0 0 16px; }
 .wrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
 table { width: 100%; border-collapse: collapse; }
@@ -29,9 +31,15 @@ td:first-child { white-space: nowrap; }
 <main>
 <div class="head">
   <h1 id="heading" data-count="__COUNT__">Things to clean up later (__COUNT__)</h1>
-  <div class="lang" id="lang" role="group" aria-label="Language">
-    <button type="button" data-lang="en" lang="en" aria-pressed="true">English</button>
-    <button type="button" data-lang="ja" lang="ja" aria-pressed="false">日本語</button>
+  <div class="switches">
+    <div class="seg" id="lang" role="group" aria-label="Language">
+      <button type="button" data-lang="en" lang="en" aria-pressed="true">English</button>
+      <button type="button" data-lang="ja" lang="ja" aria-pressed="false">日本語</button>
+    </div>
+    <div class="seg" id="theme" role="group" aria-label="Theme">
+      <button type="button" data-theme-choice="light" data-i18n="light" aria-pressed="false">Light</button>
+      <button type="button" data-theme-choice="dark" data-i18n="dark" aria-pressed="false">Dark</button>
+    </div>
   </div>
 </div>
 <p data-i18n="lead">Payment methods and other things the AI could not remove while deleting your accounts. Sign in to each service's site and remove them on its payment methods page.</p>
@@ -46,6 +54,7 @@ __ROWS__
 (function () {
   "use strict";
   var LANG_STORE = "account-cleanup-lang";
+  var THEME_STORE = "account-cleanup-theme";
   var I18N = {
     en: {
       title: "Things to clean up later",
@@ -54,7 +63,10 @@ __ROWS__
       colDate: "Recorded",
       colService: "Service",
       colLeft: "What's left",
-      langGroup: "Language"
+      langGroup: "Language",
+      themeGroup: "Theme",
+      light: "Light",
+      dark: "Dark"
     },
     ja: {
       title: "後で片付ける物",
@@ -63,7 +75,10 @@ __ROWS__
       colDate: "記録した日",
       colService: "サービス",
       colLeft: "残っている物",
-      langGroup: "言語"
+      langGroup: "言語",
+      themeGroup: "配色",
+      light: "明るい",
+      dark: "暗い"
     }
   };
   // Storage can throw (private windows, blocked site data). The page then just starts in English every time
@@ -75,6 +90,20 @@ __ROWS__
   }
   function saveLang(v) {
     try { localStorage.setItem(LANG_STORE, v); } catch (e) { /* not saved; the choice lasts until the page is closed */ }
+  }
+  // The theme follows the system until the user picks one, which is kept like the language
+  function loadTheme() {
+    var system = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    try {
+      var v = localStorage.getItem(THEME_STORE);
+      return v === "light" || v === "dark" ? v : system;
+    } catch (e) { return system; }
+  }
+  function setTheme(mode) {
+    document.documentElement.dataset.theme = mode;
+    Array.prototype.forEach.call(document.querySelectorAll("#theme button"), function (b) {
+      b.setAttribute("aria-pressed", b.getAttribute("data-theme-choice") === mode ? "true" : "false");
+    });
   }
   var lang = loadLang();
   var heading = document.getElementById("heading");
@@ -93,6 +122,7 @@ __ROWS__
     Array.prototype.forEach.call(group.querySelectorAll("button"), function (b) {
       b.setAttribute("aria-pressed", b.getAttribute("data-lang") === lang ? "true" : "false");
     });
+    document.getElementById("theme").setAttribute("aria-label", d.themeGroup);
   }
 
   Array.prototype.forEach.call(document.querySelectorAll("#lang button"), function (b) {
@@ -102,6 +132,14 @@ __ROWS__
       apply();
     });
   });
+  Array.prototype.forEach.call(document.querySelectorAll("#theme button"), function (b) {
+    b.addEventListener("click", function () {
+      var mode = b.getAttribute("data-theme-choice") === "dark" ? "dark" : "light";
+      setTheme(mode);
+      try { localStorage.setItem(THEME_STORE, mode); } catch (e) { /* not saved; the choice lasts until the page is closed */ }
+    });
+  });
+  setTheme(loadTheme());
   apply();
 })();
 </script>

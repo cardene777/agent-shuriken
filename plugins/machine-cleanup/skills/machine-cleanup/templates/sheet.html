@@ -13,15 +13,25 @@
   --trash: #8a5a00; --trash-bg: #fff4dc; --gone: #c8342b; --gone-bg: #fdecea; --run: #5b3fb5; --run-bg: #efeafd;
   --lock: #6b7280; --lock-bg: #f1f2f4; --go: #2f5bd3; --check: #8a5a00; --care: #c8342b;
   --c1: #2f5bd3; --c2: #2e9d8f; --c3: #d08a1c; --c4: #9b59d0; --c5: #d0506e; --c6: #5b7f1e; --c7: #7a5c3e; --c-other: #aab2c0; --c-free: #e3e7ee; --c-pick: #17357f;
+  color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #12151b; --panel: #1b2029; --soft: #232a36; --text: #e7eaf0; --sub: #a3abba; --line: #2c3340;
     --accent: #6d8ff0; --accent-text: #0d1117; --pick: #1f2a44; --rebuilt: #56d38a; --rebuilt-bg: #16301f;
     --trash: #e3b341; --trash-bg: #33290f; --gone: #ff7b72; --gone-bg: #3a1d1b; --run: #b9a6ff; --run-bg: #2a2342;
     --lock: #9aa3b2; --lock-bg: #232833; --go: #6d8ff0; --check: #e3b341; --care: #ff7b72;
     --c1: #6d8ff0; --c2: #4cc3b3; --c3: #e3b341; --c4: #b98ef0; --c5: #f0788f; --c6: #9cc95a; --c7: #c9a27e; --c-other: #5d6676; --c-free: #2c3340; --c-pick: #c9d6ff;
+    color-scheme: dark;
   }
+}
+:root[data-theme="dark"] {
+  --bg: #12151b; --panel: #1b2029; --soft: #232a36; --text: #e7eaf0; --sub: #a3abba; --line: #2c3340;
+  --accent: #6d8ff0; --accent-text: #0d1117; --pick: #1f2a44; --rebuilt: #56d38a; --rebuilt-bg: #16301f;
+  --trash: #e3b341; --trash-bg: #33290f; --gone: #ff7b72; --gone-bg: #3a1d1b; --run: #b9a6ff; --run-bg: #2a2342;
+  --lock: #9aa3b2; --lock-bg: #232833; --go: #6d8ff0; --check: #e3b341; --care: #ff7b72;
+  --c1: #6d8ff0; --c2: #4cc3b3; --c3: #e3b341; --c4: #b98ef0; --c5: #f0788f; --c6: #9cc95a; --c7: #c9a27e; --c-other: #5d6676; --c-free: #2c3340; --c-pick: #c9d6ff;
+  color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif; }
@@ -35,8 +45,9 @@ h1 { font-size: 24px; margin: 0; }
 .status::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--lock); }
 .status.on::before { background: var(--rebuilt); }
 .status.off::before { background: var(--gone); }
+.switches { display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-.seg button { background: var(--panel); border: 0; padding: 4px 12px; cursor: pointer; font-size: 14px; }
+.seg button { background: var(--panel); border: 0; padding: 4px 12px; cursor: pointer; font-size: 14px; white-space: nowrap; }
 .seg button + button { border-left: 1px solid var(--line); }
 .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); font-weight: 600; }
 .lead { margin: 6px 0 16px; color: var(--sub); }
@@ -96,7 +107,7 @@ h1 { font-size: 24px; margin: 0; }
 .anim .donut circle { animation: grow .8s ease-out both; }
 @keyframes grow { from { stroke-dasharray: 0 400; } }
 .mid { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; line-height: 1.25; }
-.mid small { color: var(--sub); font-size: 11px; }
+.mid small { color: var(--sub); font-size: 12px; }
 .mid b { font-size: 17px; }
 .legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; flex: 1 1 180px; min-width: 0; font-size: 13px; }
 .legend li { display: flex; align-items: center; gap: 8px; padding: 2px 6px; border-radius: 6px; }
@@ -116,7 +127,7 @@ h1 { font-size: 24px; margin: 0; }
 .anim .track i { animation: widen .8s ease-out both; }
 @keyframes widen { from { width: 0; } }
 .bars b { min-width: 64px; text-align: right; }
-@media (prefers-reduced-motion: reduce) { .anim .donut circle, .anim .track i { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .donut circle { transition: none; } .anim .donut circle, .anim .track i { animation: none; } }
 .lv { display: inline-block; font-size: 12px; font-weight: 700; }
 .lv-recommended { color: var(--go); } .lv-check { color: var(--check); } .lv-careful { color: var(--care); } .lv-inuse { color: var(--lock); }
 .det h2 { padding-right: 40px; overflow-wrap: anywhere; margin-bottom: 2px; }
@@ -157,9 +168,15 @@ h1 { font-size: 24px; margin: 0; }
     <button type="button" class="icon" id="help-open" data-i18n-aria="help" aria-label="About this page">?</button>
     <div class="right">
       <span class="status" id="status" data-i18n="statusWait">Checking the connection</span>
-      <div class="seg" id="lang" role="group" data-i18n-aria="langGroup" aria-label="Language">
-        <button type="button" data-lang="en" aria-pressed="true">English</button>
-        <button type="button" data-lang="ja" aria-pressed="false">日本語</button>
+      <div class="switches">
+        <div class="seg" id="lang" role="group" data-i18n-aria="langGroup" aria-label="Language">
+          <button type="button" data-lang="en" aria-pressed="true">English</button>
+          <button type="button" data-lang="ja" aria-pressed="false">日本語</button>
+        </div>
+        <div class="seg" id="theme" role="group" data-i18n-aria="themeGroup" aria-label="Theme">
+          <button type="button" data-theme-choice="light" data-i18n="light" aria-pressed="false">Light</button>
+          <button type="button" data-theme-choice="dark" data-i18n="dark" aria-pressed="false">Dark</button>
+        </div>
       </div>
     </div>
   </div>
@@ -234,6 +251,9 @@ h1 { font-size: 24px; margin: 0; }
     "title": "Free up this computer",
     "help": "About this page",
     "langGroup": "Language",
+    "themeGroup": "Theme",
+    "light": "Light",
+    "dark": "Dark",
     "statusWait": "Checking the connection",
     "statusOn": "Connected to the agent",
     "statusOff": "The agent is not waiting",
@@ -410,6 +430,9 @@ h1 { font-size: 24px; margin: 0; }
     "title": "このコンピューターを軽くする",
     "help": "このページについて",
     "langGroup": "言語",
+    "themeGroup": "配色",
+    "light": "明るい",
+    "dark": "暗い",
     "statusWait": "つながりを確かめています",
     "statusOn": "エージェントとつながっています",
     "statusOff": "エージェントが待っていません",
@@ -609,6 +632,9 @@ let tab = "overview";
 let animate = true;
 let online = null;
 try { const saved = localStorage.getItem("machine-cleanup-lang"); if (saved === "ja" || saved === "en") lang = saved; } catch (e) { /* storage may be blocked */ }
+// The theme follows the system until the reader picks one, which is kept like the language.
+let theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+try { const saved = localStorage.getItem("machine-cleanup-theme"); if (saved === "light" || saved === "dark") theme = saved; } catch (e) { /* storage may be blocked */ }
 
 function t(key, vars) {
   let s = (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key;
@@ -828,6 +854,11 @@ function itemsOf(key) {
   return DATA.items.filter(function (it) { return cats.indexOf(it.category) >= 0; });
 }
 
+function setTheme(mode) {
+  theme = mode;
+  document.documentElement.dataset.theme = mode;
+  document.querySelectorAll("#theme button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.themeChoice === mode)); });
+}
 function applyLang() {
   document.documentElement.lang = lang;
   document.querySelectorAll("[data-i18n]").forEach(function (el) { el.textContent = t(el.getAttribute("data-i18n")); });
@@ -1198,6 +1229,12 @@ document.querySelectorAll("#lang button").forEach(function (b) {
     applyLang();
   });
 });
+document.querySelectorAll("#theme button").forEach(function (b) {
+  b.addEventListener("click", function () {
+    setTheme(b.dataset.themeChoice);
+    try { localStorage.setItem("machine-cleanup-theme", theme); } catch (e) { /* storage may be blocked */ }
+  });
+});
 document.getElementById("help-open").addEventListener("click", function () { openModal("help"); });
 document.querySelectorAll("[data-close]").forEach(function (b) { b.addEventListener("click", closeModals); });
 document.querySelectorAll(".modal").forEach(function (m) { m.addEventListener("click", function (ev) { if (ev.target === m && m.id !== "finished") closeModals(); }); });
@@ -1208,6 +1245,7 @@ document.getElementById("copy").addEventListener("click", copySelection);
 document.getElementById("clear").addEventListener("click", function () { itemsOf(tab).forEach(function (it) { picked.delete(it.id); }); render(); });
 document.getElementById("search").addEventListener("input", function (ev) { view.query = ev.target.value; render(); });
 document.getElementById("sort").addEventListener("change", function (ev) { view.sort = ev.target.value; render(); });
+setTheme(theme);
 applyLang();
 ping();
 setInterval(ping, 4000);

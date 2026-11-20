@@ -47,6 +47,10 @@ In the deployment's simulation, check each transaction's gas limit against the c
 
 ## 6. Report and clean up
 
+When the `page-design` skill is installed, write the report in the `structure` format of the `page-design` skill: open the `page-design` skill by name and read the file it names for `structure`.
+If the `musubi` command is available, run `musubi check` before reading, and stop if it fails.
+If the `page-design` skill is not installed, go on without the `structure` of `page-design`.
+
 Report each finding with the contract, the script's line, and what to do.
 For whether an ERC or EIP is final or live, use the evm-standards skill.
 Fixing the contracts belongs to the solidity-code skill, and deploying them to the contract-deploy skill.

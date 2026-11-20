@@ -101,6 +101,7 @@ acme/shop
 | `python3` | 常に |
 | `git` | 常に |
 | `gh` | 開いているIssueとプルリクエストを数える時に、GitHubにサインインした状態で使います。無ければその列が`?`になり、ほかはそのまま動きます |
+| `musubi`のコマンド | 無くても動きます。入っていれば、エージェントは`page-design`の書式を読む前に`musubi check`を回します |
 
 ## 読む物と動かす物と送る物
 
@@ -111,6 +112,7 @@ acme/shop
 - GitHubのリポジトリごとに`gh issue list`と`gh pr list`を1回ずつ動かします。あなた自身の`gh`のサインインで、リポジトリの名前をGitHubに送ります
 - リポジトリ、ブランチ、worktree、Issueは一切変えません
 - 保存したフォルダだけを`~/.local/share/repo-progress/roots`に置き、あなただけが読めるようにします。消すまで残ります
+- `skills/repo-progress/musubi.json`は、`repo-progress`が報告の順の書式`page-design/structure`に、`"optional": true`の任意の準拠で従うことをmusubiで宣言します。エージェントは`page-design`が入っている時だけ書式を読み、入っていなければ自分の順で報告します。ほかのプラグインからはこれ以外を読みません
 
 ## ライセンス
 

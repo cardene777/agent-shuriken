@@ -15,6 +15,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - A Projects tab lists git projects with no commit or checkout for 30 days, nothing uncommitted, and every commit on the remote as of the last fetch. Picked projects move to the Trash, and restore puts them back
 - The Apps tab also lists, on macOS, files that removed apps left in the eight Library folders, one row per bundle id, when no installed or running app is from the same company and the newest file is older than 30 days. They move to the Trash
 - A Tools and models tab lists versions kept by nvm, fnm, pyenv, rbenv, asdf, mise, and rustup that are neither the default nor named by a project's version file, and models downloaded by Ollama, Hugging Face, and LM Studio. Tool versions are deleted, with `rustup toolchain uninstall` for Rust. Ollama models are removed with `ollama rm` while Ollama runs, and otherwise by deleting the manifest and the blobs no other model uses
+- `musubi.json` follows the `structure` and `look` formats, the `sheet` page type, and `verify` of page-design in the design-formats plugin through musubi, as optional follows. When page-design is installed, the agent reads them and runs page-design's verify on `templates/sheet.html`; when the `musubi` command is installed, it runs `musubi check` first. Without design-formats, the page works as before
+- The page's header has a Light and Dark switch next to the language switch. It follows the system setting until you choose, and keeps your choice in the browser's local storage under `machine-cleanup-theme`
 
 ### Changed
 

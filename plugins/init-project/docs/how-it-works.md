@@ -157,6 +157,16 @@ Inside a git repository, a line is added only when `git check-ignore --no-index`
 Outside a git repository, a line is added when the same line is not already there.
 An env file that git already tracks stays tracked; the plan names it and suggests rotating its keys, since the values are in the history.
 
+## The order of the report
+
+When the page-design skill of the design-formats plugin is installed, the agent writes its report in the order of page-design's `structure` format: the result first, then what was written and what was skipped with the reasons, values that could not be measured written as not measured, and your steps last, such as the 1Password commands to run.
+The format is the content `page-design/structure`, which `skills/init-project/musubi.json` follows as an optional follow: the version range `^1.0.0`, the fingerprint of the format at the last check, and `"optional": true`.
+
+- When the `musubi` command is installed, the agent runs `musubi check` before reading the format and stops if it fails
+- When design-formats is not installed, `musubi check` skips the follow with a warning, and the agent reports in its own order
+- When the format changes, `musubi check` refuses init-project until its fingerprint is checked again
+- Apart from portman's commands, it reads nothing else from other plugins
+
 ## What it keeps
 
 | What | Where | Until |

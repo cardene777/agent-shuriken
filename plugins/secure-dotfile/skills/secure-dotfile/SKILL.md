@@ -70,6 +70,10 @@ To show what would change without storing or editing anything, add `--dry-run`.
 
 ## 4. Report the result
 
+When the `page-design` skill is installed, write the report in the `structure` format of the `page-design` skill: open the `page-design` skill by name and read the file it names for `structure`.
+If the `musubi` command is available, run `musubi check` before reading, and stop if it fails.
+If the `page-design` skill is not installed, go on without the `structure` of `page-design`.
+
 From the output, tell the user these things.
 
 - Which items were moved, and which were skipped and why

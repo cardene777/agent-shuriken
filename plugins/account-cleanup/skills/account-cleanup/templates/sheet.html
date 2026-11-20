@@ -11,13 +11,21 @@
   --bg: #f6f7f9; --panel: #ffffff; --soft: #eef1f6; --text: #1d2330; --sub: #5b6475; --line: #dfe3ea;
   --accent: #2f5bd3; --accent-text: #ffffff; --ok: #c8342b; --ok-bg: #fdecea; --ng: #2e7d4f; --ng-bg: #e7f5ec;
   --easy: #2e7d4f; --medium: #9a6700; --hard: #c25e00; --impossible: #c8342b; --unknown: #6b7280; --prev: #8a5a00; --prev-bg: #fff4dc;
+  color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #12151b; --panel: #1b2029; --soft: #232a36; --text: #e7eaf0; --sub: #a3abba; --line: #2c3340;
     --accent: #6d8ff0; --accent-text: #0d1117; --ok: #ff7b72; --ok-bg: #3a1d1b; --ng: #56d38a; --ng-bg: #16301f;
     --easy: #56d38a; --medium: #e3b341; --hard: #f0883e; --impossible: #ff7b72; --unknown: #9aa3b2; --prev: #e3b341; --prev-bg: #33290f;
+    color-scheme: dark;
   }
+}
+:root[data-theme="dark"] {
+  --bg: #12151b; --panel: #1b2029; --soft: #232a36; --text: #e7eaf0; --sub: #a3abba; --line: #2c3340;
+  --accent: #6d8ff0; --accent-text: #0d1117; --ok: #ff7b72; --ok-bg: #3a1d1b; --ng: #56d38a; --ng-bg: #16301f;
+  --easy: #56d38a; --medium: #e3b341; --hard: #f0883e; --impossible: #ff7b72; --unknown: #9aa3b2; --prev: #e3b341; --prev-bg: #33290f;
+  color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif; }
@@ -26,9 +34,9 @@ main { max-width: 1280px; margin: 0 auto; padding: 24px 16px 110px; }
 .head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 h1 { font-size: 24px; margin: 0; }
 .icon { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); font-weight: 700; cursor: pointer; }
-.seg.lang { margin-left: auto; flex-shrink: 0; }
-.seg.lang button { font-size: 14px; padding: 4px 12px; }
-.seg.lang button[aria-pressed="true"] { font-weight: 600; }
+.switches { margin-left: auto; flex-shrink: 0; display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; }
+.switches .seg button { font-size: 14px; padding: 4px 12px; white-space: nowrap; }
+.switches .seg button[aria-pressed="true"] { font-weight: 600; }
 .lead { margin: 6px 0 12px; }
 .steps { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; padding: 0; list-style: none; }
 .steps li { display: flex; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 6px 12px; }
@@ -114,9 +122,15 @@ dialog .close { display: block; margin: 16px 0 0 auto; background: var(--accent)
   <div class="head">
     <h1 data-i18n="title">Accounts you may no longer use</h1>
     <button type="button" class="icon" id="help-open" data-i18n-aria="helpOpen" aria-label="About this page">?</button>
-    <div class="seg lang" id="lang" role="group" data-i18n-aria="langGroup" aria-label="Language">
-      <button type="button" data-lang="en" lang="en" aria-pressed="true">English</button>
-      <button type="button" data-lang="ja" lang="ja" aria-pressed="false">日本語</button>
+    <div class="switches">
+      <div class="seg lang" id="lang" role="group" data-i18n-aria="langGroup" aria-label="Language">
+        <button type="button" data-lang="en" lang="en" aria-pressed="true">English</button>
+        <button type="button" data-lang="ja" lang="ja" aria-pressed="false">日本語</button>
+      </div>
+      <div class="seg theme" id="theme" role="group" data-i18n-aria="themeGroup" aria-label="Theme">
+        <button type="button" data-theme-choice="light" data-i18n="light" aria-pressed="false">Light</button>
+        <button type="button" data-theme-choice="dark" data-i18n="dark" aria-pressed="false">Dark</button>
+      </div>
     </div>
   </div>
   <p class="lead" data-i18n="lead">These are web services you have signed up for. Pressing buttons on this page does not delete anything.</p>
@@ -188,6 +202,7 @@ __DATA__
   var STORE = "account-cleanup-choice";
   var MEMO_STORE = "account-cleanup-memo";
   var LANG_STORE = "account-cleanup-lang";
+  var THEME_STORE = "account-cleanup-theme";
   var data = JSON.parse(document.getElementById("data").textContent) || [];
   var picks = {};
   try { picks = JSON.parse(localStorage.getItem(STORE) || "{}") || {}; } catch (e) { picks = {}; }
@@ -195,6 +210,12 @@ __DATA__
   try { memos = JSON.parse(localStorage.getItem(MEMO_STORE) || "{}") || {}; } catch (e) { memos = {}; }
   var lang = "en";
   try { lang = localStorage.getItem(LANG_STORE) === "ja" ? "ja" : "en"; } catch (e) { lang = "en"; }
+  // The theme follows the system until the user picks one, which is kept like the language
+  var theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  try {
+    var savedTheme = localStorage.getItem(THEME_STORE);
+    if (savedTheme === "light" || savedTheme === "dark") theme = savedTheme;
+  } catch (e) { /* not saved; the page follows the system */ }
   var narrow = window.matchMedia("(max-width: 860px)");
 
   // Every UI string, per language. The text copied by "Copy OK items" never comes from here,
@@ -204,6 +225,9 @@ __DATA__
       title: "Accounts you may no longer use",
       helpOpen: "About this page",
       langGroup: "Language",
+      themeGroup: "Theme",
+      light: "Light",
+      dark: "Dark",
       lead: "These are web services you have signed up for. Pressing buttons on this page does not delete anything.",
       step1: "Press OK to delete, Keep to keep. If you are not sure, leave it.",
       step2: "Write anything the AI should know in the memo in the details panel",
@@ -290,6 +314,9 @@ __DATA__
       title: "使っていないアカウントの候補",
       helpOpen: "この画面の説明",
       langGroup: "言語",
+      themeGroup: "配色",
+      light: "明るい",
+      dark: "暗い",
       lead: "あなたが登録したことのあるWebサービスの一覧です。この画面で押しただけでは、何も消えません。",
       step1: "消してよければOK、残すならダメ。分からなければ押さない",
       step2: "気になることは詳しい欄のメモに書く",
@@ -654,6 +681,14 @@ __DATA__
     renderPager("pager-bottom", pages);
   }
 
+  function setTheme(mode) {
+    theme = mode;
+    document.documentElement.dataset.theme = mode;
+    Array.prototype.forEach.call(document.querySelectorAll("#theme button"), function (b) {
+      b.setAttribute("aria-pressed", b.getAttribute("data-theme-choice") === mode ? "true" : "false");
+    });
+  }
+
   // Put the current language's text into the fixed parts of the page
   function applyLang() {
     document.documentElement.lang = lang;
@@ -724,7 +759,14 @@ __DATA__
       render();
     });
   });
+  Array.prototype.forEach.call(document.querySelectorAll("#theme button"), function (b) {
+    b.addEventListener("click", function () {
+      setTheme(b.getAttribute("data-theme-choice") === "dark" ? "dark" : "light");
+      try { localStorage.setItem(THEME_STORE, theme); } catch (e) { /* not saved; the choice lasts while the page is open */ }
+    });
+  });
   narrow.addEventListener("change", render);
+  setTheme(theme);
   applyLang();
   render();
 })();

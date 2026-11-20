@@ -46,6 +46,7 @@ In GitHub Copilot CLI, write `/machine-cleanup` in your request, and in Gemini C
 ![The Processes tab grouped into Recommended, Check first, Careful, and In use, with the details of a Vite dev server open: its reason, memory, CPU, start time, working folder, command, and a Pick button](assets/screenshot-details.png)
 
 The page opens in English and has an English / 日本語 switch in its header.
+Next to it, a Light and Dark switch changes the colors. The colors follow your system setting until you choose, and your browser keeps the choice in its local storage under `machine-cleanup-theme`.
 When the agent stopped waiting for the page, press **Copy the selection** and paste the text into the chat.
 
 ## What it finds
@@ -83,6 +84,8 @@ When the agent stopped waiting for the page, press **Copy the selection** and pa
 | npm, pnpm, Yarn, Bun, pip, uv, Homebrew, Go, CocoaPods | Optional. When one is installed, its own clean command frees its cache. Without it, the cache folder is deleted |
 | `flatpak` | Optional, on Linux, to list Flatpak apps |
 | A web browser | To pick on the page |
+| The design-formats plugin | Optional. When its page-design skill is installed, the agent checks the page's template with its verify |
+| The `musubi` command | Optional. When it is installed, the agent runs `musubi check` before reading the page-design formats |
 
 ## What it reads, runs, and sends
 
@@ -96,6 +99,7 @@ In short:
 - It changes only what you picked, after checking it again. It never asks for or uses an administrator password
 - It hides values of command-line flags and environment variables whose names suggest a token, secret, password, or API key before a process command reaches the page or a file
 - It keeps the scan, the page session, and what `restore` needs in `~/.local/share/machine-cleanup/`, readable only by you. `finish` removes everything but the restore records
+- `skills/machine-cleanup/musubi.json` declares through musubi that machine-cleanup follows the `structure` and `look` formats, the `sheet` page type, and `verify` of page-design, in the design-formats plugin, as optional follows with `"optional": true`. The agent reads them only when page-design is installed, runs page-design's verify on the page's template, and otherwise uses the skill's own template. It reads nothing else from other plugins
 
 ## License
 

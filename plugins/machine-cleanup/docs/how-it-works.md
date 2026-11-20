@@ -149,6 +149,22 @@ When the server accepts a selection, it prints `machine-cleanup:select <id> <id>
 When it waited `--wait` seconds (540 by default) without one, it ends with exit code 4, and the open page shows that the agent is not waiting and offers Copy the selection, which copies the same line.
 The line does not depend on the page's language.
 
+## The page's template
+
+`serve` builds the page in memory from the template of the skill. Paths in the table are relative to `skills/machine-cleanup/`.
+
+| File | What it holds |
+|---|---|
+| `templates/sheet.html` | The page, with its styles, its English and Japanese words, and its script inside. `serve` builds the scan into it |
+| `musubi.json` | The optional follows of `page-design/structure`, `page-design/look`, `page-design/sheet`, and `page-design/verify` through musubi: for each, the version range `^1.0.0`, the fingerprint of the content at the last check, and `"optional": true` |
+
+The page's header has the English / 日本語 switch and, next to it, a Light and Dark switch.
+The colors follow the system setting until you choose, and the browser keeps both choices in its local storage under `machine-cleanup-lang` and `machine-cleanup-theme`. Nothing is sent anywhere.
+
+- When the page-design skill of the design-formats plugin is installed, the agent reads its `structure` and `look` formats and its `sheet` page type, which `musubi.json` follows as optional follows. Since `serve` builds the page in memory, the agent runs page-design's `verify` on `templates/sheet.html` and tells you about any line it names. It reads nothing else from other plugins
+- When the `musubi` command is installed, the agent runs `musubi check` before reading them and stops if it fails; the check skips the follows with a warning when design-formats is not installed. When a followed content changes, `musubi check` refuses machine-cleanup until its fingerprint is checked again
+- Without page-design, the page comes from `templates/sheet.html` alone. Nothing in the plugin requires design-formats
+
 ## How each item is freed
 
 `apply` takes that line, or the ids alone.

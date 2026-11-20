@@ -100,6 +100,7 @@ A repository counts as yours when it has a commit by your `git config --global u
 | `python3` | Always |
 | `git` | Always |
 | `gh` | For open issues and pull requests, signed in to GitHub. Without it those columns show `?` and everything else still works |
+| The `musubi` command | Optional. When it is installed, the agent runs `musubi check` before reading the page-design format |
 
 ## What it reads, runs, and sends
 
@@ -110,6 +111,7 @@ In short:
 - It runs `gh issue list` and `gh pr list` once per GitHub repository, which sends the repository names to GitHub through your own `gh` sign-in
 - It never changes a repository, a branch, a worktree, or an issue
 - It keeps only the folders you save, in `~/.local/share/repo-progress/roots`, readable only by you, until you delete it
+- `skills/repo-progress/musubi.json` declares through musubi that repo-progress follows `page-design/structure`, the order of a report, as an optional follow with `"optional": true`. The agent reads the format only when page-design is installed, and reports in its own order otherwise. It reads nothing else from other plugins
 
 ## License
 
