@@ -125,6 +125,39 @@ templates_pass() {
 }
 check "verify accepts every page type template" templates_pass
 
+report_layout() {
+  has "$LOOK" "Keep facts about the page apart from the results" "Show each value once" \
+    "no paging when the list fits on one page" "Give each row its value as a number" || return 1
+  python3 - "$SKILL_DIR/templates/report.html" <<'PYEOF'
+import re, sys
+text = open(sys.argv[1], encoding="utf-8").read()
+en = re.search(r"\n  en: \{(.*?)\n  \},", text, re.S).group(1)
+
+def label(key):
+    found = re.search(r"\b" + key + r': "([^"]+)"', en)
+    return found.group(1) if found else key
+
+def labels(name):
+    found = re.search(r"\n  " + name + r": \[(.*?)\],\n", text, re.S)
+    return {label(k) for k in re.findall(r'\["(\w+)",', found.group(1))} if found else set()
+
+problems = []
+shared = labels("facts") & labels("stats")
+if shared:
+    problems.append("facts and result numbers both show " + ", ".join(sorted(shared)))
+if 'class="bar"' in text:
+    problems.append("rows draw a bar without a number")
+if 'class="value"' not in text:
+    problems.append("rows do not show their value")
+if "pages > 1 ?" not in text:
+    problems.append("a list that fits on one page still shows the pager")
+for problem in problems:
+    print("      " + problem)
+sys.exit(1 if problems else 0)
+PYEOF
+}
+check "the report template keeps facts apart from results, shows row values, and hides a one-page pager" report_layout
+
 copy_back() {
   local t f
   for t in sheet choice; do

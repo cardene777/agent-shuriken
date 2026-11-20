@@ -21,6 +21,8 @@ Facts about the page, such as the store, the period, counts, and when it was gen
 - HTML: a `<dl>` grid or a `<table>` of label and value cells under the title
 - Markdown: a table with an Item and a Value column
 - A sentence such as "Main street store, 2026-11-10 to 2026-11-16, 24 products, generated 2026-11-17" is the shape to avoid
+- Keep facts about the page apart from the results. Facts sit on one quiet line under the title, and the result numbers sit on one band of large numbers below it
+- Show each value once. A number that is a result goes on the band, not also among the facts
 
 ## Joining items
 
@@ -56,7 +58,8 @@ A list shows the summary, and the details of one item sit beside it.
 
 - HTML: pressing a row shows its details in a panel to the right on wide screens, and under the list on phones
 - Show lists as cards or tables, and split long lists by category into tabs
-- Show about 50 rows per page, with the paging centered above and below the list
+- Show about 50 rows per page, with the paging centered above and below the list, and no paging when the list fits on one page
+- Give each row its value as a number. A bar without a number does not say what it measures
 - Let people choose by pressing a row or a card, not by aiming at a small checkbox
 - Keep a way back to the whole list
 
