@@ -25,11 +25,7 @@ JA_ALLOWED=(
   plugins/account-cleanup/skills/account-cleanup/scripts/browser.mjs
   plugins/account-cleanup/skills/account-cleanup/scripts/connections-guide.sh
   plugins/account-cleanup/skills/account-cleanup/scripts/subscriptions-guide.sh
-  plugins/diagram-explainer/skills/diagram-explainer/assets/charts.js
-  plugins/diagram-explainer/skills/diagram-explainer/assets/doc.js
-  plugins/diagram-explainer/skills/diagram-explainer/assets/print.js
-  plugins/diagram-explainer/skills/diagram-explainer/scripts/render.py
-  plugins/diagram-explainer/skills/diagram-explainer/scripts/ladder.py
+  plugins/diagram-explainer/skills/diagram-explainer/assets/ui.json
   plugins/diagram-explainer/skills/diagram-explainer/scripts/check.py
   plugins/diagram-explainer/skills/diagram-explainer/scripts/figure.py
   plugins/diagram-explainer/skills/diagram-explainer/references/prose-words.txt

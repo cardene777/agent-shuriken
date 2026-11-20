@@ -16,8 +16,9 @@
   var many = pages.length > 1;
   var chosen = null;
 
-  // Interface text comes from the dictionary in doc.js, which is loaded first. The `data-ui`
-  // marks let doc.js rewrite the button and the menu when the reader switches the language.
+  // Interface text comes from the dictionary of the page (assets/ui.json), through doc.js, which
+  // is loaded first. The `data-ui` marks let doc.js rewrite the button and the menu when the
+  // reader switches the language.
   var say = window.dxUi.say;
 
   function all(sel, el) { return [].slice.call((el || document).querySelectorAll(sel)); }
