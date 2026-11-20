@@ -41,13 +41,13 @@ The template numbers the sections, so do not number the headings yourself.
 ### Candidates (`#candidates`)
 
 - A table of every candidate with its type, license or pricing model, and status
-- One `card` per candidate: what it is in three or four sentences, who uses it, one strength and one weakness, and a `tag` for its type
+- One `card` per candidate, with what it is in three or four sentences, who uses it, one strength, one weakness, and a `tag` for its type
 
 ### One section per axis (`.axis`)
 
 - A table that compares every candidate on the axis, with a score and a rationale
 - A `bars` chart when the axis has numbers to compare
-- A `note` under each table or chart saying where the data comes from and under which conditions it was measured
+- A `note` under each table or chart saying where the data comes from and under which conditions it was measured, written as [Figures in text](#figures-in-text) describes
 - Keep measurements taken under the same conditions apart from each vendor's own figures
 
 ### Risks (`#risks`)
@@ -57,9 +57,9 @@ The template numbers the sections, so do not number the headings yourself.
 
 ### Ranking (`#ranking`)
 
-- A scorecard table: one row per candidate, one score per axis, and an overall comment in the rationale column
-- The recommendation: the first choice, an alternative, and a fallback, each with the conditions under which it is the right pick
-- Recommendations by use case when different users would choose differently
+- A scorecard table with one row per candidate, one score per axis, and an overall comment in the rationale column
+- A [recommendation](#recommendation) table with the first choice, an alternative, and a fallback, each with the conditions under which it is the right pick
+- A table of recommendations by use case, when different users would choose differently
 
 ### Sources (`#sources`)
 
@@ -72,12 +72,23 @@ Every table that contains a score or a risk label has a rationale column, `<th c
 In the scorecard, the same column holds the overall comment.
 When no comparable figure exists for a candidate on an axis, write "Not scored" in the score cell, in the report's language, and say why in the rationale.
 
-- Put numbers first: prices, throughput, availability, release dates, counts
+- Lead with the figures, such as a price, a throughput, an availability, a release date, or a count
 - Place the candidate against the others, such as "half the price of B" or "the most of the five"
 - Say why it is not one grade higher, such as "A, not S, because the SLA is not published"
 - Keep it to one or two sentences, about 15 to 30 words, so the table stays readable
+- Write it as [Figures in text](#figures-in-text) describes, and give figures the reader compares across candidates their own `num` columns
 
-An example of a rationale: "FIPS 140-3 Level 3 certified, supports secp256k1 natively, and offers a 99.999% SLA. Keys cannot be exported, which keeps it from S."
+This rationale leads with its figures and says what keeps it from S. "Certified to FIPS 140-3 Level 3 and supports secp256k1 natively, with a 99.999% SLA. Keys cannot be exported, which keeps it from S."
+
+## Figures in text
+
+Every table cell, list item, and paragraph of the report keeps its facts apart in a way the reader can scan.
+
+- Let at most two of the parts that commas divide hold a figure. Count across the whole cell or paragraph, because a period does not start a new count
+- Count citations such as [3], dates, and version numbers as figures
+- The Japanese comma, and a slash, a bar, or a middle dot with a space on each side, divide parts as a comma does
+- Join a third fact with "and", or move the figures to their own table columns
+- Give a label its own table cell, heading, or `<dt>`, with its value in the next cell, under the heading, or in the `<dd>`, so that no line pairs a label and a value with a colon or `=`
 
 ## Components
 
@@ -121,7 +132,7 @@ The tag classes `t1` to `t5` give up to five types their own color.
 <table>
   <thead><tr><th>Candidate</th><th class="num">Price per month</th><th class="center">Score</th><th class="rationale">Rationale</th></tr></thead>
   <tbody>
-    <tr><td>Name</td><td class="num">$20</td><td class="center"><span class="score a">A</span></td><td class="rationale">Why it gets this score.</td></tr>
+    <tr><td>Name</td><td class="num">$1,200</td><td class="center"><span class="score a">A</span></td><td class="rationale">Certified to FIPS 140-3 Level 3 and supports secp256k1 natively, with a 99.999% SLA. Keys cannot be exported, which keeps it from S.</td></tr>
   </tbody>
 </table>
 </div>
@@ -167,6 +178,36 @@ Add a `legend` under the first table that uses scores, with the labels in the re
 
 Set each width as the value divided by the largest value in the chart.
 Use `muted` for a candidate whose value was not disclosed, with a width of 0%.
+
+### Recommendation
+
+```html
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Recommendation</th><th>Candidate</th><th>When it is the right pick</th></tr></thead>
+  <tbody>
+    <tr><td>First choice</td><td>Name</td><td>The conditions under which it is the best pick.</td></tr>
+    <tr><td>Alternative</td><td>Name</td><td>The conditions under which it beats the first choice.</td></tr>
+    <tr><td>Fallback</td><td>Name</td><td>The conditions under which the other two cannot be used.</td></tr>
+  </tbody>
+</table>
+</div>
+```
+
+When different users would choose differently, add the recommendations by use case under it.
+
+```html
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Use case</th><th>Candidate</th><th>Why</th></tr></thead>
+  <tbody>
+    <tr><td>A site with thousands of pages</td><td>Name</td><td>Why it fits this use case, with its figure and source [3].</td></tr>
+  </tbody>
+</table>
+</div>
+```
+
+Write the headings and the first column in the report's language, and keep each candidate in its own cell.
 
 ### Sources
 
