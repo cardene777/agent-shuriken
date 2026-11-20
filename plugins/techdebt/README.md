@@ -68,6 +68,7 @@ Start here
 The ranking goes on to 20 files, and the last two lines give the folders of the data and the report.
 
 The report has a tab for the ranking and one per measure, and switches between English and Japanese.
+Its header has a Light and Dark switch next to the language switch. The colors follow your system setting until you choose, and your browser keeps the choice in its local storage under `techdebt-theme`.
 Unused dependencies are found without knip by searching for each name in imports, config files, and `scripts`, so that count is approximate. When knip is installed, its findings are used instead.
 Deprecated calls are listed by tools that are already installed: ruff with its deprecation rules, semgrep with the project's own rule files and `--metrics off`, and ESLint when its config turns on a deprecation rule. semgrep findings of security rules are left out.
 
@@ -81,6 +82,8 @@ Deprecated calls are listed by tools that are already installed: ruff with its d
 | `ruff` | Optional. Used when installed in `.venv/bin` or on `PATH` |
 | `semgrep` | Optional. Used when installed in `.venv/bin` or on `PATH` and the project has its own rule files (`.semgrep.yml`, `.semgrep.yaml`, or `.semgrep/`) |
 | `eslint` | Optional. Used when installed in the project's `node_modules/.bin` and its config turns on a deprecation rule |
+| The design-formats plugin | Optional. When its page-design skill is installed, the agent reads its formats and runs its verify on the report page the script writes |
+| The `musubi` command | Optional. When it is installed, the agent runs `musubi check` before reading the page-design formats |
 
 ## What it reads, runs, and sends
 
@@ -94,6 +97,7 @@ In short:
 - It connects to nothing on the network
 - It keeps `scan.json`, the agent's notes, and `report.html` in `~/.local/share/techdebt/<project>/`, readable only by you, until you delete them
 - It keeps up to 200 characters of each marker line, with text that looks like a key, a token, or a password replaced with `***` and your home folder with `~`
+- `skills/techdebt/musubi.json` declares through musubi that techdebt follows the `structure` and `look` formats, the `report` page type, and `verify` of page-design, in the design-formats plugin, as optional follows with `"optional": true`. The agent reads them only when page-design is installed, runs page-design's verify on the finished report, and otherwise uses the skill's own template. It reads nothing else from other plugins
 
 ## License
 

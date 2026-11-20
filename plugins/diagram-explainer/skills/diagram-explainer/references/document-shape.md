@@ -47,7 +47,7 @@ Name what the subject actually defines (requests, responses, states, orders) ins
 
 | Field | Required | Meaning |
 |---|---|---|
-| `lang` | no | `en` (default) or `ja`. Sets `<html lang>`, the interface text (contents button, labels, date, PDF menu, chart units), and the language-specific checks |
+| `lang` | no | `en` (default) or `ja`. Sets `<html lang>`, the date, the language-specific checks, and the interface language the page starts in (contents button, labels, PDF menu, chart units) |
 | `title` | yes | Document title |
 | `lead` | yes | One sentence under the title |
 | `date` | no | Date shown in the header or above the contents list. Defaults to the build date (`As of November 12, 2026`, or the Japanese form in Japanese documents) |
@@ -62,15 +62,19 @@ Ids start with a letter and use letters, digits, `-`, and `_`; every id in a doc
 `render.py` produces this shape (single page shown). Write the same shape when editing by hand.
 
 ```html
-<aside class="doc-side" id="doc-side" aria-label="Contents">
+<aside class="doc-side" id="doc-side" data-ui-label="contents" aria-label="Contents">
   <p class="doc-brand">Document title</p>
   <p class="doc-date">As of November 12, 2026</p>
-  <nav class="doc-toc" data-page="a" aria-label="Document title contents">
+  <div class="doc-ctrl">
+    <div class="doc-seg" role="group" data-ui-label="language" aria-label="Language"><button type="button" data-lang="en" lang="en">English</button><button type="button" data-lang="ja" lang="ja">日本語</button></div>
+    <div class="doc-seg" role="group" data-ui-label="theme" aria-label="Light or dark"><button type="button" data-theme-choice="light" ...><svg>...</svg></button><button type="button" data-theme-choice="dark" ...><svg>...</svg></button></div>
+  </div>
+  <nav class="doc-toc" data-page="a" data-ui-label="pageContents" data-ui-name="First page" aria-label="First page contents">
     <button type="button" data-sec="a-s1">First section</button>
     <button type="button" data-sec="a-s2">Second section</button>
   </nav>
 </aside>
-<div class="doc-mbar"><button type="button" aria-controls="doc-side" aria-expanded="false">☰ Contents</button><span class="doc-here"></span><span class="doc-count"></span></div>
+<div class="doc-mbar"><button type="button" data-ui="contents" data-ui-icon="☰" aria-controls="doc-side" aria-expanded="false">☰ Contents</button><span class="doc-here"></span><span class="doc-count"></span></div>
 <main class="doc-main">
 <div class="doc-page" data-page="a">
 <section class="doc-sec" id="a-s1" data-name="First section">
@@ -86,10 +90,12 @@ Ids start with a letter and use letters, digits, `-`, and `_`; every id in a doc
   ...
 </section>
 </div>
-<div class="doc-step"><button type="button" data-step="-1">Previous section</button><span class="doc-count"></span><button type="button" data-step="1">Next section</button></div>
+<div class="doc-step"><button type="button" data-ui="prev" data-step="-1">Previous section</button><span class="doc-count"></span><button type="button" data-ui="next" data-step="1">Next section</button></div>
 </main>
 <div class="doc-scrim"></div>
 ```
+
+With two or more pages the switches (`div.doc-ctrl`) sit in the header instead, and on narrow screens `assets/doc.js` moves them into the top bar.
 
 The left contents list switches sections; only the chosen section is shown.
 Each section explains its topic fully in prose; do not cut text to fit one screen.
@@ -182,13 +188,23 @@ For boxes that differ by fill, give the swatch a fill instead of a border, for e
 Collapse only long supporting material.
 If one collapsed block would span several sub-headings, write it as normal text instead.
 
+## Language and light or dark
+
+Two switches sit side by side in the header (above the contents list in a single-page document).
+The language switch (`English`, `日本語`) changes only the interface text: the contents button and labels, the previous and next buttons, the PDF menu, and chart units.
+The document's own text and `<html lang>` stay in the language it was written in.
+The light and dark switch changes the colors.
+The page starts in the document's language and in the system's light or dark setting, and the browser remembers the reader's choices (`localStorage`), when it allows storage.
+The interface words live in one dictionary, `TEXT` in `assets/doc.js`; elements marked with `data-ui`, `data-ui-label`, or `data-ui-title` take their words from it.
+
 ## Colors
 
-The page uses a light color scheme only (`assets/doc.css`); there is no dark-mode variant.
-Chart colors are named in the chart spec (`gray`, `blue`, `orange`, `violet`, `violet2`, `green`, `red`) or given as color values.
+Colors are tokens in `assets/doc.css`: light values on `:root`, dark values for the system's dark setting and for the reader's dark choice, and the light values again on paper.
+Chart colors are named in the chart spec (`gray`, `blue`, `orange`, `violet`, `violet2`, `green`, `red`) or given as color values; the named colors have light and dark values, other values stay as given in both.
 Step ladders use `--edge` (plain), `--edge-emphasis` (emphasis), `--ink` (strong), and `--edge-dashed` (lines going back), with defaults in `assets/ladder.css`.
 
 Every color variable in `assets/doc.css` can be used in `html` blocks.
+Use the variables rather than fixed colors, so the figure stays readable in dark.
 
 | Variables | Use |
 |---|---|
@@ -204,7 +220,7 @@ Every color variable in `assets/doc.css` can be used in `html` blocks.
 
 ## Print
 
-On paper the header and contents list are hidden, every section is printed in order, and each section starts a new page (`assets/print.css`).
+On paper the header, contents list, and switches are hidden, every section is printed in order in light colors, and each section starts a new page (`assets/print.css`).
 Collapsed details are opened, time band view buttons are listed with their text, and capped bars show both states.
 Figures are kept on one page (`break-inside: avoid`).
 How to choose which pages to print is in [tab-shape.md](tab-shape.md).

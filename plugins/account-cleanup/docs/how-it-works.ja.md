@@ -53,6 +53,23 @@ URLの無い項目では、調べた上で`--site`に渡した公式のドメイ
 
 これ以外には何も送らず、候補の一覧をどこかへ送ることもありません。
 
+## 2つのページ
+
+`build-sheet.sh`はスキルのひな形から候補を選ぶページを書き、`followup.sh page`は別のひな形から後でやることの一覧のページを書きます。表のパスは`skills/account-cleanup/`から見た位置です。
+
+| ファイル | 持つ物 |
+|---|---|
+| `templates/sheet.html` | 候補を選ぶページ。スタイル、英語と日本語の言葉、スクリプトを中に持ちます |
+| `templates/followups.html` | 後でやることの一覧のページ。データ消去の依頼など、残っている作業を並べます。作りは同じです |
+| `musubi.json` | musubiでの`page-design/structure`、`page-design/look`、`page-design/sheet`、`page-design/verify`への任意の準拠。それぞれにバージョンの範囲`^1.0.0`と、最後に確かめた時のコンテンツのフィンガープリントと、`"optional": true`を持つ |
+
+どちらのページにも、English / 日本語の切り替えと、その隣に明るい色と暗い色の切り替えがあります。
+選ぶまでは色がシステムの設定に従い、選んだ言語と色は2つのページで共有し、ブラウザのローカルストレージに`account-cleanup-lang`と`account-cleanup-theme`の名前で残ります。どこへも送りません。
+
+- `design-formats`のプラグインの`page-design`のスキルが入っていれば、エージェントはその形式`structure`と`look`、ページの型`sheet`を読みます。`musubi.json`はこれらに任意の準拠で従います。候補を選ぶページと後でやることの一覧のページに`page-design`の`verify`を回し、名指された行のうち`annotate.sh`で書いた文の行を直し、ひな形の枠の行はあなたに伝えます。ほかのプラグインからはこれ以外を読みません
+- `musubi`のコマンドが入っていれば、エージェントはこれらを読む前に`musubi check`を回し、失敗したら止まります。`design-formats`が入っていない時、`musubi check`は警告を出してこれらの準拠を飛ばします。従うコンテンツが変わると、フィンガープリントを確かめ直すまで`musubi check`は`account-cleanup`を拒否します
+- `page-design`が無ければ、2つのひな形だけでページを作ります。プラグインのどこも`design-formats`を求めません
+
 ## 残す物
 
 すべてのファイルは`~/.local/share/account-cleanup/`に置き、`ACCOUNT_CLEANUP_HOME`を設定した時はそちらに置きます。

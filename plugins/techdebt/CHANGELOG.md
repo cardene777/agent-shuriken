@@ -5,6 +5,9 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- `musubi.json` follows the `structure` and `look` formats, the `report` page type, and `verify` of page-design in the design-formats plugin through musubi, as optional follows. When page-design is installed, the agent builds the report on them and runs page-design's verify on `report.html`; when the `musubi` command is installed, it runs `musubi check` first. Without design-formats, the report is built from the plugin's own template as before
+- The report's header has a Light and Dark switch next to the language switch. It follows the system setting until you choose, and keeps your choice in the browser's local storage under `techdebt-theme`. The report is titled `Technical debt in <project>` instead of `<project>: technical debt`
+
 ## [0.3.1] - 2026-11-16
 
 - The template is `templates/base.html`, so that no file in the plugin is named `report.html`; `scan` still writes the report as `report.html`

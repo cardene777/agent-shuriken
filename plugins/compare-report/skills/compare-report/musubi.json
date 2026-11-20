@@ -1,0 +1,25 @@
+{
+  "musubi": "2026-11-21",
+  "follows": {
+    "page-design/structure": {
+      "version": "^1.0.0",
+      "integrity": "sha256-+oSsewGAzE31/D+eDVZaNMh4dzQCDl1ialIWjtU+Gi0=",
+      "optional": true
+    },
+    "page-design/look": {
+      "version": "^1.0.0",
+      "integrity": "sha256-2sXYuhs/fcSYCudrsW+EWdQp3Wwi4rhj2GbWKPKOqnU=",
+      "optional": true
+    },
+    "page-design/report": {
+      "version": "^1.0.0",
+      "integrity": "sha256-+PgdeX5iibLYg6u259plj/KZuNejrRS5ZLJ8LMAArMo=",
+      "optional": true
+    },
+    "page-design/verify": {
+      "version": "^1.0.0",
+      "integrity": "sha256-+hAiu0MAN/JJR8/TS/7D/h/C9u5CZE1TH5YvMMotopM=",
+      "optional": true
+    }
+  }
+}

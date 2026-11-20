@@ -17,6 +17,10 @@ When running a command, put `S=<folder that contains this SKILL.md>/scripts` at 
 
 The report is written to `~/.local/share/techdebt/`, outside the project folder, so request approval for the commands when a sandbox blocks them, as Codex can.
 
+When the `page-design` skill is installed, follow the `structure` and `look` formats and the `report` page type of the `page-design` skill: open the `page-design` skill by name and read the files it names for `structure`, `look`, `report`, and `verify`.
+If the `musubi` command is available, run `musubi check` before reading, and stop if it fails.
+If the `page-design` skill is not installed, go on with the templates of this skill, without the formats of `page-design`.
+
 ## 1. Scan
 
 Run it on the folder the user names, or on the current repository.
@@ -56,6 +60,7 @@ Notes stay attached to the same files in later scans while those files are still
 
 ## 3. Report
 
+When the `page-design` skill is installed, run its `verify` on the finished page: run the file it names for `verify` as a shell command, `python3 <that file> verify <path of report.html>`, fix each line it names in your notes with `explain`, and tell the user about any line it names in the frame of this skill's template.
 Open `report.html` and show it to the user.
 In the chat, give the top 3 to 5 files with the `why` and `action` of each, and the totals per measure.
 Say which measures are approximate (function length outside Python, and unused dependencies found without `knip`) and which tools did not run and why.

@@ -174,6 +174,16 @@ When a written file is not ignored by git, `git check-ignore` tells the preview 
 An entry that is gone or has another port is skipped with the reason, and the command exits 3.
 A project whose last port is removed leaves the registry.
 
+## The order of the report
+
+When the page-design skill of the design-formats plugin is installed, the agent writes its report in the order of page-design's `structure` format: the result first, then what was done and what was skipped with the reasons, ports that could not be tested written as not tested, and your steps last.
+The format is the content `page-design/structure`, which `skills/portman/musubi.json` follows as an optional follow: the version range `^1.0.0`, the fingerprint of the format at the last check, and `"optional": true`.
+
+- When the `musubi` command is installed, the agent runs `musubi check` before reading the format and stops if it fails
+- When design-formats is not installed, `musubi check` skips the follow with a warning, and the agent reports in its own order
+- When the format changes, `musubi check` refuses portman until its fingerprint is checked again
+- It reads nothing else from other plugins
+
 ## What it keeps
 
 | What | Where | Until |

@@ -276,6 +276,12 @@ EVMの版は`homestead`から`osaka`までで、知らない版は2で終わり�
 4. 2つの版で`layout`と`abi`を動かし、出す先のチェーンごとのEVMの版で`opcodes`を動かし、プロジェクトに在れば`npx @openzeppelin/upgrades-core validate`も動かします
 5. ガス代を`forge snapshot --diff`で、大きさを`forge build --sizes`で比べ、配る取引ごとにチェーンの1つの取引のガスの上限(EIP-7825)と照らし、見つけた物ごとにすることを伝え、一時的なworktreeを`git worktree remove --force`で消します。submoduleを持つworktreeは`--force`が要ります
 
+design-formatsのプラグインの`page-design`のスキルが入っていれば、エージェントは手順5の報告を`page-design`の`structure`の書式の順で書きます。結果を先に書き、次に確かめた物と飛ばした物を理由とともに書き、測れなかった値は測れなかったと書き、あなたが行う手順を最後に書きます。
+この書式はコンテンツ`page-design/structure`で、`skills/release-check/musubi.json`が任意の準拠で従います。版の範囲`^1.0.0`と、最後に確かめた時の書式のフィンガープリントと、`"optional": true`を持ちます。
+`musubi`のコマンドが入っていれば、エージェントは書式を読む前に`musubi check`を回し、失敗したら止まります。design-formatsが入っていない時、`musubi check`は警告を出してこの準拠を飛ばし、エージェントは自分の順で報告します。
+書式が変わると、フィンガープリントを確かめ直すまで`musubi check`は`release-check`を拒否します。
+`release-check`はほかのプラグインからこれ以外を読みません。
+
 ## コントラクトの設計の項目
 
 `contract-design`は`skills/contract-design/references/items/`に、ライブラリかサービスかやり方ごとに1つのMarkdownのファイルで項目を持ちます。

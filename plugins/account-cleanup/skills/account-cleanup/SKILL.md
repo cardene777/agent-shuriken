@@ -91,6 +91,12 @@ EOF
 
 ## 4. Have the user choose OK or Keep
 
+When the `page-design` skill is installed, follow the `structure` and `look` formats and the `sheet` page type of the `page-design` skill: open the `page-design` skill by name and read the files it names for `structure`, `look`, `sheet`, and `verify`.
+If the `musubi` command is available, run `musubi check` before reading, and stop if it fails.
+If the `page-design` skill is not installed, go on with the templates of this skill, without the formats of `page-design`.
+
+When the `page-design` skill is installed, run its `verify` on the finished page: run the file it names for `verify` as a shell command, `python3 <that file> verify <sheet path>`, fix each line it names in the `description`, `why`, and `previous` text you wrote with `annotate.sh`, and tell the user about any line it names in the frame of this skill's template. Run it the same way on the list page that `followup.sh page` writes in section 8.
+
 Open the candidate sheet in the user's browser with `open <sheet path>` on macOS or `xdg-open <sheet path>` on Linux; it explains on screen what each button does.
 The user presses OK (delete) or Keep for each row, writes anything you should know in the memo, presses "Copy OK items" and pastes the text into the chat.
 Pass the pasted text to `plan.sh` as it is.

@@ -5,6 +5,9 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- `musubi.json` follows the `structure` and `look` formats, the `report` page type, and `verify` of page-design in the design-formats plugin through musubi, as optional follows. When page-design is installed, the agent writes the report on them and runs page-design's verify on `report.html`; when the `musubi` command is installed, it runs `musubi check` first. Without design-formats, the report is written in the plugin's own template as before
+- The report has two switches at the top right of its cover: English / 日本語 for the words of the switches, and Light / Dark for the colors. Until you choose, the colors follow your system, and your browser keeps your choice in its local storage under `compare-report-theme` and `compare-report-lang`. The PDF always prints in the light colors, without the switches
+
 ## [0.5.0] - 2026-11-16
 
 - The template is `templates/base.html`, so that no file in the plugin is named `report.html`; `new-report.sh` still writes the report as `report.html`

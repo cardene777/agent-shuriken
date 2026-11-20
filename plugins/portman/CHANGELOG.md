@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The chat report follows the `structure` format of page-design in the design-formats plugin through musubi, as an optional follow declared in `skills/portman/musubi.json`: the result first, what was done and skipped with the reasons, ports not tested written as not tested, and the user's steps last. When the `musubi` command is installed, the agent runs `musubi check` before reading the format. Without design-formats, the skill reports in its own order
+
 ## [0.3.1] - 2026-11-18
 
 - Every command stops without a traceback and exits 141 when the reader closes the output pipe, as in `portman.py doctor | head -1`, and `remove --confirm` and `apply --confirm` finish writing their changes before they print anything

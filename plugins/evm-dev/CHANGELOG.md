@@ -7,6 +7,7 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ### Changed
 
+- The report of `release-check` follows the `structure` format of page-design in the design-formats plugin through musubi, as an optional follow declared in `skills/release-check/musubi.json`: the result first, what was checked and skipped with the reasons, values not measured written as not measured, and the user's steps last. When the `musubi` command is installed, the agent runs `musubi check` before reading the format. Without design-formats, the skill reports in its own order
 - The five design skills, `contract-design`, `wallet-design`, `multichain-design`, `dapp-architecture`, and `financial-standards`, write in the design format of the `design-doc` skill in the new doc-formats plugin, which Claude Code installs with evm-dev, and check a design with its `verify`, passing their own `templates/sections.md`. The designs they write keep the same sections
 - Each design skill declares in `musubi.json` the version range and fingerprint of the format and `verify` it follows, and stops when `design-doc` is not installed
 - Each design skill has a finished example design in `examples/`, and its script keeps only `check` and `list`

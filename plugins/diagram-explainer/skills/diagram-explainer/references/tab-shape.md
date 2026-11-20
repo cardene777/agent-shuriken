@@ -40,6 +40,7 @@ Opening the document with a `#` fragment in the URL also shows that page and sec
 A bar at the top shows the current section name and a `☰ Contents` button (in Japanese documents, the Japanese word for contents).
 The button slides in the same contents list; choosing a section closes it.
 The header tabs stay above the bar and scroll sideways when they do not fit.
+The language and light or dark switches move from the header into the bar, on a second row when the bar has no room for them.
 A long document title is cut short with an ellipsis so that the tabs keep their room; keep the `title` short.
 
 ## Printing
@@ -61,7 +62,7 @@ Open the document with `?paper=1` (all pages) or `?paper=page` to see the paper 
 
 The PDF is made by the reader's print dialog ("Save as PDF").
 The document does not assemble a PDF itself, so it stays one file that loads nothing from outside.
-The menu labels follow the document language.
+The menu labels follow the interface language (see the language switch in [document-shape.md](document-shape.md)), and paper always uses the light colors.
 
 ## How assets are included
 
@@ -76,17 +77,18 @@ The layout, charts, step ladders, and print layout live in `assets/`; the templa
 </style>
 ...
 <script>
-// diagram-explainer:asset charts.js
+// diagram-explainer:asset doc.js
 </script>
 <script>
-// diagram-explainer:asset doc.js
+// diagram-explainer:asset charts.js
 </script>
 <script>
 // diagram-explainer:asset print.js
 </script>
 ```
 
-Keep `charts.js` before `doc.js`: `doc.js` asks `charts.js` to draw a page's charts when it shows the page.
+Keep `doc.js` first: it holds the interface text that `charts.js` and `print.js` use.
+`charts.js` draws the charts of the page shown first when it loads, and `doc.js` asks it to draw a later page's charts when that page opens.
 
 `build.py` replaces each marker with the file's content.
 A marker that points at a missing file, or one that is not on its own line, stops the build, so no marker reaches a shared document.

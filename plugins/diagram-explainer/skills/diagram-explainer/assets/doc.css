@@ -1,20 +1,52 @@
 /* Explainer layout. The left contents list picks a section; one section is shown at a time.
    A document with 2 or more topics is split into pages by tabs in the header.
-   The page uses a light color scheme only.
+   Colors are tokens: light on :root, dark when the system asks for it or the reader picks it
+   (data-theme on <html>, set by doc.js). Paper (data-paper, set by print.js) always uses the light tokens.
    On narrow screens a bar shows the current section and the contents button slides the list in. */
 :root {
   color-scheme: light;
-  --bg: #f6f6f8; --panel: #fff; --card: #fff; --line: #e4e4e8; --line-2: #d2d2d8;
-  --ink: #111114; --ink-2: #3c3c44; --ink-3: #6e6e78; --ink-sub: #545a66; --ink-faint: #8b909b;
-  --accent: #1d4ed8; --accent-soft: #eef2ff;
+  --bg: #f6f6f8; --panel: #fff; --panel-2: #fafafb; --card: #fff; --line: #e4e4e8; --line-2: #d2d2d8;
+  --ink: #111114; --ink-2: #3c3c44; --ink-3: #6e6e78; --ink-sub: #545a66; --ink-faint: #6b6b75;
+  --accent: #1d4ed8; --accent-soft: #eef2ff; --accent-ink: #fff;
   --bad: #b91c1c; --bad-soft: #fdf2f2; --warn: #a15c07; --warn-soft: #fdf8ec;
   --good: #047857; --good-soft: #ecfdf5;
-  --edge: #64748b;
+  --edge: #64748b; --edge-emphasis: #047857; --edge-dashed: #8b5cf6;
+  /* Chart colors named in a chart spec (assets/charts.js); --chart-on is text drawn on a colored bar. */
+  --chart-gray: #64748b; --chart-blue: #0369a1; --chart-orange: #c2410c; --chart-violet: #6d28d9;
+  --chart-violet2: #7c3aed; --chart-green: #047857; --chart-red: #b91c1c; --chart-on: #fff; --track: #f1f1f4;
+  --shadow: rgba(0, 0, 0, .12); --scrim: rgba(17, 17, 20, .35);
   --radius: 14px;
   --side: 264px;
   --top: 56px;
   --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   --sans: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+}
+/* The same dark tokens twice: once for the system setting, once for the reader's choice. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-paper]) {
+    color-scheme: dark;
+    --bg: #121519; --panel: #1a1e24; --panel-2: #20252c; --card: #1a1e24; --line: #2e343d; --line-2: #414955;
+    --ink: #e6e9ee; --ink-2: #c9ced6; --ink-3: #a3abb7; --ink-sub: #b0b8c4; --ink-faint: #98a1ae;
+    --accent: #8aa8ff; --accent-soft: #1f2a45; --accent-ink: #0f1420;
+    --bad: #f19999; --bad-soft: #3a1f22; --warn: #e8b766; --warn-soft: #3a2e17;
+    --good: #6fd3a8; --good-soft: #15322a;
+    --edge: #94a3b8; --edge-emphasis: #34d399; --edge-dashed: #a78bfa;
+    --chart-gray: #94a3b8; --chart-blue: #7dd3fc; --chart-orange: #fdba74; --chart-violet: #c4b5fd;
+    --chart-violet2: #a78bfa; --chart-green: #6ee7b7; --chart-red: #fca5a5; --chart-on: #111418; --track: #262c35;
+    --shadow: rgba(0, 0, 0, .5); --scrim: rgba(0, 0, 0, .55);
+  }
+}
+:root[data-theme="dark"]:not([data-paper]) {
+  color-scheme: dark;
+  --bg: #121519; --panel: #1a1e24; --panel-2: #20252c; --card: #1a1e24; --line: #2e343d; --line-2: #414955;
+  --ink: #e6e9ee; --ink-2: #c9ced6; --ink-3: #a3abb7; --ink-sub: #b0b8c4; --ink-faint: #98a1ae;
+  --accent: #8aa8ff; --accent-soft: #1f2a45; --accent-ink: #0f1420;
+  --bad: #f19999; --bad-soft: #3a1f22; --warn: #e8b766; --warn-soft: #3a2e17;
+  --good: #6fd3a8; --good-soft: #15322a;
+  --edge: #94a3b8; --edge-emphasis: #34d399; --edge-dashed: #a78bfa;
+  --chart-gray: #94a3b8; --chart-blue: #7dd3fc; --chart-orange: #fdba74; --chart-violet: #c4b5fd;
+  --chart-violet2: #a78bfa; --chart-green: #6ee7b7; --chart-red: #fca5a5; --chart-on: #111418; --track: #262c35;
+  --shadow: rgba(0, 0, 0, .5); --scrim: rgba(0, 0, 0, .55);
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
@@ -32,8 +64,8 @@ h1, h2, h3, p { margin: 0; }
 code { font-family: var(--mono); font-size: .88em; background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; }
 button { font: inherit; color: inherit; }
 
-/* Header: document name, page tabs, date, and the PDF button. */
-.doc-top { grid-column: 1 / -1; display: flex; align-items: stretch; gap: 28px; padding: 0 24px; background: #fff; border-bottom: 1px solid var(--line); min-width: 0; }
+/* Header: document name, page tabs, date, the language and light or dark switches, and the PDF button. */
+.doc-top { grid-column: 1 / -1; display: flex; align-items: stretch; gap: 28px; padding: 0 24px; background: var(--panel); border-bottom: 1px solid var(--line); min-width: 0; }
 .doc-brand { align-self: center; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 700; font-size: 15.5px; letter-spacing: -.01em; white-space: nowrap; }
 .doc-pages { display: flex; gap: 4px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
 .doc-pages::-webkit-scrollbar { display: none; }
@@ -43,10 +75,24 @@ button { font: inherit; color: inherit; }
 .doc-top .doc-date { display: flex; align-items: center; margin-left: auto; font-size: 12.5px; color: var(--ink-3); white-space: nowrap; }
 .doc-top .printbar { display: flex; align-items: center; }
 
+/* Language and light or dark switches, side by side. They sit in the header of a document with
+   several pages and above the contents list of a single page; on narrow screens doc.js moves them
+   into the top bar. They need doc.js, so they are hidden without scripts. */
+.doc-ctrl { display: flex; align-items: center; gap: 6px; flex: none; }
+html:not(.doc-js) .doc-ctrl { display: none; }
+.doc-seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: 8px; overflow: hidden; background: var(--panel); }
+.doc-seg button { display: inline-flex; align-items: center; justify-content: center; min-height: 28px; padding: 0 8px; border: 0; background: none; color: var(--ink-2); font-size: 12.5px; line-height: 1; cursor: pointer; white-space: nowrap; transition: background-color .15s, color .15s; }
+.doc-seg button + button { border-left: 1px solid var(--line-2); }
+.doc-seg button:hover { background: var(--bg); color: var(--ink); }
+.doc-seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.doc-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.doc-seg svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
 /* Left contents list. One per page; only the shown page's list is visible. */
-.doc-side { background: #fff; border-right: 1px solid var(--line); padding: 26px 16px 22px; display: flex; flex-direction: column; gap: 2px; overflow: auto; min-height: 0; }
-.doc-side > .doc-brand { padding: 0 12px; font-size: 16px; line-height: 1.5; white-space: normal; }
+.doc-side { background: var(--panel); border-right: 1px solid var(--line); padding: 26px 16px 22px; display: flex; flex-direction: column; gap: 2px; overflow: auto; min-height: 0; }
+.doc-side > .doc-brand { align-self: stretch; padding: 0 12px; font-size: 16px; line-height: 1.5; white-space: normal; }
 .doc-side > .doc-date { padding: 0 12px; font-size: 12px; color: var(--ink-3); }
+.doc-side > .doc-ctrl { padding: 10px 12px 0; }
 .doc-side > .printbar { padding: 8px 12px 14px; }
 .doc-toc { display: flex; flex-direction: column; gap: 2px; }
 .doc-toc[hidden] { display: none; }
@@ -83,7 +129,7 @@ html.doc-js .doc-sec:not(.on) { display: none; }
 .doc-sec pre, .doc-sec code { word-break: normal; }
 .doc-sec ul, .doc-sec ol { padding-left: 1.4em; }
 .doc-step { width: 100%; max-width: 1180px; margin: 0 auto; padding: 8px 52px 32px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--ink-3); }
-.doc-step button { font-size: 13.5px; border: 1px solid var(--line); background: #fff; border-radius: 9px; padding: 8px 16px; cursor: pointer; color: var(--ink); }
+.doc-step button { font-size: 13.5px; border: 1px solid var(--line); background: var(--panel); border-radius: 9px; padding: 8px 16px; cursor: pointer; color: var(--ink); }
 .doc-step button:disabled { opacity: .35; cursor: default; }
 
 /* Figures and captions */
@@ -127,7 +173,7 @@ figure.free { background: var(--panel); border: 1px solid var(--line); border-ra
 /* Tables, code, and collapsible details */
 .tbl { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; line-height: 1.7; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
-th { text-align: left; font-size: 12.5px; font-weight: 600; color: var(--ink-3); background: #fafafb; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+th { text-align: left; font-size: 12.5px; font-weight: 600; color: var(--ink-3); background: var(--panel-2); padding: 10px 16px; border-bottom: 1px solid var(--line); }
 td { padding: 11px 16px; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--ink-2); }
 tr:last-child td { border-bottom: 0; }
 pre { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-size: 13px; }
@@ -153,15 +199,21 @@ details.exp[open] > summary::before { transform: rotate(90deg); }
   .doc-top .doc-brand { font-size: 14px; max-width: 34vw; }
   .doc-pages { flex: 0 1 auto; }
   .doc-pages button { padding: 0 10px; font-size: 14px; }
-  .doc-side { position: fixed; top: 0; bottom: 0; left: 0; width: 82%; max-width: 320px; z-index: 30; border-right: 1px solid var(--line); transform: translateX(-105%); box-shadow: 8px 0 30px rgba(0, 0, 0, .12); }
+  .doc-side { position: fixed; top: 0; bottom: 0; left: 0; width: 82%; max-width: 320px; z-index: 30; border-right: 1px solid var(--line); transform: translateX(-105%); box-shadow: 8px 0 30px var(--shadow); }
   html.doc-side-open .doc-side { transform: none; }
-  html.doc-side-open .doc-scrim { display: block; position: fixed; inset: 0; background: rgba(17, 17, 20, .35); z-index: 25; }
-  .doc-mbar { display: flex; align-items: center; gap: 12px; background: #fff; border-bottom: 1px solid var(--line); padding: 8px 14px; min-width: 0; }
-  .doc-mbar button { font-size: 14px; border: 1px solid var(--line); background: #fff; border-radius: 9px; padding: 5px 12px; cursor: pointer; white-space: nowrap; }
-  .doc-mbar .doc-here { flex: 1; min-width: 0; font-weight: 600; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  html.doc-side-open .doc-scrim { display: block; position: fixed; inset: 0; background: var(--scrim); z-index: 25; }
+  /* The switches join the bar and move to a second row when the bar has no room for them. */
+  .doc-mbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; background: var(--panel); border-bottom: 1px solid var(--line); padding: 8px 14px; min-width: 0; }
+  .doc-mbar > button { font-size: 14px; border: 1px solid var(--line); background: var(--panel); border-radius: 9px; padding: 5px 12px; cursor: pointer; white-space: nowrap; }
+  .doc-mbar .doc-here { flex: 1 1 120px; min-width: 0; font-weight: 600; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .doc-mbar .doc-count { font-size: 12.5px; color: var(--ink-3); }
+  .doc-mbar .doc-ctrl { margin-left: auto; }
   .doc-sec { padding: 26px 18px 20px; }
   figure.free { padding: 16px; }
   .doc-pagehead h1 { font-size: 26px; }
   .doc-step { padding: 8px 18px 24px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
 }

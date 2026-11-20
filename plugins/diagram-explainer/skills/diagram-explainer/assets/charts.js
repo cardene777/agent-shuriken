@@ -9,25 +9,31 @@
   // Everything is drawn by this file alone, so the document loads nothing from outside.
 
   var NS = 'http://www.w3.org/2000/svg';
-  // Interface text, chosen from the document language. `{n}` is a number.
-  var TEXT = {
-    en: { hour: '{n}:00', year: '{n}', before: 'Before', after: 'After' },
-    ja: { hour: '{n}時', year: '{n}年', before: '前', after: '後' }
-  };
-  var ui = TEXT[/^ja/i.test(document.documentElement.lang || '') ? 'ja' : 'en'];
-  function unit(key, n) { return ui[key].replace('{n}', n); }
-  var COLORS = {
-    gray: '#64748b', blue: '#0369a1', orange: '#c2410c', violet: '#6d28d9',
-    violet2: '#8b5cf6', green: '#047857', red: '#b91c1c'
-  };
-  function col(c) { return COLORS[c] || c || COLORS.gray; }
-  function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  // Interface text (axis units and the default capped bar buttons) comes from the dictionary in
+  // doc.js, which is loaded first. Each unit is marked with `data-ui`, so it follows the language switch.
+  var ui = window.dxUi;
+  // Named colors are tokens in doc.css, with a light and a dark value; other values are used as given.
+  var NAMED = ['gray', 'blue', 'orange', 'violet', 'violet2', 'green', 'red'];
+  function col(c) { return NAMED.indexOf(c) >= 0 ? 'var(--chart-' + c + ')' : (c || 'var(--chart-gray)'); }
+  // A token (`var(--line)`) is set through the style, so the chart follows a switch between
+  // light and dark without being drawn again; other values are attributes.
+  var PAINT = { fill: true, stroke: true, 'stop-color': true };
+  function paint(e, k, v) {
+    if (PAINT[k] && /^var\(/.test(String(v))) e.style.setProperty(k, v);
+    else e.setAttribute(k, v);
+  }
   function el(tag, attrs, parent, text) {
     var e = document.createElementNS(NS, tag);
-    Object.keys(attrs).forEach(function (k) { e.setAttribute(k, attrs[k]); });
+    Object.keys(attrs).forEach(function (k) { paint(e, k, attrs[k]); });
     if (text != null) e.textContent = text;
     if (parent) parent.appendChild(e);
     return e;
+  }
+  // An axis unit such as an hour or a year: interface text with the number `n` in it.
+  function unitText(key, n, attrs, parent) {
+    attrs['data-ui'] = key;
+    attrs['data-ui-n'] = n;
+    return el('text', attrs, parent, ui.say(key, { n: n }));
   }
 
   var tip = null;
@@ -56,18 +62,18 @@
       var last = top + (s.lanes.length - 1) * gap;
       svg.setAttribute('viewBox', '0 0 1000 ' + (last + 76));
       for (var h = from; h <= to; h += step) {
-        el('line', { x1: hx(h), x2: hx(h), y1: top - 30, y2: last + 30, stroke: css('--line'), 'stroke-width': 1 }, svg);
-        el('text', { x: hx(h), y: last + 54, 'text-anchor': 'middle', 'font-size': 13, fill: css('--ink-3') }, svg, unit('hour', h));
+        el('line', { x1: hx(h), x2: hx(h), y1: top - 30, y2: last + 30, stroke: 'var(--line)', 'stroke-width': 1 }, svg);
+        unitText('hour', h, { x: hx(h), y: last + 54, 'text-anchor': 'middle', 'font-size': 13, fill: 'var(--ink-3)' }, svg);
       }
       s.lanes.forEach(function (lane, i) {
         var y = top + i * gap;
         var g = el('g', { 'data-lane': lane.key || ('lane' + i) }, svg);
-        el('text', { x: 0, y: y + 5, 'font-size': 15, 'font-weight': 700, fill: css('--ink') }, g, lane.name);
-        el('line', { x1: L, x2: Rx, y1: y, y2: y, stroke: css('--line-2'), 'stroke-dasharray': '3 4' }, g);
+        el('text', { x: 0, y: y + 5, 'font-size': 15, 'font-weight': 700, fill: 'var(--ink)' }, g, lane.name);
+        el('line', { x1: L, x2: Rx, y1: y, y2: y, stroke: 'var(--line-2)', 'stroke-dasharray': '3 4' }, g);
         (lane.bands || []).forEach(function (b) {
           var r = el('rect', { x: hx(b.from), y: y - 13, width: hx(b.to) - hx(b.from), height: 26, rx: 7, fill: col(b.color), opacity: 0.16 }, g);
           hover(r, b.tip);
-          if (b.label) hover(el('text', { x: hx(b.from) + (b.labelPad != null ? b.labelPad : 10), y: y + 5, 'font-size': 12.5, fill: css('--ink-2') }, g, b.label), b.tip);
+          if (b.label) hover(el('text', { x: hx(b.from) + (b.labelPad != null ? b.labelPad : 10), y: y + 5, 'font-size': 12.5, fill: 'var(--ink-2)' }, g, b.label), b.tip);
         });
         (lane.spans || []).forEach(function (p) {
           var a = hx(p.from) + 10, z = hx(p.to) - 10, dy = p.dy != null ? p.dy : 20;
@@ -76,7 +82,7 @@
         });
         (lane.dots || []).forEach(function (d) {
           var dg = el('g', {}, g);
-          el('circle', { cx: hx(d.at), cy: y, r: 7, fill: col(d.color), stroke: '#fff', 'stroke-width': 2 }, dg);
+          el('circle', { cx: hx(d.at), cy: y, r: 7, fill: col(d.color), stroke: 'var(--panel)', 'stroke-width': 2 }, dg);
           var anchor = d.align === 'end' ? 'end' : d.align === 'start' ? 'start' : 'middle';
           var tx = anchor === 'end' ? hx(d.at) + 9 : anchor === 'start' ? hx(d.at) - 9 : hx(d.at);
           el('text', { x: tx, y: d.pos === 'down' ? y + 27 : y - 15, 'text-anchor': anchor, 'font-size': 13, 'font-weight': 600, fill: col(d.color) }, dg, d.label);
@@ -89,30 +95,36 @@
     capbar: function (svg, s) {
       function px(p) { return 1000 * p / 100; }
       svg.setAttribute('viewBox', '0 0 1000 150');
-      var buttons = s.buttons || [ui.before, ui.after];
+      // Without `buttons` in the spec, the buttons say before and after in the interface language.
       var ctrl = document.createElement('div');
       ctrl.className = 'chart-ctrl';
-      buttons.slice(0, 2).forEach(function (label, i) {
+      (s.buttons ? s.buttons.slice(0, 2) : ['before', 'after']).forEach(function (name, i) {
+        var k = i === 0 ? 'before' : 'after';
         var b = document.createElement('button');
         b.type = 'button';
-        b.setAttribute('data-k', i === 0 ? 'before' : 'after');
-        b.textContent = label;
+        if (s.buttons) {
+          b.textContent = name;
+        } else {
+          b.setAttribute('data-ui', k);
+          b.textContent = ui.say(k);
+        }
+        b.setAttribute('data-k', k);
         ctrl.appendChild(b);
       });
       svg.parentNode.insertBefore(ctrl, svg);
       [0, 25, 50, 75, 100].forEach(function (p) {
-        el('text', { x: px(p), y: 14, 'text-anchor': p === 0 ? 'start' : p === 100 ? 'end' : 'middle', 'font-size': 11.5, fill: css('--ink-3') }, svg, p + '%');
+        el('text', { x: px(p), y: 14, 'text-anchor': p === 0 ? 'start' : p === 100 ? 'end' : 'middle', 'font-size': 12, fill: 'var(--ink-3)' }, svg, p + '%');
       });
-      el('rect', { x: 0, y: 30, width: 1000, height: 52, rx: 10, fill: '#f1f1f4' }, svg);
+      el('rect', { x: 0, y: 30, width: 1000, height: 52, rx: 10, fill: 'var(--track)' }, svg);
       var held = s.held || { label: '', value: 0 };
       hover(el('rect', { x: 0, y: 30, width: px(held.value), height: 52, rx: 10, fill: col('gray') }, svg), held.tip);
-      if (held.label) el('text', { x: 16, y: 62, 'font-size': 15, 'font-weight': 600, fill: '#fff' }, svg, held.label + ' ' + held.value + '%');
+      if (held.label) el('text', { x: 16, y: 62, 'font-size': 15, 'font-weight': 600, fill: 'var(--chart-on)' }, svg, held.label + ' ' + held.value + '%');
       // The cap line is drawn behind the bar, visible only above and below it, so it never covers a label.
       var lim = px(s.cap);
       el('line', { x1: lim, x2: lim, y1: 20, y2: 96, stroke: col('red'), 'stroke-width': 2.5, 'stroke-dasharray': '6 4' }, svg);
       var parts = (s.items || []).map(function (it) {
         var r = el('rect', { y: 30, height: 52, fill: col(it.color) }, svg);
-        var t = el('text', { y: 62, 'font-size': 14, 'font-weight': 600, fill: '#fff', 'text-anchor': 'middle' }, svg);
+        var t = el('text', { y: 62, 'font-size': 14, 'font-weight': 600, fill: 'var(--chart-on)', 'text-anchor': 'middle' }, svg);
         r.style.transition = 'x .5s ease, width .5s ease';
         t.style.transition = 'x .5s ease';
         hover(r, it.tip);
@@ -131,7 +143,7 @@
           x += w;
         });
         say.textContent = (k === 'before' ? s.beforeSay : s.afterSay) || '';
-        say.setAttribute('fill', k === 'before' ? col('red') : col('green'));
+        paint(say, 'fill', k === 'before' ? col('red') : col('green'));
         [].forEach.call(ctrl.querySelectorAll('button'), function (b) {
           b.classList.toggle('on', b.getAttribute('data-k') === k);
         });
@@ -158,16 +170,16 @@
       function py(v) { return B - (B - T) * v / s.max; }
       svg.setAttribute('viewBox', '0 0 1000 320');
       for (var v = 0; v <= s.max; v += s.step) {
-        el('line', { x1: L, x2: Rx, y1: py(v), y2: py(v), stroke: css('--line'), 'stroke-width': 1 }, svg);
-        el('text', { x: L - 12, y: py(v) + 4, 'text-anchor': 'end', 'font-size': 12, fill: css('--ink-3') }, svg, v + (s.unit || ''));
+        el('line', { x1: L, x2: Rx, y1: py(v), y2: py(v), stroke: 'var(--line)', 'stroke-width': 1 }, svg);
+        el('text', { x: L - 12, y: py(v) + 4, 'text-anchor': 'end', 'font-size': 12, fill: 'var(--ink-3)' }, svg, v + (s.unit || ''));
       }
-      if (s.yLabel) el('text', { x: 0, y: T - 14, 'font-size': 12, fill: css('--ink-3') }, svg, s.yLabel);
+      if (s.yLabel) el('text', { x: 0, y: T - 14, 'font-size': 12, fill: 'var(--ink-3)' }, svg, s.yLabel);
       var slot = (Rx - L) / s.bars.length, bw = Math.min(160, slot * 0.5);
       s.bars.forEach(function (b, i) {
         var cx = L + slot * (i + 0.5);
         hover(el('rect', { x: cx - bw / 2, y: py(b.value), width: bw, height: B - py(b.value), rx: 8, fill: col(b.color), opacity: 0.9 }, svg), b.tip);
         el('text', { x: cx, y: py(b.value) - 10, 'text-anchor': 'middle', 'font-size': 17, 'font-weight': 700, fill: col(b.color) }, svg, b.text != null ? b.text : String(b.value));
-        el('text', { x: cx, y: B + 26, 'text-anchor': 'middle', 'font-size': 14, fill: css('--ink-2') }, svg, b.label);
+        el('text', { x: cx, y: B + 26, 'text-anchor': 'middle', 'font-size': 14, fill: 'var(--ink-2)' }, svg, b.label);
       });
     },
 
@@ -177,8 +189,8 @@
       function px(y) { return L + (Rx - L) * (y - s.from) / (s.to - s.from); }
       svg.setAttribute('viewBox', '0 0 1000 220');
       for (var y = s.from; y <= s.to; y++) {
-        el('line', { x1: px(y), x2: px(y), y1: 40, y2: 178, stroke: css('--line'), 'stroke-width': 1 }, svg);
-        el('text', { x: px(y), y: 200, 'text-anchor': 'middle', 'font-size': 13, fill: css('--ink-3') }, svg, unit('year', y));
+        el('line', { x1: px(y), x2: px(y), y1: 40, y2: 178, stroke: 'var(--line)', 'stroke-width': 1 }, svg);
+        unitText('year', y, { x: px(y), y: 200, 'text-anchor': 'middle', 'font-size': 13, fill: 'var(--ink-3)' }, svg);
       }
       var id = 'fade-' + (svg.id || Math.random().toString(36).slice(2));
       var grad = el('linearGradient', { id: id, x1: '0', x2: '1' }, el('defs', {}, svg));
@@ -191,9 +203,9 @@
       el('text', { x: px(s.cut.at), y: 28, 'text-anchor': 'middle', 'font-size': 12.5, 'font-weight': 700, fill: col('orange') }, svg, s.cut.label);
       var t = s.test;
       hover(el('rect', { x: px(t.from), y: 112, width: px(t.to) - px(t.from), height: 40, rx: 8, fill: col('blue'), opacity: 0.88 }, svg), t.tip);
-      el('text', { x: (px(t.from) + px(t.to)) / 2, y: 138, 'text-anchor': 'middle', 'font-size': 14, 'font-weight': 600, fill: '#fff' }, svg, t.label);
+      el('text', { x: (px(t.from) + px(t.to)) / 2, y: 138, 'text-anchor': 'middle', 'font-size': 14, 'font-weight': 600, fill: 'var(--chart-on)' }, svg, t.label);
       if (t.sub) el('text', { x: (px(t.from) + px(t.to)) / 2, y: 172, 'text-anchor': 'middle', 'font-size': 12.5, fill: col('blue') }, svg, t.sub);
-      if (s.note) el('text', { x: px(t.from) - 14, y: 138, 'text-anchor': 'end', 'font-size': 13, fill: css('--ink-2') }, svg, s.note);
+      if (s.note) el('text', { x: px(t.from) - 14, y: 138, 'text-anchor': 'end', 'font-size': 13, fill: 'var(--ink-2)' }, svg, s.note);
     }
   };
 
@@ -236,6 +248,8 @@
       if (!draw || !spec) return;
       svg.setAttribute('data-chart-drawn', '');
       draw(svg, spec);
+      // Marks the interface text with its language when it differs from the document's.
+      ui.relabel(svg.parentNode);
     });
     wireViews(scope);
   };

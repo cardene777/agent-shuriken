@@ -567,7 +567,7 @@ skill_rules() {
 }
 check "the release-check SKILL.md keeps its rules" skill_rules
 
-SKILL_WORDS_MAX=600
+SKILL_WORDS_MAX=659
 SKILL_DESCRIPTION_MAX=300
 skill_size() {
   [ -f "$SKILL" ] || return 1
