@@ -14,6 +14,9 @@
 #      chart kinds, and languages.
 #   6. With a headless browser: the scripts draw charts and write interface text in the
 #      document language. Without one, these cases print "skip: no browser".
+#   7. The SKILL.md and its eval suite.
+#   8. The interface words live only in assets/ui.json, the built pages carry that dictionary,
+#      and the words written into the pages and the step ladders match it.
 #
 # Exit 0 when every case passes, 1 when any fails (the failing cases are listed),
 # 77 when python3 is missing.
@@ -388,6 +391,258 @@ help_options() {
   done
 }
 _yes "check.py --help describes the options the SKILL.md leaves out" help_options
+
+# --- 8. The interface dictionary ---
+# Every interface word is defined once, in assets/ui.json. render.py and ladder.py read it,
+# build.py copies it into the page, and doc.js reads it there, so the words written when the
+# page is built and the words shown after a language switch come from the same place.
+UI_JSON="$SKILL_DIR/assets/ui.json"
+STARTER="$WORK/doc-starter.html"
+python3 "$BUILD" --in "$TEMPLATE" --out "$STARTER" >/dev/null 2>&1 || rm -f "$STARTER"
+
+UI_SHAPE="$(python3 - "$UI_JSON" <<'PYEOF'
+import json, sys
+try:
+    ui = json.load(open(sys.argv[1], encoding="utf-8"))
+except (OSError, ValueError) as exc:
+    print("cannot read assets/ui.json (%s)" % exc.__class__.__name__)
+    sys.exit(0)
+out = []
+if not isinstance(ui, dict) or sorted(ui) != ["en", "ja"]:
+    out.append("the top level is not one object with en and ja")
+else:
+    en, ja = set(ui["en"]), set(ui["ja"])
+    if en != ja:
+        out.append("only in en: %s, only in ja: %s" % (sorted(en - ja), sorted(ja - en)))
+    for lang in ("en", "ja"):
+        for key, value in ui[lang].items():
+            if key == "months":
+                if not (isinstance(value, list) and len(value) == 12 and all(isinstance(v, str) and v for v in value)):
+                    out.append("%s.months is not 12 names" % lang)
+            elif not isinstance(value, str) or not value:
+                out.append("%s.%s is not a word" % (lang, key))
+print(" / ".join(out))
+PYEOF
+)"
+_assert "8-1 assets/ui.json holds one dictionary with the same keys in en and ja" "" "$UI_SHAPE"
+
+OWN_DICTIONARIES="$(python3 - "$SKILL_DIR" <<'PYEOF'
+import glob, os, re, sys
+skill = sys.argv[1]
+en = re.compile(r"""(^|[\s{,(])["']?en["']?\s*:\s*\{""", re.M)
+ja = re.compile(r"""(^|[\s{,(])["']?ja["']?\s*:\s*\{""", re.M)
+paths = glob.glob(os.path.join(skill, "scripts", "*.py")) + glob.glob(os.path.join(skill, "assets", "*.js"))
+bad = []
+for path in sorted(paths):
+    text = open(path, encoding="utf-8").read()
+    if en.search(text) and ja.search(text):
+        bad.append(os.path.relpath(path, skill))
+print(" ".join(bad))
+PYEOF
+)"
+_assert "8-2 no script under scripts or assets defines its own en and ja dictionary" "" "$OWN_DICTIONARIES"
+
+UNKNOWN_KEYS="$(python3 - "$SKILL_DIR" "$UI_JSON" "$EN" "$JA" "$STARTER" "$WORK/dom-en.html" "$WORK/dom-ja.html" <<'PYEOF'
+import glob, json, os, re, sys
+skill, ui_path, pages = sys.argv[1], sys.argv[2], sys.argv[3:]
+try:
+    ui = json.load(open(ui_path, encoding="utf-8"))
+    known = set(ui["en"]) & set(ui["ja"])
+except (OSError, ValueError, KeyError, TypeError) as exc:
+    print("cannot read assets/ui.json (%s)" % exc.__class__.__name__)
+    sys.exit(0)
+used = {}
+def note(key, where):
+    used.setdefault(key, set()).add(where)
+for page in pages:
+    if os.path.isfile(page):
+        for key in re.findall(r'\bdata-ui(?:-label|-title)?="(\w+)"', open(page, encoding="utf-8").read()):
+            note(key, os.path.basename(page))
+for path in glob.glob(os.path.join(skill, "assets", "*.js")):
+    text = open(path, encoding="utf-8").read()
+    for key in re.findall(r"\bsay\(\s*'(\w+)'", text) + re.findall(r"'data-ui(?:-label|-title)?',\s*'(\w+)'", text) \
+            + re.findall(r"\bunitText\(\s*'(\w+)'", text):
+        note(key, os.path.relpath(path, skill))
+for path in glob.glob(os.path.join(skill, "scripts", "*.py")):
+    text = open(path, encoding="utf-8").read()
+    for key in re.findall(r'\bsay\(\s*\w+\s*,\s*"(\w+)"', text) + re.findall(r'\bui\["(\w+)"\]', text):
+        note(key, os.path.relpath(path, skill))
+missing = ["%s (%s)" % (k, ", ".join(sorted(w))) for k, w in sorted(used.items()) if k not in known]
+print(" / ".join(missing) if used else "no interface key was found")
+PYEOF
+)"
+_assert "8-3 every interface key the pages and scripts use is in assets/ui.json" "" "$UNKNOWN_KEYS"
+
+CARRIED="$(python3 - "$UI_JSON" "$EN" "$JA" "$STARTER" <<'PYEOF'
+import json, os, re, sys
+try:
+    ui = json.load(open(sys.argv[1], encoding="utf-8"))
+except (OSError, ValueError) as exc:
+    print("cannot read assets/ui.json (%s)" % exc.__class__.__name__)
+    sys.exit(0)
+out = []
+for page in sys.argv[2:]:
+    name = os.path.basename(page)
+    if not os.path.isfile(page):
+        out.append("%s was not built" % name)
+        continue
+    found = re.findall(r'<script type="application/json" id="dx-ui">(.*?)</script>', open(page, encoding="utf-8").read(), re.S)
+    if len(found) != 1:
+        out.append("%s has %d dictionaries" % (name, len(found)))
+    elif json.loads(found[0]) != ui:
+        out.append("%s has a dictionary other than assets/ui.json" % name)
+print(" / ".join(out))
+PYEOF
+)"
+_assert "8-4 the built pages carry the dictionary of assets/ui.json once" "" "$CARRIED"
+
+WRITTEN="$(python3 - "$UI_JSON" "en:dated:$EN" "ja:dated:$JA" "en:starter:$STARTER" <<'PYEOF'
+import datetime, json, os, re, sys
+from html.parser import HTMLParser
+try:
+    ui = json.load(open(sys.argv[1], encoding="utf-8"))
+except (OSError, ValueError) as exc:
+    print("cannot read assets/ui.json (%s)" % exc.__class__.__name__)
+    sys.exit(0)
+
+def fill(word, values):
+    return re.sub(r"\{(\w+)\}", lambda m: str(values.get(m.group(1)) or ""), word)
+
+class Marks(HTMLParser):
+    """Collects every element marked with data-ui, data-ui-label, or data-ui-title, and the date."""
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.found, self.open, self.date = [], None, None
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        if "data-ui-label" in a:
+            self.found.append(("aria-label", a["data-ui-label"], a, a.get("aria-label")))
+        if "data-ui-title" in a:
+            self.found.append(("title", a["data-ui-title"], a, a.get("title")))
+        if "data-ui" in a:
+            self.open = ["text", a["data-ui"], a, ""]
+        if "doc-date" in (a.get("class") or "").split():
+            self.open = ["date", None, a, ""]
+    def handle_data(self, data):
+        if self.open is not None:
+            self.open[3] += data
+    def handle_endtag(self, tag):
+        if self.open is not None:
+            if self.open[0] == "date":
+                self.date = self.open[3]
+            else:
+                self.found.append(tuple(self.open))
+            self.open = None
+
+today = datetime.date.today()
+out = []
+for arg in sys.argv[2:]:
+    # The starter keeps a placeholder date, so only the built samples have their date checked.
+    lang, kind, page = arg.split(":", 2)
+    name = os.path.basename(page)
+    if not os.path.isfile(page):
+        out.append("%s was not built" % name)
+        continue
+    words = ui[lang]
+    marks = Marks()
+    marks.feed(open(page, encoding="utf-8").read())
+    if not marks.found:
+        out.append("%s has no marked interface text" % name)
+    for where, key, attrs, shown in marks.found:
+        if key not in words:
+            out.append("%s: %s is not in the dictionary" % (name, key))
+            continue
+        want = fill(words[key], {"name": attrs.get("data-ui-name"), "n": attrs.get("data-ui-n")})
+        if where == "text" and attrs.get("data-ui-icon"):
+            want = attrs["data-ui-icon"] + " " + want
+        if shown != want:
+            out.append("%s: %s of %s reads %r, the dictionary %r" % (name, where, key, shown, want))
+    if kind == "dated":
+        want = fill(words["date"], {"year": today.year, "month": words["months"][today.month - 1], "day": today.day})
+        if marks.date != want:
+            out.append("%s: the date reads %r, the dictionary %r" % (name, marks.date, want))
+print(" / ".join(out))
+PYEOF
+)"
+_assert "8-5 the words written into the built pages match the dictionary" "" "$WRITTEN"
+
+# A ladder with no alt, no line label, and no back_note takes the default words of the dictionary.
+mkdir -p "$WORK/plain-ladder"
+cat > "$WORK/plain-ladder/plain.json" <<'JSONEOF'
+{"schema_version": 1,
+ "steps": [{"n": 1, "title": "Start"}, {"n": 2, "title": "Check"}],
+ "back": [{"from": 2, "to": 1}]}
+JSONEOF
+LADDER_WORDS="$(
+  for lang in en ja; do
+    printf '<html lang="%s"><body><div class="ladder" data-ladder="plain"></div></body></html>\n' "$lang" > "$WORK/plain-ladder/$lang.html"
+    python3 "$LADDER" --html "$WORK/plain-ladder/$lang.html" --src "$WORK/plain-ladder" >/dev/null 2>&1 || echo "ladder.py failed on $lang"
+  done
+  python3 - "$UI_JSON" "$WORK/plain-ladder" <<'PYEOF'
+import html, json, os, re, sys
+try:
+    ui = json.load(open(sys.argv[1], encoding="utf-8"))
+except (OSError, ValueError) as exc:
+    print("cannot read assets/ui.json (%s)" % exc.__class__.__name__)
+    sys.exit(0)
+out = []
+for lang in ("en", "ja"):
+    doc = open(os.path.join(sys.argv[2], lang + ".html"), encoding="utf-8").read()
+    words = ui[lang]
+    want = {
+        "aria-label": words["ladderAlt"],
+        "data-edge-label": words["ladderBack"].replace("{n}", "1"),
+        "note": words["ladderBackNote"].replace("{n}", "1"),
+    }
+    got = {
+        "aria-label": re.search(r'<svg class="ladfig"[^>]*\baria-label="([^"]*)"', doc),
+        "data-edge-label": re.search(r'data-edge-label="([^"]*)"', doc),
+        "note": re.search(r'<text class="lad-blabel"[^>]*>([^<]*)</text>', doc),
+    }
+    for key, value in want.items():
+        shown = html.unescape(got[key].group(1)) if got[key] else None
+        if shown != value:
+            out.append("%s %s reads %r, the dictionary %r" % (lang, key, shown, value))
+print(" / ".join(out))
+PYEOF
+)"
+_assert "8-6 the step ladder takes its default words from the dictionary" "" "$LADDER_WORDS"
+
+# doc.js reads the dictionary in the page: a page whose dictionary was changed shows the changed
+# words, and an English page opened in the Japanese interface shows the Japanese words.
+if [ -f "$EN" ]; then
+  DICT_PAGE="$(python3 - "$EN" "$WORK/doc-dict.html" <<'PYEOF'
+import json, re, sys
+doc = open(sys.argv[1], encoding="utf-8").read()
+m = re.search(r'(<script type="application/json" id="dx-ui">)(.*?)(</script>)', doc, re.S)
+if not m:
+    print("the page has no dictionary")
+    sys.exit(0)
+words = json.loads(m.group(2))
+words["ja"]["prev"] = "dictionary-prev-ja"
+words["ja"]["pdfPage"] = "dictionary-pdf-page-ja"
+doc = doc[:m.start(2)] + json.dumps(words, ensure_ascii=False) + doc[m.end(2):]
+doc = doc.replace('<html lang="en">', '<html lang="ja">', 1)
+open(sys.argv[2], "w", encoding="utf-8").write(doc)
+print("OK")
+PYEOF
+)"
+  if [ "$DICT_PAGE" != "OK" ]; then
+    _fail "8-7 doc.js shows the words of the dictionary in the page" "$DICT_PAGE"
+  else
+    state="$(dump "$WORK/doc-dict.html" "$WORK/dom-dict.html")"
+    if [ "$state" = "NO_BROWSER" ]; then
+      echo "  skip: no browser (8-7)"
+    elif [ "$state" != "OK" ]; then
+      _fail "8-7 doc.js shows the words of the dictionary in the page" "$state"
+    else
+      _yes "8-7 doc.js shows the words of the dictionary in the page" \
+        "_has '$WORK/dom-dict.html' 'data-step=\"-1\">dictionary-prev-ja</button>' && _has '$WORK/dom-dict.html' '>dictionary-pdf-page-ja</button>'"
+    fi
+  fi
+else
+  _fail "8-7 doc.js shows the words of the dictionary in the page" "the English sample was not built"
+fi
 
 echo ""
 echo "[test-render] ran: $((PASS + FAIL))"
