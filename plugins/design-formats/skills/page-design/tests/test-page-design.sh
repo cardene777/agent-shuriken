@@ -159,7 +159,7 @@ PYEOF
 check "the report template keeps facts apart from results, shows row values, and hides a one-page pager" report_layout
 
 look_figures() {
-  has "$LOOK" "## Figures" "[shape: bar]" "[shape: donut]" '`flow`' '`architecture`' '`sequence`' "line chart" \
+  has "$LOOK" "## Figures" "[shape: bar]" "[shape: donut]" "[shape: band]" '`flow`' '`architecture`' '`sequence`' "line chart" \
     'data-still' 'dragon embed' 'data-figure-lang'
 }
 check "the look format maps each kind of information to a still dragon figure" look_figures
@@ -210,52 +210,10 @@ PYEOF
 check "the report template holds a still bar chart and a still donut in both languages" report_figures
 
 document_figures() {
-  figures "$SKILL_DIR/templates/document.html" "flow " || return 1
+  figures "$SKILL_DIR/templates/document.html" "[shape: band]" || return 1
   ! grep -qF 'const FLOW = {' "$SKILL_DIR/templates/document.html" || { echo "      the boxes drawn by hand are still there"; return 1; }
 }
 check "the document template holds a still flow of the steps in both languages" document_figures
-
-# still_page <name> <entry line>: the good page with a still bar chart block, and the entry line when given.
-still_page() {
-  page "$T/html/$1.html"
-  python3 - "$T/html/$1.html" "$2" "${3:-still}" <<'PYEOF'
-import sys
-path, entry, kind = sys.argv[1], sys.argv[2], sys.argv[3]
-block = '<pre class="dragon"%s>chart Sales [shape: bar]\nitem a as A\nstep Week\n  say Sales.\n  set a: 3\n</pre>' % (" data-still" if kind == "still" else "")
-text = open(path, encoding="utf-8").read().replace("<p>SECRET_TEXT_MARKER", block + "<p>SECRET_TEXT_MARKER")
-if entry:
-    text = text.replace("</head>", entry + "</head>")
-open(path, "w", encoding="utf-8").write(text)
-PYEOF
-}
-ENTRY_LINE='<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.80/dist/cdn/dragon.js"></script>'
-
-verify_figure_blocks() {
-  still_page fig-block ""
-  run verify "$T/html/fig-block.html" > "$T/fig-block.out" 2>&1
-  [ $? -eq 1 ] || { echo "      a page with a dragon block did not exit 1"; return 1; }
-  grep -Eq '^.*fig-block\.html:[0-9]+: figure-not-embedded: .*dragon embed' "$T/fig-block.out" || { echo "      the block was not named with dragon embed"; return 1; }
-}
-check "verify refuses a page that still holds a dragon block" verify_figure_blocks
-
-verify_source_figures() {
-  still_page fig-source "$ENTRY_LINE"
-  run verify --source "$T/html/fig-source.html" > "$T/fig-source.out" 2>&1 || { sed 's/^/      /' "$T/fig-source.out"; return 1; }
-  still_page fig-moving "$ENTRY_LINE" moving
-  run verify --source "$T/html/fig-moving.html" > "$T/fig-moving.out" 2>&1
-  [ $? -eq 1 ] || { echo "      a block without data-still did not exit 1"; return 1; }
-  grep -Eq '^.*fig-moving\.html:[0-9]+: figure-not-still: .+' "$T/fig-moving.out" || { echo "      the block was not named figure-not-still"; return 1; }
-  # Outside --source, the entry line still reads a file from outside.
-  run verify "$T/html/fig-source.html" > "$T/fig-source-page.out" 2>&1
-  grep -q ': external-file: ' "$T/fig-source-page.out" || { echo "      the entry line passed outside --source"; return 1; }
-}
-check "verify --source refuses a dragon block that is not still" verify_source_figures
-
-verify_figure_text() {
-  breaks fig-embedded 'text.replace("<p>SECRET_TEXT_MARKER", "<div class=\"dragon-figure dragon-still\"><svg class=\"dg dg-a1\" style=\"display:block;max-width:100%\"><style>.dg-a1 .t{font-size:9px}</style><text style=\"font-size:10px\">Week: 3</text></svg></div><p>SECRET_TEXT_MARKER")'
-  run verify "$T/html/fig-embedded.html" > "$T/fig-embedded.out" 2>&1 || { sed 's/^/      /' "$T/fig-embedded.out"; return 1; }
-}
-check "verify accepts the text inside an embedded dragon figure" verify_figure_text
 
 follows_dragon() {
   python3 - "$DECLARATION" <<'PYEOF' || return 1
@@ -384,6 +342,48 @@ verify_markdown_refusals() {
   done
 }
 check "verify refuses a Markdown document that breaks a rule" verify_markdown_refusals
+
+# still_page <name> <entry line>: the good page with a still bar chart block, and the entry line when given.
+still_page() {
+  page "$T/html/$1.html"
+  python3 - "$T/html/$1.html" "$2" "${3:-still}" <<'PYEOF'
+import sys
+path, entry, kind = sys.argv[1], sys.argv[2], sys.argv[3]
+block = '<pre class="dragon"%s>chart Sales [shape: bar]\nitem a as A\nstep Week\n  say Sales.\n  set a: 3\n</pre>' % (" data-still" if kind == "still" else "")
+text = open(path, encoding="utf-8").read().replace("<p>SECRET_TEXT_MARKER", block + "<p>SECRET_TEXT_MARKER")
+if entry:
+    text = text.replace("</head>", entry + "</head>")
+open(path, "w", encoding="utf-8").write(text)
+PYEOF
+}
+ENTRY_LINE='<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.80/dist/cdn/dragon.js"></script>'
+
+verify_figure_blocks() {
+  still_page fig-block ""
+  run verify "$T/html/fig-block.html" > "$T/fig-block.out" 2>&1
+  [ $? -eq 1 ] || { echo "      a page with a dragon block did not exit 1"; return 1; }
+  grep -Eq '^.*fig-block\.html:[0-9]+: figure-not-embedded: .*dragon embed' "$T/fig-block.out" || { echo "      the block was not named with dragon embed"; return 1; }
+}
+check "verify refuses a page that still holds a dragon block" verify_figure_blocks
+
+verify_source_figures() {
+  still_page fig-source "$ENTRY_LINE"
+  run verify --source "$T/html/fig-source.html" > "$T/fig-source.out" 2>&1 || { sed 's/^/      /' "$T/fig-source.out"; return 1; }
+  still_page fig-moving "$ENTRY_LINE" moving
+  run verify --source "$T/html/fig-moving.html" > "$T/fig-moving.out" 2>&1
+  [ $? -eq 1 ] || { echo "      a block without data-still did not exit 1"; return 1; }
+  grep -Eq '^.*fig-moving\.html:[0-9]+: figure-not-still: .+' "$T/fig-moving.out" || { echo "      the block was not named figure-not-still"; return 1; }
+  # Outside --source, the entry line still reads a file from outside.
+  run verify "$T/html/fig-source.html" > "$T/fig-source-page.out" 2>&1
+  grep -q ': external-file: ' "$T/fig-source-page.out" || { echo "      the entry line passed outside --source"; return 1; }
+}
+check "verify --source refuses a dragon block that is not still" verify_source_figures
+
+verify_figure_text() {
+  breaks fig-embedded 'text.replace("<p>SECRET_TEXT_MARKER", "<div class=\"dragon-figure dragon-still\"><svg class=\"dg dg-a1\" style=\"display:block;max-width:100%\"><style>.dg-a1 .t{font-size:9px}</style><text style=\"font-size:10px\">Week: 3</text></svg></div><p>SECRET_TEXT_MARKER")'
+  run verify "$T/html/fig-embedded.html" > "$T/fig-embedded.out" 2>&1 || { sed 's/^/      /' "$T/fig-embedded.out"; return 1; }
+}
+check "verify accepts the text inside an embedded dragon figure" verify_figure_text
 
 verify_quiet() {
   local f
