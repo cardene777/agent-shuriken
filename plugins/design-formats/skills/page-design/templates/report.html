@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Report</title>
 <!--
-  page-design report: facts about the period, the result numbers, and a list with the details of the
-  pressed row beside it. A following skill replaces DATA and the words in TEXT, and keeps the frame.
+  page-design report: facts about the period on one line, the result numbers on one band, and a list
+  with each row's value and the details of the pressed row beside it. A following skill replaces DATA and the words in TEXT, and keeps the frame.
 -->
 <style>
 :root {
@@ -43,14 +43,15 @@ a { color: var(--accent); }
 
 main { max-width: 1200px; margin: 0 auto; padding: 22px 24px 48px; display: grid; gap: 18px; }
 .lead { margin: 0; color: var(--sub); max-width: 75ch; }
-.facts { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
-.facts div { padding: 10px 16px; border-left: 1px solid var(--line); margin-left: -1px; }
-.facts dt { font-size: 12.5px; color: var(--sub); }
+.facts { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 28px; }
+.facts div { display: flex; gap: 8px; align-items: baseline; }
+.facts dt { font-size: 13px; color: var(--sub); }
 .facts dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
-.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
-.stat { padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
-.stat b { display: block; font-size: 26px; line-height: 1.2; font-variant-numeric: tabular-nums; }
-.stat span { font-size: 13px; color: var(--sub); }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden; }
+.stat { padding: 18px 22px; border-left: 1px solid var(--line); margin-left: -1px; }
+.stat b { display: block; font-size: 30px; line-height: 1.25; font-variant-numeric: tabular-nums; }
+.stat span { display: block; font-size: 13.5px; color: var(--sub); }
+.value { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
 
 .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; }
 .tabs button { border: 0; background: transparent; padding: 10px 14px; cursor: pointer; color: var(--sub); white-space: nowrap; transition: color .15s, box-shadow .15s; }
@@ -60,15 +61,13 @@ main { max-width: 1200px; margin: 0 auto; padding: 22px 24px 48px; display: grid
 .split { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 .list { display: grid; gap: 10px; min-width: 0; }
 .rows { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
-.row { width: 100%; display: grid; grid-template-columns: 30px minmax(0, 1fr) 96px; gap: 12px; align-items: center; padding: 12px 16px; border: 0; border-top: 1px solid var(--line); background: transparent; text-align: left; cursor: pointer; transition: background-color .15s; }
+.row { width: 100%; display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 16px; border: 0; border-top: 1px solid var(--line); background: transparent; text-align: left; cursor: pointer; transition: background-color .15s; }
 .row:first-child { border-top: 0; }
 .row:hover { background: var(--bg); }
 .row[aria-pressed="true"] { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
 .rank { font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
 .name { font-weight: 600; overflow-wrap: anywhere; }
 .row small { display: block; font-family: var(--sans); font-size: 13px; color: var(--sub); }
-.bar { height: 6px; border-radius: 3px; background: var(--bar); overflow: hidden; }
-.bar span { display: block; height: 100%; background: var(--accent); }
 .pager { display: flex; justify-content: center; align-items: center; gap: 6px; }
 .pager button { min-width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); cursor: pointer; }
 .pager button[aria-current="page"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
@@ -146,8 +145,8 @@ const TEXT = {
   en: {
     lead: "Products ranked by sales this week. The details beside the list say why each one sold and what to try next week.",
     light: "Light", dark: "Dark",
-    period: "Week", store: "Store", products: "Products", customers: "Customers", generated: "Generated",
-    sales: "Sales", visits: "Customers", average: "Average spend", soldOut: "Sold out", newItems: "New items",
+    period: "Week", store: "Store", generated: "Generated",
+    sales: "Sales", visits: "Customers", average: "Average spend", soldOut: "Sold out",
     all: "All", bread: "Bread", sweets: "Sweets", drinks: "Drinks",
     what: "What it is", why: "Why it sold", next: "Next week",
     enlarge: "Enlarge", previous: "Previous page", next_page: "Next page",
@@ -157,8 +156,8 @@ const TEXT = {
   ja: {
     lead: "今週の売り上げの順に並べた商品です。一覧の横の詳細に、売れた理由と来週に試すことを書いています。",
     light: "明るい", dark: "暗い",
-    period: "週", store: "店", products: "商品の数", customers: "来た人", generated: "作った日時",
-    sales: "売り上げ", visits: "来た人", average: "1人あたり", soldOut: "売り切れた商品", newItems: "新しい商品",
+    period: "週", store: "店", generated: "作った日時",
+    sales: "売り上げ", visits: "来た人", average: "1人あたり", soldOut: "売り切れた商品",
     all: "全て", bread: "パン", sweets: "菓子パン", drinks: "飲み物",
     what: "何か", why: "売れた理由", next: "来週に試すこと",
     enlarge: "大きく見る", previous: "前の頁", next_page: "次の頁",
@@ -170,8 +169,8 @@ const TEXT = {
 // The report. A following skill writes this object; every value shown to people is here.
 const DATA = {
   title: { en: "Weekly sales of the bakery", ja: "パン屋の週の売り上げ" },
-  facts: [["period", { en: "Nov 10 to 16", ja: "11月10日から16日" }], ["store", { en: "Main street", ja: "本通り店" }], ["products", "24"], ["customers", "1,240"], ["generated", "2026-11-17 08:00"]],
-  stats: [["sales", { en: "¥482,300", ja: "482,300円" }], ["visits", "1,240"], ["average", { en: "¥389", ja: "389円" }], ["soldOut", "3"], ["newItems", "1"]],
+  facts: [["period", { en: "Nov 10 to 16", ja: "11月10日から16日" }], ["store", { en: "Main street", ja: "本通り店" }], ["generated", "2026-11-17 08:00"]],
+  stats: [["sales", { en: "¥482,300", ja: "482,300円" }], ["visits", "1,240"], ["average", { en: "¥389", ja: "389円" }], ["soldOut", "3"]],
   tabs: ["all", "bread", "sweets", "drinks"],
   items: [
     { name: { en: "Croissant", ja: "クロワッサン" }, score: 128520, tabs: ["all", "bread"],
@@ -214,6 +213,8 @@ const t = (key) => TEXT[state.lang][key] ?? key;
 const pick = (value) => (value && typeof value === "object" && !Array.isArray(value) ? value[state.lang] : value);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
+const yen = (n) => (state.lang === "ja" ? n.toLocaleString("en-US") + "\u5186" : "\u00a5" + n.toLocaleString("en-US"));
+
 function shown() { return DATA.items.filter((item) => item.tabs.includes(state.tab)); }
 
 function render() {
@@ -233,12 +234,12 @@ function render() {
   const pages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
   state.page = Math.min(state.page, pages);
   const from = (state.page - 1) * PAGE_SIZE;
-  const top = items[0] ? items[0].score : 1;
   $("rows").innerHTML = items.slice(from, from + PAGE_SIZE).map((item, i) => {
     const n = from + i;
-    return `<button type="button" class="row" data-pick="${n}" aria-pressed="${n === state.pick}"><span class="rank">${n + 1}</span><span class="name">${esc(pick(item.name))}<small>${esc(pick(item.what))}</small></span><span class="bar"><span style="width:${Math.round(item.score / top * 100)}%"></span></span></button>`;
+    return `<button type="button" class="row" data-pick="${n}" aria-pressed="${n === state.pick}"><span class="rank">${n + 1}</span><span class="name">${esc(pick(item.name))}<small>${esc(pick(item.what))}</small></span><span class="value">${esc(yen(item.score))}</span></button>`;
   }).join("");
-  ["pager-top", "pager-bottom"].forEach((id) => { $(id).innerHTML = pager(pages); });
+  // A list that fits on one page shows no pager.
+  ["pager-top", "pager-bottom"].forEach((id) => { $(id).innerHTML = pages > 1 ? pager(pages) : ""; $(id).hidden = pages <= 1; });
   renderDetail(items[state.pick]);
 }
 
