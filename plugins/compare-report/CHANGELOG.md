@@ -7,6 +7,7 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 - `musubi.json` follows the `structure` and `look` formats, the `report` page type, and `verify` of page-design in the design-formats plugin through musubi, as optional follows. When page-design is installed, the agent writes the report on them and runs page-design's verify on `report.html`; when the `musubi` command is installed, it runs `musubi check` first. Without design-formats, the report is written in the plugin's own template as before
 - The report has two switches at the top right of its cover: English / 日本語 for the words of the switches, and Light / Dark for the colors. Until you choose, the colors follow your system, and your browser keeps your choice in its local storage under `compare-report-theme` and `compare-report-lang`. The PDF always prints in the light colors, without the switches
+- The ranking gives the first choice, the alternative, and the fallback as a table with the conditions for each, and recommendations by use case as a second table. The guide's example rationale and its new rule on figures in text keep at most two figures between commas in one cell, so a report written from the guide passes page-design's verify on the first run
 
 ## [0.5.0] - 2026-11-16
 
