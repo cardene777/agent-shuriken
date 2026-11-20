@@ -8,7 +8,7 @@
     },
     "page-design/look": {
       "version": "^1.0.0",
-      "integrity": "sha256-SG/q+Vx7ds/o9xXNr1SCNecnBUIuiaUrHPmG+NSGWB0=",
+      "integrity": "sha256-q2swCpKd0fASWdC8PZHat9uZ4FKQP2onp3z//S9Opgg=",
       "optional": true
     },
     "page-design/sheet": {

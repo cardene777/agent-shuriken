@@ -8,12 +8,12 @@
     },
     "page-design/look": {
       "version": "^1.0.0",
-      "integrity": "sha256-SG/q+Vx7ds/o9xXNr1SCNecnBUIuiaUrHPmG+NSGWB0=",
+      "integrity": "sha256-q2swCpKd0fASWdC8PZHat9uZ4FKQP2onp3z//S9Opgg=",
       "optional": true
     },
     "page-design/report": {
       "version": "^1.0.0",
-      "integrity": "sha256-cDcWF5OsM+PesoiXTbyZKLAyf471K7tvSVU1o8SuhpM=",
+      "integrity": "sha256-pMHYoCO/xy3/xwxREHbOPTpjhZ12TU4Ix5KrdjVgizo=",
       "optional": true
     },
     "page-design/verify": {
