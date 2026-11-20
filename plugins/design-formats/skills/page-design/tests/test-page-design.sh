@@ -209,6 +209,33 @@ PYEOF
 }
 check "the report template holds a still bar chart and a still donut in both languages" report_figures
 
+look_line_chart() {
+  grep -qE '^\| A change over time \| .*\[shape: line\]' "$LOOK" || { echo "      look.md: the row of a change over time does not use [shape: line]"; return 1; }
+  ! grep -qF 'show a table until dragon draws a line chart' "$LOOK" || { echo "      look.md: still says to show a table instead of a line chart"; return 1; }
+}
+check "the look format draws a change over time as a dragon line chart" look_line_chart
+
+report_line_chart() {
+  figures "$SKILL_DIR/templates/report.html" "[shape: line]" || return 1
+  # The line chart spans the width of the figures, above the two smaller figures.
+  python3 - "$SKILL_DIR/templates/report.html" <<'PYEOF'
+import re, sys
+text = open(sys.argv[1], encoding="utf-8").read()
+cards = re.findall(r'<figure class="([^"]*)"[^>]*>(.*?)</figure>', text, re.S)
+wide = [classes for classes, body in cards if "[shape: line]" in body]
+if not wide or "wide" not in wide[0].split():
+    print("      the line chart's card is not .figure.wide")
+    sys.exit(1)
+if "[shape: line]" not in cards[0][1]:
+    print("      the line chart is not the first figure")
+    sys.exit(1)
+if not re.search(r"\.figure\.wide\s*\{[^}]*grid-column:\s*1\s*/\s*-1", text):
+    print("      .figure.wide does not span the figures grid")
+    sys.exit(1)
+PYEOF
+}
+check "the report template holds a still line chart of the daily sales in both languages" report_line_chart
+
 document_figures() {
   figures "$SKILL_DIR/templates/document.html" "[shape: band]" || return 1
   ! grep -qF 'const FLOW = {' "$SKILL_DIR/templates/document.html" || { echo "      the boxes drawn by hand are still there"; return 1; }

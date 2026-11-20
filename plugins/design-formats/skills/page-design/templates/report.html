@@ -55,8 +55,10 @@ main { max-width: 1200px; margin: 0 auto; padding: 22px 24px 48px; display: grid
 .stat b { display: block; font-size: 30px; line-height: 1.25; font-variant-numeric: tabular-nums; }
 .stat span { display: block; font-size: 13.5px; color: var(--sub); }
 .value { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
-.figures { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
+.figures { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: 16px; }
 .figure { display: flex; flex-direction: column; justify-content: center; margin: 0; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); cursor: zoom-in; transition: border-color .15s; --dragon-figure-background: var(--surface); }
+.figure.wide { grid-column: 1 / -1; }
+.figure.wide [data-figure-lang] { width: 100%; max-width: 720px; margin: 0 auto; }
 .figure:hover, .figure:focus-visible { border-color: var(--accent); outline: none; }
 .figure svg, #zoom-body svg { display: block; width: 100%; height: auto; }
 #zoom-body { --dragon-figure-background: var(--surface); }
@@ -131,6 +133,62 @@ dialog::backdrop { background: rgba(10, 14, 20, .55); }
   <dl class="facts" id="facts"></dl>
   <div class="stats" id="stats"></div>
   <div class="figures">
+    <figure class="figure wide" data-figure tabindex="0" role="button">
+      <div data-figure-lang="en"><pre class="dragon" data-still>
+chart Sales by day in thousand yen [shape: line]
+
+item sales as Sales [color: blue]
+
+step Tue
+  say Tuesday brings 55.
+  set sales: 55
+step Wed
+  say Wednesday brings 57.
+  set sales: 57
+step Thu
+  say Thursday is the quietest day at 52.
+  set sales: 52
+step Fri
+  say Friday brings 63.
+  set sales: 63
+step Sat
+  say Saturday is the best day at 84.
+  set sales: 84
+step Sun
+  say Sunday brings 79.
+  set sales: 79
+step Mon
+  say Monday brings 60.
+  set sales: 60
+</pre></div>
+      <div data-figure-lang="ja"><pre class="dragon" data-still>
+chart 日ごとの売り上げ (千円) [shape: line]
+
+item sales as 売り上げ [color: blue]
+
+step 火
+  say 火曜は55千円。
+  set sales: 55
+step 水
+  say 水曜は57千円。
+  set sales: 57
+step 木
+  say 木曜は週で一番少ない52千円。
+  set sales: 52
+step 金
+  say 金曜は63千円。
+  set sales: 63
+step 土
+  say 土曜は週で一番多い84千円。
+  set sales: 84
+step 日
+  say 日曜は79千円。
+  set sales: 79
+step 月
+  say 月曜は60千円。
+  set sales: 60
+</pre></div>
+    </figure>
     <figure class="figure" data-figure tabindex="0" role="button">
       <div data-figure-lang="en"><pre class="dragon" data-still>
 chart Sales by time of day in thousand yen [shape: bar]
