@@ -23,6 +23,7 @@ Resulting layout:
 - on narrow screens a bar shows the current section and a contents button slides the list in
 - a language switch (English / Japanese interface text) and a light or dark switch sit in the
   header with several pages, above the contents list with one, and in the narrow-screen bar
+- the words of the frame and the switches come from assets/ui.json, in the document language
 
 Everything between `<!-- diagram-explainer:content:start -->` and
 `<!-- diagram-explainer:content:end -->` in the template is replaced. The rest of the
@@ -45,45 +46,19 @@ TEMPLATE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__
                         "templates", "starter-doc.html")
 # Document languages. The first one is the default.
 LANGS = ("en", "ja")
-# Interface text that render.py writes into the page, per document language.
-# assets/doc.js holds the same words in its dictionary (TEXT) and rewrites every element marked
-# with `data-ui`, `data-ui-label`, or `data-ui-title` when the reader switches the interface language.
-UI = {
-    "en": {
-        "contents": "Contents",
-        "contents_button": "☰ Contents",
-        "page_contents": "%s contents",
-        "pages": "Pages",
-        "prev": "Previous section",
-        "next": "Next section",
-        "date": "As of {month} {day}, {year}",
-        "language": "Language",
-        "theme": "Light or dark",
-        "light": "Light",
-        "dark": "Dark",
-    },
-    "ja": {
-        "contents": "目次",
-        "contents_button": "☰ 目次",
-        "page_contents": "%sの目次",
-        "pages": "ページ",
-        "prev": "前の節",
-        "next": "次の節",
-        "date": "{year}年{month_num}月{day}日時点",
-        "language": "表示の言語",
-        "theme": "画面の明るさ",
-        "light": "明るい",
-        "dark": "暗い",
-    },
-}
+# The interface words of the page, keyed by language (`en`, `ja`). assets/ui.json is the only
+# place they are defined: render.py and ladder.py read it, build.py copies it into the page, and
+# assets/doc.js reads it there to rewrite every element marked with `data-ui`, `data-ui-label`,
+# or `data-ui-title` when the reader switches the interface language.
+UI_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "ui.json")
+# The symbol kept in front of the contents button text in both languages.
+CONTENTS_ICON = "\u2630"
 # Icons of the light and dark buttons. Each button also has a label in the interface language.
 SUN_ICON = ('<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="3"/>'
             '<path d="M8 1.5V3M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1'
             'M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1"/></svg>')
 MOON_ICON = ('<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">'
              '<path d="M13.4 10.1A5.6 5.6 0 0 1 5.9 2.6a5.6 5.6 0 1 0 7.5 7.5z"/></svg>')
-MONTHS = ("January", "February", "March", "April", "May", "June", "July",
-          "August", "September", "October", "November", "December")
 # Chart kinds drawn inside the document. assets/charts.js draws them.
 CHARTS = ("timeband", "capbar", "bars", "period")
 # Color names for the reading shapes. The colors themselves live in assets/doc.css.
@@ -151,12 +126,30 @@ def plain(text):
     return esc(re.sub(r"`([^`]+)`", r"\1", str(text)))
 
 
+_UI = {}
+
+
+def ui_words(lang):
+    """The interface words of one language, read once from assets/ui.json."""
+    if not _UI:
+        with io.open(UI_PATH, encoding="utf-8") as f:
+            _UI.update(json.load(f))
+    if lang not in _UI:
+        fail("assets/ui.json has no %s words" % lang)
+    return _UI[lang]
+
+
+def say(ui, key, **values):
+    """One interface word with its `{name}` blanks filled in, the way `say` in assets/doc.js does."""
+    return re.sub(r"\{(\w+)\}", lambda m: str(values.get(m.group(1), "")), ui[key])
+
+
 class Ctx:
     """Per-document state: the language and the ids already used."""
 
     def __init__(self, lang="en"):
         self.lang = lang
-        self.ui = UI[lang]
+        self.ui = ui_words(lang)
         self.names = set()
 
     def claim(self, name, where):
@@ -391,8 +384,8 @@ def page_head(title, lead, ctx):
 
 def today_label(lang="en", today=None):
     d = today or datetime.date.today()
-    return UI[lang]["date"].format(year=d.year, month=MONTHS[d.month - 1],
-                                   month_num=d.month, day=d.day)
+    ui = ui_words(lang)
+    return say(ui, "date", year=d.year, month=ui["months"][d.month - 1], day=d.day)
 
 
 def switches(ui):
@@ -403,14 +396,14 @@ def switches(ui):
     theme = "".join(
         '<button type="button" data-theme-choice="%s" data-ui-label="%s" data-ui-title="%s" '
         'aria-label="%s" title="%s" aria-pressed="false">%s</button>'
-        % (mode, mode, mode, esc(ui[mode]), esc(ui[mode]), icon)
+        % (mode, mode, mode, esc(say(ui, mode)), esc(say(ui, mode)), icon)
         for mode, icon in (("light", SUN_ICON), ("dark", MOON_ICON)))
     return ('<div class="doc-ctrl">\n'
             '    <div class="doc-seg" role="group" data-ui-label="language" aria-label="%s">'
             '<button type="button" data-lang="en" lang="en" aria-pressed="false">English</button>'
             '<button type="button" data-lang="ja" lang="ja" aria-pressed="false">日本語</button></div>\n'
             '    <div class="doc-seg" role="group" data-ui-label="theme" aria-label="%s">%s</div>\n'
-            '  </div>' % (esc(ui["language"]), esc(ui["theme"]), theme))
+            '  </div>' % (esc(say(ui, "language")), esc(say(ui, "theme")), theme))
 
 
 def lang_of(doc):
@@ -458,7 +451,7 @@ def render(doc, template, today=None):
         toc_name = re.sub(r"`([^`]+)`", r"\1", str(label))
         tocs.append('  <nav class="doc-toc" data-page="%s" data-ui-label="pageContents" '
                     'data-ui-name="%s" aria-label="%s"%s>%s\n%s\n  </nav>'
-                    % (key, esc(toc_name), esc(ui["page_contents"] % toc_name),
+                    % (key, esc(toc_name), esc(say(ui, "pageContents", name=toc_name)),
                        " hidden" if i else "", toc_head,
                        "\n".join('    <button type="button" data-sec="%s">%s</button>'
                                  % (s["id"], inline(s["title"])) for s in sections)))
@@ -476,7 +469,7 @@ def render(doc, template, today=None):
         parts.append('<header class="doc-top">\n  <span class="doc-brand">%s</span>\n'
                      '  <nav class="doc-pages" data-ui-label="pages" aria-label="%s">\n%s\n  </nav>\n'
                      '  <span class="doc-date">%s</span>\n  %s\n</header>'
-                     % (inline(title), esc(ui["pages"]), "\n".join(
+                     % (inline(title), esc(say(ui, "pages")), "\n".join(
                          '    <button type="button" data-page="%s"%s>%s</button>'
                          % (key, ' aria-current="page"' if i == 0 else "", inline(tab["label"]))
                          for i, (key, tab) in enumerate(zip(keys, tabs))), esc(date), switches(ui)))
@@ -485,14 +478,15 @@ def render(doc, template, today=None):
         side_head = ('  <p class="doc-brand">%s</p>\n  <p class="doc-date">%s</p>\n  %s\n'
                      % (inline(title), esc(date), switches(ui)))
     parts.append('<aside class="doc-side" id="doc-side" data-ui-label="contents" aria-label="%s">\n%s%s\n</aside>'
-                 % (esc(ui["contents"]), side_head, "\n".join(tocs)))
-    parts.append('<div class="doc-mbar"><button type="button" data-ui="contents" data-ui-icon="☰" aria-controls="doc-side" '
-                 'aria-expanded="false">%s</button><span class="doc-here"></span>'
-                 '<span class="doc-count"></span></div>' % esc(ui["contents_button"]))
+                 % (esc(say(ui, "contents")), side_head, "\n".join(tocs)))
+    parts.append('<div class="doc-mbar"><button type="button" data-ui="contents" data-ui-icon="%s" aria-controls="doc-side" '
+                 'aria-expanded="false">%s %s</button><span class="doc-here"></span>'
+                 '<span class="doc-count"></span></div>'
+                 % (CONTENTS_ICON, CONTENTS_ICON, esc(say(ui, "contents"))))
     parts.append('<main class="doc-main">\n%s\n<div class="doc-step"><button type="button" '
                  'data-ui="prev" data-step="-1">%s</button><span class="doc-count"></span>'
                  '<button type="button" data-ui="next" data-step="1">%s</button></div>\n</main>'
-                 % ("\n".join(pages), esc(ui["prev"]), esc(ui["next"])))
+                 % ("\n".join(pages), esc(say(ui, "prev")), esc(say(ui, "next"))))
     parts.append('<div class="doc-scrim"></div>')
 
     start = template.find(START)

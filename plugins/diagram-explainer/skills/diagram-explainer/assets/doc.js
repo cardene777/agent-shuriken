@@ -7,34 +7,23 @@
   // The body of a page that is not shown is kept in a `template` and moved into the page
   // when it opens, so its charts are drawn only when the reader gets there.
   //
-  // This file also holds the interface text of the whole page and the two switches in the
-  // header: the language of that text, and light or dark colors. It is loaded before
+  // This file also shows the interface text of the whole page and runs the two switches in
+  // the header: the language of that text, and light or dark colors. It is loaded before
   // charts.js and print.js, which take their text from `window.dxUi`.
 
   var root = document.documentElement;
 
   // Every interface string of the page: the frame that render.py writes, the section count,
   // the switches, the PDF menu (print.js), and the chart units (charts.js).
+  // The strings are defined once, in assets/ui.json, keyed by `en` and `ja`; build.py copies
+  // that file into the JSON script element `dx-ui` of the page, and render.py and ladder.py
+  // read the same file, so the page is built and relabeled with the same words.
   // The document's own text stays in the language it was written in.
   // `{name}`, `{i}`, and `{n}` are filled in by `say`.
-  var TEXT = {
-    en: {
-      contents: 'Contents', pageContents: '{name} contents', pages: 'Pages',
-      prev: 'Previous section', next: 'Next section',
-      count: 'Section {i} of {n}', here: 'Current section: {name}',
-      language: 'Language', theme: 'Light or dark', light: 'Light', dark: 'Dark',
-      pdf: 'PDF', pdfLabel: 'Save as PDF', pdfPage: 'This page only', pdfAll: 'All pages',
-      hour: '{n}:00', year: '{n}', before: 'Before', after: 'After'
-    },
-    ja: {
-      contents: '目次', pageContents: '{name}の目次', pages: 'ページ',
-      prev: '前の節', next: '次の節',
-      count: '全{n}節中{i}節目', here: '今の節：{name}',
-      language: '表示の言語', theme: '画面の明るさ', light: '明るい', dark: '暗い',
-      pdf: 'PDF', pdfLabel: 'PDFで保存', pdfPage: 'このページだけ', pdfAll: '全部のページ',
-      hour: '{n}時', year: '{n}年', before: '前', after: '後'
-    }
-  };
+  var TEXT = (function () {
+    var source = document.getElementById('dx-ui');
+    try { return JSON.parse(source.textContent) || {}; } catch (e) { return {}; }
+  })();
   var THEME_KEY = 'diagram-explainer-theme';
   var LANG_KEY = 'diagram-explainer-lang';
 
@@ -59,8 +48,8 @@
   root.setAttribute('data-ui-lang', lang);
 
   function say(key, values) {
-    var s = TEXT[lang][key];
-    if (s == null) s = TEXT.en[key] || '';
+    var s = (TEXT[lang] || {})[key];
+    if (s == null) s = (TEXT.en || {})[key] || '';
     return s.replace(/\{(\w+)\}/g, function (_m, k) { return values && values[k] != null ? values[k] : ''; });
   }
 

@@ -30,6 +30,7 @@ The figure's styles are in `assets/ladder.css`, which the template already inclu
 `build.py` refuses a document that still has an empty slot.
 
 Default text drawn in the figure follows `<html lang>`: the `alt` fallback and the labels of lines going back read `Step ladder` / `Back to step N` / `back to N` in English and the Japanese equivalents in Japanese.
+These defaults are `ladderAlt`, `ladderBack`, and `ladderBackNote` in `assets/ui.json`, the one dictionary of the page's words.
 
 On narrow screens a ladder keeps its width (at least 720 px, from `assets/ladder.css`) and scrolls sideways inside its frame, so the columns on the right stay readable side by side.
 Keep the most important item of each step in the `do` column on the left.

@@ -9,8 +9,9 @@
   // Everything is drawn by this file alone, so the document loads nothing from outside.
 
   var NS = 'http://www.w3.org/2000/svg';
-  // Interface text (axis units and the default capped bar buttons) comes from the dictionary in
-  // doc.js, which is loaded first. Each unit is marked with `data-ui`, so it follows the language switch.
+  // Interface text (axis units and the default capped bar buttons) comes from the dictionary of
+  // the page (assets/ui.json), through doc.js, which is loaded first. Each unit is marked with
+  // `data-ui`, so it follows the language switch.
   var ui = window.dxUi;
   // Named colors are tokens in doc.css, with a light and a dark value; other values are used as given.
   var NAMED = ['gray', 'blue', 'orange', 'violet', 'violet2', 'green', 'red'];

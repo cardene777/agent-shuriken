@@ -195,7 +195,9 @@ The language switch (`English`, `日本語`) changes only the interface text: th
 The document's own text and `<html lang>` stay in the language it was written in.
 The light and dark switch changes the colors.
 The page starts in the document's language and in the system's light or dark setting, and the browser remembers the reader's choices (`localStorage`), when it allows storage.
-The interface words live in one dictionary, `TEXT` in `assets/doc.js`; elements marked with `data-ui`, `data-ui-label`, or `data-ui-title` take their words from it.
+The interface words live in one dictionary, `assets/ui.json`, keyed by `en` and `ja`; nothing else defines them.
+`render.py` and `ladder.py` read it when they write the page, `build.py` copies it into the page, and `assets/doc.js` reads it there, so elements marked with `data-ui`, `data-ui-label`, or `data-ui-title` show the same words before and after a switch.
+To change or add a word, edit `assets/ui.json` in both languages and build again.
 
 ## Colors
 

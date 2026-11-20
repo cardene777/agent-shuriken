@@ -66,7 +66,7 @@ The menu labels follow the interface language (see the language switch in [docum
 
 ## How assets are included
 
-The layout, charts, step ladders, and print layout live in `assets/`; the template has one marker line for each.
+The layout, charts, step ladders, print layout, and interface words live in `assets/`; the template has one marker line for each.
 
 ```html
 <style>
@@ -76,6 +76,9 @@ The layout, charts, step ladders, and print layout live in `assets/`; the templa
 /* diagram-explainer:asset print.css */
 </style>
 ...
+<script type="application/json" id="dx-ui">
+// diagram-explainer:asset ui.json
+</script>
 <script>
 // diagram-explainer:asset doc.js
 </script>
@@ -87,7 +90,8 @@ The layout, charts, step ladders, and print layout live in `assets/`; the templa
 </script>
 ```
 
-Keep `doc.js` first: it holds the interface text that `charts.js` and `print.js` use.
+Keep the dictionary and `doc.js` first: `doc.js` reads the interface words from the dictionary (`assets/ui.json`, the same file `render.py` and `ladder.py` read) and gives them to `charts.js` and `print.js`.
+`build.py` writes each `<` in the dictionary as `<`, so no word can end its `<script>` element.
 `charts.js` draws the charts of the page shown first when it loads, and `doc.js` asks it to draw a later page's charts when that page opens.
 
 `build.py` replaces each marker with the file's content.

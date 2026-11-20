@@ -637,7 +637,7 @@ PYEOF
       _fail "8-7 doc.js shows the words of the dictionary in the page" "$state"
     else
       _yes "8-7 doc.js shows the words of the dictionary in the page" \
-        "_has '$WORK/dom-dict.html' 'data-step=\"-1\">dictionary-prev-ja</button>' && _has '$WORK/dom-dict.html' '>dictionary-pdf-page-ja</button>'"
+        "grep -qE 'data-ui=\"prev\"[^>]*>dictionary-prev-ja</button>' '$WORK/dom-dict.html' && _has '$WORK/dom-dict.html' '>dictionary-pdf-page-ja</button>'"
     fi
   fi
 else

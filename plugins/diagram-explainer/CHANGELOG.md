@@ -7,6 +7,7 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 - `musubi.json` follows the `structure` and `look` formats, the `document` page type, and `verify` of page-design in the design-formats plugin through musubi, as optional follows. When page-design is installed, the agent writes the document on them and runs page-design's verify on the finished page; when the `musubi` command is installed, it runs `musubi check` first. Without design-formats, the document is built from the plugin's own template as before
 - The document header holds a language switch (English / 日本語) for the interface text, such as the contents button, the previous and next buttons, the PDF menu, and chart units, and a light and dark switch. The document's own text stays in the language it was written in, and printing always uses light colors. The browser remembers the reader's choices in its local storage under `diagram-explainer-lang` and `diagram-explainer-theme`
+- The interface words in English and Japanese live only in `assets/ui.json`. The page is written with them and carries them, and the language switch reads them from the page, so the words shown before and after a switch cannot disagree
 
 ## [0.2.2] - 2026-11-16
 
