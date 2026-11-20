@@ -660,20 +660,102 @@ elif what == "deprecated":
         if heads != want_heads or rows != want_rows or not rows:
             problems.append("%s: the table has %r and %r, wanted %r and %r" % (lang, heads, rows, want_heads, want_rows))
 
+elif what in ("quoted", "plain"):
+    # The words of a finding belong to the tool, so the page quotes them in code, letter for letter.
+    said = {"tools": [f["message"] for tool in d["tools"] if tool["ran"] for f in tool["findings"]],
+            "deprecated": [i["message"] for i in d["deprecated_calls"]["items"]]}
+    if not said["tools"] or not said["deprecated"]:
+        problems.append("the report has no findings on the tools tab or the deprecated calls tab")
+    for lang in ("en", "ja"):
+        for tab, messages in said.items():
+            body = panel(page(lang, tab))
+            for message in messages:
+                words = html.escape(message, quote=False)
+                if what == "quoted" and '<code class="said">%s</code>' % words not in body:
+                    problems.append("%s %s: %r is not quoted in code as the tool wrote it" % (lang, tab, message))
+                if what == "plain" and "<td>%s</td>" % words in body:
+                    problems.append("%s %s: %r is plain text of the page" % (lang, tab, message))
+
+elif what == "stopped":
+    # A tool that stopped: the exit code in the page's words, then the tool's first line quoted in code.
+    split = re.compile(r"^(\S+ stopped with exit code -?\d+): (.+)$", re.S)
+    prefix = {"en": "Not run because ", "ja": "動かしていません。"}
+    places = (("tools", d["tools"], '<h3>{name}</h3><p class="state">{shown}</p>'),
+              ("deprecated", d["deprecated_calls"]["tools"], '<tr><td><code>{name}</code></td><td>{shown}</td></tr>'))
+    if not any(not t["ran"] and split.match(t["reason"]) for _, tools, _ in places for t in tools):
+        problems.append("no tool in this report stopped with a first line")
+    for lang in ("en", "ja"):
+        for tab, tools, form in places:
+            body = panel(page(lang, tab))
+            for tool in tools:
+                m = None if tool["ran"] else split.match(tool["reason"])
+                if not m:
+                    continue
+                words, first = m.groups()
+                shown = '%s<code class="said">%s</code>' % (html.escape(prefix[lang] + words, quote=False), html.escape(first, quote=False))
+                if words + ": " + first != tool["reason"] or form.format(name=tool["tool"], shown=shown) not in body:
+                    problems.append("%s %s: %s does not show %r in words and %r quoted in code" % (lang, tab, tool["tool"], words, first))
+
 for p in problems[:8]:
     print("      " + p)
 sys.exit(1 if problems else 0)
 PYEOF
 }
 
+# opened_verify <name>...: runs verify on every opened page of the named reports.
 opened_verify() {
-  local pages
-  pages="$(ls "$T"/opened/*.dom.html | wc -l | tr -d ' ')"
-  [ "$(wc -w < "$T/opened/tabs")" -ge 10 ] && [ "$pages" -eq "$(( $(wc -w < "$T/opened/tabs") * 4 ))" ] \
-    || { echo "      $pages pages were opened for the tabs $(cat "$T/opened/tabs")"; return 1; }
-  python3 "$PAGE_DESIGN" verify "$T"/opened/*.dom.html > "$T/opened-verify.out" 2>&1 \
+  local name pages=()
+  for name in "$@"; do pages+=("$T"/opened/"$name"-*.dom.html); done
+  [ "$(wc -w < "$T/opened/tabs")" -ge 10 ] && [ "${#pages[@]}" -eq "$(( $(wc -w < "$T/opened/tabs") * 2 * $# ))" ] \
+    || { echo "      ${#pages[@]} pages were opened for the tabs $(cat "$T/opened/tabs")"; return 1; }
+  python3 "$PAGE_DESIGN" verify "${pages[@]}" > "$T/opened-verify.out" 2>&1 \
     || { grep -v '^page-design:' "$T/opened-verify.out" | sed "s|$T/opened/||; s/^/      /" | head -12; return 1; }
 }
+
+# The words each stand-in tool prints, against what scan.json keeps of them. The report may change how
+# it shows a tool's words, never the words.
+tool_words() {
+  "$R/.venv/bin/ruff" > "$T/words-ruff.json" 2>/dev/null
+  "$R/.venv/bin/semgrep" > "$T/words-semgrep.json" 2>/dev/null
+  "$R/node_modules/.bin/eslint" src > "$T/words-eslint.json" 2>/dev/null
+  "$R/node_modules/.bin/knip" > "$T/words-knip.json" 2>/dev/null
+  "$F/.venv/bin/ruff" > /dev/null 2> "$T/words-ruff-stopped.txt"
+  "$F/.venv/bin/semgrep" > "$T/words-semgrep-stopped.json" 2>/dev/null
+  python3 - "$J" "$FJ" "$T" <<'PYEOF'
+import json, sys
+scan, failing, t = json.load(open(sys.argv[1])), json.load(open(sys.argv[2])), sys.argv[3]
+def read(name):
+    with open("%s/words-%s" % (t, name), encoding="utf-8") as fh:
+        return fh.read()
+said = {"ruff": {x["code"]: x["message"] for x in json.loads(read("ruff.json"))},
+        "semgrep": {x["check_id"]: x["extra"]["message"] for x in json.loads(read("semgrep.json"))["results"]},
+        "eslint": {m["ruleId"]: m["message"] for f in json.loads(read("eslint.json")) for m in f["messages"] if m.get("ruleId")}}
+knip = json.loads(read("knip.json"))
+knip_names = {i.get("name") for issue in knip["issues"] for key, items in issue.items() if isinstance(items, list) for i in items}
+problems = []
+entries = [dict(f, tool=tool["tool"]) for tool in scan["tools"] if tool["ran"] for f in tool["findings"]] + scan["deprecated_calls"]["items"]
+for tool in ("ruff", "semgrep", "eslint", "knip"):
+    if not any(e["tool"] == tool for e in entries):
+        problems.append("scan.json has no finding of %s" % tool)
+for e in entries:
+    if e["tool"] in said and said[e["tool"]].get(e["rule"]) != e["message"]:
+        problems.append("%s %s: scan.json has %r, the tool wrote %r" % (e["tool"], e["rule"], e["message"], said[e["tool"]].get(e["rule"])))
+    if e["tool"] == "knip" and not (e["file"] in knip["files"] or e.get("name") in knip_names):
+        problems.append("knip: scan.json has %r, which the tool did not name" % e)
+# The stand-ins in the failing folder exit with 2 and 7.
+first = {"ruff": (2, read("ruff-stopped.txt").strip().splitlines()[0]),
+         "semgrep": (7, json.loads(read("semgrep-stopped.json"))["errors"][0]["message"])}
+for tool in failing["tools"] + failing["deprecated_calls"]["tools"]:
+    if tool["tool"] in first:
+        want = "%s stopped with exit code %d: %s" % ((tool["tool"],) + first[tool["tool"]])
+        if tool["reason"] != want:
+            problems.append("%s: scan.json gives the reason %r, the tool wrote %r" % (tool["tool"], tool["reason"], want))
+for p in problems[:8]:
+    print("      " + p)
+sys.exit(1 if problems else 0)
+PYEOF
+}
+check "scan.json keeps the words of each tool as the tool wrote them" tool_words
 
 OPENED_CHECKS=(
   "the opened report of a git repository lists its facts one per item in English and Japanese"
@@ -683,10 +765,19 @@ OPENED_CHECKS=(
   "the deprecated calls tab lists each tool and its result in a table"
 )
 VERIFY_CHECK="every tab of the opened reports passes the verify of page-design in English and Japanese"
+# The main fixture's report, where the stand-ins of knip, ruff, semgrep, and eslint return findings,
+# and the failing folder's report, where ruff and semgrep stop with an error.
+QUOTED_CHECKS=(
+  "the opened report quotes each finding in code as the tool wrote it"
+  "no finding is shown as plain text of the page"
+  "a stopped tool shows its exit code in words and its first line quoted in code"
+)
+QUOTED_VERIFY_CHECK="every tab of the opened reports with tool findings or stopped tools passes the verify of page-design in English and Japanese"
+FSTATE="$(dirname "$FJ")"
 if [ -z "$real_browser" ]; then
-  for name in "${OPENED_CHECKS[@]}" "$VERIFY_CHECK"; do skip "$name" "needs a Chromium-based browser"; done
-elif ! open_report "$OSTATE" git || ! open_report "$PSTATE" plain; then
-  for name in "${OPENED_CHECKS[@]}" "$VERIFY_CHECK"; do ng "$name"; done
+  for name in "${OPENED_CHECKS[@]}" "$VERIFY_CHECK" "${QUOTED_CHECKS[@]}" "$QUOTED_VERIFY_CHECK"; do skip "$name" "needs a Chromium-based browser"; done
+elif ! open_report "$OSTATE" git || ! open_report "$PSTATE" plain || ! open_report "$STATE" tools || ! open_report "$FSTATE" stopped; then
+  for name in "${OPENED_CHECKS[@]}" "$VERIFY_CHECK" "${QUOTED_CHECKS[@]}" "$QUOTED_VERIFY_CHECK"; do ng "$name"; done
   echo "      the browser could not open the reports"
 else
   check "${OPENED_CHECKS[0]}" 'opened_check facts "$OSTATE" git'
@@ -694,10 +785,14 @@ else
   check "${OPENED_CHECKS[2]}" 'opened_check no-sentence "$OSTATE" git && opened_check no-sentence "$PSTATE" plain'
   check "${OPENED_CHECKS[3]}" 'opened_check tools "$OSTATE" git && opened_check tools "$PSTATE" plain'
   check "${OPENED_CHECKS[4]}" 'opened_check deprecated "$OSTATE" git && opened_check deprecated "$PSTATE" plain'
+  check "${QUOTED_CHECKS[0]}" 'opened_check quoted "$STATE" tools'
+  check "${QUOTED_CHECKS[1]}" 'opened_check plain "$STATE" tools'
+  check "${QUOTED_CHECKS[2]}" 'opened_check stopped "$FSTATE" stopped'
   if [ -f "$PAGE_DESIGN" ]; then
-    check "$VERIFY_CHECK" opened_verify
+    check "$VERIFY_CHECK" 'opened_verify git plain'
+    check "$QUOTED_VERIFY_CHECK" 'opened_verify tools stopped'
   else
-    skip "$VERIFY_CHECK" "needs page-design of design-formats next to this plugin"
+    for name in "$VERIFY_CHECK" "$QUOTED_VERIFY_CHECK"; do skip "$name" "needs page-design of design-formats next to this plugin"; done
   fi
 fi
 
