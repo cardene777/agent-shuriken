@@ -70,6 +70,23 @@ Ruby、Lua、シェル、Elixir、Clojure、Haskellでは関数の長さを測�
 `explain --notes`は、どの項目も順位の付いたファイルを指し、3つすべてを埋めている時だけ保存します。そうでない時は何も保存せず、終了コード2で止まります。
 説明は、そのファイルに順位が付いている間、後の調べ直しでも同じファイルに残ります。
 
+## 報告のページ
+
+`report`は、スキルのひな形から`report.html`を書きます。表のパスは`skills/techdebt/`から見た位置です。
+
+| ファイル | 持つ物 |
+|---|---|
+| `templates/base.html` | 報告のページ。スタイルとスクリプトを中に持ちます。`report`が調べた結果、エージェントの説明、プロジェクトの名前を入れます |
+| `musubi.json` | musubiでの`page-design/structure`、`page-design/look`、`page-design/report`、`page-design/verify`への任意の準拠。それぞれにバージョンの範囲`^1.0.0`と、最後に確かめた時のコンテンツのフィンガープリントと、`"optional": true`を持つ |
+
+報告の題は`<project>の技術的負債`です。
+見出しの帯には、言語の切り替えと、その隣に明るい色と暗い色の切り替えがあります。
+選ぶまでは色がシステムの設定に従い、ブラウザは選んだ言語と色をローカルストレージに`techdebt-lang`と`techdebt-theme`の名前で残します。どこへも送りません。
+
+- `design-formats`のプラグインの`page-design`のスキルが入っていれば、エージェントはその形式`structure`と`look`、ページの型`report`を読みます。`musubi.json`はこれらに任意の準拠で従います。仕上がった`report.html`には`page-design`の`verify`を回します。ほかのプラグインからはこれ以外を読みません
+- `musubi`のコマンドが入っていれば、エージェントはこれらを読む前に`musubi check`を回し、失敗したら止まります。`design-formats`が入っていない時、`musubi check`は警告を出してこれらの準拠を飛ばします。従うコンテンツが変わると、フィンガープリントを確かめ直すまで`musubi check`は`techdebt`を拒否します
+- `page-design`が無ければ、`templates/base.html`だけで報告を作ります。プラグインのどこも`design-formats`を求めません
+
 ## 残す物
 
 調べたフォルダごとに3つのファイルを`~/.local/share/techdebt/<フォルダ名>-<ハッシュ>/`に置きます。`TECHDEBT_HOME`を設定している時はその下です。

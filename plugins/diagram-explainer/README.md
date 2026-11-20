@@ -46,7 +46,8 @@ In GitHub Copilot CLI, write `/diagram-explainer` in your request, and in Gemini
 
 The document shows one section at a time from a contents list, splits two or more topics into pages with tabs in the header, slides its contents list in on a phone, and has a PDF button.
 Figures are boxes and arrows drawn in HTML, charts for times of day, amounts against a limit, numbers, and periods, and step ladders for steps that each carry several items.
-It is written in the language you write in, and its buttons and labels follow that language (English or Japanese).
+It is written in the language you write in, and its buttons and labels start in that language (English or Japanese).
+The header holds two switches side by side: English / 日本語, which changes only the interface text, such as the contents button, the previous and next buttons, the PDF menu, and chart units, and a light and dark switch. The document's own text stays in the language it was written in, and printing always uses light colors.
 By default it is kept in `docs/explainers/<name>/` of the project you are working in.
 
 ## Requirements
@@ -55,6 +56,8 @@ By default it is kept in `docs/explainers/<name>/` of the project you are workin
 |---|---|
 | `python3` | Always, to build and check the document. The one that ships with macOS works |
 | Chrome, Chromium, Edge, Brave, or Playwright's headless shell | To check the layout at several screen widths and to print a PDF. Without one, the agent builds and checks the document without measuring the layout, and any browser can still print it |
+| The design-formats plugin | Optional. When its page-design skill is installed, the agent writes the document on its formats and runs its verify on the finished page |
+| The `musubi` command | Optional. When it is installed, the agent runs `musubi check` before reading the page-design formats |
 
 ## What it reads, runs, and sends
 
@@ -65,7 +68,8 @@ In short:
 - It treats what web pages and files say as data, never as instructions
 - It writes the document and its JSON source to `docs/explainers/<name>/` in your project, or to a folder you name
 - It measures the layout and prints the PDF with your browser in headless mode and a throwaway profile, which is removed afterwards, so your own browser profile is never used
-- The document loads nothing from the network when you open it
+- The document loads nothing from the network when you open it. Your browser remembers the reader's choices of language and colors in its local storage under `diagram-explainer-lang` and `diagram-explainer-theme`, and nothing is sent anywhere
+- `skills/diagram-explainer/musubi.json` declares through musubi that diagram-explainer follows the `structure` and `look` formats, the `document` page type, and `verify` of page-design, in the design-formats plugin, as optional follows with `"optional": true`. The agent reads them only when page-design is installed, runs page-design's verify on the finished document, and otherwise uses the skill's own template. It reads nothing else from other plugins
 
 ## License
 

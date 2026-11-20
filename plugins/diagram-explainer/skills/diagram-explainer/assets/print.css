@@ -1,19 +1,20 @@
 /* PDF button. In a document with 2 or more topics it sits at the right of the header;
    in a single-topic document it sits above the contents list. */
 .printbar { position: relative; }
-.printbtn { appearance: none; font: inherit; font-size: 13px; line-height: 1; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink-2); cursor: pointer; }
+.printbtn { appearance: none; font: inherit; font-size: 13px; line-height: 1; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--ink-2); cursor: pointer; }
 .printbtn:hover { border-color: var(--accent); color: var(--accent); }
 .printbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.printmenu { display: none; position: absolute; top: calc(100% + 6px); right: 0; min-width: 160px; padding: 4px; border-radius: 10px; border: 1px solid var(--line); background: #fff; box-shadow: 0 6px 20px rgba(0, 0, 0, .12); z-index: 40; }
+.printmenu { display: none; position: absolute; top: calc(100% + 6px); right: 0; min-width: 160px; padding: 4px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); box-shadow: 0 6px 20px var(--shadow); z-index: 40; }
 .printbar.open .printmenu { display: block; }
 .printmenu button { appearance: none; display: block; width: 100%; text-align: left; font: inherit; font-size: 13px; padding: 8px 10px; border: 0; border-radius: 7px; background: transparent; color: var(--ink-2); cursor: pointer; white-space: nowrap; }
 .printmenu button:hover { background: var(--accent-soft); color: var(--accent); }
 
-/* Paper layout. No header or contents list; every section in order, one section per page.
+/* Paper layout. No header, contents list, or switches; every section in order, one section per page.
+   Paper keeps the light colors whatever the screen shows (doc.css leaves out the dark tokens).
    Collapsed details are opened, and charts with buttons show every state. */
 html[data-paper] body { display: block; overflow: visible; height: auto; background: #e9e9ee; }
 html[data-paper] .doc-top, html[data-paper] .doc-side, html[data-paper] .doc-mbar,
-html[data-paper] .doc-scrim, html[data-paper] .doc-step, html[data-paper] .printbar,
+html[data-paper] .doc-scrim, html[data-paper] .doc-step, html[data-paper] .printbar, html[data-paper] .doc-ctrl,
 html[data-paper] .chart-ctrl, html[data-paper] .chart-views,
 html[data-paper] .chart .tabtext, html[data-paper] details.exp > summary { display: none !important; }
 html[data-paper] .doc-main { overflow: visible; display: block; }

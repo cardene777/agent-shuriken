@@ -5,6 +5,9 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- `musubi.json` follows the `structure` and `look` formats, the `sheet` page type, and `verify` of page-design in the design-formats plugin through musubi, as optional follows. When page-design is installed, the agent reads them and runs page-design's verify on the candidate sheet and the follow-up page; when the `musubi` command is installed, it runs `musubi check` first. Without design-formats, the pages work as before
+- The candidate sheet and the follow-up page have a Light and Dark switch next to the language switch. It follows the system setting until you choose, and both pages share your choice in the browser's local storage under `account-cleanup-theme`
+
 ## [0.3.0] - 2026-11-16
 
 - The skill's instructions are shorter, so starting the skill reads less, and its rules on passwords, approval, and the browser are unchanged. An eval suite under `evals/` measures it with `claude plugin eval`, and every case kept its score

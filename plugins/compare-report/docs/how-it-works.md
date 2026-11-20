@@ -57,6 +57,24 @@ A candidate that cannot be judged fairly on an axis, because no comparable figur
 - The sources section links at least one page
 - The author line on the cover is either empty, and so hidden, or holds a name, not only spaces
 
+## The report page and its switches
+
+The agent writes the report into the template of the skill. Paths in the table are relative to `skills/compare-report/`.
+
+| File | What it holds |
+|---|---|
+| `templates/base.html` | The report page, with its styles, its light and dark colors, and the script of the switches inside |
+| `musubi.json` | The optional follows of `page-design/structure`, `page-design/look`, `page-design/report`, and `page-design/verify` through musubi: for each, the version range `^1.0.0`, the fingerprint of the content at the last check, and `"optional": true` |
+
+The report has two switches at the top right of its cover: English / 日本語, which changes the words of the switches, and Light / Dark, which changes the colors.
+The report's own text stays in the language it was written in.
+Until you choose, the colors follow your system, and your browser remembers your choice in its local storage under `compare-report-theme` and `compare-report-lang`; nothing is sent anywhere.
+The PDF always prints in the light colors, without the switches.
+
+- When the page-design skill of the design-formats plugin is installed, the agent reads its `structure` and `look` formats and its `report` page type, which `musubi.json` follows as optional follows. After `scripts/check-report.py` passes, it runs page-design's `verify` on the report and fixes each line it names in the text it wrote until it prints `ok`. It reads nothing else from other plugins
+- When the `musubi` command is installed, the agent runs `musubi check` before reading them and stops if it fails; the check skips the follows with a warning when design-formats is not installed. When a followed content changes, `musubi check` refuses compare-report until its fingerprint is checked again
+- Without page-design, the report is written in `templates/base.html` alone. Nothing in the plugin requires design-formats
+
 ## Where files are kept
 
 Each report has its own folder, `~/.local/share/compare-report/<topic>-<date>/`, holding `report.html` and `report.pdf`.

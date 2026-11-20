@@ -47,6 +47,8 @@ In GitHub Copilot CLI, write `/compare-report` in your request, and in Gemini CL
 
 The report has a cover, a summary with the top three picks, a card per candidate, a section per axis with tables and charts, the risks, a scorecard with a recommendation, and the numbered sources.
 It is written in the language you write in.
+Two switches sit at the top right of the cover: English / 日本語 changes the words of the switches, and Light / Dark changes the colors. The report's own text stays in the language it was written in.
+Until you choose, the colors follow your system. The PDF always prints in the light colors, without the switches.
 
 ## Requirements
 
@@ -55,6 +57,8 @@ It is written in the language you write in.
 | Web search in your agent | Always. Claude Code and Codex both have it; in other agents, check that web search is turned on |
 | `python3` | To check the report. The one that ships with macOS works |
 | Chrome, Chromium, Edge, or Brave | To print the PDF. Without one, you get the HTML, which any browser can print |
+| The design-formats plugin | Optional. When its page-design skill is installed, the agent writes the report on its formats and runs its verify on the finished page |
+| The `musubi` command | Optional. When it is installed, the agent runs `musubi check` before reading the page-design formats |
 
 ## What it reads, runs, and sends
 
@@ -66,7 +70,8 @@ In short:
 - It writes the report to `~/.local/share/compare-report/<topic>-<date>/`, or to `COMPARE_REPORT_HOME` when it is set, readable only by you
 - It keeps the author's name you gave for the cover, or that you chose none, in `author.txt` in the same folder, readable only by you. It never takes a name from `git config` or your system
 - It prints the PDF with your browser in headless mode and a throwaway profile, which is removed afterwards, so your own browser profile is never used
-- The report loads nothing from the network when you open it
+- The report loads nothing from the network when you open it. Your browser remembers the switches in its local storage under `compare-report-theme` and `compare-report-lang`, and nothing is sent anywhere
+- `skills/compare-report/musubi.json` declares through musubi that compare-report follows the `structure` and `look` formats, the `report` page type, and `verify` of page-design, in the design-formats plugin, as optional follows with `"optional": true`. The agent reads them only when page-design is installed, runs page-design's verify on the finished report, and otherwise uses the skill's own template. It reads nothing else from other plugins
 
 ## License
 

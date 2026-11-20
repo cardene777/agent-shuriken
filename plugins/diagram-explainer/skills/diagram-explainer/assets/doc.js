@@ -6,35 +6,176 @@
   // A document with 2 or more topics is split into pages by tabs in the header.
   // The body of a page that is not shown is kept in a `template` and moved into the page
   // when it opens, so its charts are drawn only when the reader gets there.
+  //
+  // This file also holds the interface text of the whole page and the two switches in the
+  // header: the language of that text, and light or dark colors. It is loaded before
+  // charts.js and print.js, which take their text from `window.dxUi`.
 
   var root = document.documentElement;
+
+  // Every interface string of the page: the frame that render.py writes, the section count,
+  // the switches, the PDF menu (print.js), and the chart units (charts.js).
+  // The document's own text stays in the language it was written in.
+  // `{name}`, `{i}`, and `{n}` are filled in by `say`.
+  var TEXT = {
+    en: {
+      contents: 'Contents', pageContents: '{name} contents', pages: 'Pages',
+      prev: 'Previous section', next: 'Next section',
+      count: 'Section {i} of {n}', here: 'Current section: {name}',
+      language: 'Language', theme: 'Light or dark', light: 'Light', dark: 'Dark',
+      pdf: 'PDF', pdfLabel: 'Save as PDF', pdfPage: 'This page only', pdfAll: 'All pages',
+      hour: '{n}:00', year: '{n}', before: 'Before', after: 'After'
+    },
+    ja: {
+      contents: '目次', pageContents: '{name}の目次', pages: 'ページ',
+      prev: '前の節', next: '次の節',
+      count: '全{n}節中{i}節目', here: '今の節：{name}',
+      language: '表示の言語', theme: '画面の明るさ', light: '明るい', dark: '暗い',
+      pdf: 'PDF', pdfLabel: 'PDFで保存', pdfPage: 'このページだけ', pdfAll: '全部のページ',
+      hour: '{n}時', year: '{n}年', before: '前', after: '後'
+    }
+  };
+  var THEME_KEY = 'diagram-explainer-theme';
+  var LANG_KEY = 'diagram-explainer-lang';
+
+  function all(sel, el) { return [].slice.call((el || document).querySelectorAll(sel)); }
+  function known(l) { return l === 'en' || l === 'ja'; }
+  // The reader's choices are kept in the browser. Storage can be blocked (a private window,
+  // a browser setting); then a choice lasts until the page is closed.
+  function stored(key) { try { return window.localStorage.getItem(key); } catch (e) { return null; } }
+  function store(key, value) { try { window.localStorage.setItem(key, value); } catch (e) { /* kept for this visit only */ } }
+  function listen(query, fn) {
+    if (!query) return;
+    if (query.addEventListener) query.addEventListener('change', fn);
+    else if (query.addListener) query.addListener(fn);
+  }
+
+  // ---- Interface language ----
+  //
+  // `<html lang>` stays the document's language, because the text and its wording depend on it.
+  // The interface language starts from it unless the reader chose one before.
+  var docLang = /^ja/i.test(root.lang || '') ? 'ja' : 'en';
+  var lang = known(stored(LANG_KEY)) ? stored(LANG_KEY) : docLang;
+  root.setAttribute('data-ui-lang', lang);
+
+  function say(key, values) {
+    var s = TEXT[lang][key];
+    if (s == null) s = TEXT.en[key] || '';
+    return s.replace(/\{(\w+)\}/g, function (_m, k) { return values && values[k] != null ? values[k] : ''; });
+  }
+
+  // Interface text is marked with the key it shows: `data-ui` (the text), `data-ui-label`
+  // (aria-label), and `data-ui-title` (title). `data-ui-name` and `data-ui-n` fill `{name}` and `{n}`,
+  // and `data-ui-icon` is a symbol kept in front of the text.
+  function relabel(scope) {
+    function values(el) { return { name: el.getAttribute('data-ui-name'), n: el.getAttribute('data-ui-n') }; }
+    all('[data-ui]', scope).forEach(function (el) {
+      var icon = el.getAttribute('data-ui-icon');
+      el.textContent = (icon ? icon + ' ' : '') + say(el.getAttribute('data-ui'), values(el));
+      if (lang === docLang) el.removeAttribute('lang');
+      else el.setAttribute('lang', lang);
+    });
+    all('[data-ui-label]', scope).forEach(function (el) {
+      el.setAttribute('aria-label', say(el.getAttribute('data-ui-label'), values(el)));
+    });
+    all('[data-ui-title]', scope).forEach(function (el) {
+      el.setAttribute('title', say(el.getAttribute('data-ui-title'), values(el)));
+    });
+  }
+
+  window.dxUi = { lang: function () { return lang; }, say: say, relabel: relabel };
+
+  // ---- Light or dark ----
+  //
+  // Without a choice the page follows the system setting through the CSS in doc.css.
+  // A choice sets `data-theme` on `<html>`; the head of the page applies a kept choice
+  // before the first paint, and this file applies it again in case the head did not.
+  var darkQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  var keptTheme = stored(THEME_KEY);
+  if (keptTheme === 'light' || keptTheme === 'dark') document.documentElement.dataset.theme = keptTheme;
+
+  function shownTheme() {
+    var t = root.getAttribute('data-theme');
+    if (t === 'light' || t === 'dark') return t;
+    return darkQuery && darkQuery.matches ? 'dark' : 'light';
+  }
+
+  var ctrl = document.querySelector('.doc-ctrl');
+  var refresh = function () {};
+
+  function pressed() {
+    if (!ctrl) return;
+    var t = shownTheme();
+    all('button[data-lang]', ctrl).forEach(function (b) {
+      b.setAttribute('aria-pressed', b.getAttribute('data-lang') === lang ? 'true' : 'false');
+    });
+    all('button[data-theme-choice]', ctrl).forEach(function (b) {
+      b.setAttribute('aria-pressed', b.getAttribute('data-theme-choice') === t ? 'true' : 'false');
+    });
+  }
+
+  function setTheme(mode) {
+    if (mode !== 'light' && mode !== 'dark') return;
+    document.documentElement.dataset.theme = mode;
+    store(THEME_KEY, mode);
+    pressed();
+  }
+
+  function setLang(next) {
+    if (!known(next)) return;
+    lang = next;
+    root.setAttribute('data-ui-lang', lang);
+    store(LANG_KEY, lang);
+    relabel(document);
+    pressed();
+    refresh();
+  }
+
+  if (ctrl) {
+    all('button[data-lang]', ctrl).forEach(function (b) {
+      b.addEventListener('click', function () { setLang(b.getAttribute('data-lang')); });
+    });
+    all('button[data-theme-choice]', ctrl).forEach(function (b) {
+      b.addEventListener('click', function () { setTheme(b.getAttribute('data-theme-choice')); });
+    });
+  }
+  listen(darkQuery, pressed);
+  relabel(document);
+  pressed();
+
+  // On narrow screens the switches join the top bar, so the reader sees them without opening
+  // the contents list. On wide screens they go back to the header or above the contents list.
+  var bar = document.querySelector('.doc-mbar');
+  var narrow = window.matchMedia ? window.matchMedia('(max-width: 860px)') : null;
+  if (ctrl && bar && narrow) {
+    var home = document.createComment(' doc-ctrl ');
+    ctrl.parentNode.insertBefore(home, ctrl);
+    var place = function () {
+      if (narrow.matches) {
+        if (ctrl.parentNode !== bar) bar.appendChild(ctrl);
+      } else if (ctrl.previousSibling !== home) {
+        home.parentNode.insertBefore(ctrl, home.nextSibling);
+      }
+    };
+    place();
+    listen(narrow, place);
+  }
+
+  // ---- Pages and sections ----
+
   var pages = [].slice.call(document.querySelectorAll('.doc-page'));
   if (!pages.length) return;
 
-  // Interface text, chosen from the document language.
-  var TEXT = {
-    en: { count: 'Section {i} of {n}', here: 'Current section: {name}' },
-    ja: { count: '全{n}節中{i}節目', here: '今の節：{name}' }
-  };
-  var ui = TEXT[/^ja/i.test(root.lang || '') ? 'ja' : 'en'];
-  function say(key, values) {
-    return ui[key].replace(/\{(\w+)\}/g, function (_m, k) { return values[k]; });
-  }
-
   var main = document.querySelector('.doc-main');
-  var bar = document.querySelector('.doc-mbar');
-  var menu = bar ? bar.querySelector('button') : null;
+  var menu = bar ? bar.querySelector('button[aria-controls]') : null;
   var scrim = document.querySelector('.doc-scrim');
   var pageButtons = [].slice.call(document.querySelectorAll('.doc-pages button[data-page]'));
   var current = null;
 
-  function all(sel, el) { return [].slice.call((el || document).querySelectorAll(sel)); }
   function keyOf(page) { return page.getAttribute('data-page'); }
   function pageOf(key) { return pages.filter(function (p) { return keyOf(p) === key; })[0]; }
   function sections(page) { return all('section.doc-sec', page); }
   function tocOf(key) { return document.querySelector('nav.doc-toc[data-page="' + key + '"]'); }
-
-  // ---- Pages and sections ----
 
   function fill(page) {
     var t = page.querySelector('template[data-fill]');
@@ -80,6 +221,15 @@
       }
     }
   }
+
+  function shownIndex() {
+    var list = sections(current);
+    var on = list.filter(function (s) { return s.classList.contains('on'); })[0];
+    return list.indexOf(on);
+  }
+
+  // A new interface language rewrites the section count and the current section label.
+  refresh = function () { if (current) showSection(shownIndex(), false); };
 
   function showPage(key) {
     var page = pageOf(key) || pages[0];
@@ -132,9 +282,7 @@
   });
   all('.doc-step button[data-step]').forEach(function (b) {
     b.addEventListener('click', function () {
-      var list = sections(current);
-      var on = list.filter(function (s) { return s.classList.contains('on'); })[0];
-      showSection(list.indexOf(on) + Number(b.getAttribute('data-step')), true);
+      showSection(shownIndex() + Number(b.getAttribute('data-step')), true);
     });
   });
   if (menu) menu.addEventListener('click', function () { openSide(!root.classList.contains('doc-side-open')); });
@@ -143,9 +291,7 @@
     if (e.key === 'Escape') { openSide(false); return; }
     if (e.target && e.target.closest && e.target.closest('input, textarea, select, button')) return;
     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
-    var list = sections(current);
-    var on = list.filter(function (s) { return s.classList.contains('on'); })[0];
-    showSection(list.indexOf(on) + (e.key === 'ArrowRight' ? 1 : -1), true);
+    showSection(shownIndex() + (e.key === 'ArrowRight' ? 1 : -1), true);
   });
 
   // Links inside the document. For a section on another page, show that page first.

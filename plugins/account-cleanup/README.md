@@ -49,6 +49,9 @@ In GitHub Copilot CLI, write `/account-cleanup` in your request, and in Gemini C
 7. For services that can't delete accounts, the agent drafts an erasure request under GDPR, CCPA, or Japan's APPI
 8. When you say you're done, the agent moves the items for deleted accounts to the archive in 1Password or the trash in Bitwarden
 
+The candidate sheet and the follow-up page have a Light and Dark switch next to the English / 日本語 switch.
+The colors follow your system setting until you choose, and both pages share your choice in the browser's local storage under `account-cleanup-theme`.
+
 ## Requirements
 
 | Tool | When it's needed |
@@ -58,6 +61,8 @@ In GitHub Copilot CLI, write `/account-cleanup` in your request, and in Gemini C
 | `sqlite3` | When collecting from Chrome and other Chromium browsers |
 | `op` (1Password CLI) | When collecting from 1Password. Turn on CLI integration in the 1Password app settings |
 | `bw` (Bitwarden CLI) | When collecting from Bitwarden. Run `export BW_SESSION="$(bw unlock --raw)"` in your terminal before starting the agent |
+| The design-formats plugin | Optional. When its page-design skill is installed, the agent checks the candidate sheet and the follow-up page with its verify |
+| The `musubi` command | Optional. When it is installed, the agent runs `musubi check` before reading the page-design formats |
 
 It is built for macOS.
 The scripts also look in the Linux locations of Chromium browsers, but Linux is untested.
@@ -72,6 +77,7 @@ In short:
 - It checks whether each candidate's domain still answers, with a `HEAD` request to that domain only
 - On first use it installs `playwright-core` from npm and Chromium from the Playwright download servers into its data folder
 - Its files live in `~/.local/share/account-cleanup/`, readable only by you. The candidate list, the sheet, and the browser profile are deleted when you finish
+- `skills/account-cleanup/musubi.json` declares through musubi that account-cleanup follows the `structure` and `look` formats, the `sheet` page type, and `verify` of page-design, in the design-formats plugin, as optional follows with `"optional": true`. The agent reads them only when page-design is installed, runs page-design's verify on the candidate sheet and the follow-up page, and otherwise uses the skill's own templates. It reads nothing else from other plugins
 
 ## Bundled data
 

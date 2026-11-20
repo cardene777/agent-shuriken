@@ -3,7 +3,8 @@
 
   // Paper and PDF. No header or contents list; every section in order, one section per page.
   //
-  // Charts with buttons show every state on paper.
+  // Charts with buttons show every state on paper, and paper keeps the light colors even when
+  // the screen is dark (`data-paper` leaves out the dark tokens of doc.css).
   // In a document with several pages, the PDF button offers "this page only" or "all pages".
   // Printing straight from the browser's print dialog prints all pages.
   //
@@ -15,12 +16,9 @@
   var many = pages.length > 1;
   var chosen = null;
 
-  // Interface text, chosen from the document language.
-  var TEXT = {
-    en: { button: 'PDF', label: 'Save as PDF', page: 'This page only', all: 'All pages' },
-    ja: { button: 'PDF', label: 'PDFで保存', page: 'このページだけ', all: '全部のページ' }
-  };
-  var ui = TEXT[/^ja/i.test(root.lang || '') ? 'ja' : 'en'];
+  // Interface text comes from the dictionary in doc.js, which is loaded first. The `data-ui`
+  // marks let doc.js rewrite the button and the menu when the reader switches the language.
+  var say = window.dxUi.say;
 
   function all(sel, el) { return [].slice.call((el || document).querySelectorAll(sel)); }
 
@@ -72,10 +70,12 @@
   var open = document.createElement('button');
   open.type = 'button';
   open.className = 'doc-pdf printbtn';
-  open.setAttribute('aria-label', ui.label);
+  open.setAttribute('data-ui', 'pdf');
+  open.setAttribute('data-ui-label', 'pdfLabel');
+  open.setAttribute('aria-label', say('pdfLabel'));
   open.setAttribute('aria-haspopup', many ? 'true' : 'false');
   open.setAttribute('aria-expanded', 'false');
-  open.textContent = ui.button;
+  open.textContent = say('pdf');
   bar.appendChild(open);
 
   function close() {
@@ -91,8 +91,9 @@
       var b = document.createElement('button');
       b.type = 'button';
       b.setAttribute('role', 'menuitem');
+      b.setAttribute('data-ui', mode === 'page' ? 'pdfPage' : 'pdfAll');
       b.setAttribute('data-print', mode);
-      b.textContent = ui[mode];
+      b.textContent = say(mode === 'page' ? 'pdfPage' : 'pdfAll');
       b.addEventListener('click', function () { close(); print(mode); });
       menu.appendChild(b);
     });
@@ -107,6 +108,8 @@
   } else {
     open.addEventListener('click', function () { print('all'); });
   }
+
+  window.dxUi.relabel(bar);
 
   // With several pages the button goes to the right of the header; otherwise above the contents list.
   var top = document.querySelector('.doc-top');
