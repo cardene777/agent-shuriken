@@ -56,9 +56,10 @@ main { max-width: 1200px; margin: 0 auto; padding: 22px 24px 48px; display: grid
 .stat span { display: block; font-size: 13.5px; color: var(--sub); }
 .value { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
 .figures { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
-.figure { margin: 0; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); cursor: zoom-in; transition: border-color .15s; }
+.figure { display: flex; flex-direction: column; justify-content: center; margin: 0; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); cursor: zoom-in; transition: border-color .15s; --dragon-figure-background: var(--surface); }
 .figure:hover, .figure:focus-visible { border-color: var(--accent); outline: none; }
 .figure svg, #zoom-body svg { display: block; width: 100%; height: auto; }
+#zoom-body { --dragon-figure-background: var(--surface); }
 .figure pre { margin: 0; white-space: pre-wrap; font: 13px/1.5 var(--mono); color: var(--sub); }
 html[lang="en"] [data-figure-lang="ja"], html[lang="ja"] [data-figure-lang="en"] { display: none; }
 dialog.wide { width: min(1080px, calc(100vw - 32px)); }

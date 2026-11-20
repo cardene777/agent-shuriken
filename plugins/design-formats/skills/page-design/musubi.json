@@ -38,12 +38,12 @@
     },
     "dragon/embed": {
       "version": "^1.0.0",
-      "integrity": "sha256-0qw9ThhTZkANi/HG8QH8RNpho/yS00Y2eEQFbWxN6Xs=",
+      "integrity": "sha256-EB8k5UihwHLmNkmAJSGQq43MJL3jYwq2keVZQED5sr8=",
       "optional": true
     },
     "dragon/chart": {
       "version": "^1.0.0",
-      "integrity": "sha256-UBOOV+5HjP9BO+exDHwLPE55OjGEYoEahOuvnQqN0rI=",
+      "integrity": "sha256-vPhw6/HPYzXbZGHkCcqp/w6mehQ0TYLVwFyzieJx+tg=",
       "optional": true
     },
     "dragon/flow": {
