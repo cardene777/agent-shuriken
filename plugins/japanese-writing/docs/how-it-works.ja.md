@@ -12,10 +12,11 @@
 
 | パス | 出どころ | 中身 |
 |---|---|---|
-| `SKILL.md` | このプラグイン | 先に読む物と、道具の回し方 |
+| `SKILL.md` | このプラグイン | 先に読む物と、ほかのスキルが準拠するコンテンツと、道具の回し方 |
 | `references/rules.md` | このプラグイン | 優先の順、repoに置くMarkdownの書式、プラグインの規範、各参照を読む時、直しの返し方 |
 | `references/terminology.md`、`subject-and-verb.md`、`ai-smell.md`、`explaining.md`、`asking.md`、`natural-explanation.md`、`sentence-forms.md` | このプラグイン | 語の選び方、物が比喩の動詞の主語に立つ文の直し方、AIらしい文の3つの形、説明の組み立て方、問いと選択肢の書き方、記事の導入、文の8つの形 |
 | `references/connecting.md` | このプラグイン (文化庁の2つの資料を加工して作成) | 人に伝える文で、長い文を区切り、関係ごとの接続詞で結び、結論を先に置く書き方 |
+| `musubi.json` | このプラグイン | ほかのスキルがmusubiで準拠するコンテンツ`connecting`のバージョン1.0.0。ファイルは`references/connecting.md` |
 | `references/metaphor-words.tsv` | このプラグイン | `suspects.py`が当てる比喩の語と正規表現 |
 | `scripts/suspects.py` | このプラグイン | `lint.py`が数えない形を指す道具 |
 | `upstream-manifest.txt` | このプラグイン | 上流から写した全てのファイルのSHA-256 |

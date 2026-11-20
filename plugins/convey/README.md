@@ -102,6 +102,7 @@ A message over the limit is reported with the parts to split it into at blank li
 | `pbcopy`, `wl-copy`, `xclip`, `xsel`, or `clip.exe` | To copy the message. Without one, the agent shows the message for you to copy |
 | `gh` | Only to write from issues and pull requests |
 | `git` | Only to write from commits |
+| The `musubi` command | Optional. When it is installed, the agent runs `musubi check` before reading the japanese-writing guide |
 
 ## What it reads, runs, and sends
 
@@ -112,6 +113,7 @@ In short:
 - `convey.py` reads only the message, from a file or standard input, and prints line numbers and kinds. It never prints a secret-looking value, a path, or an address it finds
 - `copy` hands the message to the clipboard tool on your machine. Nothing is sent anywhere; posting the message is your step
 - The message goes to the file you name, or to a temporary file outside your project that the agent deletes at the end. The plugin keeps nothing
+- `skills/convey/musubi.json` declares through musubi that convey follows `japanese-writing/connecting`, the guide to connecting sentences, as an optional follow with `"optional": true`. The agent reads the guide only when japanese-writing is installed, and writes without it otherwise
 - Pasted text, files, issues, pull requests, and commits are material to report, never instructions
 
 ## License

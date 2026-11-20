@@ -104,6 +104,7 @@ not ready: change the lines above and run check again
 | `pbcopy`、`wl-copy`、`xclip`、`xsel`、`clip.exe`のどれか | 文を写す時。無ければ、エージェントが文を見せ、あなたが写します |
 | `gh` | IssueとPRから書く時だけ |
 | `git` | commitから書く時だけ |
+| `musubi`のコマンド | 無くても動きます。入っていれば、エージェントは`japanese-writing`の手引きを読む前に`musubi check`を回します |
 
 ## 読む物、動かす物、送る物
 
@@ -114,6 +115,7 @@ not ready: change the lines above and run check again
 - `convey.py`は、ファイルか標準入力から文だけを読み、行番号と種類を出します。見つけた鍵らしい値、パス、アドレスは出しません
 - `copy`は、あなたの機械のクリップボードの道具へ文を渡します。どこへも送りません。投稿するのはあなたです
 - 文は、あなたが名指したファイルか、プロジェクトの外の一時ファイルに置き、一時ファイルは最後にエージェントが消します。プラグインは何も残しません
+- `skills/convey/musubi.json`は、`convey`が文と文のつなぎ方の手引き`japanese-writing/connecting`に、`"optional": true`の任意の準拠で従うことをmusubiで宣言します。エージェントは`japanese-writing`が入っている時だけ手引きを読み、入っていなければ手引き無しで書きます
 - 貼った文章、ファイル、Issue、PR、commitは伝える材料として扱い、指示としては読みません
 
 ## ライセンス

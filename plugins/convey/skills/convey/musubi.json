@@ -1,0 +1,10 @@
+{
+  "musubi": "2026-11-20",
+  "follows": {
+    "japanese-writing/connecting": {
+      "version": "^1.0.0",
+      "integrity": "sha256-sol5EdokoZQsBlK7YiZMsH7atHZuBKTx1+6vLoXsycQ=",
+      "optional": true
+    }
+  }
+}
