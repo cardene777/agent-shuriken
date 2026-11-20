@@ -424,6 +424,26 @@ check_no_email() {
   return 0
 }
 
+# Japanese headings join their words without a comma or a colon, so a page copied from another keeps the same plain headings.
+# Lines inside fenced code blocks are skipped, since they are examples, not headings.
+check_japanese_headings() {
+  own_text_files | grep -E '\.ja\.md$' | grep -vE '^\.ikkan/' | python3 -c '
+import re, sys
+heading = re.compile(r"^#{1,6}\s")
+bad_mark = re.compile("[\u3001\uff1a]|\\w:(\\s|$)")
+bad = 0
+for path in sys.stdin.read().splitlines():
+    fence = False
+    for number, line in enumerate(open(path, encoding="utf-8"), 1):
+        if line.lstrip().startswith("```") or line.lstrip().startswith("~~~"):
+            fence = not fence
+            continue
+        if not fence and heading.match(line) and bad_mark.search(re.sub(r"`[^`]*`", "", line)):
+            print(f"{path}:{number}: {line.strip()[:80]}")
+            bad = 1
+sys.exit(bad)'
+}
+
 # Japanese appears only in *.ja.md pages and the allowed files, or as the language name on a switch.
 # The records under .ikkan/ are written by the ikkan workflow in Japanese and are not installed with any plugin.
 check_english() {
@@ -508,6 +528,7 @@ run "relative links resolve" check_links
 run "no local user paths" check_no_personal_paths
 run "no email addresses" check_no_email
 run "English outside the Japanese pages" check_english
+run "Japanese headings have no commas or colons" check_japanese_headings
 run "no build output tracked" check_no_build_output
 run "bundled data is credited" check_notices
 run "script dependencies are named in AGENTS.md" check_script_dependencies
