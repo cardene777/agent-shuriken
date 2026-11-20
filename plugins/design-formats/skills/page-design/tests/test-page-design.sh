@@ -252,7 +252,8 @@ check "the skill tells a following skill how to read the formats and run verify"
 
 musubi_accepts() {
   musubi check "$PLUGIN/skills" > "$T/musubi.out" 2>&1 || { sed 's/^/      /' "$T/musubi.out"; return 1; }
-  grep -q 'page-design' "$T/musubi.out"
+  # musubi prints counts, not names; the folder holds one skill, page-design.
+  grep -q 'skills=1' "$T/musubi.out"
 }
 if command -v musubi > /dev/null 2>&1; then
   check "musubi check accepts page-design" musubi_accepts

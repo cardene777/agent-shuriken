@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Choice</title>
+<!--
+  page-design choice: the request first, today's version, the options side by side, and a panel
+  that copies the choice back to the chat. Today's version stays one of the options. A following
+  skill replaces DATA and the words in TEXT, and keeps copyText() free of the dictionary so the
+  copied text never depends on the language of the page.
+-->
+<style>
+:root {
+  --bg: #f5f6f8; --surface: #ffffff; --ink: #1b2129; --sub: #4d5664; --line: #dce1e7;
+  --accent: #2a5bd7; --accent-ink: #ffffff; --accent-soft: #e8eefc; --wire: #c9d1db; --wire-soft: #eef1f5;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121519; --surface: #1a1e24; --ink: #e6e9ee; --sub: #a9b2be; --line: #2e343d;
+    --accent: #7d9cff; --accent-ink: #0f1420; --accent-soft: #1f2a45; --wire: #444c58; --wire-soft: #232831; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121519; --surface: #1a1e24; --ink: #e6e9ee; --sub: #a9b2be; --line: #2e343d;
+  --accent: #7d9cff; --accent-ink: #0f1420; --accent-soft: #1f2a45; --wire: #444c58; --wire-soft: #232831; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.7 var(--sans); }
+button, textarea { font: inherit; color: inherit; }
+button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.top { position: sticky; top: 0; z-index: 10; background: var(--surface); border-bottom: 1px solid var(--line); }
+.top-in { max-width: 1240px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.top h1 { margin: 0; font-size: 21px; line-height: 1.35; }
+.controls { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: transparent; padding: 6px 12px; font-size: 13px; cursor: pointer; transition: background-color .15s, color .15s; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.icon { display: inline-grid; place-items: center; width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 50%; background: var(--surface); cursor: pointer; font-weight: 700; }
+
+main { max-width: 1240px; margin: 0 auto; padding: 22px 24px 60px; display: grid; gap: 26px; }
+section { display: grid; gap: 12px; min-width: 0; }
+section > h2 { margin: 0; font-size: 18px; }
+.request { margin: 0; padding: 16px 18px; border-left: 4px solid var(--accent); border-radius: 0 10px 10px 0; background: var(--surface); font-size: 16px; }
+.facts { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
+.facts div { padding: 10px 16px; border-left: 1px solid var(--line); margin-left: -1px; }
+.facts dt { font-size: 12.5px; color: var(--sub); }
+.facts dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.note { margin: 0; color: var(--sub); }
+
+.scroll { overflow-x: auto; padding-bottom: 6px; }
+.strip { display: flex; gap: 14px; width: max-content; }
+.shot { width: 300px; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); text-align: left; cursor: zoom-in; overflow: hidden; }
+.shot svg { display: block; width: 100%; height: auto; background: var(--wire-soft); }
+.shot span { display: block; padding: 8px 12px; font-size: 14px; }
+
+.options { display: grid; grid-template-columns: repeat(var(--count), minmax(260px, 1fr)); gap: 14px; min-width: calc(var(--count) * 270px); }
+.option { padding: 0; border: 2px solid var(--line); border-radius: 12px; background: var(--surface); text-align: left; cursor: pointer; overflow: hidden; display: grid; align-content: start; transition: border-color .15s, box-shadow .15s, transform .15s; }
+.option:hover { transform: translateY(-2px); }
+.option[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.option svg { display: block; width: 100%; height: auto; background: var(--wire-soft); border-bottom: 1px solid var(--line); }
+.option-body { padding: 12px 14px 14px; display: grid; gap: 4px; }
+.option-name { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 16px; }
+.option-name code { font: 700 13px var(--mono); color: var(--accent); }
+.option-body p { margin: 0; font-size: 14px; color: var(--sub); }
+.option-body .zoom { justify-self: start; margin-top: 4px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 6px; background: transparent; font-size: 13px; cursor: zoom-in; }
+
+.panel { padding: 18px 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); display: grid; gap: 12px; }
+.panel label { font-size: 14px; color: var(--sub); }
+.panel textarea { width: 100%; min-height: 80px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); font: 14px/1.6 var(--sans); resize: vertical; }
+.panel textarea[readonly] { font-family: var(--mono); }
+.picked { font-weight: 600; }
+.primary { justify-self: start; padding: 10px 20px; border: 0; border-radius: 8px; background: var(--accent); color: var(--accent-ink); font-weight: 600; cursor: pointer; }
+.status { min-height: 1.6em; margin: 0; color: var(--accent); }
+
+dialog { width: min(1100px, calc(100vw - 32px)); padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); }
+dialog::backdrop { background: rgba(10, 14, 20, .55); }
+.dialog-head { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.dialog-head h2 { margin: 0; font-size: 17px; }
+.dialog-head .icon { margin-left: auto; }
+.dialog-body { padding: 16px 18px 20px; }
+.dialog-body svg { display: block; width: 100%; height: auto; background: var(--wire-soft); border-radius: 8px; }
+
+@media (max-width: 860px) { .top-in, main { padding-left: 16px; padding-right: 16px; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <h1 id="title"></h1>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Language">
+        <button type="button" data-lang="en">English</button><button type="button" data-lang="ja">日本語</button>
+      </div>
+      <div class="seg" role="group" aria-label="Theme">
+        <button type="button" data-theme-choice="light" data-t="light"></button><button type="button" data-theme-choice="dark" data-t="dark"></button>
+      </div>
+      <button type="button" class="icon" id="help-open" aria-label="Help">?</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section aria-labelledby="h-request">
+    <h2 id="h-request" data-t="request"></h2>
+    <p class="request" id="request"></p>
+    <dl class="facts" id="facts"></dl>
+  </section>
+  <section aria-labelledby="h-today">
+    <h2 id="h-today" data-t="today"></h2>
+    <p class="note" data-t="todayNote"></p>
+    <div class="scroll"><div class="strip" id="today"></div></div>
+  </section>
+  <section aria-labelledby="h-options">
+    <h2 id="h-options" data-t="options"></h2>
+    <p class="note" data-t="optionsNote"></p>
+    <div class="scroll"><div class="options" id="options"></div></div>
+  </section>
+  <section aria-labelledby="h-choose">
+    <h2 id="h-choose" data-t="choose"></h2>
+    <div class="panel">
+      <span class="picked" id="picked"></span>
+      <label for="note-box" data-t="noteLabel"></label>
+      <textarea id="note-box"></textarea>
+      <label for="copy-text" data-t="copyLabel"></label>
+      <textarea id="copy-text" readonly></textarea>
+      <button type="button" class="primary" id="copy" data-t="copy"></button>
+      <p class="status" id="copy-status" role="status"></p>
+    </div>
+  </section>
+</main>
+
+<dialog id="help">
+  <div class="dialog-head"><h2 data-t="helpTitle"></h2><button type="button" class="icon" data-close aria-label="Close">&#x2715;</button></div>
+  <div class="dialog-body"><p data-t="helpBody"></p></div>
+</dialog>
+<dialog id="zoom">
+  <div class="dialog-head"><h2 id="zoom-title"></h2><button type="button" class="icon" data-close aria-label="Close">&#x2715;</button></div>
+  <div class="dialog-body" id="zoom-body"></div>
+</dialog>
+
+<script>
+// One dictionary for every UI string. The request, today's version, and the options are in DATA.
+const TEXT = {
+  en: {
+    light: "Light", dark: "Dark",
+    request: "The request", today: "Today's pages", options: "Options", choose: "Choose",
+    todayNote: "Press a page to see it larger.",
+    optionsNote: "Every option shows the same sample. Press one to pick it; today's version stays one of the options.",
+    issue: "Issue", asked: "Asked on", count: "Options",
+    enlarge: "Enlarge", none: "Nothing picked yet", pickedAs: "Picked",
+    noteLabel: "What to change, or which options to mix",
+    copyLabel: "Text to paste in the chat",
+    copy: "Copy", copied: "Copied. Paste it in the chat.",
+    copyFailed: "Could not copy. The text is selected; press Command+C or Ctrl+C to copy it.",
+    helpTitle: "How to choose",
+    helpBody: "Look at today's pages, then press the option that reads best. Write what to change in the box, press Copy, and paste the text in the chat.",
+  },
+  ja: {
+    light: "明るい", dark: "暗い",
+    request: "依頼", today: "今の頁", options: "案", choose: "選ぶ",
+    todayNote: "頁を押すと大きく開きます。",
+    optionsNote: "どの案も同じ見本を描いています。押すと選べます。今の形も案の1つとして残しています。",
+    issue: "課題", asked: "頼んだ日", count: "案の数",
+    enlarge: "大きく見る", none: "まだ選んでいません", pickedAs: "選んだ案",
+    noteLabel: "直したい所、または混ぜたい案",
+    copyLabel: "チャットに貼る文",
+    copy: "コピー", copied: "コピーしました。チャットに貼ってください。",
+    copyFailed: "コピーできませんでした。文を選んだので、Command+CかCtrl+Cでコピーしてください。",
+    helpTitle: "選び方",
+    helpBody: "今の頁を見てから、読みやすい案を押します。直したい所を欄に書き、コピーを押して、チャットに貼ります。",
+  },
+};
+
+// The choice. A following skill writes this object. Each layout names a wireframe in WIRES.
+const DATA = {
+  topic: "report-frame",
+  title: { en: "Choose the report frame", ja: "レポートの枠を選ぶ" },
+  request: { en: "Pick the frame that every report page will share. Judge how easy it is to read.", ja: "全てのレポートの頁がそろえる枠を選んでください。読みやすさで決めてください。" },
+  facts: [["issue", "#263"], ["asked", "2026-11-20"], ["count", "4"]],
+  today: [
+    { name: "techdebt", wire: "cards" },
+    { name: "machine-cleanup", wire: "split" },
+    { name: "compare-report", wire: "doc" },
+  ],
+  options: [
+    { key: "A", wire: "split", name: { en: "List and details", ja: "一覧と横の詳細" }, about: { en: "Numbers on one strip, the list on the left, and the pressed row's details on the right.", ja: "数を1本の帯にまとめ、左の一覧で押した行の詳細を右に出します。" } },
+    { key: "B", wire: "cards", name: { en: "Stacked cards", ja: "縦に並ぶ札" }, about: { en: "Number cards, then one card per item with its details inside.", ja: "数の札の下に、詳細を中に持つ項目の札を縦に並べます。" } },
+    { key: "C", wire: "doc", name: { en: "Document", ja: "文書" }, about: { en: "Contents on the left and numbered sections divided by lines.", ja: "左に目次を置き、番号付きの節を線で区切ります。" } },
+    { key: "today", wire: "mixed", name: { en: "Keep today's pages", ja: "今のまま" }, about: { en: "Each page keeps its own look.", ja: "頁ごとに今の形を残します。" } },
+  ],
+};
+
+// Wireframes drawn with the theme's colors, so they follow light and dark.
+const WIRES = {
+  split: () => box(0, 0, 320, 22, "top") + strip(32) + rows(10, 64, 170, 5) + panel(190, 64, 120, 110),
+  cards: () => box(0, 0, 320, 22, "top") + strip(32) + [64, 108, 152].map((y) => card(10, y, 300, 38)).join(""),
+  doc: () => box(0, 0, 320, 22, "top") + box(0, 22, 70, 178, "side") + [40, 96, 152].map((y) => section(84, y)).join(""),
+  mixed: () => box(0, 0, 320, 22, "top") + card(10, 34, 140, 70) + card(170, 34, 140, 70) + rows(10, 116, 300, 3),
+};
+const fill = { top: "var(--wire)", side: "var(--wire)", line: "var(--wire)", soft: "var(--surface)", accent: "var(--accent)" };
+function box(x, y, w, h, kind) { return `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill[kind] || fill.line}"/>`; }
+function strip(y) { return [0, 1, 2, 3, 4].map((i) => `<rect x="${10 + i * 61}" y="${y}" width="55" height="22" rx="4" fill="var(--surface)" stroke="var(--wire)"/>`).join(""); }
+function rows(x, y, w, n) { return Array.from({ length: n }, (_, i) => `<rect x="${x}" y="${y + i * 22}" width="${w}" height="18" rx="3" fill="${i === 0 ? "var(--accent-soft)" : "var(--surface)"}" stroke="var(--wire)"/><rect x="${x + 8}" y="${y + i * 22 + 7}" width="${w * 0.5}" height="4" rx="2" fill="var(--wire)"/>`).join(""); }
+function panel(x, y, w, h) { return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="var(--surface)" stroke="var(--accent)"/>` + [0, 1, 2, 3].map((i) => `<rect x="${x + 10}" y="${y + 14 + i * 22}" width="${w - 20}" height="5" rx="2" fill="var(--wire)"/>`).join(""); }
+function card(x, y, w, h) { return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="5" fill="var(--surface)" stroke="var(--wire)"/><rect x="${x + 10}" y="${y + 10}" width="${w * 0.4}" height="5" rx="2" fill="var(--accent)"/><rect x="${x + 10}" y="${y + 22}" width="${w * 0.7}" height="4" rx="2" fill="var(--wire)"/>`; }
+function section(x, y) { return `<rect x="${x}" y="${y}" width="120" height="6" rx="2" fill="var(--ink)"/><rect x="${x}" y="${y + 12}" width="226" height="1.5" fill="var(--wire)"/>` + [0, 1].map((i) => `<rect x="${x}" y="${y + 22 + i * 10}" width="${200 - i * 50}" height="4" rx="2" fill="var(--wire)"/>`).join(""); }
+const wire = (name) => `<svg viewBox="0 0 320 200" role="img" aria-hidden="true">${WIRES[name]()}</svg>`;
+
+const state = { lang: "en", chosen: "" };
+const $ = (id) => document.getElementById(id);
+const t = (key) => TEXT[state.lang][key] ?? key;
+const pick = (value) => (value && typeof value === "object" && !Array.isArray(value) ? value[state.lang] : value);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+
+// The text pasted back in the chat. It uses only fixed English words, the option key, and the
+// note as written, never TEXT, so a script reads it the same way whichever language the page shows.
+function copyText() {
+  const note = $("note-box").value.trim().replace(/\s+/g, " ");
+  return ["choice " + DATA.topic, "pick " + (state.chosen || "none"), "note " + (note || "none")].join("\n");
+}
+
+function render() {
+  document.documentElement.lang = state.lang;
+  const title = pick(DATA.title);
+  document.title = title;
+  $("title").textContent = title;
+  document.querySelectorAll("[data-t]").forEach((el) => { el.textContent = t(el.dataset.t); });
+  document.querySelectorAll("[data-lang]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.lang === state.lang)));
+  $("request").textContent = pick(DATA.request);
+  $("facts").innerHTML = DATA.facts.map(([k, v]) => `<div><dt>${esc(t(k))}</dt><dd>${esc(v)}</dd></div>`).join("");
+  $("today").innerHTML = DATA.today.map((p, i) => `<button type="button" class="shot" data-today="${i}">${wire(p.wire)}<span>${esc(p.name)}</span></button>`).join("");
+  $("options").style.setProperty("--count", DATA.options.length);
+  $("options").innerHTML = DATA.options.map((o) => `<div class="option" role="button" tabindex="0" data-choice="${o.key}" aria-pressed="${o.key === state.chosen}">${wire(o.wire)}<div class="option-body"><span class="option-name">${o.key === "today" ? "" : `<code>${o.key}</code>`}${esc(pick(o.name))}</span><p>${esc(pick(o.about))}</p><button type="button" class="zoom" data-zoom="${o.key}">${esc(t("enlarge"))}</button></div></div>`).join("");
+  const chosen = DATA.options.find((o) => o.key === state.chosen);
+  $("picked").textContent = chosen ? `${t("pickedAs")} ${chosen.key === "today" ? "" : chosen.key + " "}${pick(chosen.name)}` : t("none");
+  $("copy-text").value = copyText();
+}
+
+function setTheme(mode) {
+  document.documentElement.dataset.theme = mode;
+  document.querySelectorAll("[data-theme-choice]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.themeChoice === mode)));
+  try { localStorage.setItem("page-design-theme", mode); } catch (e) {}
+}
+
+function zoom(title, name) {
+  $("zoom-title").textContent = title;
+  $("zoom-body").innerHTML = wire(name);
+  $("zoom").showModal();
+}
+
+document.addEventListener("click", (e) => {
+  const lang = e.target.closest("[data-lang]");
+  if (lang) { state.lang = lang.dataset.lang; try { localStorage.setItem("page-design-lang", state.lang); } catch (err) {} render(); return; }
+  const theme = e.target.closest("[data-theme-choice]");
+  if (theme) { setTheme(theme.dataset.themeChoice); return; }
+  if (e.target.closest("#help-open")) { $("help").showModal(); return; }
+  const z = e.target.closest("[data-zoom]");
+  if (z) { const o = DATA.options.find((x) => x.key === z.dataset.zoom); zoom(pick(o.name), o.wire); return; }
+  const shot = e.target.closest("[data-today]");
+  if (shot) { const p = DATA.today[Number(shot.dataset.today)]; zoom(p.name, p.wire); return; }
+  const choice = e.target.closest("[data-choice]");
+  if (choice) { state.chosen = choice.dataset.choice; render(); return; }
+  if (e.target.closest("#copy")) {
+    const box = $("copy-text");
+    box.value = copyText();
+    navigator.clipboard.writeText(box.value)
+      .then(() => { $("copy-status").textContent = t("copied"); })
+      .catch(() => { box.focus(); box.select(); $("copy-status").textContent = t("copyFailed"); });
+    return;
+  }
+  if (e.target.closest("[data-close]")) e.target.closest("dialog").close();
+});
+document.addEventListener("keydown", (e) => {
+  const choice = e.target.closest && e.target.closest("[data-choice]");
+  if (choice && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); state.chosen = choice.dataset.choice; render(); }
+});
+$("note-box").addEventListener("input", () => { $("copy-text").value = copyText(); });
+
+try { state.lang = localStorage.getItem("page-design-lang") || "en"; } catch (e) {}
+let startTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+try { startTheme = localStorage.getItem("page-design-theme") || startTheme; } catch (e) {}
+setTheme(startTheme);
+render();
+</script>
+</body>
+</html>
