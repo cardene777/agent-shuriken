@@ -48,7 +48,7 @@ In GitHub Copilot CLI, write `/page-design` in your request, and in Gemini CLI, 
 | `choice` | `templates/choice.html` | A choice page with the request, today's version, the options side by side, and the text copied back |
 | `verify` | `scripts/page-design.py` | The check that a page or a document keeps the rules a script can see |
 
-For a page whose title is "shop: technical debt", `verify` names the line and the fix and exits 1.
+For a page whose title is "Bakery: weekly sales", `verify` names the line and the fix and exits 1.
 
 ```text
 report.html:42: heading-punctuation: take the colon and any Japanese comma or period out of the heading; keep the name as the title and put the detail on the line under it

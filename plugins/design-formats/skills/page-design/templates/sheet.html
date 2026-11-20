@@ -65,7 +65,7 @@ main { max-width: 1200px; margin: 0 auto; padding: 22px 24px 120px; display: gri
 .row[aria-pressed="true"] { background: var(--accent-soft); }
 .row[aria-pressed="true"] .mark { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .name { font-weight: 600; }
-.row small { display: block; font-family: var(--mono); font-size: 13px; color: var(--sub); overflow-wrap: anywhere; }
+.row small { display: block; font-size: 13px; color: var(--sub); overflow-wrap: anywhere; }
 .size { font-variant-numeric: tabular-nums; font-weight: 600; }
 
 .detail { position: sticky; top: 84px; padding: 18px 20px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); display: grid; gap: 12px; animation: show .2s ease-out; }
@@ -149,32 +149,32 @@ dialog::backdrop { background: rgba(10, 14, 20, .55); }
 // One dictionary for every UI string. The items are in DATA.
 const TEXT = {
   en: {
-    title: "Free up space on this Mac",
-    lead: "Press the items to delete. Nothing is deleted from this page; the text you paste back in the chat names the items, and the agent checks each one again before deleting it.",
+    title: "Pick items to take off the winter menu",
+    lead: "Press the items to take off the menu. Nothing changes from this page; the text you paste back in the chat names the items, and the agent checks each one again before it updates the menu board and the order page.",
     light: "Light", dark: "Dark",
-    scanned: "Scanned", free: "Free now", reclaim: "Can free", generated: "Generated",
-    caches: "Caches", builds: "Old builds", logs: "Logs",
-    picked: "{n} picked, {size} in total", make: "Make the text",
-    path: "Location", made: "Made by", back: "Comes back", none: "Nothing picked yet",
+    week: "Week", menu: "Items on the menu", review: "Items to review", generated: "Generated",
+    bread: "Bread", sweets: "Sweets", drinks: "Drinks",
+    picked: "{n} picked, {amount} of weekly sales", make: "Make the text",
+    sold: "Sold a week", stock: "Stock left", after: "After taking it off", perWeek: "{n} sold a week", none: "Nothing picked yet",
     helpTitle: "What happens after you paste",
-    helpBody: "The agent reads the names in the text, checks each item again, skips any item that changed since this page was made, and deletes the rest. It reports what it deleted and what it skipped.",
+    helpBody: "The agent reads the names in the text, checks each item again, skips any item whose sales changed since this page was made, and takes the rest off the menu board and the order page. It reports what it took off and what it skipped.",
     copyTitle: "Paste this in the chat",
-    copyBody: "The text is copied. Paste it in the chat to delete the picked items.",
+    copyBody: "The text is copied. Paste it in the chat to take the picked items off the menu.",
     copied: "Copied.",
     copyFailed: "Could not copy. The text is selected; press Command+C or Ctrl+C to copy it.",
   },
   ja: {
-    title: "このMacの空きを増やす",
-    lead: "消す項目を押して選びます。この頁からは何も消しません。チャットに貼り返す文が項目を名指し、エージェントが消す前に項目ごとに確かめ直します。",
+    title: "冬のメニューから外す商品を選ぶ",
+    lead: "メニューから外す商品を押して選びます。この頁からは何も変えません。チャットに貼り返す文が商品を名指し、エージェントがメニュー表と注文の頁を直す前に、商品ごとに確かめ直します。",
     light: "明るい", dark: "暗い",
-    scanned: "調べた日時", free: "今の空き", reclaim: "空けられる量", generated: "作った日時",
-    caches: "キャッシュ", builds: "古いビルド", logs: "ログ",
-    picked: "{n}件を選択、合計{size}", make: "貼り返す文を作る",
-    path: "場所", made: "作った物", back: "消した後", none: "まだ選んでいません",
+    week: "週", menu: "メニューの商品", review: "見直す商品", generated: "作った日時",
+    bread: "パン", sweets: "菓子パン", drinks: "飲み物",
+    picked: "{n}件を選択、週の売り上げ{amount}", make: "貼り返す文を作る",
+    sold: "週に売れた数", stock: "残りの材料", after: "外した後", perWeek: "週に{n}個", none: "まだ選んでいません",
     helpTitle: "貼り返した後に起きること",
-    helpBody: "エージェントは文の名前を読み、項目ごとに確かめ直し、この頁を作った後に変わった項目を飛ばして、残りを消します。消した物と飛ばした物を報告します。",
+    helpBody: "エージェントは文の名前を読み、商品ごとに確かめ直し、この頁を作った後に売れ方が変わった商品を飛ばして、残りをメニュー表と注文の頁から外します。外した商品と飛ばした商品を報告します。",
     copyTitle: "チャットに貼る文",
-    copyBody: "文をコピーしました。チャットに貼ると、選んだ項目を消します。",
+    copyBody: "文をコピーしました。チャットに貼ると、選んだ商品をメニューから外します。",
     copied: "コピーしました。",
     copyFailed: "コピーできませんでした。文を選んだので、Command+CかCtrl+Cでコピーしてください。",
   },
@@ -182,29 +182,29 @@ const TEXT = {
 
 // The items. A following skill writes this object.
 const DATA = {
-  skill: "machine-cleanup",
-  facts: [["scanned", "2026-11-20 21:40"], ["free", "38.2 GB"], ["reclaim", "21.7 GB"], ["generated", "2026-11-20 21:42"]],
-  tabs: ["caches", "builds", "logs"],
+  skill: "winter-menu",
+  facts: [["week", { en: "Nov 10 to 16", ja: "11月10日から16日" }], ["menu", "24"], ["review", "5"], ["generated", "2026-11-17 08:00"]],
+  tabs: ["bread", "sweets", "drinks"],
   items: [
-    { id: "npm-cache", tab: "caches", bytes: 6.4e9, name: { en: "npm cache", ja: "npmのキャッシュ" }, path: "~/.npm/_cacache",
-      made: { en: "npm, when it installs packages", ja: "npmがパッケージを入れる時" }, back: { en: "Downloaded again when a project installs", ja: "プロジェクトがインストールする時に取り直す" } },
-    { id: "xcode-derived", tab: "builds", bytes: 9.1e9, name: { en: "Xcode build files", ja: "Xcodeのビルドの残り" }, path: "~/Library/Developer/Xcode/DerivedData",
-      made: { en: "Xcode, when it builds an app", ja: "Xcodeがアプリをビルドする時" }, back: { en: "Rebuilt on the next build, which takes longer once", ja: "次のビルドで作り直す。その1回は時間がかかる" } },
-    { id: "pip-cache", tab: "caches", bytes: 2.3e9, name: { en: "pip cache", ja: "pipのキャッシュ" }, path: "~/Library/Caches/pip",
-      made: { en: "pip, when it installs packages", ja: "pipがパッケージを入れる時" }, back: { en: "Downloaded again when needed", ja: "要る時に取り直す" } },
-    { id: "next-builds", tab: "builds", bytes: 2.6e9, name: { en: "Next.js build folders", ja: "Next.jsのビルドのフォルダ" }, path: "~/projects/*/.next",
-      made: { en: "next build and next dev", ja: "next buildとnext dev" }, back: { en: "Rebuilt by the next build", ja: "次のビルドで作り直す" } },
-    { id: "system-logs", tab: "logs", bytes: 1.3e9, name: { en: "Old app logs", ja: "古いアプリのログ" }, path: "~/Library/Logs",
-      made: { en: "Apps on this Mac", ja: "このMacのアプリ" }, back: { en: "Gone for good; new logs start empty", ja: "元に戻らない。新しいログは空から始まる" }, caution: true },
+    { id: "pumpkin-bun", tab: "bread", sold: 14, yen: 3640, name: { en: "Pumpkin bun", ja: "かぼちゃのパン" },
+      stock: { en: "Pumpkin paste for 5 days", ja: "かぼちゃの餡が5日分" }, after: { en: "Can come back in autumn with the same recipe", ja: "秋に同じ作り方で戻せる" } },
+    { id: "raisin-loaf", tab: "bread", sold: 11, yen: 4620, name: { en: "Raisin loaf", ja: "レーズンの食パン" },
+      stock: { en: "Raisins for 3 weeks", ja: "レーズンが3週分" }, after: { en: "The raisins go into the scones instead", ja: "レーズンはスコーンに使う" } },
+    { id: "matcha-roll", tab: "sweets", sold: 7, yen: 3150, name: { en: "Matcha roll cake", ja: "抹茶のロールケーキ" },
+      stock: { en: "Matcha powder for a month", ja: "抹茶の粉が1か月分" }, after: { en: "Takes two days to bring back, since the sponge is baked the day before", ja: "生地を前の日に焼くので、戻すのに2日かかる" } },
+    { id: "iced-lemon-tea", tab: "drinks", sold: 9, yen: 3420, name: { en: "Iced lemon tea", ja: "アイスレモンティー" },
+      stock: { en: "Lemons for 2 days", ja: "レモンが2日分" }, after: { en: "The lemons go into the lemon tart", ja: "レモンはレモンタルトに使う" } },
+    { id: "cold-brew", tab: "drinks", sold: 12, yen: 4800, name: { en: "Cold brew coffee", ja: "水出しのコーヒー" },
+      stock: { en: "None left", ja: "残っていない" }, after: { en: "Gone until next summer; the bottles are put away", ja: "来年の夏まで出せない。瓶はしまう" }, caution: true },
   ],
 };
 
-const state = { lang: "en", tab: "caches", open: "npm-cache", picked: new Set() };
+const state = { lang: "en", tab: "bread", open: "pumpkin-bun", picked: new Set() };
 const $ = (id) => document.getElementById(id);
 const t = (key) => TEXT[state.lang][key] ?? key;
 const pick = (value) => (value && typeof value === "object" && !Array.isArray(value) ? value[state.lang] : value);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-const size = (bytes) => (bytes / 1e9).toFixed(1) + " GB";
+const yen = (n) => (state.lang === "ja" ? n.toLocaleString("en-US") + "\u5186" : "\u00a5" + n.toLocaleString("en-US"));
 
 // The text pasted back in the chat. It uses only fixed English words and item ids, never TEXT,
 // so a script reads it the same way whichever language the page shows.
@@ -219,18 +219,18 @@ function render() {
   $("title").textContent = t("title");
   document.querySelectorAll("[data-t]").forEach((el) => { el.textContent = t(el.dataset.t); });
   document.querySelectorAll("[data-lang]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.lang === state.lang)));
-  $("facts").innerHTML = DATA.facts.map(([k, v]) => `<div><dt>${esc(t(k))}</dt><dd>${esc(v)}</dd></div>`).join("");
+  $("facts").innerHTML = DATA.facts.map(([k, v]) => `<div><dt>${esc(t(k))}</dt><dd>${esc(pick(v))}</dd></div>`).join("");
   $("tabs").innerHTML = DATA.tabs.map((k) => {
     const count = DATA.items.filter((item) => item.tab === k).length;
     return `<button type="button" role="tab" data-tab="${k}" aria-selected="${k === state.tab}">${esc(t(k))}<em>${count}</em></button>`;
   }).join("");
   $("rows").innerHTML = DATA.items.filter((item) => item.tab === state.tab).map((item) =>
-    `<button type="button" class="row${item.id === state.open ? " open" : ""}" data-item="${item.id}" aria-pressed="${state.picked.has(item.id)}"><span class="mark" aria-hidden="true">&#x2713;</span><span><span class="name">${esc(pick(item.name))}</span><small>${esc(item.path)}</small></span><span class="size">${size(item.bytes)}</span></button>`
+    `<button type="button" class="row${item.id === state.open ? " open" : ""}" data-item="${item.id}" aria-pressed="${state.picked.has(item.id)}"><span class="mark" aria-hidden="true">&#x2713;</span><span><span class="name">${esc(pick(item.name))}</span><small>${esc(t("perWeek").replace("{n}", item.sold))}</small></span><span class="size">${yen(item.yen)}</span></button>`
   ).join("");
   const item = DATA.items.find((x) => x.id === state.open);
-  $("detail").innerHTML = item ? `<h2>${esc(pick(item.name))}</h2><table class="kv"><tr><th>${esc(t("path"))}</th><td>${esc(item.path)}</td></tr><tr><th>${esc(t("made"))}</th><td>${esc(pick(item.made))}</td></tr><tr><th>${esc(t("back"))}</th><td>${esc(pick(item.back))}</td></tr></table>${item.caution ? `<p class="caution">${esc(pick(item.back))}</p>` : ""}` : "";
+  $("detail").innerHTML = item ? `<h2>${esc(pick(item.name))}</h2><table class="kv"><tr><th>${esc(t("sold"))}</th><td>${item.sold}</td></tr><tr><th>${esc(t("stock"))}</th><td>${esc(pick(item.stock))}</td></tr><tr><th>${esc(t("after"))}</th><td>${esc(pick(item.after))}</td></tr></table>${item.caution ? `<p class="caution">${esc(pick(item.after))}</p>` : ""}` : "";
   const chosen = DATA.items.filter((x) => state.picked.has(x.id));
-  $("picked").innerHTML = chosen.length ? esc(t("picked")).replace("{n}", `<b>${chosen.length}</b>`).replace("{size}", `<b>${size(chosen.reduce((a, x) => a + x.bytes, 0))}</b>`) : esc(t("none"));
+  $("picked").innerHTML = chosen.length ? esc(t("picked")).replace("{n}", `<b>${chosen.length}</b>`).replace("{amount}", `<b>${yen(chosen.reduce((a, x) => a + x.yen, 0))}</b>`) : esc(t("none"));
   $("make").disabled = chosen.length === 0;
 }
 

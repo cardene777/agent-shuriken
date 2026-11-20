@@ -9,18 +9,18 @@ The order of the explanation is in `structure.md`, next to this file, and the fo
 A heading is a name, not a sentence.
 
 - Write no colon (`:` or `：`) and no `、` or `。` in a heading, in any language
-- Name the subject and the kind in one phrase, such as "Technical debt in shop" or "shopの技術的負債", and put the details on the line under the title
+- Name the subject and the kind in one phrase, such as "Weekly sales of the bakery" or "パン屋の週の売り上げ", and put the details on the line under the title
 - Keep the title when showing details, and write the details under it
 - Do not repeat in the body a heading the header already shows
 - Number headings and file names only when the order is the content, and number from 1 without restarting
 
 ## Facts in a table
 
-Facts about the page, such as the commit, the branch, counts, the period, and when it was generated, go in a table, never in one sentence.
+Facts about the page, such as the store, the period, counts, and when it was generated, go in a table, never in one sentence.
 
 - HTML: a `<dl>` grid or a `<table>` of label and value cells under the title
 - Markdown: a table with an Item and a Value column
-- A sentence such as "61d7f14 on main, 26 source files, 199 commits, generated 2026-11-13" is the shape to avoid
+- A sentence such as "Main street store, 2026-11-10 to 2026-11-16, 24 products, generated 2026-11-17" is the shape to avoid
 
 ## Joining items
 

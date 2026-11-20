@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The samples in the four page templates, `formats/look.md`, and the README all use one small bakery: the weekly sales report, the items to take off the winter menu, how to brew pour-over coffee, and the layout of the menu board
+
 ## [0.1.0] - 2026-11-20
 
 First public release.
