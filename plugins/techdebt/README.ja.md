@@ -83,7 +83,7 @@ Start here
 | `semgrep` | 任意です。`.venv/bin`か`PATH`に入っていて、プロジェクトが規則のfile(`.semgrep.yml`、`.semgrep.yaml`、`.semgrep/`)を持つ時に使います |
 | `eslint` | 任意です。プロジェクトの`node_modules/.bin`に入っていて、設定が非推奨の規則を有効にしている時に使います |
 
-## 読む物、動かす物、送る物
+## 読む物と動かす物と送る物
 
 [仕組み](docs/how-it-works.ja.md)に、各項目の測り方、順位の付け方、飛ばす物を載せています。
 要点は次のとおりです。

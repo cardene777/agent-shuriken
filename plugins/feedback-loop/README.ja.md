@@ -156,7 +156,7 @@ Rules learned from corrections in this repository. Each one says what to do and 
 
 検査には、テストやリンターなど、プロジェクトに既にある物を使います。
 
-## 読む物、動かす物、送る物
+## 読む物と動かす物と送る物
 
 [仕組み](docs/how-it-works.ja.md)に、記録の中身、レビューの書き方、スクリプトが確かめる条件を全部載せています。
 要点は次のとおりです。

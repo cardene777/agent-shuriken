@@ -114,7 +114,7 @@ Nothing was written. Show this diff to the user. After they approve it, run the 
 |---|---|
 | `python3` | 常に |
 
-## 読む物、動かす物、送る物
+## 読む物と動かす物と送る物
 
 [仕組み](docs/how-it-works.ja.md)に、読むファイルの全部、どのエージェントを読み手と数えるか、似た行の見つけ方、変更の書き方を載せています。
 要点は次のとおりです。

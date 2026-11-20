@@ -72,7 +72,7 @@ note backchannel-count 1 of 10 utterances
 | Python 3.8以降 | `speaking.py`を動かす時。標準ライブラリだけを使います |
 | 会話を引き継がない読み手を立てる手段 | 別の読み手に聞かせる時。Claude Codeはsubagentを立てます。ほかのagentは新しいsessionを開くか、agentが台本を1行ずつ読み直します |
 
-## 読む物、動かす物、送る物
+## 読む物と動かす物と送る物
 
 [仕組み](docs/how-it-works.ja.md)に、skillの全てのfile、`check`が見る物、決まりの出典を並べています。
 要点は次のとおりです。
