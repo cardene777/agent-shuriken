@@ -104,9 +104,12 @@ def report(broken=False):
                     '<th class="rationale">Rationale</th></tr></thead><tbody>'
                     + "".join("<tr><td>%s</td><td>%s</td><td>%s</td><td class=\"rationale\">Scores on both axes</td></tr>"
                               % (n, score(s), score(m)) for n, _, s, _, m, _ in CANDIDATES)
-                    + "</tbody></table><ol><li>First choice: Quarry, for most docs sites</li>"
-                      "<li>Alternative: Lumen, when hosted previews matter</li>"
-                      "<li>Fallback: Brisk, when the other two cannot be used</li></ol>"),
+                    + "</tbody></table><table><thead><tr><th>Recommendation</th><th>Candidate</th>"
+                      "<th>When it is the right pick</th></tr></thead><tbody>"
+                      "<tr><td>First choice</td><td>Quarry</td><td>For most docs sites</td></tr>"
+                      "<tr><td>Alternative</td><td>Lumen</td><td>When hosted previews matter</td></tr>"
+                      "<tr><td>Fallback</td><td>Brisk</td><td>When the other two cannot be used</td></tr>"
+                      "</tbody></table>"),
         "SOURCES": "<h2>Sources</h2><ol>" + "".join(
             '<li><a href="%s/benchmarks">%s benchmark</a>, read 2026-11-10</li>'
             '<li><a href="%s/changelog">%s releases</a>, read 2026-11-10</li>' % (host, n, host, n)

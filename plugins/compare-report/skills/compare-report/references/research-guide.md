@@ -41,13 +41,15 @@ In Claude Code, research the candidates in parallel with one subagent per candid
 Give each subagent the candidate, the agreed axes, the rules on this page, and the shape to return.
 In Codex, research the candidates one after another.
 
-For each candidate, collect:
+For each candidate, collect what this table lists.
 
-1. Official information: the website, documentation, pricing page, changelog, and status page
-2. Numbers: benchmarks, specifications, prices, release dates, GitHub stars, downloads
-3. Experience: case studies, adopters, and independent reviews
-4. Risks: known problems, open issues, security advisories, acquisitions, funding, and end-of-life notices
-5. A three- or four-sentence description for the candidate card
+| What | Where it comes from |
+|---|---|
+| Official information | The website, documentation, pricing page, changelog, and status page |
+| Numbers | Benchmarks, specifications, prices, release dates, GitHub stars, and downloads |
+| Experience | Case studies, adopters, and independent reviews |
+| Risks | Known problems, open issues, security advisories, acquisitions, funding, and end-of-life notices |
+| Description | Three or four sentences for the candidate card |
 
 Ask each subagent to return, for every claim, the value, the source URL, the date it was read, and whether the source is the vendor or independent.
 

@@ -74,7 +74,7 @@ When the `page-design` skill is installed, follow the `structure` and `look` for
 If the `musubi` command is available, run `musubi check` before reading, and stop if it fails.
 If the `page-design` skill is not installed, go on with the templates of this skill, without the formats of `page-design`.
 
-Fill the template as `references/report-structure.md` describes: the cover, the contents, the summary, the candidates, one section per axis, the risks, the ranking, and the sources.
+Fill the template's cover, contents, summary, candidates, one section per axis, risks, ranking, and sources as `references/report-structure.md` describes.
 Every table with a score or a risk label has a rationale column, and the ranking gives a first choice, an alternative, and a fallback with the conditions for each.
 Use only the components in `references/report-structure.md`, and do not add a stylesheet, script, web font, or image from the network.
 
@@ -108,7 +108,7 @@ When a sandbox asks, as Codex can, approve the commands, because they write outs
 
 ### 6. Apply feedback
 
-Change the report as the user asks: page breaks, wording, added or removed candidates or axes, or more research.
+Change the report as the user asks, such as its page breaks or wording, added or removed candidates or axes, or more research.
 After each change, run the check and print the PDF again.
 
 ## Report to the user
