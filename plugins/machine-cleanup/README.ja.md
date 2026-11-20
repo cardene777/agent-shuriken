@@ -88,7 +88,7 @@ GitHub Copilot CLIでは依頼の文に`/machine-cleanup`と書き、Gemini CLI�
 | `design-formats`のプラグイン | 無くても動きます。`page-design`のスキルが入っていれば、エージェントはページのひな形をその`verify`で確かめます |
 | `musubi`のコマンド | 無くても動きます。入っていれば、エージェントは`page-design`の形式を読む前に`musubi check`を回します |
 
-## 読む物、動かす物、送る物
+## 読む物と動かす物と送る物
 
 [仕組み](docs/how-it-works.ja.md)に、調べ方、使用中と見る物、ページとサーバー、変える前の確かめが書いてあります。
 要点は次のとおりです。

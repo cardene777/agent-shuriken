@@ -408,7 +408,7 @@ financial-standards: 2 problems; fill in or add each section named above
 | `cardene.dev`への接続 | bitsumiの記事のリンクを添える時。無い時は、`evm-standards`は項目だけから探し、記事の一覧を読めなかったと伝えます |
 | `musubi`のコマンド | 無くても動きます。入っている時は、設計のスキルが`design-doc`の書式を読む前と、`release-check`が`page-design`の書式を読む前に、エージェントが`musubi check`を回します |
 
-## 読む物、動かす物、送る物
+## 読む物と動かす物と送る物
 
 [仕組み](docs/how-it-works.ja.md)に、項目と状態と、探し方と、項目を古いと見る時期を書いています。
 要点は次のとおりです。

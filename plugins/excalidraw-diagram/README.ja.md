@@ -113,7 +113,7 @@ SVGは、使う書体のExcalidraw自身のExcalifontとNunitoを埋め込むの
 | `python3` | 常に。標準ライブラリだけを使います |
 | Playwrightの`chrome-headless-shell`、Google Chrome、Chromium、Microsoft Edge | PNGを作る時だけ、既に入っていれば使います。無い時は`.excalidraw`のファイルとSVGができます |
 
-## 読む物、動かす物、送る物
+## 読む物と動かす物と送る物
 
 [仕組み](docs/how-it-works.ja.md)に、仕様、配置の仕方、すべての確かめ、PNGの作り方を載せています。
 要点は次のとおりです。

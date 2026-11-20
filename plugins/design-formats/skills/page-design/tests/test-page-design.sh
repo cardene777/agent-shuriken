@@ -215,6 +215,43 @@ document_figures() {
 }
 check "the document template holds a still flow of the steps in both languages" document_figures
 
+# card_rule <template> <selector>: prints the declarations of the CSS rules whose selector list holds <selector>.
+card_rule() {
+  python3 - "$1" "$2" <<'PYEOF'
+import re, sys
+text = open(sys.argv[1], encoding="utf-8").read()
+style = "".join(re.findall(r"<style>(.*?)</style>", text, re.S))
+for selectors, body in re.findall(r"([^{}]+)\{([^{}]*)\}", style):
+    if sys.argv[2] in [s.strip() for s in selectors.split(",")]:
+        print(body)
+PYEOF
+}
+
+figure_cards() {
+  local template selector
+  for pair in "report.html .figure" "report.html #zoom-body" "document.html figure" "document.html #zoom-body"; do
+    template=${pair%% *}
+    selector=${pair#* }
+    card_rule "$SKILL_DIR/templates/$template" "$selector" | grep -qE -- '--dragon-figure-background: *var\(--surface\)' ||
+      { echo "      $template: $selector does not pass --dragon-figure-background: var(--surface)"; return 1; }
+  done
+}
+check "the figure cards pass the card color to dragon" figure_cards
+
+report_figures_centered() {
+  local rules
+  rules=$(card_rule "$SKILL_DIR/templates/report.html" ".figure")
+  printf '%s\n' "$rules" | grep -qE 'display: *flex' || { echo "      report.html: .figure is not a flex box"; return 1; }
+  printf '%s\n' "$rules" | grep -qE 'flex-direction: *column' || { echo "      report.html: .figure does not stack its parts"; return 1; }
+  printf '%s\n' "$rules" | grep -qE 'justify-content: *center' || { echo "      report.html: .figure does not center its figure"; return 1; }
+}
+check "the report figures sit in the middle of their cards" report_figures_centered
+
+look_card_color() {
+  has "$LOOK" '--dragon-figure-background'
+}
+check "the look format says to pass the card color to dragon" look_card_color
+
 follows_dragon() {
   python3 - "$DECLARATION" <<'PYEOF' || return 1
 import json, sys
