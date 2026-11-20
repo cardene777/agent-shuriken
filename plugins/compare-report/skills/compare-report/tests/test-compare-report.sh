@@ -558,6 +558,152 @@ results_ignored() {
 }
 check "eval results are ignored by git" results_ignored
 
+# --- the text rules of page-design
+# The guides show how to write the report, so what they show must pass the verify of page-design
+# without a second try. page-design lives in the design-formats plugin next to this one; the checks
+# that run its verify are skipped when the repository does not hold it.
+STRUCTURE="$HERE/../references/report-structure.md"
+RESEARCH="$HERE/../references/research-guide.md"
+PAGE_DESIGN="$PLUGIN/../design-formats/skills/page-design/scripts/page-design.py"
+page_design_checks=(
+  "the Markdown the skill reads passes the verify of page-design"
+  "a report built from the components of report-structure.md passes check-report and verify"
+  "the eval fixture reports keep the text rules of page-design"
+)
+
+# indent: the lines a command printed, under the check that failed, with paths from the skill folder
+indent() { sed -e "s|$T/||g" -e "s|$HERE/\.\./||g" -e 's/^/      /'; }
+
+markdown_verified() {
+  local out
+  out="$(python3 "$PAGE_DESIGN" verify "$SKILL" "$STRUCTURE" "$RESEARCH" 2>&1)" || { printf '%s\n' "$out" | indent; return 1; }
+}
+
+# components_report <file>: the template filled with every component example in report-structure.md,
+# each in the section the guide puts it in. A component without a section here, or a section whose
+# component the guide no longer shows, fails, so the report holds every example the guide gives.
+components_report() {
+  python3 - "$TEMPLATE" "$STRUCTURE" "$1" <<'PY'
+import re, sys
+template, structure, dst = sys.argv[1:]
+guide = open(structure, encoding="utf-8").read()
+part = re.search(r"(?ms)^## Components\n(.*?)(?=^## )", guide).group(1)
+blocks = {name.strip(): re.findall(r"(?ms)^```html\n(.*?)^```", body)
+          for name, body in re.findall(r"(?ms)^### ([^\n]+)\n(.*?)(?=^### |\Z)", part)}
+place = {
+    "summary": ["Callout", "Top three picks"],
+    "candidates": ["Candidate cards"],
+    "axis": ["Comparison table", "Scores", "Bar chart"],
+    "risks": ["Risk labels"],
+    "ranking": ["Recommendation"],
+    "sources": ["Sources"],
+}
+placed = [name for names in place.values() for name in names]
+problems = ["report-structure.md shows no html example under ### %s" % n for n in placed if not blocks.get(n)]
+problems += ["### %s of report-structure.md has no section in this test" % n for n in blocks if n not in placed]
+if problems:
+    print("\n".join("      " + p for p in problems))
+    sys.exit(1)
+body = {section: "".join(b for n in names for b in blocks[n]) for section, names in place.items()}
+toc = [("summary", "Summary"), ("candidates", "Candidates"), ("axis-cost", "Cost"),
+       ("risks", "Risks"), ("ranking", "Ranking"), ("sources", "Sources")]
+values = {
+    "LANG": "en", "TITLE": "Static site generators", "EYEBROW": "Comparison report",
+    "SUBTITLE": "Three generators compared for a documentation site", "DATE": "2026-11-14", "AUTHOR": "",
+    "STATS": "<div><dt>Candidates</dt><dd>3</dd></div><div><dt>Axes</dt><dd>5</dd></div><div><dt>Sources</dt><dd>12</dd></div>",
+    "CONTENTS_HEADING": "Contents", "TOC": "".join('<li><a href="#%s">%s</a></li>' % pair for pair in toc),
+    "AXES": '<section id="axis-cost" class="chapter axis"><h2>Cost</h2>' + body["axis"] + "</section>",
+    "FOOTER": "This report reflects public information on 2026-11-14.",
+}
+for section, title in toc:
+    if section in body and section != "axis":
+        values[section.upper()] = "<h2>%s</h2>" % title + body[section]
+text = open(template, encoding="utf-8").read()
+open(dst, "w", encoding="utf-8").write(re.sub(r"\{\{([A-Z_]+)\}\}", lambda m: values[m.group(1)], text))
+PY
+}
+components_verified() {
+  local out
+  components_report "$T/components.html" || return 1
+  out="$(check_report "$T/components.html")" || { printf '%s\n' "$out" | indent; return 1; }
+  out="$(python3 "$PAGE_DESIGN" verify "$T/components.html" 2>&1)" || { printf '%s\n' "$out" | indent; return 1; }
+}
+
+# The reports the eval fixtures build: the two that check-report passes also pass verify, and the one
+# with planted faults breaks none of the rules verify reads in the text. fixture() is above.
+fixture_reports_verified() {
+  local c ws out
+  for c in applies-feedback pdf-fallback fixes-check; do
+    ws="$(fixture "$c")" || { echo "      the fixture of $c did not run"; return 1; }
+    out="$(python3 "$PAGE_DESIGN" verify "$ws/reports/ssg-2026-11-10/report.html" 2>&1)"
+    if [ "$c" = fixes-check ]; then
+      out="$(printf '%s\n' "$out" | grep -E ': (label-colon|facts-in-one-line|heading-punctuation): ')" && { printf '%s\n' "$out" | indent; return 1; }
+    else
+      [ "$(printf '%s\n' "$out" | tail -n 1)" = "page-design: ok (1 file)" ] || { printf '%s\n' "$out" | indent; return 1; }
+    fi
+  done
+}
+
+if [ -f "$PAGE_DESIGN" ]; then
+  check "the Markdown the skill reads passes the verify of page-design" markdown_verified
+  check "a report built from the components of report-structure.md passes check-report and verify" components_verified
+  check "the eval fixture reports keep the text rules of page-design" fixture_reports_verified
+else
+  for name in "${page_design_checks[@]}"; do printf 'skip  %s (needs the design-formats plugin next to this one)\n' "$name"; done
+fi
+
+# The recommendation is a table whose rows are the first choice, the alternative, and the fallback, so
+# no line joins a recommendation and its candidate with a colon.
+recommendation_table() {
+  python3 - "$STRUCTURE" <<'PY'
+import re, sys
+from html.parser import HTMLParser
+guide = open(sys.argv[1], encoding="utf-8").read()
+part = re.search(r"(?ms)^### Recommendation\n(.*?)(?=^### |^## )", guide)
+blocks = re.findall(r"(?ms)^```html\n(.*?)^```", part.group(1)) if part else []
+if not blocks:
+    print("      report-structure.md shows no html example under ### Recommendation")
+    sys.exit(1)
+
+class Rows(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.rows, self.cell = [], None
+    def handle_starttag(self, tag, attrs):
+        if tag == "tr":
+            self.rows.append([])
+        elif tag in ("td", "th"):
+            self.cell = []
+    def handle_endtag(self, tag):
+        if tag in ("td", "th") and self.cell is not None:
+            self.rows[-1].append(" ".join("".join(self.cell).split()))
+            self.cell = None
+    def handle_data(self, data):
+        if self.cell is not None:
+            self.cell.append(data)
+
+table = Rows()
+table.feed(blocks[0])
+problems = []
+if len(table.rows) != 4 or any(len(row) != 3 for row in table.rows):
+    problems.append("the recommendation table needs a header and three rows of three cells, not %s" % table.rows)
+elif [row[0] for row in table.rows[1:]] != ["First choice", "Alternative", "Fallback"]:
+    problems.append("the rows of the recommendation table are %s" % [row[0] for row in table.rows[1:]])
+if re.search(r"(?i)\b(first choice|alternative|fallback)\s*:", guide):
+    problems.append("report-structure.md joins a recommendation and its candidate with a colon")
+print("\n".join("      " + p for p in problems))
+sys.exit(1 if problems else 0)
+PY
+}
+check "report-structure.md gives the recommendation as a table of the first choice, the alternative, and the fallback" recommendation_table
+
+figures_rule() {
+  grep -qF "Let at most two of the parts that commas divide hold a figure" "$STRUCTURE" \
+    && grep -qF "Count citations such as [3], dates, and version numbers as figures" "$STRUCTURE" \
+    && grep -qF "The Japanese comma" "$STRUCTURE"
+}
+check "report-structure.md limits the figures joined with commas in one cell" figures_rule
+
 # The body is counted in words and the description in characters, as the size the agent reads.
 SKILL_WORDS_MAX=1055
 SKILL_DESCRIPTION_MAX=320
