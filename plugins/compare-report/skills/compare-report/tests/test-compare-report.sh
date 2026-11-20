@@ -637,7 +637,10 @@ fixture_reports_verified() {
     ws="$(fixture "$c")" || { echo "      the fixture of $c did not run"; return 1; }
     out="$(python3 "$PAGE_DESIGN" verify "$ws/reports/ssg-2026-11-10/report.html" 2>&1)"
     if [ "$c" = fixes-check ]; then
-      out="$(printf '%s\n' "$out" | grep -E ': (label-colon|facts-in-one-line|heading-punctuation): ')" && { printf '%s\n' "$out" | indent; return 1; }
+      if printf '%s\n' "$out" | grep -qE ': (label-colon|facts-in-one-line|heading-punctuation): '; then
+        printf '%s\n' "$out" | grep -E ': (label-colon|facts-in-one-line|heading-punctuation): ' | indent
+        return 1
+      fi
     else
       [ "$(printf '%s\n' "$out" | tail -n 1)" = "page-design: ok (1 file)" ] || { printf '%s\n' "$out" | indent; return 1; }
     fi
