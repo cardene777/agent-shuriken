@@ -46,6 +46,7 @@ Function length is not measured for Ruby, Lua, shell, Elixir, Clojure, and Haske
 
 A tool that is not installed is reported as not run, with the reason.
 A tool that stops with an error is also reported as not run, with its exit code and the first line it wrote, so that its findings are not counted as zero.
+The report quotes the words a tool wrote, its findings and the first line of a tool that stopped, in code and letter for letter, apart from the report's own words. `scan.json` keeps them as the tool wrote them.
 The plugin never downloads or installs a tool.
 
 ## The ranking
