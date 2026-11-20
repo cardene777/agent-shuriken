@@ -58,7 +58,7 @@ design-doc: 1 problem; fill in or add each section, or define each decision, nam
 | Python 3 | `verify`のため。標準ライブラリだけを使います |
 | musubiの命令 | 任意です。入っている時は、従うスキルが書式を読む前に`musubi check`を回します |
 
-## 何を読み、何を動かし、何を送るか
+## 読む物と動かす物と送る物
 
 [仕組み](docs/how-it-works.ja.md)に、スキルの全てのfileと、`verify`が名指す全ての問題を載せています。
 要点は次のとおりです。

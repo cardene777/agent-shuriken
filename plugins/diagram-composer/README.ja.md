@@ -63,7 +63,7 @@ Diagram geometry rejected:
 | Python 3 | `validate_diagram_geometry.py`のため。標準ライブラリだけを使います |
 | デックの道具 | スライドを描くため。このpluginは描く道具を同梱しません |
 
-## 何を読み、何を動かし、何を送るか
+## 読む物と動かす物と送る物
 
 [仕組み](docs/how-it-works.ja.md)に、技の全てのfileと、確かめが当てる全ての決まりを載せています。
 要点は次のとおりです。

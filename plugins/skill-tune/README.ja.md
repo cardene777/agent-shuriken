@@ -87,7 +87,7 @@ after: runs where the skill fired: 9, average 0.431 USD, 92 s, 13.6 turns
 | `python3` | いつも。バージョン3.9以降 |
 | Claude Code | 測る時。`claude plugin eval`が付いてきます。実行の費用を払うアカウントでサインインしておきます。案件を書くのはどのエージェントでもできます |
 
-## 読む物、実行する物、送る物
+## 読む物と実行する物と送る物
 
 [しくみ](docs/how-it-works.ja.md)に、スクリプトのコマンド、結果の点の付け方、データのフォルダに置く物を書いています。
 要点は次のとおりです。

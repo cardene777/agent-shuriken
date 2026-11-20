@@ -85,7 +85,7 @@ GitHub Copilot CLIでは依頼の文に`/machine-cleanup`と書き、Gemini CLI�
 | `flatpak` | 無くても動きます。LinuxでFlatpakのアプリを並べるため |
 | ブラウザ | ページで選ぶため |
 
-## 読む物、動かす物、送る物
+## 読む物と動かす物と送る物
 
 [仕組み](docs/how-it-works.ja.md)に、調べ方、使用中と見る物、ページとサーバー、変える前の確かめが書いてあります。
 要点は次のとおりです。

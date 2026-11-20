@@ -106,7 +106,7 @@ not ready: change the lines above and run check again
 | `git` | commitから書く時だけ |
 | `musubi`のコマンド | 無くても動きます。入っていれば、エージェントは`japanese-writing`の手引きを読む前に`musubi check`を回します |
 
-## 読む物、動かす物、送る物
+## 読む物と動かす物と送る物
 
 [仕組み](docs/how-it-works.ja.md)に、スキルの全てのファイル、`check`が見る物、各コマンドが読む物と出す物を書いています。
 要点は次のとおりです。
