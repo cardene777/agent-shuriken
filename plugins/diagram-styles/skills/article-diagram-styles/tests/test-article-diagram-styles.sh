@@ -420,11 +420,20 @@ check "no file names a home folder or a private workflow step" no_home_or_privat
 # unreleased <changelog>: the lines between ## [Unreleased] and the next release.
 unreleased() { awk '/^## \[Unreleased\]/{on=1; next} /^## \[/{on=0} on' "$1"; }
 
+# released <changelog> <version>: the lines of the ## [<version>] section.
+released() { awk -v v="$2" 'index($0, "## [" v "]") == 1 {on=1; next} /^## \[/{on=0} on' "$1"; }
+
+# Before the first release the entries sit under ## [Unreleased]; a release moves them into the
+# section of the version both plugin.json files carry and leaves ## [Unreleased] empty.
 changelog_line() {
+  local version
   [ -f "$PLUGIN/CHANGELOG.md" ] || { echo "      missing plugins/diagram-styles/CHANGELOG.md"; return 1; }
-  unreleased "$PLUGIN/CHANGELOG.md" | grep -q '^- ' || { echo "      no line under ## [Unreleased]"; return 1; }
+  version="$(jq -r .version "$PLUGIN/.claude-plugin/plugin.json")"
+  unreleased "$PLUGIN/CHANGELOG.md" | grep -q '^- ' && return 0
+  released "$PLUGIN/CHANGELOG.md" "$version" | grep -q '^- ' ||
+    { echo "      no line under ## [Unreleased] or ## [$version]"; return 1; }
 }
-check "the changelog has a line under Unreleased" changelog_line
+check "the changelog has a line under Unreleased or the released version" changelog_line
 
 releasing_pages() {
   has "$REPO/docs/releasing.md" 'musubi check plugins/diagram-styles/skills' &&
