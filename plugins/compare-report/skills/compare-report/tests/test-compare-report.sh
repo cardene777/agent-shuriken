@@ -462,6 +462,238 @@ print(re.sub(r"<[^>]+>", " ", m.group(1)) if m else "")')"
   check "the script shows the switches in Japanese for a report in Japanese" '[ "$state" = "shown ja ja \u6697\u3044" ] || { echo "      the switches show: $state"; false; }'
 fi
 
+# --- the layout in a real browser, at 1400px and at phone width
+# layout_report <file>: the real template filled the way report-structure.md describes, with long
+# sentences in the text columns of the tables, five grids of two to six candidate cards, and a bar
+# chart with short names. A script added at the end writes what the browser laid out into <pre id="layout">.
+layout_report() {
+  python3 - "$TEMPLATE" "$1" <<'PY'
+import re, sys
+src, dst = sys.argv[1:]
+
+def table(head, rows):
+    cells = "".join("<th%s>%s</th>" % (' class="%s"' % c if c else "", t) for c, t in head)
+    body = "".join("<tr>%s</tr>" % "".join("<td%s>%s</td>" % (' class="%s"' % head[i][0] if head[i][0] else "", v)
+                                           for i, v in enumerate(row)) for row in rows)
+    return '<div class="table-wrap"><table><thead><tr>%s</tr></thead><tbody>%s</tbody></table></div>' % (cells, body)
+
+def score(letter):
+    return '<span class="score %s">%s</span>' % (letter.lower(), letter)
+
+def card(n):
+    words = ["Quarry", "Lumen", "Brisk", "Cobble", "Slate", "Tern"][n]
+    text = "A static site generator released under the MIT license. " * (1 + n % 3)
+    return ('<div class="card"><h3>%s <span class="tag t%d">Open source</span></h3><p>%s</p>'
+            '<p class="pros">The fastest build on its own benchmark [1].</p>'
+            '<p class="cons">Its build time comes only from its own benchmark.</p></div>') % (words, 1 + n % 5, text)
+
+candidates = table(
+    [("short", "Candidate"), ("short", "Type"), ("short", "License"), ("", "Pricing model"), ("num", "Releases in 12 months")],
+    [["Quarry", "Static site generator", "MIT [10]", "Free and open source with no paid plan, and no hosted service of its own, so the team hosts the built site on its current web server [8]", "14 [2]"],
+     ["Lumen", "Static site generator", "Apache-2.0 [12]", "Free generator and a paid hosted preview service that builds every pull request and keeps each preview online for thirty days [3]", "6 [9]"],
+     ["Brisk", "Static site generator", "MIT [11]", "Free generator and a hosted plan whose price the hosting page does not publish, so the cost of hosting there is not known [7]", "2 [6]"]])
+grids = "".join('<div class="cards">%s</div>' % "".join(card(i) for i in range(n)) for n in range(2, 7))
+maintenance = table(
+    [("short", "Candidate"), ("num", "Releases in 12 months"), ("center", "Score"), ("rationale", "Rationale")],
+    [["Quarry", "14", score("A"), "14 releases in the last 12 months [2], more than twice Lumen's count. A, not S, because the notes hold no figure on how fast bugs are fixed."],
+     ["Lumen", "6", score("B"), "6 releases in the last 12 months [9], three times Brisk's count. B, not A, because Quarry releases more than twice as often."],
+     ["Brisk", "2", score("C"), "2 releases in the last 12 months [6], the fewest of the three. C, not B, because a gap of months between releases leaves fixes waiting."]])
+bars = ('<div class="bars"><h4>Releases in the last 12 months</h4>'
+        '<div class="bar"><span class="label">Quarry</span><span class="track"><span class="fill" style="width: 100%"></span></span><span class="value">14</span></div>'
+        '<div class="bar"><span class="label">Lumen</span><span class="track"><span class="fill" style="width: 43%"></span></span><span class="value">6</span></div>'
+        '<div class="bar muted"><span class="label">Brisk</span><span class="track"><span class="fill" style="width: 0%"></span></span><span class="value">Not disclosed</span></div></div>')
+risks = table(
+    [("short", "Candidate"), ("", "Risk"), ("short", "Severity"), ("", "Mitigation"), ("rationale", "Rationale")],
+    [["Brisk", "Slow release pace", '<span class="risk high">High</span>', "Check the release page again before adopting it, and keep a way to move the docs to Quarry if the project stops.", "2 releases in the last 12 months [6] against 14 for Quarry [2]."],
+     ["Brisk", "Hosted plan price not disclosed", '<span class="risk medium">Medium</span>', "Ask for a written price before choosing the hosted plan, or host the built site on the current web server.", "The hosting page offers a plan but publishes no price [7]."],
+     ["Lumen", "Slowest build", '<span class="risk medium">Medium</span>', "Time a build of the real docs on the team's own machine before choosing it, and compare it with Quarry.", "3.8 s on its own benchmark [4] against 1.2 s for Quarry [1]."],
+     ["Quarry", "Build time measured only by the project", '<span class="risk low">Low</span>', "Build the real docs with each candidate on one machine before the final decision.", "Every build time here comes from each project's own benchmark [1][4][5]."]])
+scorecard = table(
+    [("short", "Candidate"), ("center", "Build speed"), ("center", "Cost"), ("center", "Maintenance"), ("center", "License"), ("center", "Learning curve"), ("rationale", "Rationale")],
+    [["Quarry", score("S"), score("S"), score("A"), score("S"), score("A"), "First or tied for first on every axis, and the only one with no paid plan."],
+     ["Lumen", score("C"), score("A"), score("B"), score("S"), score("B"), "Ahead of Brisk on cost and maintenance and learning curve, but the slowest build."],
+     ["Brisk", score("B"), "Not scored", score("C"), score("S"), score("C"), "Second on build speed, but the fewest releases and docs and a price it does not publish."]])
+values = {
+    "LANG": "en", "TITLE": "Static site generators for the product docs", "EYEBROW": "Comparison report",
+    "SUBTITLE": "Quarry, Lumen, and Brisk compared on five axes, to choose the generator for the product docs.",
+    "STATS": "<div><dt>Candidates</dt><dd>3</dd></div><div><dt>Axes</dt><dd>5</dd></div><div><dt>Sources</dt><dd>16</dd></div>",
+    "DATE": "2026-11-10", "AUTHOR": "Prepared by Dana Kim", "CONTENTS_HEADING": "Contents",
+    "TOC": "".join('<li><a href="#%s">%s</a></li>' % p for p in [("summary", "Summary"), ("candidates", "Candidates"),
+           ("axis-maintenance", "Maintenance"), ("risks", "Risks"), ("ranking", "Ranking"), ("sources", "Sources")]),
+    "SUMMARY": '<h2>Summary</h2><div class="callout"><strong>Background</strong><p>The product docs need a static site generator.</p></div>',
+    "CANDIDATES": "<h2>Candidates</h2>" + candidates + grids,
+    "AXES": '<section id="axis-maintenance" class="chapter axis"><h2>Maintenance</h2>' + maintenance + bars + "</section>",
+    "RISKS": "<h2>Risks</h2>" + risks,
+    "RANKING": "<h2>Ranking</h2>" + scorecard,
+    "SOURCES": '<h2>Sources</h2><ol class="sources"><li><a href="https://quarry.example.org/benchmarks">Quarry benchmarks</a> <span class="accessed">read 2026-11-10</span></li></ol>',
+    "FOOTER": "This report reflects public information on 2026-11-10.",
+}
+measure = r"""<script>
+(function () {
+  const box = (el) => el.getBoundingClientRect();
+  const inner = (el) => {
+    const b = box(el), s = getComputedStyle(el);
+    return { left: b.left + parseFloat(s.paddingLeft) + parseFloat(s.borderLeftWidth), right: b.right - parseFloat(s.paddingRight) - parseFloat(s.borderRightWidth) };
+  };
+  // The lines the text in an element takes: the tops of its text, counted once within 4px.
+  const lines = (el) => {
+    const tops = [];
+    const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    for (let node = walk.nextNode(); node; node = walk.nextNode()) {
+      if (!node.textContent.trim()) continue;
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      for (const rect of range.getClientRects()) if (rect.width > 0) tops.push(rect.top);
+    }
+    tops.sort((a, b) => a - b);
+    let count = 0, last = -1e9;
+    for (const top of tops) if (top - last > 4) { count += 1; last = top; }
+    return count;
+  };
+  const textBox = (el) => { const range = document.createRange(); range.selectNodeContents(el); return range.getBoundingClientRect(); };
+  const columns = (table) => [...table.querySelectorAll("thead th")].map((th, i) => ({
+    name: th.textContent.trim(), kind: th.className || "text", width: box(th).width,
+    lines: Math.max(...[...table.querySelectorAll("tbody tr")].map((tr) => lines(tr.children[i]))),
+  }));
+  const main = document.querySelector("main"), cover = document.querySelector(".cover");
+  const stats = cover.querySelector(".stats"), date = cover.querySelector(".cover-foot p");
+  const layout = {
+    width: innerWidth, scrollWidth: document.documentElement.scrollWidth,
+    cells: [...document.querySelectorAll("td.num, td.center")].map((td) => ({ text: td.textContent.trim(), lines: lines(td) })),
+    cards: [...document.querySelectorAll(".cards")].map((grid) => {
+      const edge = inner(grid), rows = {};
+      for (const c of grid.children) { const b = box(c); (rows[Math.round(b.top)] = rows[Math.round(b.top)] || []).push(b); }
+      return { count: grid.children.length, left: edge.left, right: edge.right,
+        rows: Object.values(rows).map((r) => ({ cards: r.length, left: Math.min(...r.map((b) => b.left)), right: Math.max(...r.map((b) => b.right)), widths: r.map((b) => b.width) })) };
+    }),
+    tables: { candidates: columns(document.querySelector("#candidates table")), risks: columns(document.querySelector("#risks table")) },
+    main: { width: box(main).width, left: inner(main).left, right: inner(main).right },
+    cover: { eyebrow: box(cover.querySelector(".eyebrow")).left, title: { left: box(cover.querySelector("h1")).left, right: box(cover.querySelector("h1")).right },
+      date: box(date).left, gap: box(date).top - box(stats).bottom },
+    bars: [...document.querySelectorAll(".bars")].map((chart) => ({ left: inner(chart).left,
+      rows: [...chart.querySelectorAll(".bar")].map((bar) => { const label = bar.querySelector(".label"), text = textBox(label);
+        return { name: label.textContent.trim(), column: box(label).width, text: text.width, textLeft: text.left, track: box(bar.querySelector(".track")).left }; }) })),
+  };
+  const pre = document.createElement("pre");
+  pre.id = "layout";
+  pre.textContent = JSON.stringify(layout);
+  document.body.appendChild(pre);
+})();
+</script>
+</body>"""
+text = open(src, encoding="utf-8").read()
+text = re.sub(r"\{\{([A-Z_]+)\}\}", lambda m: values[m.group(1)], text).replace("</body>", measure)
+open(dst, "w", encoding="utf-8").write(text)
+PY
+}
+
+# layout_at <width> <file> <json>: opens the page at that width and keeps what its script measured
+layout_at() {
+  "$real_browser" --headless --disable-gpu --no-first-run --hide-scrollbars --user-data-dir="$T/layout-profile" \
+    --window-size="$1,900" --dump-dom "file://$2" 2>/dev/null | python3 -c 'import html, re, sys
+m = re.search(r"<pre id=\"layout\">(.*?)</pre>", sys.stdin.read(), re.S)
+print(html.unescape(m.group(1)) if m else "{}")' > "$3"
+  rm -rf "$T/layout-profile"
+}
+
+# laid_out <json> <width> <python>: runs the checks in <python> on the measured layout, which they
+# read as L, and prints each problem they append to P under the check
+laid_out() {
+  python3 - "$1" "$2" "$3" <<'PY'
+import json, sys
+L, P = json.load(open(sys.argv[1])), []
+if L.get("width") != int(sys.argv[2]):
+    P.append("the page was laid out %s px wide, not %s px" % (L.get("width"), sys.argv[2]))
+else:
+    exec(sys.argv[3])
+for p in dict.fromkeys(P):
+    print("      " + p)
+sys.exit(1 if P else 0)
+PY
+}
+
+layout_checks=(
+  "at 1400px, scores and Not scored stay on one line in their table cells"
+  "at 1400px, two to six candidate cards fill every row with no lone card beside an empty cell"
+  "at 390px, the candidate cards stack in one column and the page does not scroll sideways"
+  "at 1400px, the short columns of the candidates and risks tables stay on one line and every text column is wider than each short column"
+  "at 1400px, the body is 1200px wide and the cover lines up with it, with the title across the body width and the date close under the numbers"
+  "at 1400px, the bar chart names sit on the left in a column as wide as the longest name"
+)
+if [ -z "$real_browser" ]; then
+  for name in "${layout_checks[@]}"; do printf 'skip  %s (needs a Chromium-based browser)\n' "$name"; done
+else
+  layout_report "$T/layout.html"
+  layout_at 1400 "$T/layout.html" "$T/layout-1400.json"
+  layout_at 390 "$T/layout.html" "$T/layout-390.json"
+
+  check "at 1400px, scores and Not scored stay on one line in their table cells" 'laid_out "$T/layout-1400.json" 1400 "
+if not any(c[\"text\"] == \"Not scored\" for c in L[\"cells\"]):
+    P.append(\"no cell holds Not scored\")
+for c in L[\"cells\"]:
+    if c[\"lines\"] != 1:
+        P.append(\"%r takes %d lines\" % (c[\"text\"], c[\"lines\"]))
+"'
+
+  check "at 1400px, two to six candidate cards fill every row with no lone card beside an empty cell" 'laid_out "$T/layout-1400.json" 1400 "
+if [g[\"count\"] for g in L[\"cards\"]] != [2, 3, 4, 5, 6]:
+    P.append(\"the grids hold %s cards\" % [g[\"count\"] for g in L[\"cards\"]])
+for g in L[\"cards\"]:
+    shape = [r[\"cards\"] for r in g[\"rows\"]]
+    for r in g[\"rows\"]:
+        if abs(r[\"left\"] - g[\"left\"]) > 1 or abs(r[\"right\"] - g[\"right\"]) > 1 or max(r[\"widths\"]) - min(r[\"widths\"]) > 1:
+            P.append(\"with %d cards the rows hold %s, and a row of %d leaves part of the grid empty\" % (g[\"count\"], shape, r[\"cards\"]))
+    if g[\"count\"] > 1 and 1 in shape:
+        P.append(\"with %d cards the rows hold %s, so one card sits alone\" % (g[\"count\"], shape))
+"'
+
+  check "at 390px, the candidate cards stack in one column and the page does not scroll sideways" 'laid_out "$T/layout-390.json" 390 "
+if L[\"scrollWidth\"] > L[\"width\"]:
+    P.append(\"the page is %d px wide in a %d px window\" % (L[\"scrollWidth\"], L[\"width\"]))
+for g in L[\"cards\"]:
+    if len(g[\"rows\"]) != g[\"count\"] or any(abs(r[\"left\"] - g[\"left\"]) > 1 or abs(r[\"right\"] - g[\"right\"]) > 1 for r in g[\"rows\"]):
+        P.append(\"with %d cards the rows hold %s, not one card across each row\" % (g[\"count\"], [r[\"cards\"] for r in g[\"rows\"]]))
+"'
+
+  check "at 1400px, the short columns of the candidates and risks tables stay on one line and every text column is wider than each short column" 'laid_out "$T/layout-1400.json" 1400 "
+for name, cols in L[\"tables\"].items():
+    short = [c for c in cols if c[\"kind\"] in (\"short\", \"num\", \"center\")]
+    text = [c for c in cols if c[\"kind\"] in (\"text\", \"rationale\")]
+    for c in short:
+        if c[\"lines\"] != 1:
+            P.append(\"the %s table: the short column %r takes %d lines\" % (name, c[\"name\"], c[\"lines\"]))
+    for t in text:
+        wider = [c[\"name\"] for c in short if c[\"width\"] >= t[\"width\"]]
+        if wider:
+            P.append(\"the %s table: the text column %r (%d px) is not wider than %s\" % (name, t[\"name\"], t[\"width\"], wider))
+"'
+
+  check "at 1400px, the body is 1200px wide and the cover lines up with it, with the title across the body width and the date close under the numbers" 'laid_out "$T/layout-1400.json" 1400 "
+m, c = L[\"main\"], L[\"cover\"]
+if abs(m[\"width\"] - 1200) > 1:
+    P.append(\"the body is %d px wide\" % m[\"width\"])
+for name, left in ((\"label above the title\", c[\"eyebrow\"]), (\"title\", c[\"title\"][\"left\"]), (\"date\", c[\"date\"])):
+    if abs(left - m[\"left\"]) > 1:
+        P.append(\"the cover %s starts at %d px and the body at %d px\" % (name, left, m[\"left\"]))
+if abs(c[\"title\"][\"right\"] - m[\"right\"]) > 1:
+    P.append(\"the cover title ends at %d px and the body at %d px\" % (c[\"title\"][\"right\"], m[\"right\"]))
+if c[\"gap\"] > 40:
+    P.append(\"the date sits %d px under the numbers\" % c[\"gap\"])
+"'
+
+  check "at 1400px, the bar chart names sit on the left in a column as wide as the longest name" 'laid_out "$T/layout-1400.json" 1400 "
+for chart in L[\"bars\"]:
+    longest = max(r[\"text\"] for r in chart[\"rows\"])
+    for r in chart[\"rows\"]:
+        if abs(r[\"textLeft\"] - chart[\"left\"]) > 1:
+            P.append(\"%r starts %d px right of the chart edge\" % (r[\"name\"], r[\"textLeft\"] - chart[\"left\"]))
+        if abs(r[\"column\"] - longest) > 2:
+            P.append(\"the name column is %d px wide and the longest name %d px\" % (r[\"column\"], longest))
+    if max(r[\"track\"] for r in chart[\"rows\"]) - min(r[\"track\"] for r in chart[\"rows\"]) > 1:
+        P.append(\"the bars do not start at the same place\")
+"'
+fi
+
 # --- what to-pdf says in place of the step the SKILL.md no longer describes
 # The checks below run through eval in check(), so they read globals, not this function's arguments.
 html_fallback() {
@@ -706,6 +938,34 @@ figures_rule() {
     && grep -qF "The Japanese comma" "$STRUCTURE"
 }
 check "report-structure.md limits the figures joined with commas in one cell" figures_rule
+
+# The guide tells the writer to mark the columns of a few words, and its table examples do, so a
+# report copied from them keeps those columns on one line and gives the sentences the room.
+short_columns() {
+  python3 - "$STRUCTURE" <<'PY'
+import re, sys
+guide = open(sys.argv[1], encoding="utf-8").read()
+problems = []
+if "the class `short` on its `<th>` and on each of its `<td>`" not in guide:
+    problems.append("report-structure.md does not say which columns take the class short")
+def example(name):
+    part = re.search(r"(?ms)^### %s\n(.*?)(?=^### |^## )" % re.escape(name), guide)
+    blocks = re.findall(r"(?ms)^```html\n(.*?)^```", part.group(1)) if part else []
+    return blocks[0] if blocks else ""
+comparison = example("Comparison table")
+if not re.search(r'<th class="short">Candidate</th>', comparison) or not re.search(r'<tr><td class="short">', comparison):
+    problems.append("the comparison table example does not mark the candidate column short")
+recommendation = example("Recommendation")
+if not re.search(r'<th class="short">Recommendation</th><th class="short">Candidate</th>', recommendation):
+    problems.append("the recommendation example does not mark its first two columns short")
+risks = "".join(re.findall(r"(?ms)^```html\n(.*?)^```", re.search(r"(?ms)^### Risk labels\n(.*?)(?=^### |^## )", guide).group(1)))
+if not re.search(r'<th class="short">Severity</th>', risks):
+    problems.append("the risk labels show no risks table whose severity column is short")
+print("\n".join("      " + p for p in problems))
+sys.exit(1 if problems else 0)
+PY
+}
+check "report-structure.md shows the short class on the short columns of its tables" short_columns
 
 # The body is counted in words and the description in characters, as the size the agent reads.
 SKILL_WORDS_MAX=1055

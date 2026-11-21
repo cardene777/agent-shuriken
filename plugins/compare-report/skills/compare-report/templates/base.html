@@ -109,8 +109,9 @@ body {
 a { color: var(--accent); }
 a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-/* The language and light/dark switches, side by side at the top right of the cover. The script shows them, and print hides them. */
-.controls { position: absolute; top: 16px; right: 16px; z-index: 1; display: flex; flex-wrap: nowrap; gap: 8px; }
+/* The language and light/dark switches, side by side at the top right of the cover, on the right edge of the
+   body's column. The script shows them, and print hides them. */
+.controls { position: absolute; top: 16px; right: max(16px, calc((100% - 1200px) / 2 + 40px)); z-index: 1; display: flex; flex-wrap: nowrap; gap: 8px; }
 .controls[hidden] { display: none; }
 .seg { display: inline-flex; border: 1px solid var(--cover-line); border-radius: 8px; overflow: hidden; background: var(--cover); }
 .seg button { margin: 0; padding: 5px 12px; border: 0; background: transparent; color: var(--cover-sub); font: inherit; font-size: 13px; line-height: 1.5; white-space: nowrap; cursor: pointer; transition: background-color 0.15s, color 0.15s; }
@@ -119,32 +120,33 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
 .seg button:focus-visible { outline: 2px solid var(--cover-ink); outline-offset: -2px; box-shadow: inset 0 0 0 4px var(--cover); }
 
-/* Cover */
+/* Cover. Its side padding puts the text in the same 1200px column as the body, so the title runs as wide as the
+   body and starts at the body's left edge. On screen the cover is as tall as its text, with the date right under
+   the numbers; print stretches it to the whole first page and pushes the date to the bottom. */
 .cover {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 720px;
-  padding: 72px 64px 48px;
+  padding: 72px max(40px, calc((100% - 1200px) / 2 + 40px)) 48px;
   background: var(--cover);
   color: var(--cover-ink);
 }
 .cover .eyebrow { margin: 0 0 20px; color: var(--cover-eyebrow); font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
-.cover h1 { margin: 0; max-width: 720px; font-size: 44px; line-height: 1.25; font-weight: 700; }
+.cover h1 { margin: 0; font-size: 44px; line-height: 1.25; font-weight: 700; }
 .cover hr { width: 72px; height: 4px; margin: 32px 0; border: 0; background: var(--accent); }
-.cover .subtitle { margin: 0; max-width: 680px; color: var(--cover-sub); font-size: 18px; }
-.cover .stats { display: flex; flex-wrap: wrap; gap: 0; margin: 48px 0 0; }
+.cover .subtitle { margin: 0; max-width: 75ch; color: var(--cover-sub); font-size: 18px; }
+.cover .stats { display: flex; flex-wrap: wrap; gap: 0; margin: 40px 0 0; }
 .cover .stats div { min-width: 140px; padding: 4px 28px 4px 0; margin-right: 28px; border-right: 1px solid var(--cover-line); }
 .cover .stats div:last-child { border-right: 0; }
 .cover .stats dt { color: var(--cover-muted); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
 .cover .stats dd { margin: 4px 0 0; font-size: 28px; font-weight: 700; }
-.cover .cover-foot { margin: 48px 0 0; color: var(--cover-muted); font-size: 13px; }
+.cover .cover-foot { margin: 28px 0 0; color: var(--cover-muted); font-size: 13px; }
 .cover .cover-foot p { margin: 0; }
 .cover .cover-foot .cover-author { margin-top: 6px; color: var(--cover-sub); font-size: 14px; }
 .cover .cover-foot .cover-author:empty { display: none; }
 
-/* Body */
-main { max-width: 980px; margin: 0 auto; padding: 56px 40px 72px; counter-reset: chapter; }
+/* Body, in a column of at most 1200px like the report page of page-design */
+main { max-width: 1200px; margin: 0 auto; padding: 56px 40px 72px; counter-reset: chapter; }
 h2, h3 { line-height: 1.35; }
 .toc h2 { margin: 0 0 16px; font-size: 22px; }
 .toc ol { margin: 0; padding: 0; list-style: none; counter-reset: toc; }
@@ -179,10 +181,21 @@ h2, h3 { line-height: 1.35; }
 .findings { margin: 12px 0 0; padding-left: 20px; }
 .findings li { margin: 6px 0; }
 
-/* Candidate cards */
+/* Candidate cards. Every row is full: on wide screens three to a row in a grid of six columns, with a last row of
+   two where three would leave one card alone (the last two cards when the count is two over a multiple of three,
+   and the last four when it is one over), and two to a row on narrower screens, where a last odd card takes the
+   whole row. Phones and print stack them. */
 .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 20px 0; }
+.card:last-child:nth-child(odd) { grid-column: 1 / -1; }
+@media (min-width: 961px) {
+  .cards { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .card, .card:last-child:nth-child(odd) { grid-column: span 2; }
+  .card:nth-last-child(2):nth-child(3n + 1), .card:last-child:nth-child(3n + 2),
+  .card:nth-last-child(4):nth-child(3n + 1), .card:nth-last-child(4):nth-child(3n + 1) ~ .card { grid-column: span 3; }
+  .card:first-child:last-child { grid-column: 1 / -1; }
+}
 .card { padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px; }
-.card h3 { display: flex; gap: 10px; align-items: center; justify-content: space-between; margin: 0 0 6px; font-size: 17px; }
+.card h3 { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; justify-content: space-between; margin: 0 0 6px; font-size: 17px; }
 .card p { margin: 0; color: var(--muted); font-size: 14px; }
 .card .pros, .card .cons { margin: 8px 0 0; font-size: 13.5px; }
 .card .pros::before { content: "+ "; color: var(--a-ink); font-weight: 700; }
@@ -199,9 +212,18 @@ h2, h3 { line-height: 1.35; }
 table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 th, td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
 th { background: var(--surface); color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: 0.03em; white-space: nowrap; }
-td.num, th.num { text-align: right; white-space: nowrap; }
+/* Numbers, scores, and columns of a few words (short) stay on one line and only as wide as they need, so the
+   columns of sentences, the rationale among them, share the rest of the width by the length of their text. */
+td.num, th.num { text-align: right; }
 td.center, th.center { text-align: center; }
-th.rationale { width: 38%; white-space: normal; }
+td.num, th.num, td.center, th.center, td.short, th.short { width: 1%; white-space: nowrap; }
+th.rationale { white-space: normal; }
+/* On a narrow screen a column of sentences keeps at least 11em, and the table scrolls sideways inside its box
+   instead of squeezing the sentences to a few characters a line. Print leaves this out, so a table never grows
+   past the page. */
+@media screen {
+  td:not(.short):not(.num):not(.center) { min-width: 11em; }
+}
 td.rationale { color: var(--muted); }
 tbody tr:last-child td { border-bottom: 1px solid var(--line-strong); }
 
@@ -221,11 +243,12 @@ tbody tr:last-child td { border-bottom: 1px solid var(--line-strong); }
 .legend span { display: inline-flex; gap: 6px; align-items: center; }
 .legend .score { width: 20px; height: 20px; font-size: 12px; border-radius: 5px; }
 
-/* Bar charts */
-.bars { margin: 16px 0; padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px; }
-.bars h4 { margin: 0 0 12px; font-size: 14px; }
-.bar { display: grid; grid-template-columns: 150px 1fr 110px; gap: 12px; align-items: center; margin: 8px 0; font-size: 13px; }
-.bar .label { color: var(--muted); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Bar charts. The rows share the chart's three columns: the names on the left in a column as wide as the longest
+   name (up to 40% of the chart), the bars in the rest, and the values. */
+.bars { display: grid; grid-template-columns: fit-content(40%) minmax(0, 1fr) max-content; gap: 8px 12px; align-items: center; margin: 16px 0; padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px; font-size: 13px; }
+.bars h4 { grid-column: 1 / -1; margin: 0 0 4px; font-size: 14px; }
+.bar { grid-column: 1 / -1; display: grid; grid-template-columns: 150px 1fr 110px; grid-template-columns: subgrid; gap: 12px; align-items: center; }
+.bar .label { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bar .track { display: block; height: 14px; border-radius: 7px; background: var(--surface); overflow: hidden; }
 .bar .fill { display: block; height: 100%; min-width: 4px; border-radius: 7px; background: var(--accent); }
 .bar.muted .fill { min-width: 0; background: var(--bar-muted); }
@@ -239,12 +262,11 @@ tbody tr:last-child td { border-bottom: 1px solid var(--line-strong); }
 
 @media (max-width: 720px) {
   .controls { top: 12px; right: 12px; }
-  .cover { padding: 64px 24px 32px; }
+  .cover { padding: 64px 16px 32px; }
   .cover h1 { font-size: 32px; }
   main { padding: 40px 16px 56px; }
   .picks, .cards { grid-template-columns: 1fr; }
   .sources { columns: 1; }
-  .bar { grid-template-columns: 96px 1fr 80px; }
 }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
