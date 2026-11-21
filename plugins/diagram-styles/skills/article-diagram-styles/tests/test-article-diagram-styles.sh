@@ -121,7 +121,7 @@ pages_say_reads_writes_sends() {
   done
   for page in README.ja.md docs/how-it-works.ja.md; do
     has "$PLUGIN/$page" "~/.styles/" "style-catalog.json" "名指したフォルダだけ" \
-      "描く指示と見本の画像を、技を動かしている道具の画像生成へ渡します" || bad=1
+      "描く指示と見本の画像を、スキルを動かしている道具の画像生成へ渡します" || bad=1
   done
   return "$bad"
 }

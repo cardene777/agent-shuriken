@@ -1,0 +1,22 @@
+{
+  "name": "diagram-styles",
+  "displayName": "Diagram Styles",
+  "version": "0.1.0",
+  "description": "Figures for articles and technical books, designed from the reader's questions first and drawn in a style from your own sample images and catalog in ~/.styles",
+  "author": {
+    "name": "cardene777",
+    "url": "https://github.com/cardene777"
+  },
+  "homepage": "https://github.com/cardene777/agent-shuriken/tree/main/plugins/diagram-styles",
+  "repository": "https://github.com/cardene777/agent-shuriken",
+  "license": "MIT",
+  "keywords": [
+    "diagram",
+    "figure",
+    "illustration",
+    "article",
+    "book",
+    "style",
+    "musubi"
+  ]
+}

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Tech Book Figure"
+  short_description: "Designs a figure for a technical book and draws it in style4 from your samples in ~/.styles"
+  default_prompt: "Use $tech-book-figure to design and draw a book figure from my style4 samples, then compare it with the accepted figures."
+
+policy:
+  allow_implicit_invocation: true

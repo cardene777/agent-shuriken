@@ -1,0 +1,9 @@
+{
+  "musubi": "2026-11-20",
+  "follows": {
+    "article-diagram-styles/style4": {
+      "version": "^1.0.0",
+      "integrity": "sha256-N+TOBuqghjhg2faKxbaHP6SWqhNFwXQ1zMwdax/z12A="
+    }
+  }
+}
