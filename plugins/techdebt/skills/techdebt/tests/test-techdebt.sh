@@ -954,7 +954,8 @@ elif what == "ja-words":
         problems.append("every tool ran in this report")
     for tab in ("tools", "deprecated", "start"):
         en, ja = (page(lang, tab) for lang in ("en", "ja"))
-        en, ja = (text(re.sub(r'<code class="said">.*?</code>', "", s[s.find('id="panel"'):], flags=re.S)) for s in (en, ja))
+        # The page's own data and code sit in <script>, which a reader never sees.
+        en, ja = (text(re.sub(r'<code class="said">.*?</code>|<script\b.*?</script>|<style\b.*?</style>', "", s[s.find('id="panel"'):], flags=re.S)) for s in (en, ja))
         for tool, said in sorted(words.items()):
             if said not in en:
                 problems.append("en %s: the page does not give the reason of %s, %r" % (tab, tool, said))
