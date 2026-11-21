@@ -7,7 +7,14 @@ sample images.
 Usage:
   fixtures.py styles <dir> [--schema N] [--resources] [--corrupt path|original]
                            [--counts source|unique] [--stray] [--no-catalog]
-  fixtures.py work <dir> [--mode generated|deterministic]
+                           [--retire <style>] [--user-style]
+                           [--built-in-sample <style> <family>]
+  fixtures.py work <dir> [--mode generated|deterministic] [--style <family>] [--finish <style>]
+
+The catalog always redefines the built-in styles pen-technical and handdraft. --retire writes a
+style that holds only "status": "retired". --user-style adds the family my-family and its style
+my-style with one sample. --built-in-sample registers one sample of <style> in <family> without
+writing a finish profile for it.
 """
 from __future__ import annotations
 
@@ -49,6 +56,13 @@ def styles(args: argparse.Namespace) -> None:
         ("pen-c", "illustrated", "pen-technical", "style-catalog/illustrated/pen-technical/pen-c.png",
          [], ["cycle"], 30),
     ]
+    if args.user_style:
+        images.append(("mine-e", "my-family", "my-style", "style-catalog/my-family/my-style/mine-e.png",
+                       [], ["left-to-right-flow"], 60))
+    if args.built_in_sample:
+        name, family = args.built_in_sample
+        images.append((name + "-f", family, name, f"style-catalog/{family}/{name}/{name}-f.png",
+                       [], ["role-map"], 70))
     entries = []
     for ident, family, profile, path, originals, layouts, shade in images:
         data = png(4, 3, shade)
@@ -86,6 +100,16 @@ def styles(args: argparse.Namespace) -> None:
         },
         "images": entries,
     }
+    if args.retire:
+        catalog["finish_profiles"][args.retire] = {"status": "retired"}
+    if args.user_style:
+        catalog["families"]["my-family"] = {"label": "My family", "description": "A family the user added"}
+        catalog["finish_profiles"]["my-style"] = {
+            "family": "my-family", "label": "My style", "status": "active",
+            "reference_id": "mine-e", "sample_ids": ["mine-e"],
+            "line": "thick brown felt pen", "fill": "mint crayon", "background": "pale gray",
+            "lettering": "narrow capitals", "suits": ["release notes"],
+        }
     if args.resources:
         catalog["finish_profiles"]["pen-technical"]["resources"] = {
             "font": {"path": "assets/fonts/font.ttf", "sha256": "0" * 64},
@@ -136,7 +160,7 @@ def work(args: argparse.Namespace) -> None:
         "rendering_mode": args.mode, "exact_content": True,
         "source_file": "candidate.png" if args.mode == "generated" else "figure.svg",
         "purpose": brief["takeaway"], "content_brief_sha256": sha(brief_path.read_bytes()),
-        "fixed_style": "illustrated", "finish_profile": "pen-technical",
+        "fixed_style": args.style, "finish_profile": args.finish,
         "facts": [{"text": value, "kind": "number", "source": source, "locator": "example"} for value in ("9", "11")],
         "relations": [{"from": "9", "to": "11", "kind": "state-transition", "exact": True,
                        "source": source, "locator": "example"}],
@@ -152,8 +176,8 @@ def work(args: argparse.Namespace) -> None:
              for key, name in [("candidate", "candidate.png"), ("preview_528", "preview.png"),
                                ("content_brief", "brief.json"), ("figure_spec", "figure.figure.json")]}
     review = {
-        "schema_version": 2, "status": "candidate-reviewed", "fixed_style": "illustrated",
-        "finish_profile": "pen-technical", "published_width_px": 528, "files": files,
+        "schema_version": 2, "status": "candidate-reviewed", "fixed_style": args.style,
+        "finish_profile": args.finish, "published_width_px": 528, "files": files,
         "checks": {key: True for key in checks},
         "evidence": {key: "Read against the article excerpt and the values and arrow in the figure." for key in checks},
         "review": {"evaluator": "test-review", "write_access": False, "verdict": "pass", "findings": [],
@@ -174,7 +198,7 @@ def work(args: argparse.Namespace) -> None:
         "contract_id": "test-style", "schema_version": 2, "status": "user-delegated",
         "approval_mode": "delegated-style-selection", "approval_evidence": "Make the figures without asking.",
         "approval_scope": "Delegated production, not approval of each image.",
-        "execution_mode": "sequential-one-figure", "fixed_style": "illustrated", "finish_profile": "pen-technical",
+        "execution_mode": "sequential-one-figure", "fixed_style": args.style, "finish_profile": args.finish,
         "visual_anchor": {"path": "anchor.png", "sha256": sha(anchor)},
         "visual_profile": {"paper": "white", "line": "black pen", "palette": "black and light teal"},
         "composition_policy": {"layout_varies_by_claim": True, "prohibited_repetition": ["the same claim twice"]},
@@ -185,7 +209,7 @@ def work(args: argparse.Namespace) -> None:
     signature = {"dominant_geometry": "strip", "subject_scale": "paired", "label_zone": "top",
                  "connector_strategy": "direct"}
     contract_spec = {"visual_contract_id": "test-style", "visual_contract_sha256": sha(contract_path.read_bytes()),
-                     "fixed_style": "illustrated", "finish_profile": "pen-technical",
+                     "fixed_style": args.style, "finish_profile": args.finish,
                      "layout_pattern": "custom-change-timeline", "semantic_structure": "one key over time",
                      "reading_path": "left to right", "composition_signature": signature}
     (root / "contract-spec.json").write_text(json.dumps(contract_spec), encoding="utf-8")
@@ -205,9 +229,14 @@ def main() -> int:
     s.add_argument("--counts", choices=["source", "unique"])
     s.add_argument("--stray", action="store_true")
     s.add_argument("--no-catalog", action="store_true")
+    s.add_argument("--retire")
+    s.add_argument("--user-style", action="store_true")
+    s.add_argument("--built-in-sample", nargs=2, metavar=("STYLE", "FAMILY"))
     w = sub.add_parser("work")
     w.add_argument("dir")
     w.add_argument("--mode", choices=["generated", "deterministic"], default="generated")
+    w.add_argument("--style", default="illustrated")
+    w.add_argument("--finish", default="pen-technical")
     args = parser.parse_args()
     (styles if args.kind == "styles" else work)(args)
     return 0
