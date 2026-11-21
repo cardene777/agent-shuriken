@@ -52,7 +52,7 @@ The template numbers the sections, so do not number the headings yourself.
 
 ### Risks (`#risks`)
 
-- A table of candidate, risk, severity as a `risk` label, mitigation, and rationale
+- A table of candidate, risk, severity as a `risk` label, mitigation, and rationale, as the example under [Risk labels](#risk-labels) shows
 - A `callout warn` for each risk that could rule a candidate out
 
 ### Ranking (`#ranking`)
@@ -130,16 +130,19 @@ The tag classes `t1` to `t5` give up to five types their own color.
 ```html
 <div class="table-wrap">
 <table>
-  <thead><tr><th>Candidate</th><th class="num">Price per month</th><th class="center">Score</th><th class="rationale">Rationale</th></tr></thead>
+  <thead><tr><th class="short">Candidate</th><th class="num">Price per month</th><th class="center">Score</th><th class="rationale">Rationale</th></tr></thead>
   <tbody>
-    <tr><td>Name</td><td class="num">$1,200</td><td class="center"><span class="score a">A</span></td><td class="rationale">Certified to FIPS 140-3 Level 3 and supports secp256k1 natively, with a 99.999% SLA. Keys cannot be exported, which keeps it from S.</td></tr>
+    <tr><td class="short">Name</td><td class="num">$1,200</td><td class="center"><span class="score a">A</span></td><td class="rationale">Certified to FIPS 140-3 Level 3 and supports secp256k1 natively, with a 99.999% SLA. Keys cannot be exported, which keeps it from S.</td></tr>
   </tbody>
 </table>
 </div>
 <p class="note">Prices from each vendor's pricing page, read on 2026-11-12 [4][5].</p>
 ```
 
-Right-align numbers with `num`, and center scores with `center`.
+Right-align numbers with `num`, and center scores and "Not scored" with `center`.
+Give a column of a few words, such as the candidate's name, a type, a license, or a risk label, the class `short` on its `<th>` and on each of its `<td>`.
+Numbers, scores, and `short` columns stay on one line and only as wide as they need, so the columns of sentences, such as a pricing model, a mitigation, or a rationale, get the rest of the width.
+Leave the columns of sentences without a class, apart from `rationale`.
 
 ### Scores
 
@@ -166,6 +169,19 @@ Add a `legend` under the first table that uses scores, with the labels in the re
 <span class="risk low">Low</span>
 ```
 
+The risks table puts the label in a `short` column.
+
+```html
+<div class="table-wrap">
+<table>
+  <thead><tr><th class="short">Candidate</th><th>Risk</th><th class="short">Severity</th><th>Mitigation</th><th class="rationale">Rationale</th></tr></thead>
+  <tbody>
+    <tr><td class="short">Name</td><td>Slow release pace</td><td class="short"><span class="risk high">High</span></td><td>Check the release page again before adopting it, and keep a way to move to another candidate.</td><td class="rationale">Two releases in the last 12 months [6] against 14 for the first choice [2].</td></tr>
+  </tbody>
+</table>
+</div>
+```
+
 ### Bar chart
 
 ```html
@@ -184,11 +200,11 @@ Use `muted` for a candidate whose value was not disclosed, with a width of 0%.
 ```html
 <div class="table-wrap">
 <table>
-  <thead><tr><th>Recommendation</th><th>Candidate</th><th>When it is the right pick</th></tr></thead>
+  <thead><tr><th class="short">Recommendation</th><th class="short">Candidate</th><th>When it is the right pick</th></tr></thead>
   <tbody>
-    <tr><td>First choice</td><td>Name</td><td>The conditions under which it is the best pick.</td></tr>
-    <tr><td>Alternative</td><td>Name</td><td>The conditions under which it beats the first choice.</td></tr>
-    <tr><td>Fallback</td><td>Name</td><td>The conditions under which the other two cannot be used.</td></tr>
+    <tr><td class="short">First choice</td><td class="short">Name</td><td>The conditions under which it is the best pick.</td></tr>
+    <tr><td class="short">Alternative</td><td class="short">Name</td><td>The conditions under which it beats the first choice.</td></tr>
+    <tr><td class="short">Fallback</td><td class="short">Name</td><td>The conditions under which the other two cannot be used.</td></tr>
   </tbody>
 </table>
 </div>
@@ -199,9 +215,9 @@ When different users would choose differently, add the recommendations by use ca
 ```html
 <div class="table-wrap">
 <table>
-  <thead><tr><th>Use case</th><th>Candidate</th><th>Why</th></tr></thead>
+  <thead><tr><th>Use case</th><th class="short">Candidate</th><th>Why</th></tr></thead>
   <tbody>
-    <tr><td>A site with thousands of pages</td><td>Name</td><td>Why it fits this use case, with its figure and source [3].</td></tr>
+    <tr><td>A site with thousands of pages</td><td class="short">Name</td><td>Why it fits this use case, with its figure and source [3].</td></tr>
   </tbody>
 </table>
 </div>
