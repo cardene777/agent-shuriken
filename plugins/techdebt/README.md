@@ -58,16 +58,18 @@ Deprecated calls: 3 (eslint 3; not run: ruff, semgrep)
 Tool ruff:      not run, ruff is not installed in .venv/bin or on PATH
 
 Start here
- 1  src/billing/invoice.py  score 0.97  changed 31 times, 543 lines, 3 long functions, marker weight 4, 11 duplicated lines, no test file
- 2  src/api/orders.ts  score 0.67  changed 44 times, 331 lines, 1 long function, marker weight 1, 9 duplicated lines, no test file
- 3  src/web/checkout.tsx  score 0.40  changed 25 times, 220 lines, 2 long functions, marker weight 2, no test file
- 4  src/billing/refunds.py  score 0.36  changed 18 times, 163 lines, 1 long function, marker weight 1, 11 duplicated lines, no test file
- 5  src/api/returns.ts  score 0.17  changed 13 times, 70 lines, 9 duplicated lines, no test file
+ 1  src/billing/invoice.py  score 0.97  changed 31 times, 543 lines, 3 long functions, marker weight 4, 11 duplicated lines, no matching test file
+ 2  src/api/orders.ts  score 0.67  changed 44 times, 331 lines, 1 long function, marker weight 1, 9 duplicated lines, no matching test file
+ 3  src/web/checkout.tsx  score 0.40  changed 25 times, 220 lines, 2 long functions, marker weight 2, no matching test file
+ 4  src/billing/refunds.py  score 0.36  changed 18 times, 163 lines, 1 long function, marker weight 1, 11 duplicated lines, no matching test file
+ 5  src/api/returns.ts  score 0.17  changed 13 times, 70 lines, 9 duplicated lines, no matching test file
 ```
 
 The ranking goes on to 20 files, and the last two lines give the folders of the data and the report.
 
 The report has a tab for the ranking and one per measure, and switches between English and Japanese.
+The ranking lists each file with its score as a number and a bar, and the file you press shows its measures and the agent's notes beside the list. Lists longer than 50 rows are split into pages.
+The band of numbers at the top writes a measure that could not run as not measured, never as 0, and under the tabs a table says how each value was measured and why each tool did not run.
 Its header has a Light and Dark switch next to the language switch. The colors follow your system setting until you choose, and your browser keeps the choice in its local storage under `techdebt-theme`.
 Unused dependencies are found without knip by searching for each name in imports, config files, and `scripts`, so that count is approximate. When knip is installed, its findings are used instead.
 Deprecated calls are listed by tools that are already installed: ruff with its deprecation rules, semgrep with the project's own rule files and `--metrics off`, and ESLint when its config turns on a deprecation rule. semgrep findings of security rules are left out.
