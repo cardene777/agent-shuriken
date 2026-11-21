@@ -165,20 +165,41 @@ for family, members in want.items():
             problems.append("%s has no list of suits without semicolons" % name)
         if style.get("status") != "active":
             problems.append("%s has status %s, not active" % (name, style.get("status")))
-# Each style is told apart by its own words: no two styles share a line, fill, or lettering.
-for key in ("line", "fill", "lettering"):
-    seen = {}
-    for name, style in styles.items():
-        value = style.get(key) if isinstance(style, dict) else None
-        if value in seen:
-            problems.append("%s and %s share the same %s" % (seen[value], name, key))
-        seen[value] = name
 for problem in problems[:12]:
     print("      " + problem)
 sys.exit(1 if problems else 0)
 PYEOF
 }
 check "the built-in styles hold thirty-two styles in eight families with their written specification" built_in_thirty_two
+
+# Each built-in style is told apart by its own words: no two styles share a line, a fill, or
+# lettering, compared without case and outer spaces. It reads every style the file holds, so it
+# holds for the styles shipped before this change and for the ones added since.
+built_in_distinct() {
+  [ -f "$BUILT_IN" ] || { echo "      missing skills/article-diagram-styles/data/built-in-styles.json"; return 1; }
+  python3 - "$BUILT_IN" <<'PYEOF'
+import json, sys
+styles = json.load(open(sys.argv[1], encoding="utf-8")).get("finish_profiles")
+if not isinstance(styles, dict) or len(styles) < 16:
+    print("      read %s styles, fewer than the sixteen shipped before" % (len(styles) if isinstance(styles, dict) else "no"))
+    sys.exit(1)
+problems = []
+for key in ("line", "fill", "lettering"):
+    seen = {}
+    for name, style in styles.items():
+        value = style.get(key) if isinstance(style, dict) else None
+        if not isinstance(value, str):
+            continue  # A missing field is the specification check's to report.
+        words = value.strip().lower()
+        if words in seen:
+            problems.append("%s and %s share the same %s" % (seen[words], name, key))
+        seen.setdefault(words, name)
+for problem in problems[:12]:
+    print("      " + problem)
+sys.exit(1 if problems else 0)
+PYEOF
+}
+check "no two built-in styles share a line, a fill, or lettering" built_in_distinct
 
 # In a sample run with the same content, four styles drifted from their definitions: flat-vector
 # kept light gradients in its header band and icons, isometric drew its boxes in an oblique view,
