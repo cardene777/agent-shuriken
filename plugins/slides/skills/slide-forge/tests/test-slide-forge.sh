@@ -157,7 +157,8 @@ toolbar_languages() {
   problems="$(python3 - "$T/edit.html" <<'PY'
 import json, re, sys
 page = open(sys.argv[1], encoding="utf-8").read()
-japanese = re.compile("[぀-ヿ㐀-鿿ｦ-ﾟ]")
+# Kana, kanji, and half-width kana, the ranges scripts/check.sh reads as Japanese.
+japanese = re.compile("[%s-%s%s-%s%s-%s]" % tuple(map(chr, (0x3040, 0x30FF, 0x3400, 0x9FFF, 0xFF66, 0xFF9F))))
 found = re.search(r'<script type="application/json" id="slide-forge-text">(.*?)</script>', page, re.S)
 if not found:
     sys.exit(print("no dictionary in <script type=\"application/json\" id=\"slide-forge-text\">"))
