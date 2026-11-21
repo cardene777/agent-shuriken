@@ -291,7 +291,10 @@ FJ="$(ls -d "$TECHDEBT_HOME"/failing-*)/scan.json"
 check "a ruff or semgrep that stops with an error is recorded as not run with its reason" \
   "[ \"\$(J=$FJ q '[(t[\"tool\"], t[\"ran\"]) for t in (d.get(\"deprecated_calls\") or {}).get(\"tools\", []) if t[\"tool\"] in (\"ruff\", \"semgrep\")]')\" = \"[('ruff', False), ('semgrep', False)]\" ] && grep -q 'Unknown rule selector' \"$FJ\" && grep -q 'Invalid rule schema' \"$FJ\""
 check "a folder without package.json has no unused dependencies measure" \
-  "[ \"\$(J=$PJ q '\"unused_dependencies\" in d and d[\"unused_dependencies\"] is None')\" = True ] && ! grep -q '^Unused deps' \"$T/plain.txt\""
+  "[ \"\$(J=$PJ q '\"unused_dependencies\" in d and d[\"unused_dependencies\"] is None')\" = True ]"
+# A measure that could not run is written as not measured, never as 0 or left out.
+check "the summary says not measured for hotspots outside git and for dependencies without package.json" \
+  "grep -qE '^Hotspots: +not measured' \"$T/plain.txt\" && grep -qE '^Unused deps: +not measured' \"$T/plain.txt\" && ! grep -qE '^Hotspots: +0 ' \"$T/plain.txt\""
 
 # Unused dependencies, found by name without knip, in a folder outside git
 D="$T/deps"
@@ -547,6 +550,15 @@ PATH="$T/onlygit" "$(command -v python3)" "$SCRIPT" scan "$O" > /dev/null 2>&1
 PATH="$T/onlygit" "$(command -v python3)" "$SCRIPT" scan "$OP" > /dev/null 2>&1
 OSTATE="$(ls -d "$TECHDEBT_HOME"/opened-git-*)"
 PSTATE="$(ls -d "$TECHDEBT_HOME"/opened-plain-*)"
+# Notes on the top two files, so the details beside the list show what the agent wrote.
+python3 - "$OSTATE/scan.json" "$T/opened-notes.json" <<'PYEOF'
+import json, sys
+d = json.load(open(sys.argv[1], encoding="utf-8"))
+notes = {r["file"]: {"what": "What %s does" % r["file"], "why": "Why %s costs the team" % r["file"],
+                     "action": "First step for %s" % r["file"]} for r in d["ranked"][:2]}
+json.dump(notes, open(sys.argv[2], "w", encoding="utf-8"))
+PYEOF
+PATH="$T/onlygit" "$(command -v python3)" "$SCRIPT" explain --notes "$T/opened-notes.json" "$O" > /dev/null 2>&1
 PAGE_DESIGN="$PLUGIN/../design-formats/skills/page-design/scripts/page-design.py"
 
 # The tabs, read from the page itself, so a tab added later is opened too.
@@ -655,7 +667,7 @@ elif what == "deprecated":
             continue
         heads = [text(x) for x in re.findall(r"<th\b[^>]*>(.*?)</th>", table.group(1))]
         rows = [(html.unescape(a), html.unescape(b)) for a, b in re.findall(r"<tr><td><code>([^<]*)</code></td><td>([^<]*)</td></tr>", table.group(1))]
-        want_heads = {"en": ["Tool", "Result"], "ja": ["道具", "結果"]}[lang]
+        want_heads = {"en": ["Tool", "Result"], "ja": ["ツール", "結果"]}[lang]
         want_rows = [(s["tool"], status(lang, s, sum(1 for i in calls["items"] if i["tool"] == s["tool"]))) for s in calls["tools"]]
         if heads != want_heads or rows != want_rows or not rows:
             problems.append("%s: the table has %r and %r, wanted %r and %r" % (lang, heads, rows, want_heads, want_rows))
@@ -793,6 +805,354 @@ else
     check "$QUOTED_VERIFY_CHECK" 'opened_verify tools stopped'
   else
     for name in "$VERIFY_CHECK" "$QUOTED_VERIFY_CHECK"; do skip "$name" "needs page-design of design-formats next to this plugin"; done
+  fi
+fi
+
+# --- How the report reads: values not measured, the score of each row, the band, the header, and the list
+# The words of the page come from its one dictionary, so the Japanese words are read there.
+TEMPLATE_FILE="$HERE/../templates/base.html"
+dictionary_words() { # <what>
+  python3 - "$1" "$TEMPLATE_FILE" "$T/scan.txt" <<'PYEOF'
+import re, sys
+what, template, summary = sys.argv[1:4]
+page = open(template, encoding="utf-8").read()
+block = {lang: re.search(r"^  %s: \{\n(.*?)^  \}" % lang, page, re.S | re.M) for lang in ("en", "ja")}
+problems = []
+if not block["en"] or not block["ja"]:
+    problems.append("the template has no en and ja dictionary")
+elif what == "unclear":
+    for word in ("道具", "目印", "順位付け", "テスト無し", "テストファイル無し"):
+        if word in block["ja"].group(1):
+            problems.append("the Japanese dictionary still has %s" % word)
+elif what == "tests":
+    entry = lambda lang, key: (re.search(r'\b%s: "([^"]*)"' % key, block[lang].group(1)) or [None, ""])[1]
+    if "matching test file" not in entry("en", "rUntested"):
+        problems.append("the English row says %r" % entry("en", "rUntested"))
+    if "名前の合うテストファイルが無い" not in entry("ja", "rUntested"):
+        problems.append("the Japanese row says %r" % entry("ja", "rUntested"))
+    lines = [l for l in open(summary, encoding="utf-8") if re.match(r"^ ?\d+  ", l)]
+    if not any("no matching test file" in l for l in lines) or any(re.search(r"no test file(?!\w)", l) for l in lines):
+        problems.append("the ranking of the summary does not say no matching test file")
+for p in problems[:8]:
+    print("      " + p)
+sys.exit(1 if problems else 0)
+PYEOF
+}
+check "the Japanese words of the report leave out the unclear words" 'dictionary_words unclear'
+check "the test measure says that no test file of a matching name was found" 'dictionary_words tests'
+
+# band_check <what> <state folder> <name>: reads the band, the ranked rows, and the section on how the
+# values were measured, on the pages the browser drew.
+band_check() {
+  python3 - "$1" "$2" "$T/opened" "$3" <<'PYEOF'
+import html, json, re, sys
+what, state, folder, name = sys.argv[1:5]
+d = json.load(open(state + "/scan.json", encoding="utf-8"))
+tabs = open(folder + "/tabs", encoding="utf-8").read().split()
+problems = []
+NOT = {"en": "Not measured", "ja": "測っていない"}
+
+def page(lang, tab):
+    with open("%s/%s-%s-%s.dom.html" % (folder, name, lang, tab), encoding="utf-8") as fh:
+        return fh.read()
+
+def text(s):
+    return html.unescape(re.sub(r"<[^>]+>", "", s)).replace("​", "").strip()
+
+def cards(dom):
+    found = {}
+    for m in re.finditer(r'<button\b[^>]*\bdata-measure="(\w+)"[^>]*>(.*?)</button>', dom, re.S):
+        n = re.search(r'class="n\b[^"]*">(.*?)</span>', m.group(2), re.S)
+        found[m.group(1)] = (text(n.group(1)) if n else None, text(m.group(2)))
+    return found
+
+# The measures that did not run, read from scan.json the way the page reads them.
+unmeasured = set()
+if not d["git"]:
+    unmeasured.add("hotspots")
+if d["unused_dependencies"] is None:
+    unmeasured.add("deps")
+if not any(t["ran"] for t in d["deprecated_calls"]["tools"]):
+    unmeasured.add("deprecated")
+
+if what in ("not-measured", "never-zero", "approximate"):
+    for lang in ("en", "ja"):
+        band = cards(page(lang, "start"))
+        if len(band) != 9:
+            problems.append("%s: the band has %d cards with data-measure, wanted 9" % (lang, len(band)))
+            continue
+        for key in sorted(unmeasured):
+            shown, _ = band.get(key, (None, ""))
+            if what == "not-measured" and shown != NOT[lang]:
+                problems.append("%s: the %s card shows %r, wanted %r" % (lang, key, shown, NOT[lang]))
+            if what == "never-zero" and (shown is None or re.fullmatch(r"0+", shown)):
+                problems.append("%s: the %s card shows %r" % (lang, key, shown))
+        if what == "approximate":
+            u = d["unused_dependencies"]
+            shown, whole = band["deps"]
+            word = {"en": "approximate", "ja": "概算"}[lang]
+            if u is None or u["source"] != "search":
+                problems.append("this report has no unused dependencies found by name")
+            elif shown != str(len(u["items"])) or word not in whole:
+                problems.append("%s: the unused dependencies card says %r, wanted %d and %r" % (lang, whole, len(u["items"]), word))
+    if what == "not-measured" and not unmeasured:
+        problems.append("this report measured everything")
+
+elif what == "scores":
+    for lang in ("en", "ja"):
+        rows = re.findall(r'<button\b[^>]*\bdata-pick="\d+"[^>]*>(.*?)</button>', page(lang, "start"), re.S)
+        shown = [text((re.search(r'class="score">(.*?)</span>', r, re.S) or [None, ""])[1]) for r in rows]
+        want = ["%.2f" % r["score"] for r in d["ranked"]]
+        if shown != want or not want:
+            problems.append("%s: the rows show the scores %r, wanted %r" % (lang, shown, want))
+
+elif what == "how":
+    tools = {}
+    for t in d["tools"] + d["deprecated_calls"]["tools"]:
+        tools.setdefault(t["tool"], t)
+    want_measures = ["start", "hotspots", "markers", "untested", "functions", "large", "dup", "deps", "deprecated"]
+    for lang in ("en", "ja"):
+        for tab in tabs:
+            dom = page(lang, tab)
+            m = re.search(r'<section\b[^>]*\bid="how"[^>]*>(.*?)</section>', dom, re.S)
+            if not m or dom.find('id="how"') < dom.find('id="panel"'):
+                problems.append("%s %s: no section on how the values were measured after the tab" % (lang, tab))
+                continue
+            section = m.group(1)
+            measures = re.findall(r'<tr\b[^>]*\bdata-measure="(\w+)"', section)
+            if measures != want_measures:
+                problems.append("%s %s: the measures %r, wanted %r" % (lang, tab, measures, want_measures))
+            for key in sorted(unmeasured):
+                row = re.search(r'<tr\b[^>]*\bdata-measure="%s"[^>]*>(.*?)</tr>' % key, section, re.S)
+                if not row or NOT[lang] not in text(row.group(1)):
+                    problems.append("%s %s: the %s row does not say %r" % (lang, tab, key, NOT[lang]))
+            rows = {r: text(body) for r, body in re.findall(r'<tr\b[^>]*\bdata-tool="([\w-]+)"[^>]*>(.*?)</tr>', section, re.S)}
+            for tool, t in tools.items():
+                if tool not in rows:
+                    problems.append("%s %s: no row for %s" % (lang, tab, tool))
+                elif not t["ran"] and any(part not in rows[tool] for part in t["reason"].split(": ", 1)):
+                    problems.append("%s %s: the %s row does not give the reason %r" % (lang, tab, tool, t["reason"]))
+
+for p in problems[:8]:
+    print("      " + p)
+sys.exit(1 if problems else 0)
+PYEOF
+}
+
+# The probe measures the page the browser drew: where the numbers of the band sit, where each Japanese
+# label of the band breaks, where the title starts, where the details sit beside the list, the colors of
+# the score bars in both themes, and a ranked list of 60 rows. It writes what it measured into the page.
+cat > "$T/probe.js" <<'JSEOF'
+(() => {
+  const out = {};
+  const box = (e) => e.getBoundingClientRect();
+  const style = document.createElement("style");
+  style.textContent = "*, *::before, *::after { transition: none !important; animation: none !important; }";
+  document.head.append(style);
+  const cards = [...document.querySelectorAll("#cards [data-measure]")];
+  out.cards = cards.map((c) => ({ id: c.dataset.measure, top: box(c.querySelector(".n")).top, cardTop: box(c).top }));
+  out.labels = cards.map((c) => {
+    const label = c.querySelector(".l");
+    const walker = document.createTreeWalker(label, NodeFilter.SHOW_TEXT);
+    const range = document.createRange();
+    let node, at = 0, last = null, text = "";
+    const breaks = [];
+    while ((node = walker.nextNode())) {
+      for (let i = 0; i < node.length; i++, at++) {
+        text += node.data[i];
+        range.setStart(node, i);
+        range.setEnd(node, i + 1);
+        const rect = [...range.getClientRects()].find((r) => r.width > 0);
+        if (!rect) continue;
+        if (last !== null && rect.top > last + 2) breaks.push(at);
+        last = rect.top;
+      }
+    }
+    return { id: c.dataset.measure, text, breaks, overflow: box(label).right > box(c).right + 0.5 || label.scrollWidth > label.clientWidth + 1 };
+  });
+  const title = document.getElementById("title"), band = document.getElementById("cards");
+  out.header = { title: box(title).left, facts: box(document.getElementById("facts")).left, content: box(band).left };
+  const rows = document.getElementById("rows"), detail = document.getElementById("detail");
+  if (rows && detail) {
+    const r = box(rows), dt = box(detail);
+    out.split = { rowsTop: r.top, rowsRight: r.right, rowsBottom: r.bottom, detailTop: dt.top, detailLeft: dt.left,
+      first: (detail.querySelector("h2") || {}).textContent || "" };
+    const second = rows.querySelectorAll("[data-pick]")[1];
+    if (second) {
+      second.click();
+      out.split.second = (document.querySelector("#detail h2") || {}).textContent || "";
+      out.split.secondText = document.getElementById("detail").textContent;
+      out.split.pressed = [...document.querySelectorAll("#rows [data-pick]")].map((b) => b.getAttribute("aria-pressed"));
+    }
+  }
+  const rgb = (s) => (s.match(/[\d.]+/g) || []).map(Number);
+  const behind = (e) => {
+    for (; e; e = e.parentElement) {
+      const c = rgb(getComputedStyle(e).backgroundColor);
+      if (c.length === 3 || (c.length === 4 && c[3] > 0)) return c.slice(0, 3);
+    }
+    return [255, 255, 255];
+  };
+  const lum = (c) => c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; })
+    .reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0);
+  const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+  out.contrast = {};
+  for (const theme of ["light", "dark"]) {
+    document.documentElement.dataset.theme = theme;
+    out.contrast[theme] = [...document.querySelectorAll("#rows [data-pick]")].map((row) => {
+      const fill = row.querySelector(".bar i");
+      return fill ? ratio(rgb(getComputedStyle(fill).backgroundColor).slice(0, 3), behind(row)) : 0;
+    });
+  }
+  if (typeof D === "object" && rows) {
+    const saved = D.ranked;
+    D.ranked = Array.from({ length: 60 }, (_, i) => ({ file: "src/f" + i + ".py", score: 0.5, reasons: [{ key: "lines", value: 30 }] }));
+    render();
+    const list = document.getElementById("rows");
+    const pagers = [...document.querySelectorAll(".pager")].filter((p) => !p.hidden && p.querySelector("button"));
+    const before = pagers.filter((p) => p.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).length;
+    const after = pagers.filter((p) => p.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_PRECEDING).length;
+    const rowsOne = list.querySelectorAll("[data-pick]").length;
+    const two = [...pagers[0].querySelectorAll("button")].find((b) => b.textContent.trim() === "2");
+    if (two) two.click();
+    out.paging = { rowsOne, before, after, rowsTwo: document.getElementById("rows").querySelectorAll("[data-pick]").length };
+    D.ranked = saved;
+    render();
+  }
+  const pre = document.createElement("pre");
+  pre.id = "probe";
+  pre.textContent = JSON.stringify(out);
+  document.body.append(pre);
+})();
+JSEOF
+
+# probe <state folder> <name> <lang> <width>: opens the ranked tab with the probe at that width and
+# writes what it measured to $T/opened/probe-<name>-<lang>-<width>.json.
+probe() {
+  local copy="$T/opened/probe-$2-$3-$4.html"
+  python3 - "$1/report.html" "$copy" "$3" "$T/probe.js" <<'PYEOF' || return 1
+import sys
+src, dst, lang, probe = sys.argv[1:5]
+page = open(src, encoding="utf-8").read().replace('let lang = "en"', 'let lang = "%s"' % lang, 1)
+end = page.rindex("</body>")
+open(dst, "w", encoding="utf-8").write(page[:end] + "<script>\n" + open(probe, encoding="utf-8").read() + "\n</script>\n" + page[end:])
+PYEOF
+  "$real_browser" --headless --disable-gpu --no-first-run --hide-scrollbars --user-data-dir="$T/browser-profile" \
+    --window-size="$4,1000" --dump-dom "file://$copy#start" > "$copy.dom" 2>/dev/null || return 1
+  python3 - "$copy.dom" "$T/opened/probe-$2-$3-$4.json" <<'PYEOF'
+import html, re, sys
+m = re.search(r'<pre id="probe">(.*?)</pre>', open(sys.argv[1], encoding="utf-8").read(), re.S)
+if not m:
+    sys.exit(1)
+open(sys.argv[2], "w", encoding="utf-8").write(html.unescape(m.group(1)))
+PYEOF
+}
+
+# probe_check <what> <name>...: reads what the probes measured.
+probe_check() {
+  local what="$1"
+  shift
+  python3 - "$what" "$T/opened" "$OSTATE/scan.json" "$@" <<'PYEOF'
+import glob, json, sys
+what, folder, scan = sys.argv[1:4]
+names = sys.argv[4:]
+d = json.load(open(scan, encoding="utf-8"))
+problems = []
+def probes(name, lang=None, width=None):
+    for path in sorted(glob.glob("%s/probe-%s-%s-%s.json" % (folder, name, lang or "*", width or "*"))):
+        parts = path.rsplit("/", 1)[1][:-5].split("-")
+        yield parts[-2], parts[-1], json.load(open(path, encoding="utf-8"))
+seen = 0
+for name in names:
+    for lang, width, p in probes(name):
+        seen += 1
+        where = "%s %s %spx" % (name, lang, width)
+        if what == "level" and width == "1400":
+            tops = sorted({round(c["top"]) for c in p["cards"]})
+            if len(p["cards"]) != 9 or tops[-1] - tops[0] > 1:
+                problems.append("%s: the numbers of the band sit at %r" % (where, [(c["id"], round(c["top"])) for c in p["cards"]]))
+        if what == "labels" and lang == "ja":
+            if len(p["labels"]) != 9:
+                problems.append("%s: the band has %d labels, wanted 9" % (where, len(p["labels"])))
+            for label in p["labels"]:
+                bad = [i for i in label["breaks"] if label["text"][i - 1] not in "​ " and label["text"][i] != " "]
+                if bad or label["overflow"]:
+                    shown = "".join("/" + ch if i in label["breaks"] else ch for i, ch in enumerate(label["text"])).replace("​", "")
+                    problems.append("%s: the label %r%s" % (where, shown, " leaves its card" if label["overflow"] else " breaks inside a word"))
+        if what == "header":
+            h = p["header"]
+            if abs(h["title"] - h["content"]) > 1 or abs(h["facts"] - h["content"]) > 1:
+                problems.append("%s: the title starts at %.0f and the facts at %.0f, the content at %.0f" % (where, h["title"], h["facts"], h["content"]))
+        if what == "split":
+            s = p.get("split")
+            first, second = d["ranked"][0]["file"], d["ranked"][1]["file"]
+            notes = json.load(open(scan.rsplit("/", 1)[0] + "/notes.json", encoding="utf-8"))
+            if not s:
+                problems.append("%s: no list and details on the ranked tab" % where)
+                continue
+            if width == "1400" and not (s["detailLeft"] >= s["rowsRight"] - 1 and abs(s["detailTop"] - s["rowsTop"]) < 80):
+                problems.append("%s: the details are not beside the list (%r)" % (where, s))
+            if width == "375" and s["detailTop"] < s["rowsBottom"] - 1:
+                problems.append("%s: the details are not under the list (%r)" % (where, s))
+            if first not in s["first"] or second not in s.get("second", "") or notes[second]["action"] not in s.get("secondText", ""):
+                problems.append("%s: the details show %r, then %r after pressing the second row" % (where, s["first"], s.get("second")))
+            if s.get("pressed", [None, None])[:2] != ["false", "true"]:
+                problems.append("%s: the pressed row is not marked (%r)" % (where, s.get("pressed")))
+        if what == "contrast" and width == "1400":
+            for theme in ("light", "dark"):
+                low = [round(x, 2) for x in p["contrast"][theme] if x < 3]
+                if low or not p["contrast"][theme]:
+                    problems.append("%s %s: the score bars stand out from their card by %r" % (where, theme, low or p["contrast"][theme]))
+        if what == "paging":
+            g = p.get("paging")
+            if not g or g["rowsOne"] != 50 or g["rowsTwo"] != 10 or g["before"] < 1 or g["after"] < 1:
+                problems.append("%s: a ranked list of 60 rows gives %r" % (where, g))
+if not seen:
+    problems.append("no probe was written")
+for p in problems[:8]:
+    print("      " + p)
+sys.exit(1 if problems else 0)
+PYEOF
+}
+
+LOOK_CHECKS=(
+  "a value that was not measured shows as not measured on the band in English and Japanese"
+  "a value that was not measured is never shown as 0"
+  "the unused dependencies found by name say on the band that they are approximate"
+  "every ranked row shows its score as a number"
+  "every tab shows how the values were measured and why each tool did not run"
+)
+PROBE_CHECKS=(
+  "the score bar stands out from its card by 3 to 1 or more in light and dark"
+  "the numbers of the band sit on one level at 1400px"
+  "the Japanese labels of the band break only between words at 1400px and 375px"
+  "the header lines up with the content at 1400px and 375px"
+  "the ranked tab shows the pressed row's details beside the list at 1400px and under it at 375px"
+  "a ranked list longer than 50 rows pages with the pager above and below the list"
+)
+if [ -z "$real_browser" ]; then
+  for name in "${LOOK_CHECKS[@]}" "${PROBE_CHECKS[@]}"; do skip "$name" "needs a Chromium-based browser"; done
+else
+  check "${LOOK_CHECKS[0]}" 'band_check not-measured "$PSTATE" plain && band_check not-measured "$OSTATE" git'
+  check "${LOOK_CHECKS[1]}" 'band_check never-zero "$PSTATE" plain && band_check never-zero "$OSTATE" git'
+  check "${LOOK_CHECKS[2]}" 'band_check approximate "$OSTATE" git'
+  check "${LOOK_CHECKS[3]}" 'band_check scores "$OSTATE" git && band_check scores "$PSTATE" plain'
+  check "${LOOK_CHECKS[4]}" 'band_check how "$OSTATE" git && band_check how "$PSTATE" plain && band_check how "$STATE" tools && band_check how "$FSTATE" stopped'
+  probed=1
+  for spec in "$OSTATE git en 1400" "$OSTATE git ja 1400" "$OSTATE git en 375" "$OSTATE git ja 375" "$PSTATE plain en 1400" "$PSTATE plain ja 1400" "$PSTATE plain ja 375"; do
+    # shellcheck disable=SC2086
+    probe $spec || probed=0
+  done
+  if [ "$probed" = 1 ]; then
+    check "${PROBE_CHECKS[0]}" 'probe_check contrast git'
+    check "${PROBE_CHECKS[1]}" 'probe_check level git plain'
+    check "${PROBE_CHECKS[2]}" 'probe_check labels git plain'
+    check "${PROBE_CHECKS[3]}" 'probe_check header git plain'
+    check "${PROBE_CHECKS[4]}" 'probe_check split git'
+    check "${PROBE_CHECKS[5]}" 'probe_check paging git'
+  else
+    for name in "${PROBE_CHECKS[@]}"; do ng "$name"; done
+    echo "      the browser could not open the reports with the probe"
   fi
 fi
 
