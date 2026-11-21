@@ -1,7 +1,7 @@
 interface:
   display_name: "Article Diagram Styles"
-  short_description: "Designs an article figure from the reader's questions, then draws it in a style from your catalog in ~/.styles"
-  default_prompt: "Use $article-diagram-styles to design and draw the figures for this article with a style from my catalog."
+  short_description: "Designs an article figure from the reader's questions, then draws it in one of the built-in styles or a style from ~/.styles"
+  default_prompt: "Use $article-diagram-styles to design and draw the figures for this article in a style that fits it."
 
 policy:
   allow_implicit_invocation: true

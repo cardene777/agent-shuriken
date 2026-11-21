@@ -1,7 +1,7 @@
 {
   "name": "diagram-styles",
   "version": "0.1.0",
-  "description": "Figures for articles and technical books, designed from the reader's questions first and drawn in a style from your own sample images and catalog in ~/.styles",
+  "description": "Figures for articles and technical books, designed from the reader's questions first and drawn in one of sixteen built-in styles or a style from your own catalog and samples in ~/.styles",
   "author": {
     "name": "cardene777",
     "url": "https://github.com/cardene777"
@@ -22,7 +22,7 @@
   "interface": {
     "displayName": "Diagram Styles",
     "shortDescription": "Article and book figures",
-    "longDescription": "Makes the figures of an article or a technical book. Its article-diagram-styles skill decides what a figure must explain from the article and the reader's question before any style sample is opened, then applies a drawing style from your style catalog and draws the figure with the agent's image generation, and checks the text, the connections, and the readability at the published width. Its tech-book-figure skill designs a book figure with its role, figure number, caption, and black and white readability, and draws it in the fixed style4 from at least two of your style4 samples. The plugin ships no sample images: you keep your samples and style-catalog.json in ~/.styles, and its Python scripts, which use only the standard library, read that folder and never write to it. Figures and their records are written only in the folder you name. Without image generation, the skills save the design and the drawing instructions and stop.",
+    "longDescription": "Makes the figures of an article or a technical book. Its article-diagram-styles skill decides what a figure must explain from the article and the reader's question before any style sample is opened, then applies one of sixteen built-in styles, each defined in words, or a style from your catalog in ~/.styles, draws the figure with the agent's image generation, and checks the text, the connections, and the readability at the published width. Its tech-book-figure skill designs a book figure with its role, figure number, caption, and black and white readability, and draws it in the fixed style4 from at least two of your style4 samples. The plugin ships no sample images. Your optional style-catalog.json and samples in ~/.styles add styles, replace a built-in style, or retire one, and its Python scripts, which use only the standard library, read that folder and never write to it. Figures and their records are written only in the folder you name. Without image generation, the skills save the design and the drawing instructions and stop.",
     "developerName": "cardene777",
     "category": "Productivity",
     "capabilities": [],
