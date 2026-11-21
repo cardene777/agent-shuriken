@@ -28,6 +28,10 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - The confirm dialog shows the number of items apart from their size, such as `4 items, 807.4 MB`, instead of running them together as `4 807.4 MB`
 - On Linux, the Hugging Face and LM Studio folders in `~/.cache` are no longer recommended as app caches that come back on their own
 - Measuring folder sizes stops when the time limit runs out, so a scan of a large home folder no longer runs minutes past the limit
+- A file that two steps meet, such as an old installer of 500 MB or more in Downloads, appears in one row and is counted once. A row inside another row, such as `node_modules` in an unused project or an app's cache, is counted once in the charts and the bottom bar, and `apply` frees the outer row and skips the inner one as freed with it. The scan format is version 5
+- The page fits its tabs at any width: they sit in Disk and Programs groups and wrap onto more lines. The hole of each ring holds only its name and value, so the text stays inside it in both languages, and long names in Largest items wrap instead of being cut
+- Names the scan makes, such as `npm cache` or `Vite dev server`, follow the page's language, while product names stay as they are. Copies of a duplicate sit together under one heading, and a large file, a copy, or a row whose name another row shares shows its folder or command on a second line
+- The bottom bar shows the number of picked rows and the disk to free as two separate values, and the In use label in the light colors has enough contrast to read
 
 ## [0.1.0] - 2026-11-15
 

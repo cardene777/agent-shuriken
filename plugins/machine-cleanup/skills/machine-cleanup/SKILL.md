@@ -75,7 +75,7 @@ Each item gets one line.
 | Line | Meaning |
 |---|---|
 | `done` | Freed, stopped, or moved to the Trash |
-| `skipped` | Changed or came into use after the scan, with the reason. Nothing was done to it |
+| `skipped` | Changed or came into use after the scan, with the reason, and nothing was done to it. A row inside another picked row is also `skipped` once that row is freed, since it was freed with it; report it as freed |
 | `survived` | A process that is still running after the end signal |
 | `failed` | The tool or the system refused, with its message |
 | `refused` | The whole selection was refused and nothing changed: an id is not in the scan, is in use, or picks every copy of a duplicate |

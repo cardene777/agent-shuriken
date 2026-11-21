@@ -741,7 +741,7 @@ const picked = new Set();
 print("const I18N = %s;\nlet lang = \"en\";\n%s%s%s" % (words, dom, "".join(code), sys.argv[3]))
 PY
 }
-ROW_FNS="t human tilde when day effect lockText whyText isProc levelOf rowEl detailPairs detailEl"
+ROW_FNS="t human tilde when day effect lockText whyText isProc levelOf nameOf rowEl detailPairs detailEl"
 ROW_JS='const disk = { id: "d1", group: "disk", category: "build", name: "node_modules in app", path: "/h/projects/app/node_modules",
   size: 1000000, level: "recommended", reason: { code: "build_idle", days: 42 }, rebuilt: true, locked: null };
 const proc = { id: "p1", group: "process", category: "dev-process", name: "Vite dev server", size: 52000000, cpu: 12,
@@ -753,7 +753,7 @@ const reason = detailPairs(disk)[0][1];
 console.log(texts(rowEl(disk.name, "", disk)).join("|") + "#" + texts(rowEl(proc.name, "", proc)).join("|"));
 console.log(show(disk) + "#" + show(proc) + "#" + (reason && reason.indexOf("42") >= 0 ? "reason" : "no reason"));
 console.log("free=" + buttons(detailEl(disk)) + " busy=" + buttons(detailEl(busy)));'
-CHART_FNS="TABS t human isProc levelOf freeableSize partText overviewCharts"
+CHART_FNS="TABS t human isProc levelOf shares freeableSize unionSize partText overviewCharts"
 CHART_JS='const items = [
   { id: "c1", group: "disk", category: "cache", size: 300, level: "recommended", locked: null, rebuilt: true },
   { id: "c2", group: "disk", category: "cache", size: 200, level: "recommended", locked: "npm is running", rebuilt: true },
@@ -827,7 +827,7 @@ NEW_ROW_JS='const rows = [
 console.log(rows.map(function (it) {
   return detailPairs(it).map(function (p) { return /^(d_reason|d_effect)$/.test(p[0]) ? p[0] : p[0] + "=" + String(p[1]).split("\n").join(";"); }).join(",");
 }).join("#"));'
-LIST_FNS="groupRows viewGroups"
+LIST_FNS="t nameOf groupRows viewGroups"
 LIST_JS='const list = [
   { id: "a", name: "Alpha cache", path: "/h/.cache/alpha", size: 300, level: "recommended", locked: null, group: "disk" },
   { id: "b", name: "beta", path: "/h/Archive/beta", size: 100, level: "recommended", locked: null, group: "disk" },
@@ -902,7 +902,7 @@ const others = [
 console.log("[" + [whereFor(procs[0], procs), whereFor(procs[1], procs), whereFor(others[0], others), whereFor(others[1], others), whereFor(others[2], others)].join("|") + "]");
 console.log(texts(rowEl(others[0].name, whereFor(others[0], others), others[0])).length);'
 # A set of two copies whose names sort apart, among two large files.
-SET_FNS="t human groupRows viewGroups withSets setHeadText"
+SET_FNS="t human nameOf groupRows viewGroups withSets setHeadText"
 SET_JS='const copies = ["/h/Backup/archive.zip", "/h/Documents/copy of archive.zip"];
 const list = [
   { id: "a", name: "archive.zip", path: copies[0], size: 500, level: "check", locked: null, group: "disk", category: "duplicate", detail: { set: "s1", copies: copies } },
