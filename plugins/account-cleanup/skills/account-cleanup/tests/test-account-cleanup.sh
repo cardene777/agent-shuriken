@@ -8,12 +8,36 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 S="$HERE/../scripts"
 PASS=0
 FAIL=0
+SKIP=0
 T="$(mktemp -d)"
 trap 'rm -rf "$T"' EXIT
 
+# A Chromium-based browser opens the sheet and the follow-up page as the user does, for the checks on
+# the drawn pages. ACCOUNT_CLEANUP_TEST_BROWSER names the browser; otherwise the headless browsers
+# Playwright downloaded, the usual apps, and the usual commands are tried, all before HOME is replaced
+# below. The headless browsers come first because a macOS app started without a display can abort and
+# show a crash notice. Without a browser, those checks are skipped.
+real_browser="${ACCOUNT_CLEANUP_TEST_BROWSER:-}"
+if [ -z "$real_browser" ]; then
+  for b in "$HOME"/Library/Caches/ms-playwright/chromium_headless_shell-*/*/chrome-headless-shell \
+    "$HOME"/.cache/ms-playwright/chromium_headless_shell-*/*/chrome-headless-shell; do
+    [ -x "$b" ] && real_browser="$b"
+  done
+fi
+if [ -z "$real_browser" ]; then
+  for b in "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+    "/Applications/Chromium.app/Contents/MacOS/Chromium" \
+    "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge" \
+    "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser" \
+    "$(command -v google-chrome 2>/dev/null)" "$(command -v chromium 2>/dev/null)" "$(command -v chromium-browser 2>/dev/null)"; do
+    if [ -n "$b" ] && [ -x "$b" ]; then real_browser="$b"; break; fi
+  done
+fi
+[ -n "$real_browser" ] && [ ! -x "$real_browser" ] && real_browser=""
+
 ok() { PASS=$((PASS + 1)); printf 'ok    %s\n' "$1"; }
 ng() { FAIL=$((FAIL + 1)); printf 'FAIL  %s\n' "$1"; }
-skip() { printf 'skip  %s\n' "$1"; }
+skip() { SKIP=$((SKIP + 1)); printf 'skip  %s\n' "$1"; }
 check() { if eval "$2"; then ok "$1"; else ng "$1"; fi; }
 mode() { python3 -c 'import os, sys; print(format(os.stat(sys.argv[1]).st_mode & 0o777, "o"))' "$1"; }
 
@@ -381,6 +405,421 @@ check "followup page counts the records and escapes HTML" \
 "$S/followup.sh" done example.co.jp >/dev/null
 check "followup done removes that record" '[ "$(cut -f2 "$D/followups.tsv")" = example.org ]'
 
+# The service column. Stuck service is the name the deletion list gives example.net. example.org is
+# listed under the host name mail.example.org, which already holds the domain. missing.example is not
+# a candidate, and the record for old.example was written before records kept a name.
+"$S/followup.sh" add example.net "Send the erasure request" >/dev/null
+"$S/followup.sh" add missing.example "Remove the saved card" >/dev/null
+printf '2026-01-02\told.example\tA gift card balance is left\n' >> "$D/followups.tsv"
+"$S/followup.sh" page >/dev/null
+check "followup add keeps the service name from the candidates" \
+  '[ "$(awk -F "\t" "\$2 == \"example.net\" { print \$4 }" "$D/followups.tsv")" = "Stuck service" ] && [ -z "$(awk -F "\t" "\$2 == \"missing.example\" { print \$4 }" "$D/followups.tsv")" ]'
+# followup_cell <key>: the service cell of the row whose What's left column is the record of <key>,
+# as "<shown name>|<text under it>"; the text under it is empty when the cell has none.
+followup_cell() {
+  python3 - "$D/followups.tsv" "$D/followups.html" "$1" <<'PY'
+import html, re, sys
+records = [l.rstrip("\n").split("\t") for l in open(sys.argv[1], encoding="utf-8") if l.strip()]
+what = [r[2] for r in records if r[1] == sys.argv[3]][0]
+page = open(sys.argv[2], encoding="utf-8").read()
+for row in re.findall(r"<tr>(.*?)</tr>", page, re.S):
+    cells = re.findall(r"<td[^>]*>(.*?)</td>", row, re.S)
+    if len(cells) == 3 and html.unescape(re.sub(r"<[^>]+>", "", cells[2])) == what:
+        under = re.search(r"<small[^>]*>(.*?)</small>", cells[1], re.S)
+        name = re.sub(r"<small[^>]*>.*?</small>", "", cells[1], flags=re.S)
+        print(html.unescape(re.sub(r"<[^>]+>", "", name)).strip() + "|" + (html.unescape(re.sub(r"<[^>]+>", "", under.group(1))).strip() if under else ""))
+PY
+}
+check "the follow-up page shows the service name with the domain under it only when it adds something" \
+  '[ "$(followup_cell example.net)" = "Stuck service|example.net" ] && [ "$(followup_cell example.org)" = "mail.example.org|" ]'
+check "the follow-up page shows the key alone for a record without a name" \
+  '[ "$(followup_cell missing.example)" = "missing.example|" ] && [ "$(followup_cell old.example)" = "old.example|" ]'
+
+# --- the drawn sheet and follow-up page
+# The sheet and the follow-up page build their text in the browser, so these checks open them as the
+# user does. A second set of candidates, built by the same scripts in a folder of its own, has every
+# shape a row can take: a name that is its domain, a host name under its domain, a browser extension,
+# every deletion effort, a site that is gone, and leftovers from a last round. A probe added to a copy
+# of each page presses the page's own buttons and writes what it drew into the page. The drawn page,
+# with a copy of every state it went through, then goes through the verify of page-design.
+W="$T/drawn"
+TEMPLATE="$HERE/../templates/sheet.html"
+PAGE_DESIGN="$HERE/../../../../design-formats/skills/page-design/scripts/page-design.py"
+mkdir -p "$W/browser-home"
+cat > "$W/op-items.json" <<'JSON'
+[{"id": "d01", "title": "Mailbox", "updated_at": "2025-09-02T09:00:00Z", "urls": [{"primary": true, "href": "https://mail.example.org/sign-in"}]},
+ {"id": "d02", "title": "PhotoShare", "updated_at": "2021-05-14T09:00:00Z", "urls": [{"primary": true, "href": "https://www.photoshare.example/login"}]},
+ {"id": "d03", "title": "QuickPizza", "updated_at": "2022-11-03T09:00:00Z", "urls": [{"primary": true, "href": "https://order.quickpizza.example/"}]},
+ {"id": "d04", "title": "FitTrack", "updated_at": "2020-08-30T09:00:00Z", "urls": [{"primary": true, "href": "https://app.fittrack.example/"}]},
+ {"id": "d05", "title": "Stuck service", "updated_at": "2024-04-09T09:00:00Z", "urls": [{"primary": true, "href": "https://stuck.example.net/"}]},
+ {"id": "d06", "title": "Language app", "updated_at": "2022-09-03T09:00:00Z", "urls": [{"primary": true, "href": "https://lingo.example/"}]},
+ {"id": "d07", "title": "Old forum", "updated_at": "2019-01-12T09:00:00Z", "urls": [{"primary": true, "href": "https://oldforum.example/"}]},
+ {"id": "d08", "title": "Gone service", "updated_at": "2021-07-07T09:00:00Z", "urls": [{"primary": true, "href": "https://goneservice.example/"}]},
+ {"id": "d09", "title": "Router", "updated_at": "2025-01-01T09:00:00Z", "urls": [{"primary": true, "href": "http://192.168.1.1/"}]},
+ {"id": "d10", "title": "CloudDrive", "updated_at": "2026-10-20T09:00:00Z", "urls": [{"primary": true, "href": "https://clouddrive.example/"}]},
+ {"id": "d11", "title": "Paper shop", "updated_at": "2025-06-01T09:00:00Z", "urls": [{"primary": true, "href": "https://shop.paperworks.example.co.jp/"}]}]
+JSON
+cat > "$W/sites.json" <<'JSON'
+[{"name": "Mailbox", "url": "https://mail.example.org/delete", "difficulty": "easy", "domains": ["mail.example.org"]},
+ {"name": "PhotoShare", "url": "https://photoshare.example/settings/delete", "difficulty": "easy", "domains": ["photoshare.example"]},
+ {"name": "QuickPizza", "url": "https://quickpizza.example/help/close-account", "difficulty": "medium", "domains": ["quickpizza.example"]},
+ {"name": "FitTrack", "url": "https://fittrack.example/privacy", "difficulty": "hard", "domains": ["fittrack.example"]},
+ {"name": "Stuck service", "url": "https://stuck.example.net/privacy", "difficulty": "impossible", "domains": ["stuck.example.net"]},
+ {"name": "Lingo", "url": "https://lingo.example/settings/account", "difficulty": "limited", "domains": ["lingo.example"]}]
+JSON
+python3 - "$W/browser-home/Library/Application Support/Google/Chrome/Default" <<'PY'
+import os, sqlite3, sys
+os.makedirs(sys.argv[1], exist_ok=True)
+def chrome_time(unix):
+    return (unix + 11644473600) * 1000000
+db = sqlite3.connect(os.path.join(sys.argv[1], "Login Data"))
+db.execute("CREATE TABLE logins (origin_url TEXT, username_value TEXT, password_value BLOB, date_created INTEGER, date_last_used INTEGER, blacklisted_by_user INTEGER)")
+db.executemany("INSERT INTO logins VALUES (?, ?, ?, ?, ?, ?)", [
+    ("https://forum.example.com/login", "", b"", chrome_time(1546300800), chrome_time(1777593600), 0),
+    ("https://coupons.example/", "", b"", chrome_time(1546300800), chrome_time(1640995200), 0),
+    ("chrome-extension://abcdefghijklmnopabcdefghijklmnop/", "", b"", chrome_time(1640995200), chrome_time(1672531200), 0),
+])
+db.commit()
+db = sqlite3.connect(os.path.join(sys.argv[1], "History"))
+db.execute("CREATE TABLE urls (url TEXT, last_visit_time INTEGER)")
+db.executemany("INSERT INTO urls VALUES (?, ?)", [
+    ("https://news.example.org/", chrome_time(1704067200)),
+    ("https://forum.example.com/thread/1", chrome_time(1717200000)),
+    ("https://mail.example.org/inbox", chrome_time(1763500000)),
+    ("https://clouddrive.example/files", chrome_time(1763000000)),
+])
+db.commit()
+PY
+(
+  export ACCOUNT_CLEANUP_HOME="$W/data" ACCOUNT_CLEANUP_SITES="$W/sites.json" ACCOUNT_CLEANUP_BROWSER_HOME="$W/browser-home" \
+    ACCOUNT_CLEANUP_TODAY=2026-11-21 OP_ITEMS="$W/op-items.json" OP_LOG="$W/op.log" CURL_LOG="$W/curl.log" CURL_DEAD="goneservice.example"
+  "$S/add-candidate.sh" "TaskBoard (Sign in with Google)" "taskboard.example"
+  "$S/prepare.sh" --sources 1password,chrome --region japan --history
+  "$S/add-site.sh" coupons.example https://coupons.example/news/closing ended "The service closed in 2024"
+  "$S/add-site.sh" paperworks.example.co.jp https://shop.paperworks.example.co.jp/mypage/withdraw easy
+  "$S/prepare.sh" --rebuild --history
+  "$S/annotate.sh" - <<'JSON'
+{"example.org": {"description": "A web mail service", "category": "email", "suggestion": "ng", "why": "Other accounts reset their passwords through it"},
+ "photoshare.example": {"description": "A photo-sharing social network", "category": "social", "suggestion": "ok", "why": "Not updated since 2021"},
+ "quickpizza.example": {"description": "A pizza delivery ordering site", "category": "shopping", "suggestion": "ok", "why": "No orders saved since 2022"},
+ "fittrack.example": {"description": "A fitness tracking app", "category": "other", "suggestion": "ok", "why": "Last updated in 2020"},
+ "example.net": {"description": "A file conversion service", "category": "other", "suggestion": "ok", "why": "Not used since 2024",
+                 "previous": {"round": 1, "label": "send request", "detail": "The service has no delete button. Send the drafted erasure request."}},
+ "lingo.example": {"description": "A language-learning app", "category": "other", "suggestion": "ok", "why": "Not updated since 2022"},
+ "oldforum.example": {"description": "Can't tell from the name", "category": "other", "suggestion": "ok", "why": "Untouched since 2019"},
+ "goneservice.example": {"description": "Can't tell from the name", "category": "other", "suggestion": "ok", "why": "The site no longer answers"},
+ "192.168.1.1": {"description": "The admin page of a home router", "category": "other", "suggestion": "ng", "why": "Not a web service account"},
+ "coupons.example": {"description": "A coupon and discount site", "category": "shopping", "suggestion": "ok", "why": "The service closed in 2024",
+                     "previous": {"round": 1, "label": "exchange", "detail": "Points were left. Exchange them on the points page, then delete."}},
+ "abcdefghijklmnopabcdefghijklmnop": {"description": "A browser extension, most likely a crypto wallet", "category": "other", "suggestion": "ng", "why": "Check that no assets are left first"},
+ "example.com": {"description": "A discussion forum", "category": "social", "suggestion": "ng", "why": "Opened in 2024"},
+ "clouddrive.example": {"description": "A file storage service", "category": "cloud", "suggestion": "ng", "why": "Opened this month"},
+ "example.co.jp": {"description": "A stationery shop", "category": "shopping", "suggestion": "ok", "why": "Not updated since 2025",
+                   "previous": {"round": 1, "label": "exchange", "detail": "A gift card balance was left. Use it, then delete."}},
+ "taskboard.example": {"description": "A task board for teams", "category": "work", "suggestion": "ng", "why": "Used for work"}}
+JSON
+  cp "$W/data/sheet.html" "$W/prev.html"
+  jq 'map(.previous = null)' "$W/data/matched.json" > "$W/plain.json"
+  "$S/build-sheet.sh" "$W/plain.json"
+  cp "$W/data/sheet.html" "$W/plain.html"
+  "$S/followup.sh" add example.net "Send the drafted erasure request from your own email"
+  "$S/followup.sh" add coupons.example "Points are still left on the points page"
+  "$S/followup.sh" add quickpizza.example "A Visa card is still saved as a payment method"
+  "$S/followup.sh" page
+  cp "$W/data/followups.html" "$W/followups.html"
+) > "$W/build.log" 2>&1
+
+cat > "$W/probe.js" <<'JS'
+(function () {
+  "use strict";
+  // Runs right after the page's own script, in a copy of the page. It presses the page's own buttons,
+  // writes what the page drew into #probe-result, and keeps a copy of each drawn state for verify.
+  function q(s, r) { return (r || document).querySelector(s); }
+  function qa(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+  function press(sel) { var b = q(sel); if (b) b.click(); return !!b; }
+  var snaps = document.createElement("div");
+  snaps.id = "probe-snapshots";
+  function snap(name) {
+    var s = document.createElement("section");
+    s.setAttribute("data-state", name);
+    s.appendChild(q("main").cloneNode(true));
+    qa("dialog").forEach(function (d) { var c = d.cloneNode(true); c.removeAttribute("open"); s.appendChild(c); });
+    snaps.appendChild(s);
+  }
+  function rgb(c) {
+    var m = c.match(/rgba?\(([^)]+)\)/);
+    if (!m) return null;
+    var p = m[1].split(/[ ,/]+/).filter(Boolean).map(Number);
+    return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 };
+  }
+  function lum(c) {
+    function f(v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }
+    return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b);
+  }
+  function blend(fg, bg) { return { r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 }; }
+  function background(el) {
+    var layers = [];
+    for (var e = el; e; e = e.parentElement) {
+      var c = rgb(getComputedStyle(e).backgroundColor);
+      if (c && c.a > 0) { layers.push(c); if (c.a >= 1) break; }
+    }
+    var base = { r: 255, g: 255, b: 255, a: 1 };
+    for (var i = layers.length - 1; i >= 0; i--) base = blend(layers[i], base);
+    return base;
+  }
+  // Text drawn under 4.5:1 against the background it sits on. Disabled controls are left out
+  function lowContrast(where) {
+    var out = [];
+    qa("body *").forEach(function (el) {
+      if (el.closest("#probe-snapshots, script, style, [hidden]")) return;
+      if (el.closest("dialog") && !el.closest("dialog[open]")) return;
+      var own = Array.prototype.some.call(el.childNodes, function (n) { return n.nodeType === 3 && n.textContent.trim(); });
+      if (!own) return;
+      var s = getComputedStyle(el), box = el.getBoundingClientRect();
+      if (s.visibility === "hidden" || s.display === "none" || box.width === 0 || el.disabled) return;
+      var fg = rgb(s.color), bg = background(el);
+      if (!fg) return;
+      fg = blend(fg, bg);
+      var a = lum(fg), b = lum(bg), ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+      if (ratio < 4.5) out.push(where + " \"" + el.textContent.trim().slice(0, 40) + "\" " + ratio.toFixed(2));
+    });
+    return out;
+  }
+  function themes(where) {
+    var out = [];
+    ["light", "dark"].forEach(function (theme) { press('[data-theme-choice="' + theme + '"]'); out = out.concat(lowContrast(theme + " " + where)); });
+    return out;
+  }
+  var result = { width: window.innerWidth, langs: {} };
+  ["en", "ja"].forEach(function (lang) {
+    press('[data-lang="' + lang + '"]');
+    var L = { tabs: {}, help: [], steps: [], contrast: [] };
+    result.langs[lang] = L;
+    if (!q("#tabs")) { L.contrast = themes(lang); snap(lang); return; }
+    qa("#tabs button").forEach(function (tab) {
+      if (tab.hidden) return;
+      tab.click();
+      var name = tab.getAttribute("data-t"), sel = q("#sort");
+      var T = { sort: sel.value, sortLabel: sel.selectedOptions[0] ? sel.selectedOptions[0].textContent : "", options: qa("option", sel).map(function (o) { return o.value; }), rows: [] };
+      var keys = qa("#rows .row").map(function (r) { return r.getAttribute("data-key"); });
+      keys.forEach(function (key, i) {
+        q('#rows .row[data-key="' + CSS.escape(key) + '"]').click();
+        var row = q('#rows .row[data-key="' + CSS.escape(key) + '"]'), d = q("#detail");
+        var b = q(".row-name b", row), s = q(".row-name small", row);
+        T.rows.push({
+          key: key, name: b.textContent, sub: s ? s.textContent : null, nameClipped: b.scrollWidth > b.clientWidth + 1,
+          detailTitle: q("h2", d) ? q("h2", d).textContent : null, detailKey: q(".key", d) ? q(".key", d).textContent : null
+        });
+        if (name === "all" || i === 0) L.contrast = L.contrast.concat(themes(lang + " " + name + " " + key));
+      });
+      if (keys.length) q('#rows .row[data-key="' + CSS.escape(keys[0]) + '"]').click();
+      snap(lang + "-" + name);
+      L.tabs[name] = T;
+    });
+    var help = q("#help");
+    if (help.showModal) help.showModal(); else help.setAttribute("open", "");
+    L.help = qa("#effort-help dt", help).map(function (dt) { var dd = dt.nextElementSibling; return [dt.textContent, dd ? dd.textContent : ""]; });
+    L.contrast = L.contrast.concat(themes(lang + " help"));
+    help.close();
+    L.steps = qa(".steps li").map(function (li) {
+      var s = q("span", li), lh = parseFloat(getComputedStyle(s).lineHeight), r = li.getBoundingClientRect();
+      return { top: Math.round(r.top), lines: Math.round(s.getBoundingClientRect().height / lh) };
+    });
+  });
+  var pre = document.createElement("pre");
+  pre.id = "probe-result";
+  pre.textContent = JSON.stringify(result);
+  document.body.appendChild(snaps);
+  document.body.appendChild(pre);
+})();
+JS
+
+# draw <name> <width>: opens a copy of $W/<name>.html with the probe in a window <width> pixels wide,
+# and writes what it drew to $W/<name>-<width>.json and the drawn page to $W/<name>-<width>.drawn.html.
+draw() {
+  python3 - "$W/$1.html" "$W/probe.js" "$W/$1-$2.probed.html" <<'PY' || return 1
+import sys
+page = open(sys.argv[1], encoding="utf-8").read()
+probe = open(sys.argv[2], encoding="utf-8").read()
+i = page.rindex("</body>")
+open(sys.argv[3], "w", encoding="utf-8").write(page[:i] + "<script>\n" + probe + "\n</script>\n" + page[i:])
+PY
+  "$real_browser" --headless --disable-gpu --no-first-run --no-default-browser-check --disable-extensions \
+    --user-data-dir="$W/profile-$1-$2" --window-size="$2,900" --dump-dom "file://$W/$1-$2.probed.html" > "$W/$1-$2.dom.html" 2>/dev/null || return 1
+  python3 - "$W/$1-$2.dom.html" "$W/$1-$2.json" "$W/$1-$2.drawn.html" <<'PY'
+import html, re, sys
+page = open(sys.argv[1], encoding="utf-8").read()
+m = re.search(r'<pre id="probe-result">(.*?)</pre>', page, re.S)
+if not m:
+    sys.exit(1)
+open(sys.argv[2], "w", encoding="utf-8").write(html.unescape(m.group(1)))
+open(sys.argv[3], "w", encoding="utf-8").write(page[:m.start()] + page[m.end():])
+PY
+}
+
+# drawn <what>: one check on what the probe recorded, with the reason printed when it fails.
+cat > "$W/check.py" <<'PY'
+import json, re, sys
+what, W, template = sys.argv[1:4]
+
+def result(name, width):
+    return json.load(open("%s/%s-%s.json" % (W, name, width), encoding="utf-8"))
+
+def candidates(name):
+    page = open("%s/%s.html" % (W, name), encoding="utf-8").read()
+    return {g["key"]: g for g in json.loads(re.search(r'<script type="application/json" id="data">\s*(.*?)\s*</script>', page, re.S).group(1))}
+
+def fail(why):
+    print("      " + why)
+    sys.exit(1)
+
+def adds(name, key):
+    n, k = name.lower(), key.lower()
+    return n != k and not n.endswith("." + k)
+
+def has_prev(g):
+    return bool(g.get("previous") and g["previous"].get("label"))
+
+if what == "domain-line":
+    shapes = set()
+    for lang, L in result("prev", 1400)["langs"].items():
+        for row in L["tabs"]["all"]["rows"]:
+            want = row["key"] if adds(row["name"], row["key"]) else None
+            if row["sub"] != want or row["detailKey"] != want:
+                fail("%s %s: under the name %r the row shows %r and the details show %r, expected %r" % (lang, row["key"], row["name"], row["sub"], row["detailKey"], want))
+            n, k = row["name"].lower(), row["key"].lower()
+            shapes.add("same" if n == k else "host" if n.endswith("." + k) else "other")
+    if shapes != {"same", "host", "other"}:
+        fail("the candidates hold only these shapes of name and domain: %s" % sorted(shapes))
+
+elif what == "whole-names":
+    extension = False
+    for width in (1400, 390):
+        for lang, L in result("prev", width)["langs"].items():
+            for tab, T in L["tabs"].items():
+                for row in T["rows"]:
+                    if row["nameClipped"]:
+                        fail("%spx %s %s: the name %r is cut" % (width, lang, tab, row["name"]))
+                    if re.fullmatch(r"[a-p]{32}", row["key"]):
+                        extension = True
+                        if row["name"] != row["key"]:
+                            fail("%spx %s: the extension shows %r instead of its ID" % (width, lang, row["name"]))
+    if not extension:
+        fail("no browser extension among the candidates")
+
+elif what == "sort-follows":
+    for name in ("prev", "plain"):
+        data = candidates(name)
+        for lang, L in result(name, 1400)["langs"].items():
+            for tab, T in L["tabs"].items():
+                rows = [data[r["key"]] for r in T["rows"]]
+                where = "%s sheet, %s, %s tab, sort %r (%s)" % (name, lang, tab, T["sort"], T["sortLabel"])
+                if T["sort"] == "prev":
+                    flags = [has_prev(g) for g in rows]
+                    if not any(flags) or flags != sorted(flags, reverse=True):
+                        fail(where + ": the rows are not in the order of their last-round results")
+                    labels = [g["previous"]["label"].lower() for g in rows if has_prev(g)]
+                    if labels != sorted(labels):
+                        fail(where + ": the last-round results are not in order")
+                elif T["sort"] in ("old", "new"):
+                    dates = [g.get("updated") or "" for g in rows]
+                    if dates != sorted(dates, reverse=T["sort"] == "new"):
+                        fail(where + ": the rows are not in the order of their last update")
+                else:
+                    fail(where + ": the tab starts with a sort the check does not know")
+
+elif what == "prev-only-where-it-applies":
+    data = candidates("prev")
+    for lang, L in result("prev", 1400)["langs"].items():
+        for tab, T in L["tabs"].items():
+            some = any(has_prev(data[r["key"]]) for r in T["rows"])
+            if ("prev" in T["options"]) != some:
+                fail("%s %s tab: offers the sort by last round's result %s, and has rows with a last-round result %s" % (lang, tab, "prev" in T["options"], some))
+
+elif what == "plain-never-prev":
+    for lang, L in result("plain", 1400)["langs"].items():
+        if "prev" in L["tabs"]:
+            fail("%s: the sheet without a last round shows the tab of leftovers" % lang)
+        for tab, T in L["tabs"].items():
+            if "prev" in T["options"]:
+                fail("%s %s tab: the sheet without a last round offers the sort by last round's result" % (lang, tab))
+
+elif what == "effort-help":
+    page = open(template, encoding="utf-8").read()
+    efforts = re.findall(r"^\s*diff: \{(.*?)\},?$", page, re.M)
+    gone = re.findall(r'^\s*diffGone: "([^"]*)"', page, re.M)
+    if len(efforts) != 2 or len(gone) != 2:
+        fail("the dictionary of the template does not hold one diff table and one diffGone per language")
+    for i, lang in enumerate(("en", "ja")):
+        want = set(re.findall(r'"([^"]*)"', re.sub(r"\b\w+:", "", efforts[i]))) | {gone[i]}
+        shown = {}
+        for label, text in result("prev", 1400)["langs"][lang]["help"]:
+            shown[label.strip()] = text.strip()
+        missing = sorted(l for l in want if not shown.get(l) or shown[l] == l)
+        if missing:
+            fail("%s: the help does not explain %s" % (lang, ", ".join(missing)))
+
+elif what in ("sheet-contrast", "followups-contrast"):
+    runs = [("prev", 1400), ("prev", 390), ("plain", 1400)] if what == "sheet-contrast" else [("followups", 1400)]
+    low = []
+    for name, width in runs:
+        for lang, L in result(name, width)["langs"].items():
+            low += ["%s %spx %s" % (name, width, x) for x in L["contrast"]]
+    if low:
+        seen = sorted(set(re.search(r"\"[^\"]*\" [\d.]+$", x).group(0) for x in low))
+        fail("text under 4.5:1 in %d places, such as %s" % (len(low), "; ".join(seen[:8])))
+
+elif what == "steps":
+    for lang, L in result("prev", 1400)["langs"].items():
+        steps = L["steps"]
+        if len(steps) != 3 or len({s["top"] for s in steps}) != 1 or any(s["lines"] != 1 for s in steps):
+            fail("%s: the steps sit at %s with %s lines" % (lang, [s["top"] for s in steps], [s["lines"] for s in steps]))
+PY
+drawn() { python3 "$W/check.py" "$1" "$W" "$TEMPLATE"; }
+verify_drawn() {
+  local f bad=0
+  for f in "$@"; do
+    python3 "$PAGE_DESIGN" verify "$W/$f.drawn.html" > "$W/$f.verify" 2>&1 || { sed 's/^/      /' "$W/$f.verify" | head -6; bad=1; }
+  done
+  return "$bad"
+}
+
+DRAWN_CHECKS="the drawn sheet shows the domain under a name only when it adds something
+the drawn sheet shows every name whole at 1400px and 390px
+each tab of the drawn sheet shows the sort its rows follow
+the drawn sheet offers the sort by last round's result only on tabs with such rows
+the drawn sheet without a last round never offers the sort by last round's result
+the help of the drawn sheet explains every deletion effort in both languages
+every text on the drawn sheet has a contrast of at least 4.5 to 1 in both themes
+the three steps of the drawn sheet sit on one row with one line each at 1400px
+every drawn state of the sheet passes page-design verify
+the drawn follow-up page keeps a contrast of 4.5 to 1 and passes page-design verify"
+if [ -z "$real_browser" ]; then
+  while IFS= read -r c; do skip "$c (no Chromium-based browser)"; done <<< "$DRAWN_CHECKS"
+elif [ ! -s "$W/prev.html" ] || [ ! -s "$W/plain.html" ] || [ ! -s "$W/followups.html" ]; then
+  sed 's/^/      /' "$W/build.log" | tail -5
+  while IFS= read -r c; do ng "$c (the pages to draw were not built)"; done <<< "$DRAWN_CHECKS"
+elif ! { draw prev 1400 && draw prev 390 && draw plain 1400 && draw followups 1400; }; then
+  while IFS= read -r c; do ng "$c (the browser did not draw the pages)"; done <<< "$DRAWN_CHECKS"
+else
+  check "the drawn sheet shows the domain under a name only when it adds something" "drawn domain-line"
+  check "the drawn sheet shows every name whole at 1400px and 390px" "drawn whole-names"
+  check "each tab of the drawn sheet shows the sort its rows follow" "drawn sort-follows"
+  check "the drawn sheet offers the sort by last round's result only on tabs with such rows" "drawn prev-only-where-it-applies"
+  check "the drawn sheet without a last round never offers the sort by last round's result" "drawn plain-never-prev"
+  check "the help of the drawn sheet explains every deletion effort in both languages" "drawn effort-help"
+  check "every text on the drawn sheet has a contrast of at least 4.5 to 1 in both themes" "drawn sheet-contrast"
+  check "the three steps of the drawn sheet sit on one row with one line each at 1400px" "drawn steps"
+  if [ -f "$PAGE_DESIGN" ]; then
+    check "every drawn state of the sheet passes page-design verify" "verify_drawn prev-1400 prev-390 plain-1400"
+    check "the drawn follow-up page keeps a contrast of 4.5 to 1 and passes page-design verify" \
+      "drawn followups-contrast && verify_drawn followups-1400"
+  else
+    skip "every drawn state of the sheet passes page-design verify (page-design is not next to this plugin)"
+    skip "the drawn follow-up page keeps a contrast of 4.5 to 1 and passes page-design verify (page-design is not next to this plugin)"
+  fi
+fi
+
 # --- permissions and cleanup.sh
 check "the data folder is readable only by the user" '[ "$(mode "$D")" = 700 ]'
 loose="$(find "$D" -type f ! -perm 600)"
@@ -473,5 +912,5 @@ PY
 }
 check "the SKILL.md stays within its size limits" "skill_size"
 
-printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
+printf '\n%d passed, %d failed (%d ran, %d skipped)\n' "$PASS" "$FAIL" "$((PASS + FAIL))" "$SKIP"
 [ "$FAIL" = 0 ]
