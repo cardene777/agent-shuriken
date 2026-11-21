@@ -17,6 +17,8 @@
 #   7. The SKILL.md and its eval suite.
 #   8. The interface words live only in assets/ui.json, the built pages carry that dictionary,
 #      and the words written into the pages and the step ladders match it.
+#   9. With a headless browser, at a desktop and a phone width: captions, step ladders, and charts
+#      as drawn (lines and text, text size, colors in light and dark, fitting or scrolling with a cue).
 #
 # Exit 0 when every case passes, 1 when any fails (the failing cases are listed),
 # 77 when python3 is missing.
@@ -643,6 +645,422 @@ PYEOF
 else
   _fail "8-7 doc.js shows the words of the dictionary in the page" "the English sample was not built"
 fi
+
+# --- 9. Figures as drawn ---
+# The figures are measured after the browser draws them, section by section, the way a reader
+# opens them: at a desktop width (1400) and a phone width (390), in both samples. A probe opens
+# each section with the page and contents buttons, measures the drawn figures (and the colors
+# in the light and the dark theme), and writes what it found into the page as JSON.
+
+FIG_CAPTIONS="$(python3 - "$EN" "$JA" <<'PYEOF'
+import re, sys
+out = []
+for path in sys.argv[1:]:
+    try:
+        doc = open(path, encoding="utf-8").read()
+    except OSError:
+        out.append("%s was not built" % path.rsplit("/", 1)[-1])
+        continue
+    caps = re.findall(r"<figcaption>(.*?)</figcaption>", doc, re.S)
+    if not caps:
+        out.append("%s has no captions" % path.rsplit("/", 1)[-1])
+    for cap in caps:
+        if not re.match(r'<span class="fig-no">(?:Figure \d+|図\d+)</span>\S', cap):
+            out.append("%s: %s" % (path.rsplit("/", 1)[-1], re.sub(r"\s+", " ", cap)[:60]))
+print(" / ".join(out))
+PYEOF
+)"
+_assert "9-1 figure captions keep the number in its own element with no space after it" "" "$FIG_CAPTIONS"
+
+cat > "$WORK/probe.js" <<'JSEOF'
+(function () {
+  'use strict';
+  var CJK = /[぀-ヿ㐀-䶿一-鿿]/;
+  function rgb(s) {
+    var m = /rgba?\(([^)]*)\)/.exec(s || '');
+    if (!m) return null;
+    var p = m[1].split(/[\s,\/]+/).filter(Boolean).map(parseFloat);
+    return { c: [p[0], p[1], p[2]], a: p.length > 3 ? p[3] : 1 };
+  }
+  function lum(c) {
+    var a = c.map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+    return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
+  }
+  function ratio(a, b) { var x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
+  function mix(c, a, base) { return [0, 1, 2].map(function (i) { return c[i] * a + base[i] * (1 - a); }); }
+  function box(el) { return el.getBoundingClientRect(); }
+  function shrink(r, d) { return { left: r.left + d, right: r.right - d, top: r.top + d, bottom: r.bottom - d }; }
+  function hit(a, b) { return a.left <= b.right && a.right >= b.left && a.top <= b.bottom && a.bottom >= b.top; }
+  function inter(a, b) { return { left: Math.max(a.left, b.left), right: Math.min(a.right, b.right), top: Math.max(a.top, b.top), bottom: Math.min(a.bottom, b.bottom) }; }
+  function covers(a, b) { return a.left <= b.left + 0.5 && a.right >= b.right - 0.5 && a.top <= b.top + 0.5 && a.bottom >= b.bottom - 0.5; }
+  function later(a, b) { return !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING); }
+  function shown(el) { return !!el && el.getClientRects().length > 0; }
+  function words(el) { return (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 40); }
+  function viewWidth(svg) { var v = svg.viewBox && svg.viewBox.baseVal; return v && v.width ? v.width : 0; }
+  function round(v) { return Math.round(v * 100) / 100; }
+  function chain(el, stop) {
+    var a = 1;
+    for (var n = el; n && n !== stop; n = n.parentNode) if (n.nodeType === 1) a *= parseFloat(getComputedStyle(n).opacity);
+    return a;
+  }
+  function paintOf(el, stop, key) {
+    var cs = getComputedStyle(el), p = rgb(cs[key]);
+    if (!p) return null;
+    return { c: p.c, a: p.a * parseFloat(key === 'fill' ? cs.fillOpacity : cs.strokeOpacity) * chain(el, stop) };
+  }
+  function drawn(svg) {
+    return [].filter.call(svg.querySelectorAll('*'), function (n) { return !n.closest('defs') && shown(n); });
+  }
+  // The color under the middle of an element: the frame, then every shape drawn before it there.
+  function behind(el, svg, panel) {
+    var r = box(el), cx = (r.left + r.right) / 2, cy = (r.top + r.bottom) / 2, color = panel;
+    drawn(svg).forEach(function (n) {
+      if (n === el || n.tagName.toLowerCase() !== 'rect' || !later(n, el)) return;
+      var b = box(n);
+      if (cx < b.left || cx > b.right || cy < b.top || cy > b.bottom) return;
+      var f = paintOf(n, svg.parentNode, 'fill');
+      if (f) color = mix(f.c, f.a, color);
+    });
+    return color;
+  }
+  function frameOf(svg) {
+    var fig = svg.closest('figure');
+    for (var n = svg.parentNode; n && n !== fig; n = n.parentNode) {
+      var o = getComputedStyle(n).overflowX;
+      if (o === 'auto' || o === 'scroll') return n;
+    }
+    return fig;
+  }
+  function masked(el) {
+    var cs = getComputedStyle(el);
+    return (cs.maskImage && cs.maskImage !== 'none') || (cs.webkitMaskImage && cs.webkitMaskImage !== 'none');
+  }
+  function frameState(svg) {
+    var fig = svg.closest('figure'), f = frameOf(svg), hint = fig.querySelector('.fig-more');
+    var st = { over: f.scrollWidth > f.clientWidth + 1, hint: !!hint, hintShown: shown(hint) && !!words(hint), masked: !!masked(f), more: f.getAttribute('data-more') || '' };
+    if (st.over) {
+      f.scrollLeft = f.scrollWidth;
+      f.dispatchEvent(new Event('scroll'));
+      st.moreAtEnd = f.getAttribute('data-more') || '';
+      f.scrollLeft = 0;
+      f.dispatchEvent(new Event('scroll'));
+    }
+    return st;
+  }
+
+  function chartOf(svg) {
+    var fig = svg.closest('figure'), panel = rgb(getComputedStyle(fig).backgroundColor).c, stop = svg.parentNode;
+    var nodes = drawn(svg);
+    var texts = nodes.filter(function (n) { return n.tagName.toLowerCase() === 'text' && words(n); });
+    var lines = nodes.filter(function (n) { var t = n.tagName.toLowerCase(); return (t === 'line' || t === 'path') && getComputedStyle(n).stroke !== 'none'; });
+    var rects = nodes.filter(function (n) { return n.tagName.toLowerCase() === 'rect' && box(n).width > 0 && box(n).height > 0; });
+    var c = { kind: svg.getAttribute('data-chart'), crossing: [], overlaps: [], axisGap: null, light: [], dark: [], font: 99, scale: null, frame: frameState(svg) };
+    var scale = box(svg).width / (viewWidth(svg) || 1);
+    c.scale = round(box(svg).width - viewWidth(svg));
+    texts.forEach(function (t) { c.font = Math.min(c.font, round(parseFloat(getComputedStyle(t).fontSize) * scale)); });
+    // Lines that pass through text: hidden there by an opaque shape drawn after them, or under
+    // a text drawn after them with an outline in the color behind it.
+    lines.forEach(function (l) {
+      var lr = box(l);
+      texts.forEach(function (t) {
+        var tr = shrink(box(t), 1);
+        if (!hit(lr, tr)) return;
+        var spot = inter(lr, tr);
+        var hidden = rects.some(function (r) {
+          if (!later(l, r)) return false;
+          var f = paintOf(r, stop, 'fill');
+          return f && f.a > 0.999 && covers(box(r), spot);
+        });
+        if (hidden) return;
+        var cs = getComputedStyle(t), s = rgb(cs.stroke);
+        var outlined = later(l, t) && s && parseFloat(cs.strokeWidth) >= 2 && /^stroke/.test(cs.paintOrder || '') &&
+          ratio(s.c, behind(t, svg, panel)) < 1.1;
+        if (!outlined) c.crossing.push(words(t));
+      });
+    });
+    for (var i = 0; i < texts.length; i++) {
+      for (var j = i + 1; j < texts.length; j++) {
+        if (hit(shrink(box(texts[i]), 1), shrink(box(texts[j]), 1))) c.overlaps.push(words(texts[i]) + ' / ' + words(texts[j]));
+      }
+    }
+    // A dot drawn over a text hides part of it.
+    nodes.filter(function (n) { return n.tagName.toLowerCase() === 'circle'; }).forEach(function (d) {
+      texts.forEach(function (t) {
+        if (later(t, d) && hit(shrink(box(d), 1), shrink(box(t), 1))) c.overlaps.push('dot over ' + words(t));
+      });
+    });
+    if (c.kind === 'timeband') {
+      var axis = texts.filter(function (t) { return t.getAttribute('data-ui') === 'hour'; });
+      var rest = texts.filter(function (t) { return t.getAttribute('data-ui') !== 'hour'; });
+      if (axis.length && rest.length) {
+        c.axisGap = round(Math.min.apply(null, axis.map(function (t) { return box(t).top; })) -
+                          Math.max.apply(null, rest.map(function (t) { return box(t).bottom; })));
+      }
+    }
+    if (c.kind === 'capbar') {
+      var track = rects.filter(function (r) { return (r.style.getPropertyValue('fill') || '').indexOf('--track') >= 0; })[0];
+      if (track) {
+        var y = track.getAttribute('y'), h = track.getAttribute('height'), tb = box(track);
+        var segs = rects.filter(function (r) { return r !== track && r.getAttribute('y') === y && r.getAttribute('height') === h; });
+        var limit = lines.filter(function (l) { var b = box(l); return b.width < 4 && b.top < tb.top && b.bottom > tb.bottom; })[0];
+        c.limit = !limit ? 'no limit line' : segs.filter(function (s) { return !later(s, limit); }).map(words).length ? 'drawn before a segment' : '';
+      } else {
+        c.limit = 'no track';
+      }
+    }
+    // Colors: bars against what is behind them (their outline when the fill matches the
+    // background), and text against what is behind it.
+    ['light', 'dark'].forEach(function (theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      var bg = rgb(getComputedStyle(fig).backgroundColor).c;
+      rects.forEach(function (r) {
+        if ((r.style.getPropertyValue('fill') || '').indexOf('--track') >= 0) return;
+        var under = behind(r, svg, bg), f = paintOf(r, stop, 'fill');
+        if (!f) { c[theme].push('bar with a gradient or no fill'); return; }
+        var shade = mix(f.c, f.a, under), k = ratio(shade, under);
+        if (k < 1.05) {
+          var s = paintOf(r, stop, 'stroke');
+          if (s && parseFloat(getComputedStyle(r).strokeWidth) >= 1.5) k = ratio(mix(s.c, s.a, under), under);
+        }
+        if (k < 3) c[theme].push('bar ' + round(k));
+      });
+      texts.forEach(function (t) {
+        var under = behind(t, svg, bg), f = paintOf(t, stop, 'fill');
+        var k = f ? ratio(mix(f.c, f.a, under), under) : 0;
+        if (k < 4.5) c[theme].push(words(t) + ' ' + round(k));
+      });
+    });
+    document.documentElement.setAttribute('data-theme', 'light');
+    return c;
+  }
+
+  function ladderOf(svg) {
+    var fig = svg.closest('figure'), fb = box(fig), cs = getComputedStyle(fig);
+    var inner = { left: fb.left + parseFloat(cs.borderLeftWidth) + parseFloat(cs.paddingLeft), right: fb.right - parseFloat(cs.borderRightWidth) - parseFloat(cs.paddingRight) };
+    var parts = [].slice.call(svg.querySelectorAll('.lad-node, .lad-blabel, .lad-band, .lad-back')).map(box);
+    var nodes = [].slice.call(svg.querySelectorAll('.lad-node')).map(box);
+    var labels = [].slice.call(svg.querySelectorAll('.lad-blabel')).map(box);
+    var left = Math.min.apply(null, parts.map(function (r) { return r.left; }));
+    var right = Math.max.apply(null, parts.map(function (r) { return r.right; }));
+    var nodeLeft = Math.min.apply(null, nodes.map(function (r) { return r.left; }));
+    var scale = box(svg).width / (viewWidth(svg) || 1), font = 99;
+    [].forEach.call(svg.querySelectorAll('text'), function (t) { font = Math.min(font, parseFloat(getComputedStyle(t).fontSize) * scale); });
+    return {
+      gaps: [round(left - inner.left), round(inner.right - right)],
+      beside: labels.length > 0 && labels.every(function (r) { return r.right < nodeLeft && r.left >= inner.left - 0.5; }),
+      font: round(font), frame: frameState(svg)
+    };
+  }
+
+  function measure(sec) {
+    var m = { id: sec.id, captions: [], charts: [], ladders: [], nodes: [], letters: [] };
+    [].forEach.call(sec.querySelectorAll('figcaption'), function (cap) {
+      var no = cap.querySelector('.fig-no'), next = no && no.nextSibling;
+      if (!no || !next || next.nodeType !== 3 || !next.length) { m.captions.push(null); return; }
+      var range = document.createRange();
+      range.setStart(next, 0);
+      range.setEnd(next, 1);
+      m.captions.push(round(range.getBoundingClientRect().left - box(no).right));
+    });
+    [].forEach.call(sec.querySelectorAll('svg[data-chart]'), function (svg) { m.charts.push(chartOf(svg)); });
+    [].forEach.call(sec.querySelectorAll('svg.ladfig'), function (svg) { m.ladders.push(ladderOf(svg)); });
+    [].forEach.call(sec.querySelectorAll('figure.free .node'), function (node) {
+      var cs = getComputedStyle(node), nb = box(node), range = document.createRange();
+      range.selectNodeContents(node);
+      var inner = nb.height - parseFloat(cs.borderTopWidth) - parseFloat(cs.borderBottomWidth) - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+      m.nodes.push({ text: words(node), extra: round(inner - range.getBoundingClientRect().height) });
+    });
+    if (/^ja/.test(document.documentElement.lang)) {
+      [].forEach.call(document.querySelectorAll('body *'), function (el) {
+        if (!shown(el)) return;
+        var own = [].some.call(el.childNodes, function (n) { return n.nodeType === 3 && CJK.test(n.nodeValue); });
+        if (!own) return;
+        var ls = getComputedStyle(el).letterSpacing;
+        if (ls !== 'normal' && parseFloat(ls) !== 0) m.letters.push(el.tagName.toLowerCase() + '.' + (el.getAttribute('class') || '') + ' ' + ls);
+      });
+    }
+    return m;
+  }
+
+  function done(result) {
+    var pre = document.createElement('pre');
+    pre.textContent = '@@PROBE@@' + JSON.stringify(result) + '@@PROBE@@';
+    document.body.insertBefore(pre, document.body.firstChild);
+  }
+
+  setTimeout(function () {
+    var out = [];
+    try {
+      var tabs = [].slice.call(document.querySelectorAll('.doc-pages button[data-page]'));
+      var groups = tabs.length ? tabs.map(function (b) { return { tab: b, key: b.getAttribute('data-page') }; }) : [{ tab: null, key: null }];
+      groups.forEach(function (g) {
+        if (g.tab) g.tab.click();
+        var nav = g.key ? document.querySelector('nav.doc-toc[data-page="' + g.key + '"]') : document.querySelector('nav.doc-toc');
+        [].forEach.call(nav.querySelectorAll('button[data-sec]'), function (b) {
+          b.click();
+          var sec = document.getElementById(b.getAttribute('data-sec'));
+          if (sec) out.push(measure(sec));
+        });
+      });
+      done({ sections: out });
+    } catch (e) {
+      done({ error: String(e && e.stack || e) });
+    }
+  }, 300);
+})();
+JSEOF
+
+probe() {
+  python3 - "$SCRIPTS" "$1" "$WORK/probe.js" "$2" "$3" <<'PYEOF'
+import json, re, sys
+sys.path.insert(0, sys.argv[1])
+import chrome
+page, probe, width, out = sys.argv[2], sys.argv[3], int(sys.argv[4]), sys.argv[5]
+exe, _looked = chrome.find_chrome()
+if not exe:
+    print("NO_BROWSER")
+    sys.exit(0)
+doc = open(page, encoding="utf-8").read()
+i = doc.lower().rfind("</body>")
+script = "<script>" + open(probe, encoding="utf-8").read() + "</script>"
+copy = out + ".html"
+open(copy, "w", encoding="utf-8").write(doc[:i] + script + doc[i:])
+dom, err = chrome.run(exe, copy, width, 900, 5000, 180)
+if err:
+    print("BROWSER_ERROR " + err)
+    sys.exit(0)
+m = re.search(r"@@PROBE@@(.*?)@@PROBE@@", dom, re.S)
+if not m:
+    print("NO_RESULT")
+    sys.exit(0)
+open(out, "w", encoding="utf-8").write(m.group(1))
+print("OK")
+PYEOF
+}
+
+PROBED=1
+for lang in en ja; do
+  for width in 1400 390; do
+    if [ ! -f "$WORK/doc-$lang.html" ]; then PROBED=0; continue; fi
+    state="$(probe "$WORK/doc-$lang.html" "$width" "$WORK/probe-$lang-$width.json")"
+    if [ "$state" = "NO_BROWSER" ]; then
+      echo "  skip: no browser (9 browser cases)"
+      PROBED=0
+      break 2
+    fi
+    [ "$state" = "OK" ] || { echo "  probe $lang $width: $state"; PROBED=0; }
+  done
+done
+
+if [ "$PROBED" = 1 ]; then
+  python3 - "$WORK" > "$WORK/figures.txt" <<'PYEOF'
+import html, json, os, sys
+work = sys.argv[1]
+runs = {}
+for lang in ("en", "ja"):
+    for width in (1400, 390):
+        data = json.load(open(os.path.join(work, "probe-%s-%d.json" % (lang, width)), encoding="utf-8"))
+        runs[(lang, width)] = data
+problems = {k: [] for k in ("9-2", "9-3", "9-4", "9-5", "9-6", "9-7", "9-8", "9-9", "9-10", "9-11", "9-12", "9-13")}
+for (lang, width), data in sorted(runs.items()):
+    where = "%s %d" % (lang, width)
+    if "error" in data:
+        for k in problems:
+            problems[k].append("%s: the probe failed (%s)" % (where, data["error"].splitlines()[0]))
+        continue
+    for sec in data["sections"]:
+        at = "%s %s" % (where, sec["id"])
+        for gap in sec["captions"]:
+            if gap is None or gap < 4:
+                problems["9-2"].append("%s: caption gap %s" % (at, gap))
+        for lad in sec["ladders"]:
+            if width == 1400:
+                left, right = lad["gaps"]
+                if abs(left - right) > 4 or not lad["beside"]:
+                    problems["9-3"].append("%s: gaps %s/%s, label beside %s" % (at, left, right, lad["beside"]))
+            if lad["font"] < 11.95:
+                problems["9-12"].append("%s: ladder text %spx" % (at, lad["font"]))
+        frames = [(c["kind"], c["frame"]) for c in sec["charts"]] + [("ladder", l["frame"]) for l in sec["ladders"]]
+        for kind, f in frames:
+            if width == 1400 and (f["over"] or not f["hint"] or f["hintShown"] or f["masked"]):
+                problems["9-10"].append("%s %s: %s" % (at, kind, json.dumps(f, sort_keys=True)))
+            if width == 390:
+                if f["over"]:
+                    ok = f["hint"] and f["hintShown"] and f["masked"] and "right" in f["more"] and \
+                        "left" in f.get("moreAtEnd", "") and "right" not in f.get("moreAtEnd", "")
+                else:
+                    ok = f["hint"] and not f["hintShown"] and not f["masked"]
+                if not ok:
+                    problems["9-11"].append("%s %s: %s" % (at, kind, json.dumps(f, sort_keys=True)))
+        for c in sec["charts"]:
+            name = "%s %s" % (at, c["kind"])
+            if c["crossing"]:
+                problems["9-4"].append("%s: %s" % (name, ", ".join(sorted(set(c["crossing"])))[:200]))
+            if c["kind"] == "capbar" and c.get("limit"):
+                problems["9-5"].append("%s: %s" % (name, c["limit"]))
+            if c["overlaps"]:
+                problems["9-6"].append("%s overlaps: %s" % (name, "; ".join(c["overlaps"])[:200]))
+            if c["kind"] == "timeband" and (c["axisGap"] is None or c["axisGap"] < 12):
+                problems["9-6"].append("%s: axis gap %s" % (name, c["axisGap"]))
+            for theme in ("light", "dark"):
+                if c[theme]:
+                    problems["9-7"].append("%s %s: %s" % (name, theme, ", ".join(c[theme])[:200]))
+            if c["font"] < 11.95:
+                problems["9-12"].append("%s: text %spx" % (name, c["font"]))
+            if abs(c["scale"]) > 1:
+                problems["9-13"].append("%s: drawn %s px off its frame" % (name, c["scale"]))
+        for node in sec["nodes"]:
+            if node["extra"] > 2:
+                problems["9-8"].append("%s: %s has %spx under its text" % (at, node["text"][:24], node["extra"]))
+        if lang == "ja":
+            for item in sec["letters"]:
+                problems["9-9"].append("%s: %s" % (at, item))
+for k, v in problems.items():
+    seen = []
+    for item in v:
+        if item not in seen:
+            seen.append(item)
+    print("%s\t%s" % (k, " / ".join(seen)[:600]))
+PYEOF
+fi
+
+figure_case() {
+  local name="$1" key="${1%% *}" got
+  if [ "$PROBED" != 1 ]; then
+    _fail "$name" "the probe did not run in both samples at both widths"
+    return
+  fi
+  got="$(awk -F '\t' -v k="$key" '$1 == k { print $2 }' "$WORK/figures.txt")"
+  _assert "$name" "" "$got"
+}
+figure_case "9-2 the figure number keeps a gap from the caption in the browser"
+figure_case "9-3 the step ladder sits in the middle of its frame with the loop label beside it"
+figure_case "9-4 chart guide and grid lines do not show through chart text"
+figure_case "9-5 the capped bar draws its limit line above the segments"
+figure_case "9-6 chart texts do not overlap and the time band note keeps clear of the axis"
+figure_case "9-7 chart bars keep 3 to 1 and chart text 4.5 to 1 against what is behind them in light and dark"
+figure_case "9-8 the boxes of figure 1 take the height of their own text"
+figure_case "9-9 Japanese text gets no added letter-spacing"
+figure_case "9-10 figures fit their frame at desktop width without a cue"
+figure_case "9-11 figures that do not fit at phone width scroll with a visible cue"
+figure_case "9-12 chart and ladder text stays at 12px or more at desktop and phone width"
+figure_case "9-13 a chart drawn while its section is hidden is drawn again at its frame width when the section opens"
+
+FIG_DOCS="$(python3 - "$SKILL_DIR" <<'PYEOF'
+import os, sys
+skill = sys.argv[1]
+out = []
+for rel in ("SKILL.md", "references/chart-shape.md", "references/ladder-shape.md"):
+    text = open(os.path.join(skill, rel), encoding="utf-8").read()
+    for phrase in ("fits its frame", "scrolls sideways", "fades the edge"):
+        if phrase not in text:
+            out.append("%s does not say %r" % (rel, phrase))
+    if "720" in text:
+        out.append("%s still names the 720 px minimum" % rel)
+print(" / ".join(out))
+PYEOF
+)"
+_assert "9-14 SKILL.md and the chart and ladder references say when a figure fits and when it scrolls with a cue" "" "$FIG_DOCS"
 
 echo ""
 echo "[test-render] ran: $((PASS + FAIL))"

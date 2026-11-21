@@ -8,14 +8,16 @@
   --lad-plain: var(--edge, #64748b);
   --lad-strong: var(--ink, #1a1d24);
   --lad-back: var(--edge-dashed, #8b5cf6);
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
 }
+/* ladder.py writes the drawing's own width as --lad-w. The ladder sits in the middle of its frame
+   and grows with it up to 1.25 times that width. It never shrinks below it, because smaller text
+   would be unreadable: a narrower frame scrolls sideways, and doc.js shows that it continues. */
 .ladder svg.ladfig {
   display: block;
+  margin: 0 auto;
   width: 100%;
-  /* Shrinking without limit makes the text unreadable, so stop at a minimum and scroll sideways. */
-  min-width: 720px;
+  min-width: var(--lad-w, 720px);
+  max-width: calc(var(--lad-w, 720px) * 1.25);
   height: auto;
 }
 .ladfig .lad-node { fill: var(--panel, #fff); stroke: var(--line, #e3e5ea); stroke-width: 1; }
@@ -45,4 +47,6 @@
 .ladfig .lad-place { font-size: 12px; fill: var(--ink-sub, #545a66); text-anchor: end; }
 .ladfig .lad-who { font-size: 12px; font-weight: 700; text-anchor: end; }
 .ladfig .lad-band { font-size: 13px; font-weight: 700; letter-spacing: 0.14em; }
-.ladfig .lad-blabel { font-size: 12px; fill: var(--ink-sub, #545a66); text-anchor: end; }
+/* The wide spacing is for Latin capitals; Japanese text gets no added letter-spacing. */
+.ladfig .lad-band:lang(ja) { letter-spacing: normal; }
+.ladfig .lad-blabel { font-size: 12px; fill: var(--ink-sub, #545a66); }

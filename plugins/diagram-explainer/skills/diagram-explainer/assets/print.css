@@ -22,6 +22,11 @@ html[data-paper="all"] .doc-page[hidden] { display: block !important; }
 html[data-paper] .doc-sec { display: block !important; width: 794px; max-width: none; margin: 24px auto; padding: 56px 60px; background: #fff; box-shadow: 0 2px 12px rgba(0, 0, 0, .08); break-after: page; }
 html[data-paper] details.exp > .exp-body { display: block !important; }
 html[data-paper] .chart svg.paper-only { display: block; margin-top: 14px; }
+/* A sheet cannot scroll: wide charts and step ladders shrink to the width of the sheet, without
+   the faded edge and the line that says the figure scrolls. */
+html[data-paper] .fig-scroll { overflow: visible; -webkit-mask-image: none !important; mask-image: none !important; }
+html[data-paper] .fig-scroll svg { min-width: 0 !important; }
+html[data-paper] .fig-more { display: none !important; }
 html[data-paper] .chart g[data-lane] { opacity: 1 !important; }
 html[data-paper] .doc-views-list { display: block; margin: 12px 0 0; padding-left: 1.2em; font-size: 14px; color: var(--ink-2); }
 /* Keep each figure, card, key, note, comparison, table row, and code block on one sheet,

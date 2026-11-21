@@ -25,7 +25,7 @@ The procedure is in `skills/diagram-explainer/SKILL.md`, and the pages it points
 | Contents list | The sections of the current page. Picking one shows that section alone |
 | Header | Shown when there are two or more topics: the title, one tab per page, the date, the PDF button, and the language and light or dark switches. With one topic, the switches sit above the contents list |
 | Sections | Text, a figure, and any of these: key numbers, cards to compare, notes and warnings, a before-and-after comparison, tables, code, and collapsed details |
-| Phone layout | A bar with the current section and a button that slides the contents list in |
+| Phone layout | A bar with the current section and a button that slides the contents list in. A chart or step ladder that would need text under 12px to fit keeps its text size and scrolls sideways inside its frame, with the cut edge faded and a line under it that says it scrolls |
 | Print layout | Every section in order, one per sheet, in light colors, with the header, contents, and switches hidden. The PDF button prints the current page or all pages |
 
 Every figure is drawn inside the page:
@@ -38,6 +38,8 @@ Every figure is drawn inside the page:
 | Bar chart | Comparing two or more numbers |
 | Period chart | Periods on a year axis |
 | Step ladder | Steps that each carry several items, such as what is called, the check, and who acts |
+
+Charts are drawn at the width of their frame, so their text keeps its size at every screen width, and step ladders sit in the middle of their frame. Lines in a chart pass under its text, and its bars keep their contrast in light and dark colors.
 
 The buttons and labels of the document start in its language, English or Japanese.
 

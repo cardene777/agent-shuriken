@@ -150,7 +150,7 @@ python3 "$D/scripts/check.py" "$X/<slug>.html" --live --words "$X/words.txt"
 ```
 
 Leave out `--words` when there is no term table, and repeat it to pass several tables.
-`--live` opens the document in a Chromium-based browser already on the machine with a throwaway profile, and checks at several widths that the page height does not move while it loads and that nothing overflows sideways.
+`--live` opens the document in a Chromium-based browser already on the machine with a throwaway profile, and checks at several widths that the page height stays still while loading and nothing overflows sideways.
 When it finds no browser, ask the user which Chromium-based browser they use and set `DIAGRAM_EXPLAINER_BROWSER`, or run `check.py` without `--live` and say that the layout was not measured.
 `check.py --help` lists the other options.
 
@@ -168,13 +168,13 @@ Look at the counted lists too: the longest paragraphs and sentences, repeated se
 
 Look at every section yourself, at a desktop width and a phone width, before showing it.
 Opening `<slug>.html#<section id>` (for example `#a-s2`) shows that section, also on another page.
-A step ladder keeps its width on a phone and scrolls sideways inside its frame.
+A chart or step ladder that fits its frame fills it; a wider one keeps its text size, scrolls sideways, and fades the edge where it continues, with a line under it saying so.
 
 ### 7. Hand it over
 
 Give the user the path of the finished HTML file.
 It opens in any browser, and its PDF button prints either the current page or all pages.
-Its header has a language switch for the interface text, such as the contents and the PDF menu, and a light and dark switch; the document's own text stays in the language it was written in, and printing always uses the light colors.
+Its header switches the interface language (contents, PDF menu) and light or dark colors; the document's own text keeps its language, and printing uses the light colors.
 When the user wants a PDF file, print it:
 
 ```bash

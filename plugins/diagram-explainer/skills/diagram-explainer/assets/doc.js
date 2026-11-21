@@ -74,6 +74,46 @@
 
   window.dxUi = { lang: function () { return lang; }, say: say, relabel: relabel };
 
+  // ---- Figures wider than their frame ----
+  //
+  // A chart or step ladder that would need text under 12px to fit its frame keeps its size and
+  // scrolls sideways inside the frame (`.fig-scroll`). Then the frame names the sides where the
+  // figure continues in `data-more` (doc.css fades that edge), and a line under the figure says
+  // it scrolls. A frame that is not shown has no width and is looked at again when it opens.
+  function cue(frame) {
+    var room = frame.scrollWidth - frame.clientWidth;
+    var more = [];
+    if (room > 1) {
+      if (frame.scrollLeft > 1) more.push('left');
+      if (frame.scrollLeft < room - 1) more.push('right');
+    }
+    if (more.length) frame.setAttribute('data-more', more.join(' '));
+    else frame.removeAttribute('data-more');
+    if (frame.dxHint) frame.dxHint.hidden = room <= 1;
+  }
+  var frameWatch = window.ResizeObserver ? new ResizeObserver(function (entries) {
+    entries.forEach(function (entry) { if (entry.target.clientWidth) cue(entry.target); });
+  }) : null;
+  function frames(scope) {
+    all('.fig-scroll', scope).forEach(function (frame) {
+      if (!frame.clientWidth) return;
+      if (!frame.dxHint) {
+        var hint = document.createElement('div');
+        hint.className = 'fig-more';
+        hint.setAttribute('data-ui', 'figMore');
+        hint.hidden = true;
+        frame.parentNode.insertBefore(hint, frame.nextSibling);
+        frame.dxHint = hint;
+        relabel(frame.parentNode);
+        frame.addEventListener('scroll', function () { cue(frame); }, { passive: true });
+        if (frameWatch) frameWatch.observe(frame);
+      }
+      cue(frame);
+    });
+  }
+  window.dxFrames = function (scope) { frames(scope || document); };
+  if (!frameWatch) window.addEventListener('resize', function () { frames(document); });
+
   // ---- Light or dark ----
   //
   // Without a choice the page follows the system setting through the CSS in doc.css.
@@ -118,6 +158,8 @@
     relabel(document);
     pressed();
     refresh();
+    // Axis units change width with the language, so the charts are drawn again.
+    if (typeof window.dxCharts === 'function') window.dxCharts(document, true);
   }
 
   if (ctrl) {
@@ -182,6 +224,9 @@
     if (!list.length) return;
     var i = Math.max(0, Math.min(list.length - 1, index));
     list.forEach(function (s, j) { s.classList.toggle('on', j === i); });
+    // The section now has a width: its charts are drawn at it, and wide figures get their cue.
+    if (typeof window.dxCharts === 'function') window.dxCharts(list[i]);
+    frames(list[i]);
     var toc = tocOf(keyOf(current));
     if (toc) {
       all('button[data-sec]', toc).forEach(function (b) {

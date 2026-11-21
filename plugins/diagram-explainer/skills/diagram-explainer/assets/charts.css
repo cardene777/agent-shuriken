@@ -9,8 +9,8 @@
 .chart g[data-lane] { transition: opacity .25s ease; }
 .chart svg.paper-only, .doc-views-list { display: none; }
 .ftip { position: fixed; z-index: 50; pointer-events: none; max-width: 270px; background: var(--ink); color: var(--panel); font-size: 12.5px; line-height: 1.6; padding: 6px 10px; border-radius: 8px; opacity: 0; transition: opacity .12s; }
-/* On narrow screens keep a readable minimum size and scroll sideways inside the chart frame. */
+/* charts.js draws each chart at the width of its frame. When the frame is narrower than the chart
+   needs for its text, charts.js sets the chart's min-width and the frame (.fig-scroll) scrolls. */
 @media (max-width: 860px) {
-  .chart { overflow-x: auto; padding: 16px; }
-  .chart svg { min-width: 720px; }
+  .chart { padding: 16px; }
 }

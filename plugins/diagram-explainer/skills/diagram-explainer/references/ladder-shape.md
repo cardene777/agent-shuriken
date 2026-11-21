@@ -32,9 +32,13 @@ The figure's styles are in `assets/ladder.css`, which the template already inclu
 Default text drawn in the figure follows `<html lang>`: the `alt` fallback and the labels of lines going back read `Step ladder` / `Back to step N` / `back to N` in English and the Japanese equivalents in Japanese.
 These defaults are `ladderAlt`, `ladderBack`, and `ladderBackNote` in `assets/ui.json`, the one dictionary of the page's words.
 
-On narrow screens a ladder keeps its width (at least 720 px, from `assets/ladder.css`) and scrolls sideways inside its frame, so the columns on the right stay readable side by side.
-Keep the most important item of each step in the `do` column on the left.
+`ladder.py` draws the ladder at its own size: the boxes are as wide as their longest line, and the lane on the left is as wide as the names of the lines going back, which start at its left edge.
+The drawing has the same space on its left and right, and `assets/ladder.css` places it in the middle of its frame.
+A ladder that fits its frame grows with it, up to 1.25 times its own size.
+It never shrinks below its own size, where the smallest text is 12px: on a narrower frame, such as a phone, it scrolls sideways inside its frame, the page fades the edge where it continues, and a line under it says that it scrolls.
+Keep the most important item of each step in the `do` column on the left, which shows first.
 `check.py --live` does not count this sideways scrolling as the page overflowing.
+On paper the ladder shrinks to the width of the sheet.
 
 ## JSON fields
 

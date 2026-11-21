@@ -127,14 +127,28 @@ html.doc-js .doc-sec:not(.on) { display: none; }
    A word longer than the column still breaks so nothing overflows sideways. */
 .doc-pagehead, .doc-sec, .doc-mbar, .doc-side { word-break: auto-phrase; overflow-wrap: break-word; }
 .doc-sec pre, .doc-sec code { word-break: normal; }
+/* Japanese text gets no added letter-spacing; the values above are for Latin text. */
+:lang(ja) :is(.doc-brand, .doc-toc-head, h1, h2, .keys b, .compare .big) { letter-spacing: normal; }
 .doc-sec ul, .doc-sec ol { padding-left: 1.4em; }
 .doc-step { width: 100%; max-width: 1180px; margin: 0 auto; padding: 8px 52px 32px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--ink-3); }
 .doc-step button { font-size: 13.5px; border: 1px solid var(--line); background: var(--panel); border-radius: 9px; padding: 8px 16px; cursor: pointer; color: var(--ink); }
 .doc-step button:disabled { opacity: .35; cursor: default; }
 
-/* Figures and captions */
+/* Figures and captions. The figure number (render.py) is kept apart from the caption by a margin,
+   not a space, so the gap is the same in Japanese, where spaces next to numbers are removed. */
 figure { margin: 24px 0 0; }
 figcaption { font-size: 13px; color: var(--ink-3); margin-top: 10px; }
+figcaption .fig-no { margin-right: .6em; font-weight: 600; color: var(--ink-2); }
+/* A chart or step ladder that does not fit its frame at a readable size keeps its size and scrolls
+   sideways in its frame. doc.js names the sides where it continues in data-more; that edge fades out,
+   and the line under the figure (.fig-more) says it scrolls. */
+.fig-scroll { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
+.fig-scroll[data-more="right"] { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent); }
+.fig-scroll[data-more="left"] { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 56px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 56px), transparent); }
+.fig-scroll[data-more="left right"] { -webkit-mask-image: linear-gradient(to right, transparent, #000 56px, #000 calc(100% - 56px), transparent); mask-image: linear-gradient(to right, transparent, #000 56px, #000 calc(100% - 56px), transparent); }
+.fig-more { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 13px; line-height: 1.5; color: var(--ink-3); }
+.fig-more::before { content: "\2194"; font-size: 16px; color: var(--accent); }
+.fig-more[hidden] { display: none; }
 /* Line legend for figures drawn in `html` blocks. */
 .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 12px 0 0; font-size: 12.5px; color: var(--ink-sub); }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
