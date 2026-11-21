@@ -9,24 +9,26 @@
 
 | file | 持つ物 |
 |---|---|
-| `article-diagram-styles/SKILL.md` | 読者の疑問から記事の図を設計し、画風を当て、描き、確かめる手順 |
+| `article-diagram-styles/SKILL.md` | 読者の疑問から記事の図を設計し、構図を選び、画風を当て、描き、確かめる手順 |
 | `article-diagram-styles/agents/openai.yaml` | Codexでの見せ方と始め方 |
-| `article-diagram-styles/musubi.json` | 渡す中身の`style4`、`figure-request`、`style-catalog`。`style4`は版1.0.0、`figure-request`と`style-catalog`は版1.1.0 |
+| `article-diagram-styles/musubi.json` | 渡す中身の`style4`、`figure-request`、`style-catalog`。`style4`は版1.0.0、`figure-request`と`style-catalog`は版1.2.0 |
 | `article-diagram-styles/references/content-first.md` | 内容の要約と、完成図を確かめた記録の形 |
 | `article-diagram-styles/references/deterministic-technical-diagrams.md` | 図の文字と接続の記録と確かめ方 |
 | `article-diagram-styles/references/style-families.md` | 8つの組に分けた32の既定の画風と、画風の選び方 |
+| `article-diagram-styles/references/structures.md` | 4つの組に分けた16の既定の構図と、構図の選び方と比べ方 |
 | `article-diagram-styles/references/pen-technical.md`、`handdraft.md`、`newsprint.md` | 3つの既定の画風の詳しい仕様 |
 | `article-diagram-styles/references/style4.md` | style4の決まり。`style4`として渡す |
 | `article-diagram-styles/references/figure-request.md` | 図を頼む形。`figure-request`として渡す |
 | `article-diagram-styles/references/style-catalog.md` | 一覧の形。`style-catalog`として渡す |
-| `article-diagram-styles/scripts/diagram_sample_catalog.py` | 既定の画風と一覧を確かめ、使える画風を並べ、1つの画風を自分の見本と一緒に出す |
+| `article-diagram-styles/scripts/diagram_sample_catalog.py` | 既定の画風と既定の構図と一覧を確かめ、使える画風と構図を並べ、1つの画風を自分の見本と一緒に出すか、1つの構図を出す |
 | `article-diagram-styles/scripts/validate_content_brief.py` | 内容の要約を記事と照らす |
-| `article-diagram-styles/scripts/validate_figure_spec.py` | 図の仕様を確かめる |
+| `article-diagram-styles/scripts/validate_figure_spec.py` | 図の仕様と、それが名指す構図を確かめる |
 | `article-diagram-styles/scripts/validate_anchor_candidate.py` | 完成図を確かめた記録を確かめる |
 | `article-diagram-styles/scripts/validate_visual_contract.py` | 見た目の約束と、それに対する図の仕様を確かめる |
-| `article-diagram-styles/scripts/validate_composition_ledger.py` | 記事の図の構図の台帳を確かめる |
+| `article-diagram-styles/scripts/validate_composition_ledger.py` | 記事の図の構図の台帳と、各図の構図と、構図の比べを確かめる |
 | `article-diagram-styles/scripts/newsprint_finish.py` | HTMLかSVGで描く図のための、同梱の書体の置き場とインクの処理 |
 | `article-diagram-styles/data/built-in-styles.json` | 32の既定の画風。どれも文で定義し、画像を持たない |
+| `article-diagram-styles/data/built-in-structures.json` | 16の既定の構図。どれも文で定義し、画像を持たない |
 | `article-diagram-styles/data/fonts/KaiseiDecol-Bold.ttf`、`OFL.txt` | 書体Kaisei Decol Boldとその利用許諾 |
 | `article-diagram-styles/tests/` | script、頁、pluginの検査。仕込みの画像は一時のフォルダーに描く |
 | `tech-book-figure/SKILL.md` | 本の図を設計し、style4で描く手順 |
@@ -42,7 +44,8 @@
 自分の一覧は、既定の画風の横に画風を足し、同じ名前の既定の画風を置き換え、`status`を`retired`にした既定の画風を使わない物にします。
 `tech-book-figure`は今もstyle4の見本が要ります。一覧も`~/.styles/`に置きます。
 スキルとscriptは、一覧`style-catalog.json`と見本の画像を`~/.styles/`から読みます。
-`diagram_sample_catalog.py`と、確かめた記録と見た目の約束を確かめるscriptは、`--styles <dir>`を渡した時だけ別のフォルダーを読みます。
+`diagram_sample_catalog.py`と、確かめた記録と見た目の約束と図の仕様と台帳を確かめるscriptは、`--styles <dir>`を渡した時だけ別のフォルダーを読みます。
+一覧は任意で`structures`も持てます。画風と同じ決まりで、構図を足し、置き換え、止めます。
 
 ```text
 ~/.styles/
@@ -64,10 +67,33 @@
 | 合わない`counts`の数 | `source_registrations`は元のpathの数、`unique_images`は異なるSHA-256の数を数えます |
 | フォルダーの下に在って一覧が名指さない画像のfile | 全ての見本を登録します |
 | 既定にも一覧にも無い画風の画像 | どの見本も、使える画風のどれかに属します |
+| `shows`のような文の欄を欠く`structures`の構図 | 使える構図はどれも文で定義します。確かめは構図と欄を名指します |
 
 確かめで断った一覧は使いません。その代わりに既定の画風へ切り替えることもしません。
 
 `tech-book-figure`はstyle4の見本を`~/.styles/diagram-style-samples/style4/`から読み、2点より少ない時は描く前に止まります。
+
+## 構図
+
+このpluginは16の既定の構図を持ちます。どの構図も、示す関係、部品、読む順、向く題材と向かない題材を文で定義しています。
+構図は図が持つ部品と読む順を決めます。構図は画風と別に選び、どの構図もどの画風でも描けます。
+`diagram_sample_catalog.py --structures`が使える構図を並べ、`--show-structure <structure>`が1つの構図を出します。
+
+| 組 | 構図 |
+|---|---|
+| `flow-and-order` | `process-flow`、`message-sequence`、`timeline`、`cycle` |
+| `structure-and-containment` | `layers`、`tree`、`nesting`、`network` |
+| `comparison` | `side-by-side`、`before-after`、`two-axis-matrix`、`correspondence-table` |
+| `state-and-change` | `state-machine`、`decision-branch`、`quantity-trend`、`journey-map` |
+
+スキルは、利用者か図の頼みが構図を名指さない時、読者の疑問から図ごとに構図を選び、その名前を図の仕様と`composition-ledger.json`の図の行の`structure`に記録します。
+`validate_composition_ledger.py`は、使える構図を持たない図と、構図が台帳の行と違う図の仕様を断ります。
+
+| 台帳の`mode` | 持つ物 |
+|---|---|
+| `article` | 記事の図。図ごとに違う点を説明します |
+| `style-comparison` | 頼まれた時に、同じ中身と配置をいくつかの画風で描いた図 |
+| `structure-comparison` | `comparison_request`で頼まれた時に、同じ中身を2つ以上の違う構図で描いた図。数を言われない時は3つ描きます。確かめは数に上限を置かず、図が1つの時と同じ構図を2度描いた時を断ります |
 
 ## 図の描き方
 

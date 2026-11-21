@@ -8,6 +8,7 @@ A figure drawn to look like a sample often copies the sample's objects and layou
 This plugin keeps the two decisions apart.
 It first decides what the figure must explain from the article or the book, then applies only the look of a style, and checks the finished image against the text.
 The plugin ships thirty-two built-in styles, each defined in words, and no sample images, so `article-diagram-styles` draws without `~/.styles/`.
+It also ships sixteen built-in structures, such as a process flow, layers, or a before and after, and the structure of each figure is chosen apart from the style, from the reader's question.
 
 ```
 Article or book ──> Design the content ──> Choose a style ──> Draw with the ──> Check the text, the ──> PNG in the
@@ -17,7 +18,7 @@ the reader)         takeaway, relations)   ~/.styles/)        generation       p
 
 | Skill | What it makes |
 |---|---|
-| `article-diagram-styles` | An explanatory figure for an article: a content summary, a built-in style or one from your catalog, the finished PNG and its published-width version, and the review records |
+| `article-diagram-styles` | An explanatory figure for an article: a content summary, a structure and a style, each built in or from your catalog, the finished PNG and its published-width version, and the review records |
 | `tech-book-figure` | A figure for a technical book in the fixed style4, with a figure number, a caption, alternative text, and readability in black and white printing |
 
 ## Install
@@ -60,11 +61,33 @@ This command lists the styles in use.
 python3 <plugin folder>/skills/article-diagram-styles/scripts/diagram_sample_catalog.py --list
 ```
 
+## Structures
+
+The plugin ships sixteen built-in structures in `skills/article-diagram-styles/data/built-in-structures.json`, each defined in words by the relation it shows, its parts, its reading order, and the subjects it fits and does not fit.
+A structure decides which parts a figure has and in which order they are read; a style decides how they are drawn.
+The structure is chosen apart from the style, so any structure can be drawn in any style.
+
+| Group | Structures |
+|---|---|
+| Flow and order | `process-flow`, `message-sequence`, `timeline`, `cycle` |
+| Structure and containment | `layers`, `tree`, `nesting`, `network` |
+| Comparison | `side-by-side`, `before-after`, `two-axis-matrix`, `correspondence-table` |
+| State and change | `state-machine`, `decision-branch`, `quantity-trend`, `journey-map` |
+
+`article-diagram-styles` chooses the structure of each figure from the reader's question and records it in `structure`; name a structure, and it uses that one.
+Ask to compare the same content in different structures, and it draws as many structures as you ask for, three when you give no number, all in the same style.
+This command lists the structures in use.
+
+```bash
+python3 <plugin folder>/skills/article-diagram-styles/scripts/diagram_sample_catalog.py --structures
+```
+
 ## Your own styles in ~/.styles
 
 The plugin ships no sample images.
 Your own catalog `~/.styles/style-catalog.json` adds styles beside the built-in ones, replaces the built-in style of the same name with your definition and samples, and takes a built-in style out of use when its `status` is `retired`.
 When you register samples of the chosen style, the skill passes them to the image generation as style references.
+The optional `structures` object of the same catalog adds, replaces, and retires structures by the same rules.
 `tech-book-figure` still needs your style4 samples and the catalog in `~/.styles/`.
 
 ```text
@@ -101,8 +124,8 @@ They never draw the figure with HTML or SVG instead, and never call another agen
 | Content | File | What it holds |
 |---|---|---|
 | `style4` | `references/style4.md` | The style4 rules: what stays fixed, how to choose the samples, and the comparison after drawing |
-| `figure-request` | `references/figure-request.md` | The format another skill writes a figure request in |
-| `style-catalog` | `references/style-catalog.md` | The shape of `style-catalog.json` version 2 and of the styles folder, and how a catalog adds, replaces, and retires the built-in styles |
+| `figure-request` | `references/figure-request.md` | The format another skill writes a figure request in, with an optional structure for each figure |
+| `style-catalog` | `references/style-catalog.md` | The shape of `style-catalog.json` version 2 and of the styles folder, and how a catalog adds, replaces, and retires the built-in styles and structures |
 
 `tech-book-figure` follows `article-diagram-styles/style4` with the range `^1.0.0` and a fingerprint, not as an optional follow, so it does not start when `article-diagram-styles` is missing.
 
@@ -120,7 +143,7 @@ They never draw the figure with HTML or SVG instead, and never call another agen
 [How it works](docs/how-it-works.md) lists every file and script.
 In short:
 
-- The skills and scripts read the built-in styles from the skill folder, and the catalog and the sample images from `~/.styles/`, or from the folder given with `--styles <dir>`, and never write there
+- The skills and scripts read the built-in styles and structures from the skill folder, and the catalog and the sample images from `~/.styles/`, or from the folder given with `--styles <dir>`, and never write there
 - They read the article or book text you name, and write the figures, the content summary, the figure spec, the drawing instructions, and the review records only in the folder you name
 - To draw, the skill sends the drawing instructions and the sample images to the image generation of the agent running it, which handles them as that agent handles any image you give it. Without samples of the chosen style, it sends the drawing instructions alone. The scripts connect to nothing
 - The scripts run no other program and keep nothing

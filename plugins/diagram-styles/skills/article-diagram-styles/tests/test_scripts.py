@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Unit tests of the scripts of article-diagram-styles: the catalog lookups, the figure spec, the
-visual contract states, the content brief, the review records, and the composition ledger.
+"""Unit tests of the scripts of article-diagram-styles: the catalog lookups, the structures, the
+figure spec, the visual contract states, the content brief, the review records, and the
+composition ledger.
 
 Every test reads a throwaway styles folder that tests/fixtures.py draws under a throwaway HOME, so
 nothing reads the user's ~/.styles. Run: python3 tests/test_scripts.py
@@ -47,7 +48,9 @@ class Styles(unittest.TestCase):
         self.home = Path(self.tmp.name)
         fixtures.styles(argparse.Namespace(dir=str(self.home / ".styles"), schema=2, resources=False,
                                            corrupt=None, counts=None, stray=False, no_catalog=False,
-                                           retire=None, user_style=False, built_in_sample=None))
+                                           retire=None, user_style=False, built_in_sample=None,
+                                           user_structure=False, redefine_structure=None,
+                                           retire_structure=None, structure_lacks=None))
         home = patch.dict(os.environ, {"HOME": str(self.home)})
         home.start()
         self.addCleanup(home.stop)
@@ -114,6 +117,55 @@ class CatalogTests(Styles):
         self.assertEqual(catalog.profile_errors("illustrated", "pen-technical"), [])
         self.assertTrue(catalog.profile_errors("technical-sketch", "pen-technical"))
         self.assertTrue(catalog.profile_errors("illustrated", "missing"))
+
+
+class StructureTests(Styles):
+    """The structures in use: the built-in ones with the catalog's structures laid over them."""
+
+    def test_built_in_structures_without_catalog_structures(self):
+        structures = catalog.structures_view()
+        self.assertEqual(len(structures), 16)
+        self.assertEqual({s["source"] for s in structures.values()}, {"built-in"})
+
+    def test_catalog_adds_replaces_and_retires(self):
+        d = copy.deepcopy(self.d)
+        d["structures"] = {"my-structure": dict(fixtures.MY_STRUCTURE), "timeline": {"shows": "Mine"},
+                           "cycle": {"status": "retired"}}
+        self.write(d)
+        structures = catalog.structures_view()
+        self.assertEqual(structures["my-structure"]["source"], "user")
+        self.assertEqual((structures["timeline"]["shows"], structures["timeline"]["source"]), ("Mine", "user"))
+        self.assertEqual(structures["timeline"]["parts"], catalog.built_in_structures()["structures"]["timeline"]["parts"])
+        self.assertEqual(catalog.structure_errors("cycle", structures), ["structure cycle is retired by the catalog"])
+        self.assertEqual(catalog.structure_errors("my-structure", structures), [])
+        self.assertTrue(catalog.structure_errors("no-such-structure", structures))
+        self.assertEqual(catalog.validate(d), [])
+
+    def test_catalog_structure_needs_its_written_definition(self):
+        for field in ("group", "label", "shows", "parts", "reading_order", "fits", "misfits", "status"):
+            d = copy.deepcopy(self.d)
+            mine = dict(fixtures.MY_STRUCTURE)
+            mine.pop(field)
+            d["structures"] = {"my-structure": mine}
+            self.assertIn(f"structure my-structure has no {field}", catalog.validate(d), field)
+        d = copy.deepcopy(self.d)
+        d["structures"] = ["timeline"]
+        self.assertTrue(catalog.validate(d))
+
+    def test_figure_spec_names_a_structure_in_use(self):
+        spec = self.home / "figure.figure.json"
+        data = {"rendering_mode": "deterministic", "exact_content": False, "source_file": "figure.svg",
+                "facts": [{"text": "a step", "kind": "prose", "source": "a.md", "locator": "Flow"}],
+                "relations": [{"from": "a", "to": "b", "kind": "call", "source": "a.md", "locator": "Flow", "exact": False}]}
+        (self.home / "figure.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'/>", encoding="utf-8")
+        for structure, code in ((None, 0), ("process-flow", 0), ("no-such-structure", 1)):
+            if structure:
+                data["structure"] = structure
+            spec.write_text(json.dumps(data), encoding="utf-8")
+            result = run_spec(spec)
+            self.assertEqual(result.returncode, code, structure)
+            if code:
+                self.assertIn("structure", result.stderr)
 
 
 def run_spec(spec: Path, *arguments: str) -> subprocess.CompletedProcess:
@@ -381,9 +433,9 @@ class ContentFirstTests(Styles):
         entries = []
         for i in range(8):
             s = dict(visual_contract_id="example", layout_pattern="custom-change-timeline", semantic_structure=f"a different object {i}",
-                     reading_path=f"follow object {i}", composition_signature=signature)
+                     reading_path=f"follow object {i}", composition_signature=signature, structure="timeline")
             self.write_json(f"f{i}.json", s)
-            entries.append(dict(figure_spec=f"f{i}.json", **{k: s[k] for k in ("layout_pattern", "semantic_structure", "reading_path", "composition_signature")}))
+            entries.append(dict(figure_spec=f"f{i}.json", **{k: s[k] for k in ("layout_pattern", "semantic_structure", "reading_path", "composition_signature", "structure")}))
         self.assertEqual(ledger.validate(self.write_json("ledger.json", dict(visual_contract_id="example", entries=entries))), [])
         entries[1]["semantic_structure"] = entries[0]["semantic_structure"]
         entries[1]["reading_path"] = entries[0]["reading_path"]
@@ -402,11 +454,32 @@ class ContentFirstTests(Styles):
         entries = []
         for i, contract in enumerate(("ink-contract", "news-contract")):
             s = dict(visual_contract_id=contract, layout_pattern="custom-change-timeline", semantic_structure=f"object {i}",
-                     reading_path=f"follow object {i}", composition_signature=signature)
+                     reading_path=f"follow object {i}", composition_signature=signature, structure="layers")
             self.write_json(f"m{i}.json", s)
             entries.append(dict(figure_spec=f"m{i}.json", **s))
         self.assertEqual(ledger.validate(self.write_json("mixed.json", dict(visual_contract_ids=["ink-contract", "news-contract"], entries=entries))), [])
         self.assertTrue(ledger.validate(self.write_json("mixed.json", dict(visual_contract_ids=["ink-contract"], entries=entries))))
+
+    def test_structure_comparison_draws_each_structure_once(self):
+        signature = dict(dominant_geometry="strip", subject_scale="paired", label_zone="top", connector_strategy="direct")
+        entries = []
+        for i, structure in enumerate(("timeline", "before-after", "quantity-trend", "cycle")):
+            s = dict(visual_contract_id="example", layout_pattern=f"custom-{structure}", semantic_structure="one key over time",
+                     reading_path=f"the reading order of {structure}", composition_signature=signature, structure=structure)
+            self.write_json(f"c{i}.json", s)
+            entries.append(dict(figure_spec=f"c{i}.json", **{k: v for k, v in s.items() if k != "visual_contract_id"}))
+        comparison = dict(visual_contract_id="example", mode="structure-comparison", comparison_request="Show it in four structures.")
+        self.assertEqual(ledger.validate(self.write_json("ledger.json", dict(comparison, entries=entries))), [])
+        # The same content without the comparison mode makes the same point four times.
+        same_path = [dict(e, reading_path="one path") for e in entries]
+        for i, e in enumerate(same_path):
+            s = json.loads((self.d / f"c{i}.json").read_text())
+            s["reading_path"] = "one path"
+            self.write_json(f"c{i}.json", s)
+        self.assertTrue(ledger.validate(self.write_json("ledger.json", dict(visual_contract_id="example", entries=same_path))))
+        self.assertEqual(ledger.validate(self.write_json("ledger.json", dict(comparison, entries=same_path))), [])
+        self.assertTrue(ledger.validate(self.write_json("ledger.json", dict(comparison, entries=same_path[:1]))))
+        self.assertTrue(ledger.validate(self.write_json("ledger.json", dict(comparison, entries=same_path + same_path[:1]))))
 
     def test_sample_free_visual_contract(self):
         (self.d / "anchor.png").write_bytes(b"existing reviewed image")

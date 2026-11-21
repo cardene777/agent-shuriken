@@ -1,20 +1,34 @@
 #!/usr/bin/env python3
 """Writes throwaway fixtures for the diagram-styles tests: a styles folder shaped like ~/.styles,
-and a folder of figure records (an article, a content brief, figure specs, a review, a visual
-contract, and a composition ledger). The images are small PNGs drawn here, never the user's
-sample images.
+a folder of figure records (an article, a content brief, figure specs, a review, a visual
+contract, and a composition ledger), and a composition ledger of figures in named structures.
+The images are small PNGs drawn here, never the user's sample images.
 
 Usage:
   fixtures.py styles <dir> [--schema N] [--resources] [--corrupt path|original]
                            [--counts source|unique] [--stray] [--no-catalog]
                            [--retire <style>] [--user-style]
                            [--built-in-sample <style> <family>]
+                           [--user-structure] [--redefine-structure <structure>]
+                           [--retire-structure <structure>] [--structure-lacks <field>]
   fixtures.py work <dir> [--mode generated|deterministic] [--style <family>] [--finish <style>]
+  fixtures.py ledger <dir> [--structure <structure>]... [--no-structure]
+                           [--spec-structure <structure>] [--mode <mode>] [--request <words>]
 
 The catalog always redefines the built-in styles pen-technical and handdraft. --retire writes a
 style that holds only "status": "retired". --user-style adds the family my-family and its style
 my-style with one sample. --built-in-sample registers one sample of <style> in <family> without
 writing a finish profile for it.
+
+The structure options write the optional "structures" object of the catalog. --user-structure adds
+the structure my-structure with its whole written definition. --redefine-structure writes the
+user's own shows for a built-in structure. --retire-structure writes a structure that holds only
+"status": "retired". --structure-lacks writes my-structure without the named field.
+
+ledger writes a composition ledger with one figure spec per --structure, in that order. In the
+article mode each figure makes a different point; in a comparison mode every figure holds the
+same content. --no-structure leaves structure out of the entries and the specs, and
+--spec-structure writes another structure into the spec of the first figure than into its entry.
 """
 from __future__ import annotations
 
@@ -43,6 +57,16 @@ def sha(data: bytes) -> str:
 def write(path: Path, data: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(data)
+
+
+MY_STRUCTURE = {
+    "group": "my-group", "label": "My structure", "status": "active",
+    "shows": "Which release note answers which question of a reader",
+    "parts": "Questions on the left and notes on the right, joined by lines",
+    "reading_order": "Read a question, then follow its line to the note",
+    "fits": "Release notes read by people who upgrade",
+    "misfits": "A history of releases over time",
+}
 
 
 def styles(args: argparse.Namespace) -> None:
@@ -102,6 +126,17 @@ def styles(args: argparse.Namespace) -> None:
     }
     if args.retire:
         catalog["finish_profiles"][args.retire] = {"status": "retired"}
+    structures = {}
+    if args.user_structure or args.structure_lacks:
+        mine = dict(MY_STRUCTURE)
+        mine.pop(args.structure_lacks or "", None)
+        structures["my-structure"] = mine
+    if args.redefine_structure:
+        structures[args.redefine_structure] = {"shows": "The user's own words for " + args.redefine_structure}
+    if args.retire_structure:
+        structures[args.retire_structure] = {"status": "retired"}
+    if structures:
+        catalog["structures"] = structures
     if args.user_style:
         catalog["families"]["my-family"] = {"label": "My family", "description": "A family the user added"}
         catalog["finish_profiles"]["my-style"] = {
@@ -218,6 +253,33 @@ def work(args: argparse.Namespace) -> None:
     (root / "ledger.json").write_text(json.dumps(ledger), encoding="utf-8")
 
 
+def ledger(args: argparse.Namespace) -> None:
+    root = Path(args.dir)
+    root.mkdir(parents=True, exist_ok=True)
+    signature = {"dominant_geometry": "strip", "subject_scale": "paired", "label_zone": "top",
+                 "connector_strategy": "direct"}
+    comparing = args.mode in ("style-comparison", "structure-comparison")
+    entries = []
+    for index, name in enumerate(args.structure or ["timeline"], 1):
+        spec = {"visual_contract_id": "test-style", "layout_pattern": "custom-figure-%d" % index,
+                "semantic_structure": "one key over time" if comparing else "claim %d of the article" % index,
+                "reading_path": "read figure %d in the order of its structure" % index,
+                "composition_signature": signature}
+        entry = dict(spec)
+        if not args.no_structure:
+            entry["structure"] = name
+            spec["structure"] = args.spec_structure if index == 1 and args.spec_structure else name
+        (root / ("ledger-spec-%d.json" % index)).write_text(json.dumps(spec), encoding="utf-8")
+        entry.pop("visual_contract_id")
+        entries.append({"figure_spec": "ledger-spec-%d.json" % index, **entry})
+    data = {"visual_contract_id": "test-style", "entries": entries}
+    if args.mode:
+        data["mode"] = args.mode
+    if args.request:
+        data["comparison_request"] = args.request
+    (root / "ledger.json").write_text(json.dumps(data), encoding="utf-8")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="kind", required=True)
@@ -232,13 +294,24 @@ def main() -> int:
     s.add_argument("--retire")
     s.add_argument("--user-style", action="store_true")
     s.add_argument("--built-in-sample", nargs=2, metavar=("STYLE", "FAMILY"))
+    s.add_argument("--user-structure", action="store_true")
+    s.add_argument("--redefine-structure")
+    s.add_argument("--retire-structure")
+    s.add_argument("--structure-lacks")
     w = sub.add_parser("work")
     w.add_argument("dir")
     w.add_argument("--mode", choices=["generated", "deterministic"], default="generated")
     w.add_argument("--style", default="illustrated")
     w.add_argument("--finish", default="pen-technical")
+    l = sub.add_parser("ledger")
+    l.add_argument("dir")
+    l.add_argument("--structure", action="append")
+    l.add_argument("--no-structure", action="store_true")
+    l.add_argument("--spec-structure")
+    l.add_argument("--mode")
+    l.add_argument("--request")
     args = parser.parse_args()
-    (styles if args.kind == "styles" else work)(args)
+    {"styles": styles, "work": work, "ledger": ledger}[args.kind](args)
     return 0
 
 

@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""Look up the drawing styles and check them: the built-in styles this skill ships as written
-specifications in data/built-in-styles.json, and the style catalog of a styles folder,
-style-catalog.json version 2, which names every sample image with its SHA-256.
+"""Look up the drawing styles and the figure structures and check them: the built-in styles this
+skill ships as written specifications in data/built-in-styles.json, the built-in figure structures
+it ships as written definitions in data/built-in-structures.json, and the style catalog of a styles
+folder, style-catalog.json version 2, which names every sample image with its SHA-256.
 
 A style of the catalog sits beside the built-in styles. A style with a built-in name is laid over
 the built-in one: the fields the catalog writes replace the built-in fields, so it replaces the
 built-in style of the same name, and "status": "retired" alone takes that built-in style out of use.
+The optional "structures" object of the catalog follows the same rules for the figure structures.
 
 The styles folder is ~/.styles unless --styles <dir> names another one. The script only reads it.
 Without ~/.styles/style-catalog.json the built-in styles are used alone; a folder named with
@@ -28,11 +30,15 @@ LEGACY_STYLES = {"style1", "style2", "style3", "style4"}
 BUILT_IN_FILE = Path(__file__).resolve().parent.parent / "data" / "built-in-styles.json"
 BUILT_IN_VERSION = 1
 WRITTEN_FIELDS = ("label", "line", "fill", "background", "lettering")
+STRUCTURES_FILE = Path(__file__).resolve().parent.parent / "data" / "built-in-structures.json"
+STRUCTURES_VERSION = 1
+STRUCTURE_FIELDS = ("group", "label", "shows", "parts", "reading_order", "fits", "misfits")
+STRUCTURES_HINT = "--structures prints the structures in use"
 
 
 class CatalogError(ValueError):
-    """The styles cannot be used: the catalog is missing, unreadable, or not version 2, or the
-    built-in styles cannot be read."""
+    """The styles or the structures cannot be used: the catalog is missing, unreadable, or not
+    version 2, its structures lack their written definition, or the built-in files cannot be read."""
 
 
 def styles_dir(value: str | os.PathLike | None = None) -> Path:
@@ -70,6 +76,39 @@ def built_in_errors(data: dict) -> list[str]:
         suits = profile.get("suits")
         if not isinstance(suits, list) or not suits:
             errors.append(f"built-in style {name} has no suits")
+    return errors
+
+
+def written(value) -> bool:
+    return isinstance(value, str) and bool(value.strip())
+
+
+def built_in_structures() -> dict:
+    """The built-in figure structures as the skill ships them: their groups and their structures."""
+    try:
+        data = json.loads(STRUCTURES_FILE.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        raise CatalogError(f"cannot read the built-in structures {STRUCTURES_FILE}: {error}") from error
+    if not isinstance(data, dict) or data.get("version") != STRUCTURES_VERSION \
+            or not isinstance(data.get("groups"), dict) or not isinstance(data.get("structures"), dict):
+        raise CatalogError(f"{STRUCTURES_FILE} is not version {STRUCTURES_VERSION} with groups and structures")
+    return data
+
+
+def built_in_structure_errors(data: dict) -> list[str]:
+    """Every built-in structure is active, belongs to a built-in group, and has its written definition."""
+    errors = []
+    for name, structure in data["structures"].items():
+        if not isinstance(structure, dict):
+            errors.append(f"built-in structure {name} is not an object")
+            continue
+        if structure.get("group") not in data["groups"]:
+            errors.append(f"built-in structure {name} names an unknown group")
+        if structure.get("status") != "active":
+            errors.append(f"built-in structure {name} is not active")
+        for key in STRUCTURE_FIELDS:
+            if not written(structure.get(key)):
+                errors.append(f"built-in structure {name} has no {key}")
     return errors
 
 
@@ -157,6 +196,69 @@ def view(styles=None) -> dict:
         if errors:
             raise CatalogError("; ".join(errors))
     return merge(data)
+
+
+def merge_structures(data: dict | None) -> dict:
+    """The built-in structures with the structures of a catalog laid over them, each carrying its
+    source, built-in or user."""
+    structures = {name: {**structure, "source": "built-in"}
+                  for name, structure in built_in_structures()["structures"].items()}
+    written_structures = data.get("structures") if data is not None else None
+    if isinstance(written_structures, dict):
+        for name, structure in written_structures.items():
+            if isinstance(structure, dict):
+                structures[name] = {**structures.get(name, {}), **structure, "source": "user"}
+    return structures
+
+
+def structure_catalog_errors(data: dict) -> list[str]:
+    """The optional structures object of a catalog. A structure in use has its whole written
+    definition once laid over the built-in one; a retired one needs only its status."""
+    if "structures" not in data:
+        return []
+    if not isinstance(data["structures"], dict):
+        return ["structures must be an object"]
+    merged = merge_structures(data)
+    errors = []
+    for name, structure in data["structures"].items():
+        if not isinstance(structure, dict):
+            errors.append(f"structure {name} must be an object")
+            continue
+        status = merged[name].get("status")
+        if status == "retired":
+            continue
+        if status is None:
+            errors.append(f"structure {name} has no status")
+        elif status != "active":
+            errors.append(f"structure {name} has the status {status!r}, not active or retired")
+        for key in STRUCTURE_FIELDS:
+            if not written(merged[name].get(key)):
+                errors.append(f"structure {name} has no {key}")
+    return errors
+
+
+def structures_view(styles=None) -> dict:
+    """The structures in use: the built-in structures alone without a catalog in ~/.styles,
+    otherwise the catalog's structures laid over them. A broken catalog is refused, never replaced
+    by the built-in structures."""
+    data = user_catalog(styles)
+    if data is not None:
+        errors = schema_errors(data) + structure_catalog_errors(data)
+        if errors:
+            raise CatalogError("; ".join(errors))
+    return merge_structures(data)
+
+
+def structure_errors(name, structures: dict) -> list[str]:
+    """A structure a figure names is one of the structures in use, as structures_view returns them,
+    and not retired."""
+    if not written(name):
+        return ["structure is missing; " + STRUCTURES_HINT]
+    if name not in structures:
+        return [f"structure {name} is neither a built-in structure nor in the catalog; {STRUCTURES_HINT}"]
+    if structures[name].get("status") == "retired":
+        return [f"structure {name} is retired by the catalog"]
+    return []
 
 
 def normalize_reference(path, styles=None) -> Path:
@@ -253,6 +355,10 @@ def validate(data: dict, styles=None) -> list[str]:
     except CatalogError as error:
         return [str(error)]
     errors = built_in_errors(base)
+    try:
+        errors += built_in_structure_errors(built_in_structures()) + structure_catalog_errors(data)
+    except CatalogError as error:
+        errors.append(str(error))
     merged = merge(data)
     profiles = merged["finish_profiles"]
     root = styles_dir(styles)
@@ -351,6 +457,29 @@ def show(name: str, data: dict, styles=None) -> dict:
     return shown
 
 
+def show_structure(name: str, structures: dict) -> dict:
+    """One structure in use: its source and its written definition."""
+    structure = structures.get(name)
+    if structure is None:
+        raise CatalogError(f"no structure is named {name} among the built-in structures and the catalog; "
+                           + STRUCTURES_HINT)
+    if structure.get("status") == "retired":
+        raise CatalogError(f"the structure {name} is retired by the catalog; {STRUCTURES_HINT}")
+    shown = {"name": name, "source": structure["source"]}
+    for key in (*STRUCTURE_FIELDS, "status"):
+        if key in structure:
+            shown[key] = structure[key]
+    return shown
+
+
+def structure_lines(structures: dict) -> list[str]:
+    """One line per structure in use: name, source, group, label, and what it shows, separated by
+    tabs. Tabs and line breaks the user wrote in a field become spaces."""
+    return ["\t".join([name, structure["source"]] + [" ".join(str(structure.get(key, "")).split())
+                                                       for key in ("group", "label", "shows")])
+            for name, structure in structures.items() if structure.get("status") == "active"]
+
+
 def list_lines(data: dict) -> list[str]:
     """One line per active style: name, source, family, label, and suits, separated by tabs."""
     return ["\t".join([name, profile["source"], str(profile.get("family", "")), str(profile.get("label", "")),
@@ -365,6 +494,8 @@ def main() -> int:
                         help="check the built-in styles, and the catalog against every image in the folder")
     parser.add_argument("--list", action="store_true", help="print every style in use, one per line")
     parser.add_argument("--show", metavar="STYLE", help="print one style in use with the user's samples of it")
+    parser.add_argument("--structures", action="store_true", help="print every figure structure in use, one per line")
+    parser.add_argument("--show-structure", metavar="STRUCTURE", help="print one figure structure in use")
     parser.add_argument("--sample", type=Path, help="print the catalog entry of one sample image")
     parser.add_argument("--family")
     parser.add_argument("--profile")
@@ -375,13 +506,15 @@ def main() -> int:
         if args.validate:
             data = user_catalog(args.styles)
             base = built_in()
+            structures = built_in_structures()
             if data is None:
-                errors = built_in_errors(base)
+                errors = built_in_errors(base) + built_in_structure_errors(structures)
                 if errors:
                     print("\n".join("ERROR: " + e for e in errors))
                     return 1
-                print(f"PASS: {len(base['finish_profiles'])} built-in styles; {root / CATALOG_NAME} is missing, "
-                      "so only the built-in styles are used")
+                print(f"PASS: {len(base['finish_profiles'])} built-in styles and {len(structures['structures'])} "
+                      f"built-in structures; {root / CATALOG_NAME} is missing, "
+                      "so only the built-in styles and structures are used")
                 return 0
             errors = validate(data, args.styles)
             if errors:
@@ -390,9 +523,21 @@ def main() -> int:
                 return 1
             candidates = sum(p.get("status") == "candidate" for p in data["finish_profiles"].values())
             retired = sum(data["finish_profiles"].get(name, {}).get("status") == "retired" for name in base["finish_profiles"])
+            written_structures = data.get("structures", {})
+            retired_structures = sum(written_structures.get(name, {}).get("status") == "retired"
+                                     for name in structures["structures"])
             print(f"PASS: {root}: {len(data['images'])} unique images, {data['counts']['source_registrations']} originals, "
                   f"{len(data['finish_profiles'])} finishes ({candidates} candidate); "
-                  f"{len(base['finish_profiles'])} built-in styles ({retired} retired by the catalog)")
+                  f"{len(base['finish_profiles'])} built-in styles ({retired} retired by the catalog); "
+                  f"{len(written_structures)} structures in the catalog, "
+                  f"{len(structures['structures'])} built-in structures ({retired_structures} retired by the catalog)")
+            return 0
+        if args.structures or args.show_structure:
+            structures = structures_view(args.styles)
+            if args.structures:
+                print("\n".join(structure_lines(structures)))
+                return 0
+            print(json.dumps(show_structure(args.show_structure, structures), ensure_ascii=False, indent=2))
             return 0
         data = view(args.styles)
         if args.list:

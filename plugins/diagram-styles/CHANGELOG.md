@@ -5,7 +5,10 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-21
+
 - `article-diagram-styles` ships thirty-two built-in styles in eight families, adding `dimensional` (`low-poly`, `papercraft`, `diorama`, `toy-blocks`), `notebook-and-archive` (`notebook-doodle`, `grid-memo`, `patent-drawing`, `old-map`), `ink-and-print` (`sumi-e`, `risograph`, `copperplate`, `paper-cut`), and `signs-and-screens` (`pictogram`, `metro-map`, `terminal-screen`, `sticker`). The definitions of `flat-vector`, `isometric`, `minimal`, and `comic-panel` now name what they forbid: a gradient anywhere, an oblique view, a second place for the accent color, and decoration unrelated to the content
+- `article-diagram-styles` ships sixteen built-in structures in four groups, `flow-and-order`, `structure-and-containment`, `comparison`, and `state-and-change`, each defined in words by the relation it shows, its parts, its reading order, and the subjects it fits and does not fit. The skill chooses the structure of each figure from the reader's question apart from the style and records it in `structure`, and `validate_composition_ledger.py` refuses a figure without a structure in use. When you ask to compare the same content in different structures, it draws as many as you ask for, three without a number, in the `structure-comparison` mode. `diagram_sample_catalog.py` gains `--structures` and `--show-structure`, your catalog may add, replace, or retire structures under `structures`, and `style-catalog` and `figure-request` move to version 1.2.0
 
 ## [0.2.0] - 2026-11-21
 
@@ -20,6 +23,7 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - `article-diagram-styles` provides `style4`, `figure-request`, and `style-catalog` through musubi, and `tech-book-figure` follows `article-diagram-styles/style4`
 - The font Kaisei Decol Bold ships with its license for figures drawn from HTML or SVG source
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/diagram-styles--v0.2.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/diagram-styles--v0.3.0...HEAD
+[0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/diagram-styles--v0.3.0
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/diagram-styles--v0.2.0
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/diagram-styles--v0.1.0
