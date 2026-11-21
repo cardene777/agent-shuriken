@@ -1,6 +1,6 @@
 ---
 name: article-diagram-styles
-description: Designs an explanatory figure for an article from the questions its reader would have, applies one of sixteen built-in styles or a style from the user's catalog in ~/.styles as a separate step, and draws and checks the PNG. Use when a skill that writes an article asks for its figures, or when the user asks to compare drawing styles on the same figure.
+description: Designs an explanatory figure for an article from the questions its reader would have, applies one of thirty-two built-in styles or a style from the user's catalog in ~/.styles as a separate step, and draws and checks the PNG. Use when a skill that writes an article asks for its figures, or when the user asks to compare drawing styles on the same figure.
 ---
 
 # Article figures
@@ -19,7 +19,7 @@ Run each script as a shell command, and put `D=<folder that contains this SKILL.
 
 ## Styles and files
 
-This skill ships sixteen built-in styles as written specifications in `data/built-in-styles.json`, and no sample images.
+This skill ships thirty-two built-in styles as written specifications in `data/built-in-styles.json`, and no sample images.
 The user may keep a style catalog `style-catalog.json` and sample images under `~/.styles/`, laid out as [the style catalog](references/style-catalog.md) describes.
 A style of the catalog sits beside the built-in styles, a style with a built-in name replaces the built-in style, and a built-in name with only `"status": "retired"` takes the built-in style out of use.
 Read the catalog and the samples only from `~/.styles/`, unless the user names another styles folder; then pass that folder to the scripts with `--styles <dir>`.

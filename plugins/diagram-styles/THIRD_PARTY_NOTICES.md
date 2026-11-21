@@ -26,5 +26,5 @@ Copyright 2020 The Kaisei Project Authors.
 | Item | Value |
 |---|---|
 | File in this plugin | `skills/article-diagram-styles/data/built-in-styles.json` |
-| Source | Written for this plugin. It holds the written specifications of the sixteen built-in styles and no image |
+| Source | Written for this plugin. It holds the written specifications of the thirty-two built-in styles and no image |
 | License | MIT, as the plugin's [LICENSE](LICENSE) |

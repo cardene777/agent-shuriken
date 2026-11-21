@@ -1,6 +1,6 @@
 # The styles
 
-This skill ships sixteen built-in styles in `data/built-in-styles.json`, each defined in words: its `line`, `fill`, `background`, `lettering`, and the kinds of figures it `suits`.
+This skill ships thirty-two built-in styles in `data/built-in-styles.json`, each defined in words: its `line`, `fill`, `background`, `lettering`, and the kinds of figures it `suits`.
 The user's catalog `~/.styles/style-catalog.json` may add styles beside them, replace one with the user's own definition and samples, or retire one, as [the style catalog](style-catalog.md) describes.
 `python3 scripts/diagram_sample_catalog.py --list` prints every style in use with its source, and `--show <style>` prints one style's written specification and the user's samples of it.
 
@@ -10,6 +10,13 @@ The user's catalog `~/.styles/style-catalog.json` may add styles beside them, re
 | `drafting-and-flat` | `flat-vector`, `blueprint`, `isometric`, `minimal` | Exact geometry and flat areas |
 | `painting-and-print` | `watercolor`, `newsprint`, `woodblock`, `retro-poster` | A painted or printed surface |
 | `friendly` | `whiteboard`, `comic-panel`, `pixel-art`, `clay` | Playful materials |
+| `dimensional` | `low-poly`, `papercraft`, `diorama`, `toy-blocks` | Built objects with depth, seen as small models |
+| `notebook-and-archive` | `notebook-doodle`, `grid-memo`, `patent-drawing`, `old-map` | Paper records, from a notebook page to an old printed drawing |
+| `ink-and-print` | `sumi-e`, `risograph`, `copperplate`, `paper-cut` | Brush ink and hand printmaking |
+| `signs-and-screens` | `pictogram`, `metro-map`, `terminal-screen`, `sticker` | The plain visual language of signs, transit maps, and text screens |
+
+Four styles name what they forbid, because drawings in them drifted from their definitions: `flat-vector` never uses a gradient, `isometric` never draws an oblique view, `minimal` puts its accent color in one place only, and `comic-panel` never adds decoration unrelated to the content.
+Keep to these sentences as strictly as to the rest of the specification.
 
 ## Choosing a style
 

@@ -1,13 +1,13 @@
 # Diagram Styles
 
-記事と技術書の図を、先に読者の疑問から設計し、16の既定の画風か、`~/.styles/`に置いた自分の一覧の画風で描きます。
+記事と技術書の図を、先に読者の疑問から設計し、32の既定の画風か、`~/.styles/`に置いた自分の一覧の画風で描きます。
 
 [English](README.md) · 日本語
 
 見本に似せて描いた図は、見本の物や配置を写して、本文の説明をしなくなりがちです。
 このpluginは2つの判断を分けます。
 先に記事か本の本文から図が説明する物を決め、その後に画風の見た目だけを当て、完成した画像を本文と照らして確かめます。
-このpluginは16の既定の画風をそれぞれ文で定義して持ち、見本の画像は載せません。`~/.styles/`が無くても`article-diagram-styles`は描きます。
+このpluginは32の既定の画風をそれぞれ文で定義して持ち、見本の画像は載せません。`~/.styles/`が無くても`article-diagram-styles`は描きます。
 
 ```
 Article or book ──> Design the content ──> Choose a style ──> Draw with the ──> Check the text, the ──> PNG in the
@@ -39,7 +39,7 @@ gemini skills install https://github.com/cardene777/agent-shuriken.git --path pl
 
 ## 画風
 
-このpluginは16の既定の画風を`skills/article-diagram-styles/data/built-in-styles.json`に持ちます。どの画風も、線、塗り、背景、字と、向く図の種類を文で定義しています。
+このpluginは32の既定の画風を`skills/article-diagram-styles/data/built-in-styles.json`に持ちます。どの画風も、線、塗り、背景、字と、向く図の種類を文で定義しています。
 
 | 組 | 画風 |
 |---|---|
@@ -47,6 +47,10 @@ gemini skills install https://github.com/cardene777/agent-shuriken.git --path pl
 | 図面と平面 | `flat-vector`、`blueprint`、`isometric`、`minimal` |
 | 絵画と印刷 | `watercolor`、`newsprint`、`woodblock`、`retro-poster` |
 | 親しみ | `whiteboard`、`comic-panel`、`pixel-art`、`clay` |
+| 立体 | `low-poly`、`papercraft`、`diorama`、`toy-blocks` |
+| ノートと記録 | `notebook-doodle`、`grid-memo`、`patent-drawing`、`old-map` |
+| 墨と版 | `sumi-e`、`risograph`、`copperplate`、`paper-cut` |
+| 記号と画面 | `pictogram`、`metro-map`、`terminal-screen`、`sticker` |
 
 `~/.styles/`が無くても`article-diagram-styles`は描きます。
 画風の名前を言うか、記事の話題と図の種類からスキルに選ばせます。スキルは選んだ画風と理由を伝え、合う画風が決まらない時は`handdraft`で描きます。

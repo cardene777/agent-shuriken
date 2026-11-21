@@ -117,9 +117,9 @@ no_image_in_plugin() {
 check "no image ships under the plugin" no_image_in_plugin
 
 BUILT_IN="$SKILL_DIR/data/built-in-styles.json"
-BUILT_IN_NAMES="handdraft pen-technical pencil-sketch chalkboard flat-vector blueprint isometric minimal watercolor newsprint woodblock retro-poster whiteboard comic-panel pixel-art clay"
+BUILT_IN_NAMES="handdraft pen-technical pencil-sketch chalkboard flat-vector blueprint isometric minimal watercolor newsprint woodblock retro-poster whiteboard comic-panel pixel-art clay low-poly papercraft diorama toy-blocks notebook-doodle grid-memo patent-drawing old-map sumi-e risograph copperplate paper-cut pictogram metro-map terminal-screen sticker"
 
-built_in_sixteen() {
+built_in_thirty_two() {
   [ -f "$BUILT_IN" ] || { echo "      missing skills/article-diagram-styles/data/built-in-styles.json"; return 1; }
   python3 - "$BUILT_IN" <<'PYEOF'
 import json, sys
@@ -128,13 +128,17 @@ want = {
     "drafting-and-flat": ["flat-vector", "blueprint", "isometric", "minimal"],
     "painting-and-print": ["watercolor", "newsprint", "woodblock", "retro-poster"],
     "friendly": ["whiteboard", "comic-panel", "pixel-art", "clay"],
+    "dimensional": ["low-poly", "papercraft", "diorama", "toy-blocks"],
+    "notebook-and-archive": ["notebook-doodle", "grid-memo", "patent-drawing", "old-map"],
+    "ink-and-print": ["sumi-e", "risograph", "copperplate", "paper-cut"],
+    "signs-and-screens": ["pictogram", "metro-map", "terminal-screen", "sticker"],
 }
 data = json.load(open(sys.argv[1], encoding="utf-8"))
 problems = []
 families = data.get("families")
 styles = data.get("finish_profiles")
 if not isinstance(families, dict) or set(families) != set(want):
-    problems.append("families are %s, not the four" % sorted(families or []))
+    problems.append("families are %s, not the eight" % sorted(families or []))
     families = families if isinstance(families, dict) else {}
 for name, family in families.items():
     if not isinstance(family, dict) or not str(family.get("label", "")).strip():
@@ -144,7 +148,7 @@ if not isinstance(styles, dict):
     styles = {}
 names = [n for members in want.values() for n in members]
 if sorted(styles) != sorted(names):
-    problems.append("the styles are %s, not the sixteen" % sorted(styles))
+    problems.append("the styles are %s, not the thirty-two" % sorted(styles))
 text = lambda value: isinstance(value, str) and bool(value.strip())
 for family, members in want.items():
     for name in members:
@@ -161,20 +165,75 @@ for family, members in want.items():
             problems.append("%s has no list of suits without semicolons" % name)
         if style.get("status") != "active":
             problems.append("%s has status %s, not active" % (name, style.get("status")))
-# Each style is told apart by its own words: no two styles share a line, fill, or lettering.
-for key in ("line", "fill", "lettering"):
-    seen = {}
-    for name, style in styles.items():
-        value = style.get(key) if isinstance(style, dict) else None
-        if value in seen:
-            problems.append("%s and %s share the same %s" % (seen[value], name, key))
-        seen[value] = name
 for problem in problems[:12]:
     print("      " + problem)
 sys.exit(1 if problems else 0)
 PYEOF
 }
-check "the built-in styles hold sixteen styles in four families with their written specification" built_in_sixteen
+check "the built-in styles hold thirty-two styles in eight families with their written specification" built_in_thirty_two
+
+# Each built-in style is told apart by its own words: no two styles share a line, a fill, or
+# lettering, compared without case and outer spaces. It reads every style the file holds, so it
+# holds for the styles shipped before this change and for the ones added since.
+built_in_distinct() {
+  [ -f "$BUILT_IN" ] || { echo "      missing skills/article-diagram-styles/data/built-in-styles.json"; return 1; }
+  python3 - "$BUILT_IN" <<'PYEOF'
+import json, sys
+styles = json.load(open(sys.argv[1], encoding="utf-8")).get("finish_profiles")
+if not isinstance(styles, dict) or len(styles) < 16:
+    print("      read %s styles, fewer than the sixteen shipped before" % (len(styles) if isinstance(styles, dict) else "no"))
+    sys.exit(1)
+problems = []
+for key in ("line", "fill", "lettering"):
+    seen = {}
+    for name, style in styles.items():
+        value = style.get(key) if isinstance(style, dict) else None
+        if not isinstance(value, str):
+            continue  # A missing field is the specification check's to report.
+        words = value.strip().lower()
+        if words in seen:
+            problems.append("%s and %s share the same %s" % (seen[words], name, key))
+        seen.setdefault(words, name)
+for problem in problems[:12]:
+    print("      " + problem)
+sys.exit(1 if problems else 0)
+PYEOF
+}
+check "no two built-in styles share a line, a fill, or lettering" built_in_distinct
+
+# In a sample run with the same content, four styles drifted from their definitions: flat-vector
+# kept light gradients in its header band and icons, isometric drew its boxes in an oblique view,
+# minimal used its accent color in several places, and comic-panel added clouds that explained
+# nothing. Their definitions now say what they forbid, each in a sentence that starts with never.
+drifted_styles_forbid() {
+  [ -f "$BUILT_IN" ] || { echo "      missing skills/article-diagram-styles/data/built-in-styles.json"; return 1; }
+  python3 - "$BUILT_IN" <<'PYEOF'
+import json, re, sys
+styles = json.load(open(sys.argv[1], encoding="utf-8")).get("finish_profiles", {})
+want = {
+    "flat-vector": ("gradients, even light ones in a header band or an icon",
+                    [r"\bnever\b[^.;]*\bgradients?\b", r"\bheader band\b", r"\bicons?\b"]),
+    "isometric": ("an oblique view", [r"\btrue 30-degree isometric projection\b", r"\bnever\b[^.;]*\boblique\b"]),
+    "minimal": ("a second place for the accent color", [r"\bone place\b", r"\bnever\b[^.;]*\bsecond place\b"]),
+    "comic-panel": ("decoration unrelated to the content",
+                    [r"\bnever\b[^.;]*\bdecoration\b[^.;]*\bunrelated to the content\b"]),
+}
+problems = []
+for name, (forbidden, patterns) in want.items():
+    style = styles.get(name)
+    if not isinstance(style, dict):
+        problems.append("there is no built-in style %s" % name)
+        continue
+    text = " ".join(str(style.get(key, "")) for key in ("line", "fill", "background", "lettering"))
+    missing = [pattern for pattern in patterns if not re.search(pattern, text, re.I)]
+    if missing:
+        problems.append("%s does not forbid %s: it lacks %s" % (name, forbidden, ", ".join(missing)))
+for problem in problems:
+    print("      " + problem)
+sys.exit(1 if problems else 0)
+PYEOF
+}
+check "the four styles that drifted name what they forbid" drifted_styles_forbid
 
 built_in_no_samples() {
   [ -f "$BUILT_IN" ] || { echo "      missing skills/article-diagram-styles/data/built-in-styles.json"; return 1; }
@@ -257,7 +316,7 @@ validate_without_catalog() {
     [ "$h" = "$T/h-nocat" ] && styles "$h/.styles" --no-catalog
     HOME="$h" catalog "$h.out" --validate
     status=$?
-    exits 0 "$status" "$h.out" "16 built-in styles" "style-catalog.json is missing" || { echo "      (HOME ${h#"$T"/})"; return 1; }
+    exits 0 "$status" "$h.out" "32 built-in styles" "style-catalog.json is missing" || { echo "      (HOME ${h#"$T"/})"; return 1; }
   done
 }
 check "validate passes with only the built-in styles when ~/.styles has no catalog" validate_without_catalog
@@ -291,8 +350,8 @@ import json, sys
 lines = [line for line in open(sys.argv[1], encoding="utf-8").read().splitlines() if line.strip()]
 styles = json.load(open(sys.argv[2], encoding="utf-8")).get("finish_profiles", {})
 problems = []
-if len(lines) != 16:
-    problems.append("printed %d lines, not 16" % len(lines))
+if len(lines) != 32:
+    problems.append("printed %d lines, not 32" % len(lines))
 for name, style in styles.items():
     rows = [line.split("\t") for line in lines if line.split("\t")[0] == name]
     if len(rows) != 1:
@@ -302,6 +361,8 @@ for name, style in styles.items():
     if len(row) != 5 or row[1] != "built-in":
         problems.append("the line of %s is not name, built-in, family, label, and suits: %r" % (name, row))
         continue
+    if row[2] != style.get("family"):
+        problems.append("the line of %s names the family %s, not %s" % (name, row[2], style.get("family")))
     missing = [s for s in style.get("suits", []) if s not in row[4].split("; ")]
     if missing:
         problems.append("the line of %s lacks the suits %s" % (name, missing))
@@ -310,7 +371,7 @@ for problem in problems[:12]:
 sys.exit(1 if problems else 0)
 PYEOF
 }
-check "list prints the sixteen built-in styles without ~/.styles" list_built_in
+check "list prints the thirty-two built-in styles without ~/.styles" list_built_in
 
 list_user_styles() {
   local status name
@@ -639,18 +700,57 @@ check "article-diagram-styles provides style-catalog and figure-request at 1.1.0
 pages_say_built_in() {
   local page bad=0
   for page in README.md docs/how-it-works.md; do
-    has "$PLUGIN/$page" "sixteen built-in styles" "defined in words" '`article-diagram-styles` draws without `~/.styles/`' \
+    has "$PLUGIN/$page" "thirty-two built-in styles" "defined in words" '`article-diagram-styles` draws without `~/.styles/`' \
       "adds styles beside the built-in ones" "replaces the built-in style of the same name" '`retired`' \
       '`tech-book-figure` still needs your style4 samples' || bad=1
   done
   for page in README.ja.md docs/how-it-works.ja.md; do
-    has "$PLUGIN/$page" "16の既定の画風" "文で定義" '`~/.styles/`が無くても`article-diagram-styles`は描きます' \
+    has "$PLUGIN/$page" "32の既定の画風" "文で定義" '`~/.styles/`が無くても`article-diagram-styles`は描きます' \
       "既定の画風の横に画風を足し" "同じ名前の既定の画風を置き換え" '`retired`' \
       '`tech-book-figure`は今もstyle4の見本が要ります' || bad=1
   done
   return "$bad"
 }
 check "the pages say the built-in styles draw without ~/.styles" pages_say_built_in
+
+# The plugin's files, the root pages, and the marketplace no longer give sixteen as the number of
+# built-in styles. The tests are left out, and so are the released sections of the changelog, which
+# keep what each release shipped. A count of sixteen colors in a style's own words is not a count
+# of styles, so only sixteen followed by styles, or 16 followed by 画風, is counted.
+no_sixteen() {
+  {
+    find "$PLUGIN" -type f -not -path '*/tests/*'
+    printf '%s\n' "$REPO/README.md" "$REPO/README.ja.md" "$REPO/.claude-plugin/marketplace.json"
+  } > "$T/sixteen-files"
+  includes_skills "$T/sixteen-files" || return 1
+  python3 - "$T/sixteen-files" "$REPO" "$PLUGIN/CHANGELOG.md" <<'PYEOF'
+import re, sys
+listed, repo, changelog = sys.argv[1:4]
+paths = [path for path in open(listed, encoding="utf-8").read().split("\n") if path]
+needed = ["README.md", "README.ja.md", ".claude-plugin/marketplace.json", "plugins/diagram-styles/README.md",
+          "plugins/diagram-styles/THIRD_PARTY_NOTICES.md", "plugins/diagram-styles/CHANGELOG.md",
+          "plugins/diagram-styles/skills/article-diagram-styles/references/style-families.md"]
+problems = ["the counted files do not include " + p for p in needed if repo + "/" + p not in paths]
+count = re.compile(r"\b(?:sixteen|16)\s+(?:built-in\s+)?(?:drawing\s+)?styles?\b|\b(?:sixteen|16)\s+built-in\b"
+                   r"|16\s*(?:種類?)?の(?:既定の)?画風", re.I)
+for path in paths:
+    data = open(path, "rb").read()
+    if b"\0" in data:
+        continue  # A binary file such as the font holds no words.
+    released = False
+    for number, line in enumerate(data.decode("utf-8", "replace").splitlines(), 1):
+        if path == changelog and line.startswith("## ["):
+            released = not line.startswith("## [Unreleased]")
+        if released:
+            continue
+        if count.search(line):
+            problems.append("%s:%d names sixteen built-in styles" % (path[len(repo) + 1:], number))
+for problem in problems[:12]:
+    print("      " + problem)
+sys.exit(1 if problems else 0)
+PYEOF
+}
+check "no page names sixteen built-in styles" no_sixteen
 
 descriptions_say_built_in() {
   local f bad=0
@@ -860,16 +960,26 @@ changelog_line() {
 }
 check "the changelog has a line under Unreleased or the released version" changelog_line
 
+# names_in_changelog <changelog> <version> <text>: a line under ## [Unreleased] or ## [<version>]
+# names the text.
+names_in_changelog() { { unreleased "$1"; released "$1" "$2"; } | grep '^- ' | grep -qF -- "$3"; }
+
 # A release moves the line from ## [Unreleased] into the section of the version both plugin.json
-# files carry, so either place counts.
-changelog_built_in() {
-  local version
+# files carry and leaves ## [Unreleased] empty, so either place counts. Both shapes are tried on
+# throwaway changelogs before the plugin's own changelog is read.
+changelog_thirty_two() {
+  local version text="thirty-two built-in styles"
+  printf '# Changelog\n\n## [Unreleased]\n\n- ships %s\n\n## [0.2.0] - 2026-11-21\n\n- ships an older set of styles\n' "$text" > "$T/changelog-before"
+  printf '# Changelog\n\n## [Unreleased]\n\n## [0.3.0] - 2026-11-22\n\n- ships %s\n\n## [0.2.0] - 2026-11-21\n\n- ships an older set of styles\n' "$text" > "$T/changelog-after"
+  names_in_changelog "$T/changelog-before" 0.2.0 "$text" || { echo "      a line under ## [Unreleased] is not counted"; return 1; }
+  names_in_changelog "$T/changelog-after" 0.3.0 "$text" || { echo "      a line under the released version is not counted"; return 1; }
+  ! names_in_changelog "$T/changelog-after" 0.4.0 "$text" || { echo "      a line under another version is counted"; return 1; }
+  [ -f "$PLUGIN/CHANGELOG.md" ] || { echo "      missing plugins/diagram-styles/CHANGELOG.md"; return 1; }
   version="$(jq -r .version "$PLUGIN/.claude-plugin/plugin.json")"
-  { unreleased "$PLUGIN/CHANGELOG.md"; released "$PLUGIN/CHANGELOG.md" "$version"; } |
-    grep '^- ' | grep -qF "built-in styles" ||
-    { echo "      no line under ## [Unreleased] or ## [$version] names the built-in styles"; return 1; }
+  names_in_changelog "$PLUGIN/CHANGELOG.md" "$version" "$text" ||
+    { echo "      no line under ## [Unreleased] or ## [$version] names the $text"; return 1; }
 }
-check "the changelog names the built-in styles under Unreleased or the released version" changelog_built_in
+check "the changelog names the thirty-two built-in styles under Unreleased or the released version" changelog_thirty_two
 
 releasing_pages() {
   has "$REPO/docs/releasing.md" 'musubi check plugins/diagram-styles/skills' &&

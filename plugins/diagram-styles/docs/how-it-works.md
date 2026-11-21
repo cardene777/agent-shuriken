@@ -14,7 +14,7 @@ The agent designs and draws the figures; the scripts in `skills/article-diagram-
 | `article-diagram-styles/musubi.json` | The contents the skill provides: `style4` at version 1.0.0, and `figure-request` and `style-catalog` at version 1.1.0 |
 | `article-diagram-styles/references/content-first.md` | The content brief and the records of the finished review |
 | `article-diagram-styles/references/deterministic-technical-diagrams.md` | How the text and connections of a figure are recorded and checked |
-| `article-diagram-styles/references/style-families.md` | The sixteen built-in styles in four families, and how a style is chosen |
+| `article-diagram-styles/references/style-families.md` | The thirty-two built-in styles in eight families, and how a style is chosen |
 | `article-diagram-styles/references/pen-technical.md`, `handdraft.md`, `newsprint.md` | The full specifications of three built-in styles |
 | `article-diagram-styles/references/style4.md` | The style4 rules, provided as `style4` |
 | `article-diagram-styles/references/figure-request.md` | The figure request format, provided as `figure-request` |
@@ -26,7 +26,7 @@ The agent designs and draws the figures; the scripts in `skills/article-diagram-
 | `article-diagram-styles/scripts/validate_visual_contract.py` | Checks a visual contract and a figure spec against it |
 | `article-diagram-styles/scripts/validate_composition_ledger.py` | Checks the composition ledger of an article's figures |
 | `article-diagram-styles/scripts/newsprint_finish.py` | The bundled font's path and the ink treatment for HTML or SVG figures |
-| `article-diagram-styles/data/built-in-styles.json` | The sixteen built-in styles, each defined in words, without images |
+| `article-diagram-styles/data/built-in-styles.json` | The thirty-two built-in styles, each defined in words, without images |
 | `article-diagram-styles/data/fonts/KaiseiDecol-Bold.ttf`, `OFL.txt` | The font Kaisei Decol Bold and its license |
 | `article-diagram-styles/tests/` | Tests of the scripts, the pages, and the plugin, with fixtures drawn in a throwaway folder |
 | `tech-book-figure/SKILL.md` | How to design a book figure and draw it in style4 |
@@ -38,7 +38,7 @@ No file under `skills/` is an image.
 
 ## The style catalog
 
-The plugin ships sixteen built-in styles, each defined in words, so `article-diagram-styles` draws without `~/.styles/`.
+The plugin ships thirty-two built-in styles, each defined in words, so `article-diagram-styles` draws without `~/.styles/`.
 Your catalog adds styles beside the built-in ones, replaces the built-in style of the same name, and takes a built-in style out of use when its `status` is `retired`.
 `tech-book-figure` still needs your style4 samples and the catalog.
 The skills and the scripts read the catalog `style-catalog.json` and the sample images from `~/.styles/`.

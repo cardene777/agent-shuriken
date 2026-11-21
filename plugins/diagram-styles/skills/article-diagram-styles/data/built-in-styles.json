@@ -16,6 +16,22 @@
     "friendly": {
       "label": "Friendly",
       "description": "Playful materials make the figure approachable"
+    },
+    "dimensional": {
+      "label": "Dimensional",
+      "description": "Built objects with depth, seen as small models, carry the figure"
+    },
+    "notebook-and-archive": {
+      "label": "Notebook and archive",
+      "description": "Paper records, from a notebook page to an old printed drawing, carry the figure"
+    },
+    "ink-and-print": {
+      "label": "Ink and print",
+      "description": "Brush ink and hand printmaking give the figure its texture"
+    },
+    "signs-and-screens": {
+      "label": "Signs and screens",
+      "description": "The plain visual language of signs, transit maps, and text screens carries the figure"
     }
   },
   "finish_profiles": {
@@ -66,7 +82,7 @@
       "label": "Flat vector",
       "status": "active",
       "line": "No outlines, or uniform thin lines in one dark color, around shapes built from clean geometric primitives with rounded corners",
-      "fill": "Solid flat colors from a palette of four or five hues, with no gradient, texture, or shadow",
+      "fill": "Solid flat colors from a palette of four or five hues; never a gradient anywhere, not even a light one in a header band or an icon, and no texture or shadow",
       "background": "A solid light color or plain white",
       "lettering": "A clean geometric sans-serif of medium weight, aligned to a grid",
       "suits": ["product overviews", "user flows", "dashboards and screen concepts", "components drawn as icons", "marketing explainers"]
@@ -85,7 +101,7 @@
       "family": "drafting-and-flat",
       "label": "Isometric",
       "status": "active",
-      "line": "Crisp lines on a 30-degree isometric grid, every edge parallel to one of the three axes",
+      "line": "Crisp lines in a true 30-degree isometric projection, every edge parallel to one of the three axes; never an oblique view, in which a front face is drawn flat and the depth recedes at an angle",
       "fill": "Three flat tones on each object, light on top, medium on the left, and dark on the right, from a cool palette",
       "background": "Plain white or very light gray, with no horizon",
       "lettering": "Small upright sans-serif labels on leader lines, never skewed along the faces",
@@ -96,7 +112,7 @@
       "label": "Minimal",
       "status": "active",
       "line": "Thin black lines of a single weight, used sparingly, with alignment and space doing the work of boxes",
-      "fill": "White, with one accent color kept for the single thing that matters",
+      "fill": "White, with one accent color used in one place only, on the single thing that matters; never put the accent color in a second place",
       "background": "Plain white with generous margins",
       "lettering": "A light sans-serif in two sizes only, in black and gray",
       "suits": ["a single key idea", "simple comparisons", "timelines with few points", "summaries", "relations between two or three things"]
@@ -158,7 +174,7 @@
       "status": "active",
       "line": "Inked black outlines of varying weight, with speed lines and panel borders",
       "fill": "Bright flat colors with cel shading and occasional halftone dots",
-      "background": "Panels separated by white gutters",
+      "background": "Panels separated by white gutters; never add decoration unrelated to the content, such as clouds, sparkles, or effect bursts that explain nothing",
       "lettering": "All-capital comic lettering inside speech balloons and caption boxes",
       "suits": ["step-by-step stories", "user scenarios", "cause and effect", "dialogues between systems or people", "onboarding"]
     },
@@ -181,6 +197,166 @@
       "background": "A smooth single-color backdrop, gently lit",
       "lettering": "Rounded friendly labels printed on small cards set beside the objects",
       "suits": ["friendly overviews for beginners", "characters and mascots", "simple systems with few parts", "products and objects", "playful explainers"]
+    },
+    "low-poly": {
+      "family": "dimensional",
+      "label": "Low poly",
+      "status": "active",
+      "line": "No outlines; every form is built from flat triangular facets that meet at sharp edges, with no more facets than the shape needs",
+      "fill": "Each facet one flat tone from a muted palette, lighter on the faces turned to a single light at the upper left and darker away from it, never shaded within a facet",
+      "background": "A plain pale gray backdrop with a flat faceted ground plane under the objects",
+      "lettering": "A bold sans-serif in dark gray on small flat label plates beside the objects, never wrapped onto the facets",
+      "suits": ["systems shown as objects in space", "networks of connected nodes", "terrain and landscapes", "amounts shown as height or volume", "device overviews"]
+    },
+    "papercraft": {
+      "family": "dimensional",
+      "label": "Papercraft",
+      "status": "active",
+      "line": "No drawn lines; edges come from cut and folded colored paper, with crisp fold creases and slightly uneven scissor cuts",
+      "fill": "Matte colored card in four to six colors, layered so that each sheet casts a small soft shadow on the sheet below",
+      "background": "A sheet of plain light card, lit evenly from above",
+      "lettering": "Rounded sans-serif letters printed on paper tabs or cut out of paper and glued beside the objects",
+      "suits": ["layered structures", "step-by-step assemblies", "friendly process explainers", "stacks and hierarchies", "simple maps"]
+    },
+    "diorama": {
+      "family": "dimensional",
+      "label": "Diorama",
+      "status": "active",
+      "line": "No drawn outlines; scale-model objects with modeled edges stand on a small cut-away base, seen from slightly above",
+      "fill": "Painted miniature materials such as wood, stone, grass, and metal, with a small contact shadow under every object",
+      "background": "A neutral studio backdrop around the base, with the cut edge of the base showing its layers of soil or floor",
+      "lettering": "Small signposts and placards standing on the base, with clear printed sans-serif letters",
+      "suits": ["places and environments", "scenes with several actors at once", "where each part of a system runs", "physical workflows such as a warehouse or a factory", "story settings"]
+    },
+    "toy-blocks": {
+      "family": "dimensional",
+      "label": "Toy blocks",
+      "status": "active",
+      "line": "No drawn lines; shapes are put together from interlocking plastic toy blocks with round studs on top, every block aligned to the block grid",
+      "fill": "Smooth plastic in red, yellow, blue, green, and white, with a small highlight on each stud and no texture",
+      "background": "A plain light gray base plate seen from above at an angle",
+      "lettering": "Chunky rounded capitals printed on flat tiles laid on the blocks",
+      "suits": ["building blocks and modules", "composing a system from parts", "counts shown as stacks", "beginner explanations", "dependencies between components"]
+    },
+    "notebook-doodle": {
+      "family": "notebook-and-archive",
+      "label": "Notebook doodle",
+      "status": "active",
+      "line": "Blue ballpoint pen lines drawn quickly, with loops, retraced arrows, and small scribbles at the corners",
+      "fill": "Mostly unfilled; a few areas shaded by ballpoint hatching, and one yellow highlighter stroke over the key word",
+      "background": "A ruled notebook page with faint blue lines and a red margin line on the left",
+      "lettering": "Casual lowercase handwriting in ballpoint, with circled words and double underlines",
+      "suits": ["first ideas", "learning notes", "quick comparisons", "lists joined by arrows", "study summaries"]
+    },
+    "grid-memo": {
+      "family": "notebook-and-archive",
+      "label": "Grid design memo",
+      "status": "active",
+      "line": "Fine black technical pen lines snapped to the grid, with right angles, short dimension ticks, and boxed numbers",
+      "fill": "No color fill; regions marked by one light gray marker tone and a few red pen check marks",
+      "background": "Graph paper with a pale blue square grid and a darker line every ten squares",
+      "lettering": "Small, neat engineering capitals aligned to the grid lines",
+      "suits": ["layouts and wireframes", "screen designs", "data layouts with sizes", "tables and grids", "planning notes"]
+    },
+    "patent-drawing": {
+      "family": "notebook-and-archive",
+      "label": "Patent drawing",
+      "status": "active",
+      "line": "Uniform thin black ink lines as in a patent figure, with a numbered leader line to each part and broken lines for hidden parts",
+      "fill": "No color or tone; surfaces shown only by parallel shading lines on the side away from the light",
+      "background": "Plain white paper with a wide margin and a figure label under the drawing",
+      "lettering": "Serif reference numerals at the ends of the leader lines, explained in a short numbered legend under the figure",
+      "suits": ["mechanisms and devices", "the parts of a component", "exploded views", "how an invention works", "precise structural explanations"]
+    },
+    "old-map": {
+      "family": "notebook-and-archive",
+      "label": "Old map",
+      "status": "active",
+      "line": "Brown ink lines drawn with a dip pen, with hatched coastlines, dotted routes, and a small compass rose",
+      "fill": "Faded watercolor tints of ochre, sage green, and pale blue, laid unevenly inside the borders",
+      "background": "Aged parchment with stains, brown spots, and darkened edges",
+      "lettering": "Hand-lettered serif capitals for regions and italic script for smaller places, curving along the features",
+      "suits": ["journeys and routes", "territories and boundaries", "overviews of an ecosystem", "roadmaps", "where things are in a large system"]
+    },
+    "sumi-e": {
+      "family": "ink-and-print",
+      "label": "Ink wash",
+      "status": "active",
+      "line": "Black brush strokes that change width from a thick press to a fine dry tip, each object drawn in as few strokes as possible",
+      "fill": "Gray ink washes in three or four dilutions, with one small red stamp as the only color",
+      "background": "Off-white rice paper with soft fibers and wide empty space",
+      "lettering": "Brush-written letters in black ink, set in a short vertical or horizontal column",
+      "suits": ["a single concept with a mood", "balance and contrast", "nature and seasons", "relations between two or three things", "essays and reflections"]
+    },
+    "risograph": {
+      "family": "ink-and-print",
+      "label": "Risograph",
+      "status": "active",
+      "line": "Bold shapes defined by the edges between ink layers rather than outlines, with the colors slightly out of register",
+      "fill": "Two or three flat spot inks such as bright pink, teal, and yellow, with coarse grain and a darker third color where two inks overlap",
+      "background": "Uncoated off-white paper with a light speckle",
+      "lettering": "Chunky grotesque sans-serif letters printed in one spot ink",
+      "suits": ["zines and community explainers", "overlaps and intersections", "comparisons in two colors", "event and project summaries", "playful data highlights"]
+    },
+    "copperplate": {
+      "family": "ink-and-print",
+      "label": "Copperplate engraving",
+      "status": "active",
+      "line": "Fine engraved lines that swell and taper, with dense cross-hatching for shadow and stippled dots for soft forms",
+      "fill": "No flat color; every tone is built from the density of lines in black or deep sepia ink",
+      "background": "Cream laid paper with a faint plate mark around the image",
+      "lettering": "Engraved script for titles and small roman capitals for labels",
+      "suits": ["scientific and historical explanations", "the anatomy of an object", "classifications and specimens", "formal reference figures", "historical timelines"]
+    },
+    "paper-cut": {
+      "family": "ink-and-print",
+      "label": "Paper cut",
+      "status": "active",
+      "line": "Silhouettes cut from a single sheet with a craft knife, every shape held by thin bridges, with no drawn lines",
+      "fill": "One solid color for the cut sheet, usually black or red, with no shading",
+      "background": "A plain sheet of a contrasting color behind the cut paper, showing through the openings",
+      "lettering": "Letters cut out of the same sheet in simple bold shapes, joined to the border",
+      "suits": ["symbols and emblems", "a single central metaphor", "cycles and symmetry", "cultural explanations", "chapter openers"]
+    },
+    "pictogram": {
+      "family": "signs-and-screens",
+      "label": "Pictogram",
+      "status": "active",
+      "line": "Simplified people and objects built from geometric shapes with one uniform stroke and rounded joins, as on public signs",
+      "fill": "One dark color on white, or white on one dark color, with a single signal color such as safety orange for the key element",
+      "background": "A plain white field, or square sign panels with rounded corners",
+      "lettering": "A plain upright sans-serif of medium weight, with a short word under each pictogram",
+      "suits": ["instructions and procedures", "rules and warnings", "roles of people and systems", "explanations for readers of many languages", "quick reference figures"]
+    },
+    "metro-map": {
+      "family": "signs-and-screens",
+      "label": "Metro map",
+      "status": "active",
+      "line": "Thick colored lines that run only horizontally, vertically, or at 45 degrees, with rounded bends and short white ticks for stations",
+      "fill": "One flat distinct color for each line, white circles for stations, and white rings with black outlines for interchanges",
+      "background": "Plain white or very pale gray, with water or zones as flat pale tints when they are needed",
+      "lettering": "A clear humanist sans-serif set horizontally beside each station, never along the line",
+      "suits": ["routes through a system", "pipelines with branches", "user journeys with shared steps", "dependencies between services", "roadmaps with parallel tracks"]
+    },
+    "terminal-screen": {
+      "family": "signs-and-screens",
+      "label": "Terminal screen",
+      "status": "active",
+      "line": "Text-mode boxes drawn with single and double line characters, and arrows made of characters, everything on a fixed character grid",
+      "fill": "Green or amber characters on a dark screen, with one inverse block for the selected item, and no shading or glow around the text",
+      "background": "A dark charcoal terminal window with a thin title bar",
+      "lettering": "One monospaced font in one size throughout, with a solid cursor block at the end of the prompt",
+      "suits": ["command-line workflows", "logs and outputs", "file trees and folder layouts", "protocols and messages", "developer tools"]
+    },
+    "sticker": {
+      "family": "signs-and-screens",
+      "label": "Sticker",
+      "status": "active",
+      "line": "Bold dark outlines around simple cartoon objects, each wrapped in a thick white die-cut border",
+      "fill": "Bright flat colors with one hard-edged highlight shape on each object and a small offset shadow under each sticker",
+      "background": "A plain mid-gray or kraft paper surface, with the stickers slightly overlapping",
+      "lettering": "Rounded heavy display letters with their own white border, set on a sticker of their own",
+      "suits": ["tools and technology stacks", "badges and achievements", "feature highlights", "playful lists of items", "team introductions"]
     }
   }
 }
