@@ -24,6 +24,7 @@ JA_ALLOWED=(
   plugins/machine-cleanup/skills/machine-cleanup/templates/sheet.html
   plugins/compare-report/skills/compare-report/templates/base.html
   plugins/slides/skills/slide-forge/scripts/edit-text.json
+  plugins/slides/skills/slide-builder/scripts/outline-headings.json
   plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh
   plugins/account-cleanup/skills/account-cleanup/scripts/browser.mjs
   plugins/account-cleanup/skills/account-cleanup/scripts/connections-guide.sh

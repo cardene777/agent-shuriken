@@ -112,6 +112,9 @@ Example: `> meta: type=content eyebrow="Part 1 · 02"`
 
 Put a value that contains spaces in `"..."`.
 
+The headings `Takeaway`, `Explanation`, `Figure`, and the `Elements` label have a second, Japanese spelling listed in `../scripts/outline-headings.json`.
+An outline written in Japanese uses that spelling, and `scripts/validate.py` reads either one.
+
 ### `### Takeaway` (required on content slides)
 
 One slide, one conclusion. Write two to four sentences: the conclusion and why it matters, so that a reader of this block alone knows what the slide says.

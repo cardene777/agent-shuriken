@@ -194,6 +194,47 @@ PY
   done
 }
 
+# Rewrites the example's headings with the other spelling that scripts/outline-headings.json lists.
+# The copy passes, and the same copy without the first figure's elements is rejected, so the other
+# spellings are read and not skipped. With "drop", the first figure keeps only its heading.
+other_spelling() {
+  python3 - "$EXAMPLE" "$SKILL_DIR/scripts/outline-headings.json" "$1" "$2" <<'PY'
+import json, re, sys
+source, headings_path, target, mode = sys.argv[1:]
+headings = json.load(open(headings_path, encoding="utf-8"))
+out, dropping, dropped = [], False, False
+for line in open(source, encoding="utf-8").read().split("\n"):
+    for key in ("takeaway", "explanation", "figure"):
+        if re.match(r"^###\s+" + re.escape(headings[key][0]) + r"\s*$", line):
+            line = "### " + headings[key][1]
+    if re.match(r"^\**" + re.escape(headings["elements"][0]) + r"\**\s*:?\s*\**\s*$", line):
+        line = headings["elements"][1] + "。"
+    if mode == "drop" and not dropped:
+        if line == "### " + headings["figure"][1]:
+            dropping = True
+            out.append(line)
+            continue
+        if dropping:
+            if re.match(r"^(---\s*$|## |### )", line):
+                dropping, dropped = False, True
+            else:
+                continue
+    out.append(line)
+open(target, "w", encoding="utf-8").write("\n".join(out))
+PY
+}
+
+accepts_other_spellings() {
+  need "$VALIDATOR" "$EXAMPLE" "$SKILL_DIR/scripts/outline-headings.json" || return 1
+  other_spelling "$T/other.md" keep || { why="could not rewrite the headings"; return 1; }
+  grep -qE '^### Takeaway' "$T/other.md" && { why="the rewritten copy still has the English headings"; return 1; }
+  validate "$T/other.md"
+  [ "$status" -eq 0 ] || { why="the copy with the other spellings is rejected: $(printf '%s' "$out" | tr '\n' ' ')"; return 1; }
+  other_spelling "$T/other-no-figure.md" drop || { why="could not rewrite the headings"; return 1; }
+  validate "$T/other-no-figure.md"
+  [ "$status" -ne 0 ] || { why="a figure without elements was accepted under the other spelling: $out"; return 1; }
+}
+
 check "the plugin holds the two skills by name" holds_two_skills
 check "no file names a local folder or another repository" no_local_names
 check "the SKILL.md files name no agent or its tool" no_agent_names
@@ -202,6 +243,7 @@ check "the validator uses only the standard library" standard_library_only
 check "the validator runs from any folder" runs_from_any_folder
 check "the example outline passes the validator" example_passes
 check "the validator rejects a page without a figure" rejects_missing_figure
+check "the validator accepts the other heading spellings" accepts_other_spellings
 
 printf '\n%d passed, %d failed (%d ran)\n' "$PASS" "$FAIL" "$((PASS + FAIL))"
 [ "$FAIL" -eq 0 ]

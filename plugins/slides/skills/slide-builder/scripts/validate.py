@@ -17,12 +17,24 @@ Rules (references/deck-format.md and references/readability-rules.md):
 5. Slide numbers count up from 1, and every slide gives the same total.
 6. A general code word, or a word given with --ban, outside code and quotes is a warning.
 
-Uses only the Python standard library and reads only the file it is given.
+The headings `Takeaway`, `Figure`, and `Elements` may also be written in the other spellings that
+outline-headings.json lists, so an outline written in Japanese keeps its own headings.
+
+Uses only the Python standard library and reads only the file it is given and outline-headings.json.
 """
 import argparse
+import json
 import re
 import sys
 from pathlib import Path
+
+# The spellings each heading may take, read from the file next to this script.
+HEADINGS = json.loads((Path(__file__).resolve().parent / "outline-headings.json").read_text(encoding="utf-8"))
+
+
+def spellings(key: str) -> str:
+    """Returns a regular expression group that matches any spelling of the heading."""
+    return "(?:" + "|".join(re.escape(word) for word in HEADINGS[key]) + ")"
 
 # General code words that a non-engineer audience does not read (references/readability-rules.md).
 # Words of one field are added per deck with --ban.
@@ -34,7 +46,9 @@ BANNED_WORDS = [
 SLIDE_HEADING = re.compile(r"^##\s+Slide\s+(\d+)\s*/\s*(\d+)\s*[─–—-]\s*(.+)$")
 SECTION = re.compile(r"^###\s")
 SEPARATOR = re.compile(r"^---\s*$")
-ELEMENTS = re.compile(r"^\**Elements\**\s*:?\s*\**\s*$", re.IGNORECASE)
+ELEMENTS = re.compile(r"^\**" + spellings("elements") + r"\**\s*[:：。]?\s*\**\s*$", re.IGNORECASE)
+TAKEAWAY = re.compile(r"^###\s+" + spellings("takeaway") + r"\s*$")
+FIGURE = re.compile(r"^###\s+" + spellings("figure") + r"\s*$")
 LIST_ITEM = re.compile(r"^[-*]\s+")
 # Text inside backticks and quotes is quoted material, not the deck's own words.
 QUOTED = re.compile(r"`[^`]*`|\"[^\"]*\"|“[^”]*”|「[^」]*」")
@@ -125,12 +139,12 @@ def validate(text: str, extra_words: list[str]) -> tuple[list[str], list[str]]:
                 if slide_type not in ("hero", "chapter", "content"):
                     warnings.append(f"{prefix} unknown type: {slide_type}")
 
-        has_takeaway = any(re.match(r"^###\s+Takeaway\s*$", line.strip()) for line in slide_lines)
+        has_takeaway = any(TAKEAWAY.match(line.strip()) for line in slide_lines)
         if slide_type == "content" and not has_takeaway:
             errors.append(f"{prefix} missing `### Takeaway` section")
 
         for index, line in enumerate(slide_lines):
-            if re.match(r"^###\s+Figure\s*$", line.strip()):
+            if FIGURE.match(line.strip()):
                 check_figure(slide_lines, index, prefix, errors, warnings)
 
         in_code = False

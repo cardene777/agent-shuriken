@@ -58,7 +58,7 @@ Use slide-forge for one slide or a short presentation (a self-introduction, a on
 
 1. When the request does not say who will watch the deck, what it is for, or which material to use, ask the user in the chat. Agents that offer a tool for asking questions may use it for the same questions; in other agents, ask them as one short numbered list and wait for the answers.
 2. Design the structure (parts, chapters, slide order) in `slides-outline-draft.md`. Show it and ask the user in the chat to confirm or change it before writing the slides.
-3. Write each slide in the format of `references/deck-format.md`: `### Takeaway`, `### Explanation`, and `### Figure` when the slide has a figure. `examples/slides-outline.md` is a complete ten-slide example.
+3. Write each slide in the format of `references/deck-format.md`: `### Takeaway`, `### Explanation`, and `### Figure` when the slide has a figure. `examples/slides-outline.md` is a complete ten-slide example. When the user writes in Japanese, use the Japanese spellings of these headings and of `Elements` that `scripts/outline-headings.json` lists; the validator accepts either spelling.
 4. Check the outline with the validator, as below, and fix every error. Read each warning and rewrite the slide unless the user accepted the word.
 5. Hand the outline to whoever draws the slides, and tell the user where it is.
 
