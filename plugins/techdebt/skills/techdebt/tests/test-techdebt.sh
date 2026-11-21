@@ -606,7 +606,11 @@ def panel(dom):
 def status(lang, tool, found):
     if tool["ran"]:
         return {"en": "%d findings", "ja": "%d件"}[lang] % found
-    return {"en": "Not run because ", "ja": "動かしていません。"}[lang] + tool["reason"]
+    # The Japanese page puts the reason in its own words, which the checks of the reasons read.
+    return "Not run because " + tool["reason"] if lang == "en" else None
+
+def same(got, want):
+    return got == want or (want is not None and want[1] is None and got is not None and got[0] == want[0] and got[1] != "")
 
 if what == "facts":
     at = d["generated_at"][:16].replace("T", " ")
@@ -655,7 +659,7 @@ elif what == "tools":
             m = re.match(r"<h3>([^<]*)</h3><p\b[^>]*>([^<]*)</p>", section)
             want = (tool["tool"], status(lang, tool, len(tool["findings"])))
             got = (html.unescape(m.group(1)), html.unescape(m.group(2))) if m else None
-            if got != want:
+            if not same(got, want):
                 problems.append("%s: tool section %r, wanted the heading and the line under it %r" % (lang, got or text(section)[:80], want))
 
 elif what == "deprecated":
@@ -669,7 +673,7 @@ elif what == "deprecated":
         rows = [(html.unescape(a), html.unescape(b)) for a, b in re.findall(r"<tr><td><code>([^<]*)</code></td><td>([^<]*)</td></tr>", table.group(1))]
         want_heads = {"en": ["Tool", "Result"], "ja": ["ツール", "結果"]}[lang]
         want_rows = [(s["tool"], status(lang, s, sum(1 for i in calls["items"] if i["tool"] == s["tool"]))) for s in calls["tools"]]
-        if heads != want_heads or rows != want_rows or not rows:
+        if heads != want_heads or len(rows) != len(want_rows) or not all(same(g, w) for g, w in zip(rows, want_rows)) or not rows:
             problems.append("%s: the table has %r and %r, wanted %r and %r" % (lang, heads, rows, want_heads, want_rows))
 
 elif what in ("quoted", "plain"):
@@ -704,8 +708,16 @@ elif what == "stopped":
                 if not m:
                     continue
                 words, first = m.groups()
-                shown = '%s<code class="said">%s</code>' % (html.escape(prefix[lang] + words, quote=False), html.escape(first, quote=False))
-                if words + ": " + first != tool["reason"] or form.format(name=tool["tool"], shown=shown) not in body:
+                quoted = '<code class="said">%s</code>' % html.escape(first, quote=False)
+                if lang == "en":
+                    found = form.format(name=tool["tool"], shown=html.escape(prefix[lang] + words, quote=False) + quoted) in body
+                else:
+                    # The Japanese page says the exit code in its own words before the quoted first line.
+                    code = re.search(r"-?\d+$", words).group(0)
+                    pre, post = form.format(name=tool["tool"], shown="\x00").split("\x00")
+                    pattern = re.escape(pre) + "[^<]*" + re.escape(code) + "[^<]*" + re.escape(quoted) + re.escape(post)
+                    found = re.search(pattern, body) is not None
+                if words + ": " + first != tool["reason"] or not found:
                     problems.append("%s %s: %s does not show %r in words and %r quoted in code" % (lang, tab, tool["tool"], words, first))
 
 for p in problems[:8]:
@@ -930,8 +942,24 @@ elif what == "how":
             for tool, t in tools.items():
                 if tool not in rows:
                     problems.append("%s %s: no row for %s" % (lang, tab, tool))
-                elif not t["ran"] and any(part not in rows[tool] for part in t["reason"].split(": ", 1)):
+                # The English page gives the reason as techdebt.py wrote it, and the Japanese page in its own
+                # words, apart from the first line a stopped tool wrote, which both quote.
+                elif not t["ran"] and any(part not in rows[tool] for part in t["reason"].split(": ", 1)[0 if lang == "en" else 1:]):
                     problems.append("%s %s: the %s row does not give the reason %r" % (lang, tab, tool, t["reason"]))
+
+elif what == "ja-words":
+    # The words techdebt.py wrote for a tool that did not run, before the first line a stopped tool wrote.
+    words = {t["tool"]: t["reason"].split(": ", 1)[0] for t in d["tools"] + d["deprecated_calls"]["tools"] if not t["ran"]}
+    if not words:
+        problems.append("every tool ran in this report")
+    for tab in ("tools", "deprecated", "start"):
+        en, ja = (page(lang, tab) for lang in ("en", "ja"))
+        en, ja = (text(re.sub(r'<code class="said">.*?</code>', "", s[s.find('id="panel"'):], flags=re.S)) for s in (en, ja))
+        for tool, said in sorted(words.items()):
+            if said not in en:
+                problems.append("en %s: the page does not give the reason of %s, %r" % (tab, tool, said))
+            if said in ja:
+                problems.append("ja %s: the page gives the reason of %s in English, %r" % (tab, tool, said))
 
 for p in problems[:8]:
     print("      " + p)
@@ -1154,6 +1182,74 @@ else
     for name in "${PROBE_CHECKS[@]}"; do ng "$name"; done
     echo "      the browser could not open the reports with the probe"
   fi
+fi
+
+# --- The reasons a tool did not run, in the words of the Japanese page
+# Every reason techdebt.py can write, read from its source, so a reason added later is checked too.
+python3 - "$SCRIPT" > "$T/reasons.json" <<'PYEOF'
+import json, re, sys
+src = open(sys.argv[1], encoding="utf-8").read()
+found = {m.group(1) for m in re.finditer(r'(?:not_run\((?:why or )?|"reason": )"([^"]+)"', src)}
+samples = [r.replace("(%s)", "(OSError)").replace("%s", "src/a.ts") for r in sorted(found)]
+# stopped() writes the exit code and, when the tool wrote one, its first line.
+samples += ["ruff stopped with exit code 2: error: unexpected argument", "ESLint stopped with exit code 1"]
+print(json.dumps(samples))
+PYEOF
+
+# reason_words: opens the Japanese page with every reason and reads what the page shows for each.
+reason_words() {
+  local copy="$T/opened/reasons-ja.html"
+  python3 - "$OSTATE/report.html" "$copy" "$T/reasons.json" <<'PYEOF' || return 1
+import sys
+src, dst, reasons = sys.argv[1:4]
+page = open(src, encoding="utf-8").read().replace('let lang = "en"', 'let lang = "ja"', 1)
+probe = """<script type="application/json" id="reasons-in">%s</script>
+<script>
+(() => {
+  const out = JSON.parse(document.getElementById("reasons-in").textContent).map((reason) => {
+    const parts = toolState({ tool: "x", ran: false, reason }, 0);
+    return { reason, words: parts.filter((p) => !p.nodeType).join(""), quoted: parts.filter((p) => p.nodeType).map((p) => p.textContent) };
+  });
+  const pre = document.createElement("pre");
+  pre.id = "reasons-out";
+  pre.textContent = JSON.stringify(out);
+  document.body.append(pre);
+})();
+</script>
+""" % open(reasons, encoding="utf-8").read().strip()
+end = page.rindex("</body>")
+open(dst, "w", encoding="utf-8").write(page[:end] + probe + page[end:])
+PYEOF
+  "$real_browser" --headless --disable-gpu --no-first-run --user-data-dir="$T/browser-profile" \
+    --dump-dom "file://$copy" > "$copy.dom" 2>/dev/null || return 1
+  python3 - "$copy.dom" <<'PYEOF'
+import html, json, re, sys
+m = re.search(r'<pre id="reasons-out">(.*?)</pre>', open(sys.argv[1], encoding="utf-8").read(), re.S)
+problems = []
+shown = json.loads(html.unescape(m.group(1))) if m else []
+if len(shown) < 15:
+    problems.append("the page showed %d reasons, wanted every reason techdebt.py writes" % len(shown))
+for s in shown:
+    stopped = re.match(r"^\S+ stopped with exit code (-?\d+)(?:: (.+))?$", s["reason"], re.S)
+    if not re.search(r"[぀-ヿ一-鿿]", s["words"]) or re.search(r"[A-Za-z]+ [a-z]+", s["words"]):
+        problems.append("%r is shown as %r" % (s["reason"], s["words"]))
+    elif stopped and (stopped.group(1) not in s["words"] or s["quoted"] != ([stopped.group(2)] if stopped.group(2) else [])):
+        problems.append("%r is shown as %r with %r quoted" % (s["reason"], s["words"], s["quoted"]))
+for p in problems[:8]:
+    print("      " + p)
+sys.exit(1 if problems else 0)
+PYEOF
+}
+
+REASON_CHECKS=(
+  "the reasons a tool did not run read in Japanese on the Japanese page"
+  "the Japanese page shows no English reason as its own words"
+)
+if [ -z "$real_browser" ]; then
+  for name in "${REASON_CHECKS[@]}"; do skip "$name" "needs a Chromium-based browser"; done
+else
+  check "${REASON_CHECKS[0]}" 'reason_words'
+  check "${REASON_CHECKS[1]}" 'band_check ja-words "$OSTATE" git && band_check ja-words "$PSTATE" plain && band_check ja-words "$FSTATE" stopped'
 fi
 
 printf '\n%d passed, %d failed (%d ran, %d skipped)\n' "$PASS" "$FAIL" "$((PASS + FAIL))" "$SKIP"
