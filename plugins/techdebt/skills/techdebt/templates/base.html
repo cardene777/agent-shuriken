@@ -268,6 +268,15 @@ const I18N = {
     exact: "正確", approx: "目安", first: "1か所目", second: "2か所目", rule: "規則", message: "内容",
     notCommitted: "未コミット", days: "{n}日", months: "{n}か月", years: "{n}年{m}か月",
     nothing: "見つかりませんでした。", notRun: "動かしていません。{r}", ran: "{n}件",
+    whyStopped: "{tool}が終了コード{code}で止まりました。",
+    whyNotOnPath: "{where}にもPATHにも{tool}が入っていません。", whyNotInstalled: "{where}に{tool}が入っていません。",
+    whyTimeout: "{tool}が{n}分以内に終わりませんでした。", whyConfigTimeout: "{tool}が{n}分以内に設定を出しませんでした。",
+    whyNotStarted: "{tool}を起動できませんでした({error})。", whyUnreadable: "{tool}の出力を読めませんでした({error})。",
+    whyNoConfig: "{tool}が{file}の設定を出しませんでした。",
+    whyNoRule: "ESLintの設定が、{rules}のような非推奨の規則を1つも有効にしていません。",
+    whyNoRules: "プロジェクト独自のsemgrepの規則のファイル({files})がありません。",
+    whyNoPython: "Pythonのファイルがありません。", whyNoScripts: "JavaScriptとTypeScriptのファイルがありません。",
+    whyNoPackage: "package.jsonがありません。",
     prev: "前へ", next: "次へ", page: "{n}ページ", pages: "ページ",
     chartChanges: "変更回数", chartLines: "空行を除いた行数",
     howTitle: "値の測り方", howMeasure: "項目", howWay: "測り方",
@@ -413,12 +422,43 @@ const tdc = (v) => el("td", null, el("code", null, v));
 // The words a tool wrote are quoted in code, letter for letter, apart from the words of the page.
 const said = (v) => el("code", {class: "said"}, v);
 const tds = (v) => el("td", null, said(v));
-// techdebt.py gives a tool that stopped the reason "TOOL stopped with exit code N: FIRST LINE".
-// The exit code stays in the words of the page and the first line is quoted under it, without the colon.
+// techdebt.py writes each reason in English, for its summary and scan.json. The English page shows it as
+// written. The Japanese page puts the reasons it knows in its own words, and quotes any other reason as
+// written. Each entry is a pattern of a reason, its key in the dictionary, and the names of its parts.
+const REASONS = [
+  [/^(\S+) stopped with exit code (-?\d+)(?:: ([\s\S]+))?$/, "whyStopped", ["tool", "code", "said"]],
+  [/^(\S+) is not installed in (\S+) or on PATH$/, "whyNotOnPath", ["tool", "where"]],
+  [/^(\S+) is not installed in (\S+)$/, "whyNotInstalled", ["tool", "where"]],
+  [/^(\S+) did not finish within (\d+) minutes$/, "whyTimeout", ["tool", "n"]],
+  [/^(\S+) did not print its config within (\d+) minutes$/, "whyConfigTimeout", ["tool", "n"]],
+  [/^(\S+) could not be started \((\w+)\)$/, "whyNotStarted", ["tool", "error"]],
+  [/^(\S+) output could not be read \((\w+)\)$/, "whyUnreadable", ["tool", "error"]],
+  [/^(\S+) printed no config for (.+)$/, "whyNoConfig", ["tool", "file"]],
+  [/^the ESLint config turns on no deprecation rule \(such as (.+)\)$/, "whyNoRule", ["rules"]],
+  [/^the project has no semgrep rules of its own \((.+)\)$/, "whyNoRules", ["files"]],
+  [/^there are no Python files$/, "whyNoPython", []],
+  [/^there are no JavaScript or TypeScript files$/, "whyNoScripts", []],
+  [/^there is no package\.json$/, "whyNoPackage", []],
+];
+// A tool that stopped gives the reason "TOOL stopped with exit code N: FIRST LINE". The exit code stays in
+// the words of the page and the first line is quoted under it, without the colon.
 function toolState(tool, found) {
   if (tool.ran) return [t("ran", {n: found})];
-  const m = /^(\S+ stopped with exit code -?\d+): ([\s\S]+)$/.exec(tool.reason);
-  return m ? [t("notRun", {r: m[1]}), said(m[2])] : [t("notRun", {r: tool.reason})];
+  if (lang === "en") {
+    const m = /^(\S+ stopped with exit code -?\d+): ([\s\S]+)$/.exec(tool.reason);
+    return m ? [t("notRun", {r: m[1]}), said(m[2])] : [t("notRun", {r: tool.reason})];
+  }
+  for (const [pattern, key, names] of REASONS) {
+    const m = pattern.exec(tool.reason);
+    if (!m) continue;
+    const parts = {};
+    names.forEach((name, i) => { parts[name] = m[i + 1] || ""; });
+    if (key === "whyStopped") return parts.said ? [t(key, parts), said(parts.said)] : [t(key, parts)];
+    if (parts.rules) parts.rules = list(parts.rules.split(" or "));
+    if (parts.files) parts.files = list(parts.files.split(/,? or |, /));
+    return [t("notRun", {r: t(key, parts)})];
+  }
+  return [t("notRun", {r: ""}), said(tool.reason)];
 }
 const pathParts = (file) => {
   const at = file.lastIndexOf("/") + 1;

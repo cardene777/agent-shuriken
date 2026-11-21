@@ -44,7 +44,7 @@ Ruby、Lua、シェル、Elixir、Clojure、Haskellでは関数の長さを測�
 | `semgrep` | `.semgrep.yml`、`.semgrep.yaml`、`.semgrep/`のどれかがある時に`.venv/bin/semgrep`、無ければ`PATH` | `semgrep scan --json --quiet --metrics off --disable-version-check`に、その規則のfileごとの`--config`を付けて回します。`auto`や`p/...`のような登録所の規則は使いません。規則のidか`category`がセキュリティを示す結果は捨てます。規則のid、文、metadataが非推奨に触れる結果は、非推奨の呼び出しの項目に並べます。残りをここに並べます。semgrepの設定、匿名のid、記録は一時のフォルダーに書かせて回した後に消すので、`~/.semgrep`には書かず、semgrepのログインも使いません |
 | `eslint` | `package.json`がある時に`node_modules/.bin/eslint` | まずJavaScriptかTypeScriptのファイル1つに`eslint --print-config`を回します。設定が`@typescript-eslint/no-deprecated`、`react/no-deprecated`、`import/no-deprecated`、`deprecation/deprecation`のような非推奨の規則を有効にしている時だけ、プロジェクトの設定のまま`eslint --format json .`を回し、その規則の結果を非推奨の呼び出しの項目に並べます |
 
-入っていないツールは、理由を添えて「動かしていない」と報告します。
+入っていないツールは、理由を添えて「動かしていない」と報告します。`scan.json`と要約は理由を英語で書き、日本語のレポートは知っている理由を日本語の文で出し、ほかの理由は書かれたまま引用します。
 誤りで止まったツールも、終了コードと最初に書いた行を添えて「動かしていない」と報告し、結果を0件と数えません。
 報告は、ツールが書いた文 (結果の文と、止まったツールが最初に書いた行) を、報告の文と分けてコードの書式で1字も変えずに引きます。`scan.json`はツールが書いたとおりに残します。
 プラグインがツールを取り寄せたり入れたりすることはありません。
