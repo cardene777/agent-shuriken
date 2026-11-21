@@ -49,8 +49,8 @@
     "date": "{year}年{month}月{day}日時点",
     "months": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"],
     "ladderAlt": "段の並び",
-    "ladderBack": "工程{n} へ戻る",
-    "ladderBackNote": "{n} へ戻る",
+    "ladderBack": "工程{n}へ戻る",
+    "ladderBackNote": "{n}へ戻る",
     "figMore": "横にスクロールすると図の全体が見えます"
   }
 }
