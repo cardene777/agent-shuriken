@@ -45,7 +45,7 @@ header h1 { margin: 0; font-size: 20px; }
 .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
 main { padding-top: 20px; padding-bottom: 48px; }
 /* The band: every card stacks its number, label, and note from the top, so the numbers share one line.
-   Japanese labels break only at the phrase breaks the dictionary marks with ​. */
+   Japanese labels break only at the phrase breaks the dictionary marks with \u200b. */
 .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 20px; }
 @media (min-width: 1100px) { .cards { grid-template-columns: repeat(9, minmax(0, 1fr)); } }
 .card { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 2px;
@@ -241,8 +241,8 @@ const I18N = {
     factGenerated: "作成日時", factGit: "gitの履歴", notGit: "gitのリポジトリではありません",
     start: "最初に直す物", hotspots: "変更の集中", markers: "TODOなど", untested: "名前の合うテストが無い", functions: "長い関数",
     large: "大きいファイル", dup: "重複", deps: "使っていない依存", deprecated: "非推奨の呼び出し", tools: "ツール",
-    cStart: "直す順に​並べた​ファイル", cHot: "変更の​集中", cMarkers: "TODOなどの​コメント", cUntested: "名前の合う​テストが無い",
-    cFunctions: "長い​関数", cLarge: "大きい​ファイル", cDup: "重複した​行", cDeps: "使っていない​依存", cDeprecated: "非推奨の​呼び出し",
+    cStart: "直す順に\u200b並べた\u200bファイル", cHot: "変更の\u200b集中", cMarkers: "TODOなどの\u200bコメント", cUntested: "名前の合う\u200bテストが無い",
+    cFunctions: "長い\u200b関数", cLarge: "大きい\u200bファイル", cDup: "重複した\u200b行", cDeps: "使っていない\u200b依存", cDeprecated: "非推奨の\u200b呼び出し",
     notMeasured: "測っていない", approxByName: "名前で探した\u200b概算",
     leadStart: "変更の回数、大きさ、長い関数、TODOなどのコメント、重複、名前の合うテストファイルの有無を合わせて、直す順に並べたファイルです。行を押すと、その行の詳しい中身が出ます。人がよく手を入れるファイルなので、上から直すほど効き目が大きくなります。",
     leadHot: "直近{months}か月に2回以上変更したファイルを、変更の回数と空行を除いた行数の積の順に並べています。",
