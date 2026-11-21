@@ -47,6 +47,8 @@ if [ -n "$region" ]; then
 fi
 
 if [ "$rebuild" = 0 ]; then
+  # Reading the sources again starts a new round; a rebuild keeps the choices made on the sheet
+  new_round
   : > "$CANDIDATES_FILE"
   chmod 600 "$CANDIDATES_FILE"
   IFS=',' read -r -a list <<<"$sources"

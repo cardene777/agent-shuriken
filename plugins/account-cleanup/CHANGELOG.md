@@ -5,12 +5,16 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The candidate sheet has Delete and Keep buttons instead of OK and Keep, with a check mark on the pressed one, and pressing "Copy items to delete" first shows every account it will delete with a warning that deleting cannot be undone. A sheet of 50 accounts or fewer is one list with a category filter, and only a longer one keeps a tab per category, without an All tab. Choices and memos stay in the browser per round until the sheet of the next round is opened, and the sheet says at the top right whether they are saved
+- On a narrow screen the candidate sheet shows the list or the details of one account, with a back button and previous and next buttons, and the address names the open account. The pager shows the range of accounts on the page, and at most five page numbers on a phone
+- The deletion effort has five levels without colors, and each status chip has an icon before its text
+- The follow-up page lists the newest record first, starts each row with the service, keeps the header row on top, shows each record as a card on a phone, and says when nothing is left
 - The details of a candidate show its fields as a table, each name in a row header on the label color, and the list of the candidate sheet keeps a fixed width with the details taking the rest of the row. `musubi.json` follows `look`, `sheet`, and `verify` of page-design at `^2.0.0`. In Japanese, each sentence of the candidate sheet and the follow-up page starts on its own line
 - The candidate sheet shows the domain under a name only when the name does not already hold it, and wraps a long name, such as a browser extension's ID, instead of cutting it. On a phone, the domain moves under the name instead of cutting both
 - Each tab of the candidate sheet keeps its own sort, and the sort by last round's result is offered only on a tab that has such rows, so the sort shown is the one the rows follow
-- The help of the candidate sheet explains every deletion effort the details can show, including Partial, Service ended, and a site that is gone, in English and Japanese
+- The help of the candidate sheet explains every deletion effort level the details can show, in English and Japanese
 - Text colors in the light theme of the candidate sheet are darker, so every text reaches a contrast of 4.5 to 1 on every background in both themes
-- The Japanese words of the candidate sheet and the follow-up page put no space between Japanese and a number or a name, in the bottom bar's counts, the follow-up page's heading, the last opened date, and the row buttons' labels, and the English bottom bar reads `OK 3, Keep 2` without a middle dot
+- The Japanese words of the candidate sheet and the follow-up page put no space between Japanese and a number or a name, in the bottom bar's counts, the follow-up page's heading, the last opened date, and the row buttons' labels, and the English bottom bar reads `Delete 3, Keep 2` without a middle dot
 - The three steps at the top of the candidate sheet sit side by side in equal columns, with shorter words that fit one line, and stack on a phone
 - The reason for an item that was not updated for a long time reads `Not updated in a long time (last updated <date>)`, without a label and a colon
 - `followup.sh add` keeps the service name from the candidates with each record, and the follow-up page shows that name in the Service column, with the domain under it only when the name does not hold it. Records written before show their key as before

@@ -8,13 +8,13 @@ English · [日本語](README.ja.md)
 
 You don't need to remember which services you signed up for or which ones you pay for.
 The plugin collects only service names, URLs, and dates from 1Password, Bitwarden, and browser-saved passwords.
-It explains why each account looks unused, and you mark each one OK or Keep on a page.
+It explains why each account looks unused, and you mark each one Delete or Keep on a page.
 For the accounts you approve, the agent signs in from 1Password without seeing the credentials, cancels subscriptions, removes saved payment methods, and deletes the account.
 
 ```
-Collect ──> Add reasons and descriptions ──> Mark OK or Keep ──> Cancel and delete OK items ──> Tidy the password manager
- (agent)     (agent)                          (you)               (agent; you do 2FA and         (agent, reversibly)
-                                                                   approve each round)
+Collect ──> Add reasons and descriptions ──> Mark Delete or Keep ──> Cancel and delete accounts ──> Tidy the password manager
+ (agent)     (agent)                          (you)                   (agent; you do 2FA and         (agent, reversibly)
+                                                                       approve each round)
 ```
 
 ## Install
@@ -42,15 +42,18 @@ In GitHub Copilot CLI, write `/account-cleanup` in your request, and in Gemini C
 
 1. Choose which sources to collect from, and where you live (EU, UK, California, Japan, or elsewhere), which picks the erasure request template
 2. The agent tags likely-unused accounts with reasons, adds a short description of each site, and opens the candidate sheet
-3. On the sheet, press OK for each account to delete or Keep for those to keep, press "Copy OK items", and paste the text into the chat
+3. On the sheet, press Delete for each account to delete or Keep for those to keep, press "Copy items to delete", check the accounts it lists, and paste the text into the chat
 4. The agent opens your App Store, Google Play, and PayPal subscription lists once and cancels any subscriptions billed there first
 5. Before deletion starts, you approve the number of accounts in that round once
-6. For each OK item, the agent signs in, cancels paid plans, removes saved cards and bank accounts, and deletes the account. You handle two-factor prompts and CAPTCHAs
+6. For each account marked Delete, the agent signs in, cancels paid plans, removes saved cards and bank accounts, and deletes the account. You handle two-factor prompts and CAPTCHAs
 7. For services that can't delete accounts, the agent drafts an erasure request under GDPR, CCPA, or Japan's APPI
 8. When you say you're done, the agent moves the items for deleted accounts to the archive in 1Password or the trash in Bitwarden
 
 The candidate sheet and the follow-up page have a Light and Dark switch next to the English / 日本語 switch.
 The colors follow your system setting until you choose, and both pages share your choice in the browser's local storage under `account-cleanup-theme`.
+Your choices and memos on the sheet stay in the same storage under `account-cleanup-choice-<round>` and `account-cleanup-memo-<round>`, so closing the page keeps them.
+Opening the sheet of the next round removes the entries of earlier rounds.
+To remove the entries of the last round, open the sheet, open the browser's developer tools, and delete those two entries under Local storage.
 
 ## Requirements
 

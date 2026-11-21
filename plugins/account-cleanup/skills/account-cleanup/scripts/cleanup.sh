@@ -1,5 +1,5 @@
 #!/bin/bash
-# After the cleanup is finished, remove the candidates, the candidate sheet and the saved region.
+# After the cleanup is finished, remove the candidates, the candidate sheet, the round mark, and the saved region.
 # The additions list (deletion pages found by search) holds no personal data, so it is kept and used next time.
 # The follow-up list (followups.tsv) is kept because the user needs it until they finish cleaning up.
 #
@@ -8,7 +8,7 @@
 . "$(dirname "$0")/common.sh"
 
 removed=0
-for f in "$CANDIDATES_FILE" "$MANUAL_FILE" "$MATCHED_FILE" "$SHEET_FILE" "$DESCRIPTIONS_FILE" "$REGION_FILE"; do
+for f in "$CANDIDATES_FILE" "$MANUAL_FILE" "$MATCHED_FILE" "$SHEET_FILE" "$DESCRIPTIONS_FILE" "$REGION_FILE" "$ROUND_FILE"; do
   if [ -e "$f" ]; then
     rm -f "$f"
     removed=$((removed + 1))

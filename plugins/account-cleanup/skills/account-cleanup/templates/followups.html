@@ -7,9 +7,9 @@
 <meta name="referrer" content="no-referrer">
 <title>Things to clean up later</title>
 <style>
-:root { --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --sub: #5b6475; --line: #dfe3ea; --accent: #2f5bd3; --accent-text: #ffffff; color-scheme: light; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #12151b; --panel: #1b2029; --text: #e7eaf0; --sub: #a3abba; --line: #2c3340; --accent: #6d8ff0; --accent-text: #0d1117; color-scheme: dark; } }
-:root[data-theme="dark"] { --bg: #12151b; --panel: #1b2029; --text: #e7eaf0; --sub: #a3abba; --line: #2c3340; --accent: #6d8ff0; --accent-text: #0d1117; color-scheme: dark; }
+:root { --bg: #f6f7f9; --panel: #ffffff; --soft: #eef1f6; --text: #1d2330; --sub: #5b6475; --line: #858d9a; --accent: #2f5bd3; --accent-text: #ffffff; color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #12151b; --panel: #1b2029; --soft: #232a36; --text: #e7eaf0; --sub: #a3abba; --line: #6b7383; --accent: #6d8ff0; --accent-text: #0d1117; color-scheme: dark; } }
+:root[data-theme="dark"] { --bg: #12151b; --panel: #1b2029; --soft: #232a36; --text: #e7eaf0; --sub: #a3abba; --line: #6b7383; --accent: #6d8ff0; --accent-text: #0d1117; color-scheme: dark; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif; }
 main { max-width: 960px; margin: 0 auto; padding: 24px 16px; }
 .head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin: 0 0 8px; }
@@ -19,20 +19,40 @@ h1 { font-size: 22px; margin: 0; }
 .seg button { font: inherit; font-size: 14px; color: inherit; background: var(--panel); border: 0; padding: 4px 12px; cursor: pointer; white-space: nowrap; }
 .seg button + button { border-left: 1px solid var(--line); }
 .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); font-weight: 600; }
-p { color: var(--sub); margin: 0 0 16px; }
-.wrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
-table { width: 100%; border-collapse: collapse; }
-th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
-th { color: var(--sub); font-weight: 600; white-space: nowrap; }
-td:first-child { white-space: nowrap; }
-td .service, td small { display: block; overflow-wrap: anywhere; }
-td small { color: var(--sub); font-size: 13px; }
+.lead { margin: 0 0 16px; max-width: 720px; }
+/* The count and the date the page was built, as a small table of facts */
+.facts { border-collapse: collapse; margin: 0 0 20px; background: none; border: 0; border-radius: 0; }
+.facts th, .facts td { padding: 4px 16px 4px 0; text-align: left; border: 0; }
+.facts th { font-weight: 500; color: var(--sub); }
+/* The records: as wide as their content, with the header row kept on top while the page scrolls */
+table { border-collapse: separate; border-spacing: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+th, td { padding: 8px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+tbody tr:last-child th, tbody tr:last-child td { border-bottom: 0; }
+thead th { position: sticky; top: 0; z-index: 1; background: var(--soft); border-bottom: 2px solid var(--line); font-weight: 600; white-space: nowrap; }
+thead th:first-child { border-top-left-radius: 12px; }
+thead th:last-child { border-top-right-radius: 12px; }
+tbody th { font-weight: 600; }
+td:last-child { white-space: nowrap; }
+.service, th small, h2 small { display: block; overflow-wrap: anywhere; }
+th small, h2 small { color: var(--sub); font-size: 14px; font-weight: 400; }
+/* Below 600px each record is a card with its name as a heading and its values under it */
+.cards { display: none; list-style: none; margin: 0; padding: 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; margin: 0 0 12px; }
+.card h2 { font-size: 17px; margin: 0 0 8px; }
+.card dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 16px; margin: 0; }
+.card dt { color: var(--sub); }
+.card dd { margin: 0; overflow-wrap: anywhere; }
+.empty { margin: 0; padding: 24px 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+@media (max-width: 599px) {
+  table.records { display: none; }
+  .cards { display: block; }
+}
 </style>
 </head>
 <body>
 <main>
 <div class="head">
-  <h1 id="heading" data-count="__COUNT__">Things to clean up later (__COUNT__)</h1>
+  <h1 id="heading">Things to clean up later</h1>
   <div class="switches">
     <div class="seg" id="lang" role="group" aria-label="Language">
       <button type="button" data-lang="en" lang="en" aria-pressed="true">English</button>
@@ -44,13 +64,25 @@ td small { color: var(--sub); font-size: 13px; }
     </div>
   </div>
 </div>
-<p data-i18n="lead">Payment methods and other things the AI could not remove while deleting your accounts. Sign in to each service's site and remove them on its payment methods page.</p>
-<div class="wrap"><table>
-<thead><tr><th data-i18n="colDate">Recorded</th><th data-i18n="colService">Service</th><th data-i18n="colLeft">What's left</th></tr></thead>
+<p class="lead" data-i18n="lead">Payment methods and other things the AI could not remove while deleting your accounts. Sign in to each service's site and remove them on its payment methods page.</p>
+<table class="facts">
+<tr><th scope="row" data-i18n="factCount">Things left</th><td>__COUNT__</td></tr>
+<tr><th scope="row" data-i18n="factDate">Page built on</th><td>__DATE__</td></tr>
+</table>
+<!-- list -->
+<table class="records" aria-labelledby="heading">
+<thead><tr><th scope="col" data-i18n="colService">Service</th><th scope="col" data-i18n="colLeft">What's left</th><th scope="col" data-i18n="colDate">Recorded</th></tr></thead>
 <tbody>
 __ROWS__
 </tbody>
-</table></div>
+</table>
+<ul class="cards">
+__CARDS__
+</ul>
+<!-- /list -->
+<!-- empty -->
+<p class="empty" data-i18n="empty">Nothing is left to clean up.</p>
+<!-- /empty -->
 </main>
 <script>
 (function () {
@@ -60,11 +92,13 @@ __ROWS__
   var I18N = {
     en: {
       title: "Things to clean up later",
-      heading: "Things to clean up later ({n})",
       lead: "Payment methods and other things the AI could not remove while deleting your accounts. Sign in to each service's site and remove them on its payment methods page.",
-      colDate: "Recorded",
+      factCount: "Things left",
+      factDate: "Page built on",
       colService: "Service",
       colLeft: "What's left",
+      colDate: "Recorded",
+      empty: "Nothing is left to clean up.",
       langGroup: "Language",
       themeGroup: "Theme",
       light: "Light",
@@ -72,11 +106,13 @@ __ROWS__
     },
     ja: {
       title: "後で片付ける物",
-      heading: "後で片付ける物 ({n}件)",
       lead: "アカウントの削除の途中で、AIが消せなかった支払い先などです。サービスのサイトにログインして、支払い方法の画面から消してください。",
-      colDate: "記録した日",
+      factCount: "残っている件数",
+      factDate: "この頁を作った日",
       colService: "サービス",
       colLeft: "残っている物",
+      colDate: "記録した日",
+      empty: "片付ける物は残っていません。",
       langGroup: "言語",
       themeGroup: "配色",
       light: "明るい",
@@ -118,14 +154,12 @@ __ROWS__
     }
   }
   var lang = loadLang();
-  var heading = document.getElementById("heading");
-  var count = heading.getAttribute("data-count") || "0";
 
   function apply() {
     var d = I18N[lang];
     document.documentElement.lang = lang;
     document.title = d.title;
-    heading.textContent = d.heading.replace("{n}", count);
+    document.getElementById("heading").textContent = d.title;
     Array.prototype.forEach.call(document.querySelectorAll("[data-i18n]"), function (n) {
       setLines(n, d[n.getAttribute("data-i18n")]);
     });

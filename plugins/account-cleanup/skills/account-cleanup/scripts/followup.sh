@@ -49,22 +49,35 @@ case "${1:-}" in
     ensure_data_dir
     [ -f "$FOLLOWUPS_FILE" ] || : > "$FOLLOWUPS_FILE"
     count=$(grep -c . "$FOLLOWUPS_FILE" || true)
+    today=${ACCOUNT_CLEANUP_TODAY:-$(date +%Y-%m-%d)}
     rows=$(mktemp "$DATA_DIR/followups-rows.XXXXXX")
-    trap 'rm -f "$rows"' EXIT
+    cards=$(mktemp "$DATA_DIR/followups-cards.XXXXXX")
+    trap 'rm -f "$rows" "$cards"' EXIT
     # Each record is the date, the key, what is left, and the service name (records written before
     # the name was kept have none, and show the key). The key goes under the name only when it says
-    # something the name does not, the same rule as on the candidate sheet
-    jq -R -r 'split("\t") as $f
-      | ($f[1] // "") as $key
+    # something the name does not, the same rule as on the candidate sheet. The newest record comes
+    # first, and of two records from one day the one recorded later
+    records='split("\n") | map(select(length > 0) | split("\t")) | to_entries | sort_by(.value[0] // "", .key) | reverse | .[].value
+      | . as $f | ($f[1] // "") as $key
       | (if ($f[3] // "") != "" then $f[3] else $key end) as $name
       | ($name | ascii_downcase) as $n | ($key | ascii_downcase) as $k
-      | (if $k != "" and $n != $k and ($n | endswith("." + $k) | not) then "<small>\($key | @html)</small>" else "" end) as $under
-      | "<tr><td>\($f[0] // "" | @html)</td><td><span class=\"service\">\($name | @html)</span>\($under)</td><td>\($f[2] // "" | @html)</td></tr>"' "$FOLLOWUPS_FILE" > "$rows"
+      | {date: ($f[0] // "" | @html), left: ($f[2] // "" | @html),
+         name: "<span class=\"service\">\($name | @html)</span>\(if $k != "" and $n != $k and ($n | endswith("." + $k) | not) then "<small>\($key | @html)</small>" else "" end)"}'
+    jq -R -s -r "$records"' | "<tr><th scope=\"row\">\(.name)</th><td>\(.left)</td><td>\(.date)</td></tr>"' "$FOLLOWUPS_FILE" > "$rows"
+    # Below 600px the page shows the same records as cards
+    jq -R -s -r "$records"' | "<li class=\"card\"><h2>\(.name)</h2><dl><dt data-i18n=\"colLeft\">What&#39;s left</dt><dd>\(.left)</dd><dt data-i18n=\"colDate\">Recorded</dt><dd>\(.date)</dd></dl></li>"' "$FOLLOWUPS_FILE" > "$cards"
     tmp=$(mktemp "$DATA_DIR/followups-page.XXXXXX")
-    # The page template has the user's list on its own __ROWS__ line, and the count (a number) in __COUNT__
-    awk -v rowsfile="$rows" -v count="$count" '
+    # The page template has the user's records on their own __ROWS__ and __CARDS__ lines, the count (a
+    # number) in __COUNT__, and the date in __DATE__. It keeps the part between <!-- list --> and
+    # <!-- /list --> when there are records, and the part between <!-- empty --> and <!-- /empty --> when there are none
+    awk -v rowsfile="$rows" -v cardsfile="$cards" -v count="$count" -v today="$today" '
+      $0 == "<!-- list -->" { skip = (count == 0); next }
+      $0 == "<!-- empty -->" { skip = (count != 0); next }
+      $0 == "<!-- /list -->" || $0 == "<!-- /empty -->" { skip = 0; next }
+      skip { next }
       $0 == "__ROWS__" { while ((getline line < rowsfile) > 0) print line; next }
-      { gsub(/__COUNT__/, count); print }' "$SKILL_DIR/templates/followups.html" > "$tmp"
+      $0 == "__CARDS__" { while ((getline line < cardsfile) > 0) print line; next }
+      { gsub(/__COUNT__/, count); gsub(/__DATE__/, today); print }' "$SKILL_DIR/templates/followups.html" > "$tmp"
     mv "$tmp" "$FOLLOWUPS_PAGE"
     chmod 600 "$FOLLOWUPS_PAGE"
     echo "Things to clean up later: ${count}"

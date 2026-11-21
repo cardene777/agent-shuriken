@@ -15,6 +15,9 @@ MANUAL_FILE="$DATA_DIR/manual.jsonl"
 MATCHED_FILE="$DATA_DIR/matched.json"
 DESCRIPTIONS_FILE="$DATA_DIR/descriptions.json"
 SHEET_FILE="$DATA_DIR/sheet.html"
+# The mark of the current round, written when the sources are read. The sheet keeps its choices and
+# memos in the browser under this mark, so a new round starts with nothing chosen. cleanup.sh removes it
+ROUND_FILE="$DATA_DIR/round"
 # Where the user lives (eu, uk, california, japan or other). Picks the erasure request template in plan.sh
 REGION_FILE="$DATA_DIR/region"
 # Things the user cleans up later, such as payment methods that could not be removed. cleanup.sh keeps it
@@ -25,6 +28,12 @@ BROWSER_PROFILE_DIR="$DATA_DIR/browser"
 ensure_data_dir() {
   mkdir -p "$DATA_DIR"
   chmod 700 "$DATA_DIR"
+}
+
+# Start a new round: a random mark of 16 hex digits
+new_round() {
+  od -An -N8 -tx1 /dev/urandom | tr -d ' \n' > "$ROUND_FILE"
+  chmod 600 "$ROUND_FILE"
 }
 
 # Stop with a hint about what to install when a command is missing

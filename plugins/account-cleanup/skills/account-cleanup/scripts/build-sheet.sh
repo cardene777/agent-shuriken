@@ -19,10 +19,13 @@ payload=$(mktemp "$DATA_DIR/sheet-data.XXXXXX")
 trap 'rm -f "$payload"' EXIT
 jq -c . "$src" | sed -e 's/</\\u003c/g' -e 's/>/\\u003e/g' -e 's/&/\\u0026/g' > "$payload"
 
+# The round mark goes into the page, which keeps its choices and memos per round
+[ -s "$ROUND_FILE" ] || new_round
+round=$(tr -cd '0-9a-f' < "$ROUND_FILE")
 tmp=$(mktemp "$DATA_DIR/sheet.XXXXXX")
-awk -v datafile="$payload" '
+awk -v datafile="$payload" -v round="$round" '
   $0 == "__DATA__" { while ((getline line < datafile) > 0) print line; next }
-  { print }' "$SKILL_DIR/templates/sheet.html" > "$tmp"
+  { gsub(/__ROUND__/, round); print }' "$SKILL_DIR/templates/sheet.html" > "$tmp"
 mv "$tmp" "$SHEET_FILE"
 chmod 600 "$SHEET_FILE"
 printf '%s\n' "$SHEET_FILE"

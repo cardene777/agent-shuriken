@@ -422,11 +422,12 @@ import html, re, sys
 records = [l.rstrip("\n").split("\t") for l in open(sys.argv[1], encoding="utf-8") if l.strip()]
 what = [r[2] for r in records if r[1] == sys.argv[3]][0]
 page = open(sys.argv[2], encoding="utf-8").read()
+# A row is the service as its header, then what is left and the date
 for row in re.findall(r"<tr>(.*?)</tr>", page, re.S):
-    cells = re.findall(r"<td[^>]*>(.*?)</td>", row, re.S)
-    if len(cells) == 3 and html.unescape(re.sub(r"<[^>]+>", "", cells[2])) == what:
-        under = re.search(r"<small[^>]*>(.*?)</small>", cells[1], re.S)
-        name = re.sub(r"<small[^>]*>.*?</small>", "", cells[1], flags=re.S)
+    cells = re.findall(r"<t[hd][^>]*>(.*?)</t[hd]>", row, re.S)
+    if len(cells) == 3 and html.unescape(re.sub(r"<[^>]+>", "", cells[1])) == what:
+        under = re.search(r"<small[^>]*>(.*?)</small>", cells[0], re.S)
+        name = re.sub(r"<small[^>]*>.*?</small>", "", cells[0], flags=re.S)
         print(html.unescape(re.sub(r"<[^>]+>", "", name)).strip() + "|" + (html.unescape(re.sub(r"<[^>]+>", "", under.group(1))).strip() if under else ""))
 PY
 }
@@ -595,25 +596,34 @@ cat > "$W/probe.js" <<'JS'
     press('[data-lang="' + lang + '"]');
     var L = { tabs: {}, help: [], steps: [], contrast: [] };
     result.langs[lang] = L;
-    if (!q("#tabs")) { L.contrast = themes(lang); snap(lang); return; }
-    qa("#tabs button").forEach(function (tab) {
-      if (tab.hidden) return;
-      tab.click();
-      var name = tab.getAttribute("data-t"), sel = q("#sort");
+    if (!q("#sheet")) { L.contrast = themes(lang); snap(lang); return; }
+    // The categories: the shown tabs of a long list, else the category filter of a short one, which
+    // starts with all of them. A list of one category has neither and is read as all
+    var tabs = qa("#tabs button").filter(function (b) { return !q("#tabs").hidden && !b.hidden; }).map(function (b) { return ["#tab-", b.getAttribute("data-t")]; });
+    var filters = qa("#category button").map(function (b) { return ['#category [data-c="', b.getAttribute("data-c"), '"]']; });
+    var cats = tabs.length ? tabs : filters.length ? filters : [[null, "all"]];
+    cats.forEach(function (c) {
+      var name = c[1];
+      if (c[0]) press(c[0] + name + (c[2] || ""));
+      var sel = q("#sort");
       var T = { sort: sel.value, sortLabel: sel.selectedOptions[0] ? sel.selectedOptions[0].textContent : "", options: qa("option", sel).map(function (o) { return o.value; }), rows: [] };
-      var keys = qa("#rows .row").map(function (r) { return r.getAttribute("data-key"); });
-      keys.forEach(function (key, i) {
-        q('#rows .row[data-key="' + CSS.escape(key) + '"]').click();
-        var row = q('#rows .row[data-key="' + CSS.escape(key) + '"]'), d = q("#detail");
+      // The names are measured in the list first, since a narrow screen hides the list behind the details
+      var rows = qa("#rows .row").map(function (row) {
         var b = q(".row-name b", row), s = q(".row-name small", row);
-        T.rows.push({
-          key: key, name: b.textContent, sub: s ? s.textContent : null, nameClipped: b.scrollWidth > b.clientWidth + 1,
-          detailTitle: q("h2", d) ? q("h2", d).textContent : null, detailKey: q(".key", d) ? q(".key", d).textContent : null
-        });
-        if (name === "all" || i === 0) L.contrast = L.contrast.concat(themes(lang + " " + name + " " + key));
+        return { key: row.getAttribute("data-key"), name: b.textContent, sub: s ? s.textContent : null, nameClipped: b.scrollWidth > b.clientWidth + 1 };
       });
-      if (keys.length) q('#rows .row[data-key="' + CSS.escape(keys[0]) + '"]').click();
+      rows.forEach(function (r, i) {
+        q('#rows .row[data-key="' + CSS.escape(r.key) + '"] .name').click();
+        var d = q("#detail");
+        r.detailTitle = q("h2", d) ? q("h2", d).textContent : null;
+        r.detailKey = q(".key", d) ? q(".key", d).textContent : null;
+        T.rows.push(r);
+        if (name === "all" || i === 0) L.contrast = L.contrast.concat(themes(lang + " " + name + " " + r.key));
+        q("#sheet").setAttribute("data-view", "list");
+      });
+      if (rows.length) q('#rows .row[data-key="' + CSS.escape(rows[0].key) + '"] .name').click();
       snap(lang + "-" + name);
+      q("#sheet").setAttribute("data-view", "list");
       L.tabs[name] = T;
     });
     var help = q("#help");
@@ -749,12 +759,12 @@ elif what == "plain-never-prev":
 
 elif what == "effort-help":
     page = open(template, encoding="utf-8").read()
-    efforts = re.findall(r"^\s*diff: \{(.*?)\},?$", page, re.M)
-    gone = re.findall(r'^\s*diffGone: "([^"]*)"', page, re.M)
-    if len(efforts) != 2 or len(gone) != 2:
-        fail("the dictionary of the template does not hold one diff table and one diffGone per language")
+    # The deletion effort levels the details can show, one table of labels per language
+    efforts = re.findall(r"^\s*effort: \{(.*?)\},?$", page, re.M)
+    if len(efforts) != 2:
+        fail("the dictionary of the template does not hold one effort table per language")
     for i, lang in enumerate(("en", "ja")):
-        want = set(re.findall(r'"([^"]*)"', re.sub(r"\b\w+:", "", efforts[i]))) | {gone[i]}
+        want = set(re.findall(r'"([^"]*)"', re.sub(r"\b\w+:", "", efforts[i])))
         shown = {}
         for label, text in result("prev", 1400)["langs"][lang]["help"]:
             shown[label.strip()] = text.strip()
@@ -1062,7 +1072,7 @@ if what == "detail":
     need(re.search(r'kv\.setAttribute\("aria-label"', js), "the table of facts has no name")
 elif what == "split":
     need('class="split"' in sheet and rule(sheet, r"^\.split$"), "no .split container")
-    need("panes" not in sheet, "the page still has .panes")
+    need(not re.search(r"\bpanes\b", sheet), "the page still has .panes")
 elif what == "motion":
     need(re.search(r"(animation|transition):", rule(sheet, r"\.detail")), "the details change with no motion")
     reduce = rule(sheet, r".", "prefers-reduced-motion: reduce")
@@ -1204,11 +1214,14 @@ elif what == "warning":
 elif what == "empty":
     for lang, d in (("en", en), ("ja", ja)):
         need(d.get("emptyCategory") and d.get("emptySheet"), "%s: no words for an empty category or sheet" % lang)
-    need(re.search(r'toolbar"\)\.hidden = true', js) and 't("emptySheet")' in js, "an empty sheet keeps its list and toolbar")
+    # The toolbar alone, or the whole part that holds the list and the toolbar
+    need(re.search(r'(toolbar|"sheet)"\)\.hidden = true', js) and 't("emptySheet")' in js, "an empty sheet keeps its list and toolbar")
 elif what == "no-match":
     for lang, d in (("en", en), ("ja", ja)):
         need("{q}" in d.get("noMatch", "") and d.get("clearFilters"), "%s: no words for a search with no match" % lang)
-    need(js.count('t("noMatch")') >= 2 and 'state.q = ""' in js, "the list and the details do not both say what was searched, or nothing clears it")
+    # Either both places name the words, or both build the same empty line that does
+    both = js.count('t("noMatch")') >= 2 or ('t("noMatch")' in body(js, "emptyLine") and "emptyLine(" in body(js, "renderRows") and "emptyLine(" in body(js, "renderDetail"))
+    need(both and 'state.q = ""' in js, "the list and the details do not both say what was searched, or nothing clears it")
 elif what == "broken":
     need(re.search(r'try \{\s*data = JSON\.parse\(document\.getElementById\("data"\)', js) and "showBroken()" in js, "unreadable data is not caught")
     need(en.get("broken") and ja.get("broken"), "no words for unreadable data")
@@ -1221,7 +1234,7 @@ elif what == "line-contrast":
     need(all("--selected" in v for v in theme_vars(sheet)), "the sheet has no --selected in both themes")
 elif what == "chip-icon":
     need(re.search(r'aria-hidden', body(js, "statusChip")), "a status chip has no icon before its text")
-    need('el("span", "chip' not in body(js, "rowChips"), "a status chip is built without its icon")
+    need(not re.search(r'el\("span", "chip[ "]', body(js, "rowChips")), "a status chip is built without its icon")
 elif what == "colors":
     for var in ("--del", "--keep"):
         users = [s for m, s, d in rules(sheet) if "var(%s)" % var in d]
@@ -1286,8 +1299,11 @@ def body(name):
 words = re.search(r"^  var I18N = (\{.*?^  \});", js, re.S | re.M)
 out = ["var I18N = %s;" % (words.group(1) if words else "{en: {}, ja: {}}"),
        'var lang = "en", PAGE = 50, data = [], picks = {}, memos = {}, prevRound = 0, SOURCE = {};',
+       'var STORE = "account-cleanup-choice", MEMO_STORE = "account-cleanup-memo";',
        'var state = { tab: "cand", q: "", f: "all", page: 1, sel: null };',
-       'var sorts = { prev: "prev", cand: "old", rest: "old", all: "old" };']
+       'var sorts = { prev: "prev", cand: "old", rest: "old", all: "old" };',
+       # Text outside ASCII is printed as \u escapes, so this file holds no Japanese letters
+       r'function ascii(s) { return String(s).replace(/[\u0080-\uffff]/g, function (c) { return "\\u" + ("000" + c.charCodeAt(0).toString(16)).slice(-4); }); }']
 for name in ["t?", "fill?", "label?"] + names:
     optional = name.endswith("?")
     found = body(name.rstrip("?"))
@@ -1369,7 +1385,7 @@ check "rows with the same date are sorted by name" \
   'js_is "compareRows title" "var r = [{ key: \"b.example\", service: \"Beta\", updated: \"2024-01-01\" }, { key: \"c.example\", service: \"Cat\", updated: \"2023-01-01\" }, { key: \"a.example\", service: \"Alpha\", updated: \"2024-01-01\" }]; function by(s) { return r.slice().sort(function (x, y) { return compareRows(x, y, s); }).map(title).join(\",\"); } console.log(by(\"old\") + \"|\" + by(\"new\"));" "Cat,Alpha,Beta|Alpha,Beta,Cat"'
 check "the pager is a named nav with 40px buttons that moves the focus to the list heading" 'pattern pager-nav'
 check "the sheet shows the total and the shown range above the pager" \
-  'pattern range && js_is rangeText "var o = [rangeText(1, 230), rangeText(5, 230), rangeText(1, 12)]; lang = \"ja\"; o.push(rangeText(2, 230)); console.log(o.join(\"|\"));" "Showing 1–50 of 230|Showing 201–230 of 230|Showing 1–12 of 12|230件中51〜100件目"'
+  'pattern range && js_is rangeText "var o = [rangeText(1, 230), rangeText(5, 230), rangeText(1, 12)]; lang = \"ja\"; o.push(rangeText(2, 230)); console.log(ascii(o.join(\"|\")));" "Showing 1\u201350 of 230|Showing 201\u2013230 of 230|Showing 1\u201312 of 12|230\u4ef6\u4e2d51\u301c100\u4ef6\u76ee"'
 check "the pager names previous and next, leaves out the end it cannot go to, and shows at most five numbers on a phone" \
   'pattern pager-phone && js_is pagerItems "console.log([pagerItems(1, 1, 7), pagerItems(1, 3, 7), pagerItems(2, 3, 7), pagerItems(3, 3, 7), pagerItems(6, 12, 5), pagerItems(1, 12, 5), pagerItems(12, 12, 5)].map(function (x) { return x.join(\" \"); }).join(\"|\"));" "|1 2 3 next|prev 1 2 3 next|prev 1 2 3|prev 4 5 6 7 8 next|1 2 3 4 5 next|prev 8 9 10 11 12"'
 check "the choice buttons are Delete and Keep and the page uses the same words everywhere" 'pattern words'
@@ -1377,7 +1393,7 @@ check "SKILL.md, the READMEs, the manifest, and the evals call the choices Delet
 check "the pressed choice shows a check mark and the chosen row a selected background" 'pattern check-mark'
 check "each pair of choice buttons is a group named after the service" 'pattern group'
 check "the tally says nothing is chosen yet when nothing is chosen" \
-  'js_is tallyText "var o = []; [\"en\", \"ja\"].forEach(function (l) { lang = l; o.push(tallyText(0, 0), tallyText(3, 2)); }); console.log(o.join(\"|\"));" "Nothing chosen yet|Delete 3, Keep 2|まだ選んでいません|消す3件、残す2件"'
+  'js_is tallyText "var o = []; [\"en\", \"ja\"].forEach(function (l) { lang = l; o.push(tallyText(0, 0), tallyText(3, 2)); }); console.log(ascii(o.join(\"|\")));" "Nothing chosen yet|Delete 3, Keep 2|\u307e\u3060\u9078\u3093\u3067\u3044\u307e\u305b\u3093|\u6d88\u30593\u4ef6\u3001\u6b8b\u30592\u4ef6"'
 check "dialogs close with an x in the corner" 'pattern dialog-close'
 check "choices and memos are stored per round and other rounds' entries are removed" \
   'pattern round && js_is "storeName staleStores" "console.log(storeName(\"account-cleanup-choice\", \"r2\") + \"|\" + staleStores([\"account-cleanup-choice\", \"account-cleanup-choice-r1\", \"account-cleanup-memo-r1\", \"account-cleanup-choice-r2\", \"account-cleanup-memo-r2\", \"account-cleanup-lang\", \"account-cleanup-theme\", \"other\"], \"r2\").join(\" \"));" "account-cleanup-choice-r2|account-cleanup-choice account-cleanup-choice-r1 account-cleanup-memo-r1" && rounds_apart'
@@ -1386,9 +1402,9 @@ check "the README and how-it-works describe the choice and memo storage in both 
 check "the memo field is at most 720px wide" 'pattern memo-width'
 check "the memo is labelled Memo with a hint that only rows to delete carry it, and no placeholder" 'pattern memo-label'
 check "with nothing to delete the copy button copies nothing and says why" \
-  'pattern copy-none && js_is copyStatus "lang = \"en\"; var a = copyStatus(0), b = copyStatus(12); lang = \"ja\"; var c = copyStatus(0), d = copyStatus(12); console.log([/nothing/i.test(a) && !/\\d/.test(a), /\\b12\\b/.test(b), /コピーしていません/.test(c) && !/\\d/.test(c), /12件/.test(d)].join(\",\"));" "true,true,true,true"'
+  'pattern copy-none && js_is copyStatus "lang = \"en\"; var a = copyStatus(0), b = copyStatus(12); lang = \"ja\"; var c = copyStatus(0), d = copyStatus(12); console.log([/nothing/i.test(a) && !/\\d/.test(a), /\\b12\\b/.test(b), /\u30b3\u30d4\u30fc\u3057\u3066\u3044\u307e\u305b\u3093/.test(c) && !/\\d/.test(c), /12\u4ef6/.test(d)].join(\",\"));" "true,true,true,true"'
 check "copying opens a review that names every account to delete and warns it cannot be undone" \
-  'pattern review && js_is reviewTitle "var o = [reviewTitle(1), reviewTitle(12)]; lang = \"ja\"; o.push(reviewTitle(12)); console.log(o.join(\"|\"));" "Delete 1 account|Delete 12 accounts|12件のアカウントを消す"'
+  'pattern review && js_is reviewTitle "var o = [reviewTitle(1), reviewTitle(12)]; lang = \"ja\"; o.push(reviewTitle(12)); console.log(ascii(o.join(\"|\")));" "Delete 1 account|Delete 12 accounts|12\u4ef6\u306e\u30a2\u30ab\u30a6\u30f3\u30c8\u3092\u6d88\u3059"'
 check "the review shows the text in a labelled read-only box with how to copy it by hand" 'pattern review-text'
 check "the copy result is a status line with the count that clears on change, with no toast or live details" 'pattern status'
 check "below 480px the bottom bar stacks and the button fills the width" 'pattern bar-480'
