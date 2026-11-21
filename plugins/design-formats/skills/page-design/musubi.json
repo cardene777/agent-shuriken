@@ -6,27 +6,43 @@
       "file": "formats/structure.md"
     },
     "look": {
-      "version": "1.0.0",
+      "version": "2.0.0",
       "file": "formats/look.md"
     },
-    "report": {
+    "details": {
       "version": "1.0.0",
+      "file": "formats/patterns/details.md"
+    },
+    "lists-and-tables": {
+      "version": "1.0.0",
+      "file": "formats/patterns/lists-and-tables.md"
+    },
+    "input-and-confirmation": {
+      "version": "1.0.0",
+      "file": "formats/patterns/input-and-confirmation.md"
+    },
+    "states-and-notices": {
+      "version": "1.0.0",
+      "file": "formats/patterns/states-and-notices.md"
+    },
+    "report": {
+      "version": "2.0.0",
       "file": "templates/report.html"
     },
     "sheet": {
-      "version": "1.0.0",
+      "version": "2.0.0",
       "file": "templates/sheet.html"
     },
     "document": {
-      "version": "1.0.0",
+      "version": "2.0.0",
       "file": "templates/document.html"
     },
     "choice": {
-      "version": "1.0.0",
+      "version": "2.0.0",
       "file": "templates/choice.html"
     },
     "verify": {
-      "version": "1.0.0",
+      "version": "2.0.0",
       "file": "scripts/page-design.py"
     }
   },

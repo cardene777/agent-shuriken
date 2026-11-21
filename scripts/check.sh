@@ -9,9 +9,11 @@ cd "$root" || exit 1
 
 # Files whose Japanese text is intended, besides the *.ja.md pages: the `ja` dictionaries of
 # the HTML pages, words that scripts match on Japanese websites and emails, the patterns and
-# word lists that check Japanese prose, and Japanese samples and their tests.
+# word lists that check Japanese prose, Japanese samples and their tests, and quotes copied word for
+# word from Japanese guidance.
 JA_ALLOWED=(
   plugins/design-formats/skills/page-design/formats/look.md
+  plugins/design-formats/skills/page-design/formats/patterns/sources.md
   plugins/design-formats/skills/page-design/templates/report.html
   plugins/design-formats/skills/page-design/templates/sheet.html
   plugins/design-formats/skills/page-design/templates/document.html

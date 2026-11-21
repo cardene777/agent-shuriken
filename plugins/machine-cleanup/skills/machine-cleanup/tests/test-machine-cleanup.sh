@@ -741,7 +741,7 @@ const picked = new Set();
 print("const I18N = %s;\nlet lang = \"en\";\n%s%s%s" % (words, dom, "".join(code), sys.argv[3]))
 PY
 }
-ROW_FNS="t human tilde when day effect lockText whyText isProc levelOf nameOf rowEl detailPairs detailEl"
+ROW_FNS="t human tilde when day effect lockText whyText isProc levelOf nameOf setLines rowEl detailPairs detailEl"
 ROW_JS='const disk = { id: "d1", group: "disk", category: "build", name: "node_modules in app", path: "/h/projects/app/node_modules",
   size: 1000000, level: "recommended", reason: { code: "build_idle", days: 42 }, rebuilt: true, locked: null };
 const proc = { id: "p1", group: "process", category: "dev-process", name: "Vite dev server", size: 52000000, cpu: 12,
@@ -881,7 +881,7 @@ lang = "en"; const en = show(its); const none = tallyParts([]);
 lang = "ja"; const ja = show(its);
 console.log(en + "#" + ja + "#" + none.length + "#" + (/[:：・]/.test(en + ja) ? "joined" : "apart"));'
 # Two copies of one file, a large file, two dev servers with one name, an app, a cache, and a container.
-WHERE_FNS="t human tilde nameOf whereFor rowEl"
+WHERE_FNS="t human tilde nameOf whereFor setLines rowEl"
 WHERE_JS='const files = [
   { id: "u1", group: "disk", category: "duplicate", name: "archive.zip", path: "/h/Backup/archive.zip", size: 1, within: [], detail: { set: "s", copies: [] } },
   { id: "u2", group: "disk", category: "duplicate", name: "archive.zip", path: "/h/Documents/archive.zip", size: 1, within: [], detail: { set: "s", copies: [] } },
@@ -903,7 +903,7 @@ console.log("[" + [whereFor(procs[0], procs), whereFor(procs[1], procs), whereFo
 console.log(texts(rowEl(others[0].name, whereFor(others[0], others), others[0])).length);'
 # Two bars of one name among the top processes, and a bar whose name is its own. The stand-in elements
 # get a style to write the bar's width into.
-BAR_FNS="t human tilde nameOf whereFor node card pressable levelOf COLORS barCard"
+BAR_FNS="t human tilde nameOf whereFor setLines node card pressable levelOf COLORS barCard"
 BAR_JS='Object.defineProperty(El.prototype, "style", { get: function () { return this.css || (this.css = {}); } });
 function vite(id, folder) { return { id: id, group: "process", category: "dev-process", name: "Vite dev server", label: { key: "dev_vite" }, size: 1, cpu: 1, level: "recommended", locked: null, detail: { folder: folder, command: "node vite" } }; }
 const browser = { id: "p3", group: "process", category: "heavy-process", name: "Browser", size: 1, cpu: 1, level: "careful", locked: null, detail: { folder: "/h", command: "/Applications/Browser.app/Contents/MacOS/Browser" } };

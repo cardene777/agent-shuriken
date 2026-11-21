@@ -1,7 +1,7 @@
 {
   "name": "design-formats",
   "version": "0.1.0",
-  "description": "How documents and reports explain and look, for skills that write them: two formats, four HTML page templates, and a script that checks a page or a document",
+  "description": "How documents and reports explain and look, for skills that write them: two formats, four pattern files with sourced rules, four HTML page templates, and a script that checks a page or a document",
   "author": {
     "name": "cardene777",
     "url": "https://github.com/cardene777"
@@ -21,7 +21,7 @@
   "interface": {
     "displayName": "Design Formats",
     "shortDescription": "How pages and documents look",
-    "longDescription": "Holds how documents and reports explain and how they look, so every skill that writes a page or a document writes it the same way. Its page-design skill provides the order of an explanation (the conclusion first, the whole picture before the details, one glossary, steps with real output), the look rules (headings without colons, facts in a table, readable text, details beside the list, enlarging, motion, the language and theme switches in the header), four self-contained HTML page templates (a report, an approval sheet, an explainer, and a choice page), and verify, a Python script that uses only the standard library. verify reads the pages and documents you pass and names each line that breaks a rule it can see, with how to fix it, without printing the page's text. It runs no other program, connects to nothing, and keeps nothing.",
+    "longDescription": "Holds how documents and reports explain and how they look, so every skill that writes a page or a document writes it the same way. Its page-design skill provides the order of an explanation (the conclusion first, the whole picture before the details, one glossary, steps with real output), the look rules (headings without colons, facts in a table, readable text, a line break after each Japanese full stop, enlarging, motion, the language and theme switches in the header), four pattern files that say which interface pattern fits for details, lists and tables, input and confirmation, and states and notices, each rule with its sources, four self-contained HTML page templates (a report, an approval sheet, an explainer, and a choice page), and verify, a Python script that uses only the standard library. verify reads the pages and documents you pass and names each line that breaks a rule it can see, with how to fix it, without printing the page's text. It runs no other program, connects to nothing, and keeps nothing.",
     "developerName": "cardene777",
     "category": "Productivity",
     "capabilities": [],

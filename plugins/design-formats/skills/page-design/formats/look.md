@@ -3,6 +3,7 @@
 This format sets how a Markdown document or an HTML page looks.
 Rules marked HTML apply only to pages; the rest apply to both.
 The order of the explanation is in `structure.md`, next to this file, and the four page types are in `templates/`.
+Which pattern a page uses for details, lists and tables, input and confirmation, and states and notices is in the files of `patterns/`, next to this file, each rule with its sources.
 
 ## Headings
 
@@ -18,17 +19,19 @@ A heading is a name, not a sentence.
 
 Facts about the page, such as the store, the period, counts, and when it was generated, go in a table, never in one sentence.
 
-- HTML: a `<dl>` grid or a `<table>` of label and value cells under the title
+- HTML: `<table class="facts">` under the title, one row per fact, with the label in `<th scope="row">` and the value in `<td>`. The label cells take their own background from a `--label` color token, defined for light and for dark
 - Markdown: a table with an Item and a Value column
-- A sentence such as "Main street store, 2026-11-10 to 2026-11-16, 24 products, generated 2026-11-17" is the shape to avoid
-- Keep facts about the page apart from the results. Facts sit on one quiet line under the title, and the result numbers sit on one band of large numbers below it
+- A sentence such as "Main street store, 2026-11-10 to 2026-11-16, 24 products, generated 2026-11-17" is the shape to avoid, and so is a line of loose labels and values
+- Keep facts about the page apart from the results. The facts table sits under the title, and the result numbers sit on one band of large numbers below it
 - Show each value once. A number that is a result goes on the band, not also among the facts
+- The rule and its sources are in `formats/patterns/lists-and-tables.md`
 
 ## Joining items
 
 - Do not join items with `・`, a colon, or `=` in text people read; use a table, a sentence, or a heading with text under it
 - Do not end a line with a colon
 - In Japanese, put no space between Japanese and ASCII letters or numbers
+- Break the line after each Japanese full stop (`。`) that has more text after it. In Markdown, start the next sentence on its own line. In HTML, put `<br>` after the full stop, as the `lines()` function of the templates does for every text it puts in the page. A full stop right before a closing bracket or quote ends a quoted sentence, not the line. No design system or study asks for this; it is this skill's own rule, so that a Japanese page reads one sentence at a time
 - Keep inline code, URLs, and paths as they are, in backticks in Markdown
 
 ## Words on the screen
@@ -52,16 +55,10 @@ Facts about the page, such as the store, the period, counts, and when it was gen
 - Fold only long concrete data, such as raw lists and logs
 - Put supplementary help behind a ? icon that opens a dialog
 
-## Details beside the list
+## Lists and details
 
-A list shows the summary, and the details of one item sit beside it.
-
-- HTML: pressing a row shows its details in a panel to the right on wide screens, and under the list on phones
-- Show lists as cards or tables, and split long lists by category into tabs
-- Show about 50 rows per page, with the paging centered above and below the list, and no paging when the list fits on one page
-- Give each row its value as a number. A bar without a number does not say what it measures
-- Let people choose by pressing a row or a card, not by aiming at a small checkbox
-- Keep a way back to the whole list
+How a list shows its rows, and where the details of a picked row appear, are patterns rather than looks.
+Read `formats/patterns/lists-and-tables.md` for the rows, the paging, and the tabs, and `formats/patterns/details.md` for the details beside the list, the single pane on narrow screens, and the full-width view.
 
 ## Figures
 
@@ -87,7 +84,8 @@ A list shows the summary, and the details of one item sit beside it.
 
 ## Enlarging
 
-- HTML: figures, screenshots, and long text open larger when pressed, in a dialog that shows the whole
+- HTML: figures and screenshots open larger when pressed, in a dialog that shows the whole
+- Long details open in a full-width view of their own, not in a dialog, as `formats/patterns/details.md` says
 - Give figures the page's width; never shrink a figure to fit beside text
 
 ## Motion
@@ -143,6 +141,9 @@ A list shows the summary, and the details of one item sit beside it.
 | `external-file` | A script, style, image, or frame read from another site | Yes | No |
 | `figure-not-embedded` | A dragon block left on a page that `dragon embed` has not drawn | Yes | No |
 | `figure-not-still` | With `--source`, a dragon block without `data-still` | Yes | No |
+| `facts-not-table` | Facts in an element named `facts` that is not a `<table>`, or a facts row whose label is not a `<th scope="row">` | Yes | No |
+| `sentence-per-line` | A Japanese full stop with more text after it on the same line | Yes | Yes |
+| `list-detail-width` | A `.split` whose list column grows with the page instead of keeping a fixed width | Yes | No |
 
 `verify --source` checks the source of a page, such as a template, before `dragon embed`. It accepts still dragon blocks and the dragon entry line.
 The text inside a dragon block and inside a drawn figure belongs to the figure, so the text rules do not read it.

@@ -3,22 +3,22 @@
   "follows": {
     "page-design/structure": {
       "version": "^1.0.0",
-      "integrity": "sha256-+oSsewGAzE31/D+eDVZaNMh4dzQCDl1ialIWjtU+Gi0=",
+      "integrity": "sha256-XZMtcoMA+NvuChNZIb1nNeZfjYUnnABviMNvesEsIoA=",
       "optional": true
     },
     "page-design/look": {
-      "version": "^1.0.0",
-      "integrity": "sha256-2sXYuhs/fcSYCudrsW+EWdQp3Wwi4rhj2GbWKPKOqnU=",
+      "version": "^2.0.0",
+      "integrity": "sha256-1IiNF7iaS/jPjWzr6NOQUQTDIbsotHWwhFnbu1TjOqc=",
       "optional": true
     },
     "page-design/sheet": {
-      "version": "^1.0.0",
-      "integrity": "sha256-RYpvk3pdMwfKHJ3A6uRL7oCtTrKBkh/9yqeiWnqSAOY=",
+      "version": "^2.0.0",
+      "integrity": "sha256-WtHNz3V74QwmR9FvWtZQbhN/DBaw03GTCaegjZ7aLLo=",
       "optional": true
     },
     "page-design/verify": {
-      "version": "^1.0.0",
-      "integrity": "sha256-+hAiu0MAN/JJR8/TS/7D/h/C9u5CZE1TH5YvMMotopM=",
+      "version": "^2.0.0",
+      "integrity": "sha256-WxQpttffMZ4aDRHI0+TABWvNzJIM0kEZ6tv5n8ipNQs=",
       "optional": true
     }
   }
