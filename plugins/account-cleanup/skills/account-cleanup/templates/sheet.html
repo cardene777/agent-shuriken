@@ -175,7 +175,7 @@ dialog .close { display: block; margin: 16px 0 0 auto; background: var(--accent)
   </div>
   <div class="pager" id="pager-bottom"></div>
 </main>
-<div class="bar"><div><span id="tally">OK <b id="count">0</b> · Keep <b id="count-ng">0</b></span><button type="button" id="copy" data-i18n="copy">Copy OK items</button></div></div>
+<div class="bar"><div><span id="tally">OK <b id="count">0</b>, Keep <b id="count-ng">0</b></span><button type="button" id="copy" data-i18n="copy">Copy OK items</button></div></div>
 <div class="toast" id="toast" data-i18n="toast">Copied. Paste it into the chat.</div>
 <dialog id="help">
   <h2 data-i18n="helpWhatTitle">What this page is</h2>
@@ -261,7 +261,7 @@ __DATA__
       ok: "OK",
       ng: "Keep",
       pickAria: "Mark {name} as {choice}",
-      tally: "OK {ok} · Keep {ng}",
+      tally: "OK {ok}, Keep {ng}",
       copy: "Copy OK items",
       toast: "Copied. Paste it into the chat.",
       fallback: "Could not copy automatically. Select all of the text below, copy it, and paste it into the chat.",
@@ -360,8 +360,8 @@ __DATA__
       listLabel: "サービスの一覧",
       ok: "OK",
       ng: "ダメ",
-      pickAria: "{name} を{choice}",
-      tally: "OK {ok} 件、ダメ {ng} 件",
+      pickAria: "{name}を{choice}",
+      tally: "OK {ok}件、ダメ{ng}件",
       copy: "OKの分をコピー",
       toast: "コピーしました。チャットに貼ってください。",
       fallback: "自動でコピーできなかったので、下の文を全部選んでコピーし、チャットに貼ってください。",
@@ -398,7 +398,7 @@ __DATA__
       noDesc: "まだ説明がありません",
       none: "なし",
       unknownDate: "不明",
-      lastOpened: "最後に開いた日 {date}",
+      lastOpened: "{date}に最後に開いた",
       notOpenedSince: "{date}以降は開いていない",
       noView: "見立て無し",
       decide: "消してよいか",
@@ -519,7 +519,7 @@ __DATA__
     box.value = sorts[state.tab];
   }
 
-  // Write "OK 3 · Keep 2" (or the other language's form) with the numbers in bold
+  // Write "OK 3, Keep 2" (or the other language's form) with the numbers in bold
   function renderTally(ok, ng) {
     var box = document.getElementById("tally");
     box.textContent = "";
