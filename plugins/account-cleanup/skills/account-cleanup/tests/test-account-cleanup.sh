@@ -919,5 +919,43 @@ PY
 }
 check "the SKILL.md stays within its size limits" "skill_size"
 
+# The words of the two pages, read from each page's dictionary for one language.
+dictionary_words() { # <what> <template>...
+  python3 - "$@" <<'PY'
+import re, sys
+what, files = sys.argv[1], sys.argv[2:]
+lang = "ja" if what == "ja-space" else "en"
+JA = "぀-ヿ一-鿿"
+space = re.compile(r"[%s、。] [A-Za-z0-9{]|[A-Za-z0-9}] [%s]" % (JA, JA))
+problems, seen = [], 0
+for f in files:
+    page = open(f, encoding="utf-8").read()
+    block = re.search(r"^(\s+)%s: \{\n(.*?)^\1\}" % lang, page, re.S | re.M)
+    if not block:
+        problems.append("%s has no %s dictionary" % (f, lang))
+        continue
+    words = re.findall(r'(\w+): "([^"]*)"', block.group(2))
+    seen += len(words)
+    name = f.rsplit("/", 1)[1]
+    for key, text in words:
+        if what == "ja-space" and space.search(text):
+            problems.append("%s %s: %r" % (name, key, text))
+    if what == "en-tally":
+        tally = [text for key, text in words if key == "tally"]
+        bar = re.search(r'id="tally">(.*?)</span>', page, re.S)
+        if name == "sheet.html" and (not tally or "·" in tally[0] or not bar or "·" in bar.group(1)):
+            problems.append("%s: the bottom bar reads %r and the dictionary %r" % (name, bar.group(1) if bar else None, tally))
+if not seen:
+    problems.append("no words were read")
+for p in problems[:8]:
+    print("      " + p)
+sys.exit(1 if problems else 0)
+PY
+}
+check "the Japanese words put no space between Japanese and Latin letters or digits" \
+  'dictionary_words ja-space "$HERE/../templates/sheet.html" "$HERE/../templates/followups.html"'
+check "the English bottom bar joins its two counts without a middle dot" \
+  'dictionary_words en-tally "$HERE/../templates/sheet.html"'
+
 printf '\n%d passed, %d failed (%d ran, %d skipped)\n' "$PASS" "$FAIL" "$((PASS + FAIL))" "$SKIP"
 [ "$FAIL" = 0 ]
