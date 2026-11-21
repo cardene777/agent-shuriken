@@ -5,9 +5,14 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-21
+
 - The `article-diagram-styles` skill designs a figure for an article from the reader's question before opening any style sample, applies a style from your catalog `~/.styles/style-catalog.json`, draws the figure with the image generation of the agent running it, and checks the text, the connections, and the readability at the published width with its own scripts
 - The `tech-book-figure` skill designs a figure for a technical book with its role, figure number, caption, alternative text, and black and white readability, and draws it in the fixed style4 from at least two of your samples in `~/.styles/diagram-style-samples/style4/`
 - The plugin ships no sample images. Both skills read the catalog and the samples from `~/.styles/`, stop before drawing when they are missing, and write figures and records only in the folder you name. `diagram_sample_catalog.py --validate` reads a version 2 catalog, refuses version 1 and `resources`, and names every image whose SHA-256 differs, every wrong count, and every image the catalog does not name
 - Without image generation, both skills save the content summary, the figure spec, and the drawing instructions and stop, so the same skill can draw them later in an agent that has image generation. A figure spec drawn by image generation has `rendering_mode: generated`
 - `article-diagram-styles` provides `style4`, `figure-request`, and `style-catalog` through musubi, and `tech-book-figure` follows `article-diagram-styles/style4`
 - The font Kaisei Decol Bold ships with its license for figures drawn from HTML or SVG source
+
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/diagram-styles--v0.1.0...HEAD
+[0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/diagram-styles--v0.1.0
