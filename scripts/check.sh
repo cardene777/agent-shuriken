@@ -35,6 +35,7 @@ JA_ALLOWED=(
   plugins/diagram-explainer/skills/diagram-explainer/examples/ladders/checkout-ja.json
   plugins/diagram-explainer/skills/diagram-explainer/tests/test-render.sh
   plugins/diagram-explainer/evals/japanese-document/case.yaml
+  plugins/diagram-styles/skills/article-diagram-styles/tests/test-article-diagram-styles.sh
   plugins/docs-publish/evals/_japanese.json
   plugins/excalidraw-diagram/skills/excalidraw-diagram/tests/test-excalidraw-diagram.sh
   plugins/techdebt/skills/techdebt/templates/base.html
@@ -306,17 +307,23 @@ newest_release() {
 }
 
 # Each plugin carries the version of its newest release, and every changelog keeps an Unreleased section.
+# A plugin before its first release has only the Unreleased section and carries 0.1.0, the version
+# its first release will have, as docs/creating-a-plugin.md says.
 check_versions() {
   local name changelog version released bad=0
   for changelog in CHANGELOG.md plugins/*/CHANGELOG.md; do
     [ -f "$changelog" ] || continue
     grep -qx '## \[Unreleased\]' "$changelog" || { echo "$changelog has no ## [Unreleased] section"; bad=1; }
-    [ -n "$(newest_release "$changelog")" ] || { echo "$changelog has no ## [X.Y.Z] - YYYY-MM-DD section"; bad=1; }
   done
+  [ -n "$(newest_release CHANGELOG.md)" ] || { echo "CHANGELOG.md has no ## [X.Y.Z] - YYYY-MM-DD section"; bad=1; }
   for name in $(plugin_names); do
     [ -f "plugins/$name/CHANGELOG.md" ] || continue
     version="$(jq -r .version "plugins/$name/.claude-plugin/plugin.json")"
     released="$(newest_release "plugins/$name/CHANGELOG.md")"
+    if [ -z "$released" ]; then
+      [ "$version" = 0.1.0 ] || { echo "$name has no release in its CHANGELOG.md yet, so it carries 0.1.0, not $version"; bad=1; }
+      continue
+    fi
     [ "$version" = "$released" ] || { echo "$name is $version but its CHANGELOG.md's newest release is $released"; bad=1; }
   done
   return "$bad"
