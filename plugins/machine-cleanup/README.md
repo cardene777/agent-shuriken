@@ -39,7 +39,7 @@ You can also call it: run `/machine-cleanup:machine-cleanup` in Claude Code, or 
 In GitHub Copilot CLI, write `/machine-cleanup` in your request, and in Gemini CLI, describe the task.
 
 1. The agent scans, which takes up to 90 seconds at the lowest priority, and tells you the totals
-2. A page opens in your browser on the **Overview** tab, whose charts show what can be freed and how the disk, memory, and CPU are used. The other tabs list rows by name and size, grouped into **Recommended**, **Check first**, and **Careful**, and the **i** button on a row shows its reason, location, and command. Search, hide groups, or sort the rows, pick the rows you want to free, or press **Pick all in this group** on a recommended or check-first group, press **Free**, check the summary, and press **Send to the agent**
+2. A page opens in your browser on the **Overview** tab, whose charts show what can be freed and how the disk, memory, and CPU are used. The other tabs, in a **Disk** group and a **Programs** group, list rows by name and size, grouped into **Recommended**, **Check first**, and **Careful**. Copies of one file sit together under a heading, a row whose name does not tell it apart shows its folder or command under the name, and the **i** button on a row shows its reason, location, and command. Search, hide groups, or sort the rows, pick the rows you want to free, or press **Pick all in this group** on a recommended or check-first group, press **Free**, check the summary, and press **Send to the agent**
 3. The agent checks each pick again, skips any that changed or came into use, frees the rest, and reports free disk, memory, and load before and after
 4. When a process ignores the end signal, the agent asks you before ending it at once
 
@@ -63,6 +63,9 @@ When the agent stopped waiting for the page, press **Copy the selection** and pa
 | Processes | Dev servers, watchers, and test runs left running after their session ended, and the 15 processes that use the most memory or CPU | The process gets the end signal, so it can save its work. It is ended at once only when you pick it again |
 | Login items | macOS LaunchAgents in your Library, and autostart entries and systemd user services on Linux | Stopped, and kept so that the agent can turn it back on |
 | Containers | Running Docker containers | Stopped. Their data stays |
+
+A file or folder appears in one row only: an old installer in Downloads is listed under Trash and logs, not again as a large file.
+A row inside another row, such as `node_modules` in an unused project or an app's cache, keeps its own row so that you can free it alone. The totals count it once, and when you pick both, the agent frees the outer row with the inner one in it.
 
 ## What it keeps out of reach
 

@@ -101,4 +101,27 @@
 | READMEと`docs/how-it-works`は、英語と日本語の両方で、4種類の見つけ方と消し方を書く | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"the READMEs and how-it-works describe the four new kinds in both languages"`が通る | #146 |
 | テストが触る全てのpathは使い捨ての`HOME`の下に在る | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"every path the tests touch is under the throwaway HOME"`が通る | #146 |
 | scriptはこの機械の外へ繋がない | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"no script connects outside the machine"`が通る | #146 |
-| repoの検査が通る | `bash scripts/check.sh`が終了0 | #146 |
+| repoの検査が通る | `bash scripts/check.sh`が終了0 | #146 #293 |
+| 走査は、30日より古い500MB超えのインストーラーをインストーラーの1行だけで返し、どのパスも2つの行に出さない | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"scan lists each path in one row, an old large installer as an installer"`が通る | #293 |
+| 走査は、ほかの走査が拾ったパスの写しにも重複の組の印を持たせ、組の全ての写しを返す | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"a copy that another scan listed keeps its duplicate set"`が通る | #293 |
+| 走査は、別の行のフォルダの中にある行に、それを含む行のIDを近い順に返す | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"a row inside another listed row names the rows that hold it"`が通る | #293 |
+| 走査は、台本が作る名前に辞書の鍵と差し込む値を添え、英語の名前を今のまま返す | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"scan gives the names it makes a dictionary key and keeps the English name"`が通る | #293 |
+| `apply`は、どのタブの写しでも、重複の組の全ての写しが空く選び方を拒む | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"apply refuses picking every copy of a set, whichever tabs the copies are in"`が通る | #293 |
+| `apply`は、外の行と中の行を両方選ばれた時に外の行だけを空け、中の行を理由つきで飛ばす | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"apply frees a folder once and skips the picked rows inside it"`が通る | #293 |
+| `serve`と`apply`は、版4の走査の結果を拒み、走査し直しを求める | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"serve and apply refuse a version 4 scan, which may list a path twice"`が通る | #293 |
+| 頁は、台本が作る行の名前を英語と日本語の辞書から出し、機械から来た名前をそのまま出す | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"the page names the script's rows from both dictionaries and keeps names from the machine"`が通る | #293 |
+| 頁の合計と図と下の帯は、同じパス、入れ子の中の行、重複の組の残る1つを1回だけ数える | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"the totals count each byte once across tabs, nested rows, and copies"`が通る | #293 |
+| 下の帯は、選んだ数と空くディスクを名前の付いた2つの値で出し、コロンと「・」で繋がない | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"the bottom bar shows the picked count and the disk to free as two named values"`が通る | #293 |
+| 一覧の行は、大きいファイルと重複のタブと、同じタブで名前が重なる時に、フォルダか作業フォルダかコマンドを2行目に出す | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"a list row shows where it is when its name does not tell it apart"`が通る | #293 |
+| 一覧の行は、名前で見分けられる時に2行目を出さない | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"a list row adds no second line when its name tells it apart"`が通る | #293 |
+| 一覧は、重複の組の写しを並べ替えと絞り込みの後もまとめ、組の頭に写しの数と1つの大きさを出す | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"the copies of one content are listed together under one heading"`が通る | #293 |
+| 幅1400pxで開いた頁は、英語と日本語の両方で全てのタブをタブの列の中に見せる | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"the opened page shows every tab at 1400px in both languages"`が通る | #293 |
+| 幅390pxで開いた頁は、横に溢れず、全てのタブを見せる | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"the opened page fits 390px with every tab shown"`が通る | #293 |
+| 開いた頁の輪の穴の文字は、999.9 GBと測れなかった時の文字で、英語と日本語の両方で穴の中に収まる | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"the text in each ring stays inside its hole in both languages"`が通る | #293 |
+| 開いた頁の名前と文字は、省略記号で切れない | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"no text on the opened page is cut with an ellipsis"`が通る | #293 |
+| 開いた頁の全ての文字は、明るい配色と暗い配色の両方で背景に対して4.5対1以上の対比を持つ | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"every text on the opened page has a contrast of 4.5 to 1 in light and dark"`が通る | #293 |
+| 開いた頁は、全てのタブで英語と日本語の両方で`page-design`の`verify`を通る | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"the opened page passes page-design verify on every tab in both languages"`が通る | #293 |
+| READMEと`docs/how-it-works`は、英語と日本語の両方で、1つのパスを1つの行にし、入れ子の中の行を外の行と一緒に空けることを書く | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"the READMEs and how-it-works say each path is one row and nested rows are freed once"`が通る | #293 |
+| チャットに貼る文は、表示の言語に依らない固定の語とIDだけで組み、`apply`がそのまま読む | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"the copied selection is the same in both languages and apply reads it"`が通る | #293 |
+| `apply`は、渡したIDの項目だけに手を付ける | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"apply acts only on the passed ids"`が通る | #293 |
+| `apply`は、走査の後に変わった項目を飛ばす | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh`の検査`"apply skips an item that changed after the scan"`が通る | #293 |

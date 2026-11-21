@@ -59,6 +59,27 @@ The Hugging Face and LM Studio folders under `~/.cache` are never listed as app 
 The result goes to `scan.json` in the state folder.
 Each item has an id (`d-` and eight hex digits for disk items, `p-` for processes, login items, and containers), a category, a kind, a size or memory use, whether it comes back on its own, how it is freed, the reason it is in use when it is, and a fingerprint for the check before acting.
 The file also keeps the free and whole disk from `df`, the memory in use and in all, and the load, which the overview tab draws.
+It records its format as version 5, and `serve` and `apply` refuse a scan of an older version and ask for a new scan.
+
+A row whose name the scan makes, such as a cache, a log folder, build output, or a dev server, also has a `label`: a key and the values the name needs, such as `{"key": "build", "vars": {"folder": "node_modules", "project": "shop"}}`.
+The page looks the key up in its dictionary, so the name follows the page's language, and product names such as npm or Vite stay as they are.
+The item's `name` keeps the English name, which the agent reports and the copied selection never needs.
+
+## One row for each path
+
+Two steps can meet the same file: an installer in Downloads older than 30 days can also be a file of 500 MB or more.
+The scan keeps the row of the step that met the path first, in the order of the table above, so the file appears once and is counted once.
+When the row it drops was one copy of a set of duplicates, the kept row takes the set, so that one copy of the set still has to stay.
+
+A row can also lie inside another row: build output or a large file inside an unused work folder, or an app's cache or logs among the support files of an unused app.
+The inner row keeps its own row, so that it can be freed alone, and lists in `within` the ids of the rows that hold it, nearest first.
+
+| Where | How the inner row counts |
+|---|---|
+| The charts | Once. A row's share leaves out the shown rows inside it, and a picked row inside a picked row adds nothing |
+| The bar at the bottom | Once, in Disk to free |
+| The summary before sending | It says that the inner row is freed with the outer row |
+| `apply` | Frees the outer rows first. An inner row whose holder was freed is reported as `skipped`, inside the holder, which was freed with it |
 
 ## How rows are ranked
 
@@ -71,14 +92,17 @@ The level only orders the rows and explains them; `apply` checks every pick the 
 | Check first | Build output of a project with a commit in the last 30 days, large files, duplicates, unused work folders, unused apps, app leftovers, unused tool versions, AI models, login items, and a `next-server` process, since `next start` runs under the same name | How many days since the last commit, checkout, or download, since the app was opened, or since the leftover last changed, or that the item can be put back or installed again |
 | Careful | Heavy processes and running containers | Ending it stops its work |
 
-The headings of the recommended and check-first groups have a button that picks every row in the group except duplicates, which are picked one copy at a time so that one copy always stays.
+The headings of the recommended and check-first groups have a button that picks every row in the group except copies of duplicates, which are picked one copy at a time so that one copy always stays.
+The copies of one set sit together under a heading that names how many copies there are and the size of each, wherever the scan found them.
 The careful and in-use groups have no such button, and the page opens with nothing picked.
 
 ## The overview tab
 
 The page opens on the overview tab, which draws the scan as seven charts.
+The other tabs sit in a Disk group and a Programs group, and the tab strip wraps onto more lines when the window is narrow.
 Pressing a part of a ring or a legend row that leads to a tab opens that tab, and pressing a bar opens the details of that row.
 A value the scan could not measure is shown as "Not measured", never as zero.
+The hole of a ring holds only its name and value, and the lines below the ring hold the rest, such as the whole disk.
 
 | Chart | What it shows |
 |---|---|
@@ -86,11 +110,14 @@ A value the scan could not measure is shown as "Not measured", never as zero.
 | Size by level | The same disk split into recommended, check first, and careful, with the rows in use apart. The line below is the free disk after freeing every recommended row |
 | Disk | The whole disk as what you picked, what can be freed but is not picked, other use, and free space. The line below is the free disk after freeing what you picked |
 | Memory | Memory used by processes that can end, by processes in use, by everything else, and free memory. Containers are left out, since the process that runs them already counts their memory. The line below is the load over the last minute |
-| Largest items | The 8 largest rows on disk, coloured by their group |
+| Largest items | The 8 largest rows on disk, coloured by their group. A long name wraps onto a second line instead of being cut |
 | Processes using the most memory | The 6 processes that use the most memory |
 | Processes using the most CPU | The 6 processes with the highest CPU share between the two `ps` samples |
 
-A row in the other tabs shows only its name, its size, and for a process or container its CPU share.
+A row in the other tabs shows its name, its size, and for a process or container its CPU share.
+A large file, a copy of a duplicate, and a row whose name another row in the tab has, such as one of three Vite dev servers, show a second line as plain text: the folder the file is in, or for a process its working folder or command.
+A bar in the overview shows the same line when another bar of its chart has the same name, such as two Host processes.
+The bar at the bottom shows how many rows are picked and, apart from it, how much disk they free.
 The i button at the end of the row opens a dialog with the reason, what happens when it is freed, and the location, or for a process its memory, CPU share, start time, working folder, and command.
 A row that can be picked can also be picked or unpicked in that dialog.
 Above the rows, three tools change what the tab shows; they never change what is picked.

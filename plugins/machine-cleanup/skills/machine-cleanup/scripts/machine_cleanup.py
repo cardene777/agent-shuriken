@@ -41,7 +41,10 @@ import time
 import urllib.parse
 
 FORMAT_VERSION = 1  # restore.json
-SCAN_VERSION = 4  # scan.json; 2 added each item's level and reason, 3 the whole disk size, 4 work folders, app leftovers, tool versions, and models
+# scan.json; 2 added each item's level and reason, 3 the whole disk size, 4 work folders, app leftovers,
+# tool versions, and models, 5 one row for each path, the rows that hold a row, and keys for the names
+# the script makes
+SCAN_VERSION = 5
 MIB = 1024 * 1024
 LARGE_FILE = 500 * MIB
 DUPLICATE_MIN = 10 * MIB
@@ -118,6 +121,16 @@ DEV_PATTERNS = (
     (r"GradleDaemon|KotlinCompileDaemon", "Gradle daemon"),
 )
 DEV_RES = tuple((re.compile(p), label) for p, label in DEV_PATTERNS)
+# The page's dictionary key for each dev process name. nodemon and pytest are the tools' own names,
+# which read the same in every language, so they have none.
+DEV_KEYS = {
+    "Next.js dev server": "dev_next_dev", "Next.js server": "dev_next_server", "Vite dev server": "dev_vite",
+    "webpack dev server": "dev_webpack", "TypeScript watcher": "dev_typescript_watch", "test watcher": "dev_test_watch",
+    "Playwright tests": "dev_playwright", "framework dev server": "dev_framework", "dev server": "dev_server",
+    "package script": "dev_package_script", "Turborepo dev": "dev_turborepo", "local emulator": "dev_emulator",
+    "site preview server": "dev_site_preview", "local chain": "dev_chain", "file watcher": "dev_file_watch",
+    "React Native bundler": "dev_react_native", "Gradle daemon": "dev_gradle",
+}
 
 
 # --- basics ---------------------------------------------------------------------------------
@@ -218,7 +231,8 @@ def human(n):
         return "unknown"
     n = float(n)
     for unit in ("B", "KB", "MB", "GB", "TB"):
-        if abs(n) < 1000 or unit == "TB":
+        # 999.95 and more would print as 1000.0, so it moves to the next unit.
+        if abs(n) < (1000 if unit == "B" else 999.95) or unit == "TB":
             return ("%d %s" % (n, unit)) if unit == "B" else ("%.1f %s" % (n, unit))
         n /= 1000.0
     return "%.1f TB" % n
@@ -488,14 +502,23 @@ def folder_lock(root, cwds, procs):
 
 # --- items ----------------------------------------------------------------------------------
 
-def disk_item(category, kind, name, path, size, rebuilt, action, command=None, locked=None, detail=None):
+def disk_item(category, kind, name, path, size, rebuilt, action, command=None, locked=None, detail=None, label=None):
+    """One disk row. A name the script makes also gets a label, {"key": ..., "vars": {...}}, which the
+    page looks up in its dictionary; the English name stays for apply's output and the agent."""
     st = stat_or_none(path) if path else None
-    return {
+    it = {
         "id": item_id("d", category, kind, path or name), "group": "disk", "category": category, "kind": kind,
         "name": name, "path": path, "size": size, "rebuilt": rebuilt, "action": action, "command": command,
         "locked": locked, "detail": detail or {},
         "fingerprint": {"size": size, "mtime": st.st_mtime if st else None, "ino": st.st_ino if st else None},
     }
+    if label:
+        it["label"] = label
+    return it
+
+
+def name_key(prefix, kind):
+    return {"key": "%s_%s" % (prefix, kind.replace("-", "_"))}
 
 
 def cache_specs(ctx):
@@ -573,7 +596,8 @@ def scan_caches(ctx, procs, deadline, skipped):
         if size < BUILD_MIN:
             continue
         lock = ("%s is running" % tool) if tool and tool.lower() in bases else None
-        items.append(disk_item("cache", kind, name, path, size, True, "tool" if command else "delete", command, lock))
+        items.append(disk_item("cache", kind, name, path, size, True, "tool" if command else "delete", command, lock,
+                               label=name_key("cache", kind)))
     return items
 
 
@@ -648,7 +672,7 @@ def scan_docker(ctx, deadline, skipped):
             ("docker-stopped-containers", "Containers", "Stopped Docker containers", ["docker", "container", "prune", "-f"])):
         size = rec.get(typ, 0)
         if size >= BUILD_MIN:
-            it = disk_item("cache", kind, name, None, size, True, "tool", command)
+            it = disk_item("cache", kind, name, None, size, True, "tool", command, label=name_key("cache", kind))
             it["id"] = item_id("d", "cache", kind)
             items.append(it)
     return items
@@ -671,7 +695,7 @@ def scan_trash_logs_installers(ctx, deadline, skipped):
             if [n for n in names if n != ".DS_Store"]:
                 size = du_sizes(ctx, [trash], deadline).get(trash)
                 if size:
-                    items.append(disk_item("trash", "trash", "Trash", trash, size, False, "empty-trash"))
+                    items.append(disk_item("trash", "trash", "Trash", trash, size, False, "empty-trash", label={"key": "trash"}))
         except PermissionError:
             skipped.append({"path": trash, "reason": "macOS needs Full Disk Access for this terminal app to read the Trash"})
     log_roots = [ctx.h("Library", "Logs")] if ctx.mac else [os.environ.get("XDG_STATE_HOME") or ctx.h(".local", "state")]
@@ -694,10 +718,11 @@ def scan_trash_logs_installers(ctx, deadline, skipped):
                 groups.setdefault(group, []).append((p, st.st_size))
         for group, files in sorted(groups.items()):
             size = sum(s for _, s in files)
-            name = "Logs" if group == root else os.path.basename(group) + " logs"
+            app = os.path.basename(group)
+            name, label = ("Logs", {"key": "logs"}) if group == root else (app + " logs", {"key": "app_logs", "vars": {"app": app}})
             items.append(disk_item("log", "old-logs", name, group, size, False, "delete-files",
                                    detail={"files": [p for p, _ in files][:500], "file_count": len(files),
-                                           "older_than_days": OLD_DAYS}))
+                                           "older_than_days": OLD_DAYS}, label=label))
     downloads = ctx.h("Downloads")
     try:
         entries = list(os.scandir(downloads))
@@ -896,8 +921,10 @@ def scan_home(ctx, roots, procs, cwds, deadline, skipped, found):
             continue
         if size < BUILD_MIN:
             continue
-        items.append(disk_item("build", os.path.basename(path), "%s in %s" % (os.path.basename(path), os.path.basename(repo)),
-                               path, size, True, "delete", None, folder_lock(repo, cwds, procs), {"project": repo}))
+        folder, project = os.path.basename(path), os.path.basename(repo)
+        items.append(disk_item("build", folder, "%s in %s" % (folder, project), path, size, True, "delete", None,
+                               folder_lock(repo, cwds, procs), {"project": repo},
+                               label={"key": "build", "vars": {"folder": folder, "project": project}}))
     # Duplicates: same size, then the same first 64 KiB, then the same full hash.
     by_size = {}
     for f in files:
@@ -1439,7 +1466,7 @@ def file_hash(path, limit=None):
 
 def proc_item(category, kind, proc, label, lock, cpu, folder):
     args = redact(proc["args"])[:300]
-    return {
+    it = {
         "id": item_id("p", category, proc["pid"], proc["lstart"]), "group": "process", "category": category, "kind": kind,
         "name": label, "path": None, "pid": proc["pid"], "size": proc["rss"], "cpu": round(cpu, 1), "rebuilt": False,
         "action": "terminate", "command": None, "locked": lock,
@@ -1447,6 +1474,9 @@ def proc_item(category, kind, proc, label, lock, cpu, folder):
         # The full command can hold a secret, so only its hash is kept to recognize the process later.
         "fingerprint": {"lstart": proc["lstart"], "args": args_hash(proc["args"])},
     }
+    if category == "dev-process" and DEV_KEYS.get(label):
+        it["label"] = {"key": DEV_KEYS[label]}
+    return it
 
 
 def args_hash(args):
@@ -1670,6 +1700,7 @@ def cmd_scan(ctx, args):
         if it["id"] not in seen:
             seen.add(it["id"])
             unique.append(it)
+    unique = one_row_per_path(unique)
     last_commits = {}
     for it in unique:
         it["level"], it["reason"] = rank(ctx, it, last_commits)
@@ -1684,6 +1715,43 @@ def cmd_scan(ctx, args):
     else:
         print_summary(ctx, result)
     return 0
+
+
+def one_row_per_path(items):
+    """Keeps one row for each path and records which rows hold each row.
+
+    Two scans can meet the same path: an old installer in Downloads is also a large file or a copy.
+    The row of the scan that ran first stays, since its reason is the more particular one, and when
+    the row it replaces belongs to a duplicate set, it takes that set, so the set still names every
+    copy. A row whose path is inside another row's folder, or is one of an app's support files, stays
+    a row of its own, since it can be freed alone; its within lists the ids of the rows that hold it,
+    nearest first. Freeing a holder frees it too, so the page counts its size once and apply skips it
+    when its holder is freed in the same run."""
+    kept, at = [], {}
+    for it in items:
+        path = it.get("path") if it["group"] == "disk" else None
+        first = at.get(path) if path else None
+        if first is None:
+            if path:
+                at[path] = it
+            kept.append(it)
+            continue
+        dropped, own = it.get("detail") or {}, first.setdefault("detail", {})
+        if dropped.get("set") and not own.get("set"):
+            own["set"], own["copies"] = dropped["set"], dropped.get("copies", [])
+    places = {}
+    for it in kept:
+        if it["group"] == "disk" and it.get("path"):
+            for p in [it["path"]] + list(it["detail"].get("support") or []):
+                places.setdefault(p, []).append(it["id"])
+    for it in kept:
+        within, p = [], it.get("path") if it["group"] == "disk" else None
+        while p:
+            within += [i for i in places.get(p, []) if i != it["id"] and i not in within]
+            parent = os.path.dirname(p)
+            p = parent if parent != p else None
+        it["within"] = within
+    return kept
 
 
 def days_since(ts, now):
@@ -2233,9 +2301,15 @@ def cmd_apply(ctx, args):
         elif by_id[i]["locked"]:
             refused.append((i, "in use: %s" % by_id[i]["locked"]))
     picked = [by_id[i] for i in ids if i in by_id]
-    for s in {(it.get("detail") or {}).get("set") for it in picked if it["category"] == "duplicate"} - {None}:
-        copies = [it for it in scan["items"] if it["category"] == "duplicate" and it["detail"].get("set") == s]
-        if all(c["id"] in ids for c in copies):
+    chosen = set(ids)
+
+    def freed(it):
+        return it["id"] in chosen or any(w in chosen for w in it.get("within") or [])
+    # A copy is freed when it is picked or when a row holding it is; the copies of a set can sit in
+    # different tabs (an old installer and a copy elsewhere).
+    for s in {(it.get("detail") or {}).get("set") for it in picked} - {None}:
+        copies = [it for it in scan["items"] if (it.get("detail") or {}).get("set") == s]
+        if all(freed(c) for c in copies):
             refused.append((copies[0]["id"], "every copy of a duplicate set was picked; keep at least one"))
     if refused:
         for i, why in refused:
@@ -2249,8 +2323,15 @@ def cmd_apply(ctx, args):
     use = AgentUse(ctx, procs, cwds)
     records, failed, docker_done = [], False, False
     targets = []
-    for it in picked:
+    done = set()
+    # Rows that hold others go first, so a row inside a freed row is skipped instead of freed twice;
+    # when the holder is skipped, the row inside it is still freed on its own.
+    for it in sorted(picked, key=lambda x: len(x.get("within") or [])):
         if it["group"] == "disk":
+            holder = next((by_id[w] for w in it.get("within") or [] if w in done), None)
+            if holder is not None:
+                line("skipped", it["id"], it["name"], "inside %s (%s), which was freed with it" % (holder["name"], holder["id"]))
+                continue
             lock = disk_lock_now(ctx, it, procs, cwds)
             why = ("in use: " + lock) if lock else changed(ctx, it)
             if why:
@@ -2258,6 +2339,8 @@ def cmd_apply(ctx, args):
                 continue
             status, note = free_disk_item(ctx, it, records, procs)
             failed = failed or status == "failed"
+            if status == "done":
+                done.add(it["id"])
             docker_done = docker_done or (status == "done" and it["kind"].startswith("docker-"))
             line(status, it["id"], it["name"], note)
         elif it["category"] == "login-item":

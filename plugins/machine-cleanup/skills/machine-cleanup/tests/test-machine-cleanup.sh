@@ -16,6 +16,21 @@ PY="$(python3 -c 'import sys; print(sys.executable)')"
 REAL_DU="$(command -v du)"
 # Node.js runs the page's own functions in one check; that check is skipped when it is missing.
 NODE="$(command -v node 2>/dev/null || true)"
+# A Chromium-based browser opens the page as a reader does, for the checks on the opened page.
+# MACHINE_CLEANUP_TEST_BROWSER names the browser; otherwise the usual apps, the headless browsers
+# Playwright downloaded, and then the usual commands are tried, in the order techdebt's test uses,
+# all before HOME is replaced below. Without a browser, those checks are skipped.
+REAL_BROWSER=""
+for b in "${MACHINE_CLEANUP_TEST_BROWSER:-}" \
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+  "/Applications/Chromium.app/Contents/MacOS/Chromium" \
+  "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge" \
+  "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser" \
+  "$HOME"/Library/Caches/ms-playwright/chromium_headless_shell-*/*/chrome-headless-shell \
+  "$HOME"/.cache/ms-playwright/chromium_headless_shell-*/*/chrome-headless-shell \
+  "$(command -v google-chrome 2>/dev/null)" "$(command -v chromium 2>/dev/null)" "$(command -v chromium-browser 2>/dev/null)"; do
+  if [ -n "$b" ] && [ -x "$b" ]; then REAL_BROWSER="$b"; break; fi
+done
 PASS=0
 FAIL=0
 T="$(cd "$(mktemp -d)" && pwd -P)"
@@ -181,6 +196,12 @@ sparse "$H/Videos/raw.mov" 600
 sparse "$H/Documents/archive.zip" 12
 sparse "$H/Backup/archive.zip" 12
 sparse "$H/Documents/small.bin" 5
+# An old installer over 500 MB, which the large file walk also meets, and an old installer with a
+# copy of the same contents in another folder. Each size is used by no other file here.
+sparse "$H/Downloads/Big-2.0.dmg" 540
+sparse "$H/Downloads/Tool-1.0.dmg" 20
+sparse "$H/Archive/Tool-1.0.dmg" 20
+old "$H/Downloads/Big-2.0.dmg" "$H/Downloads/Tool-1.0.dmg"
 
 # An app last opened 200 days ago, with its support files.
 APP="$H/Applications/Editor.app"
@@ -301,6 +322,16 @@ idle "$H/projects/localonly"
 # withwt has a second worktree, which is a folder whose .git is a file.
 git -C "$H/projects/withwt" worktree add -q "$H/projects/withwt-feature" 2>/dev/null
 idle "$H/projects/withwt"
+# idlebuild is idle and holds ignored build output and an ignored large file, which are listed as
+# rows of their own inside the project's row.
+IDLEB="$H/projects/idlebuild"
+project idlebuild
+printf 'node_modules/\n*.bin\n' > "$IDLEB/.gitignore"
+git -C "$IDLEB" add .gitignore && GIT_AUTHOR_DATE="$OLD_COMMIT" GIT_COMMITTER_DATE="$OLD_COMMIT" git -C "$IDLEB" commit -qm ignore
+git -C "$IDLEB" push -q origin HEAD 2>/dev/null
+fill "$IDLEB/node_modules/lodash"; size "$IDLEB/node_modules" 102400
+sparse "$IDLEB/data/dump.bin" 520
+idle "$IDLEB"
 
 # Leftovers of a removed app in four Library folders, a second removed app, and folders that must
 # not count: a company with an installed app (Editor is com.example), a name a running process has
@@ -412,7 +443,7 @@ check "scan never lists a build folder that holds a tracked file" \
 check "scan lists trash, old logs, and old installers" \
   'has ".items | any(.category == \"trash\")" && has ".items | any(.category == \"log\" and ((.detail.files // []) | any(endswith(\"old.log\"))) and ((.detail.files // []) | all(endswith(\"new.log\") | not)))" && [ -n "$(id_at "$H/Downloads/Editor-1.0.dmg")" ] && [ -z "$(id_at "$H/Downloads/Editor-2.0.dmg")" ]'
 check "scan lists large files and duplicate sets" \
-  'has ".items | any(.category == \"large\" and (.path | endswith(\"/Videos/raw.mov\")))" && [ "$(jq "[.items[] | select(.category == \"duplicate\" and (.path | endswith(\"archive.zip\")))] | length" "$SCAN")" = 2 ] && has "[.items[] | select(.category == \"duplicate\")] | map(.detail.set) | unique | length == 1" && [ -z "$(id_at "$H/Documents/small.bin")" ]'
+  'has ".items | any(.category == \"large\" and (.path | endswith(\"/Videos/raw.mov\")))" && [ "$(jq "[.items[] | select(.category == \"duplicate\" and (.path | endswith(\"archive.zip\")))] | length" "$SCAN")" = 2 ] && has "[.items[] | select(.category == \"duplicate\" and (.path | endswith(\"archive.zip\")))] | map(.detail.set) | unique | length == 1" && [ -z "$(id_at "$H/Documents/small.bin")" ]'
 
 MACHINE_CLEANUP_HOME="$T/state-linux" mc_as linux scan --json --sample 0 > /dev/null 2>&1
 LINUX_SCAN="$T/state-linux/scan.json"
@@ -453,6 +484,52 @@ check "every scanned item has a level and a reason" \
   'has "(.items | length) > 20 and (.items | all((.level | IN(\"recommended\", \"check\", \"careful\")) and (.reason.code | type) == \"string\"))"'
 check "build output in a folder a running process works in is locked" \
   'has ".items | any(.path == \"$BLOG/node_modules\" and (.locked | type) == \"string\")" && has ".items | any(.path == \"$SHOP/node_modules\" and .locked == null)"'
+
+# --- one row for each path --------------------------------------------------------------------
+check "scan lists each path in one row, an old large installer as an installer" \
+  'has "[.items[] | select(.path == \"$H/Downloads/Big-2.0.dmg\")] | length == 1 and .[0].category == \"installer\" and .[0].level == \"recommended\"" && has "[.items[] | .path // empty] | length > 20 and length == (unique | length)"'
+# copy_set_ok: the old installer and its copy in another folder carry the same set, which names both.
+copy_set_ok() {
+  jq -e --arg a "$H/Downloads/Tool-1.0.dmg" --arg b "$H/Archive/Tool-1.0.dmg" '
+    [.items[] | select(.path == $a)] as $i | [.items[] | select(.path == $b)] as $d
+    | ($i | length) == 1 and ($d | length) == 1 and $i[0].category == "installer" and $d[0].category == "duplicate"
+    and ($i[0].detail.set | type) == "string" and $i[0].detail.set == $d[0].detail.set
+    and ($i[0].detail.copies | sort) == ([$a, $b] | sort) and ($d[0].detail.copies | sort) == ([$a, $b] | sort)
+    and ([.items[] | select(.detail.set == $i[0].detail.set)] | length) == 2' "$SCAN" > /dev/null 2>&1
+}
+check "a copy that another scan listed keeps its duplicate set" 'copy_set_ok'
+# within_ok: the build output and the large file in idlebuild name the project's row, which itself,
+# like build output in a project that is not listed, is inside no row. The app's cache and its old
+# logs are support files of the unused Editor app, so they name the app's row.
+within_ok() {
+  jq -e --arg p "$IDLEB" --arg s "$SHOP/node_modules" --arg app "$APP" --arg lib "$H/Library" '
+    def within_of(p): [.items[] | select(.path == p)][0].within;
+    ([.items[] | select(.category == "project" and .path == $p)][0].id) as $pid
+    | ([.items[] | select(.path == $app)][0].id) as $aid
+    | ($pid | type) == "string" and ($aid | type) == "string"
+    and within_of($p + "/node_modules") == [$pid] and within_of($p + "/data/dump.bin") == [$pid]
+    and within_of($p) == [] and within_of($s) == []
+    and within_of($lib + "/Caches/com.example.editor") == [$aid] and within_of($lib + "/Logs/Editor") == [$aid]
+    and within_of($app) == []' "$SCAN" > /dev/null 2>&1
+}
+check "a row inside another listed row names the rows that hold it" 'within_ok'
+# label_ok: the names the script makes carry a dictionary key and their values; names from the
+# machine carry none; the English name stays as it was.
+label_ok() {
+  jq -e --arg shop "$SHOP/node_modules" --arg app "$APP" '
+    def one(f): [.items[] | select(f)][0];
+    one(.kind == "npm") as $npm | one(.kind == "docker-images") as $img | one(.path == $shop) as $nm
+    | one(.category == "trash") as $trash | one(.category == "log" and (.path | endswith("/Logs/Editor"))) as $log
+    | one(.pid == 600) as $vite | one(.path == $app) as $editor | one(.category == "tool") as $tool
+    | $npm.label == {"key": "cache_npm"} and $npm.name == "npm cache"
+    and $img.label == {"key": "cache_docker_images"} and $img.name == "Docker images no container uses"
+    and $nm.label == {"key": "build", "vars": {"folder": "node_modules", "project": "shop"}} and $nm.name == "node_modules in shop"
+    and $trash.label == {"key": "trash"} and $trash.name == "Trash"
+    and $log.label == {"key": "app_logs", "vars": {"app": "Editor"}} and $log.name == "Editor logs"
+    and $vite.label == {"key": "dev_vite"} and $vite.name == "Vite dev server"
+    and $editor.label == null and $tool.label == null' "$SCAN" > /dev/null 2>&1
+}
+check "scan gives the names it makes a dictionary key and keeps the English name" 'label_ok'
 
 mode() { "$PY" -c 'import os, sys; print(oct(os.stat(sys.argv[1]).st_mode & 0o777))' "$1" 2>/dev/null; }
 check "scan state is readable only by the user" \
@@ -664,7 +741,7 @@ const picked = new Set();
 print("const I18N = %s;\nlet lang = \"en\";\n%s%s%s" % (words, dom, "".join(code), sys.argv[3]))
 PY
 }
-ROW_FNS="t human tilde when day effect lockText whyText isProc levelOf rowEl detailPairs detailEl"
+ROW_FNS="t human tilde when day effect lockText whyText isProc levelOf nameOf rowEl detailPairs detailEl"
 ROW_JS='const disk = { id: "d1", group: "disk", category: "build", name: "node_modules in app", path: "/h/projects/app/node_modules",
   size: 1000000, level: "recommended", reason: { code: "build_idle", days: 42 }, rebuilt: true, locked: null };
 const proc = { id: "p1", group: "process", category: "dev-process", name: "Vite dev server", size: 52000000, cpu: 12,
@@ -673,10 +750,10 @@ const proc = { id: "p1", group: "process", category: "dev-process", name: "Vite 
 const busy = Object.assign({}, proc, { id: "p2", locked: "runs under a live agent session (codex, pid 9)" });
 function show(it) { return detailPairs(it).map(function (p) { return /^(d_reason|d_effect|d_started)$/.test(p[0]) ? p[0] : p[0] + "=" + p[1]; }).join(","); }
 const reason = detailPairs(disk)[0][1];
-console.log(texts(rowEl(disk.name, "~/projects/app/node_modules", disk, "")).join("|") + "#" + texts(rowEl(proc.name, "", proc, "x")).join("|"));
+console.log(texts(rowEl(disk.name, "", disk)).join("|") + "#" + texts(rowEl(proc.name, "", proc)).join("|"));
 console.log(show(disk) + "#" + show(proc) + "#" + (reason && reason.indexOf("42") >= 0 ? "reason" : "no reason"));
 console.log("free=" + buttons(detailEl(disk)) + " busy=" + buttons(detailEl(busy)));'
-CHART_FNS="TABS t human isProc levelOf freeableSize partText overviewCharts"
+CHART_FNS="TABS t human isProc levelOf shares freeableSize unionSize partText overviewCharts"
 CHART_JS='const items = [
   { id: "c1", group: "disk", category: "cache", size: 300, level: "recommended", locked: null, rebuilt: true },
   { id: "c2", group: "disk", category: "cache", size: 200, level: "recommended", locked: "npm is running", rebuilt: true },
@@ -750,7 +827,7 @@ NEW_ROW_JS='const rows = [
 console.log(rows.map(function (it) {
   return detailPairs(it).map(function (p) { return /^(d_reason|d_effect)$/.test(p[0]) ? p[0] : p[0] + "=" + String(p[1]).split("\n").join(";"); }).join(",");
 }).join("#"));'
-LIST_FNS="groupRows viewGroups"
+LIST_FNS="t nameOf groupRows viewGroups"
 LIST_JS='const list = [
   { id: "a", name: "Alpha cache", path: "/h/.cache/alpha", size: 300, level: "recommended", locked: null, group: "disk" },
   { id: "b", name: "beta", path: "/h/Archive/beta", size: 100, level: "recommended", locked: null, group: "disk" },
@@ -763,6 +840,90 @@ function ids(gs) { return gs.map(function (g) { return g.key + ":" + g.items.map
 console.log("path=" + ids(viewGroups(list, { query: "ARCHIVE", levels: all, sort: "size-desc" })) + " name=" + ids(viewGroups(list, { query: "gam", levels: all, sort: "size-desc" })));
 console.log("levels=" + ids(viewGroups(list, { query: "", levels: ["check", "inuse"], sort: "size-desc" })));
 console.log("desc=" + ids(viewGroups(list, { query: "", levels: all, sort: "size-desc" })) + " asc=" + ids(viewGroups(list, { query: "", levels: all, sort: "size-asc" })) + " name=" + ids(viewGroups(list, { query: "", levels: all, sort: "name" })));'
+# Every row of the scan: a row with a dictionary key reads the same as its English name in English and
+# differently in Japanese, and a row without one reads the same in both.
+SCAN_ITEMS="$(jq -c '.items' "$SCAN" 2>/dev/null || printf '[]')"
+NAME_FNS="t nameOf"
+NAME_JS="const items = $SCAN_ITEMS;
+const bad = [];
+let keyed = 0;
+items.forEach(function (it) {
+  lang = \"en\"; const en = nameOf(it);
+  lang = \"ja\"; const ja = nameOf(it);
+  if (it.label) {
+    keyed += 1;
+    const k = \"name_\" + it.label.key;
+    if (!I18N.en[k] || !I18N.ja[k]) bad.push(\"no \" + k);
+    else if (en !== it.name) bad.push(en + \" is not \" + it.name);
+    else if (ja === en || /[{}]/.test(ja)) bad.push(\"ja \" + ja);
+  } else if (en !== it.name || ja !== it.name) bad.push(\"changed \" + it.name);
+});
+console.log((keyed >= 20 ? \"keyed\" : \"keyed \" + keyed) + \", bad: \" + bad.join(\",\"));"
+# An old installer and its copy in another tab, a project with build output and a large file inside
+# it, and a cache. The freeable chart counts one copy and the project once; the bar counts the union.
+TOTAL_FNS="TABS t human isProc levelOf shares freeableSize unionSize partText overviewCharts tallyParts"
+TOTAL_JS='const copies = ["/h/Archive/a.dmg", "/h/Downloads/a.dmg"];
+const items = [
+  { id: "c1", group: "disk", category: "cache", path: "/h/.npm", size: 200, level: "recommended", locked: null, rebuilt: true, within: [] },
+  { id: "i1", group: "disk", category: "installer", path: "/h/Downloads/a.dmg", size: 500, level: "recommended", locked: null, within: [], detail: { set: "s1", copies: copies } },
+  { id: "d1", group: "disk", category: "duplicate", path: "/h/Archive/a.dmg", size: 500, level: "check", locked: null, within: [], detail: { set: "s1", copies: copies } },
+  { id: "p1", group: "disk", category: "project", path: "/h/p", size: 1000, level: "check", locked: null, within: [] },
+  { id: "b1", group: "disk", category: "build", path: "/h/p/node_modules", size: 300, level: "recommended", locked: null, rebuilt: true, within: ["p1"] },
+  { id: "f1", group: "disk", category: "large", path: "/h/p/data.bin", size: 600, level: "check", locked: null, within: ["p1"] }];
+const c = overviewCharts(items, { disk_free: 10000, disk_total: 50000, memory_used: 20000, memory_total: 32000, load: [1, 1, 1] }, new Set(["p1", "b1"]));
+function parts(x) { return x.parts.map(function (p) { return p.key + "=" + p.value; }).join(",") + ";center=" + x.center.value; }
+console.log(parts(c[0]) + "#" + parts(c[1]) + "#" + parts(c[2]));
+function bar(ids) { return tallyParts(items.filter(function (x) { return ids.indexOf(x.id) >= 0; })).map(function (p) { return p.value; }).join("|"); }
+console.log(bar(["p1", "b1"]) + "#" + bar(["b1", "f1"]) + "#" + bar(["i1"]));'
+TALLY_JS='const its = [{ id: "a", group: "disk", size: 1000, within: [] }, { id: "b", group: "process", size: 5 }];
+function show(list) { return tallyParts(list).map(function (p) { return p.label + "|" + p.value; }).join("|"); }
+lang = "en"; const en = show(its); const none = tallyParts([]);
+lang = "ja"; const ja = show(its);
+console.log(en + "#" + ja + "#" + none.length + "#" + (/[:：・]/.test(en + ja) ? "joined" : "apart"));'
+# Two copies of one file, a large file, two dev servers with one name, an app, a cache, and a container.
+WHERE_FNS="t human tilde nameOf whereFor rowEl"
+WHERE_JS='const files = [
+  { id: "u1", group: "disk", category: "duplicate", name: "archive.zip", path: "/h/Backup/archive.zip", size: 1, within: [], detail: { set: "s", copies: [] } },
+  { id: "u2", group: "disk", category: "duplicate", name: "archive.zip", path: "/h/Documents/archive.zip", size: 1, within: [], detail: { set: "s", copies: [] } },
+  { id: "f1", group: "disk", category: "large", name: "raw.mov", path: "/h/Videos/raw.mov", size: 1, within: [] }];
+const procs = [
+  { id: "p1", group: "process", category: "dev-process", name: "Vite dev server", label: { key: "dev_vite" }, size: 1, cpu: 0, detail: { folder: "/h/projects/app", command: "node vite" } },
+  { id: "p2", group: "process", category: "dev-process", name: "Vite dev server", label: { key: "dev_vite" }, size: 1, cpu: 0, detail: { folder: null, command: "node /h/work/b/node_modules/.bin/vite --port 5174" } },
+  { id: "p3", group: "process", category: "heavy-process", name: "Browser", size: 1, cpu: 0, detail: { folder: null, command: "/Applications/Browser.app/Contents/MacOS/Browser" } }];
+console.log([whereFor(files[0], files), whereFor(files[2], files), whereFor(procs[0], procs), whereFor(procs[1], procs)].join("|"));
+console.log(texts(rowEl(files[0].name, whereFor(files[0], files), files[0])).join("|"));'
+NO_WHERE_JS='const procs = [
+  { id: "p1", group: "process", category: "dev-process", name: "Vite dev server", label: { key: "dev_vite" }, size: 1, cpu: 0, detail: { folder: "/h/projects/app", command: "node vite" } },
+  { id: "p3", group: "process", category: "heavy-process", name: "Browser", size: 1, cpu: 0, detail: { folder: null, command: "/Applications/Browser.app/Contents/MacOS/Browser" } }];
+const others = [
+  { id: "c1", group: "disk", category: "cache", name: "npm cache", label: { key: "cache_npm" }, path: "/h/.npm/_cacache", size: 1, within: [] },
+  { id: "a1", group: "disk", category: "app", name: "Editor", path: "/h/Applications/Editor.app", size: 1, within: [] },
+  { id: "k1", group: "process", category: "container", name: "shop-db-1", size: 1, cpu: 0, detail: { image: "postgres:16" } }];
+console.log("[" + [whereFor(procs[0], procs), whereFor(procs[1], procs), whereFor(others[0], others), whereFor(others[1], others), whereFor(others[2], others)].join("|") + "]");
+console.log(texts(rowEl(others[0].name, whereFor(others[0], others), others[0])).length);'
+# Two bars of one name among the top processes, and a bar whose name is its own. The stand-in elements
+# get a style to write the bar's width into.
+BAR_FNS="t human tilde nameOf whereFor node card pressable levelOf COLORS barCard"
+BAR_JS='Object.defineProperty(El.prototype, "style", { get: function () { return this.css || (this.css = {}); } });
+function vite(id, folder) { return { id: id, group: "process", category: "dev-process", name: "Vite dev server", label: { key: "dev_vite" }, size: 1, cpu: 1, level: "recommended", locked: null, detail: { folder: folder, command: "node vite" } }; }
+const browser = { id: "p3", group: "process", category: "heavy-process", name: "Browser", size: 1, cpu: 1, level: "careful", locked: null, detail: { folder: "/h", command: "/Applications/Browser.app/Contents/MacOS/Browser" } };
+const box = barCard({ key: "cpuTop", title: "ch_cpuTop", bars: [{ item: vite("p1", "/h/projects/shop"), value: 5 }, { item: vite("p2", "/h/projects/blog"), value: 3 }, { item: browser, value: 2 }] });
+console.log(texts(box).slice(1).join("|"));'
+# A set of two copies whose names sort apart, among two large files.
+SET_FNS="t human nameOf groupRows viewGroups withSets setHeadText"
+SET_JS='const copies = ["/h/Backup/archive.zip", "/h/Documents/copy of archive.zip"];
+const list = [
+  { id: "a", name: "archive.zip", path: copies[0], size: 500, level: "check", locked: null, group: "disk", category: "duplicate", detail: { set: "s1", copies: copies } },
+  { id: "b", name: "beta.mov", path: "/h/Videos/beta.mov", size: 600, level: "check", locked: null, group: "disk", category: "large" },
+  { id: "c", name: "copy of archive.zip", path: copies[1], size: 500, level: "check", locked: null, group: "disk", category: "duplicate", detail: { set: "s1", copies: copies } },
+  { id: "d", name: "delta.iso", path: "/h/d.iso", size: 550, level: "check", locked: null, group: "disk", category: "large" }];
+const all = ["recommended", "check", "careful", "inuse"];
+function show(items) { return withSets(items).map(function (e) { return e.head ? "head:" + e.head.count + ":" + e.head.size : e.item.id; }).join(","); }
+function first(v) { return viewGroups(list, v)[0].items; }
+console.log(show(first({ query: "", levels: all, sort: "name" })) + "#" + show(first({ query: "", levels: all, sort: "size-desc" })) + "#" + show(first({ query: "copy", levels: all, sort: "size-desc" })));
+lang = "en"; const en = setHeadText({ count: 2, size: 500 });
+lang = "ja"; const ja = setHeadText({ count: 2, size: 500 });
+console.log(en + "|" + ja);'
 if [ -n "$NODE" ]; then
   ROW_OUT="$(page_eval "$ROW_FNS" "$ROW_JS" 2>&1)"
   CHART_OUT="$(page_eval "$CHART_FNS" "$CHART_JS" 2>&1)"
@@ -805,6 +966,24 @@ if [ -n "$NODE" ]; then
     'printf "%s\n" "$LIST_OUT" | grep -qx "levels=check:g|inuse:e"'
   check "the list sorts rows by size either way and by name" \
     'printf "%s\n" "$LIST_OUT" | grep -qx "desc=recommended:acb|check:g|careful:d|inuse:e asc=recommended:bca|check:g|careful:d|inuse:e name=recommended:abc|check:g|careful:d|inuse:e"'
+  check "the page names the script's rows from both dictionaries and keeps names from the machine" \
+    'out="$(page_eval "$NAME_FNS" "$NAME_JS" 2>&1)"; [ "$out" = "keyed, bad: " ] || { echo "  $out"; false; }'
+  check "the totals count each byte once across tabs, nested rows, and copies" \
+    'out="$(page_eval "$TOTAL_FNS" "$TOTAL_JS" 2>&1)"; [ "$out" = "cache=200,build=300,trash=500,files=600,project=100,app=0,tools=0;center=1700#recommended=1000,check=700,careful=0,inuse=0;center=1000#picked=1000,freeable=700,other=38300,free=10000;center=10000
+2 items|1.0 KB#2 items|900 B#1 item|500 B" ] || { echo "  $out"; false; }'
+  check "the bottom bar shows the picked count and the disk to free as two named values" \
+    'out="$(page_eval "$TOTAL_FNS" "$TALLY_JS" 2>&1)"; [ "$out" = "Picked|2 items|Disk to free|1.0 KB#選んだ物|2件|空くディスク|1.0 KB#1#apart" ] || { echo "  $out"; false; }'
+  check "a list row shows where it is when its name does not tell it apart" \
+    'out="$(page_eval "$WHERE_FNS" "$WHERE_JS" 2>&1)"; [ "$out" = "~/Backup|~/Videos|~/projects/app|node ~/work/b/node_modules/.bin/vite --port 5174
+archive.zip|~/Backup|1 B|i" ] || { echo "  $out"; false; }'
+  check "a list row adds no second line when its name tells it apart" \
+    'out="$(page_eval "$WHERE_FNS" "$NO_WHERE_JS" 2>&1)"; [ "$out" = "[||||]
+3" ] || { echo "  $out"; false; }'
+  check "the copies of one content are listed together under one heading" \
+    'out="$(page_eval "$SET_FNS" "$SET_JS" 2>&1)"; [ "$out" = "head:2:500,a,c,b,d#b,d,head:2:500,a,c#head:2:500,c
+2 copies with the same contents, 500 B each|同じ中身の写しが2つ、1つ500 B" ] || { echo "  $out"; false; }'
+  check "a bar shows where it is when another bar in its chart has the same name" \
+    'out="$(page_eval "$BAR_FNS" "$BAR_JS" 2>&1)"; [ "$out" = "Vite dev server|~/projects/shop|5%|Vite dev server|~/projects/blog|3%|Browser|2%" ] || { echo "  $out"; false; }'
 else
   for name in "a list row shows only the name, the size, the CPU of a process, and a details button" \
     "a list row shows no path, command, or reason" \
@@ -824,7 +1003,14 @@ else
     "every chart title and part name comes from the English and Japanese dictionaries" \
     "the list filters rows by a word in the name or the path" \
     "the list hides the groups switched off" \
-    "the list sorts rows by size either way and by name"; do
+    "the list sorts rows by size either way and by name" \
+    "the page names the script's rows from both dictionaries and keeps names from the machine" \
+    "the totals count each byte once across tabs, nested rows, and copies" \
+    "the bottom bar shows the picked count and the disk to free as two named values" \
+    "a list row shows where it is when its name does not tell it apart" \
+    "a list row adds no second line when its name tells it apart" \
+    "the copies of one content are listed together under one heading" \
+    "a bar shows where it is when another bar in its chart has the same name"; do
     printf 'skip  %s (node is not installed)\n' "$name"
   done
 fi
@@ -850,6 +1036,13 @@ MACHINE_CLEANUP_HOME="$T/state-v3" mc apply --select "machine-cleanup:select d-0
 MACHINE_CLEANUP_HOME="$T/state-v3" mc serve --no-open --wait 1 > "$T/v3-serve.out" 2>&1; V3_SERVE_RC=$?
 check "serve and apply refuse a version 3 scan, which has no project, tool, or model rows" \
   '[ "$V3_APPLY_RC" = 2 ] && [ "$V3_SERVE_RC" = 2 ] && grep -q "older version" "$T/v3-apply.out" && grep -q "older version" "$T/v3-serve.out"'
+# A version 4 scan may list one path in two rows and has no rows inside rows, so it is refused too.
+mkdir -p "$T/state-v4"
+jq '.version = 4 | .items |= map(del(.within, .label))' "$SCAN" > "$T/state-v4/scan.json" 2>/dev/null
+MACHINE_CLEANUP_HOME="$T/state-v4" mc apply --select "machine-cleanup:select d-00000000" > "$T/v4-apply.out" 2>&1; V4_APPLY_RC=$?
+MACHINE_CLEANUP_HOME="$T/state-v4" mc serve --no-open --wait 1 > "$T/v4-serve.out" 2>&1; V4_SERVE_RC=$?
+check "serve and apply refuse a version 4 scan, which may list a path twice" \
+  '[ "$V4_APPLY_RC" = 2 ] && [ "$V4_SERVE_RC" = 2 ] && grep -q "older version" "$T/v4-apply.out" && grep -q "older version" "$T/v4-serve.out"'
 
 PLUGIN_DIR="$(cd "$SKILL_DIR/../.." && pwd)"
 check "how-it-works lists the three levels and their rules in both languages" \
@@ -865,6 +1058,162 @@ check "how-it-works describes the overview charts and the list tools in both lan
   'docs_rows "$PLUGIN_DIR/docs/how-it-works.md" "## The overview tab" "What can be freed" "Size by level" "Disk" "Memory" "Largest items" "Processes using the most memory" "Processes using the most CPU" "Search" "Groups" "Sort" && docs_rows "$PLUGIN_DIR/docs/how-it-works.ja.md" "## 全体のタブ" "空けられる分の内訳" "推奨度ごとの大きさ" "ディスク" "メモリ" "大きい物の上位" "メモリを多く使うプロセス" "CPUを多く使うプロセス" "探す" "段" "並べ替え"'
 check "the READMEs and how-it-works describe the four new kinds in both languages" \
   'docs_rows "$PLUGIN_DIR/README.md" "## What it finds" "Projects" "Apps" "Tools and models" && grep -q "left behind by removed apps" "$PLUGIN_DIR/README.md" && docs_rows "$PLUGIN_DIR/README.ja.md" "## 見つける物" "プロジェクト" "アプリ" "道具とモデル" && grep -q "消したアプリの残り" "$PLUGIN_DIR/README.ja.md" && docs_rows "$PLUGIN_DIR/docs/how-it-works.md" "## The scan" "Work folders" "App leftovers" "Tool versions" "AI models" && docs_rows "$PLUGIN_DIR/docs/how-it-works.md" "## How each item is freed" "Work folders and app leftovers" "Tool versions" "AI models" && docs_rows "$PLUGIN_DIR/docs/how-it-works.ja.md" "## 調べ方" "作業フォルダ" "消したアプリの残り" "道具の版" "AIモデル" && docs_rows "$PLUGIN_DIR/docs/how-it-works.ja.md" "## 項目ごとの空け方" "作業フォルダと消したアプリの残り" "道具の版" "AIモデル"'
+
+check "the READMEs and how-it-works say each path is one row and nested rows are freed once" \
+  'grep -q "appears in one row" "$PLUGIN_DIR/README.md" && grep -q "1つの行にだけ出" "$PLUGIN_DIR/README.ja.md" && grep -qx "## One row for each path" "$PLUGIN_DIR/docs/how-it-works.md" && grep -qx "## 1つのパスに1つの行" "$PLUGIN_DIR/docs/how-it-works.ja.md" && grep -q "freed with" "$PLUGIN_DIR/docs/how-it-works.md" && grep -q "一緒に空く" "$PLUGIN_DIR/docs/how-it-works.ja.md"'
+
+# --- the opened page --------------------------------------------------------------------------
+# The page as serve builds it from this scan, opened in a browser in English and Japanese, light and
+# dark, at 1400px and 390px. A script added at the end of the copy presses the language and theme
+# buttons, walks every tab, and writes what it measured into the data-measure attribute of <html>:
+# tabs that are cut off or hidden, sideways scrolling, text cut with an ellipsis, text under 4.5:1
+# against its background, and ring text outside the ring's hole for the largest value and for not
+# measured. With copies=1 it also keeps each tab's drawn main area, for verify.
+MEASURE_JS='<script>
+(function () {
+  "use strict";
+  var q = {};
+  location.hash.slice(1).split("&").forEach(function (p) { var kv = p.split("="); q[kv[0]] = decodeURIComponent(kv[1] || ""); });
+  document.querySelector("[data-lang=\"" + q.lang + "\"]").click();
+  document.querySelector("[data-theme-choice=\"" + q.theme + "\"]").click();
+  var out = { tabs: [], hidden: [], hscroll: [], clipped: [], contrast: [], rings: [], ringTexts: 0, copies: 0 };
+  function shown(el) { var s = getComputedStyle(el), b = el.getBoundingClientRect(); return !el.closest("[hidden]") && s.display !== "none" && s.visibility !== "hidden" && b.width > 0 && b.height > 0; }
+  function rgb(c) { var m = c.match(/rgba?\(([^)]+)\)/); if (!m) return null; var p = m[1].split(/[ ,\/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; }
+  function lum(c) { function f(v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); } return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); }
+  function blend(fg, bg) { return { r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 }; }
+  function under(el) { var layers = []; for (var e = el; e; e = e.parentElement) { var c = rgb(getComputedStyle(e).backgroundColor); if (c && c.a > 0) { layers.push(c); if (c.a >= 1) break; } } var base = { r: 255, g: 255, b: 255, a: 1 }; for (var i = layers.length - 1; i >= 0; i--) base = blend(layers[i], base); return base; }
+  function tabs() { return Array.prototype.slice.call(document.getElementById("tabs").querySelectorAll("[role=tab]")); }
+  function view(name) {
+    var strip = document.getElementById("tabs"), sr = strip.getBoundingClientRect();
+    tabs().forEach(function (b) { var r = b.getBoundingClientRect(); if (!shown(b) || r.left < sr.left - 1 || r.right > sr.right + 1 || r.right > window.innerWidth || r.top < sr.top - 1 || r.bottom > sr.bottom + 1) out.hidden.push(name + " > " + b.textContent); });
+    if (strip.scrollWidth > strip.clientWidth + 1) out.hidden.push(name + " > the tab strip scrolls");
+    if (document.documentElement.scrollWidth > document.documentElement.clientWidth + 1) out.hscroll.push(name);
+    Array.prototype.forEach.call(document.querySelectorAll("body *"), function (el) {
+      if (!shown(el) || el.closest("svg, script, style")) return;
+      var s = getComputedStyle(el), own = Array.prototype.filter.call(el.childNodes, function (n) { return n.nodeType === 3; }).map(function (n) { return n.textContent.trim(); }).join(" ").trim();
+      if ((s.textOverflow === "ellipsis" || s.overflowX === "hidden") && el.scrollWidth > el.clientWidth + 1 && own) out.clipped.push(name + " > " + own.slice(0, 60));
+      if (!own || el.closest(":disabled")) return;
+      var fg = rgb(s.color), op = 1;
+      for (var e = el; e; e = e.parentElement) op *= Number(getComputedStyle(e).opacity);
+      var bg = under(el), f = blend({ r: fg.r, g: fg.g, b: fg.b, a: fg.a * op }, bg);
+      var a = lum(f), b2 = lum(bg), ratio = (Math.max(a, b2) + 0.05) / (Math.min(a, b2) + 0.05);
+      var size = parseFloat(s.fontSize), need = size >= 24 || (Number(s.fontWeight) >= 700 && size >= 18.66) ? 3 : 4.5;
+      if (ratio < need) out.contrast.push(name + " > " + own.slice(0, 40) + " " + ratio.toFixed(2));
+    });
+  }
+  out.tabs = tabs().map(function (b) { return b.textContent; });
+  var copies = document.createElement("div");
+  for (var i = 0; i < out.tabs.length; i++) {
+    tabs()[i].click();
+    view(tabs()[i].textContent);
+    if (q.copies) { var c = document.createElement("div"); c.innerHTML = document.querySelector("main").innerHTML; copies.appendChild(c); out.copies += 1; }
+  }
+  tabs()[1].click();
+  var group = document.querySelector("#rows .pick-group"); if (group) group.click();
+  document.getElementById("free").click();
+  view("picked");
+  function rings(label) {
+    Array.prototype.forEach.call(document.querySelectorAll(".donut"), function (d) {
+      var svg = d.querySelector("svg"), circle = svg.querySelector("circle"), box = d.getBoundingClientRect();
+      if (!circle) return;
+      var scale = box.width / svg.viewBox.baseVal.width, hole = (Number(circle.getAttribute("r")) - parseFloat(getComputedStyle(circle).strokeWidth) / 2) * scale;
+      var cx = box.left + box.width / 2, cy = box.top + box.height / 2;
+      var walk = document.createTreeWalker(d.querySelector(".mid"), NodeFilter.SHOW_TEXT);
+      while (walk.nextNode()) {
+        var n = walk.currentNode; if (!n.textContent.trim()) continue;
+        out.ringTexts += 1;
+        var range = document.createRange(); range.selectNodeContents(n);
+        Array.prototype.forEach.call(range.getClientRects(), function (r) {
+          [[r.left, r.top], [r.right, r.top], [r.left, r.bottom], [r.right, r.bottom]].forEach(function (p) {
+            if (Math.hypot(p[0] - cx, p[1] - cy) > hole + 0.5) out.rings.push(label + " > " + n.textContent.trim());
+          });
+        });
+      }
+    });
+  }
+  tabs()[0].click();
+  DATA.measure = { disk_free: 999940000000, disk_total: 999990000000, memory_used: 999940000000, memory_total: 999990000000, load: [1, 1, 1] };
+  render(); rings("999.9 GB");
+  DATA.measure = { disk_free: null, disk_total: null, memory_used: null, memory_total: null, load: null };
+  render(); rings("not measured");
+  out.rings = out.rings.filter(function (x, i, a) { return a.indexOf(x) === i; });
+  if (q.copies) document.body.appendChild(copies);
+  document.documentElement.setAttribute("data-measure", JSON.stringify(out));
+})();
+</script>'
+OPENED_CHECKS=("the opened page shows every tab at 1400px in both languages" \
+  "the opened page fits 390px with every tab shown" \
+  "the text in each ring stays inside its hole in both languages" \
+  "no text on the opened page is cut with an ellipsis" \
+  "every text on the opened page has a contrast of 4.5 to 1 in light and dark" \
+  "the opened page passes page-design verify on every tab in both languages")
+# open_sheet <lang> <theme> <width> [copies]: writes the page as the browser drew it to
+# $T/opened/<lang>-<theme>-<width>.dom.html.
+open_sheet() {
+  "$REAL_BROWSER" --headless --disable-gpu --no-first-run --hide-scrollbars --user-data-dir="$T/browser-profile" \
+    --window-size="$3,900" --dump-dom "file://$T/opened/sheet.html#lang=$1&theme=$2${4:+&copies=1}" \
+    > "$T/opened/$1-$2-$3.dom.html" 2>/dev/null
+}
+# opened <names> <key>...: prints each measured list that is not empty, and fails when one is, or when
+# a page was not drawn.
+opened() {
+  "$PY" - "$T/opened" "$@" <<'PY'
+import html, json, re, sys
+folder, names, keys = sys.argv[1], sys.argv[2].split(), sys.argv[3:]
+bad = False
+for name in names:
+    try:
+        dom = open("%s/%s.dom.html" % (folder, name), encoding="utf-8").read()
+        data = json.loads(html.unescape(re.search(r'\sdata-measure="([^"]*)"', dom).group(1)))
+    except (OSError, AttributeError, ValueError):
+        print("  %s: not drawn" % name)
+        bad = True
+        continue
+    for key in keys:
+        if key == "tabs":
+            ok = len(data["tabs"]) == 12
+            value = data["tabs"]
+        elif key == "ringTexts":
+            ok = data["ringTexts"] >= 16
+            value = data["ringTexts"]
+        else:
+            ok = not data[key]
+            value = data[key]
+        if not ok:
+            print("  %s %s: %s" % (name, key, json.dumps(value, ensure_ascii=False)[:600]))
+            bad = True
+sys.exit(1 if bad else 0)
+PY
+}
+verify_opened() {
+  local f
+  for f in "$T/opened/en-light-1400.dom.html" "$T/opened/ja-light-1400.dom.html"; do
+    [ "$(grep -o 'copies&quot;:[0-9]*' "$f" | tr -dc 0-9)" = 12 ] || { echo "  $f has no copy of each tab"; return 1; }
+    "$PY" "$REPO/plugins/design-formats/skills/page-design/scripts/page-design.py" verify "$f" || return 1
+  done
+}
+if [ -z "$REAL_BROWSER" ]; then
+  for name in "${OPENED_CHECKS[@]}"; do printf 'skip  %s (needs a Chromium-based browser)\n' "$name"; done
+else
+  mkdir -p "$T/opened"
+  "$PY" - "$SCRIPTS" "$T/opened/sheet.html" "$MEASURE_JS" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+import machine_cleanup as m
+ctx = m.Ctx(platform="darwin")
+scan = m.load_scan(ctx)
+page = m.page_html(ctx, scan, "test-token") if scan else ""
+open(sys.argv[2], "w", encoding="utf-8").write(page.replace("</body>", sys.argv[3] + "\n</body>", 1))
+PY
+  open_sheet en light 1400 copies; open_sheet ja light 1400 copies; open_sheet en dark 1400; open_sheet ja dark 1400
+  open_sheet en light 390; open_sheet ja light 390
+  check "the opened page shows every tab at 1400px in both languages" 'opened "en-light-1400 ja-light-1400" tabs hidden'
+  check "the opened page fits 390px with every tab shown" 'opened "en-light-390 ja-light-390" tabs hidden hscroll'
+  check "the text in each ring stays inside its hole in both languages" 'opened "en-light-1400 ja-light-1400" ringTexts rings'
+  check "no text on the opened page is cut with an ellipsis" 'opened "en-light-1400 ja-light-1400 en-light-390 ja-light-390" clipped'
+  check "every text on the opened page has a contrast of 4.5 to 1 in light and dark" 'opened "en-light-1400 ja-light-1400 en-dark-1400 ja-dark-1400" contrast'
+  check "the opened page passes page-design verify on every tab in both languages" 'verify_opened'
+fi
 
 # The copied text is built without the dictionary, and apply reads it as it is.
 copy_ok() {
@@ -1005,6 +1354,22 @@ trashed=false
 mc_as darwin restore "$IDLE_ID" "$GONE_ID" > "$T/restore-unused.out" 2>&1
 check "apply moves picked projects and app leftovers to the Trash and restore puts them back" \
   '$trashed && [ -d "$IDLE/.git" ] && [ -f "$GONE_AS/data" ] && [ -f "$LIB/Preferences/com.oldvendor.gone.plist" ] && [ -d "$LIB/Saved Application State/com.oldvendor.gone.savedState" ] && [ ! -e "$H/.Trash/idle" ]'
+
+# The old installer in Downloads and its copy in Archive are in different tabs; picking both would
+# leave no copy, so apply refuses and changes nothing.
+TOOL_I="$(cat_at installer "$H/Downloads/Tool-1.0.dmg")"
+TOOL_D="$(cat_at duplicate "$H/Archive/Tool-1.0.dmg")"
+mc_as darwin apply --select "machine-cleanup:select $TOOL_I $TOOL_D" > "$T/apply-copies.out" 2>&1; rc_copies=$?
+check "apply refuses picking every copy of a set, whichever tabs the copies are in" \
+  '[ -n "$TOOL_I" ] && [ -n "$TOOL_D" ] && [ "$rc_copies" = 1 ] && grep -q "keep at least one" "$T/apply-copies.out" && [ -e "$H/Downloads/Tool-1.0.dmg" ] && [ -e "$H/Archive/Tool-1.0.dmg" ]'
+
+# idlebuild's node_modules is picked before the project that holds it. The project goes to the Trash
+# whole, node_modules inside it, and the node_modules row is skipped instead of deleted first.
+IDLEB_ID="$(cat_at project "$IDLEB")"
+IDLEB_NM="$(cat_at build "$IDLEB/node_modules")"
+mc_as darwin apply --select "machine-cleanup:select $IDLEB_NM $IDLEB_ID" > "$T/apply-nested.out" 2>&1; rc_nested=$?
+check "apply frees a folder once and skips the picked rows inside it" \
+  '[ -n "$IDLEB_ID" ] && [ -n "$IDLEB_NM" ] && [ "$rc_nested" = 0 ] && grep -qE "^skipped +$IDLEB_NM .*inside" "$T/apply-nested.out" && grep -qE "^done +$IDLEB_ID " "$T/apply-nested.out" && [ ! -e "$IDLEB" ] && [ -f "$H/.Trash/idlebuild/node_modules/lodash/file" ]'
 
 # skipc gains a pushed commit today, skipch a changed file, and skipl an old commit that is not pushed.
 SKIPC_ID="$(cat_at project "$H/projects/skipc")"
