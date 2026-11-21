@@ -46,7 +46,8 @@ class Styles(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         self.home = Path(self.tmp.name)
         fixtures.styles(argparse.Namespace(dir=str(self.home / ".styles"), schema=2, resources=False,
-                                           corrupt=None, counts=None, stray=False, no_catalog=False))
+                                           corrupt=None, counts=None, stray=False, no_catalog=False,
+                                           retire=None, user_style=False, built_in_sample=None))
         home = patch.dict(os.environ, {"HOME": str(self.home)})
         home.start()
         self.addCleanup(home.stop)

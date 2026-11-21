@@ -1,12 +1,12 @@
 # The newsprint finish
 
-`finish_profile: newsprint` of the `illustrated` family is a finish of past records.
-When the catalog marks it `retired`, it is read only to compare past figures and is never chosen for new ones.
+`newsprint` is a built-in style of the `painting-and-print` family, and this page holds its full specification.
+When the user's catalog marks it `retired`, it is read only to compare past figures and is never chosen for new ones.
 This page also describes the bundled typeface and ink treatment, which any HTML or SVG figure may use.
 
 ## The finish
 
-Its samples are the images `sample_ids` of `newsprint` names in `~/.styles/style-catalog.json`; they are optional style vocabulary, never required and never copied.
+Its samples are the user's images of `newsprint` that `--show newsprint` lists under `samples`, when the catalog registers any; they are optional style vocabulary, never required and never copied.
 What stays fixed is flat newsprint, engraved black ink lines and halftone, a restrained muted teal, and the shapes and dry-brush wear of type.
 The samples are one style in several compositions, not several designs.
 

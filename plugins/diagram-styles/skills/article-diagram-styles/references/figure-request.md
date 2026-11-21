@@ -32,7 +32,7 @@ The request carries the article and where the figures go; it never carries a sty
 | `mode` | Yes | `article`, or `style-comparison` only when the user asked to compare styles on the same content and layout |
 | `comparison_request` | With `style-comparison` | The user's words that asked for the comparison |
 | `delegated` | No | `true` when the user said not to ask in between. It delegates production decisions; it is not the user's approval of each image |
-| `finish_profile` | No | A finish profile of `~/.styles/style-catalog.json` whose `status` is `active`. Without it, the skill chooses as the styles page says |
+| `finish_profile` | No | A built-in style, or a style of `~/.styles/style-catalog.json` whose `status` is `active`, by the name `--list` prints. Without it, the skill chooses one from the article as the styles page says |
 | `figures` | Yes | One entry per place in the article that needs a figure |
 | `figures[].heading` | Yes | The heading the figure goes under |
 | `figures[].excerpt` | Yes | Text copied as it is from the article around the place of the figure |

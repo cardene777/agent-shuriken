@@ -1,7 +1,7 @@
 # The pen technical illustration
 
-The `pen-technical` finish of the `illustrated` family draws the usual explanatory figure of an article.
-Its reference images are the images that `sample_ids` of the `pen-technical` profile name in `~/.styles/style-catalog.json`, kept as the original images.
+`pen-technical` is a built-in style of the `line-drawing` family that draws the usual explanatory figure of an article.
+Its reference images are the user's images of `pen-technical` that `--show pen-technical` lists under `samples`, when the catalog registers any, kept as the original images.
 Do not use comparison images made again from another figure as its reference.
 Do not replace the lines and fills of the references with bold, comic-like enclosures.
 

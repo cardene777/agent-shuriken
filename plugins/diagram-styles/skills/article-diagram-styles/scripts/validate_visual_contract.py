@@ -8,10 +8,12 @@ import hashlib
 import json
 from pathlib import Path
 
-from diagram_sample_catalog import selection_errors, profile_errors
+from diagram_sample_catalog import LEGACY_STYLES, selection_errors, profile_errors
 
 
-ALLOWED_STYLES = {"style1", "style3", "style4"} | {"illustrated", "technical-sketch"}
+# A contract's fixed_style is a family of the built-in styles or of the catalog, or one of these
+# older styles, which need a reference image.
+CONTRACT_LEGACY_STYLES = {"style1", "style3", "style4"}
 REQUIRED_PROFILE_FIELDS = {"paper", "line", "palette"}
 FORBIDDEN_PROFILE_FIELDS = {
     "reading_direction",
@@ -74,8 +76,8 @@ def validate(contract_path: Path, spec_path: Path, styles: str | None = None) ->
         errors.append("execution_mode must be sequential-one-figure")
 
     style = contract.get("fixed_style")
-    if style not in ALLOWED_STYLES:
-        errors.append(f"fixed_style must be one of {sorted(ALLOWED_STYLES)}")
+    if style in LEGACY_STYLES - CONTRACT_LEGACY_STYLES:
+        errors.append(f"fixed_style must be a style family or one of {sorted(CONTRACT_LEGACY_STYLES)}")
 
     anchor = contract.get("visual_anchor")
     if not isinstance(anchor, dict):
@@ -97,10 +99,10 @@ def validate(contract_path: Path, spec_path: Path, styles: str | None = None) ->
         if not nonempty(style_reference) or not Path(str(style_reference)).is_file():
             errors.append("provided style_reference must point to an existing registered sample")
         errors.extend(selection_errors(style, str(style_reference), contract.get("finish_profile"), styles=styles))
-    elif style in {"illustrated", "technical-sketch"}:
-        errors.extend(profile_errors(style, contract.get("finish_profile"), styles=styles))
-    else:
+    elif style in LEGACY_STYLES:
         errors.append("legacy style requires a reference; new contracts use a family and finish_profile")
+    else:
+        errors.extend(profile_errors(style, contract.get("finish_profile"), styles=styles))
 
     profile = contract.get("visual_profile")
     if not isinstance(profile, dict):
@@ -138,7 +140,7 @@ def validate(contract_path: Path, spec_path: Path, styles: str | None = None) ->
         "fixed_style": style,
         "style_reference": style_reference,
     }
-    if style in {"illustrated", "technical-sketch"}:
+    if style not in LEGACY_STYLES:
         checks["finish_profile"] = contract.get("finish_profile")
     for field, expected in checks.items():
         if spec.get(field) != expected:

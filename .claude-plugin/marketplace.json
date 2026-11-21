@@ -38,7 +38,7 @@
     {
       "name": "diagram-styles",
       "source": "./plugins/diagram-styles",
-      "description": "Figures for articles and technical books, designed from the reader's questions first and drawn in a style from your own sample images and catalog in ~/.styles"
+      "description": "Figures for articles and technical books, designed from the reader's questions first and drawn in one of sixteen built-in styles or a style from your own catalog and samples in ~/.styles"
     },
     {
       "name": "doc-formats",

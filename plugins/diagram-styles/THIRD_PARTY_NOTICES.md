@@ -1,6 +1,7 @@
 # Third-party notices
 
 This plugin includes the following third-party material.
+Every data file the plugin bundles is listed here, including the one written for the plugin itself, the built-in styles.
 
 ## Kaisei Decol
 
@@ -19,3 +20,11 @@ The font and its license text are unmodified copies.
 To update it, replace the font with a newer release of the Kaisei family, keep `OFL.txt` from the same release beside it, and update the commit, hash, and date above.
 
 Copyright 2020 The Kaisei Project Authors.
+
+## The built-in styles
+
+| Item | Value |
+|---|---|
+| File in this plugin | `skills/article-diagram-styles/data/built-in-styles.json` |
+| Source | Written for this plugin. It holds the written specifications of the sixteen built-in styles and no image |
+| License | MIT, as the plugin's [LICENSE](LICENSE) |

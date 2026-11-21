@@ -35,6 +35,12 @@ stops_without_two_samples() {
 }
 check "the book skill stops when fewer than two style4 samples are found" stops_without_two_samples
 
+stops_without_catalog() {
+  has "$SKILL_DIR/SKILL.md" \
+    'If `~/.styles/style-catalog.json` is missing, stop before drawing and tell the user to put the catalog and the sample images under `~/.styles/`'
+}
+check "the book skill stops before drawing when the catalog is missing" stops_without_catalog
+
 follows_style4() {
   [ -f "$SKILL_DIR/musubi.json" ] || { echo "      missing skills/tech-book-figure/musubi.json"; return 1; }
   [ -f "$ARTICLE/musubi.json" ] || { echo "      missing skills/article-diagram-styles/musubi.json"; return 1; }

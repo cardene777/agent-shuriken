@@ -107,6 +107,97 @@ no_images() {
 }
 check "no image ships under the skills" no_images
 
+no_image_in_plugin() {
+  local images
+  find "$PLUGIN" -type f > "$T/plugin-all-files"
+  includes_skills "$T/plugin-all-files" || return 1
+  images="$(grep -iE '\.(png|webp|jpe?g)$' "$T/plugin-all-files")"
+  [ -z "$images" ] || { printf '%s\n' "$images" | sed "s|$REPO/|      |"; return 1; }
+}
+check "no image ships under the plugin" no_image_in_plugin
+
+BUILT_IN="$SKILL_DIR/data/built-in-styles.json"
+BUILT_IN_NAMES="handdraft pen-technical pencil-sketch chalkboard flat-vector blueprint isometric minimal watercolor newsprint woodblock retro-poster whiteboard comic-panel pixel-art clay"
+
+built_in_sixteen() {
+  [ -f "$BUILT_IN" ] || { echo "      missing skills/article-diagram-styles/data/built-in-styles.json"; return 1; }
+  python3 - "$BUILT_IN" <<'PYEOF'
+import json, sys
+want = {
+    "line-drawing": ["handdraft", "pen-technical", "pencil-sketch", "chalkboard"],
+    "drafting-and-flat": ["flat-vector", "blueprint", "isometric", "minimal"],
+    "painting-and-print": ["watercolor", "newsprint", "woodblock", "retro-poster"],
+    "friendly": ["whiteboard", "comic-panel", "pixel-art", "clay"],
+}
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+problems = []
+families = data.get("families")
+styles = data.get("finish_profiles")
+if not isinstance(families, dict) or set(families) != set(want):
+    problems.append("families are %s, not the four" % sorted(families or []))
+    families = families if isinstance(families, dict) else {}
+for name, family in families.items():
+    if not isinstance(family, dict) or not str(family.get("label", "")).strip():
+        problems.append("family %s has no label" % name)
+if not isinstance(styles, dict):
+    problems.append("finish_profiles is not an object")
+    styles = {}
+names = [n for members in want.values() for n in members]
+if sorted(styles) != sorted(names):
+    problems.append("the styles are %s, not the sixteen" % sorted(styles))
+text = lambda value: isinstance(value, str) and bool(value.strip())
+for family, members in want.items():
+    for name in members:
+        style = styles.get(name)
+        if not isinstance(style, dict):
+            continue
+        if style.get("family") != family:
+            problems.append("%s is in %s, not %s" % (name, style.get("family"), family))
+        for key in ("label", "line", "fill", "background", "lettering"):
+            if not text(style.get(key)):
+                problems.append("%s has no %s" % (name, key))
+        suits = style.get("suits")
+        if not isinstance(suits, list) or not suits or not all(text(s) and ";" not in s for s in suits):
+            problems.append("%s has no list of suits without semicolons" % name)
+        if style.get("status") != "active":
+            problems.append("%s has status %s, not active" % (name, style.get("status")))
+# Each style is told apart by its own words: no two styles share a line, fill, or lettering.
+for key in ("line", "fill", "lettering"):
+    seen = {}
+    for name, style in styles.items():
+        value = style.get(key) if isinstance(style, dict) else None
+        if value in seen:
+            problems.append("%s and %s share the same %s" % (seen[value], name, key))
+        seen[value] = name
+for problem in problems[:12]:
+    print("      " + problem)
+sys.exit(1 if problems else 0)
+PYEOF
+}
+check "the built-in styles hold sixteen styles in four families with their written specification" built_in_sixteen
+
+built_in_no_samples() {
+  [ -f "$BUILT_IN" ] || { echo "      missing skills/article-diagram-styles/data/built-in-styles.json"; return 1; }
+  python3 - "$BUILT_IN" <<'PYEOF'
+import json, sys
+found = []
+def walk(value, where):
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key in ("images", "reference_id", "sample_ids"):
+                found.append(where + key)
+            walk(item, where + key + ".")
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            walk(item, "%s%d." % (where, index))
+walk(json.load(open(sys.argv[1], encoding="utf-8")), "")
+for key in found:
+    print("      the built-in styles hold " + key)
+sys.exit(1 if found else 0)
+PYEOF
+}
+check "the built-in styles name no sample image" built_in_no_samples
+
 readmes_say_no_samples() {
   has "$PLUGIN/README.md" "ships no sample images" "~/.styles/" "style-catalog.json" &&
     has "$PLUGIN/README.ja.md" "見本の画像を載せません" "~/.styles/" "style-catalog.json"
@@ -158,10 +249,262 @@ refuses_missing_catalog() {
 }
 check "validate refuses a folder without style-catalog.json" refuses_missing_catalog
 
-skills_stop_without_catalog() {
-  both 'If `~/.styles/style-catalog.json` is missing, stop before drawing and tell the user to put the catalog and the sample images under `~/.styles/`'
+# A HOME without .styles, and a HOME whose .styles holds sample images but no catalog.
+validate_without_catalog() {
+  local h status
+  for h in "$T/h-none" "$T/h-nocat"; do
+    mkdir -p "$h"
+    [ "$h" = "$T/h-nocat" ] && styles "$h/.styles" --no-catalog
+    HOME="$h" catalog "$h.out" --validate
+    status=$?
+    exits 0 "$status" "$h.out" "16 built-in styles" "style-catalog.json is missing" || { echo "      (HOME ${h#"$T"/})"; return 1; }
+  done
 }
-check "both skills stop before drawing when the catalog is missing" skills_stop_without_catalog
+check "validate passes with only the built-in styles when ~/.styles has no catalog" validate_without_catalog
+
+validate_refuses_broken_home() {
+  local status
+  mkdir -p "$T/h-broken"
+  styles "$T/h-broken/.styles" --schema 1
+  HOME="$T/h-broken" catalog "$T/h-broken.out" --validate
+  status=$?
+  exits 1 "$status" "$T/h-broken.out" "schema_version" || return 1
+  ! grep -q '^PASS' "$T/h-broken.out" || { echo "      the run passed on the built-in styles alone"; return 1; }
+}
+check "validate refuses a broken catalog under HOME instead of falling back to the built-in styles" validate_refuses_broken_home
+
+# field <out> <name> <n>: the n-th tab-separated field of every --list line of the style <name>.
+field() { awk -F'\t' -v n="$2" -v i="$3" '$1 == n { print $i }' "$1"; }
+
+# lines_of <out> <name>: the number of --list lines of the style <name>.
+lines_of() { awk -F'\t' -v n="$2" '$1 == n' "$1" | grep -c .; }
+
+list_built_in() {
+  local status
+  mkdir -p "$T/h-list"
+  HOME="$T/h-list" catalog "$T/h-list.out" --list
+  status=$?
+  exits 0 "$status" "$T/h-list.out" || return 1
+  [ -f "$BUILT_IN" ] || { echo "      missing skills/article-diagram-styles/data/built-in-styles.json"; return 1; }
+  python3 - "$T/h-list.out" "$BUILT_IN" <<'PYEOF'
+import json, sys
+lines = [line for line in open(sys.argv[1], encoding="utf-8").read().splitlines() if line.strip()]
+styles = json.load(open(sys.argv[2], encoding="utf-8")).get("finish_profiles", {})
+problems = []
+if len(lines) != 16:
+    problems.append("printed %d lines, not 16" % len(lines))
+for name, style in styles.items():
+    rows = [line.split("\t") for line in lines if line.split("\t")[0] == name]
+    if len(rows) != 1:
+        problems.append("%s is on %d lines, not one" % (name, len(rows)))
+        continue
+    row = rows[0]
+    if len(row) != 5 or row[1] != "built-in":
+        problems.append("the line of %s is not name, built-in, family, label, and suits: %r" % (name, row))
+        continue
+    missing = [s for s in style.get("suits", []) if s not in row[4].split("; ")]
+    if missing:
+        problems.append("the line of %s lacks the suits %s" % (name, missing))
+for problem in problems[:12]:
+    print("      " + problem)
+sys.exit(1 if problems else 0)
+PYEOF
+}
+check "list prints the sixteen built-in styles without ~/.styles" list_built_in
+
+list_user_styles() {
+  local status name
+  mkdir -p "$T/h-list-user"
+  styles "$T/h-list-user/.styles" --user-style
+  HOME="$T/h-list-user" catalog "$T/h-list-user.out" --list
+  status=$?
+  exits 0 "$status" "$T/h-list-user.out" || return 1
+  [ "$(lines_of "$T/h-list-user.out" my-style)" -eq 1 ] && [ "$(field "$T/h-list-user.out" my-style 2)" = user ] ||
+    { echo "      my-style is not on one line marked user"; sed 's/^/        /' "$T/h-list-user.out" | head -8; return 1; }
+  for name in $BUILT_IN_NAMES; do
+    [ "$(lines_of "$T/h-list-user.out" "$name")" -eq 1 ] || { echo "      the built-in style $name is not on one line"; return 1; }
+  done
+  [ "$(field "$T/h-list-user.out" watercolor 2)" = built-in ] || { echo "      watercolor is not marked built-in"; return 1; }
+}
+check "list prints the user's styles beside the built-in ones" list_user_styles
+
+list_redefined_once() {
+  local status
+  mkdir -p "$T/h-list-redefined"
+  styles "$T/h-list-redefined/.styles"
+  HOME="$T/h-list-redefined" catalog "$T/h-list-redefined.out" --list
+  status=$?
+  exits 0 "$status" "$T/h-list-redefined.out" || return 1
+  [ "$(lines_of "$T/h-list-redefined.out" pen-technical)" -eq 1 ] || { echo "      pen-technical is not on exactly one line"; return 1; }
+  [ "$(field "$T/h-list-redefined.out" pen-technical 2)" = user ] || { echo "      the line of pen-technical is not marked user"; return 1; }
+}
+check "list prints a built-in style the user redefined once, as the user's" list_redefined_once
+
+list_leaves_out_retired() {
+  local status
+  mkdir -p "$T/h-list-retired"
+  styles "$T/h-list-retired/.styles" --retire newsprint
+  HOME="$T/h-list-retired" catalog "$T/h-list-retired.out" --list
+  status=$?
+  exits 0 "$status" "$T/h-list-retired.out" || return 1
+  [ "$(lines_of "$T/h-list-retired.out" newsprint)" -eq 0 ] || { echo "      the retired newsprint is listed"; return 1; }
+  [ "$(lines_of "$T/h-list-retired.out" watercolor)" -eq 1 ] || { echo "      watercolor is not listed, so the run proves nothing"; return 1; }
+}
+check "list leaves out a built-in style the user retired" list_leaves_out_retired
+
+list_refuses_broken() {
+  local status
+  mkdir -p "$T/h-list-broken"
+  styles "$T/h-list-broken/.styles" --schema 1
+  HOME="$T/h-list-broken" catalog "$T/h-list-broken.out" --list
+  status=$?
+  exits 1 "$status" "$T/h-list-broken.out" "schema_version" || return 1
+  [ "$(lines_of "$T/h-list-broken.out" watercolor)" -eq 0 ] || { echo "      the run listed the built-in styles"; return 1; }
+}
+check "list refuses a broken catalog instead of falling back to the built-in styles" list_refuses_broken
+
+# shown <out> <python expression over the printed JSON s and the built-in watercolor w>: the expression holds.
+shown() {
+  python3 - "$1" "$BUILT_IN" "$2" <<'PYEOF'
+import json, sys
+try:
+    s = json.load(open(sys.argv[1], encoding="utf-8"))
+    w = json.load(open(sys.argv[2], encoding="utf-8"))["finish_profiles"]["watercolor"]
+except (OSError, ValueError, KeyError) as error:
+    print("      cannot read the shown style or the built-in watercolor: %s" % error)
+    sys.exit(1)
+if not eval(sys.argv[3]):
+    print("      the shown style does not hold: " + sys.argv[3])
+    print("        " + json.dumps(s)[:300])
+    sys.exit(1)
+PYEOF
+}
+
+show_built_in() {
+  local status
+  mkdir -p "$T/h-show"
+  HOME="$T/h-show" catalog "$T/h-show.out" --show watercolor
+  status=$?
+  exits 0 "$status" "$T/h-show.out" || return 1
+  shown "$T/h-show.out" 'all(s.get(k) == w[k] for k in ("line", "fill", "background", "lettering", "suits")) and s.get("source") == "built-in" and s.get("samples") == []'
+}
+check "show prints a built-in style without ~/.styles" show_built_in
+
+validate_built_in_samples() {
+  local status
+  mkdir -p "$T/h-wash"
+  styles "$T/h-wash/.styles" --built-in-sample watercolor painting-and-print
+  HOME="$T/h-wash" catalog "$T/h-wash.out" --validate
+  status=$?
+  exits 0 "$status" "$T/h-wash.out" "PASS"
+}
+check "validate accepts samples registered to a built-in style" validate_built_in_samples
+
+show_user_samples() {
+  local status
+  mkdir -p "$T/h-wash-show"
+  styles "$T/h-wash-show/.styles" --built-in-sample watercolor painting-and-print
+  HOME="$T/h-wash-show" catalog "$T/h-wash-show.out" --show watercolor
+  status=$?
+  exits 0 "$status" "$T/h-wash-show.out" || return 1
+  shown "$T/h-wash-show.out" "s.get('line') == w['line'] and s.get('samples') == ['$T/h-wash-show/.styles/style-catalog/painting-and-print/watercolor/watercolor-f.png']"
+}
+check "show prints the user's samples of a built-in style" show_user_samples
+
+show_user_definition() {
+  local status
+  mkdir -p "$T/h-pen-show"
+  styles "$T/h-pen-show/.styles"
+  HOME="$T/h-pen-show" catalog "$T/h-pen-show.out" --show pen-technical
+  status=$?
+  exits 0 "$status" "$T/h-pen-show.out" || return 1
+  shown "$T/h-pen-show.out" "s.get('line') == 'black pen with a light wobble' and s.get('source') == 'user'"
+}
+check "show prints the user's definition of a redefined built-in style" show_user_definition
+
+show_refuses() {
+  local status name
+  mkdir -p "$T/h-show-refuse"
+  styles "$T/h-show-refuse/.styles" --retire newsprint
+  for name in newsprint no-such-style; do
+    HOME="$T/h-show-refuse" catalog "$T/h-show-refuse.out" --show "$name"
+    status=$?
+    exits 1 "$status" "$T/h-show-refuse.out" "$name" || { echo "      (--show $name)"; return 1; }
+  done
+}
+check "show refuses a retired or unknown style" show_refuses
+
+validate_retired_alone() {
+  local status
+  mkdir -p "$T/h-retire"
+  styles "$T/h-retire/.styles" --retire newsprint
+  jq -e '.finish_profiles.newsprint == {"status": "retired"}' "$T/h-retire/.styles/style-catalog.json" > /dev/null ||
+    { echo "      the fixture's newsprint holds more than its status"; return 1; }
+  HOME="$T/h-retire" catalog "$T/h-retire.out" --validate
+  status=$?
+  exits 0 "$status" "$T/h-retire.out" "PASS"
+}
+check "validate accepts a built-in style retired by status alone" validate_retired_alone
+
+validate_refuses_unknown_style_image() {
+  local status
+  mkdir -p "$T/h-unknown"
+  styles "$T/h-unknown/.styles" --built-in-sample no-such-style painting-and-print
+  HOME="$T/h-unknown" catalog "$T/h-unknown.out" --validate
+  status=$?
+  exits 1 "$status" "$T/h-unknown.out" "no-such-style-f"
+}
+check "validate refuses an image of a style that is neither built in nor in the catalog" validate_refuses_unknown_style_image
+
+article_draws_built_in() {
+  has "$SKILL_DIR/SKILL.md" 'If `~/.styles/style-catalog.json` is missing, draw in the built-in styles'
+}
+check "the article skill draws in the built-in styles without a catalog" article_draws_built_in
+
+# The lines of the article SKILL.md that speak of a missing catalog never stop the skill.
+article_does_not_stop() {
+  python3 - "$SKILL_DIR/SKILL.md" <<'PYEOF'
+import sys
+lines = [l for l in open(sys.argv[1], encoding="utf-8") if "style-catalog.json" in l and "missing" in l]
+if not lines:
+    print("      no line of SKILL.md speaks of a missing style-catalog.json")
+    sys.exit(1)
+stops = [l.strip() for l in lines if "stop" in l]
+for line in stops:
+    print("      " + line[:160])
+sys.exit(1 if stops else 0)
+PYEOF
+}
+check "the article skill does not stop when the catalog is missing" article_does_not_stop
+
+names_a_style() {
+  has "$SKILL_DIR/SKILL.md" 'When the user or the `finish_profile` of the figure request names a style, draw in that style'
+}
+check "the article skill draws in the style the user names" names_a_style
+
+picks_a_style() {
+  has "$SKILL_DIR/SKILL.md" 'When no style is named, compare the topic of the article and the kinds of its figures with the `suits` of each style `--list` prints' \
+    'choose one style for the article, and tell the user which style you chose and why'
+}
+check "the article skill picks a style from the topic and the figure kinds and says why" picks_a_style
+
+falls_back() { has "$SKILL_DIR/SKILL.md" 'When no style clearly fits, draw in `handdraft`'; }
+check "the article skill falls back to handdraft" falls_back
+
+stops_on_unknown_style() {
+  has "$SKILL_DIR/SKILL.md" 'When the named style is neither built in nor in the catalog, when it is retired, or when no style fits and `handdraft` is retired, do not draw' \
+    'show the user the styles `--list` prints and ask them to choose one'
+}
+check "the article skill stops on an unknown or retired style and shows the list" stops_on_unknown_style
+
+passes_samples_only() {
+  has "$SKILL_DIR/SKILL.md" 'Pass the images `--show` prints under `samples` to the image generation as style references only when that list is not empty' \
+    'when it is empty, draw from the written specification alone'
+}
+check "the article skill passes samples only when the user registered them for the chosen style" passes_samples_only
+
+one_style() { has "$SKILL_DIR/SKILL.md" "Keep the article's drawing style across its figures, unless the user names several styles"; }
+check "the article skill keeps one style across the figures of an article" one_style
 
 accepts_version_2() {
   local status
@@ -277,13 +620,13 @@ import json, os, sys
 skill = sys.argv[1]
 provides = json.load(open(os.path.join(skill, "musubi.json"), encoding="utf-8")).get("provides", {})
 problems = []
-for name in ("style4", "figure-request", "style-catalog"):
+for name, version in (("style-catalog", "1.1.0"), ("figure-request", "1.1.0"), ("style4", "1.0.0")):
     item = provides.get(name)
     if not isinstance(item, dict):
         problems.append("provides no " + name)
         continue
-    if item.get("version") != "1.0.0":
-        problems.append(name + " is at version " + str(item.get("version")) + ", not 1.0.0")
+    if item.get("version") != version:
+        problems.append(name + " is at version " + str(item.get("version")) + ", not " + version)
     if not item.get("file") or not os.path.isfile(os.path.join(skill, item["file"])):
         problems.append(name + " names a file that does not exist: " + str(item.get("file")))
 for problem in problems:
@@ -291,7 +634,49 @@ for problem in problems:
 sys.exit(1 if problems else 0)
 PYEOF
 }
-check "article-diagram-styles provides style4, figure-request, and style-catalog" provides_three
+check "article-diagram-styles provides style-catalog and figure-request at 1.1.0 and style4 at 1.0.0" provides_three
+
+pages_say_built_in() {
+  local page bad=0
+  for page in README.md docs/how-it-works.md; do
+    has "$PLUGIN/$page" "sixteen built-in styles" "defined in words" '`article-diagram-styles` draws without `~/.styles/`' \
+      "adds styles beside the built-in ones" "replaces the built-in style of the same name" '`retired`' \
+      '`tech-book-figure` still needs your style4 samples' || bad=1
+  done
+  for page in README.ja.md docs/how-it-works.ja.md; do
+    has "$PLUGIN/$page" "16の既定の画風" "文で定義" '`~/.styles/`が無くても`article-diagram-styles`は描きます' \
+      "既定の画風の横に画風を足し" "同じ名前の既定の画風を置き換え" '`retired`' \
+      '`tech-book-figure`は今もstyle4の見本が要ります' || bad=1
+  done
+  return "$bad"
+}
+check "the pages say the built-in styles draw without ~/.styles" pages_say_built_in
+
+descriptions_say_built_in() {
+  local f bad=0
+  for f in .claude-plugin/plugin.json .codex-plugin/plugin.json; do
+    jq -r .description "$PLUGIN/$f" | grep -qF "built-in styles" || { echo "      the description of $f lacks: built-in styles"; bad=1; }
+  done
+  jq -r '.plugins[] | select(.name == "diagram-styles") | .description' "$REPO/.claude-plugin/marketplace.json" | grep -qF "built-in styles" ||
+    { echo "      the marketplace description of diagram-styles lacks: built-in styles"; bad=1; }
+  grep '^description: ' "$SKILL_DIR/SKILL.md" | grep -qF "built-in styles" || { echo "      the SKILL.md description lacks: built-in styles"; bad=1; }
+  grep '^  short_description: ' "$SKILL_DIR/agents/openai.yaml" | grep -qF "built-in styles" ||
+    { echo "      the short_description of agents/openai.yaml lacks: built-in styles"; bad=1; }
+  return "$bad"
+}
+check "the descriptions say the plugin ships built-in styles" descriptions_say_built_in
+
+catalog_page() {
+  has "$SKILL_DIR/references/style-catalog.md" '`data/built-in-styles.json`' '`suits`' \
+    "replaces the built-in style of the same name" "takes the built-in style of the same name out of use" \
+    "may name a built-in style"
+}
+check "the catalog page describes the built-in styles and how a catalog adds, replaces, and retires them" catalog_page
+
+request_page() {
+  has "$SKILL_DIR/references/figure-request.md" 'A built-in style, or a style of `~/.styles/style-catalog.json` whose `status` is `active`'
+}
+check "the figure request takes a built-in style or a style of the catalog" request_page
 
 names_no_tool() {
   skill_files | grep -vE '/(tests|agents)/' > "$T/named-files"
@@ -368,6 +753,46 @@ accepts_generated() {
 }
 check "the figure checks accept rendering_mode generated" accepts_generated
 
+# review_and_contract <HOME> <work> <out prefix>: runs the review check and the contract check on the
+# records of the work folder, leaving their exits in REVIEW_STATUS and CONTRACT_STATUS.
+review_and_contract() {
+  (cd "$SCRIPTS" && HOME="$1" python3 "$SCRIPTS/validate_anchor_candidate.py" --review "$2/review.json") > "$3-review.out" 2>&1
+  REVIEW_STATUS=$?
+  (cd "$SCRIPTS" && HOME="$1" python3 "$SCRIPTS/validate_visual_contract.py" --contract "$2/contract.json" --figure-spec "$2/contract-spec.json") > "$3-contract.out" 2>&1
+  CONTRACT_STATUS=$?
+}
+
+accepts_built_in_records() {
+  local h="$T/h-rec" w="$T/w-rec"
+  mkdir -p "$h"
+  python3 "$FIXTURES" work "$w" --style line-drawing --finish handdraft > /dev/null
+  review_and_contract "$h" "$w" "$T/rec"
+  exits 0 "$REVIEW_STATUS" "$T/rec-review.out" || { echo "      (the review check)"; return 1; }
+  exits 0 "$CONTRACT_STATUS" "$T/rec-contract.out" || { echo "      (the contract check)"; return 1; }
+}
+check "the review and contract checks accept a built-in style without ~/.styles" accepts_built_in_records
+
+refuses_retired_records() {
+  local h="$T/h-rec-retired" w="$T/w-rec-retired"
+  mkdir -p "$h"
+  styles "$h/.styles" --retire newsprint
+  python3 "$FIXTURES" work "$w" --style illustrated --finish newsprint > /dev/null
+  review_and_contract "$h" "$w" "$T/rec-retired"
+  exits 1 "$REVIEW_STATUS" "$T/rec-retired-review.out" newsprint || { echo "      (the review check)"; return 1; }
+  exits 1 "$CONTRACT_STATUS" "$T/rec-retired-contract.out" newsprint || { echo "      (the contract check)"; return 1; }
+}
+check "the review and contract checks refuse a built-in style the user retired" refuses_retired_records
+
+accepts_user_family() {
+  local h="$T/h-rec-mine" w="$T/w-rec-mine"
+  mkdir -p "$h"
+  styles "$h/.styles" --user-style
+  python3 "$FIXTURES" work "$w" --style my-family --finish my-style > /dev/null
+  review_and_contract "$h" "$w" "$T/rec-mine"
+  exits 0 "$CONTRACT_STATUS" "$T/rec-mine-contract.out"
+}
+check "the contract check accepts a family from the user's catalog" accepts_user_family
+
 refuses_other_modes() {
   local w="$T/w31" mode status
   python3 "$FIXTURES" work "$w" --mode generated > /dev/null
@@ -434,6 +859,12 @@ changelog_line() {
     { echo "      no line under ## [Unreleased] or ## [$version]"; return 1; }
 }
 check "the changelog has a line under Unreleased or the released version" changelog_line
+
+changelog_built_in() {
+  unreleased "$PLUGIN/CHANGELOG.md" | grep '^- ' | grep -qF "built-in styles" ||
+    { echo "      no line under ## [Unreleased] names the built-in styles"; return 1; }
+}
+check "the changelog names the built-in styles under Unreleased" changelog_built_in
 
 releasing_pages() {
   has "$REPO/docs/releasing.md" 'musubi check plugins/diagram-styles/skills' &&

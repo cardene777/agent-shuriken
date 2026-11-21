@@ -1,6 +1,6 @@
 ---
 name: article-diagram-styles
-description: Designs an explanatory figure for an article from the questions its reader would have, applies a drawing style from the user's style catalog in ~/.styles as a separate step, and draws and checks the PNG. Use when a skill that writes an article asks for its figures, or when the user asks to compare drawing styles on the same figure.
+description: Designs an explanatory figure for an article from the questions its reader would have, applies one of sixteen built-in styles or a style from the user's catalog in ~/.styles as a separate step, and draws and checks the PNG. Use when a skill that writes an article asks for its figures, or when the user asks to compare drawing styles on the same figure.
 ---
 
 # Article figures
@@ -19,18 +19,19 @@ Run each script as a shell command, and put `D=<folder that contains this SKILL.
 
 ## Styles and files
 
-This skill ships no sample images.
-The user keeps the style catalog `style-catalog.json` and the sample images under `~/.styles/`, laid out as [the style catalog](references/style-catalog.md) describes.
+This skill ships sixteen built-in styles as written specifications in `data/built-in-styles.json`, and no sample images.
+The user may keep a style catalog `style-catalog.json` and sample images under `~/.styles/`, laid out as [the style catalog](references/style-catalog.md) describes.
+A style of the catalog sits beside the built-in styles, a style with a built-in name replaces the built-in style, and a built-in name with only `"status": "retired"` takes the built-in style out of use.
 Read the catalog and the samples only from `~/.styles/`, unless the user names another styles folder; then pass that folder to the scripts with `--styles <dir>`.
 
-Before designing, check the catalog with a shell command.
+Before designing, check the styles with a shell command.
 
 ```bash
 D=<folder that contains this SKILL.md>; python3 "$D/scripts/diagram_sample_catalog.py" --validate
 ```
 
-If `~/.styles/style-catalog.json` is missing, stop before drawing and tell the user to put the catalog and the sample images under `~/.styles/`, as [the style catalog](references/style-catalog.md) describes.
-When the check fails for another reason, show the user the lines it prints and stop before drawing.
+If `~/.styles/style-catalog.json` is missing, draw in the built-in styles; the check passes and says that the catalog is missing.
+When the check fails, show the user the lines it prints and stop before drawing.
 Never create, change, or delete anything under `~/.styles/`; the user keeps those files.
 
 Write the figures, the content summary, the figure spec, the drawing instructions, and the review records only in the folder the user names, or in the folder named in the figure request of the calling skill.
@@ -69,14 +70,23 @@ Enlarging a figure with few elements and giving a figure with much information a
 
 ## Applying a style
 
-Choose from [the styles](references/style-families.md) and the `finish_profiles` of `~/.styles/style-catalog.json`, using only profiles whose `status` is `active`.
-Do not ask again for a style the user or the request already named.
+Choose the style once the content summary is fixed.
+`python3 "$D/scripts/diagram_sample_catalog.py" --list`, run as a shell command, prints every style in use, one per line, with its source (`built-in` or `user`), its family, its label, and the kinds of figures it suits; [the styles](references/style-families.md) groups them.
+
+- When the user or the `finish_profile` of the figure request names a style, draw in that style. Do not ask again for a style the user or the request already named
+- When no style is named, compare the topic of the article and the kinds of its figures with the `suits` of each style `--list` prints, choose one style for the article, and tell the user which style you chose and why
+- When no style clearly fits, draw in `handdraft`
+- When the named style is neither built in nor in the catalog, when it is retired, or when no style fits and `handdraft` is retired, do not draw; show the user the styles `--list` prints and ask them to choose one
+
 Keep the article's drawing style across its figures, unless the user names several styles.
+
+Then print the chosen style with `python3 "$D/scripts/diagram_sample_catalog.py" --show <style>` as a shell command.
+Its `line`, `fill`, `background`, and `lettering` are the written specification, and its `specification`, when present, names a page of this skill with the full specification.
+Pass the images `--show` prints under `samples` to the image generation as style references only when that list is not empty; when it is empty, draw from the written specification alone.
 
 **A style name and its written specification are enough to draw.**
 A sample image is neither a required input nor the correct answer.
-Open a sample only when needed and only after the content is fixed, and put its line, fill, paper, palette, and lettering into words.
-When the user picks a real image as the style reference, it may be passed to the image generation after the content design is done.
+Open a sample only after the content is fixed, and put its line, fill, paper, palette, and lettering into words.
 In the drawing instructions and the records, tell the content apart from the style-only reference, and never move the reference's subjects, labels, values, or layout into the figure.
 Give the reviewer the same style specification and reference images.
 
@@ -103,7 +113,7 @@ Do not draw everything in the excerpt; limit the explanation to the relation the
 ### When the agent has no image generation
 
 If the agent running this skill has no image generation, finish the design, then write the content summary, the figure spec, and the drawing instructions into the folder the user names, and stop.
-The content summary is `content-brief.json`, the figure spec `<figure>.figure.json` with `rendering_mode: generated`, and the drawing instructions `<figure>.prompt.txt`, which name the style reference images by their paths under `~/.styles/`.
+The content summary is `content-brief.json`, the figure spec `<figure>.figure.json` with `rendering_mode: generated`, and the drawing instructions `<figure>.prompt.txt`, which name the chosen style and, when `--show` printed samples, their paths under `~/.styles/`.
 Tell the user which files you wrote, and to continue this skill in an agent that has image generation, naming the same folder.
 Do not draw the finished figure with HTML or SVG in place of image generation, and do not call another agent or tool through a shell command to draw it.
 

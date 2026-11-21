@@ -11,21 +11,22 @@
 |---|---|
 | `article-diagram-styles/SKILL.md` | 読者の疑問から記事の図を設計し、画風を当て、描き、確かめる手順 |
 | `article-diagram-styles/agents/openai.yaml` | Codexでの見せ方と始め方 |
-| `article-diagram-styles/musubi.json` | 渡す中身の`style4`、`figure-request`、`style-catalog`。どれも版1.0.0 |
+| `article-diagram-styles/musubi.json` | 渡す中身の`style4`、`figure-request`、`style-catalog`。`style4`は版1.0.0、`figure-request`と`style-catalog`は版1.1.0 |
 | `article-diagram-styles/references/content-first.md` | 内容の要約と、完成図を確かめた記録の形 |
 | `article-diagram-styles/references/deterministic-technical-diagrams.md` | 図の文字と接続の記録と確かめ方 |
-| `article-diagram-styles/references/style-families.md` | 一覧が持てる画風と、それぞれを使う時 |
-| `article-diagram-styles/references/pen-technical.md`、`handdraft.md`、`newsprint.md` | 3つの仕上がりの仕様 |
+| `article-diagram-styles/references/style-families.md` | 4つの組に分けた16の既定の画風と、画風の選び方 |
+| `article-diagram-styles/references/pen-technical.md`、`handdraft.md`、`newsprint.md` | 3つの既定の画風の詳しい仕様 |
 | `article-diagram-styles/references/style4.md` | style4の決まり。`style4`として渡す |
 | `article-diagram-styles/references/figure-request.md` | 図を頼む形。`figure-request`として渡す |
 | `article-diagram-styles/references/style-catalog.md` | 一覧の形。`style-catalog`として渡す |
-| `article-diagram-styles/scripts/diagram_sample_catalog.py` | 一覧を確かめ、見本を引く |
+| `article-diagram-styles/scripts/diagram_sample_catalog.py` | 既定の画風と一覧を確かめ、使える画風を並べ、1つの画風を自分の見本と一緒に出す |
 | `article-diagram-styles/scripts/validate_content_brief.py` | 内容の要約を記事と照らす |
 | `article-diagram-styles/scripts/validate_figure_spec.py` | 図の仕様を確かめる |
 | `article-diagram-styles/scripts/validate_anchor_candidate.py` | 完成図を確かめた記録を確かめる |
 | `article-diagram-styles/scripts/validate_visual_contract.py` | 見た目の約束と、それに対する図の仕様を確かめる |
 | `article-diagram-styles/scripts/validate_composition_ledger.py` | 記事の図の構図の台帳を確かめる |
 | `article-diagram-styles/scripts/newsprint_finish.py` | HTMLかSVGで描く図のための、同梱の書体の置き場とインクの処理 |
+| `article-diagram-styles/data/built-in-styles.json` | 16の既定の画風。どれも文で定義し、画像を持たない |
 | `article-diagram-styles/data/fonts/KaiseiDecol-Bold.ttf`、`OFL.txt` | 書体Kaisei Decol Boldとその利用許諾 |
 | `article-diagram-styles/tests/` | script、頁、pluginの検査。仕込みの画像は一時のフォルダーに描く |
 | `tech-book-figure/SKILL.md` | 本の図を設計し、style4で描く手順 |
@@ -37,6 +38,9 @@
 
 ## 画風の一覧
 
+このpluginは16の既定の画風をそれぞれ文で定義して持つので、`~/.styles/`が無くても`article-diagram-styles`は描きます。
+自分の一覧は、既定の画風の横に画風を足し、同じ名前の既定の画風を置き換え、`status`を`retired`にした既定の画風を使わない物にします。
+`tech-book-figure`は今もstyle4の見本が要ります。一覧も`~/.styles/`に置きます。
 スキルとscriptは、一覧`style-catalog.json`と見本の画像を`~/.styles/`から読みます。
 `diagram_sample_catalog.py`と、確かめた記録と見た目の約束を確かめるscriptは、`--styles <dir>`を渡した時だけ別のフォルダーを読みます。
 
@@ -49,22 +53,26 @@
 
 一覧の画像のpathは、どれも見本のフォルダーから見た相対の形です。
 `diagram_sample_catalog.py --validate`は、一覧が通ると読んだフォルダーを出して終了0で終わり、通らないと問題を1つずつ名指して終了1で終わります。
+`~/.styles/style-catalog.json`が無い時は、既定の画風だけを確かめて終了0で終わり、一覧が無いことを伝えます。
 
 | 断る物 | 理由 |
 |---|---|
-| `style-catalog.json`の無いフォルダー | スキルは描く前に止まり、置く場所を伝えます |
+| `--styles <dir>`で渡した、`style-catalog.json`の無いフォルダー | 名指したフォルダーは一覧を持ちます。一覧が無くてよいのは`~/.styles/`だけです |
 | `2`でない`schema_version` | 版1の一覧は変換しません |
 | 一覧か仕上がりの`resources` | 版1はそこにスキルの中のfileを書いていて、見本のフォルダーからは見つけられません |
 | `path`か`original_paths`が名指す画像のうち、無いかSHA-256が違う物 | 一覧が登録した見本ではありません |
 | 合わない`counts`の数 | `source_registrations`は元のpathの数、`unique_images`は異なるSHA-256の数を数えます |
 | フォルダーの下に在って一覧が名指さない画像のfile | 全ての見本を登録します |
+| 既定にも一覧にも無い画風の画像 | どの見本も、使える画風のどれかに属します |
+
+確かめで断った一覧は使いません。その代わりに既定の画風へ切り替えることもしません。
 
 `tech-book-figure`はstyle4の見本を`~/.styles/diagram-style-samples/style4/`から読み、2点より少ない時は描く前に止まります。
 
 ## 図の描き方
 
 スキルは先に内容を決め、内容の要約、図の仕様、描く指示を書いてから描きます。
-描く時は、描く指示と見本の画像を、スキルを動かしている道具の画像生成へ渡します。図1枚ごとに1回渡します。
+描く時は、描く指示と見本の画像を、スキルを動かしている道具の画像生成へ渡します。図1枚ごとに1回渡します。選んだ画風の見本が無い時は、描く指示だけを渡します。
 こうして描いた図の仕様は`rendering_mode: generated`を持ち、HTMLかSVGのソースから描いた図は`rendering_mode: deterministic`を持ちます。
 
 | agent | スキルがすること |
