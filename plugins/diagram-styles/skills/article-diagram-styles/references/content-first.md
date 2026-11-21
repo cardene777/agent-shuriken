@@ -28,6 +28,11 @@ Keep style IDs, reference images, colors, and lines out of the brief, in the sep
 Use `style-comparison` only for an explicit request to compare styles on the same content and layout, and record the request in `comparison_request` with `same_content_requested: true`.
 A request for several figures or several styles alone does not switch to this mode.
 
+The brief records the content, not the structure; the structure of each figure is recorded in its figure spec and in `composition-ledger.json`.
+Use `structure-comparison` only for an explicit request to compare the same content in different structures, and draw the number of structures asked for, three when no number is given.
+The figures of such a comparison share one brief in the `article` mode, and `composition-ledger.json` records `mode: structure-comparison` with the request in `comparison_request`.
+A request for several structures alone does not switch to this mode.
+
 ## The finished review
 
 A new review has `schema_version` `2`.

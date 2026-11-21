@@ -1,6 +1,7 @@
 # The style catalog
 
 The skill ships thirty-two built-in styles in `data/built-in-styles.json`, in the same shape as the `families` and `finish_profiles` of a catalog, without images.
+It also ships sixteen built-in structures in `data/built-in-structures.json`, in the same shape as the optional `structures` of a catalog, as [the structures](structures.md) describes.
 The user may keep a style catalog and sample images in one styles folder, `~/.styles/` by default; the catalog is optional.
 The plugin ships no sample images and never writes into the folder.
 The scripts read another folder only when they are given `--styles <dir>`.
@@ -16,6 +17,9 @@ The styles in use are the built-in styles with the catalog laid over them.
 | Only `"status": "retired"` under the name of a built-in style | It takes the built-in style of the same name out of use; `family` and `reference_id` are not needed |
 | A family with the name of a built-in family | The catalog's `label` and `description` are used for it |
 | An image whose `finish_profile` names a built-in style | The image is a sample of that style. An image's `finish_profile` may name a built-in style without a finish profile of that name in the catalog, and its `family` is the built-in style's family |
+| A structure under `structures` with a name that is not built in | The structure sits beside the built-in structures |
+| A structure under `structures` with the name of a built-in structure | It replaces the built-in structure of the same name: the fields the catalog writes are used, and the fields it leaves out stay as built in |
+| Only `"status": "retired"` under `structures` and the name of a built-in structure | It takes the built-in structure of the same name out of use |
 
 Without `~/.styles/style-catalog.json`, the built-in styles are used alone.
 A catalog that fails the check is refused; the scripts never fall back to the built-in styles in its place.
@@ -89,7 +93,28 @@ The style4 rules read the style4 samples from `diagram-style-samples/style4/`.
 | `images[].original_paths` | The places where the same image was first collected, relative to the styles folder; may be empty |
 | `images[].layouts` | One or more layouts the image shows, such as `left-to-right-flow` |
 
+| `structures.<structure>` | Optional. A figure structure: its `group`, `label`, `shows`, `parts`, `reading_order`, `fits`, `misfits`, and `status` (`active` or `retired`), each written in words |
+
 Other fields, such as `label`, `role`, or `approval`, are kept as records and not checked.
+
+```json
+{
+  "structures": {
+    "release-notes-map": {
+      "group": "comparison",
+      "label": "Release notes map",
+      "status": "active",
+      "shows": "Which release note answers which question of a reader",
+      "parts": "Questions on the left and notes on the right, joined by lines",
+      "reading_order": "Read a question, then follow its line to the note",
+      "fits": "Release notes read by people who upgrade",
+      "misfits": "A history of releases over time, which a timeline shows"
+    },
+    "timeline": {"shows": "Your own words for what the built-in timeline shows"},
+    "journey-map": {"status": "retired"}
+  }
+}
+```
 
 ## What the check refuses
 
@@ -104,5 +129,6 @@ Without `~/.styles/style-catalog.json` it checks the built-in styles alone, exit
 - An image file (`.png`, `.webp`, `.jpg`, `.jpeg`) under the styles folder that no `path` or `original_paths` names
 - Two images with the same `id` or the same `sha256`, an image without `layouts`, an image whose profile belongs to another family, and a `reference_id` or `sample_ids` entry that names no image of its profile
 - An image whose `finish_profile` is neither a built-in style nor in the catalog
+- `structures` that is not an object, or a structure in use that lacks one of `group`, `label`, `shows`, `parts`, `reading_order`, `fits`, `misfits`, and `status` once laid over the built-in structure of its name. The check names the structure and the field
 
 A version 1 catalog is not converted. Write it again as version 2: move the image paths so that they are relative to the styles folder, remove every `resources`, and set `schema_version` to `2`.

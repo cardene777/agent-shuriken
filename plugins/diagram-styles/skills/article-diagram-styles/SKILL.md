@@ -1,6 +1,6 @@
 ---
 name: article-diagram-styles
-description: Designs an explanatory figure for an article from the questions its reader would have, applies one of thirty-two built-in styles or a style from the user's catalog in ~/.styles as a separate step, and draws and checks the PNG. Use when a skill that writes an article asks for its figures, or when the user asks to compare drawing styles on the same figure.
+description: Designs an explanatory figure for an article from the questions its reader would have, chooses one of sixteen built-in figure structures for it, applies one of thirty-two built-in styles or a style from the user's catalog in ~/.styles as a separate step, and draws and checks the PNG. Use when a skill that writes an article asks for its figures, or when the user asks to compare drawing styles or figure structures on the same content.
 ---
 
 # Article figures
@@ -19,9 +19,11 @@ Run each script as a shell command, and put `D=<folder that contains this SKILL.
 
 ## Styles and files
 
-This skill ships thirty-two built-in styles as written specifications in `data/built-in-styles.json`, and no sample images.
+This skill ships thirty-two built-in styles as written specifications in `data/built-in-styles.json`, sixteen built-in structures as written definitions in `data/built-in-structures.json`, and no sample images.
+A style decides the line, fill, background, and lettering; a structure decides which parts a figure has and in which order they are read, as [the structures](references/structures.md) describes.
 The user may keep a style catalog `style-catalog.json` and sample images under `~/.styles/`, laid out as [the style catalog](references/style-catalog.md) describes.
 A style of the catalog sits beside the built-in styles, a style with a built-in name replaces the built-in style, and a built-in name with only `"status": "retired"` takes the built-in style out of use.
+The optional `structures` object of the catalog adds, replaces, and retires structures by the same rules.
 Read the catalog and the samples only from `~/.styles/`, unless the user names another styles folder; then pass that folder to the scripts with `--styles <dir>`.
 
 Before designing, check the styles with a shell command.
@@ -41,6 +43,8 @@ Write the figures, the content summary, the figure spec, the drawing instruction
 Use the `article` mode by default.
 A request for several figures for an article, or for figures in other styles, asks for the points the article explains and the number of figures; do not turn it into the same figure painted over in several styles.
 Use the `style-comparison` mode only when the user says to compare styles on the same content and layout, and do not count comparison candidates as finished figures of the article.
+Use the `structure-comparison` mode only when the user asks to compare the same content in different structures: draw as many structures as the user asks for, and three when no number is given, each in a different structure and all in the same style, and record the user's words in `comparison_request` of `composition-ledger.json`.
+Do not count these candidates as finished figures of the article either.
 When another skill asks for figures, it writes the request in [the figure request format](references/figure-request.md).
 When the user says not to ask in between, take it as delegating production decisions, and do not record that the user approved each image.
 
@@ -49,9 +53,11 @@ When the user says not to ask in between, take it as delegating production decis
 1. Take the article file, the heading the figure goes under, and the text before and after it from the request. Do not cut the figure loose from the article and widen its subject.
 2. **Before opening any sample image**, decide the question the reader wants answered, the one sentence the figure makes clear, the relation the text alone makes hard to follow, the objects and relations the figure keeps, and the layout. Save them as the content summary in `content-brief.json` and run `python3 "$D/scripts/validate_content_brief.py" <brief>` as a shell command. [The content brief](references/content-first.md) gives its format.
 3. Decide the subjects and their forms from the article. To explain an implementation, a state, or data, draw its keys, values, records, arrays, boundaries, and where processing happens. Add people, devices, chips, and the like only when their role answers the reader's question, and never to fill space.
-4. Choose a layout that shows this figure's relation through containment, a shared axis, correspondence, branching, or a before and after. A layout name records the design; it does not order you to fit a ready-made layout. Boxes may stand for storage areas and data structures; do not swap boxes for metaphors or illustrations just to avoid them.
+4. Run `python3 "$D/scripts/diagram_sample_catalog.py" --structures` as a shell command, compare the reader's question with what each structure shows, and choose a structure for each figure from the question the reader wants answered, among the structures `--structures` prints. Read the chosen one with `--show-structure <structure>`: its parts and its reading order guide the layout, and its misfits say when another structure answers the question better. When the user or the figure request names a structure, use it. When the named structure is neither built in nor in the catalog, or is retired, show the user the structures `--structures` prints and ask them to choose one. Record the name of the chosen structure in `structure`, both in the figure spec and in the entry of the figure in `composition-ledger.json`. Then choose a layout within the structure that shows this figure's relation through containment, a shared axis, correspondence, branching, or a before and after. A layout name records the design; it does not order you to fit a ready-made layout. Boxes may stand for storage areas and data structures; do not swap boxes for metaphors or illustrations just to avoid them.
 
 Keep the content summary and the style specification apart.
+Choose the structure and the style separately; any structure can be drawn in any style.
+Choose the structure from the article and the reader's question, never from the style or a sample.
 When you want to change the subjects or the layout after seeing a sample, go back to the article and the reader's question and check the reason.
 Do not change them because of what a sample shows, where it places things, or how much it holds.
 
@@ -152,7 +158,7 @@ A new `visual-contract.json` has `schema_version: 2` and fixes the description o
 Check it with `validate_visual_contract.py`.
 When the user names several styles for an article, keep one contract per style and apply it to the later figures of that style after its first figure is finished.
 The shared `composition-ledger.json` lists the contract IDs it uses in `visual_contract_ids` and ties each figure to its contract; never force one style onto a figure of another style.
-Record each figure's claim and layout in `composition-ledger.json`, and check it with `validate_composition_ledger.py`.
+Record each figure's claim, structure, and layout in `composition-ledger.json`, and check it with `validate_composition_ledger.py`; it refuses a figure without a structure in use, and a structure comparison that draws a structure twice or holds one figure.
 Do not change a layout only because the same layout repeats; check instead that no two figures make the same point and that each answers a different question of the article.
 There is no quota of layout kinds per number of figures.
 

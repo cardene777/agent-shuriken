@@ -1,11 +1,20 @@
 #!/usr/bin/env python3
-"""Validate article-level composition diversity and figure-spec alignment."""
+"""Validate article-level composition diversity and figure-spec alignment.
+
+Every figure of the ledger and its figure spec name the same figure structure in `structure`, one
+of the structures in use: built in, or in the catalog of the styles folder (~/.styles unless
+--styles names another one), and not retired. The `structure-comparison` mode draws the same
+content in two or more different structures at the user's request. Exit codes: 0 when the ledger
+passes, 1 when it does not, 2 when a file cannot be read.
+"""
 
 from __future__ import annotations
 
 import argparse
 import json
 from pathlib import Path
+
+from diagram_sample_catalog import CatalogError, structure_errors, structures_view
 
 
 SIGNATURE_FIELDS = {
@@ -54,9 +63,32 @@ def allowed_or_custom(value: object, allowed: set[str]) -> bool:
     return nonempty(value) and (value in allowed or str(value).startswith("custom-"))
 
 
-def validate(ledger_path: Path) -> list[str]:
+def comparison_errors(ledger: dict, entries: list) -> list[str]:
+    """A structure comparison is asked for, holds two or more figures, and draws each structure once."""
+    errors = []
+    if not nonempty(ledger.get("comparison_request")):
+        errors.append("structure-comparison requires the user's words that asked for it in comparison_request")
+    if len(entries) < 2:
+        errors.append(f"structure-comparison compares two or more figures of the same content, not {len(entries)}")
+    first: dict[str, int] = {}
+    for index, entry in enumerate(entries, 1):
+        name = entry.get("structure") if isinstance(entry, dict) else None
+        if not nonempty(name):
+            continue
+        if name in first:
+            errors.append(f"structure-comparison draws each structure once, but entries {first[name]} and {index} both use {name}")
+        first.setdefault(name, index)
+    return errors
+
+
+def validate(ledger_path: Path, styles: str | None = None) -> list[str]:
     errors: list[str] = []
     ledger = load(ledger_path)
+    try:
+        structures = structures_view(styles)
+    except CatalogError as error:
+        errors.append(str(error))
+        structures = None
     contract_id = ledger.get("visual_contract_id")
     contract_ids = ledger.get("visual_contract_ids", [contract_id] if nonempty(contract_id) else [])
     if not isinstance(contract_ids, list) or not contract_ids or not all(nonempty(value) for value in contract_ids):
@@ -83,6 +115,8 @@ def validate(ledger_path: Path) -> list[str]:
         for field in ("layout_pattern", "semantic_structure", "reading_path"):
             if not nonempty(entry.get(field)):
                 errors.append(f"{prefix} {field} must be a non-empty string")
+        if structures is not None:
+            errors.extend(f"{prefix} {error}" for error in structure_errors(entry.get("structure"), structures))
 
         signature = entry.get("composition_signature")
         if not isinstance(signature, dict):
@@ -119,16 +153,20 @@ def validate(ledger_path: Path) -> list[str]:
             errors.append(f"{prefix} figure spec visual_contract_id does not match ledger")
         if "visual_contract_id" in entry and entry["visual_contract_id"] != spec.get("visual_contract_id"):
             errors.append(f"{prefix} entry contract must match its figure spec")
-        for field in ("layout_pattern", "semantic_structure", "reading_path", "composition_signature"):
+        for field in ("layout_pattern", "semantic_structure", "reading_path", "composition_signature", "structure"):
             if spec.get(field) != entry.get(field):
                 errors.append(f"{prefix} figure spec {field} does not match ledger")
 
     # Repeated geometry can be the clearest representation of different claims.
     # Reject duplicated content, not a failure to meet an arbitrary shape quota.
+    # A comparison draws the same content on purpose: in other styles or in other structures.
     seen = set()
-    comparison = ledger.get("mode") == "style-comparison"
-    if comparison and (not nonempty(ledger.get("comparison_request")) or ledger.get("same_content_requested") is not True):
+    mode = ledger.get("mode")
+    comparison = mode in ("style-comparison", "structure-comparison")
+    if mode == "style-comparison" and (not nonempty(ledger.get("comparison_request")) or ledger.get("same_content_requested") is not True):
         errors.append("style-comparison requires the explicit comparison request and same_content_requested=true")
+    if mode == "structure-comparison":
+        errors.extend(comparison_errors(ledger, entries))
     for index, entry in enumerate(entries, 1):
         if not isinstance(entry, dict):
             continue
@@ -141,12 +179,22 @@ def validate(ledger_path: Path) -> list[str]:
     return errors
 
 
+def summary(ledger: dict) -> str:
+    """The line printed when the ledger passes: how many figures, and the structures they use."""
+    entries = ledger["entries"]
+    names = ", ".join(dict.fromkeys(str(entry["structure"]) for entry in entries))
+    if ledger.get("mode") == "structure-comparison":
+        return f"composition ledger valid: structure-comparison of {len(entries)} structures: {names}"
+    return f"composition ledger valid: {len(entries)} figure(s); structures used: {names}"
+
+
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--ledger", type=Path, required=True)
+    parser.add_argument("--styles", help="the styles folder to read instead of ~/.styles")
     args = parser.parse_args()
     try:
-        errors = validate(args.ledger.resolve())
+        errors = validate(args.ledger.resolve(), args.styles)
     except (OSError, ValueError, json.JSONDecodeError) as error:
         print(f"ERROR: {error}")
         return 2
@@ -154,7 +202,7 @@ def main() -> int:
         for error in errors:
             print(f"ERROR: {error}")
         return 1
-    print("composition ledger valid")
+    print(summary(load(args.ledger.resolve())))
     return 0
 
 

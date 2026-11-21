@@ -1,0 +1,183 @@
+{
+  "version": 1,
+  "groups": {
+    "flow-and-order": {
+      "label": "Flow and order",
+      "description": "What happens in which order: steps, messages, moments in time, and loops"
+    },
+    "structure-and-containment": {
+      "label": "Structure and containment",
+      "description": "How parts are built up: levels, hierarchies, boundaries, and connections"
+    },
+    "comparison": {
+      "label": "Comparison",
+      "description": "How things differ or correspond: options, a change, two measures, and matching entries"
+    },
+    "state-and-change": {
+      "label": "State and change",
+      "description": "How something moves on: states, decisions, amounts over time, and a person's path"
+    }
+  },
+  "structures": {
+    "process-flow": {
+      "group": "flow-and-order",
+      "label": "Process flow",
+      "status": "active",
+      "shows": "The order of steps that turn an input into a result, answering what happens first, next, and last.",
+      "parts": "Steps drawn as boxes or stations, arrows that carry the output of one step into the next, and the input and the result at the two ends.",
+      "reading_order": "Start at the input and follow the arrows step by step to the result, left to right or top to bottom.",
+      "fits": "A pipeline, a build or deploy procedure, a request handled in several stages, or any work done in a fixed order.",
+      "misfits": "Exchanges between several actors, which a message sequence shows, and steps that repeat without an end, which a cycle shows."
+    },
+    "message-sequence": {
+      "group": "flow-and-order",
+      "label": "Message sequence",
+      "status": "active",
+      "shows": "Who sends what to whom and in which order, answering how several actors talk to finish one task.",
+      "parts": "One vertical lifeline per actor, horizontal arrows for the messages labeled with what they carry, and the replies drawn back between the same lifelines.",
+      "reading_order": "Read from top to bottom; each arrow happens after the arrows above it.",
+      "fits": "Calls between a client and its servers, a sign-in or payment handshake, and messages between services.",
+      "misfits": "Work one actor does alone, which a process flow shows, and long spans of calendar time, which a timeline shows."
+    },
+    "timeline": {
+      "group": "flow-and-order",
+      "label": "Timeline",
+      "status": "active",
+      "shows": "When events happened along one time axis, answering what came before what and how far apart.",
+      "parts": "A single time axis with marked points or spans, each labeled with its date or moment and its event.",
+      "reading_order": "Follow the axis from the earliest point to the latest.",
+      "fits": "Release histories, incidents, project milestones, and the history of one value.",
+      "misfits": "Steps whose durations do not matter, which a process flow shows, and amounts that rise and fall, which a quantity trend shows."
+    },
+    "cycle": {
+      "group": "flow-and-order",
+      "label": "Cycle",
+      "status": "active",
+      "shows": "Stages that repeat and come back to the start, answering what keeps the loop going.",
+      "parts": "Stages placed around a ring, arrows that run one way around it, and the arrow that closes the loop back to the first stage.",
+      "reading_order": "Start at the marked first stage and go around the ring in the direction of the arrows until you are back at the start.",
+      "fits": "Feedback loops, release cycles, retry loops, and plan, do, check, act.",
+      "misfits": "Work with a clear end, which a process flow shows, and states that move between each other in many directions, which a state machine shows."
+    },
+    "layers": {
+      "group": "structure-and-containment",
+      "label": "Layers",
+      "status": "active",
+      "shows": "Which level sits on which and what each level relies on below it, answering where a part belongs in a stack.",
+      "parts": "Horizontal bands stacked from the lowest level to the highest, each band named, with the interface between neighbors marked on their shared edge.",
+      "reading_order": "Read from the bottom band up to see what builds on what, or from the top down to see what a request passes through.",
+      "fits": "Network protocol stacks, the layers of a software architecture, and levels of abstraction.",
+      "misfits": "Groups that contain each other, which nesting shows, and parts that connect in many directions, which a network shows."
+    },
+    "tree": {
+      "group": "structure-and-containment",
+      "label": "Tree",
+      "status": "active",
+      "shows": "How one root branches into children and their descendants, answering what belongs under what in a hierarchy.",
+      "parts": "A root node, child nodes below or beside it, and lines that join each parent to its children.",
+      "reading_order": "Start at the root and follow one branch down to the leaf you are looking for.",
+      "fits": "Folder structures, organization charts, class hierarchies, and breakdowns into categories.",
+      "misfits": "Elements with more than one parent or with loops, which a network shows, and boundaries drawn inside boundaries, which nesting shows."
+    },
+    "nesting": {
+      "group": "structure-and-containment",
+      "label": "Nesting",
+      "status": "active",
+      "shows": "Which boundary sits inside which, answering what is contained in what and where its limits lie.",
+      "parts": "Enclosures drawn inside larger enclosures, each with its name on its edge, and the items placed inside the boundary they belong to.",
+      "reading_order": "Read from the outermost boundary inward, or find an item and read outward through the boundaries around it.",
+      "fits": "Scopes in code, permissions within an organization, containers on a host, and sets within sets.",
+      "misfits": "A strict order of levels, which layers show, and branching from a single root, which a tree shows."
+    },
+    "network": {
+      "group": "structure-and-containment",
+      "label": "Network",
+      "status": "active",
+      "shows": "Which elements connect to which without a single root or order, answering how the parts reach each other.",
+      "parts": "Nodes placed near the nodes they relate to, and links between them, labeled when a link has a kind or a direction.",
+      "reading_order": "Start at the node in question, follow its links to its neighbors, and go on to the nodes they reach.",
+      "fits": "Maps of service dependencies, peer-to-peer networks, social graphs, and maps of related ideas.",
+      "misfits": "A single hierarchy, which a tree shows, and an exchange whose order matters, which a message sequence shows."
+    },
+    "side-by-side": {
+      "group": "comparison",
+      "label": "Side by side",
+      "status": "active",
+      "shows": "How two or more options differ on the same points, answering which option does what.",
+      "parts": "One column or panel per option, with the same points in the same places in every panel so that equal points line up.",
+      "reading_order": "Read one point across the panels to compare the options on it, then move down to the next point.",
+      "fits": "Comparing libraries, plans, protocols, or approaches on the same criteria.",
+      "misfits": "One thing at two moments, which a before and after shows, and options placed by two measures, which a two-axis matrix shows."
+    },
+    "before-after": {
+      "group": "comparison",
+      "label": "Before and after",
+      "status": "active",
+      "shows": "What one thing looks like before a change and after it, answering what the change altered.",
+      "parts": "Two panels of the same subject drawn the same way, the before on the left and the after on the right, with the changed parts marked.",
+      "reading_order": "Read the before panel, then the after panel, and look at the marked differences.",
+      "fits": "Refactorings, migrations, changes of configuration, and fixes.",
+      "misfits": "Several options with no order between them, which side by side shows, and many moments in a row, which a timeline shows."
+    },
+    "two-axis-matrix": {
+      "group": "comparison",
+      "label": "Two-axis matrix",
+      "status": "active",
+      "shows": "Where items fall on two measures at once, answering which items are high or low on each measure.",
+      "parts": "Two crossing axes with their names and directions, the quadrants or cells they make, and the items placed by their two values.",
+      "reading_order": "Read the names of the two axes first, then find each item and the quadrant it falls in.",
+      "fits": "Priorities by impact and effort, trade-offs between cost and speed, and the positions of competing options.",
+      "misfits": "Options compared point by point instead of placed, which side by side shows, and exact pairs of entries, which a correspondence table shows."
+    },
+    "correspondence-table": {
+      "group": "comparison",
+      "label": "Correspondence table",
+      "status": "active",
+      "shows": "Which entry on one side matches which entry on the other, answering what maps to what.",
+      "parts": "Two lists, or a grid of rows and columns, with each matching pair on one row or joined by one line.",
+      "reading_order": "Find an entry on one side and read across its row or along its line to the entry it matches.",
+      "fits": "Mappings between terms, the fields of two formats, old and new names, and permissions by role.",
+      "misfits": "Items placed by two continuous measures, which a two-axis matrix shows, and a change over time, which a before and after or a timeline shows."
+    },
+    "state-machine": {
+      "group": "state-and-change",
+      "label": "State machine",
+      "status": "active",
+      "shows": "Which states something can be in and which events move it between them, answering what can happen next from here.",
+      "parts": "States drawn as rounded nodes, arrows between them labeled with the event or condition that causes each transition, and the start and end states marked.",
+      "reading_order": "Start at the initial state and follow the arrow of the event that occurs to the next state.",
+      "fits": "The status of an order or a payment, connection states, document workflows, and the lifecycle of a transaction.",
+      "misfits": "Work that always runs in one order, which a process flow shows, and a single choice made once, which a decision branch shows."
+    },
+    "decision-branch": {
+      "group": "state-and-change",
+      "label": "Decision branch",
+      "status": "active",
+      "shows": "Which path follows from each answer to a question or a condition, answering what to do in a given case.",
+      "parts": "Questions or conditions drawn as decision points, one labeled branch per answer, and the outcomes at the ends of the branches.",
+      "reading_order": "Start at the first question, take the branch that matches your case, and go on until you reach an outcome.",
+      "fits": "Troubleshooting guides, choosing an option by its conditions, access checks, and the paths of error handling.",
+      "misfits": "States that the same thing returns to, which a state machine shows, and a hierarchy of parts, which a tree shows."
+    },
+    "quantity-trend": {
+      "group": "state-and-change",
+      "label": "Quantity trend",
+      "status": "active",
+      "shows": "How an amount rises and falls across time or another measure, answering how big it is and which way it is heading.",
+      "parts": "A horizontal axis of time or another measure, a vertical axis of the amount with its unit, and a line, bars, or points for the values.",
+      "reading_order": "Read the axes and their units first, then follow the values from left to right and note where they turn.",
+      "fits": "Latency across releases, costs by month, growth in usage, and the effect of a change on a number.",
+      "misfits": "Events without amounts, which a timeline shows, and values with no order along the horizontal axis, which side by side shows."
+    },
+    "journey-map": {
+      "group": "state-and-change",
+      "label": "Journey map",
+      "status": "active",
+      "shows": "What a person does, meets, and feels at each stage of using something, answering where the experience goes well or breaks.",
+      "parts": "Stages along the top in the order a person meets them, rows under each stage for the actions, the touchpoints, and the feelings, and marks where trouble occurs.",
+      "reading_order": "Read the stages from left to right, and at each stage read down the rows to see the action, the touchpoint, and the feeling.",
+      "fits": "Onboarding, a purchase from search to delivery, contacts with support, and how a developer adopts a tool.",
+      "misfits": "The inside of a system with no person in it, which a process flow or a message sequence shows, and a single event at one moment."
+    }
+  }
+}

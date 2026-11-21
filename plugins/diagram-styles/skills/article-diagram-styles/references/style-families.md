@@ -25,6 +25,7 @@ Without one, read the topic of the article and the kinds of its figures, compare
 When no style clearly fits, use `handdraft`, the hand-drafted technical sketch.
 A style that is neither built in nor in the catalog, or one the catalog retired, is never drawn; show the user the list and let them choose.
 Never guess a style from an old number or a folder name of an image.
+The structure of a figure is chosen apart from its style, from the reader's question, as [the structures](structures.md) describes; any structure can be drawn in any style.
 
 ## Full specifications
 
