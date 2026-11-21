@@ -1,0 +1,17 @@
+{
+  "musubi": "2026-11-20",
+  "provides": {
+    "style4": {
+      "version": "1.0.0",
+      "file": "references/style4.md"
+    },
+    "figure-request": {
+      "version": "1.0.0",
+      "file": "references/figure-request.md"
+    },
+    "style-catalog": {
+      "version": "1.0.0",
+      "file": "references/style-catalog.md"
+    }
+  }
+}

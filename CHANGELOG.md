@@ -7,6 +7,7 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ## [Unreleased]
 
+- The diagram-styles plugin, whose two skills make figures for articles and technical books: each figure is designed from the reader's question first and drawn with the agent's image generation in a style from the user's own sample images and catalog in `~/.styles/`, which the plugin does not ship. Other skills follow its style4 rules and figure request format through musubi
 - The design-formats plugin, whose page-design skill holds how documents and reports explain and look: two formats, four HTML page templates, and the verify script that checks a page or a document. Other skills follow it through musubi
 - The report skills of ten plugins, techdebt, compare-report, machine-cleanup, account-cleanup, diagram-explainer, repo-progress, secure-dotfile, init-project, portman, and release-check in evm-dev, follow page-design of design-formats through musubi as optional follows, so each plugin still installs and works alone
 - The doc-formats plugin, whose design-doc skill holds the shared format of a design document and the verify script that checks one. The five design skills of evm-dev now follow it through musubi
