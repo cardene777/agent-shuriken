@@ -16,7 +16,8 @@
 #      document language. Without one, these cases print "skip: no browser".
 #   7. The SKILL.md and its eval suite.
 #   8. The interface words live only in assets/ui.json, the built pages carry that dictionary,
-#      and the words written into the pages and the step ladders match it.
+#      the words written into the pages and the step ladders match it, and its Japanese words put
+#      no space between Japanese and Latin letters or digits.
 #   9. With a headless browser, at a desktop and a phone width: captions, step ladders, and charts
 #      as drawn (lines and text, text size, colors in light and dark, fitting or scrolling with a cue).
 #
@@ -645,6 +646,24 @@ PYEOF
 else
   _fail "8-7 doc.js shows the words of the dictionary in the page" "the English sample was not built"
 fi
+
+# Japanese text puts no space between Japanese and Latin letters, digits, or a placeholder.
+# The kana, kanji, and Japanese stops are built from code points, so this file stays English.
+JA_SPACES="$(python3 - "$UI_JSON" <<'PYEOF'
+import json, re, sys
+try:
+    ja = json.load(open(sys.argv[1], encoding="utf-8"))["ja"]
+except (OSError, ValueError, KeyError) as exc:
+    print("cannot read the ja words of assets/ui.json (%s)" % exc.__class__.__name__)
+    sys.exit(0)
+kana_kanji = "%s-%s%s-%s" % tuple(map(chr, (0x3040, 0x30FF, 0x4E00, 0x9FFF)))
+stops = chr(0x3001) + chr(0x3002)
+space = re.compile(r"[%s%s] [A-Za-z0-9{]|[A-Za-z0-9}] [%s]" % (kana_kanji, stops, kana_kanji))
+words = [(key, text) for key, value in sorted(ja.items()) for text in (value if isinstance(value, list) else [value])]
+print(" / ".join("%s: %r" % (key, text) for key, text in words if isinstance(text, str) and space.search(text)))
+PYEOF
+)"
+_assert "8-8 the Japanese words put no space between Japanese and Latin letters, digits, or a placeholder" "" "$JA_SPACES"
 
 # --- 9. Figures as drawn ---
 # The figures are measured after the browser draws them, section by section, the way a reader
