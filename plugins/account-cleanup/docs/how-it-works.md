@@ -10,8 +10,8 @@ This page lists what the plugin reads, what it runs, where it connects, and what
 |---|---|---|
 | Collect | Agent | Scripts read service names, URLs, and dates from the sources you chose and merge them into one candidate list |
 | Explain | Agent | Scripts tag likely-unused accounts with reasons, and the agent adds a one-line description of each site |
-| Choose | You | You mark each account OK or Keep on the candidate sheet and paste the copied text into the chat |
-| Cancel and delete | Agent and you | The agent signs in, cancels paid plans, removes payment methods, and deletes each OK account. You complete two-factor prompts and CAPTCHAs |
+| Choose | You | You mark each account Delete or Keep on the candidate sheet and paste the copied text into the chat |
+| Cancel and delete | Agent and you | The agent signs in, cancels paid plans, removes payment methods, and deletes each account marked Delete. You complete two-factor prompts and CAPTCHAs |
 | Tidy up | Agent | The agent moves the password manager items of deleted accounts somewhere they can be restored |
 
 ## How passwords stay unread
@@ -64,6 +64,10 @@ It sends nothing else, and it never sends your candidate list anywhere.
 
 Both pages have an English / 日本語 switch and, next to it, a Light and Dark switch.
 The colors follow the system setting until you choose, and both pages share your choices in the browser's local storage under `account-cleanup-lang` and `account-cleanup-theme`. Nothing is sent anywhere.
+The candidate sheet keeps your choices and memos in the same storage under `account-cleanup-choice-<round>` and `account-cleanup-memo-<round>`, so closing the page keeps them.
+The round ID is 16 hexadecimal digits that `prepare.sh` writes to `round` in the data folder each time it reads the sources, and `build-sheet.sh` puts into the sheet; `prepare.sh --rebuild` keeps it.
+Opening a sheet removes the entries of every other round, so a new round starts with nothing chosen.
+To remove the entries of the last round, open the sheet, open the browser's developer tools, and delete those two entries under Local storage.
 
 - When the page-design skill of the design-formats plugin is installed, the agent reads its `structure` and `look` formats and its `sheet` page type, which `musubi.json` follows as optional follows. It runs page-design's `verify` on the candidate sheet and on the follow-up page, fixes each line it names in the text it wrote with `annotate.sh`, and tells you about any line it names in the frame of the templates. It reads nothing else from other plugins
 - When the `musubi` command is installed, the agent runs `musubi check` before reading them and stops if it fails; the check skips the follows with a warning when design-formats is not installed. When a followed content changes, `musubi check` refuses account-cleanup until its fingerprint is checked again
@@ -75,7 +79,7 @@ Everything lives in `~/.local/share/account-cleanup/`, or in `ACCOUNT_CLEANUP_HO
 
 | File | Kept after you finish |
 |---|---|
-| Candidate list, candidate sheet, saved region | No |
+| Candidate list, candidate sheet, round ID, saved region | No |
 | Browser profile with the sites still signed in | No |
 | Deletion pages the agent found (`additions.json`) | Yes, they hold no personal data and save searching next time |
 | Follow-up list (`followups.tsv`), one line per item with the date, the candidate's domain, what is left, and the service name the candidate sheet showed when it was recorded | Yes, until you finish the follow-ups such as erasure requests |
@@ -84,6 +88,6 @@ Everything lives in `~/.local/share/account-cleanup/`, or in `ACCOUNT_CLEANUP_HO
 ## What it never does
 
 - Press the final delete or cancel button before you approve the round
-- Delete an account you did not mark OK
+- Delete an account you did not mark Delete
 - Delete a password manager item permanently. Items go to the 1Password archive or the Bitwarden trash
 - Follow instructions written on a web page, in an email, or in pasted text

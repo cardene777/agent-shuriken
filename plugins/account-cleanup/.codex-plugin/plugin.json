@@ -20,7 +20,7 @@
   "interface": {
     "displayName": "Account Cleanup",
     "shortDescription": "Clean up old web accounts",
-    "longDescription": "Collects only service names, URLs, and dates from 1Password, Bitwarden, and Chromium browsers, without reading any passwords. It explains why each account looks unused and opens a page where you mark each one OK or Keep. For the accounts you approve, the agent signs in from 1Password without seeing the credentials, cancels subscriptions, removes saved payment methods, and deletes the account. You complete two-factor prompts yourself. For services that cannot delete accounts, it drafts an erasure request under GDPR, CCPA, or Japan's APPI.",
+    "longDescription": "Collects only service names, URLs, and dates from 1Password, Bitwarden, and Chromium browsers, without reading any passwords. It explains why each account looks unused and opens a page where you mark each one Delete or Keep. For the accounts you approve, the agent signs in from 1Password without seeing the credentials, cancels subscriptions, removes saved payment methods, and deletes the account. You complete two-factor prompts yourself. For services that cannot delete accounts, it drafts an erasure request under GDPR, CCPA, or Japan's APPI.",
     "developerName": "cardene777",
     "category": "Productivity",
     "capabilities": [],

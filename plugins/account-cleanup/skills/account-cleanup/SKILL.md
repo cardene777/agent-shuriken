@@ -87,9 +87,9 @@ EOF
 | `category` | One of `email`, `bank`, `brokerage`, `card`, `government`, `work`, `domain`, `cloud`, `password-manager`, `telecom`, `shopping`, `social`, `dev`, `other` |
 | `suggestion` | `ok` (looks safe to delete) or `ng` (better to keep). Use `ng` for `email`, `bank`, `brokerage`, `card`, `government`, `work`, `domain`, `cloud`, `password-manager` and `telecom` |
 | `why` | The reason for your suggestion, in one sentence |
-| `previous` | Only from the second round on. For candidates that were OK in an earlier round but could not be deleted, write `{"round": <round number>, "label": "<short label>", "detail": "<why it stopped and what to do next>"}`. Keep the label to one to three words, such as `exchange` or `send request`, and use the same label for the same reason |
+| `previous` | Only from the second round on. For candidates that were chosen in an earlier round but could not be deleted, write `{"round": <round number>, "label": "<short label>", "detail": "<why it stopped and what to do next>"}`. Keep the label to one or two words, such as `exchange` or `send request`, and use the same label for the same reason |
 
-## 4. Have the user choose OK or Keep
+## 4. Have the user choose Delete or Keep
 
 When the `page-design` skill is installed, follow the `structure` and `look` formats and the `sheet` page type of the `page-design` skill: open the `page-design` skill by name and read the files it names for `structure`, `look`, `sheet`, and `verify`.
 If the `musubi` command is available, run `musubi check` before reading, and stop if it fails.
@@ -98,7 +98,7 @@ If the `page-design` skill is not installed, go on with the templates of this sk
 When the `page-design` skill is installed, run its `verify` on the finished page: run the file it names for `verify` as a shell command, `python3 <that file> verify <sheet path>`, fix each line it names in the `description`, `why`, and `previous` text you wrote with `annotate.sh`, and tell the user about any line it names in the frame of this skill's template. Run it the same way on the list page that `followup.sh page` writes in section 8.
 
 Open the candidate sheet in the user's browser with `open <sheet path>` on macOS or `xdg-open <sheet path>` on Linux; it explains on screen what each button does.
-The user presses OK (delete) or Keep for each row, writes anything you should know in the memo, presses "Copy OK items" and pastes the text into the chat.
+The user presses Delete or Keep for each row, writes anything you should know in the memo, presses "Copy items to delete" and pastes the text into the chat.
 Pass the pasted text to `plan.sh` as it is.
 
 ```bash
@@ -117,11 +117,11 @@ For a service that has shut down, use the difficulty `ended` and the shutdown no
 
 ## 5. Check the subscription lists
 
-Once, before deletion starts, open the App Store, Google Play and PayPal subscription pages listed by `"$S/subscriptions-guide.sh"` with `browser.sh`; after the user signs in, compare the service names on each list with the accounts marked OK.
+Once, before deletion starts, open the App Store, Google Play and PayPal subscription pages listed by `"$S/subscriptions-guide.sh"` with `browser.sh`; after the user signs in, compare the service names on each list with the accounts marked Delete.
 Subscriptions paid through the App Store or Google Play do not stop when the account is deleted on the service, so cancel them on these pages first (the approval in step 6 covers this).
 Skip the lists the user says they do not use, and the ones they say to skip for now.
 
-## 6. Delete the OK items in order
+## 6. Delete the chosen accounts in order
 
 Before deletion starts, show the number of accounts in the round and the selection file (e.g. 73 accounts in `selection-1.txt`), and get approval once.
 That approval covers pressing the final delete button, the cancel button and the button that removes a payment method.

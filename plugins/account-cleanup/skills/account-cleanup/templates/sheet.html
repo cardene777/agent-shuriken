@@ -8,83 +8,140 @@
 <title>Accounts you may no longer use</title>
 <style>
 :root {
-  --bg: #f6f7f9; --panel: #ffffff; --soft: #eef1f6; --text: #1d2330; --sub: #5b6475; --line: #dfe3ea;
-  --accent: #2f5bd3; --accent-text: #ffffff; --ok: #c0322a; --ok-bg: #fdecea; --ng: #2a7349; --ng-bg: #e7f5ec;
-  --easy: #2a7349; --medium: #8a5c00; --hard: #a14e00; --impossible: #c0322a; --unknown: #5f6672; --prev: #8a5a00; --prev-bg: #fff4dc;
+  --bg: #f6f7f9; --panel: #ffffff; --soft: #eef1f6; --text: #1d2330; --sub: #5b6475; --line: #858d9a;
+  --accent: #2f5bd3; --accent-text: #ffffff; --selected: #e6edfb;
+  --del: #b3261e; --del-bg: #fdecea; --keep: #1f6b40; --keep-bg: #e5f4ea; --prev: #7a5000; --prev-bg: #fff4dc;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #12151b; --panel: #1b2029; --soft: #232a36; --text: #e7eaf0; --sub: #a3abba; --line: #2c3340;
-    --accent: #6d8ff0; --accent-text: #0d1117; --ok: #ff7b72; --ok-bg: #3a1d1b; --ng: #56d38a; --ng-bg: #16301f;
-    --easy: #56d38a; --medium: #e3b341; --hard: #f0883e; --impossible: #ff7b72; --unknown: #9aa3b2; --prev: #e3b341; --prev-bg: #33290f;
+    --bg: #12151b; --panel: #1b2029; --soft: #232a36; --text: #e7eaf0; --sub: #a3abba; --line: #6b7383;
+    --accent: #6d8ff0; --accent-text: #0d1117; --selected: #22304d;
+    --del: #ff8a80; --del-bg: #3a1d1b; --keep: #6fdc9b; --keep-bg: #16301f; --prev: #e3b341; --prev-bg: #33290f;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #12151b; --panel: #1b2029; --soft: #232a36; --text: #e7eaf0; --sub: #a3abba; --line: #2c3340;
-  --accent: #6d8ff0; --accent-text: #0d1117; --ok: #ff7b72; --ok-bg: #3a1d1b; --ng: #56d38a; --ng-bg: #16301f;
-  --easy: #56d38a; --medium: #e3b341; --hard: #f0883e; --impossible: #ff7b72; --unknown: #9aa3b2; --prev: #e3b341; --prev-bg: #33290f;
+  --bg: #12151b; --panel: #1b2029; --soft: #232a36; --text: #e7eaf0; --sub: #a3abba; --line: #6b7383;
+  --accent: #6d8ff0; --accent-text: #0d1117; --selected: #22304d;
+  --del: #ff8a80; --del-bg: #3a1d1b; --keep: #6fdc9b; --keep-bg: #16301f; --prev: #e3b341; --prev-bg: #33290f;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif; }
 button { font: inherit; color: inherit; }
-main { max-width: 1280px; margin: 0 auto; padding: 24px 16px 110px; }
+main { max-width: 1200px; margin: 0 auto; padding: 24px 16px 120px; }
 .head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 h1 { font-size: 24px; margin: 0; }
 .icon { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); font-weight: 700; cursor: pointer; }
-.switches { margin-left: auto; flex-shrink: 0; display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; }
+.save-state { margin: 0 0 0 auto; font-size: 14px; color: var(--sub); white-space: nowrap; }
+.save-state[data-state="off"] { color: var(--text); font-weight: 600; }
+.switches { flex-shrink: 0; display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; }
 .switches .seg button { font-size: 14px; padding: 4px 12px; white-space: nowrap; }
 .switches .seg button[aria-pressed="true"] { font-weight: 600; }
 .lead { margin: 6px 0 12px; }
-.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 16px; padding: 0; list-style: none; }
+.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 12px; padding: 0; list-style: none; }
 .steps li { display: flex; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 6px 12px; }
 .steps i { font-style: normal; font-weight: 700; color: var(--accent); }
-.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 12px; flex-wrap: wrap; }
-.tabs button { font-weight: 600; color: var(--sub); background: none; border: 0; border-bottom: 3px solid transparent; padding: 10px 14px; cursor: pointer; }
+.warn { margin: 0 0 16px; padding: 10px 14px; background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--text); border-radius: 8px; }
+.tabs { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 12px; }
+.tabs button { flex: 0 0 auto; white-space: nowrap; font-weight: 600; color: var(--sub); background: none; border: 0; border-bottom: 3px solid transparent; padding: 10px 14px; cursor: pointer; }
 .tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
-.tabs button[hidden] { display: none; }
-.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 4px; }
-.toolbar input, .toolbar select { font: inherit; color: inherit; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
-.toolbar input { flex: 1 1 240px; }
-.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-.seg button { background: var(--panel); border: 0; padding: 8px 12px; cursor: pointer; }
+.list-title { font-size: 18px; margin: 0 0 8px; }
+.list-title:focus { outline: none; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 8px; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field.grow { flex: 1 1 240px; }
+.field label, .field-label { font-size: 14px; color: var(--sub); }
+.toolbar input, .toolbar select { font: inherit; color: inherit; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; min-height: 40px; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { background: var(--panel); border: 0; padding: 8px 12px; min-height: 40px; cursor: pointer; white-space: nowrap; }
 .seg button + button { border-left: 1px solid var(--line); }
 .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); }
-/* The list keeps a fixed width and the details take the rest of the row */
-.panes { display: grid; grid-template-columns: minmax(360px, 440px) minmax(0, 1fr); gap: 16px; align-items: start; }
-.list { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
-.row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line); cursor: pointer; }
+/* A filter that wraps fills each row, with a line between the buttons of every row */
+.toolbar .seg { display: flex; gap: 1px; background: var(--line); }
+.toolbar .seg button { flex: 1 1 auto; }
+.toolbar .seg button + button { border-left: 0; }
+.range { margin: 4px 0; color: var(--sub); font-size: 14px; }
+.pager { display: flex; justify-content: center; gap: 4px; margin: 12px 0; flex-wrap: wrap; }
+.pager button { min-width: 40px; min-height: 40px; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+.pager button[aria-current="page"] { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+/* The list keeps a fixed width and the details take the rest of the row; each scrolls on its own */
+.split { display: grid; grid-template-columns: minmax(320px, 380px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.list { list-style: none; margin: 0; padding: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; position: sticky; top: 12px; max-height: calc(100dvh - 120px); overflow-y: auto; }
+.row { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--line); box-shadow: inset 4px 0 0 transparent; cursor: pointer; }
 .row:last-child { border-bottom: 0; }
-.row:hover { background: var(--soft); }
-.row[aria-selected="true"] { background: var(--soft); box-shadow: inset 4px 0 0 var(--accent); }
-.row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-.row-main { flex: 1; min-width: 0; }
+.row[data-choice="del"] { background: var(--del-bg); }
+.row[data-choice="keep"] { background: var(--keep-bg); }
+.row.current { background: var(--selected); box-shadow: inset 4px 0 0 var(--accent); }
+.name { flex: 1; min-width: 0; display: block; text-align: left; background: none; border: 0; padding: 0; cursor: pointer; }
+.name:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 .row-name { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; min-width: 0; }
 .row-name b, .row-name small { min-width: 0; overflow-wrap: anywhere; }
 .row-name b { font-size: 16px; }
 .row-name small { color: var(--sub); }
 .one { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .none { color: var(--sub); }
+.chev { flex-shrink: 0; color: var(--sub); font-size: 20px; }
 .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
-.chip { display: inline-block; font-size: 13px; border: 1px solid var(--line); border-radius: 999px; padding: 0 10px; color: var(--sub); }
+.chip { display: inline-flex; align-items: baseline; gap: 4px; font-size: 13px; border: 1px solid var(--line); border-radius: 999px; padding: 0 10px; color: var(--sub); }
 .chip.prev { border-color: transparent; background: var(--prev-bg); color: var(--prev); font-weight: 600; }
-.chip.ok { border-color: transparent; background: var(--ok-bg); color: var(--ok); }
-.chip.ng { border-color: transparent; background: var(--ng-bg); color: var(--ng); }
+.mark { font-weight: 700; }
 .pick { display: inline-flex; gap: 6px; flex-shrink: 0; }
-.pick button { font-size: 15px; font-weight: 600; min-width: 60px; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
-.pick button.ok[aria-pressed="true"] { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
-.pick button.ng[aria-pressed="true"] { background: var(--ng-bg); border-color: var(--ng); color: var(--ng); }
-.detail { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; position: sticky; top: 12px; max-height: calc(100vh - 100px); overflow: auto; }
-.detail h2 { font-size: 20px; margin: 0; overflow-wrap: anywhere; }
+.pick button { font-size: 15px; font-weight: 600; min-width: 64px; min-height: 40px; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+.pick button[aria-pressed="true"]::before { content: "\2713\00a0"; }
+.pick button.del[aria-pressed="true"] { background: var(--del-bg); border-color: var(--del); color: var(--del); }
+.pick button.keep[aria-pressed="true"] { background: var(--keep-bg); border-color: var(--keep); color: var(--keep); }
+.detail { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 0 20px 18px; position: sticky; top: 12px; max-height: calc(100dvh - 120px); overflow-y: auto; overflow-x: hidden; scroll-padding-top: 140px; }
+.detail.enter { animation: detail-in 200ms ease-out; }
+@keyframes detail-in { from { opacity: 0; } to { opacity: 1; } }
+.detail-head { position: sticky; top: 0; z-index: 1; background: var(--panel); padding: 16px 0 12px; border-bottom: 1px solid var(--line); }
+.detail-head h2 { font-size: 20px; margin: 0; overflow-wrap: anywhere; }
+.detail-head h2:focus { outline: none; }
 .detail .key { color: var(--sub); overflow-wrap: anywhere; }
+.back { display: none; align-items: center; gap: 4px; margin: 0 0 8px; background: none; border: 0; padding: 4px 0; color: var(--accent); font-weight: 600; cursor: pointer; }
+.decide { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px; }
 .kv { width: 100%; margin: 14px 0; border-collapse: separate; border-spacing: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
 .kv th { width: 9.5em; padding: 8px 12px; text-align: left; vertical-align: top; font-weight: 500; color: var(--sub); background: var(--soft); border-top: 1px solid var(--line); }
 .kv td { padding: 8px 12px; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
 .kv tr:first-child th, .kv tr:first-child td { border-top: 0; }
 .kv p { margin: 4px 0 0; }
 .kv ul { margin: 0; padding-left: 18px; }
+.diff, .view { font-weight: 600; }
+.visit { display: block; color: var(--sub); }
+.visit.recent { color: var(--text); font-weight: 600; }
+.memo-label { display: block; font-weight: 600; }
+.memo-hint { margin: 2px 0 6px; color: var(--sub); font-size: 14px; }
+.memo { display: block; width: 100%; max-width: 720px; font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
+.item-nav { display: none; gap: 8px; margin-top: 16px; }
+.item-nav a { flex: 1; display: block; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; color: var(--text); text-decoration: none; overflow-wrap: anywhere; }
+.item-nav a[rel="next"] { text-align: right; }
+.item-nav small { display: block; color: var(--sub); font-size: 14px; }
+.empty { padding: 24px 16px; text-align: center; color: var(--sub); }
+.empty p { margin: 0 0 8px; }
+.clear { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 8px 14px; min-height: 40px; cursor: pointer; }
+.empty-sheet { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 32px; text-align: center; }
+.review { margin-top: 24px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
+.review h2 { font-size: 20px; margin: 0 0 8px; }
+.review h2:focus { outline: none; }
+.review ol { margin: 8px 0 16px; padding-left: 22px; columns: 2 240px; }
+.review label { display: block; font-weight: 600; }
+.review .memo-hint { max-width: 720px; }
+.review textarea { display: block; width: 100%; max-width: 720px; height: 160px; font: 14px/1.5 ui-monospace, Menlo, monospace; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+.broken { max-width: 720px; }
+.bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--panel); border-top: 1px solid var(--line); }
+.bar div { max-width: 1200px; margin: 0 auto; padding: 12px 16px; display: flex; align-items: center; gap: 12px; }
+.bar span { font-size: 15px; }
+.bar b { font-size: 20px; }
+.copy-status { flex: 1; margin: 0; font-size: 14px; }
+.bar button { flex-shrink: 0; font-weight: 600; background: var(--accent); color: var(--accent-text); border: 0; border-radius: 10px; padding: 12px 22px; min-height: 44px; cursor: pointer; }
+dialog { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--text); width: min(640px, calc(100vw - 32px)); padding: 20px 24px; }
+dialog::backdrop { background: rgba(0, 0, 0, .4); }
+dialog h2 { font-size: 17px; margin: 16px 0 6px; }
+dialog h2:first-of-type { margin-top: 0; padding-right: 48px; }
+dialog p { margin: 0 0 6px; }
+dialog .close { position: absolute; top: 12px; right: 12px; width: 40px; height: 40px; border: 0; border-radius: 8px; background: none; color: var(--text); font-size: 26px; line-height: 1; cursor: pointer; }
 .fields { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 16px; margin: 14px 0; }
 .fields dt { color: var(--sub); }
 .fields dd { margin: 0; overflow-wrap: anywhere; }
@@ -94,47 +151,37 @@ h1 { font-size: 24px; margin: 0; }
   .levels { grid-template-columns: minmax(0, 1fr); gap: 0; }
   .levels dd { margin-bottom: 8px; }
 }
-.diff { font-weight: 600; }
-.diff.easy { color: var(--easy); } .diff.medium { color: var(--medium); } .diff.hard { color: var(--hard); }
-.diff.impossible { color: var(--impossible); } .diff.unknown, .diff.limited, .diff.ended, .diff.gone { color: var(--unknown); }
-.view-ok { color: var(--ok); font-weight: 600; }
-.view-ng { color: var(--ng); font-weight: 600; }
-.visit { display: block; color: var(--sub); }
-.visit.recent { color: var(--ng); font-weight: 600; }
-.decide { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; border-top: 1px solid var(--line); padding-top: 14px; }
-.memo-label { display: block; flex: 1 1 100%; color: var(--sub); }
-.memo { display: block; width: 100%; margin-top: 4px; font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
-.pager { display: flex; justify-content: center; gap: 4px; margin: 12px 0; flex-wrap: wrap; }
-.pager button { min-width: 36px; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
-.pager button[aria-current="page"] { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
-.pager button:disabled { opacity: .4; cursor: default; }
-.empty { text-align: center; color: var(--sub); padding: 32px; }
-.bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--panel); border-top: 1px solid var(--line); }
-.bar div { max-width: 1280px; margin: 0 auto; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.bar span { font-size: 15px; }
-.bar b { font-size: 20px; }
-.bar button { font-weight: 600; background: var(--accent); color: var(--accent-text); border: 0; border-radius: 10px; padding: 12px 22px; cursor: pointer; }
-.toast { position: fixed; left: 50%; bottom: 88px; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 10px; display: none; }
-dialog { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--text); width: min(640px, calc(100vw - 32px)); padding: 20px 24px; }
-dialog::backdrop { background: rgba(0, 0, 0, .4); }
-dialog h2 { font-size: 17px; margin: 16px 0 6px; }
-dialog h2:first-child { margin-top: 0; }
-dialog p { margin: 0 0 6px; }
-dialog textarea { width: 100%; height: 200px; font: 13px/1.5 ui-monospace, Menlo, monospace; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
-dialog .close { display: block; margin: 16px 0 0 auto; background: var(--accent); color: var(--accent-text); border: 0; border-radius: 8px; padding: 8px 18px; cursor: pointer; }
+@media (max-height: 500px) {
+  .detail-head { position: static; }
+}
+/* Below 860px the list and the details take turns: pressing a row shows its details alone */
 @media (max-width: 860px) {
   .steps { grid-template-columns: minmax(0, 1fr); }
-  .panes { display: block; }
-  .detail { position: static; max-height: none; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: var(--soft); }
+  .split { grid-template-columns: minmax(0, 1fr); }
+  .list, .detail { position: static; max-height: none; overflow: visible; }
+  #sheet[data-view="list"] .detail { display: none; }
+  #sheet[data-view="detail"] .list, #sheet[data-view="detail"] .tabs, #sheet[data-view="detail"] .list-title,
+  #sheet[data-view="detail"] .toolbar, #sheet[data-view="detail"] .range, #sheet[data-view="detail"] .pager { display: none; }
+  .detail-head { position: static; }
+  .back { display: inline-flex; }
+  .item-nav { display: flex; }
   .row { flex-wrap: wrap; }
+}
+@media (max-width: 479px) {
+  .bar div { flex-direction: column; align-items: stretch; gap: 6px; }
+  .bar button { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .detail.enter { animation: none; }
 }
 </style>
 </head>
-<body>
+<body data-round="__ROUND__">
 <main>
   <div class="head">
     <h1 data-i18n="title">Accounts you may no longer use</h1>
     <button type="button" class="icon" id="help-open" data-i18n-aria="helpOpen" aria-label="About this page">?</button>
+    <p id="save-state" role="status" class="save-state"></p>
     <div class="switches">
       <div class="seg lang" id="lang" role="group" data-i18n-aria="langGroup" aria-label="Language">
         <button type="button" data-lang="en" lang="en" aria-pressed="true">English</button>
@@ -148,45 +195,65 @@ dialog .close { display: block; margin: 16px 0 0 auto; background: var(--accent)
   </div>
   <p class="lead" data-i18n="lead">These are web services you have signed up for. Pressing buttons on this page does not delete anything.</p>
   <ol class="steps">
-    <li><i>1</i><span data-i18n="step1">Press OK to delete, Keep to keep, or leave it</span></li>
-    <li><i>2</i><span data-i18n="step2">Write notes for the AI in the details memo</span></li>
-    <li><i>3</i><span data-i18n="step3">Press "Copy OK items" and paste into chat</span></li>
+    <li><i>1</i><span data-i18n="step1">Press Delete or Keep on each row, or leave it</span></li>
+    <li><i>2</i><span data-i18n="step2">Write notes for the AI in the memo</span></li>
+    <li><i>3</i><span data-i18n="step3">Press "Copy items to delete" and paste into chat</span></li>
   </ol>
-  <div class="tabs" role="tablist" id="tabs">
-    <button type="button" role="tab" data-t="prev" aria-selected="false" hidden>Left from last round</button>
-    <button type="button" role="tab" data-t="cand" aria-selected="false">Likely unused</button>
-    <button type="button" role="tab" data-t="rest" aria-selected="false">Others</button>
-    <button type="button" role="tab" data-t="all" aria-selected="false">All</button>
-  </div>
-  <div class="toolbar">
-    <input id="q" type="search" data-i18n-placeholder="search" data-i18n-aria="searchLabel" placeholder="Filter by service name or domain" aria-label="Filter">
-    <div class="seg" id="filter" role="group" data-i18n-aria="filterGroup" aria-label="Filter by choice">
-      <button type="button" data-f="all" data-i18n="filterAll" aria-pressed="true">All</button>
-      <button type="button" data-f="none" data-i18n="filterNone" aria-pressed="false">Not chosen</button>
-      <button type="button" data-f="ok" data-i18n="ok" aria-pressed="false">OK</button>
-      <button type="button" data-f="ng" data-i18n="ng" aria-pressed="false">Keep</button>
+  <p class="warn" role="note" data-i18n="warn">Accounts you mark Delete are deleted after you approve in the chat, and cannot be restored.</p>
+  <div id="sheet" data-view="list">
+    <div class="tabs" role="tablist" id="tabs" data-i18n-aria="tabsLabel" aria-label="Categories" hidden>
+      <button type="button" role="tab" id="tab-prev" data-t="prev" aria-controls="panel" aria-selected="false" tabindex="-1">Leftovers</button>
+      <button type="button" role="tab" id="tab-cand" data-t="cand" aria-controls="panel" aria-selected="false" tabindex="-1">Unused accounts</button>
+      <button type="button" role="tab" id="tab-rest" data-t="rest" aria-controls="panel" aria-selected="false" tabindex="-1">Other accounts</button>
     </div>
-    <select id="sort" data-i18n-aria="sortLabel" aria-label="Sort">
-      <option value="prev" data-i18n="sortPrev">By last round's result</option>
-      <option value="old" data-i18n="sortOld">Last updated, oldest first</option>
-      <option value="new" data-i18n="sortNew">Last updated, newest first</option>
-      <option value="name" data-i18n="sortName">Name</option>
-    </select>
+    <div id="panel" role="tabpanel" aria-labelledby="tab-cand">
+      <h2 class="list-title" id="list-title" tabindex="-1">All services</h2>
+      <div class="toolbar">
+        <div class="field grow"><label for="q" data-i18n="searchLabel">Search by name or domain</label><input id="q" type="search" autocomplete="off"></div>
+        <div class="field" id="category-field"><span class="field-label" id="category-label" data-i18n="categoryLabel">Category</span><div class="seg" id="category" role="group" aria-labelledby="category-label"></div></div>
+        <div class="field"><span class="field-label" id="filter-label" data-i18n="filterGroup">Choice</span>
+          <div class="seg" id="filter" role="group" aria-labelledby="filter-label">
+            <button type="button" data-f="all" aria-pressed="true">All</button>
+            <button type="button" data-f="none" aria-pressed="false">Not chosen</button>
+            <button type="button" data-f="ok" aria-pressed="false">Delete</button>
+            <button type="button" data-f="ng" aria-pressed="false">Keep</button>
+          </div>
+        </div>
+        <div class="field"><label for="sort" data-i18n="sortLabel">Sort</label>
+          <select id="sort">
+            <option value="prev" data-i18n="sortPrev">By last round's result</option>
+            <option value="old" data-i18n="sortOld">Last updated, oldest first</option>
+            <option value="new" data-i18n="sortNew">Last updated, newest first</option>
+            <option value="name" data-i18n="sortName">Name</option>
+          </select>
+        </div>
+      </div>
+      <p class="range" id="range"></p>
+      <nav class="pager" id="pager-top" data-i18n-aria="pagerTop" aria-label="Pages"></nav>
+      <div class="split" id="split">
+        <ul class="list" id="rows" data-i18n-aria="listLabel" aria-label="Services"></ul>
+        <section class="detail" id="detail" aria-labelledby="detail-title"></section>
+      </div>
+      <nav class="pager" id="pager-bottom" data-i18n-aria="pagerBottom" aria-label="Pages, bottom"></nav>
+    </div>
   </div>
-  <div class="pager" id="pager-top"></div>
-  <div class="panes">
-    <div class="list" id="rows" role="listbox" data-i18n-aria="listLabel" aria-label="Services"></div>
-    <aside class="detail" id="detail" aria-live="polite"></aside>
-  </div>
-  <div class="pager" id="pager-bottom"></div>
+  <div class="empty-sheet" id="empty-sheet" hidden></div>
+  <section class="review" id="review" aria-labelledby="review-title" hidden>
+    <h2 id="review-title" tabindex="-1"></h2>
+    <p class="warn" data-i18n="reviewWarn">Once you approve in the chat, the agent cancels paid plans and deletes these accounts. This cannot be undone.</p>
+    <ol id="review-list"></ol>
+    <label for="review-text" data-i18n="reviewTextLabel">Text to paste into the chat</label>
+    <p class="memo-hint" id="review-manual" data-i18n="reviewManual">If copying did not work, select all of the text in the box, copy it, and paste it into the chat.</p>
+    <textarea id="review-text" readonly aria-describedby="review-manual"></textarea>
+  </section>
 </main>
-<div class="bar"><div><span id="tally">OK <b id="count">0</b>, Keep <b id="count-ng">0</b></span><button type="button" id="copy" data-i18n="copy">Copy OK items</button></div></div>
-<div class="toast" id="toast" data-i18n="toast">Copied. Paste it into the chat.</div>
-<dialog id="help">
-  <h2 data-i18n="helpWhatTitle">What this page is</h2>
+<div class="bar"><div><span id="tally">Nothing chosen yet</span><p id="copy-status" role="status" class="copy-status"></p><button type="button" id="copy" data-i18n="copy">Copy items to delete</button></div></div>
+<dialog id="help" aria-labelledby="help-title">
+  <button type="button" class="close" id="help-close" data-i18n-aria="close" aria-label="Close">&times;</button>
+  <h2 id="help-title" data-i18n="helpWhatTitle">What this page is</h2>
   <p data-i18n="helpWhatBody">Only service names, URLs and dates were collected from your password manager (such as 1Password) and the logins saved in your browser. No passwords were read.</p>
   <h2 data-i18n="helpNextTitle">What happens next</h2>
-  <p data-i18n="helpNextBody">Starting with the services you marked OK, the AI checks for paid plans, cancels any it finds, and deletes the account.</p>
+  <p data-i18n="helpNextBody">Starting with the services you marked Delete, the AI checks for paid plans, cancels any it finds, and deletes the account.</p>
   <p data-i18n="helpNextYou">You complete two-factor checks, and sign in yourself wherever the AI cannot fill in your login.</p>
   <h2 data-i18n="helpFieldsTitle">Fields in the details panel</h2>
   <dl class="fields">
@@ -200,12 +267,6 @@ dialog .close { display: block; margin: 16px 0 0 auto; background: var(--accent)
   </dl>
   <h2 data-i18n="helpEffortTitle">Deletion effort levels</h2>
   <dl class="levels" id="effort-help"></dl>
-  <button type="button" class="close" id="help-close" data-i18n="close">Close</button>
-</dialog>
-<dialog id="fallback">
-  <p data-i18n="fallback">Could not copy automatically. Select all of the text below, copy it, and paste it into the chat.</p>
-  <textarea id="fallback-text" readonly></textarea>
-  <button type="button" class="close" id="fallback-close" data-i18n="close">Close</button>
 </dialog>
 <script type="application/json" id="data">
 __DATA__
@@ -218,11 +279,27 @@ __DATA__
   var MEMO_STORE = "account-cleanup-memo";
   var LANG_STORE = "account-cleanup-lang";
   var THEME_STORE = "account-cleanup-theme";
-  var data = JSON.parse(document.getElementById("data").textContent) || [];
-  var picks = {};
-  try { picks = JSON.parse(localStorage.getItem(STORE) || "{}") || {}; } catch (e) { picks = {}; }
-  var memos = {};
-  try { memos = JSON.parse(localStorage.getItem(MEMO_STORE) || "{}") || {}; } catch (e) { memos = {}; }
+  var data = [];
+  var broken = false;
+  try {
+    data = JSON.parse(document.getElementById("data").textContent);
+    if (!Array.isArray(data)) throw new Error("the data is not a list");
+  } catch (e) { broken = true; data = []; }
+  // The round this sheet was built for. Choices and memos are kept per round, so the accounts left
+  // from an earlier round open with nothing pressed, and the entries of other rounds are removed
+  var round = document.body.getAttribute("data-round") || "";
+  if (!/^[0-9a-f]+$/.test(round)) round = "";
+  var storageOk = true;
+  try {
+    var stored = [];
+    for (var i = 0; i < localStorage.length; i++) stored.push(localStorage.key(i));
+    staleStores(stored, round).forEach(function (k) { localStorage.removeItem(k); });
+  } catch (e) { storageOk = false; }
+  function load(name) {
+    try { return JSON.parse(localStorage.getItem(name) || "{}") || {}; } catch (e) { storageOk = false; return {}; }
+  }
+  var picks = load(storeName(STORE, round));
+  var memos = load(storeName(MEMO_STORE, round));
   var lang = "en";
   try { lang = localStorage.getItem(LANG_STORE) === "ja" ? "ja" : "en"; } catch (e) { lang = "en"; }
   // The theme follows the system until the user picks one, which is kept like the language
@@ -232,8 +309,9 @@ __DATA__
     if (savedTheme === "light" || savedTheme === "dark") theme = savedTheme;
   } catch (e) { /* not saved; the page follows the system */ }
   var narrow = window.matchMedia("(max-width: 860px)");
+  var phone = window.matchMedia("(max-width: 599px)");
 
-  // Every UI string, per language. The text copied by "Copy OK items" never comes from here,
+  // Every UI string, per language. The text copied by "Copy items to delete" never comes from here,
   // so what plan.sh receives is the same in every language.
   var I18N = {
     en: {
@@ -243,18 +321,22 @@ __DATA__
       themeGroup: "Theme",
       light: "Light",
       dark: "Dark",
+      saved: "Saved in this browser",
+      notSaved: "Not saved in this browser",
       lead: "These are web services you have signed up for. Pressing buttons on this page does not delete anything.",
-      step1: "Press OK to delete, Keep to keep, or leave it",
-      step2: "Write notes for the AI in the details memo",
-      step3: "Press \"Copy OK items\" and paste into chat",
-      tabPrev: "Left from last round",
-      tabPrevRound: "Left from round {n}",
-      tabCand: "Likely unused",
-      tabRest: "Others",
-      tabAll: "All",
-      search: "Filter by service name or domain",
-      searchLabel: "Filter",
-      filterGroup: "Filter by choice",
+      step1: "Press Delete or Keep on each row, or leave it",
+      step2: "Write notes for the AI in the memo",
+      step3: "Press \"Copy items to delete\" and paste into chat",
+      warn: "Accounts you mark Delete are deleted after you approve in the chat, and cannot be restored.",
+      tabsLabel: "Categories",
+      tabPrev: "Leftovers",
+      tabCand: "Unused accounts",
+      tabRest: "Other accounts",
+      categoryLabel: "Category",
+      categoryAll: "All",
+      listAll: "All services",
+      searchLabel: "Search by name or domain",
+      filterGroup: "Choice",
       filterAll: "All",
       filterNone: "Not chosen",
       sortLabel: "Sort",
@@ -263,18 +345,32 @@ __DATA__
       sortNew: "Last updated, newest first",
       sortName: "Name",
       listLabel: "Services",
-      ok: "OK",
+      rangeShow: "Showing {from}–{to} of {total}",
+      pagerTop: "Pages",
+      pagerBottom: "Pages, bottom",
+      pagePrev: "Previous",
+      pageNext: "Next",
+      pageN: "Page {n}",
+      ok: "Delete",
       ng: "Keep",
-      pickAria: "Mark {name} as {choice}",
-      tally: "OK {ok}, Keep {ng}",
-      copy: "Copy OK items",
-      toast: "Copied. Paste it into the chat.",
-      fallback: "Could not copy automatically. Select all of the text below, copy it, and paste it into the chat.",
+      pickGroup: "Delete or keep {name}",
+      tally: "Delete {ok}, Keep {ng}",
+      tallyNone: "Nothing chosen yet",
+      copy: "Copy items to delete",
+      copyNone: "Nothing is marked Delete yet, so nothing was copied.",
+      copied: "Copied {n} accounts to delete. Paste the text into the chat.",
+      copiedOne: "Copied 1 account to delete. Paste the text into the chat.",
+      copyFailed: "The browser did not allow copying. Copy the text in the box below by hand.",
+      reviewTitle: "Delete {n} accounts",
+      reviewTitleOne: "Delete 1 account",
+      reviewWarn: "Once you approve in the chat, the agent cancels paid plans and deletes these accounts. This cannot be undone.",
+      reviewTextLabel: "Text to paste into the chat",
+      reviewManual: "If copying did not work, select all of the text in the box, copy it, and paste it into the chat.",
       close: "Close",
       helpWhatTitle: "What this page is",
       helpWhatBody: "Only service names, URLs and dates were collected from your password manager (such as 1Password) and the logins saved in your browser. No passwords were read.",
       helpNextTitle: "What happens next",
-      helpNextBody: "Starting with the services you marked OK, the AI checks for paid plans, cancels any it finds, and deletes the account.",
+      helpNextBody: "Starting with the services you marked Delete, the AI checks for paid plans, cancels any it finds, and deletes the account.",
       helpNextYou: "You complete two-factor checks, and sign in yourself wherever the AI cannot fill in your login.",
       helpFieldsTitle: "Fields in the details panel",
       fWhat: "What it is",
@@ -295,11 +391,17 @@ __DATA__
       helpEffortTitle: "Deletion effort levels",
       fView: "AI's take",
       fViewHelp: "Whether it looks safe to delete or better to keep",
-      chipOk: "Looks safe to delete",
-      chipNg: "Better to keep",
-      chipGone: "Site is gone",
-      chipMemo: "Has a memo",
+      factsLabel: "About {name}",
+      chipOk: "Suggest delete",
+      chipNg: "Suggest keep",
+      chipGone: "Site gone",
+      chipMemo: "Has memo",
+      detailNone: "No service open",
       detailEmpty: "Select a service in the list to see its details here.",
+      back: "Back to the list",
+      itemNav: "Other services",
+      prevItem: "Previous",
+      nextItem: "Next",
       noDesc: "No description yet",
       none: "None",
       unknownDate: "Unknown",
@@ -307,11 +409,21 @@ __DATA__
       notOpenedSince: "Not opened since {date}",
       noView: "No suggestion",
       decide: "Delete?",
-      memoLabel: "Memo (included in the copied text; the AI reads it before deleting)",
-      memoPlaceholder: "e.g. Used for work, so keep it",
-      emptyList: "No matching services",
-      diffGone: "Not needed (site is gone)",
-      diff: { easy: "Easy", medium: "Medium", hard: "Hard", impossible: "Impossible", limited: "Partial", unknown: "Unknown", ended: "Service ended" },
+      memoLabel: "Memo",
+      memoHint: "Only the memos of rows marked Delete go into the copied text, and the AI reads them before deleting.",
+      emptyCategory: "No service in this list matches the choice you picked.",
+      emptySheet: "No accounts were found in the places you chose to collect from.",
+      noMatch: "No service matches “{q}”.",
+      clearFilters: "Clear filters",
+      broken: "This page could not read its list of accounts. Ask the agent to build the candidate sheet again.",
+      effort: { easy: "Easy", steps: "More steps", request: "Request needed", unknown: "Not checked", nothing: "Already gone" },
+      effortHelp: {
+        easy: "Delete it in the service's settings in a few steps",
+        steps: "Deleting takes extra steps, such as a confirmation email",
+        request: "The service needs support, deletes only part of the data, or has no way to delete. The AI drafts a request and you send it",
+        unknown: "The deletion page is not known yet. The AI looks it up before deleting",
+        nothing: "The service or its site is gone, so only the saved login is cleaned up"
+      },
       diffHelp: {
         easy: "The account can be deleted in the service's settings in a few steps",
         medium: "Deleting takes some extra steps, such as a confirmation email",
@@ -343,18 +455,22 @@ __DATA__
       themeGroup: "配色",
       light: "明るい",
       dark: "暗い",
+      saved: "このブラウザに保存済み",
+      notSaved: "このブラウザに保存できません",
       lead: "あなたが登録したことのあるWebサービスの一覧です。この画面で押しただけでは、何も消えません。",
-      step1: "消すならOK、残すならダメ、迷えば押さない",
+      step1: "「消す」か「残す」を押すか、迷えば押さない",
       step2: "気になることは詳しい欄のメモに書く",
-      step3: "「OKの分をコピー」を押してチャットに貼る",
-      tabPrev: "前の回の残り",
-      tabPrevRound: "{n}回目の残り",
-      tabCand: "使っていない見込み",
-      tabRest: "それ以外",
-      tabAll: "全部",
-      search: "サービスの名前かドメインで絞る",
-      searchLabel: "絞り込み",
-      filterGroup: "選んだ状態で絞る",
+      step3: "「消す分をコピー」を押してチャットに貼る",
+      warn: "「消す」にしたアカウントは、チャットで承認した後に削除され、元に戻せません。",
+      tabsLabel: "分類",
+      tabPrev: "前回の残り",
+      tabCand: "使っていない候補",
+      tabRest: "その他",
+      categoryLabel: "分類",
+      categoryAll: "全部",
+      listAll: "全部のサービス",
+      searchLabel: "名前かドメインで探す",
+      filterGroup: "選んだ状態",
       filterAll: "全部",
       filterNone: "まだ選んでいない",
       sortLabel: "並べ替え",
@@ -363,18 +479,32 @@ __DATA__
       sortNew: "最後に更新した日が新しい順",
       sortName: "名前順",
       listLabel: "サービスの一覧",
-      ok: "OK",
-      ng: "ダメ",
-      pickAria: "{name}を{choice}",
-      tally: "OK {ok}件、ダメ{ng}件",
-      copy: "OKの分をコピー",
-      toast: "コピーしました。チャットに貼ってください。",
-      fallback: "自動でコピーできなかったので、下の文を全部選んでコピーし、チャットに貼ってください。",
+      rangeShow: "{total}件中{from}〜{to}件目",
+      pagerTop: "頁",
+      pagerBottom: "頁 (下)",
+      pagePrev: "前へ",
+      pageNext: "次へ",
+      pageN: "{n}頁目",
+      ok: "消す",
+      ng: "残す",
+      pickGroup: "{name}を消すか残すか",
+      tally: "消す{ok}件、残す{ng}件",
+      tallyNone: "まだ選んでいません",
+      copy: "消す分をコピー",
+      copyNone: "「消す」にした物がまだ無いので、何もコピーしていません。",
+      copied: "消す{n}件をコピーしました。チャットに貼ってください。",
+      copiedOne: "消す1件をコピーしました。チャットに貼ってください。",
+      copyFailed: "ブラウザがコピーを許しませんでした。下の欄の文を手でコピーしてください。",
+      reviewTitle: "{n}件のアカウントを消す",
+      reviewTitleOne: "1件のアカウントを消す",
+      reviewWarn: "チャットで承認すると、エージェントが有料の契約を解約し、これらのアカウントを削除します。削除は元に戻せません。",
+      reviewTextLabel: "チャットに貼る文",
+      reviewManual: "コピーできなかった時は、欄の文を全部選んでコピーし、チャットに貼ってください。",
       close: "閉じる",
       helpWhatTitle: "この画面は何か",
       helpWhatBody: "パスワード管理 (1Passwordなど) とブラウザに保存してあるログイン情報から、サービスの名前とURLと日付だけを集めました。パスワードは読んでいません。",
       helpNextTitle: "押した後に起きること",
-      helpNextBody: "AIがOKにしたサービスから順に、有料の契約が残っていないかを確かめて解約し、アカウントを削除します。",
+      helpNextBody: "AIが「消す」にしたサービスから順に、有料の契約が残っていないかを確かめて解約し、アカウントを削除します。",
       helpNextYou: "ログインと、二要素の確認はあなたが行います。",
       helpFieldsTitle: "詳しい欄の項目",
       fWhat: "何のサイトか",
@@ -395,11 +525,17 @@ __DATA__
       helpEffortTitle: "削除の手間の段階",
       fView: "AIの見立て",
       fViewHelp: "消してよさそうか、残した方がよさそうか",
+      factsLabel: "{name}の詳しい項目",
       chipOk: "消してよさそう",
       chipNg: "残した方がよさそう",
       chipGone: "サイトが無い",
       chipMemo: "メモあり",
+      detailNone: "開いているサービスはありません",
       detailEmpty: "一覧から選ぶと、ここに詳しく出ます。",
+      back: "一覧へ戻る",
+      itemNav: "ほかのサービス",
+      prevItem: "前へ",
+      nextItem: "次へ",
       noDesc: "まだ説明がありません",
       none: "なし",
       unknownDate: "不明",
@@ -407,11 +543,21 @@ __DATA__
       notOpenedSince: "{date}以降は開いていない",
       noView: "見立て無し",
       decide: "消してよいか",
-      memoLabel: "メモ (コピーした文に入り、AIが消す時に読みます)",
-      memoPlaceholder: "例 仕事で使うので残す",
-      emptyList: "当てはまるサービスがありません",
-      diffGone: "不要 (サイトが無い)",
-      diff: { easy: "かんたん", medium: "ふつう", hard: "難しい", impossible: "削除できない", limited: "一部だけ消せる", unknown: "未確認", ended: "サービス終了" },
+      memoLabel: "メモ",
+      memoHint: "「消す」にした行のメモだけがコピーした文に入り、AIが消す前に読みます。",
+      emptyCategory: "この一覧に、選んだ状態の物はありません。",
+      emptySheet: "集める先に選んだ所から、アカウントが見つかりませんでした。",
+      noMatch: "「{q}」に当てはまるサービスはありません。",
+      clearFilters: "絞り込みを消す",
+      broken: "この画面は候補の一覧を読めませんでした。エージェントに候補のシートを作り直すよう頼んでください。",
+      effort: { easy: "かんたん", steps: "手順が多い", request: "依頼が要る", unknown: "まだ調べていない", nothing: "消す物が無い" },
+      effortHelp: {
+        easy: "サービスの設定から少ない手順で消せる",
+        steps: "確認のメールなど、消すまでの手順が多い",
+        request: "サポートへの連絡が要るか、一部しか消せないか、消す手段が無い。頼む文はAIが書き、あなたが送る",
+        unknown: "削除の頁がまだ分からない。消す前にAIが調べる",
+        nothing: "サービスかサイトが無くなっていて、保存したログイン情報だけを片付ける"
+      },
       diffHelp: {
         easy: "サービスの設定から少ない手順で消せる",
         medium: "確認のメールなど、消すまでに少し手順が多い",
@@ -439,6 +585,8 @@ __DATA__
   };
   // Product names are the same in every language
   var SOURCE = { "1password": "1Password", bitwarden: "Bitwarden", chrome: "Chrome", dia: "Dia", arc: "Arc", brave: "Brave", edge: "Edge" };
+  // The icon in front of each status chip, so a chip does not rely on its color
+  var MARKS = { prev: "↻", del: "×", keep: "○", gone: "∅", memo: "✎" };
 
   function t(key) { return I18N[lang][key]; }
   function fill(s, vars) {
@@ -453,7 +601,7 @@ __DATA__
   // A Japanese full stop with more text after it ends the line, so each sentence starts on its own
   // line, as the look of page-design asks. Text without one is written as it is.
   function setLines(node, text) {
-    var parts = String(text).replace(/\u3002(?![\u300d\u300f\uff09)\u3011\u3009\u300b"'\u201d\u2019]|$)/g, "\u3002\u0000").split("\u0000");
+    var parts = String(text).replace(/。(?![」』）)】〉》"'”’]|$)/g, "。\u0000").split("\u0000");
     node.textContent = parts[0];
     for (var i = 1; i < parts.length; i++) {
       node.appendChild(document.createElement("br"));
@@ -476,144 +624,234 @@ __DATA__
   // Accounts that could not be deleted in an earlier round. Counted only when they have a label
   function hasPrev(g) { return !!(g.previous && g.previous.label); }
   function isCandidate(g) { return (g.reasons && g.reasons.length > 0) || g.suggestion === "ok"; }
-  function save() {
-    try {
-      localStorage.setItem(STORE, JSON.stringify(picks));
-      localStorage.setItem(MEMO_STORE, JSON.stringify(memos));
-    } catch (e) { /* when storage fails, choices last only while the page is open */ }
-  }
   function sourceName(s) { return SOURCE[s] || label("source", s); }
   function reasonText(r, g) { return fill(label("reason", r), { date: g.updated || t("unknownDate") }); }
 
-  // Tabs do not overlap. Leftovers from the last round come first; the rest split into likely unused and others
+  // The name a store has in one round. A sheet built before rounds were kept uses the plain name
+  function storeName(base, round) { return round ? base + "-" + round : base; }
+  // The stored choices and memos that belong to another round, or to a sheet built before rounds were kept
+  function staleStores(keys, round) {
+    var current = [storeName(STORE, round), storeName(MEMO_STORE, round)];
+    return keys.filter(function (k) {
+      var ours = [STORE, MEMO_STORE].some(function (base) { return k === base || k.indexOf(base + "-") === 0; });
+      return ours && current.indexOf(k) < 0;
+    });
+  }
+  function save() {
+    try {
+      localStorage.setItem(storeName(STORE, round), JSON.stringify(picks));
+      localStorage.setItem(storeName(MEMO_STORE, round), JSON.stringify(memos));
+      storageOk = true;
+    } catch (e) { storageOk = false; }
+    renderSaveState();
+  }
+  function renderSaveState() {
+    var box = document.getElementById("save-state"), text = t(storageOk ? "saved" : "notSaved");
+    if (box.textContent !== text) box.textContent = text;
+    box.setAttribute("data-state", storageOk ? "on" : "off");
+  }
+
+  // Categories do not overlap. Leftovers from an earlier round come first; the rest split into likely unused and others
   function tabOf(g) { return hasPrev(g) ? "prev" : isCandidate(g) ? "cand" : "rest"; }
+  function tabName(cat) { return cat === "all" ? t("categoryAll") : t({ prev: "tabPrev", cand: "tabCand", rest: "tabRest" }[cat]); }
+  function categoryCounts() {
+    var counts = { prev: 0, cand: 0, rest: 0 };
+    data.forEach(function (g) { counts[tabOf(g)]++; });
+    return counts;
+  }
+  // A list longer than one page gets a tab per category; a shorter one stays one list with a category filter
+  function useTabs(total) { return total > PAGE; }
+  // The categories that get a tab: only those with rows, and no tabs at all when fewer than two have rows
+  function shownTabs(counts) {
+    var shown = ["prev", "cand", "rest"].filter(function (c) { return counts[c] > 0; });
+    return shown.length >= 2 ? shown : [];
+  }
   var prevCount = data.filter(hasPrev).length;
-  var prevRound = data.reduce(function (m, g) { return hasPrev(g) && g.previous.round > m ? g.previous.round : m; }, 0);
-  var state = { tab: prevCount ? "prev" : "cand", q: "", f: "all", page: 1, sel: null };
-  // Each tab keeps its own sort. Leftovers from the last round start by their result; the other tabs
+  // Each category keeps its own sort. Leftovers start by their last-round result; the other categories
   // start with the oldest update first, as on a first round. The sort by last round's result is offered
-  // only on a tab that has a row with a last-round result, so the sort shown is the one the rows follow
-  var sorts = { prev: "prev", cand: "old", rest: "old", all: "old" };
+  // only where a row has a last-round result, so the sort shown is the one the rows follow
+  var sorts = { prev: "prev", cand: "old", rest: "old", all: prevCount ? "prev" : "old" };
+  var state = { tab: "all", q: "", f: "all", page: 1, sel: null };
   var prevOption = document.querySelector('#sort option[value="prev"]');
   var since = data.length && data[0].history_since;
+  var byKey = {};
+  data.forEach(function (g) { byKey[g.key] = g; });
 
-  function tabName(tab) {
-    if (tab === "prev") return prevRound ? fill(t("tabPrevRound"), { n: prevRound }) : t("tabPrev");
-    return t({ cand: "tabCand", rest: "tabRest", all: "tabAll" }[tab]);
-  }
-
-  function visible() {
-    var q = state.q.toLowerCase();
-    var list = data.filter(function (g) {
-      if (state.tab !== "all" && tabOf(g) !== state.tab) return false;
-      var p = picks[g.key] || "none";
-      if (state.f !== "all" && p !== state.f) return false;
-      if (!q) return true;
-      return (title(g) + " " + g.key + " " + (g.names || []).join(" ") + " " + (g.description || "")).toLowerCase().indexOf(q) >= 0;
-    });
-    var sort = sorts[state.tab];
-    list.sort(function (a, b) {
-      if (sort === "name") return title(a).localeCompare(title(b), lang);
-      if (sort === "prev") {
-        var la = hasPrev(a) ? a.previous.label : "￿", lb = hasPrev(b) ? b.previous.label : "￿";
-        return la.localeCompare(lb, lang) || title(a).localeCompare(title(b), lang);
-      }
-      var x = a.updated || "", y = b.updated || "";
-      return sort === "old" ? x.localeCompare(y) : y.localeCompare(x);
-    });
-    return list;
-  }
-
-  function tabHasPrev(tab) { return data.some(function (g) { return hasPrev(g) && (tab === "all" || tabOf(g) === tab); }); }
-  // Put the sort by last round's result in the list only where it applies, and show the tab's own sort
-  function renderSort() {
-    var box = document.getElementById("sort");
-    prevOption.textContent = t("sortPrev");
-    if (!tabHasPrev(state.tab)) { if (prevOption.parentNode) prevOption.remove(); }
-    else if (!prevOption.parentNode) box.insertBefore(prevOption, box.firstChild);
-    box.value = sorts[state.tab];
-  }
-
-  // Write "OK 3, Keep 2" (or the other language's form) with the numbers in bold
-  function renderTally(ok, ng) {
-    var box = document.getElementById("tally");
-    box.textContent = "";
-    t("tally").split(/(\{ok\}|\{ng\})/).forEach(function (part) {
-      if (part === "{ok}") { var a = el("b", null, String(ok)); a.id = "count"; box.appendChild(a); }
-      else if (part === "{ng}") { var b = el("b", null, String(ng)); b.id = "count-ng"; box.appendChild(b); }
-      else if (part) box.appendChild(document.createTextNode(part));
-    });
-  }
-
-  function renderCounts() {
-    var ok = 0, ng = 0, counts = { prev: 0, cand: 0, rest: 0, all: data.length };
-    data.forEach(function (g) {
-      if (picks[g.key] === "ok") ok++;
-      if (picks[g.key] === "ng") ng++;
-      counts[tabOf(g)]++;
-    });
-    renderTally(ok, ng);
-    Array.prototype.forEach.call(document.querySelectorAll("#tabs button"), function (b) {
-      var tab = b.getAttribute("data-t");
-      b.textContent = tabName(tab) + " (" + counts[tab] + ")";
-      b.setAttribute("aria-selected", tab === state.tab ? "true" : "false");
-      if (tab === "prev") b.hidden = !prevCount;
-    });
-  }
-
-  function renderPager(id, pages) {
-    var box = document.getElementById(id);
-    box.textContent = "";
-    if (pages <= 1) return;
-    function add(text, page, disabled, current) {
-      var b = el("button", null, text);
-      b.type = "button";
-      b.disabled = !!disabled;
-      if (current) b.setAttribute("aria-current", "page");
-      b.addEventListener("click", function () { state.page = page; state.sel = null; render(); window.scrollTo(0, document.getElementById("tabs").offsetTop); });
-      box.appendChild(b);
+  // Rows of the same date fall back to the name, so the order never depends on the input order
+  function compareRows(a, b, sort) {
+    var byName = title(a).localeCompare(title(b), lang);
+    if (sort === "name") return byName;
+    if (sort === "prev") {
+      var la = hasPrev(a) ? a.previous.label : "￿", lb = hasPrev(b) ? b.previous.label : "￿";
+      return la.localeCompare(lb, lang) || byName;
     }
-    add("‹", state.page - 1, state.page === 1);
-    var from = Math.max(1, state.page - 3), to = Math.min(pages, from + 6);
-    from = Math.max(1, to - 6);
-    for (var i = from; i <= to; i++) add(String(i), i, false, i === state.page);
-    add("›", state.page + 1, state.page === pages);
+    var x = a.updated || "", y = b.updated || "";
+    return (sort === "new" ? y.localeCompare(x) : x.localeCompare(y)) || byName;
+  }
+  function categoryList(cat) {
+    return data.filter(function (g) { return cat === "all" || tabOf(g) === cat; })
+      .sort(function (a, b) { return compareRows(a, b, sorts[cat]); });
+  }
+  // The rows to show. A search looks in every category; without one, the chosen category. Both follow
+  // the choice filter unless anyChoice is set
+  function visible(anyChoice) {
+    var q = state.q.trim().toLowerCase();
+    return data.filter(function (g) {
+      if (!q && state.tab !== "all" && tabOf(g) !== state.tab) return false;
+      if (!anyChoice && state.f !== "all" && (picks[g.key] || "none") !== state.f) return false;
+      return !q || (title(g) + " " + g.key + " " + (g.names || []).join(" ") + " " + (g.description || "")).toLowerCase().indexOf(q) >= 0;
+    }).sort(function (a, b) { return compareRows(a, b, sorts[state.tab]); });
+  }
+  // The category and page that show an item when nothing narrows the list
+  function placeOf(key) {
+    var g = data.filter(function (x) { return x.key === key; })[0];
+    if (!g) return null;
+    var cat = useTabs(data.length) ? tabOf(g) : "all";
+    return { tab: cat, page: Math.floor(categoryList(cat).indexOf(g) / PAGE) + 1 };
+  }
+  function itemId(key) { return "item-" + encodeURIComponent(key); }
+  // The item to open first: the one the fragment names, else the first. Nothing on a narrow screen,
+  // where the list comes first
+  function initialKey(hash, keys, wide) {
+    if (!wide) return null;
+    for (var i = 0; i < keys.length; i++) if ("#" + itemId(keys[i]) === hash) return keys[i];
+    return keys.length ? keys[0] : null;
+  }
+  function keyFromHash(hash) {
+    for (var i = 0; i < data.length; i++) if ("#" + itemId(data[i].key) === hash) return data[i].key;
+    return null;
+  }
+  function neighbors(keys, key) {
+    var i = keys.indexOf(key);
+    return { prev: i > 0 ? keys[i - 1] : null, next: i >= 0 && i < keys.length - 1 ? keys[i + 1] : null };
+  }
+  // The pager: Previous unless on the first page, up to max page numbers around the current one, and
+  // Next unless on the last page. Nothing for a single page
+  function pagerItems(page, pages, max) {
+    if (pages <= 1) return [];
+    var from = Math.max(1, page - Math.floor(max / 2)), to = Math.min(pages, from + max - 1);
+    from = Math.max(1, to - max + 1);
+    var out = [];
+    if (page > 1) out.push("prev");
+    for (var i = from; i <= to; i++) out.push(i);
+    if (page < pages) out.push("next");
+    return out;
+  }
+  function rangeText(page, total) {
+    return fill(t("rangeShow"), { from: (page - 1) * PAGE + 1, to: Math.min(page * PAGE, total), total: total });
+  }
+  function tallyText(del, keep) { return del || keep ? fill(t("tally"), { ok: del, ng: keep }) : t("tallyNone"); }
+  function reviewTitle(n) { return n === 1 ? t("reviewTitleOne") : fill(t("reviewTitle"), { n: n }); }
+  function copyStatus(n) { return n === 0 ? t("copyNone") : n === 1 ? t("copiedOne") : fill(t("copied"), { n: n }); }
+  // Five levels of deletion effort for the reader. The data keeps the finer value, explained in the details
+  function effortLevel(g) {
+    if (g.alive === false) return "nothing";
+    if (g.needs_search || !g.deletion) return "unknown";
+    var d = g.deletion.difficulty || "unknown";
+    return { easy: "easy", medium: "steps", hard: "request", impossible: "request", limited: "request", ended: "nothing" }[d] || "unknown";
+  }
+  function effortDetail(g) {
+    if (g.alive === false) return t("diffGoneHelp");
+    if (g.needs_search || !g.deletion) return label("diffHelp", "unknown");
+    return label("diffHelp", g.deletion.difficulty || "unknown");
+  }
+  // The memo as it goes into the copied text: one line, without spaces at either end. The memo field keeps what was typed
+  function memoText(m) { return String(m || "").replace(/[\t\r\n]+/g, " ").trim(); }
+
+  // The pasted text is parsed by plan.sh: a fixed first line, then one key per line with the user's memo after a tab.
+  // It does not depend on the UI language.
+  function selectionText() {
+    var keys = data.filter(function (g) {
+      return picks[g.key] === "ok";
+    }).map(function (g) {
+      var m = memoText(memos[g.key]);
+      return g.key + (m ? "\t" + m : "");
+    });
+    return ["account-cleanup selection"].concat(keys).join("\n") + "\n";
   }
 
-  // OK and Keep buttons. The same pair goes on the list row and in the details panel
+  function statusChip(kind, text) {
+    var chip = el("span", "chip " + kind);
+    var mark = el("span", "mark", MARKS[kind]);
+    mark.setAttribute("aria-hidden", "true");
+    chip.appendChild(mark);
+    chip.appendChild(document.createTextNode(text));
+    return chip;
+  }
+  function rowChips(g) {
+    var box = el("span", "chips");
+    if (hasPrev(g)) box.appendChild(statusChip("prev", g.previous.label));
+    else if (g.suggestion === "ok") box.appendChild(statusChip("del", t("chipOk")));
+    else if (g.suggestion === "ng") box.appendChild(statusChip("keep", t("chipNg")));
+    if (g.alive === false) box.appendChild(statusChip("gone", t("chipGone")));
+    if (memoText(memos[g.key])) box.appendChild(statusChip("memo", t("chipMemo")));
+    return box;
+  }
+  function choiceOf(key) { return picks[key] === "ok" ? "del" : picks[key] === "ng" ? "keep" : null; }
+
+  // The Delete and Keep buttons, a pair named after the service, on the row and in the details
   function pickButtons(g) {
     var wrap = el("div", "pick");
+    wrap.setAttribute("role", "group");
+    wrap.setAttribute("aria-label", fill(t("pickGroup"), { name: title(g) }));
     ["ok", "ng"].forEach(function (choice) {
-      var b = el("button", choice, t(choice));
+      var b = el("button", choice === "ok" ? "del" : "keep", t(choice));
       b.type = "button";
+      b.setAttribute("data-pick", choice);
       b.setAttribute("aria-pressed", picks[g.key] === choice ? "true" : "false");
-      b.setAttribute("aria-label", fill(t("pickAria"), { name: title(g), choice: t(choice) }));
       b.addEventListener("click", function (e) {
         e.stopPropagation();
-        if (picks[g.key] === choice) delete picks[g.key]; else picks[g.key] = choice;
-        state.sel = g.key;
-        save(); render();
+        choose(g.key, choice);
       });
       wrap.appendChild(b);
     });
     return wrap;
   }
 
-  function diffOf(g) {
-    if (g.alive === false) return ["gone", t("diffGone")];
-    if (g.needs_search || !g.deletion) return ["unknown", label("diff", "unknown")];
-    var d = g.deletion.difficulty || "unknown";
-    return [d, label("diff", d)];
+  // One row: a button with the name that opens the details, the pair of choice buttons, and a chevron
+  function rowEl(g) {
+    var li = el("li", "row");
+    li.id = itemId(g.key);
+    li.setAttribute("data-key", g.key);
+    if (choiceOf(g.key)) li.setAttribute("data-choice", choiceOf(g.key));
+    var name = el("button", "name");
+    name.type = "button";
+    var head = el("span", "row-name");
+    head.appendChild(el("b", null, title(g)));
+    if (domainLine(g)) head.appendChild(el("small", null, domainLine(g)));
+    name.appendChild(head);
+    name.appendChild(el("span", g.description ? "one" : "one none", g.description || t("noDesc")));
+    var chips = rowChips(g);
+    // A search looks in every category, so each row it finds names its category
+    if (state.q.trim()) chips.appendChild(el("span", "chip", tabName(tabOf(g))));
+    name.appendChild(chips);
+    name.addEventListener("click", function () { openItem(g.key, true); });
+    li.appendChild(name);
+    li.appendChild(pickButtons(g));
+    var chev = el("span", "chev", "›");
+    chev.setAttribute("aria-hidden", "true");
+    li.appendChild(chev);
+    li.addEventListener("click", function (e) { if (e.target === li || e.target === chev) openItem(g.key, true); });
+    return li;
   }
-
-  function rowChips(g) {
-    var box = el("div", "chips");
-    if (hasPrev(g)) box.appendChild(el("span", "chip prev", g.previous.label));
-    else if (g.suggestion === "ok") box.appendChild(el("span", "chip ok", t("chipOk")));
-    else if (g.suggestion === "ng") box.appendChild(el("span", "chip ng", t("chipNg")));
-    if (g.alive === false) box.appendChild(el("span", "chip", t("chipGone")));
-    if (memos[g.key]) box.appendChild(el("span", "chip", t("chipMemo")));
-    return box;
+  function rowOf(key) {
+    var rows = document.querySelectorAll("#rows .row");
+    for (var i = 0; i < rows.length; i++) if (rows[i].getAttribute("data-key") === key) return rows[i];
+    return null;
+  }
+  // Mark the row whose details are shown, and only that row
+  function markCurrent(key) {
+    Array.prototype.forEach.call(document.querySelectorAll("#rows .row"), function (r) {
+      var on = r.getAttribute("data-key") === key, b = r.querySelector(".name");
+      r.classList.toggle("current", on);
+      if (on) b.setAttribute("aria-current", "true"); else b.removeAttribute("aria-current");
+    });
+  }
+  function focusRow(key) {
+    var row = rowOf(key);
+    if (!row) return;
+    row.scrollIntoView({ block: "nearest" });
+    row.querySelector(".name").focus();
   }
 
   // One row per field, the name in a row header on the label color and the value beside it.
@@ -627,12 +865,48 @@ __DATA__
     row.appendChild(td);
     table.appendChild(row);
   }
+  // What to say when no row is left: the search words, or the choice filter, with a way to clear both
+  function emptyLine(box) {
+    var q = state.q.trim();
+    box.appendChild(el("p", null, q ? fill(t("noMatch"), { q: q }) : t("emptyCategory")));
+    var b = el("button", "clear", t("clearFilters"));
+    b.type = "button";
+    b.addEventListener("click", clearFilters);
+    box.appendChild(b);
+  }
 
-  function renderDetail(box, g) {
+  function renderDetail(g, keys, nothingLeft) {
+    var box = document.getElementById("detail");
     box.textContent = "";
-    if (!g) { box.appendChild(el("p", "none", t("detailEmpty"))); return; }
-    box.appendChild(el("h2", null, title(g)));
-    if (domainLine(g)) box.appendChild(el("div", "key", domainLine(g)));
+    box.removeAttribute("data-key");
+    box.classList.remove("enter");
+    void box.offsetWidth;
+    box.classList.add("enter");
+    var head = el("div", "detail-head");
+    box.appendChild(head);
+    if (!g) {
+      var none = el("h2", null, t("detailNone"));
+      none.id = "detail-title";
+      none.tabIndex = -1;
+      head.appendChild(none);
+      if (nothingLeft) emptyLine(box); else box.appendChild(el("p", "none", t("detailEmpty")));
+      return;
+    }
+    box.setAttribute("data-key", g.key);
+    var back = el("button", "back", "‹ " + t("back"));
+    back.type = "button";
+    back.addEventListener("click", backToList);
+    head.appendChild(back);
+    var h = el("h2", null, title(g));
+    h.id = "detail-title";
+    h.tabIndex = -1;
+    head.appendChild(h);
+    if (domainLine(g)) head.appendChild(el("div", "key", domainLine(g)));
+    var decide = el("div", "decide");
+    decide.appendChild(el("span", null, t("decide")));
+    decide.appendChild(pickButtons(g));
+    head.appendChild(decide);
+
     var tags = el("div", "chips");
     if (g.category) tags.appendChild(el("span", "chip", label("category", g.category)));
     var seen = {};
@@ -645,10 +919,11 @@ __DATA__
     box.appendChild(tags);
 
     var kv = el("table", "kv");
+    kv.setAttribute("aria-label", fill(t("factsLabel"), { name: title(g) }));
     fact(kv, t("fWhat"), g.description ? el("span", null, g.description) : el("span", "none", t("noDesc")));
     if (hasPrev(g)) {
       var p = el("div");
-      p.appendChild(el("span", "chip prev", g.previous.label));
+      p.appendChild(statusChip("prev", g.previous.label));
       if (g.previous.detail) p.appendChild(el("p", null, g.previous.detail));
       fact(kv, g.previous.round ? fill(t("fPrevRound"), { n: g.previous.round }) : t("fPrev"), p);
     }
@@ -664,95 +939,279 @@ __DATA__
     if (g.last_visit) dates.appendChild(el("span", "visit recent", fill(t("lastOpened"), { date: g.last_visit })));
     else if (g.history_since) dates.appendChild(el("span", "visit", fill(t("notOpenedSince"), { date: g.history_since })));
     fact(kv, t("fUpdated"), dates);
-    var d = diffOf(g);
-    fact(kv, t("fEffort"), el("span", "diff " + d[0], d[1]));
+    var effort = el("div");
+    effort.appendChild(el("span", "diff", label("effort", effortLevel(g))));
+    effort.appendChild(el("p", null, effortDetail(g)));
+    fact(kv, t("fEffort"), effort);
     var view = el("div");
-    if (g.suggestion === "ok") view.appendChild(el("span", "view-ok", t("chipOk")));
-    else if (g.suggestion === "ng") view.appendChild(el("span", "view-ng", t("chipNg")));
+    if (g.suggestion === "ok") view.appendChild(el("span", "view", t("chipOk")));
+    else if (g.suggestion === "ng") view.appendChild(el("span", "view", t("chipNg")));
     else view.appendChild(el("span", "none", t("noView")));
     if (g.why) view.appendChild(el("p", null, g.why));
     fact(kv, t("fView"), view);
     box.appendChild(kv);
 
-    var decide = el("div", "decide");
-    decide.appendChild(el("span", null, t("decide")));
-    decide.appendChild(pickButtons(g));
+    var field = el("div", "memo-field");
     var memoLabel = el("label", "memo-label", t("memoLabel"));
+    memoLabel.htmlFor = "memo";
+    var hint = el("p", "memo-hint", t("memoHint"));
+    hint.id = "memo-hint";
     var memo = el("input", "memo");
     memo.type = "text";
-    memo.placeholder = t("memoPlaceholder");
+    memo.id = "memo";
+    memo.setAttribute("aria-describedby", "memo-hint");
     memo.value = memos[g.key] || "";
     memo.addEventListener("input", function () {
-      var v = memo.value.replace(/[\t\r\n]+/g, " ").trim();
-      if (v) memos[g.key] = v; else delete memos[g.key];
+      if (memo.value) memos[g.key] = memo.value; else delete memos[g.key];
       save();
+      refreshItem(g.key);
     });
-    memoLabel.appendChild(memo);
-    decide.appendChild(memoLabel);
-    box.appendChild(decide);
+    field.appendChild(memoLabel);
+    field.appendChild(hint);
+    field.appendChild(memo);
+    box.appendChild(field);
+
+    // Previous and next, for the narrow screen where the list is hidden behind the details
+    var near = neighbors(keys, g.key);
+    var nav = el("nav", "item-nav");
+    nav.setAttribute("aria-label", t("itemNav"));
+    [["prev", "prevItem"], ["next", "nextItem"]].forEach(function (pair) {
+      var key = near[pair[0]];
+      if (!key) return;
+      var a = el("a");
+      a.href = "#" + itemId(key);
+      a.rel = pair[0];
+      a.appendChild(el("small", null, t(pair[1])));
+      a.appendChild(document.createTextNode(title(byKey[key])));
+      a.addEventListener("click", function (e) {
+        e.preventDefault();
+        openItem(key, false);
+      });
+      nav.appendChild(a);
+    });
+    box.appendChild(nav);
   }
 
-  function select(key, focus) {
+  function setView(view) { document.getElementById("sheet").setAttribute("data-view", view); }
+  var openedFromList = false;
+  // Open an item: mark its row, fill the details, and put it in the fragment. On a wide screen the
+  // fragment is replaced without scrolling; on a narrow screen the details replace the list and a new
+  // history entry lets Back return to the list
+  function openItem(key, fromList) {
+    var keys = visible().map(function (g) { return g.key; });
+    var i = keys.indexOf(key);
+    if (i < 0) return;
+    var page = Math.floor(i / PAGE) + 1;
+    state.sel = key;
+    if (page !== state.page) { state.page = page; render(); }
+    markCurrent(key);
+    renderDetail(byKey[key], keys);
+    if (narrow.matches) {
+      openedFromList = !!fromList;
+      setView("detail");
+      if (location.hash !== "#" + itemId(key)) location.hash = itemId(key);
+      document.getElementById("detail").scrollIntoView({ block: "start" });
+      document.getElementById("detail-title").focus();
+    } else if (location.hash !== "#" + itemId(key)) {
+      history.replaceState(null, "", "#" + itemId(key));
+    }
+  }
+  function backToList() {
+    var key = state.sel;
+    setView("list");
+    if (openedFromList) { openedFromList = false; history.back(); } else history.replaceState(null, "", "#list");
+    focusRow(key);
+  }
+  // Show the item a fragment names, in its category and page, with the search and filters cleared
+  function goToItem(key) {
+    var place = placeOf(key);
+    if (!place) return;
+    state.q = "";
+    state.f = "all";
+    document.getElementById("q").value = "";
+    state.tab = place.tab;
+    state.page = place.page;
     state.sel = key;
     render();
-    if (focus) {
-      var r = document.querySelector('.row[data-key="' + CSS.escape(key) + '"]');
-      if (r) r.focus();
-    }
+    openItem(key, false);
   }
 
-  function renderRows(list) {
-    var body = document.getElementById("rows");
-    var detail = document.getElementById("detail");
-    body.textContent = "";
-    if (list.length === 0) {
-      body.appendChild(el("div", "empty", t("emptyList")));
-      renderDetail(detail, null);
-      document.querySelector(".panes").appendChild(detail);
+  // Choosing changes only that service's rows and buttons, so the pressed button keeps the focus
+  function choose(key, choice) {
+    if (picks[key] === choice) delete picks[key]; else picks[key] = choice;
+    save();
+    clearStatus();
+    refreshItem(key);
+    renderTally();
+    renderFilterCounts();
+  }
+  function refreshItem(key) {
+    var choice = choiceOf(key);
+    [rowOf(key), document.getElementById("detail")].forEach(function (n) {
+      if (!n || n.getAttribute("data-key") !== key) return;
+      if (choice) n.setAttribute("data-choice", choice); else n.removeAttribute("data-choice");
+      Array.prototype.forEach.call(n.querySelectorAll("[data-pick]"), function (b) {
+        b.setAttribute("aria-pressed", b.getAttribute("data-pick") === picks[key] ? "true" : "false");
+      });
+    });
+    var row = rowOf(key);
+    if (!row) return;
+    var has = !!memoText(memos[key]), chip = row.querySelector(".chip.memo");
+    if (has && !chip) row.querySelector(".chips").appendChild(statusChip("memo", t("chipMemo")));
+    if (!has && chip) chip.parentNode.removeChild(chip);
+  }
+
+  function renderTally() {
+    var del = 0, keep = 0;
+    data.forEach(function (g) { if (picks[g.key] === "ok") del++; else if (picks[g.key] === "ng") keep++; });
+    var box = document.getElementById("tally");
+    box.textContent = "";
+    if (!del && !keep) { box.textContent = tallyText(0, 0); return; }
+    // The numbers in bold, in the order the language's sentence puts them
+    t("tally").split(/(\{ok\}|\{ng\})/).forEach(function (part) {
+      if (part === "{ok}") box.appendChild(el("b", null, String(del)));
+      else if (part === "{ng}") box.appendChild(el("b", null, String(keep)));
+      else if (part) box.appendChild(document.createTextNode(part));
+    });
+  }
+  function renderFilterCounts() {
+    var counts = { all: 0, none: 0, ok: 0, ng: 0 };
+    visible(true).forEach(function (g) { counts.all++; counts[picks[g.key] || "none"]++; });
+    Array.prototype.forEach.call(document.querySelectorAll("#filter button"), function (b) {
+      var f = b.getAttribute("data-f");
+      b.textContent = t({ all: "filterAll", none: "filterNone", ok: "ok", ng: "ng" }[f]) + " (" + counts[f] + ")";
+      b.setAttribute("aria-pressed", f === state.f ? "true" : "false");
+    });
+  }
+  function renderTabs(shown, counts) {
+    var tabs = document.getElementById("tabs"), panel = document.getElementById("panel");
+    tabs.hidden = !shown.length;
+    Array.prototype.forEach.call(tabs.querySelectorAll('[role="tab"]'), function (b) {
+      var cat = b.getAttribute("data-t"), on = cat === state.tab;
+      b.hidden = shown.indexOf(cat) < 0;
+      b.textContent = tabName(cat) + " (" + counts[cat] + ")";
+      b.setAttribute("aria-selected", on ? "true" : "false");
+      b.tabIndex = on ? 0 : -1;
+    });
+    if (shown.length) {
+      panel.setAttribute("role", "tabpanel");
+      panel.setAttribute("aria-labelledby", "tab-" + state.tab);
+    } else {
+      panel.removeAttribute("role");
+      panel.removeAttribute("aria-labelledby");
+    }
+  }
+  // The category filter of a list short enough for one list, shown when two or more categories have rows
+  function renderCategory(counts, tabsShown) {
+    var field = document.getElementById("category-field"), box = document.getElementById("category");
+    var cats = ["prev", "cand", "rest"].filter(function (c) { return counts[c] > 0; });
+    field.hidden = tabsShown || cats.length < 2;
+    box.textContent = "";
+    if (field.hidden) return;
+    ["all"].concat(cats).forEach(function (cat) {
+      var b = el("button", null, tabName(cat) + " (" + (cat === "all" ? data.length : counts[cat]) + ")");
+      b.type = "button";
+      b.setAttribute("data-c", cat);
+      b.setAttribute("aria-pressed", cat === state.tab ? "true" : "false");
+      b.addEventListener("click", function () {
+        pickCategory(cat);
+        var again = document.querySelector('#category [data-c="' + cat + '"]');
+        if (again) again.focus();
+      });
+      box.appendChild(b);
+    });
+  }
+  function tabHasPrev(cat) { return data.some(function (g) { return hasPrev(g) && (cat === "all" || tabOf(g) === cat); }); }
+  // Put the sort by last round's result in the list only where it applies, and show the category's own sort
+  function renderSort() {
+    var box = document.getElementById("sort");
+    prevOption.textContent = t("sortPrev");
+    if (!tabHasPrev(state.tab)) { if (prevOption.parentNode) prevOption.remove(); }
+    else if (!prevOption.parentNode) box.insertBefore(prevOption, box.firstChild);
+    box.value = sorts[state.tab];
+  }
+  function renderPager(id, pages) {
+    var box = document.getElementById(id);
+    box.textContent = "";
+    pagerItems(state.page, pages, phone.matches ? 5 : 7).forEach(function (item) {
+      var page = item === "prev" ? state.page - 1 : item === "next" ? state.page + 1 : item;
+      var b = el("button", null, item === "prev" ? t("pagePrev") : item === "next" ? t("pageNext") : String(item));
+      b.type = "button";
+      if (typeof item === "number") b.setAttribute("aria-label", fill(t("pageN"), { n: item }));
+      if (item === state.page) b.setAttribute("aria-current", "page");
+      b.addEventListener("click", function () { goPage(page); });
+      box.appendChild(b);
+    });
+    box.hidden = pages <= 1;
+  }
+  function goPage(page) {
+    state.page = page;
+    state.sel = null;
+    render();
+    var heading = document.getElementById("list-title");
+    heading.scrollIntoView({ block: "start" });
+    document.getElementById("list-title").focus();
+  }
+  function renderRows(rows) {
+    var list = document.getElementById("rows");
+    list.textContent = "";
+    if (!rows.length) {
+      var li = el("li", "empty");
+      emptyLine(li);
+      list.appendChild(li);
       return;
     }
-    if (!list.some(function (g) { return g.key === state.sel; })) state.sel = list[0].key;
-    var current = null, currentRow = null;
-    list.forEach(function (g, i) {
-      var row = el("div", "row");
-      row.setAttribute("role", "option");
-      row.setAttribute("data-key", g.key);
-      row.tabIndex = 0;
-      row.setAttribute("aria-selected", g.key === state.sel ? "true" : "false");
-      var main = el("div", "row-main");
-      var name = el("div", "row-name");
-      name.appendChild(el("b", null, title(g)));
-      if (domainLine(g)) name.appendChild(el("small", null, domainLine(g)));
-      main.appendChild(name);
-      main.appendChild(el("span", g.description ? "one" : "one none", g.description || t("noDesc")));
-      main.appendChild(rowChips(g));
-      row.appendChild(main);
-      row.appendChild(pickButtons(g));
-      row.addEventListener("click", function () { select(g.key); });
-      row.addEventListener("keydown", function (e) {
-        if (e.target !== row) return;
-        var next = e.key === "ArrowDown" ? list[i + 1] : e.key === "ArrowUp" ? list[i - 1] : null;
-        if (next) { e.preventDefault(); select(next.key, true); }
-        else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(g.key, true); }
-      });
-      body.appendChild(row);
-      if (g.key === state.sel) { current = g; currentRow = row; }
-    });
-    renderDetail(detail, current);
-    // On a narrow screen the details panel goes right under the selected row; on a wide one, to the right of the list
-    if (narrow.matches && currentRow) currentRow.after(detail);
-    else document.querySelector(".panes").appendChild(detail);
+    rows.forEach(function (g) { list.appendChild(rowEl(g)); });
   }
 
   function render() {
-    var list = visible();
+    var counts = categoryCounts();
+    var shown = useTabs(data.length) ? shownTabs(counts) : [];
+    if (shown.length && shown.indexOf(state.tab) < 0) state.tab = shown[0];
+    if (!shown.length && state.tab !== "all" && !counts[state.tab]) state.tab = "all";
+    renderTabs(shown, counts);
+    renderCategory(counts, shown.length > 0);
+    renderSort();
+    renderFilterCounts();
+    renderTally();
+    var list = visible(), keys = list.map(function (g) { return g.key; });
     var pages = Math.max(1, Math.ceil(list.length / PAGE));
     if (state.page > pages) state.page = pages;
-    renderSort();
-    renderCounts();
+    var rows = list.slice((state.page - 1) * PAGE, state.page * PAGE);
+    document.getElementById("list-title").textContent = state.tab === "all" ? t("listAll") : tabName(state.tab);
+    document.getElementById("range").textContent = list.length ? rangeText(state.page, list.length) : "";
     renderPager("pager-top", pages);
-    renderRows(list.slice((state.page - 1) * PAGE, state.page * PAGE));
     renderPager("pager-bottom", pages);
+    renderRows(rows);
+    if (!rows.some(function (g) { return g.key === state.sel; })) state.sel = narrow.matches || !rows.length ? null : rows[0].key;
+    if (state.sel) {
+      markCurrent(state.sel);
+      renderDetail(byKey[state.sel], keys);
+    } else {
+      renderDetail(null, keys, !rows.length);
+      setView("list");
+    }
+  }
+
+  function pickCategory(cat) {
+    state.tab = cat;
+    state.page = 1;
+    state.sel = null;
+    render();
+  }
+  function pickTab(cat) {
+    pickCategory(cat);
+    var b = document.getElementById("tab-" + cat);
+    b.focus();
+    b.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }
+  function clearFilters() {
+    state.q = "";
+    state.f = "all";
+    state.page = 1;
+    document.getElementById("q").value = "";
+    render();
+    document.getElementById("q").focus();
   }
 
   function setTheme(mode) {
@@ -768,77 +1227,110 @@ __DATA__
     document.documentElement.lang = lang;
     document.title = t("title");
     Array.prototype.forEach.call(document.querySelectorAll("[data-i18n]"), function (n) { setLines(n, t(n.getAttribute("data-i18n"))); });
-    Array.prototype.forEach.call(document.querySelectorAll("[data-i18n-placeholder]"), function (n) { n.setAttribute("placeholder", t(n.getAttribute("data-i18n-placeholder"))); });
     Array.prototype.forEach.call(document.querySelectorAll("[data-i18n-aria]"), function (n) { n.setAttribute("aria-label", t(n.getAttribute("data-i18n-aria"))); });
     setLines(document.getElementById("opened-help"), fill(t("fOpenedHelp"), { since: since ? fill(t("sinceDate"), { date: since }) : t("sinceUnknown") }));
-    // Every deletion effort the details panel can show, from the same table as its labels and in the same colors
+    // Every deletion effort level the details panel can show, from the same table as its labels
     var levels = document.getElementById("effort-help");
     levels.textContent = "";
-    Object.keys(t("diff")).map(function (d) { return [d, t("diff")[d], t("diffHelp")[d] || ""]; })
-      .concat([["gone", t("diffGone"), t("diffGoneHelp")]])
-      .forEach(function (row) {
-        levels.appendChild(el("dt", "diff " + row[0], row[1]));
-        levels.appendChild(el("dd", null, row[2]));
-      });
+    Object.keys(t("effort")).forEach(function (k) {
+      levels.appendChild(el("dt", "diff", t("effort")[k]));
+      levels.appendChild(el("dd", null, t("effortHelp")[k] || ""));
+    });
+    setLines(document.getElementById("empty-sheet"), t("emptySheet"));
+    if (reviewCount) document.getElementById("review-title").textContent = reviewTitle(reviewCount);
     Array.prototype.forEach.call(document.querySelectorAll("#lang button"), function (b) {
       b.setAttribute("aria-pressed", b.getAttribute("data-lang") === lang ? "true" : "false");
     });
+    renderSaveState();
   }
 
-  // The pasted text is parsed by plan.sh: a fixed first line, then one key per line with the user's memo after a tab.
-  // It does not depend on the UI language.
-  function selectionText() {
-    var keys = data.filter(function (g) {
-      return picks[g.key] === "ok";
-    }).map(function (g) { return g.key + (memos[g.key] ? "\t" + memos[g.key] : ""); });
-    return ["account-cleanup selection"].concat(keys).join("\n") + "\n";
+  function setStatus(text) { document.getElementById("copy-status").textContent = text; }
+  // A new choice makes the copied text old, so the status and the review of the last copy go away
+  function clearStatus() {
+    setStatus("");
+    document.getElementById("review").hidden = true;
   }
-
-  function openDialog(d) { if (d.showModal) d.showModal(); else d.setAttribute("open", ""); }
-  function showFallback(text) {
-    var ta = document.getElementById("fallback-text");
-    ta.value = text;
-    openDialog(document.getElementById("fallback"));
-    ta.select();
+  var reviewCount = 0;
+  var copiedText = null;
+  // The review lists every account the copied text deletes, with the text itself to copy by hand
+  function openReview(chosen, text) {
+    reviewCount = chosen.length;
+    document.getElementById("review-title").textContent = reviewTitle(reviewCount);
+    var list = document.getElementById("review-list");
+    list.textContent = "";
+    chosen.slice().sort(function (a, b) { return compareRows(a, b, "name"); }).forEach(function (g) { list.appendChild(el("li", null, title(g))); });
+    document.getElementById("review-text").value = text;
+    document.getElementById("review").hidden = false;
+    document.getElementById("review").scrollIntoView({ block: "start" });
+    document.getElementById("review-title").focus();
   }
-
-  document.getElementById("copy").addEventListener("click", function () {
+  function copyChosen() {
+    var chosen = data.filter(function (g) { return picks[g.key] === "ok"; });
+    if (!chosen.length) {
+      setStatus(copyStatus(0));
+      return;
+    }
     var text = selectionText();
-    function done() {
-      var toast = document.getElementById("toast");
-      toast.style.display = "block";
-      setTimeout(function () { toast.style.display = "none"; }, 2400);
+    copiedText = text;
+    openReview(chosen, text);
+    function byHand() {
+      setStatus(t("copyFailed"));
+      document.getElementById("review-text").select();
     }
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(done, function () { showFallback(text); });
+      navigator.clipboard.writeText(text).then(function () { setStatus(copyStatus(chosen.length)); }, byHand);
     } else {
-      showFallback(text);
+      byHand();
     }
-  });
-  document.getElementById("fallback-close").addEventListener("click", function () { document.getElementById("fallback").close(); });
+  }
+  // Data that cannot be read leaves no empty list or dead buttons behind, only what to do
+  function showBroken() {
+    var main = document.querySelector("main");
+    main.textContent = "";
+    main.appendChild(el("h1", null, t("title")));
+    main.appendChild(el("p", "broken", t("broken")));
+    document.querySelector(".bar").hidden = true;
+  }
+
+  var lastFocus = null;
+  function openDialog(d) {
+    lastFocus = document.activeElement;
+    if (d.showModal) d.showModal(); else d.setAttribute("open", "");
+  }
+  document.getElementById("help").addEventListener("close", function () { if (lastFocus) lastFocus.focus(); });
   document.getElementById("help-open").addEventListener("click", function () { openDialog(document.getElementById("help")); });
   document.getElementById("help-close").addEventListener("click", function () { document.getElementById("help").close(); });
-  document.getElementById("q").addEventListener("input", function (e) { state.q = e.target.value; state.page = 1; render(); });
+  document.getElementById("copy").addEventListener("click", copyChosen);
+  document.getElementById("q").addEventListener("input", function (e) { state.q = e.target.value; state.page = 1; state.sel = null; render(); });
   document.getElementById("sort").addEventListener("change", function (e) { sorts[state.tab] = e.target.value; render(); });
   Array.prototype.forEach.call(document.querySelectorAll("#filter button"), function (b) {
     b.addEventListener("click", function () {
-      state.f = b.getAttribute("data-f"); state.page = 1;
-      Array.prototype.forEach.call(document.querySelectorAll("#filter button"), function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+      state.f = b.getAttribute("data-f");
+      state.page = 1;
+      state.sel = null;
       render();
     });
   });
   Array.prototype.forEach.call(document.querySelectorAll("#tabs button"), function (b) {
-    b.addEventListener("click", function () {
-      state.tab = b.getAttribute("data-t"); state.page = 1; state.sel = null;
-      render();
-    });
+    b.addEventListener("click", function () { pickTab(b.getAttribute("data-t")); });
+  });
+  // Left and Right move between the tabs, Home and End to the first and the last
+  document.getElementById("tabs").addEventListener("keydown", function (e) {
+    var tabs = Array.prototype.filter.call(this.querySelectorAll('[role="tab"]'), function (b) { return !b.hidden; });
+    var i = tabs.indexOf(document.activeElement);
+    if (i < 0) return;
+    var to = e.key === "ArrowRight" ? (i + 1) % tabs.length : e.key === "ArrowLeft" ? (i - 1 + tabs.length) % tabs.length
+      : e.key === "Home" ? 0 : e.key === "End" ? tabs.length - 1 : -1;
+    if (to < 0) return;
+    e.preventDefault();
+    pickTab(tabs[to].getAttribute("data-t"));
   });
   Array.prototype.forEach.call(document.querySelectorAll("#lang button"), function (b) {
     b.addEventListener("click", function () {
       lang = b.getAttribute("data-lang") === "ja" ? "ja" : "en";
       try { localStorage.setItem(LANG_STORE, lang); } catch (e) { /* not saved; the choice lasts while the page is open */ }
       applyLang();
-      render();
+      if (!broken && data.length) render();
     });
   });
   Array.prototype.forEach.call(document.querySelectorAll("#theme button"), function (b) {
@@ -847,10 +1339,35 @@ __DATA__
       try { localStorage.setItem(THEME_STORE, theme); } catch (e) { /* not saved; the choice lasts while the page is open */ }
     });
   });
-  narrow.addEventListener("change", render);
+  window.addEventListener("hashchange", function () {
+    var key = keyFromHash(location.hash);
+    if (key && key !== state.sel) goToItem(key);
+    else if (!key && narrow.matches) { setView("list"); focusRow(state.sel); }
+  });
+  // Ask before leaving only when work would be lost: choices that could not be saved, or a change after the copy
+  window.addEventListener("beforeunload", function (e) {
+    var unsaved = !storageOk && Object.keys(picks).length > 0;
+    var changed = copiedText !== null && copiedText !== selectionText();
+    if (unsaved || changed) { e.preventDefault(); e.returnValue = ""; }
+  });
+  narrow.addEventListener("change", function () {
+    if (!narrow.matches) { setView("list"); if (!state.sel) render(); }
+    else if (state.sel) setView("detail");
+  });
+  phone.addEventListener("change", function () { if (data.length) render(); });
+
   setTheme(theme);
   applyLang();
-  render();
+  if (broken) {
+    showBroken();
+  } else if (!data.length) {
+    document.getElementById("sheet").hidden = true;
+    document.getElementById("empty-sheet").hidden = false;
+  } else {
+    var startKey = initialKey(location.hash, data.map(function (g) { return g.key; }), !narrow.matches);
+    if (startKey && location.hash === "#" + itemId(startKey)) goToItem(startKey);
+    else render();
+  }
 })();
 </script>
 </body>
