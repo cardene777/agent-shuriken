@@ -5,6 +5,14 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The candidate sheet shows the domain under a name only when the name does not already hold it, and wraps a long name, such as a browser extension's ID, instead of cutting it. On a phone, the domain moves under the name instead of cutting both
+- Each tab of the candidate sheet keeps its own sort, and the sort by last round's result is offered only on a tab that has such rows, so the sort shown is the one the rows follow
+- The help of the candidate sheet explains every deletion effort the details can show, including Partial, Service ended, and a site that is gone, in English and Japanese
+- Text colors in the light theme of the candidate sheet are darker, so every text reaches a contrast of 4.5 to 1 on every background in both themes
+- The Japanese words of the candidate sheet and the follow-up page put no space between Japanese and a number or a name, in the bottom bar's counts, the follow-up page's heading, the last opened date, and the row buttons' labels, and the English bottom bar reads `OK 3, Keep 2` without a middle dot
+- The three steps at the top of the candidate sheet sit side by side in equal columns, with shorter words that fit one line, and stack on a phone
+- The reason for an item that was not updated for a long time reads `Not updated in a long time (last updated <date>)`, without a label and a colon
+- `followup.sh add` keeps the service name from the candidates with each record, and the follow-up page shows that name in the Service column, with the domain under it only when the name does not hold it. Records written before show their key as before
 - `musubi.json` follows the `structure` and `look` formats, the `sheet` page type, and `verify` of page-design in the design-formats plugin through musubi, as optional follows. When page-design is installed, the agent reads them and runs page-design's verify on the candidate sheet and the follow-up page; when the `musubi` command is installed, it runs `musubi check` first. Without design-formats, the pages work as before
 - The candidate sheet and the follow-up page have a Light and Dark switch next to the language switch. It follows the system setting until you choose, and both pages share your choice in the browser's local storage under `account-cleanup-theme`
 

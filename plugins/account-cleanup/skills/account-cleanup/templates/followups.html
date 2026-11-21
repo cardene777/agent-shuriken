@@ -25,6 +25,8 @@ table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
 th { color: var(--sub); font-weight: 600; white-space: nowrap; }
 td:first-child { white-space: nowrap; }
+td .service, td small { display: block; overflow-wrap: anywhere; }
+td small { color: var(--sub); font-size: 13px; }
 </style>
 </head>
 <body>
@@ -70,7 +72,7 @@ __ROWS__
     },
     ja: {
       title: "後で片付ける物",
-      heading: "後で片付ける物 ({n} 件)",
+      heading: "後で片付ける物 ({n}件)",
       lead: "アカウントの削除の途中で、AIが消せなかった支払い先などです。サービスのサイトにログインして、支払い方法の画面から消してください。",
       colDate: "記録した日",
       colService: "サービス",
