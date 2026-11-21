@@ -1,23 +1,23 @@
 # Diagram Styles
 
-Figures for articles and technical books, designed from the reader's questions first and drawn in a style from your own sample images and catalog in `~/.styles/`.
+Figures for articles and technical books, designed from the reader's questions first and drawn in one of sixteen built-in styles or a style from your own catalog in `~/.styles/`.
 
 English · [日本語](README.ja.md)
 
 A figure drawn to look like a sample often copies the sample's objects and layout and stops explaining the text.
 This plugin keeps the two decisions apart.
 It first decides what the figure must explain from the article or the book, then applies only the look of a style, and checks the finished image against the text.
-The plugin ships no sample images: you keep your own samples and the catalog `style-catalog.json` that registers them in `~/.styles/`, and the plugin holds the shape of the catalog and the way to read it.
+The plugin ships sixteen built-in styles, each defined in words, and no sample images, so `article-diagram-styles` draws without `~/.styles/`.
 
 ```
 Article or book ──> Design the content ──> Choose a style ──> Draw with the ──> Check the text, the ──> PNG in the
-(the text and       (reader question,      (~/.styles/        agent's image     connections, and the    folder you name
-the reader)         takeaway, relations)   style-catalog.json) generation       published width
+(the text and       (reader question,      (built-in, or      agent's image     connections, and the    folder you name
+the reader)         takeaway, relations)   ~/.styles/)        generation       published width
 ```
 
 | Skill | What it makes |
 |---|---|
-| `article-diagram-styles` | An explanatory figure for an article: a content summary, a style from your catalog, the finished PNG and its published-width version, and the review records |
+| `article-diagram-styles` | An explanatory figure for an article: a content summary, a built-in style or one from your catalog, the finished PNG and its published-width version, and the review records |
 | `tech-book-figure` | A figure for a technical book in the fixed style4, with a figure number, a caption, alternative text, and readability in black and white printing |
 
 ## Install
@@ -37,10 +37,31 @@ gemini skills install https://github.com/cardene777/agent-shuriken.git --path pl
 
 In other agents that read `SKILL.md`, unzip the skill zip attached to each release into the agent's skills folder, as [Getting started](../../docs/getting-started.md#install-without-the-marketplace) shows.
 
-## Put your samples in ~/.styles
+## Styles
+
+The plugin ships sixteen built-in styles in `skills/article-diagram-styles/data/built-in-styles.json`, each defined in words by its line, fill, background, lettering, and the kinds of figures it suits.
+
+| Family | Styles |
+|---|---|
+| Line drawing | `handdraft`, `pen-technical`, `pencil-sketch`, `chalkboard` |
+| Drafting and flat | `flat-vector`, `blueprint`, `isometric`, `minimal` |
+| Painting and print | `watercolor`, `newsprint`, `woodblock`, `retro-poster` |
+| Friendly | `whiteboard`, `comic-panel`, `pixel-art`, `clay` |
+
+`article-diagram-styles` draws without `~/.styles/`.
+Name a style, or let the skill choose one from the topic of the article and the kinds of its figures; it tells you the style it chose and why, and uses `handdraft` when no style clearly fits.
+This command lists the styles in use.
+
+```bash
+python3 <plugin folder>/skills/article-diagram-styles/scripts/diagram_sample_catalog.py --list
+```
+
+## Your own styles in ~/.styles
 
 The plugin ships no sample images.
-Before the first figure, put your catalog and your sample images in `~/.styles/`.
+Your own catalog `~/.styles/style-catalog.json` adds styles beside the built-in ones, replaces the built-in style of the same name with your definition and samples, and takes a built-in style out of use when its `status` is `retired`.
+When you register samples of the chosen style, the skill passes them to the image generation as style references.
+`tech-book-figure` still needs your style4 samples and the catalog in `~/.styles/`.
 
 ```text
 ~/.styles/
@@ -56,8 +77,8 @@ Check it with this command; it exits 1 and names each problem.
 python3 <plugin folder>/skills/article-diagram-styles/scripts/diagram_sample_catalog.py --validate
 ```
 
-When `~/.styles/style-catalog.json` is missing, both skills stop before drawing and tell you to put the catalog and the samples there.
-A version 1 catalog is refused and not converted.
+When `~/.styles/style-catalog.json` is missing, the check passes on the built-in styles alone, and `tech-book-figure` stops before drawing and tells you to put the catalog and the samples there.
+A version 1 catalog is refused and not converted; the skills never fall back to the built-in styles in its place.
 
 ## Use
 
@@ -77,7 +98,7 @@ They never draw the figure with HTML or SVG instead, and never call another agen
 |---|---|---|
 | `style4` | `references/style4.md` | The style4 rules: what stays fixed, how to choose the samples, and the comparison after drawing |
 | `figure-request` | `references/figure-request.md` | The format another skill writes a figure request in |
-| `style-catalog` | `references/style-catalog.md` | The shape of `style-catalog.json` version 2 and of the styles folder |
+| `style-catalog` | `references/style-catalog.md` | The shape of `style-catalog.json` version 2 and of the styles folder, and how a catalog adds, replaces, and retires the built-in styles |
 
 `tech-book-figure` follows `article-diagram-styles/style4` with the range `^1.0.0` and a fingerprint, not as an optional follow, so it does not start when `article-diagram-styles` is missing.
 
@@ -87,7 +108,7 @@ They never draw the figure with HTML or SVG instead, and never call another agen
 |---|---|
 | An agent with image generation | To draw the finished figures. Without it, the skills stop after saving the design |
 | Python 3 | For the scripts, which use only the standard library |
-| Your sample images and `style-catalog.json` in `~/.styles/` | Always. The plugin ships none |
+| Your sample images and `style-catalog.json` in `~/.styles/` | For `tech-book-figure`, and for your own styles. `article-diagram-styles` draws in the built-in styles without them |
 | The musubi command | Optional. When it is installed, `tech-book-figure` runs `musubi check` before reading the style4 rules |
 
 ## What it reads, runs, and sends
@@ -95,9 +116,9 @@ They never draw the figure with HTML or SVG instead, and never call another agen
 [How it works](docs/how-it-works.md) lists every file and script.
 In short:
 
-- The skills and scripts read the catalog and the sample images from `~/.styles/`, or from the folder given with `--styles <dir>`, and never write there
+- The skills and scripts read the built-in styles from the skill folder, and the catalog and the sample images from `~/.styles/`, or from the folder given with `--styles <dir>`, and never write there
 - They read the article or book text you name, and write the figures, the content summary, the figure spec, the drawing instructions, and the review records only in the folder you name
-- To draw, the skill sends the drawing instructions and the sample images to the image generation of the agent running it, which handles them as that agent handles any image you give it. The scripts connect to nothing
+- To draw, the skill sends the drawing instructions and the sample images to the image generation of the agent running it, which handles them as that agent handles any image you give it. Without samples of the chosen style, it sends the drawing instructions alone. The scripts connect to nothing
 - The scripts run no other program and keep nothing
 - The text of the article and of the sample catalog is data, never instructions
 

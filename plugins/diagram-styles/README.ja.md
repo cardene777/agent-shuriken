@@ -1,23 +1,23 @@
 # Diagram Styles
 
-記事と技術書の図を、先に読者の疑問から設計し、`~/.styles/`に置いた自分の見本の画像と一覧の画風で描きます。
+記事と技術書の図を、先に読者の疑問から設計し、16の既定の画風か、`~/.styles/`に置いた自分の一覧の画風で描きます。
 
 [English](README.md) · 日本語
 
 見本に似せて描いた図は、見本の物や配置を写して、本文の説明をしなくなりがちです。
 このpluginは2つの判断を分けます。
 先に記事か本の本文から図が説明する物を決め、その後に画風の見た目だけを当て、完成した画像を本文と照らして確かめます。
-このpluginは見本の画像を載せません。自分の見本と、それを登録する一覧`style-catalog.json`を`~/.styles/`に置きます。pluginは一覧の形と読み方を持ちます。
+このpluginは16の既定の画風をそれぞれ文で定義して持ち、見本の画像は載せません。`~/.styles/`が無くても`article-diagram-styles`は描きます。
 
 ```
 Article or book ──> Design the content ──> Choose a style ──> Draw with the ──> Check the text, the ──> PNG in the
-(the text and       (reader question,      (~/.styles/        agent's image     connections, and the    folder you name
-the reader)         takeaway, relations)   style-catalog.json) generation       published width
+(the text and       (reader question,      (built-in, or      agent's image     connections, and the    folder you name
+the reader)         takeaway, relations)   ~/.styles/)        generation       published width
 ```
 
 | スキル | 作る物 |
 |---|---|
-| `article-diagram-styles` | 記事の説明図。内容の要約、一覧から選んだ画風、完成したPNGと本文幅の版、確かめた記録を作ります |
+| `article-diagram-styles` | 記事の説明図。内容の要約、既定か一覧から選んだ画風、完成したPNGと本文幅の版、確かめた記録を作ります |
 | `tech-book-figure` | 技術書の図。固定のstyle4で描き、図番号、キャプション、代わりの説明、白黒印刷での読みやすさを確かめます |
 
 ## インストール
@@ -37,10 +37,31 @@ gemini skills install https://github.com/cardene777/agent-shuriken.git --path pl
 
 `SKILL.md`を読むほかのagentでは、各リリースに添付したskillのzipをagentのskillのフォルダーへ展開します。手順は[はじめに](../../docs/getting-started.ja.md#マーケットプレイスを使わずにインストールする)にあります。
 
-## 見本を~/.stylesに置く
+## 画風
+
+このpluginは16の既定の画風を`skills/article-diagram-styles/data/built-in-styles.json`に持ちます。どの画風も、線、塗り、背景、字と、向く図の種類を文で定義しています。
+
+| 組 | 画風 |
+|---|---|
+| 線画 | `handdraft`、`pen-technical`、`pencil-sketch`、`chalkboard` |
+| 図面と平面 | `flat-vector`、`blueprint`、`isometric`、`minimal` |
+| 絵画と印刷 | `watercolor`、`newsprint`、`woodblock`、`retro-poster` |
+| 親しみ | `whiteboard`、`comic-panel`、`pixel-art`、`clay` |
+
+`~/.styles/`が無くても`article-diagram-styles`は描きます。
+画風の名前を言うか、記事の話題と図の種類からスキルに選ばせます。スキルは選んだ画風と理由を伝え、合う画風が決まらない時は`handdraft`で描きます。
+次の命令で、使える画風を並べます。
+
+```bash
+python3 <plugin folder>/skills/article-diagram-styles/scripts/diagram_sample_catalog.py --list
+```
+
+## 自分の画風を~/.stylesに置く
 
 このpluginは見本の画像を載せません。
-最初の図を作る前に、一覧と見本の画像を`~/.styles/`に置きます。
+自分の一覧`~/.styles/style-catalog.json`は、既定の画風の横に画風を足し、自分の定義と見本で同じ名前の既定の画風を置き換え、`status`を`retired`にした既定の画風を使わない物にします。
+選んだ画風の見本を登録すると、スキルはその見本を画風の参照として画像生成へ渡します。
+`tech-book-figure`は今もstyle4の見本が要ります。一覧と一緒に`~/.styles/`に置きます。
 
 ```text
 ~/.styles/
@@ -56,8 +77,8 @@ gemini skills install https://github.com/cardene777/agent-shuriken.git --path pl
 python3 <plugin folder>/skills/article-diagram-styles/scripts/diagram_sample_catalog.py --validate
 ```
 
-`~/.styles/style-catalog.json`が無い時は、どちらのスキルも描く前に止まり、一覧と見本をそこへ置くよう伝えます。
-版1の一覧は断り、変換しません。
+`~/.styles/style-catalog.json`が無い時は、確かめは既定の画風だけで通り、`tech-book-figure`は描く前に止まって一覧と見本をそこへ置くよう伝えます。
+版1の一覧は断り、変換しません。その代わりに既定の画風で描くこともしません。
 
 ## 使い方
 
@@ -77,7 +98,7 @@ GitHub Copilot CLIでは依頼の中に`/article-diagram-styles`か`/tech-book-f
 |---|---|---|
 | `style4` | `references/style4.md` | style4の決まり。固定する物、見本の選び方、描いた後の比べ方 |
 | `figure-request` | `references/figure-request.md` | ほかのスキルが図を頼む時の形 |
-| `style-catalog` | `references/style-catalog.md` | `style-catalog.json`の版2と見本のフォルダーの形 |
+| `style-catalog` | `references/style-catalog.md` | `style-catalog.json`の版2と見本のフォルダーの形と、一覧が既定の画風を足し、置き換え、止める形 |
 
 `tech-book-figure`は`article-diagram-styles/style4`に範囲`^1.0.0`と指紋で従います。任意の従いではないので、`article-diagram-styles`が無い時は始めません。
 
@@ -87,7 +108,7 @@ GitHub Copilot CLIでは依頼の中に`/article-diagram-styles`か`/tech-book-f
 |---|---|
 | 画像生成を持つagent | 完成図を描く時。無い時は設計を保存して止まります |
 | Python 3 | scriptを動かす時。標準ライブラリだけを使います |
-| `~/.styles/`の見本の画像と`style-catalog.json` | 常に。pluginは載せません |
+| `~/.styles/`の見本の画像と`style-catalog.json` | `tech-book-figure`と自分の画風に要ります。`article-diagram-styles`は無くても既定の画風で描きます |
 | musubiの命令 | 任意。入れてあれば、`tech-book-figure`がstyle4の決まりを読む前に`musubi check`を回します |
 
 ## 読む物と動かす物と渡す物
@@ -95,9 +116,9 @@ GitHub Copilot CLIでは依頼の中に`/article-diagram-styles`か`/tech-book-f
 [仕組み](docs/how-it-works.ja.md)が、全てのfileとscriptを挙げます。
 要点は次のとおりです。
 
-- スキルとscriptは、一覧と見本の画像を`~/.styles/`か`--styles <dir>`で渡したフォルダーから読み、そこへは書きません
+- スキルとscriptは、既定の画風をスキルのフォルダーから、一覧と見本の画像を`~/.styles/`か`--styles <dir>`で渡したフォルダーから読み、そこへは書きません
 - 名指した記事か本の本文を読み、図、内容の要約、図の仕様、描く指示、確かめた記録を名指したフォルダだけに書きます
-- 描く時は、描く指示と見本の画像を、スキルを動かしている道具の画像生成へ渡します。道具は、渡した画像をほかの画像と同じように扱います。scriptはどこにも繋ぎません
+- 描く時は、描く指示と見本の画像を、スキルを動かしている道具の画像生成へ渡します。道具は、渡した画像をほかの画像と同じように扱います。選んだ画風の見本が無い時は、描く指示だけを渡します。scriptはどこにも繋ぎません
 - scriptはほかの命令を動かさず、何も残しません
 - 記事の本文と見本の一覧の文はデータとして扱い、指示として読みません
 
