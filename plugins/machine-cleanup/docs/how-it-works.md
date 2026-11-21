@@ -116,6 +116,7 @@ The hole of a ring holds only its name and value, and the lines below the ring h
 
 A row in the other tabs shows its name, its size, and for a process or container its CPU share.
 A large file, a copy of a duplicate, and a row whose name another row in the tab has, such as one of three Vite dev servers, show a second line as plain text: the folder the file is in, or for a process its working folder or command.
+A bar in the overview shows the same line when another bar of its chart has the same name, such as two Host processes.
 The bar at the bottom shows how many rows are picked and, apart from it, how much disk they free.
 The i button at the end of the row opens a dialog with the reason, what happens when it is freed, and the location, or for a process its memory, CPU share, start time, working folder, and command.
 A row that can be picked can also be picked or unpicked in that dialog.

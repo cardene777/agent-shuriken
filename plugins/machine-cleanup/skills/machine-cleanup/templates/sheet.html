@@ -131,6 +131,7 @@ h1 { font-size: 24px; margin: 0; }
 .bar-row { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(48px, 1fr) auto; align-items: center; gap: 10px; font-size: 13px; padding: 3px 6px; border-radius: 6px; cursor: pointer; }
 .bar-row:hover, .bar-row:focus-visible { background: var(--soft); }
 .bar-row span { overflow-wrap: anywhere; }
+.bar-row .where { display: block; font-size: 12px; }
 .track { height: 12px; border-radius: 4px; background: var(--c-free); overflow: hidden; }
 .track i { display: block; height: 100%; border-radius: 4px; }
 .anim .track i { animation: widen .8s ease-out both; }
@@ -1233,11 +1234,18 @@ function barCard(c) {
   const box = card(c);
   const list = node("div", "bars");
   const max = Math.max.apply(null, c.bars.map(function (b) { return b.value; }).concat([1]));
+  const items = c.bars.map(function (b) { return b.item; });
   c.bars.forEach(function (b) {
     const row = node("div", "bar-row");
     const name = nameOf(b.item);
-    row.title = name;
-    row.appendChild(node("span", "", name));
+    // Two bars of one name, such as two Vite dev servers, show where each is under the name.
+    const shared = items.some(function (x) { return x !== b.item && nameOf(x) === name; });
+    const where = shared ? whereFor(b.item, items) : "";
+    row.title = where ? name + "\n" + where : name;
+    const label = node("span");
+    label.appendChild(node("span", "", name));
+    if (where) label.appendChild(node("span", "where", where));
+    row.appendChild(label);
     const track = node("div", "track");
     const fill = node("i");
     fill.style.width = (b.value / max * 100) + "%";

@@ -901,6 +901,14 @@ const others = [
   { id: "k1", group: "process", category: "container", name: "shop-db-1", size: 1, cpu: 0, detail: { image: "postgres:16" } }];
 console.log("[" + [whereFor(procs[0], procs), whereFor(procs[1], procs), whereFor(others[0], others), whereFor(others[1], others), whereFor(others[2], others)].join("|") + "]");
 console.log(texts(rowEl(others[0].name, whereFor(others[0], others), others[0])).length);'
+# Two bars of one name among the top processes, and a bar whose name is its own. The stand-in elements
+# get a style to write the bar's width into.
+BAR_FNS="t human tilde nameOf whereFor node card pressable levelOf COLORS barCard"
+BAR_JS='Object.defineProperty(El.prototype, "style", { get: function () { return this.css || (this.css = {}); } });
+function vite(id, folder) { return { id: id, group: "process", category: "dev-process", name: "Vite dev server", label: { key: "dev_vite" }, size: 1, cpu: 1, level: "recommended", locked: null, detail: { folder: folder, command: "node vite" } }; }
+const browser = { id: "p3", group: "process", category: "heavy-process", name: "Browser", size: 1, cpu: 1, level: "careful", locked: null, detail: { folder: "/h", command: "/Applications/Browser.app/Contents/MacOS/Browser" } };
+const box = barCard({ key: "cpuTop", title: "ch_cpuTop", bars: [{ item: vite("p1", "/h/projects/shop"), value: 5 }, { item: vite("p2", "/h/projects/blog"), value: 3 }, { item: browser, value: 2 }] });
+console.log(texts(box).slice(1).join("|"));'
 # A set of two copies whose names sort apart, among two large files.
 SET_FNS="t human nameOf groupRows viewGroups withSets setHeadText"
 SET_JS='const copies = ["/h/Backup/archive.zip", "/h/Documents/copy of archive.zip"];
@@ -974,6 +982,8 @@ archive.zip|~/Backup|1 B|i" ] || { echo "  $out"; false; }'
   check "the copies of one content are listed together under one heading" \
     'out="$(page_eval "$SET_FNS" "$SET_JS" 2>&1)"; [ "$out" = "head:2:500,a,c,b,d#b,d,head:2:500,a,c#head:2:500,c
 2 copies with the same contents, 500 B each|同じ中身の写しが2つ、1つ500 B" ] || { echo "  $out"; false; }'
+  check "a bar shows where it is when another bar in its chart has the same name" \
+    'out="$(page_eval "$BAR_FNS" "$BAR_JS" 2>&1)"; [ "$out" = "Vite dev server|~/projects/shop|5%|Vite dev server|~/projects/blog|3%|Browser|2%" ] || { echo "  $out"; false; }'
 else
   for name in "a list row shows only the name, the size, the CPU of a process, and a details button" \
     "a list row shows no path, command, or reason" \
@@ -999,7 +1009,8 @@ else
     "the bottom bar shows the picked count and the disk to free as two named values" \
     "a list row shows where it is when its name does not tell it apart" \
     "a list row adds no second line when its name tells it apart" \
-    "the copies of one content are listed together under one heading"; do
+    "the copies of one content are listed together under one heading" \
+    "a bar shows where it is when another bar in its chart has the same name"; do
     printf 'skip  %s (node is not installed)\n' "$name"
   done
 fi
