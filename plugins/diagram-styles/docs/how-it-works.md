@@ -9,24 +9,26 @@ The agent designs and draws the figures; the scripts in `skills/article-diagram-
 
 | File | What it holds |
 |---|---|
-| `article-diagram-styles/SKILL.md` | How to design an article figure from the reader's question, apply a style, draw it, and review it |
+| `article-diagram-styles/SKILL.md` | How to design an article figure from the reader's question, choose its structure, apply a style, draw it, and review it |
 | `article-diagram-styles/agents/openai.yaml` | How Codex shows and starts the skill |
-| `article-diagram-styles/musubi.json` | The contents the skill provides: `style4` at version 1.0.0, and `figure-request` and `style-catalog` at version 1.1.0 |
+| `article-diagram-styles/musubi.json` | The contents the skill provides: `style4` at version 1.0.0, and `figure-request` and `style-catalog` at version 1.2.0 |
 | `article-diagram-styles/references/content-first.md` | The content brief and the records of the finished review |
 | `article-diagram-styles/references/deterministic-technical-diagrams.md` | How the text and connections of a figure are recorded and checked |
 | `article-diagram-styles/references/style-families.md` | The thirty-two built-in styles in eight families, and how a style is chosen |
+| `article-diagram-styles/references/structures.md` | The sixteen built-in structures in four groups, how a structure is chosen, and how structures are compared |
 | `article-diagram-styles/references/pen-technical.md`, `handdraft.md`, `newsprint.md` | The full specifications of three built-in styles |
 | `article-diagram-styles/references/style4.md` | The style4 rules, provided as `style4` |
 | `article-diagram-styles/references/figure-request.md` | The figure request format, provided as `figure-request` |
 | `article-diagram-styles/references/style-catalog.md` | The shape of the catalog, provided as `style-catalog` |
-| `article-diagram-styles/scripts/diagram_sample_catalog.py` | Checks the built-in styles and the catalog, lists the styles in use, and shows one style with your samples of it |
+| `article-diagram-styles/scripts/diagram_sample_catalog.py` | Checks the built-in styles, the built-in structures, and the catalog, lists the styles and the structures in use, and shows one style with your samples of it or one structure |
 | `article-diagram-styles/scripts/validate_content_brief.py` | Checks a content brief against the article |
-| `article-diagram-styles/scripts/validate_figure_spec.py` | Checks a figure spec |
+| `article-diagram-styles/scripts/validate_figure_spec.py` | Checks a figure spec, and the structure it names |
 | `article-diagram-styles/scripts/validate_anchor_candidate.py` | Checks the review records of a finished figure |
 | `article-diagram-styles/scripts/validate_visual_contract.py` | Checks a visual contract and a figure spec against it |
-| `article-diagram-styles/scripts/validate_composition_ledger.py` | Checks the composition ledger of an article's figures |
+| `article-diagram-styles/scripts/validate_composition_ledger.py` | Checks the composition ledger of an article's figures, the structure of each figure, and a structure comparison |
 | `article-diagram-styles/scripts/newsprint_finish.py` | The bundled font's path and the ink treatment for HTML or SVG figures |
 | `article-diagram-styles/data/built-in-styles.json` | The thirty-two built-in styles, each defined in words, without images |
+| `article-diagram-styles/data/built-in-structures.json` | The sixteen built-in structures, each defined in words, without images |
 | `article-diagram-styles/data/fonts/KaiseiDecol-Bold.ttf`, `OFL.txt` | The font Kaisei Decol Bold and its license |
 | `article-diagram-styles/tests/` | Tests of the scripts, the pages, and the plugin, with fixtures drawn in a throwaway folder |
 | `tech-book-figure/SKILL.md` | How to design a book figure and draw it in style4 |
@@ -42,7 +44,8 @@ The plugin ships thirty-two built-in styles, each defined in words, so `article-
 Your catalog adds styles beside the built-in ones, replaces the built-in style of the same name, and takes a built-in style out of use when its `status` is `retired`.
 `tech-book-figure` still needs your style4 samples and the catalog.
 The skills and the scripts read the catalog `style-catalog.json` and the sample images from `~/.styles/`.
-`diagram_sample_catalog.py` and the review and contract checks read another folder only when they are given `--styles <dir>`.
+`diagram_sample_catalog.py` and the review, contract, figure spec, and ledger checks read another folder only when they are given `--styles <dir>`.
+The catalog may also hold an optional `structures` object, which adds, replaces, and retires structures by the same rules as the styles.
 
 ```text
 ~/.styles/
@@ -64,10 +67,33 @@ Without `~/.styles/style-catalog.json`, it checks the built-in styles alone, exi
 | A number under `counts` that does not match | `source_registrations` counts every original path, `unique_images` every different SHA-256 |
 | An image file under the folder that the catalog does not name | Every sample is registered |
 | An image of a style that is neither built in nor in the catalog | Every sample belongs to a style in use |
+| A structure under `structures` without one of its written fields, such as `shows` | Every structure in use is defined in words; the check names the structure and the field |
 
 A catalog that fails the check is refused; the scripts never fall back to the built-in styles in its place.
 
 `tech-book-figure` reads the style4 samples from `~/.styles/diagram-style-samples/style4/` and stops before drawing when fewer than two are there.
+
+## The structures
+
+The plugin ships sixteen built-in structures, each defined in words by the relation it shows, its parts, its reading order, and the subjects it fits and does not fit.
+A structure decides which parts a figure has and in which order they are read, and is chosen apart from the style, so any structure can be drawn in any style.
+`diagram_sample_catalog.py --structures` lists the structures in use, and `--show-structure <structure>` prints one.
+
+| Group | Structures |
+|---|---|
+| `flow-and-order` | `process-flow`, `message-sequence`, `timeline`, `cycle` |
+| `structure-and-containment` | `layers`, `tree`, `nesting`, `network` |
+| `comparison` | `side-by-side`, `before-after`, `two-axis-matrix`, `correspondence-table` |
+| `state-and-change` | `state-machine`, `decision-branch`, `quantity-trend`, `journey-map` |
+
+The skill chooses the structure of each figure from the reader's question, unless you or the figure request name one, and records its name in `structure` of the figure spec and of the figure's entry in `composition-ledger.json`.
+`validate_composition_ledger.py` refuses a figure without a structure in use, and a figure spec whose structure differs from its entry.
+
+| The ledger's `mode` | What it holds |
+|---|---|
+| `article` | The figures of the article, each making its own point |
+| `style-comparison` | The same content and layout in several styles, at your request |
+| `structure-comparison` | The same content in two or more different structures, at your request in `comparison_request`. Without a number, the skill draws three; the check sets no upper limit and refuses one figure or a structure drawn twice |
 
 ## How a figure is drawn
 
