@@ -136,9 +136,9 @@ class StructureTests(Styles):
         self.assertEqual(structures["my-structure"]["source"], "user")
         self.assertEqual((structures["timeline"]["shows"], structures["timeline"]["source"]), ("Mine", "user"))
         self.assertEqual(structures["timeline"]["parts"], catalog.built_in_structures()["structures"]["timeline"]["parts"])
-        self.assertEqual(catalog.structure_errors("cycle"), ["structure cycle is retired by the catalog"])
-        self.assertEqual(catalog.structure_errors("my-structure"), [])
-        self.assertTrue(catalog.structure_errors("no-such-structure"))
+        self.assertEqual(catalog.structure_errors("cycle", structures), ["structure cycle is retired by the catalog"])
+        self.assertEqual(catalog.structure_errors("my-structure", structures), [])
+        self.assertTrue(catalog.structure_errors("no-such-structure", structures))
         self.assertEqual(catalog.validate(d), [])
 
     def test_catalog_structure_needs_its_written_definition(self):

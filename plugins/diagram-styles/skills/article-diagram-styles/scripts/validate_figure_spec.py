@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Validate an article figure specification, drawn from source (deterministic) or by the image
-generation of the agent (generated)."""
+generation of the agent (generated). A spec that names its figure structure in `structure` names a
+structure in use: built in, or in the catalog of the styles folder, and not retired."""
 
 from __future__ import annotations
 
@@ -11,6 +12,8 @@ import re
 import xml.etree.ElementTree as ET
 from html.parser import HTMLParser
 from pathlib import Path
+
+from diagram_sample_catalog import CatalogError, structure_errors, structures_view
 
 
 RENDERING_MODES = {"deterministic", "generated"}
@@ -34,11 +37,16 @@ def nonempty(value: object) -> bool:
     return isinstance(value, str) and bool(value.strip())
 
 
-def validate(spec: object, spec_path: Path) -> list[str]:
+def validate(spec: object, spec_path: Path, styles: str | None = None) -> list[str]:
     if not isinstance(spec, dict):
         return ["figure spec root must be an object"]
 
     errors: list[str] = []
+    if "structure" in spec:
+        try:
+            errors.extend(structure_errors(spec["structure"], structures_view(styles)))
+        except CatalogError as error:
+            errors.append(str(error))
     mode = spec.get("rendering_mode")
     exact = spec.get("exact_content")
     if mode not in RENDERING_MODES:
@@ -192,6 +200,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("spec", type=Path)
     parser.add_argument("--require-source-labels", action="store_true", help="Require source text or glyph-group bindings for every fact; does not judge visual quality")
+    parser.add_argument("--styles", help="the styles folder to read instead of ~/.styles")
     args = parser.parse_args()
     try:
         data = json.loads(args.spec.read_text(encoding="utf-8"))
@@ -199,7 +208,7 @@ def main() -> int:
         print(f"error: cannot read figure spec: {error}", file=sys.stderr)
         return 1
 
-    errors = validate(data, args.spec)
+    errors = validate(data, args.spec, args.styles)
     if args.require_source_labels:
         errors.extend(source_label_errors(data, args.spec))
     if errors:

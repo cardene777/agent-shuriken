@@ -1,7 +1,7 @@
 # Third-party notices
 
 This plugin includes the following third-party material.
-Every data file the plugin bundles is listed here, including the one written for the plugin itself, the built-in styles.
+Every data file the plugin bundles is listed here, including the ones written for the plugin itself, the built-in styles and the built-in structures.
 
 ## Kaisei Decol
 
@@ -27,4 +27,12 @@ Copyright 2020 The Kaisei Project Authors.
 |---|---|
 | File in this plugin | `skills/article-diagram-styles/data/built-in-styles.json` |
 | Source | Written for this plugin. It holds the written specifications of the thirty-two built-in styles and no image |
+| License | MIT, as the plugin's [LICENSE](LICENSE) |
+
+## The built-in structures
+
+| Item | Value |
+|---|---|
+| File in this plugin | `skills/article-diagram-styles/data/built-in-structures.json` |
+| Source | Written for this plugin. It holds the written definitions of the sixteen built-in structures and no image |
 | License | MIT, as the plugin's [LICENSE](LICENSE) |
