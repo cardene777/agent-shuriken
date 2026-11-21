@@ -46,9 +46,11 @@ SECTION_START = re.compile(r'<section\b[^>]*\bid="([^"]+)"')
 PARA = re.compile(r"<p\b[^>]*>(.*?)</p>", re.S)
 TAG = re.compile(r"<[^>]+>")
 CODE_BLOCK = re.compile(r"<(script|style)\b.*?</\1>", re.S)
-# A step ladder slot and the `<svg>` that ladder.py puts in it.
+# A step ladder slot and what ladder.py puts in it: the `<svg>` inside its scroll frame
+# (`fig-scroll`), or a bare `<svg>` from an earlier ladder.py.
 LADDER = re.compile(r'<div\b[^>]*\bclass="ladder"[^>]*\bdata-ladder="([\w.-]+)"[^>]*>'
-                    r'\s*(?:<svg\b.*?</svg>)?\s*</div>', re.S)
+                    r'\s*(?:<div\b[^>]*\bclass="fig-scroll"[^>]*>\s*<svg\b.*?</svg>\s*</div>|<svg\b.*?</svg>)?'
+                    r'\s*</div>', re.S)
 CHART_SVG = re.compile(r'<svg\b[^>]*\bdata-chart="[^"]*"[^>]*>')
 CHART_SPEC = re.compile(r'<script\b[^>]*\btype="application/json"[^>]*>(.*?)</script>', re.S)
 # Tags that run inside one label; every other tag ends a label. `span` ends a label

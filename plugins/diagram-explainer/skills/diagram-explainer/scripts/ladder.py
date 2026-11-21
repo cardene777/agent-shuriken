@@ -48,7 +48,9 @@ PAD_BOTTOM = 6
 NUM_W = 64       # width of the number column
 SIDE_PAD = 16    # inner padding of a box
 GAP_MID = 40     # gap between the step text and the right column
-CH_W = 150       # left lane that carries the lines going back
+EDGE = 16        # space on the left and the right of the drawing, the same on both sides
+LABEL_GAP = 12   # gap between the names of a line going back and the line
+BACK_GAP = 36    # gap between a line going back and the boxes it points to
 TONES = {"emphasis": "var(--lad-emphasis)",
          "plain": "var(--lad-plain)",
          "strong": "var(--lad-strong)"}
@@ -180,15 +182,41 @@ def box_width(spec):
     return int(NUM_W + left + GAP_MID + right + SIDE_PAD + 0.5)
 
 
+def back_note(spec, ui, edge):
+    """The second name of a line going back. A `back_note` of the definition keeps its `%s`;
+    the default comes from the dictionary."""
+    return spec["back_note"] % edge["to"] if "back_note" in spec else say(ui, "ladderBackNote", n=edge["to"])
+
+
+def lane_width(spec, ui):
+    """Width of the lane left of the boxes that carries the lines going back and their names.
+
+    The lane is as wide as the longest name, so the drawing has no empty band on the left and
+    sits in the middle of its frame.
+    """
+    back = spec.get("back", [])
+    if not back:
+        return 0
+    names = max(max(width_of(e.get("label", ""), 12), width_of(back_note(spec, ui, e), 12)) for e in back)
+    return int(names + 0.5) + LABEL_GAP + BACK_GAP
+
+
 def render(spec, name, lang="en"):
-    """Build the `<svg>` from the ladder definition."""
+    """Build the figure from the ladder definition: its frame and the `<svg>` inside it.
+
+    The `<svg>` carries its own width as `--lad-w`; ladder.css lets it grow to 1.25 times that
+    width in a wider frame and never shrinks it below, so a narrower frame scrolls sideways.
+    """
     ui = ui_words(lang)
     steps = spec["steps"]
     bands = spec.get("bands", [])
     back = spec.get("back", [])
     actors = spec.get("actors", {})
 
-    nx = CH_W + 50 if back else 20
+    lane = lane_width(spec, ui)
+    nx = EDGE + lane
+    # The vertical part of a line going back; its names end LABEL_GAP before it.
+    bx = nx - BACK_GAP
     nw = box_width(spec)
     order = [s["n"] for s in steps]
     groups = ([(b["label"], [s for s in steps
@@ -244,14 +272,13 @@ def render(spec, name, lang="en"):
         parts.append(
             '<path class="lad-back" data-edge-label="%s" d="M %d %d H %d V %d H %d"'
             ' marker-end="url(#%s-b)"/>'
-            % (esc(label or say(ui, "ladderBack", n=e["to"])), nx, ys, CH_W, yt, nx - 8, name))
+            % (esc(label or say(ui, "ladderBack", n=e["to"])), nx, ys, bx, yt, nx - 8, name))
+        # The names start at the left edge of the drawing, beside the line.
         if label:
             parts.append('<text class="lad-blabel" x="%d" y="%.1f">%s</text>'
-                         % (CH_W - 12, mid + 4, esc(label)))
-        # A `back_note` of the definition keeps its `%s`; the default comes from the dictionary.
-        note = spec["back_note"] % e["to"] if "back_note" in spec else say(ui, "ladderBackNote", n=e["to"])
+                         % (EDGE, mid + 4, esc(label)))
         parts.append('<text class="lad-blabel" x="%d" y="%.1f">%s</text>'
-                     % (CH_W - 12, mid + 20, esc(note)))
+                     % (EDGE, mid + 20, esc(back_note(spec, ui, e))))
 
     defs = (
         '<defs>'
@@ -260,8 +287,9 @@ def render(spec, name, lang="en"):
         '<marker id="%s-b" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6"'
         ' orient="auto"><path d="M0 0 L8 4 L0 8 z" class="lad-head-back"/></marker>'
         '</defs>' % (name, name))
-    return ('<svg class="ladfig" viewBox="0 0 %d %d" role="img" aria-label="%s">%s%s</svg>'
-            % (nx + nw + 10, height, esc(spec["alt"] if "alt" in spec else say(ui, "ladderAlt")), defs, "".join(parts)))
+    width = nx + nw + EDGE
+    return ('<div class="fig-scroll"><svg class="ladfig" viewBox="0 0 %d %d" style="--lad-w:%dpx" role="img" aria-label="%s">%s%s</svg></div>'
+            % (width, height, width, esc(spec["alt"] if "alt" in spec else say(ui, "ladderAlt")), defs, "".join(parts)))
 
 
 def fill(doc, src):

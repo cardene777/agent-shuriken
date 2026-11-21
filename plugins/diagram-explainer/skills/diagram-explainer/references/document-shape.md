@@ -83,7 +83,7 @@ Ids start with a letter and use letters, digits, `-`, and `_`; every id in a doc
   <p>Body text.</p>
   <figure class="free" id="a-flow">
     ...
-    <figcaption>Figure 1 What the figure shows</figcaption>
+    <figcaption><span class="fig-no">Figure 1</span>What the figure shows</figcaption>
   </figure>
 </section>
 <section class="doc-sec" id="a-s2" data-name="Second section" data-nofig="Why this section has no figure.">
@@ -124,6 +124,7 @@ Three kinds of figure are drawn inside the document; none loads anything from ou
 
 Captions start with the figure number: `Figure 1`, `Fig. 1`, or `Example 1` in English, and the Japanese words for figure and example followed by the number in Japanese (see `content.sample.ja.json`).
 Numbers run from 1 on each page and are counted separately for each prefix; `prose.py` fails gaps and repeats.
+`render.py` puts the number in its own element (`<span class="fig-no">`), set apart from the caption by a margin instead of a space, so the gap stays the same in Japanese, where `despace.py` removes spaces next to numbers.
 
 Do not put figures inside a collapsed `details` block: the reader would not see the figure while reading the section.
 

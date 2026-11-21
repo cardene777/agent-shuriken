@@ -783,6 +783,12 @@ cat > "$WORK/probe.js" <<'JSEOF'
         if (hit(shrink(box(texts[i]), 1), shrink(box(texts[j]), 1))) c.overlaps.push(words(texts[i]) + ' / ' + words(texts[j]));
       }
     }
+    // A dot drawn over a text hides part of it.
+    nodes.filter(function (n) { return n.tagName.toLowerCase() === 'circle'; }).forEach(function (d) {
+      texts.forEach(function (t) {
+        if (later(t, d) && hit(shrink(box(d), 1), shrink(box(t), 1))) c.overlaps.push('dot over ' + words(t));
+      });
+    });
     if (c.kind === 'timeband') {
       var axis = texts.filter(function (t) { return t.getAttribute('data-ui') === 'hour'; });
       var rest = texts.filter(function (t) { return t.getAttribute('data-ui') !== 'hour'; });

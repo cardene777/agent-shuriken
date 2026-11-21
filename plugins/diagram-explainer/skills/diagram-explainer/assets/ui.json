@@ -23,7 +23,8 @@
     "months": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
     "ladderAlt": "Step ladder",
     "ladderBack": "Back to step {n}",
-    "ladderBackNote": "back to {n}"
+    "ladderBackNote": "back to {n}",
+    "figMore": "Scroll sideways to see the whole figure"
   },
   "ja": {
     "contents": "目次",
@@ -49,6 +50,7 @@
     "months": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"],
     "ladderAlt": "段の並び",
     "ladderBack": "工程{n} へ戻る",
-    "ladderBackNote": "{n} へ戻る"
+    "ladderBackNote": "{n} へ戻る",
+    "figMore": "横にスクロールすると図の全体が見えます"
   }
 }

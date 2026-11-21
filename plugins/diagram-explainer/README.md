@@ -46,6 +46,7 @@ In GitHub Copilot CLI, write `/diagram-explainer` in your request, and in Gemini
 
 The document shows one section at a time from a contents list, splits two or more topics into pages with tabs in the header, slides its contents list in on a phone, and has a PDF button.
 Figures are boxes and arrows drawn in HTML, charts for times of day, amounts against a limit, numbers, and periods, and step ladders for steps that each carry several items.
+On a phone, a figure too wide for the screen keeps its text size and scrolls sideways, with a line under it that says so.
 It is written in the language you write in, and its buttons and labels start in that language (English or Japanese).
 The header holds two switches side by side: English / 日本語, which changes only the interface text, such as the contents button, the previous and next buttons, the PDF menu, and chart units, and a light and dark switch. The document's own text stays in the language it was written in, and printing always uses light colors.
 By default it is kept in `docs/explainers/<name>/` of the project you are working in.

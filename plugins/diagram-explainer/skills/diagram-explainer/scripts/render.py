@@ -126,6 +126,23 @@ def plain(text):
     return esc(re.sub(r"`([^`]+)`", r"\1", str(text)))
 
 
+# The figure number at the start of a caption: "Figure 3", "Fig. 3", or "Example 3", or the
+# Japanese word for figure or example followed by the number (references/document-shape.md).
+CAPTION_NO = re.compile(r"^((?:Figure|Fig\.|Example)\s*\d+|[\u56f3\u4f8b]\s*\d+)\s*(?=\S)")
+
+
+def caption(text):
+    """A caption with its figure number in its own element.
+
+    doc.css keeps the number apart from the caption with a margin, not a space: despace.py
+    removes the space between a number and Japanese text, which would run the two together.
+    """
+    m = CAPTION_NO.match(str(text))
+    if not m:
+        return inline(text)
+    return '<span class="fig-no">%s</span>%s' % (esc(m.group(1)), inline(str(text)[m.end():]))
+
+
 _UI = {}
 
 
@@ -175,8 +192,8 @@ def render_chart(block, ctx):
     spec = block.get("spec")
     if not isinstance(spec, dict) or not spec:
         fail("chart %s has no spec (what to draw)" % chart_id)
-    caption = block.get("caption")
-    if not caption:
+    cap = block.get("caption")
+    if not cap:
         fail("chart %s has no caption" % chart_id)
     spec_id = chart_id + "-spec"
     ctx.claim(chart_id, "chart")
@@ -195,11 +212,13 @@ def render_chart(block, ctx):
         head = ('\n  <div class="chart-views" data-chart="%s" data-text="%s">%s</div>'
                 '\n  <p class="tabtext" id="%s"></p>' % (chart_id, say_id, buttons, say_id))
     data = json.dumps(spec, ensure_ascii=False).replace("</", "<\\/")
+    # The chart sits in a frame of its own (`fig-scroll`), so a chart wider than the screen
+    # scrolls sideways there while its buttons and caption stay in place.
     return ('<figure class="chart" data-kind="%s">%s\n'
-            '  <svg id="%s" data-chart="%s" data-spec="%s" role="img" aria-label="%s"></svg>\n'
+            '  <div class="fig-scroll"><svg id="%s" data-chart="%s" data-spec="%s" role="img" aria-label="%s"></svg></div>\n'
             '  <script type="application/json" id="%s">%s</script>\n'
             '  <figcaption>%s</figcaption>\n</figure>'
-            % (kind, head, chart_id, kind, spec_id, plain(caption), spec_id, data, inline(caption)))
+            % (kind, head, chart_id, kind, spec_id, plain(cap), spec_id, data, caption(cap)))
 
 
 def items_of(block, kind, least, most=None):
@@ -293,10 +312,10 @@ def render_free(block, ctx):
         fail("html block %s: css contains something not allowed (@import / tags)" % free_id)
     # CSS nesting keeps the writer's rules under this block's id.
     style = "<style>#%s { %s }</style>\n" % (free_id, css) if css.strip() else ""
-    caption = block.get("caption")
-    if caption:
+    cap = block.get("caption")
+    if cap:
         return ('%s<figure class="free" id="%s">\n%s\n  <figcaption>%s</figcaption>\n</figure>'
-                % (style, free_id, body, inline(caption)))
+                % (style, free_id, body, caption(cap)))
     return '%s<div class="free" id="%s">\n%s\n</div>' % (style, free_id, body)
 
 
