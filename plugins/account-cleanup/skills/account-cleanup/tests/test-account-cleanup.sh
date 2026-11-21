@@ -925,8 +925,10 @@ dictionary_words() { # <what> <template>...
 import re, sys
 what, files = sys.argv[1], sys.argv[2:]
 lang = "ja" if what == "ja-space" else "en"
-JA = "぀-ヿ一-鿿"
-space = re.compile(r"[%s、。] [A-Za-z0-9{]|[A-Za-z0-9}] [%s]" % (JA, JA))
+# Kana and kanji, with the Japanese comma and full stop, built from code points.
+JA = "%s-%s%s-%s" % tuple(map(chr, (0x3040, 0x30FF, 0x4E00, 0x9FFF)))
+STOPS = chr(0x3001) + chr(0x3002)
+space = re.compile(r"[%s%s] [A-Za-z0-9{]|[A-Za-z0-9}] [%s]" % (JA, STOPS, JA))
 problems, seen = [], 0
 for f in files:
     page = open(f, encoding="utf-8").read()

@@ -9,7 +9,7 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - Each tab of the candidate sheet keeps its own sort, and the sort by last round's result is offered only on a tab that has such rows, so the sort shown is the one the rows follow
 - The help of the candidate sheet explains every deletion effort the details can show, including Partial, Service ended, and a site that is gone, in English and Japanese
 - Text colors in the light theme of the candidate sheet are darker, so every text reaches a contrast of 4.5 to 1 on every background in both themes
-- The Japanese words of the candidate sheet and the follow-up page put no space between Japanese and a number or a name, as in `OK 3件、ダメ2件`, and the English bottom bar reads `OK 3, Keep 2` without a middle dot
+- The Japanese words of the candidate sheet and the follow-up page put no space between Japanese and a number or a name, in the bottom bar's counts, the follow-up page's heading, the last opened date, and the row buttons' labels, and the English bottom bar reads `OK 3, Keep 2` without a middle dot
 - The three steps at the top of the candidate sheet sit side by side in equal columns, with shorter words that fit one line, and stack on a phone
 - The reason for an item that was not updated for a long time reads `Not updated in a long time (last updated <date>)`, without a label and a colon
 - `followup.sh add` keeps the service name from the candidates with each record, and the follow-up page shows that name in the Service column, with the domain under it only when the name does not hold it. Records written before show their key as before
