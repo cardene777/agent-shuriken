@@ -1,0 +1,186 @@
+{
+  "version": 1,
+  "families": {
+    "line-drawing": {
+      "label": "Line drawing",
+      "description": "Drawn lines carry the figure, and color stays light and local"
+    },
+    "drafting-and-flat": {
+      "label": "Drafting and flat",
+      "description": "Exact geometry and flat areas carry the figure"
+    },
+    "painting-and-print": {
+      "label": "Painting and print",
+      "description": "A painted or printed surface gives the figure its feel"
+    },
+    "friendly": {
+      "label": "Friendly",
+      "description": "Playful materials make the figure approachable"
+    }
+  },
+  "finish_profiles": {
+    "handdraft": {
+      "family": "line-drawing",
+      "label": "Hand-drafted technical sketch",
+      "status": "active",
+      "line": "Clear black pen with a light wobble for outlines, dividers, and arrows; neither bolder marker strokes than the letters nor mechanical hairlines",
+      "fill": "Light teal, orange, and gray hatching, only on the fields, ranges, and amounts that carry meaning",
+      "background": "Plain white, with no paper color or shadow",
+      "lettering": "Dark black, rounded natural handwriting, with numbers large enough to read when the figure is shrunk",
+      "suits": ["data structures", "storage layouts", "state transitions", "conditions and boundaries", "amounts and ledgers", "tables"],
+      "specification": "references/handdraft.md"
+    },
+    "pen-technical": {
+      "family": "line-drawing",
+      "label": "Pen technical illustration",
+      "status": "active",
+      "line": "Thin to medium black pen with a natural wobble, rubbing, and changes of pressure, keeping a black core in the main outlines, letters, and arrows",
+      "fill": "Partial teal and orange colored-pencil rubs, with short gray hatching in places",
+      "background": "Plain white",
+      "lettering": "Natural handwriting placed beside or under the objects, never boxed in labels or speech bubbles",
+      "suits": ["explanatory overviews", "actors and their roles", "request and response flows", "concrete objects such as documents and keys", "system context"],
+      "specification": "references/pen-technical.md"
+    },
+    "pencil-sketch": {
+      "family": "line-drawing",
+      "label": "Pencil sketch",
+      "status": "active",
+      "line": "Soft gray graphite, with faint construction lines left visible and darker, firmer strokes on the final outlines",
+      "fill": "Graphite shading and smudged tone, with no color or one faint wash of a single accent",
+      "background": "Off-white drawing paper with a fine tooth",
+      "lettering": "Small pencil block capitals and cursive notes, slightly uneven",
+      "suits": ["early ideas and drafts", "rough architecture", "brainstorming maps", "design explorations", "before and after sketches"]
+    },
+    "chalkboard": {
+      "family": "line-drawing",
+      "label": "Chalkboard",
+      "status": "active",
+      "line": "White chalk strokes with broken, dusty edges, and arrows drawn in one quick motion",
+      "fill": "Pale yellow, pink, and light blue chalk rubbed on with the side of the stick",
+      "background": "Dark green-black slate with faint smears of erased writing",
+      "lettering": "Large upright chalk print, as a teacher writes it, with underlines for emphasis",
+      "suits": ["lessons and step-by-step explanations", "formulas and calculations", "algorithms worked by hand", "comparisons of two ideas"]
+    },
+    "flat-vector": {
+      "family": "drafting-and-flat",
+      "label": "Flat vector",
+      "status": "active",
+      "line": "No outlines, or uniform thin lines in one dark color, around shapes built from clean geometric primitives with rounded corners",
+      "fill": "Solid flat colors from a palette of four or five hues, with no gradient, texture, or shadow",
+      "background": "A solid light color or plain white",
+      "lettering": "A clean geometric sans-serif of medium weight, aligned to a grid",
+      "suits": ["product overviews", "user flows", "dashboards and screen concepts", "components drawn as icons", "marketing explainers"]
+    },
+    "blueprint": {
+      "family": "drafting-and-flat",
+      "label": "Blueprint",
+      "status": "active",
+      "line": "Thin white and pale cyan drafting lines of even width, with dimension lines, center lines, and dashed hidden edges",
+      "fill": "No fill; areas told apart by fine white cross-hatching or dotted grids",
+      "background": "Deep Prussian blue with a faint square grid",
+      "lettering": "White technical stencil capitals, with small callouts on leader lines",
+      "suits": ["system architecture", "hardware and physical layouts", "specifications with dimensions", "infrastructure plans", "component breakdowns"]
+    },
+    "isometric": {
+      "family": "drafting-and-flat",
+      "label": "Isometric",
+      "status": "active",
+      "line": "Crisp lines on a 30-degree isometric grid, every edge parallel to one of the three axes",
+      "fill": "Three flat tones on each object, light on top, medium on the left, and dark on the right, from a cool palette",
+      "background": "Plain white or very light gray, with no horizon",
+      "lettering": "Small upright sans-serif labels on leader lines, never skewed along the faces",
+      "suits": ["layered architecture", "cloud and network infrastructure", "data centers and devices", "stacks and platforms", "spatial layouts"]
+    },
+    "minimal": {
+      "family": "drafting-and-flat",
+      "label": "Minimal",
+      "status": "active",
+      "line": "Thin black lines of a single weight, used sparingly, with alignment and space doing the work of boxes",
+      "fill": "White, with one accent color kept for the single thing that matters",
+      "background": "Plain white with generous margins",
+      "lettering": "A light sans-serif in two sizes only, in black and gray",
+      "suits": ["a single key idea", "simple comparisons", "timelines with few points", "summaries", "relations between two or three things"]
+    },
+    "watercolor": {
+      "family": "painting-and-print",
+      "label": "Watercolor",
+      "status": "active",
+      "line": "Loose sepia ink lines under the paint, broken where the wash takes over",
+      "fill": "Transparent watercolor washes with soft blooms and hard drying edges, bleeding a little past the lines",
+      "background": "Warm white cold-press watercolor paper with visible grain",
+      "lettering": "Calm, small hand lettering in fine ink",
+      "suits": ["stories and journeys", "concepts with a mood such as growth or calm", "nature and places", "processes centered on people", "essays"]
+    },
+    "newsprint": {
+      "family": "painting-and-print",
+      "label": "Newsprint",
+      "status": "active",
+      "line": "Charcoal engraved contours with a slight spread of ink, as on a cheap press run",
+      "fill": "Coarse black halftone with one restrained muted-teal spot ink, slightly out of register",
+      "background": "Flat warm-cream newsprint with subtle paper pores",
+      "lettering": "Condensed headline type with dry-brush wear, and small serif captions",
+      "suits": ["news and announcements", "timelines of events", "editorial explainers", "ratios and merges", "statistics with a headline"],
+      "specification": "references/newsprint.md"
+    },
+    "woodblock": {
+      "family": "painting-and-print",
+      "label": "Woodblock print",
+      "status": "active",
+      "line": "Bold carved outlines that taper and break, with chisel marks at their ends",
+      "fill": "Flat areas of indigo, vermilion, and ochre printed with visible wood grain and uneven ink",
+      "background": "Warm handmade paper with visible fibers",
+      "lettering": "Carved block lettering set inside cartouches",
+      "suits": ["history and tradition", "cycles and seasons", "landscapes and maps", "cultural explanations", "a few strong symbols"]
+    },
+    "retro-poster": {
+      "family": "painting-and-print",
+      "label": "Retro poster",
+      "status": "active",
+      "line": "Clean bold shapes with thick outlines or none, as on a mid-century travel poster",
+      "fill": "Three to five flat screen-printed colors such as mustard, teal, coral, and cream, with grain and slight overprint",
+      "background": "Cream paper with a subtle texture, sometimes behind a sunburst",
+      "lettering": "Large rounded display type with small geometric captions",
+      "suits": ["launch announcements", "one memorable message", "comparisons with a slogan", "event explanations", "cover and title figures"]
+    },
+    "whiteboard": {
+      "family": "friendly",
+      "label": "Whiteboard and sticky notes",
+      "status": "active",
+      "line": "Black, blue, and red marker strokes of even width with rounded ends, and hand-drawn arrows",
+      "fill": "Square sticky notes in yellow, pink, green, and blue, slightly rotated, with small shadows",
+      "background": "A glossy whiteboard with faint ghosts of erased marks",
+      "lettering": "Quick, readable marker capitals",
+      "suits": ["workshops and planning", "retrospectives", "user journeys", "grouping ideas", "task boards and task flows"]
+    },
+    "comic-panel": {
+      "family": "friendly",
+      "label": "Comic panels",
+      "status": "active",
+      "line": "Inked black outlines of varying weight, with speed lines and panel borders",
+      "fill": "Bright flat colors with cel shading and occasional halftone dots",
+      "background": "Panels separated by white gutters",
+      "lettering": "All-capital comic lettering inside speech balloons and caption boxes",
+      "suits": ["step-by-step stories", "user scenarios", "cause and effect", "dialogues between systems or people", "onboarding"]
+    },
+    "pixel-art": {
+      "family": "friendly",
+      "label": "Pixel art",
+      "status": "active",
+      "line": "Hard one-pixel outlines on a coarse, visible pixel grid, without smoothing",
+      "fill": "A limited palette of about sixteen colors, with dithering for shading",
+      "background": "A flat dark or light color, sometimes a simple tiled pattern",
+      "lettering": "A blocky bitmap font in capitals",
+      "suits": ["games and retro computing", "state machines", "maps and levels", "simple processes in a playful tone", "small icons"]
+    },
+    "clay": {
+      "family": "friendly",
+      "label": "Clay model",
+      "status": "active",
+      "line": "No drawn lines; edges come from soft, rounded forms molded in clay",
+      "fill": "Matte pastel modeling clay with fingerprints, lit as small three-dimensional objects with soft studio shadows",
+      "background": "A smooth single-color backdrop, gently lit",
+      "lettering": "Rounded friendly labels printed on small cards set beside the objects",
+      "suits": ["friendly overviews for beginners", "characters and mascots", "simple systems with few parts", "products and objects", "playful explainers"]
+    }
+  }
+}
