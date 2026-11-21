@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-21
+
 - `article-diagram-styles` ships sixteen built-in styles in four families, each defined in words with the kinds of figures it suits, and draws in them without `~/.styles/`. It draws in the style you name, or picks one from the article and tells you which and why, falling back to `handdraft`. Your catalog in `~/.styles/` adds styles beside the built-in styles, replaces a built-in style of the same name, or retires one with `"status": "retired"`. `diagram_sample_catalog.py` gains `--list` and `--show`, and `style-catalog` and `figure-request` move to version 1.1.0. `tech-book-figure` still needs your style4 samples
 
 ## [0.1.0] - 2026-11-21
@@ -16,5 +18,6 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - `article-diagram-styles` provides `style4`, `figure-request`, and `style-catalog` through musubi, and `tech-book-figure` follows `article-diagram-styles/style4`
 - The font Kaisei Decol Bold ships with its license for figures drawn from HTML or SVG source
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/diagram-styles--v0.1.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/diagram-styles--v0.2.0...HEAD
+[0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/diagram-styles--v0.2.0
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/diagram-styles--v0.1.0

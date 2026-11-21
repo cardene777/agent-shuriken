@@ -1,7 +1,7 @@
 {
   "name": "diagram-styles",
   "displayName": "Diagram Styles",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Figures for articles and technical books, designed from the reader's questions first and drawn in one of sixteen built-in styles or a style from your own catalog and samples in ~/.styles",
   "author": {
     "name": "cardene777",

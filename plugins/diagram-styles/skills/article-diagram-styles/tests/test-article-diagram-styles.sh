@@ -860,11 +860,16 @@ changelog_line() {
 }
 check "the changelog has a line under Unreleased or the released version" changelog_line
 
+# A release moves the line from ## [Unreleased] into the section of the version both plugin.json
+# files carry, so either place counts.
 changelog_built_in() {
-  unreleased "$PLUGIN/CHANGELOG.md" | grep '^- ' | grep -qF "built-in styles" ||
-    { echo "      no line under ## [Unreleased] names the built-in styles"; return 1; }
+  local version
+  version="$(jq -r .version "$PLUGIN/.claude-plugin/plugin.json")"
+  { unreleased "$PLUGIN/CHANGELOG.md"; released "$PLUGIN/CHANGELOG.md" "$version"; } |
+    grep '^- ' | grep -qF "built-in styles" ||
+    { echo "      no line under ## [Unreleased] or ## [$version] names the built-in styles"; return 1; }
 }
-check "the changelog names the built-in styles under Unreleased" changelog_built_in
+check "the changelog names the built-in styles under Unreleased or the released version" changelog_built_in
 
 releasing_pages() {
   has "$REPO/docs/releasing.md" 'musubi check plugins/diagram-styles/skills' &&
