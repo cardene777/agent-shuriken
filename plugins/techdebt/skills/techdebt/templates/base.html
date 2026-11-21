@@ -6,7 +6,7 @@
 <title>{{TITLE}} tech debt</title>
 <style>
 :root {
-  --bg: #f7f7f5; --fg: #1d2024; --muted: #5d636b; --card: #ffffff; --line: #e3e3de;
+  --bg: #f7f7f5; --fg: #1d2024; --muted: #5d636b; --card: #ffffff; --line: #e3e3de; --label: #f0f0eb;
   --accent: #8a5d0c; --accent-soft: #f6ecd8; --bar: #9a6a12; --bar2: #e7c98d; --track: #c9c2b2;
   --code: #f1f1ed; --good: #2f7a4a; --warn: #b4364a; --accent-ink: #ffffff;
   --radius: 10px; --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
@@ -15,14 +15,14 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #17191c; --fg: #e8e8e4; --muted: #a2a7ad; --card: #202328; --line: #33373d;
+    --bg: #17191c; --fg: #e8e8e4; --muted: #a2a7ad; --card: #202328; --line: #33373d; --label: #282b30;
     --accent: #e0a63a; --accent-soft: #33291a; --bar: #d29a2f; --bar2: #6d5428; --track: #4a5059;
     --code: #2a2d32; --good: #6cc08d; --warn: #f07f8f; --accent-ink: #17191c;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #17191c; --fg: #e8e8e4; --muted: #a2a7ad; --card: #202328; --line: #33373d;
+  --bg: #17191c; --fg: #e8e8e4; --muted: #a2a7ad; --card: #202328; --line: #33373d; --label: #282b30;
   --accent: #e0a63a; --accent-soft: #33291a; --bar: #d29a2f; --bar2: #6d5428; --track: #4a5059;
   --code: #2a2d32; --good: #6cc08d; --warn: #f07f8f; --accent-ink: #17191c;
   color-scheme: dark;
@@ -35,10 +35,23 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 header { border-bottom: 1px solid var(--line); background: var(--card); }
 .top-in { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-top: 16px; padding-bottom: 16px; }
 header h1 { margin: 0; font-size: 20px; }
-.facts { margin: 4px 0 0; display: flex; flex-wrap: wrap; gap: 2px 24px; font-size: 13px; }
-.facts div { display: flex; gap: 6px; align-items: baseline; }
-.facts dt { color: var(--muted); }
-.facts dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.facts-wrap { margin-top: 6px; width: fit-content; max-width: 100%; border: 1px solid var(--line); border-radius: 8px; background: var(--card); overflow: hidden; }
+/* One row per fact, as page-design shows facts: side by side as columns, and label and value rows on phones */
+.facts { border-collapse: collapse; font-size: 13px; }
+.facts, .facts tbody { display: block; }
+.facts tbody { display: grid; grid-auto-flow: column; grid-auto-columns: auto; }
+.facts tr { display: grid; grid-template-rows: auto 1fr; border-left: 1px solid var(--line); }
+.facts tr:first-child { border-left: 0; }
+.facts th, .facts td { padding: 4px 12px; text-align: left; }
+.facts th { font-weight: 500; color: var(--muted); background: var(--label); border-bottom: 1px solid var(--line); }
+.facts td { font-weight: 600; font-variant-numeric: tabular-nums; }
+@media (max-width: 860px) {
+  .facts-wrap { width: auto; }
+  .facts tbody { grid-auto-flow: row; }
+  .facts tr { grid-template-columns: 9em minmax(0, 1fr); grid-template-rows: auto; border-left: 0; border-top: 1px solid var(--line); }
+  .facts tr:first-child { border-top: 0; }
+  .facts th { border-bottom: 0; }
+}
 .controls { display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; }
 .seg { display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
 .seg button { border: 0; background: transparent; color: var(--fg); padding: 6px 14px; font: inherit; cursor: pointer; white-space: nowrap; transition: background-color .15s, color .15s; }
@@ -62,7 +75,8 @@ main { padding-top: 20px; padding-bottom: 48px; }
 .tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); font-weight: 600; }
 .lead { color: var(--muted); margin: 0 0 14px; }
 /* The ranked list on the left and the pressed row's details beside it, as page-design's report page. */
-.split { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+/* The list keeps a fixed width and the details take the rest of the row */
+.split { display: grid; grid-template-columns: minmax(320px, 380px) minmax(0, 1fr); gap: 16px; align-items: start; }
 .list { display: grid; gap: 10px; min-width: 0; }
 .rows { border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); overflow: hidden; }
 .rows-head, .row { display: grid; grid-template-columns: 34px minmax(0, 1fr) 104px; gap: 12px; align-items: center; padding: 10px 16px; }
@@ -156,7 +170,7 @@ code.said { font-family: var(--mono); font-size: 13px; word-break: normal; overf
   <div class="top-in">
     <div>
       <h1 id="title"></h1>
-      <dl class="facts" id="facts"></dl>
+      <div class="facts-wrap"><table class="facts" id="facts" role="table"></table></div>
     </div>
     <div class="controls">
       <div class="seg" id="lang-group" role="group" aria-label="Language">
@@ -635,13 +649,13 @@ function render() {
   document.documentElement.lang = lang;
   document.title = t("title", {p: D.project});
   document.getElementById("title").textContent = t("title", {p: D.project});
-  // One name and value per fact, as the report page of page-design shows them, never one sentence.
+  // One row per fact, the name in a row header and the value beside it, as page-design shows facts, never one sentence.
   const at = D.generated_at.slice(0, 16).replace("T", " ");
   const facts = D.git
     ? [["factCommit", D.head], ["factBranch", D.branch], ["factFiles", D.files], ["factCommits", D.commits], ["factGenerated", at]]
     : [["factGit", t("notGit")], ["factFiles", D.files], ["factGenerated", at]];
-  document.getElementById("facts").replaceChildren(...facts.map(([k, v]) =>
-    el("div", null, el("dt", null, t(k, {months: D.months})), el("dd", null, v))));
+  document.getElementById("facts").replaceChildren(el("tbody", {role: "rowgroup"}, ...facts.map(([k, v]) =>
+    el("tr", {role: "row"}, el("th", {scope: "row", role: "rowheader"}, t(k, {months: D.months})), el("td", {role: "cell"}, v)))));
   for (const b of document.querySelectorAll("[data-lang]")) b.setAttribute("aria-pressed", String(b.dataset.lang === lang));
   for (const b of document.querySelectorAll("[data-theme-choice]")) b.textContent = t(b.dataset.themeChoice);
   document.getElementById("lang-group").setAttribute("aria-label", t("langGroup"));

@@ -13,7 +13,7 @@
 <style>
 :root {
   --bg: #f5f6f8; --surface: #ffffff; --ink: #1b2129; --sub: #4d5664; --line: #dce1e7;
-  --accent: #2a5bd7; --accent-ink: #ffffff; --accent-soft: #e8eefc; --wire: #c9d1db; --wire-soft: #eef1f5;
+  --accent: #2a5bd7; --accent-ink: #ffffff; --accent-soft: #e8eefc; --wire: #c9d1db; --wire-soft: #eef1f5; --label: #eef1f5;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   color-scheme: light;
@@ -21,12 +21,12 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #121519; --surface: #1a1e24; --ink: #e6e9ee; --sub: #a9b2be; --line: #2e343d;
-    --accent: #7d9cff; --accent-ink: #0f1420; --accent-soft: #1f2a45; --wire: #444c58; --wire-soft: #232831; color-scheme: dark;
+    --accent: #7d9cff; --accent-ink: #0f1420; --accent-soft: #1f2a45; --wire: #444c58; --wire-soft: #232831; --label: #222831; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #121519; --surface: #1a1e24; --ink: #e6e9ee; --sub: #a9b2be; --line: #2e343d;
-  --accent: #7d9cff; --accent-ink: #0f1420; --accent-soft: #1f2a45; --wire: #444c58; --wire-soft: #232831; color-scheme: dark;
+  --accent: #7d9cff; --accent-ink: #0f1420; --accent-soft: #1f2a45; --wire: #444c58; --wire-soft: #232831; --label: #222831; color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.7 var(--sans); }
@@ -46,10 +46,23 @@ main { max-width: 1240px; margin: 0 auto; padding: 22px 24px 60px; display: grid
 section { display: grid; gap: 12px; min-width: 0; }
 section > h2 { margin: 0; font-size: 18px; }
 .request { margin: 0; padding: 16px 18px; border-left: 4px solid var(--accent); border-radius: 0 10px 10px 0; background: var(--surface); font-size: 16px; }
-.facts { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
-.facts div { padding: 10px 16px; border-left: 1px solid var(--line); margin-left: -1px; }
-.facts dt { font-size: 12.5px; color: var(--sub); }
-.facts dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.facts-wrap { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
+/* One row per fact: side by side as columns on wide screens, and label and value rows on phones */
+.facts { width: 100%; border-collapse: collapse; }
+.facts, .facts tbody { display: block; }
+.facts tbody { display: grid; grid-auto-flow: column; grid-auto-columns: auto; }
+.facts tr { display: grid; grid-template-rows: auto 1fr; border-left: 1px solid var(--line); }
+.facts tr:first-child { border-left: 0; }
+.facts th, .facts td { padding: 8px 18px; text-align: left; }
+.facts th { font-size: 13px; font-weight: 500; color: var(--sub); background: var(--label); border-bottom: 1px solid var(--line); word-break: auto-phrase; }
+.facts td { font-weight: 600; font-variant-numeric: tabular-nums; }
+@media (max-width: 860px) {
+  .facts tbody { grid-auto-flow: row; }
+  .facts tr { grid-template-columns: 9.5em minmax(0, 1fr); grid-template-rows: auto; border-left: 0; border-top: 1px solid var(--line); }
+  .facts tr:first-child { border-top: 0; }
+  .facts th, .facts td { padding: 9px 14px; }
+  .facts th { border-bottom: 0; }
+}
 .note { margin: 0; color: var(--sub); }
 
 .scroll { overflow-x: auto; padding-bottom: 6px; }
@@ -59,15 +72,17 @@ section > h2 { margin: 0; font-size: 18px; }
 .shot span { display: block; padding: 8px 12px; font-size: 14px; }
 
 .options { display: grid; grid-template-columns: repeat(var(--count), minmax(260px, 1fr)); gap: 14px; min-width: calc(var(--count) * 270px); }
-.option { padding: 0; border: 2px solid var(--line); border-radius: 12px; background: var(--surface); text-align: left; cursor: pointer; overflow: hidden; display: grid; align-content: start; transition: border-color .15s, box-shadow .15s, transform .15s; }
+/* The card holds two buttons side by side in the tree, one that chooses and one that enlarges */
+.option { position: relative; border: 2px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden; transition: border-color .15s, box-shadow .15s, transform .15s; }
+.option-pick { display: grid; align-content: start; width: 100%; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .option:hover { transform: translateY(-2px); }
-.option[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.option.chosen { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .option svg { display: block; width: 100%; height: auto; background: var(--wire-soft); border-bottom: 1px solid var(--line); }
 .option-body { padding: 12px 14px 14px; display: grid; gap: 4px; }
 .option-name { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 16px; }
 .option-name code { font: 700 13px var(--mono); color: var(--accent); }
-.option-body p { margin: 0; font-size: 14px; color: var(--sub); }
-.option-body .zoom { justify-self: start; margin-top: 4px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 6px; background: transparent; font-size: 13px; cursor: zoom-in; }
+.option-about { font-size: 14px; color: var(--sub); }
+.option .zoom { position: absolute; top: 8px; right: 8px; cursor: zoom-in; }
 
 .panel { padding: 18px 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); display: grid; gap: 12px; }
 .panel label { font-size: 14px; color: var(--sub); }
@@ -75,7 +90,7 @@ section > h2 { margin: 0; font-size: 18px; }
 .panel textarea[readonly] { font-family: var(--mono); }
 .picked { font-weight: 600; }
 .primary { justify-self: start; padding: 10px 20px; border: 0; border-radius: 8px; background: var(--accent); color: var(--accent-ink); font-weight: 600; cursor: pointer; }
-.status { min-height: 1.6em; margin: 0; color: var(--accent); }
+.status { min-height: 1.6em; margin: 0; color: var(--ink); font-weight: 600; }
 
 dialog { width: min(1100px, calc(100vw - 32px)); padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); }
 dialog::backdrop { background: rgba(10, 14, 20, .55); }
@@ -109,7 +124,7 @@ dialog::backdrop { background: rgba(10, 14, 20, .55); }
   <section aria-labelledby="h-request">
     <h2 id="h-request" data-t="request"></h2>
     <p class="request" id="request"></p>
-    <dl class="facts" id="facts"></dl>
+    <div class="facts-wrap"><table class="facts" id="facts" role="table"></table></div>
   </section>
   <section aria-labelledby="h-today">
     <h2 id="h-today" data-t="today"></h2>
@@ -216,6 +231,9 @@ const state = { lang: "en", chosen: "" };
 const $ = (id) => document.getElementById(id);
 const t = (key) => TEXT[state.lang][key] ?? key;
 const pick = (value) => (value && typeof value === "object" && !Array.isArray(value) ? value[state.lang] : value);
+// Japanese text starts a new line after each full stop that has more text after it. A full stop right
+// before a closing bracket or quote ends a quoted sentence inside a longer one, so it stays.
+const lines = (s) => esc(s).replace(/\u3002(?![\u300d\u300f\uff09)\u3011\u3009\u300b]|&quot;|$)/gu, "\u3002<br>");
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
 // The text pasted back in the chat. It uses only fixed English words, the option key, and the
@@ -230,13 +248,13 @@ function render() {
   const title = pick(DATA.title);
   document.title = title;
   $("title").textContent = title;
-  document.querySelectorAll("[data-t]").forEach((el) => { el.textContent = t(el.dataset.t); });
+  document.querySelectorAll("[data-t]").forEach((el) => { el.innerHTML = lines(t(el.dataset.t)); });
   document.querySelectorAll("[data-lang]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.lang === state.lang)));
-  $("request").textContent = pick(DATA.request);
-  $("facts").innerHTML = DATA.facts.map(([k, v]) => `<div><dt>${esc(t(k))}</dt><dd>${esc(pick(v))}</dd></div>`).join("");
-  $("today").innerHTML = DATA.today.map((p, i) => `<button type="button" class="shot" data-today="${i}">${wire(p.wire)}<span>${esc(pick(p.name))}</span></button>`).join("");
+  $("request").innerHTML = lines(pick(DATA.request));
+  $("facts").innerHTML = `<tbody role="rowgroup">${DATA.facts.map(([k, v]) => `<tr role="row"><th scope="row" role="rowheader">${lines(t(k))}</th><td role="cell">${lines(pick(v))}</td></tr>`).join("")}</tbody>`;
+  $("today").innerHTML = DATA.today.map((p, i) => `<button type="button" class="shot" data-today="${i}">${wire(p.wire)}<span>${lines(pick(p.name))}</span></button>`).join("");
   $("options").style.setProperty("--count", DATA.options.length);
-  $("options").innerHTML = DATA.options.map((o) => `<div class="option" role="button" tabindex="0" data-choice="${o.key}" aria-pressed="${o.key === state.chosen}">${wire(o.wire)}<div class="option-body"><span class="option-name">${o.key === "today" ? "" : `<code>${o.key}</code>`}${esc(pick(o.name))}</span><p>${esc(pick(o.about))}</p><button type="button" class="zoom" data-zoom="${o.key}">${esc(t("enlarge"))}</button></div></div>`).join("");
+  $("options").innerHTML = DATA.options.map((o) => `<div class="option${o.key === state.chosen ? " chosen" : ""}"><button type="button" class="option-pick" data-choice="${o.key}" aria-pressed="${o.key === state.chosen}">${wire(o.wire)}<span class="option-body"><span class="option-name">${o.key === "today" ? "" : `<code>${o.key}</code>`}${lines(pick(o.name))}</span><span class="option-about">${lines(pick(o.about))}</span></span></button><button type="button" class="icon zoom" data-zoom="${o.key}" aria-label="${esc(t("enlarge"))}">&#x2922;</button></div>`).join("");
   const chosen = DATA.options.find((o) => o.key === state.chosen);
   $("picked").textContent = chosen ? `${t("pickedAs")} ${chosen.key === "today" ? "" : chosen.key + " "}${pick(chosen.name)}` : t("none");
   $("copy-text").value = copyText();
@@ -265,7 +283,8 @@ document.addEventListener("click", (e) => {
   const shot = e.target.closest("[data-today]");
   if (shot) { const p = DATA.today[Number(shot.dataset.today)]; zoom(pick(p.name), p.wire); return; }
   const choice = e.target.closest("[data-choice]");
-  if (choice) { state.chosen = choice.dataset.choice; render(); return; }
+  // A new choice clears the copied state of the old one.
+  if (choice) { state.chosen = choice.dataset.choice; $("copy-status").textContent = ""; render(); return; }
   if (e.target.closest("#copy")) {
     const box = $("copy-text");
     box.value = copyText();
@@ -275,10 +294,6 @@ document.addEventListener("click", (e) => {
     return;
   }
   if (e.target.closest("[data-close]")) e.target.closest("dialog").close();
-});
-document.addEventListener("keydown", (e) => {
-  const choice = e.target.closest && e.target.closest("[data-choice]");
-  if (choice && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); state.chosen = choice.dataset.choice; render(); }
 });
 $("note-box").addEventListener("input", () => { $("copy-text").value = copyText(); });
 

@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Report</title>
 <!--
-  page-design report: facts about the period on one line, the result numbers on one band, two figures
+  page-design report: facts about the period in a table, the result numbers on one band, figures, and a list of
+  fixed width whose pressed row's details take the rest of the row
   with values the list does not show, and a list with each row's value and the details of the pressed
   row beside it. A following skill replaces DATA, the words in TEXT, and the notation in the figures,
   and keeps the frame. The figures are still dragon blocks; run dragon embed before handing the page over.
@@ -14,7 +15,7 @@
 <style>
 :root {
   --bg: #f5f6f8; --surface: #ffffff; --ink: #1b2129; --sub: #4d5664; --line: #dce1e7;
-  --accent: #2a5bd7; --accent-ink: #ffffff; --accent-soft: #e8eefc; --bar: #e9edf2;
+  --accent: #2a5bd7; --accent-ink: #ffffff; --accent-soft: #e8eefc; --bar: #e9edf2; --label: #eef1f5;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   color-scheme: light;
@@ -22,12 +23,12 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #121519; --surface: #1a1e24; --ink: #e6e9ee; --sub: #a9b2be; --line: #2e343d;
-    --accent: #7d9cff; --accent-ink: #0f1420; --accent-soft: #1f2a45; --bar: #262c35; color-scheme: dark;
+    --accent: #7d9cff; --accent-ink: #0f1420; --accent-soft: #1f2a45; --bar: #262c35; --label: #222831; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #121519; --surface: #1a1e24; --ink: #e6e9ee; --sub: #a9b2be; --line: #2e343d;
-  --accent: #7d9cff; --accent-ink: #0f1420; --accent-soft: #1f2a45; --bar: #262c35; color-scheme: dark;
+  --accent: #7d9cff; --accent-ink: #0f1420; --accent-soft: #1f2a45; --bar: #262c35; --label: #222831; color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.7 var(--sans); }
@@ -46,13 +47,26 @@ a { color: var(--accent); }
 
 main { max-width: 1200px; margin: 0 auto; padding: 22px 24px 48px; display: grid; gap: 18px; }
 .lead { margin: 0; color: var(--sub); max-width: 75ch; }
-.facts { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 28px; }
-.facts div { display: flex; gap: 8px; align-items: baseline; }
-.facts dt { font-size: 13px; color: var(--sub); }
-.facts dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.facts-wrap { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
+/* One row per fact: side by side as columns on wide screens, and label and value rows on phones */
+.facts { width: 100%; border-collapse: collapse; }
+.facts, .facts tbody { display: block; }
+.facts tbody { display: grid; grid-auto-flow: column; grid-auto-columns: auto; }
+.facts tr { display: grid; grid-template-rows: auto 1fr; border-left: 1px solid var(--line); }
+.facts tr:first-child { border-left: 0; }
+.facts th, .facts td { padding: 8px 18px; text-align: left; }
+.facts th { font-size: 13px; font-weight: 500; color: var(--sub); background: var(--label); border-bottom: 1px solid var(--line); word-break: auto-phrase; }
+.facts td { font-weight: 600; font-variant-numeric: tabular-nums; }
+@media (max-width: 860px) {
+  .facts tbody { grid-auto-flow: row; }
+  .facts tr { grid-template-columns: 9.5em minmax(0, 1fr); grid-template-rows: auto; border-left: 0; border-top: 1px solid var(--line); }
+  .facts tr:first-child { border-top: 0; }
+  .facts th, .facts td { padding: 9px 14px; }
+  .facts th { border-bottom: 0; }
+}
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden; }
 .stat { padding: 18px 22px; border-left: 1px solid var(--line); margin-left: -1px; }
-.stat b { display: block; font-size: 30px; line-height: 1.25; font-variant-numeric: tabular-nums; }
+.stat b { display: block; font-size: clamp(22px, 6.4vw, 30px); line-height: 1.25; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .stat span { display: block; font-size: 13.5px; color: var(--sub); }
 .value { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
 .figures { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: 16px; }
@@ -71,15 +85,25 @@ dialog.wide { width: min(1080px, calc(100vw - 32px)); }
 .tabs button[aria-selected="true"] { color: var(--ink); font-weight: 600; box-shadow: inset 0 -3px 0 var(--accent); }
 .tabs em { font-style: normal; font-size: 12px; margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: var(--bar); color: var(--sub); }
 
-.split { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+/* The list keeps a fixed width and the details take the rest; the full-width view hides the list until Back */
+.split { display: grid; grid-template-columns: minmax(320px, 380px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.split.solo { grid-template-columns: minmax(0, 1fr); }
+.split.solo .list, .split.solo #zoom-open { display: none; }
+.back { display: none; justify-self: start; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; }
+.split.solo .back { display: inline-flex; }
+.step-nav { display: none; justify-content: space-between; gap: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.split.solo .step-nav { display: flex; }
+.step-nav button { display: grid; gap: 2px; max-width: 48%; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.step-nav button[data-step="1"] { margin-left: auto; text-align: right; }
+.step-nav small { font-size: 12px; color: var(--sub); }
 .list { display: grid; gap: 10px; min-width: 0; }
 .rows { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
 .row { width: 100%; display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 16px; border: 0; border-top: 1px solid var(--line); background: transparent; text-align: left; cursor: pointer; transition: background-color .15s; }
 .row:first-child { border-top: 0; }
 .row:hover { background: var(--bg); }
-.row[aria-pressed="true"] { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+.row[aria-current="true"] { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
 .rank { font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
-.name { font-weight: 600; overflow-wrap: anywhere; }
+.name { font-weight: 600; overflow-wrap: anywhere; word-break: auto-phrase; text-wrap: pretty; }
 .row small { display: block; font-family: var(--sans); font-size: 13px; color: var(--sub); }
 .pager { display: flex; justify-content: center; align-items: center; gap: 6px; }
 .pager button { min-width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); cursor: pointer; }
@@ -92,9 +116,10 @@ dialog.wide { width: min(1080px, calc(100vw - 32px)); }
 .detail-head .icon { margin-left: auto; flex: none; }
 .tags { display: flex; flex-wrap: wrap; gap: 6px; }
 .tags span { padding: 2px 10px; border-radius: 999px; background: var(--accent-soft); font-size: 13px; }
-.kv { width: 100%; border-collapse: collapse; }
-.kv th { width: 132px; padding: 8px 12px 8px 0; text-align: left; vertical-align: top; font-weight: 500; color: var(--sub); border-top: 1px solid var(--line); }
-.kv td { padding: 8px 0; border-top: 1px solid var(--line); }
+.kv { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.kv th { width: 132px; padding: 8px 12px; text-align: left; vertical-align: top; font-weight: 500; color: var(--sub); background: var(--label); border-top: 1px solid var(--line); }
+.kv td { padding: 8px 12px; border-top: 1px solid var(--line); }
+.kv tr:first-child th, .kv tr:first-child td { border-top: 0; }
 @keyframes show { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
 dialog { width: min(720px, calc(100vw - 32px)); padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); }
@@ -106,7 +131,12 @@ dialog::backdrop { background: rgba(10, 14, 20, .55); }
 
 @media (max-width: 860px) {
   .split { grid-template-columns: 1fr; }
+  .split:not(.solo) .detail { display: none; }
   .detail { position: static; }
+  .stats { grid-template-columns: 1fr; }
+  .stat { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; border-left: 0; margin-left: 0; border-top: 1px solid var(--line); }
+  .stat:first-child { border-top: 0; }
+  .stat span { order: -1; }
   .top-in, main { padding-left: 16px; padding-right: 16px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
@@ -130,7 +160,7 @@ dialog::backdrop { background: rgba(10, 14, 20, .55); }
 
 <main>
   <p class="lead" data-t="lead"></p>
-  <dl class="facts" id="facts"></dl>
+  <div class="facts-wrap"><table class="facts" id="facts" role="table"></table></div>
   <div class="stats" id="stats"></div>
   <div class="figures">
     <figure class="figure wide" data-figure tabindex="0" role="button">
@@ -259,13 +289,13 @@ step 今週
     </figure>
   </div>
   <div class="tabs" role="tablist" id="tabs"></div>
-  <div class="split">
+  <div class="split" id="split">
     <div class="list">
       <nav class="pager" id="pager-top" aria-label="Pages"></nav>
       <div class="rows" id="rows"></div>
       <nav class="pager" id="pager-bottom" aria-label="Pages"></nav>
     </div>
-    <section class="detail" id="detail" aria-live="polite"></section>
+    <section class="detail" id="detail" aria-labelledby="detail-title" aria-live="polite"></section>
   </div>
 </main>
 
@@ -283,7 +313,7 @@ step 今週
 const TEXT = {
   en: {
     lead: "Products ranked by sales this week. The details beside the list say why each one sold and what to try next week.",
-    light: "Light", dark: "Dark",
+    light: "Light", dark: "Dark", prevItem: "Previous", nextItem: "Next", between: "Move between items", back: "Back to the list", wide: "Show the details at full width",
     period: "Week", store: "Store", generated: "Generated",
     sales: "Sales", visits: "Customers", average: "Average spend", soldOut: "Sold out",
     all: "All", bread: "Bread", sweets: "Sweets", drinks: "Drinks",
@@ -294,7 +324,7 @@ const TEXT = {
   },
   ja: {
     lead: "今週の売り上げの順に並べた商品です。一覧の横の詳細に、売れた理由と来週に試すことを書いています。",
-    light: "明るい", dark: "暗い",
+    light: "明るい", dark: "暗い", prevItem: "前へ", nextItem: "次へ", between: "項目の間を移る", back: "一覧へ戻る", wide: "詳細を広く見る",
     period: "週", store: "店", generated: "作った日時",
     sales: "売り上げ", visits: "来た人", average: "1人あたり", soldOut: "売り切れた商品",
     all: "全て", bread: "パン", sweets: "菓子パン", drinks: "飲み物",
@@ -346,29 +376,63 @@ const DATA = {
 };
 
 const PAGE_SIZE = 50;
-const state = { lang: "en", tab: "all", page: 1, pick: 0 };
+const state = { lang: "en", tab: "all", page: 1, pick: 0, solo: false };
 const $ = (id) => document.getElementById(id);
 const t = (key) => TEXT[state.lang][key] ?? key;
 const pick = (value) => (value && typeof value === "object" && !Array.isArray(value) ? value[state.lang] : value);
+// Japanese text starts a new line after each full stop that has more text after it. A full stop right
+// before a closing bracket or quote ends a quoted sentence inside a longer one, so it stays.
+const lines = (s) => esc(s).replace(/\u3002(?![\u300d\u300f\uff09)\u3011\u3009\u300b]|&quot;|$)/gu, "\u3002<br>");
+const narrow = () => window.matchMedia("(max-width: 860px)").matches;
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
 const yen = (n) => (state.lang === "ja" ? n.toLocaleString("en-US") + "\u5186" : "\u00a5" + n.toLocaleString("en-US"));
 
 function shown() { return DATA.items.filter((item) => item.tabs.includes(state.tab)); }
+const keyOf = () => (shown()[state.pick] ? "#item-" + DATA.items.indexOf(shown()[state.pick]) : "");
+function focusRow() { const row = document.querySelector(`[data-pick="${state.pick}"]`); if (row) row.focus(); }
+function openFromHash() {
+  const item = DATA.items[Number((/^#item-(\d+)$/.exec(location.hash) || [])[1])];
+  if (!item) return false;
+  if (!item.tabs.includes(state.tab)) state.tab = "all";
+  state.pick = shown().indexOf(item);
+  state.page = Math.floor(state.pick / PAGE_SIZE) + 1;
+  return true;
+}
+// The open item lives in the URL fragment, so a link opens it again. The single pane and the
+// full-width view add a history entry, so the browser's Back returns to the list.
+function remember(solo) {
+  const hash = keyOf();
+  if (!hash) return;
+  if (solo) history.pushState({ solo: true }, "", hash); else history.replaceState({ solo: false }, "", hash);
+}
+function goBack() {
+  if (history.state && history.state.solo) { history.back(); return; }
+  state.solo = false;
+  history.replaceState({ solo: false }, "", location.hash);
+  render();
+  focusRow();
+}
+window.addEventListener("popstate", (e) => {
+  state.solo = Boolean(e.state && e.state.solo);
+  openFromHash();
+  render();
+  if (state.solo) $("back").focus(); else focusRow();
+});
 
 function render() {
   document.documentElement.lang = state.lang;
   const title = pick(DATA.title);
   document.title = title;
   $("title").textContent = title;
-  document.querySelectorAll("[data-t]").forEach((el) => { el.textContent = t(el.dataset.t); });
+  document.querySelectorAll("[data-t]").forEach((el) => { el.innerHTML = lines(t(el.dataset.t)); });
   document.querySelectorAll("[data-lang]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.lang === state.lang)));
   document.querySelectorAll("[data-figure]").forEach((f) => f.setAttribute("aria-label", t("enlarge")));
-  $("facts").innerHTML = DATA.facts.map(([k, v]) => `<div><dt>${esc(t(k))}</dt><dd>${esc(pick(v))}</dd></div>`).join("");
-  $("stats").innerHTML = DATA.stats.map(([k, v]) => `<div class="stat"><b>${esc(pick(v))}</b><span>${esc(t(k))}</span></div>`).join("");
+  $("facts").innerHTML = `<tbody role="rowgroup">${DATA.facts.map(([k, v]) => `<tr role="row"><th scope="row" role="rowheader">${lines(t(k))}</th><td role="cell">${lines(pick(v))}</td></tr>`).join("")}</tbody>`;
+  $("stats").innerHTML = DATA.stats.map(([k, v]) => `<div class="stat"><b>${lines(pick(v))}</b><span>${lines(t(k))}</span></div>`).join("");
   $("tabs").innerHTML = DATA.tabs.map((k) => {
     const count = DATA.items.filter((item) => item.tabs.includes(k)).length;
-    return `<button type="button" role="tab" data-tab="${k}" aria-selected="${k === state.tab}">${esc(t(k))}<em>${count}</em></button>`;
+    return `<button type="button" role="tab" data-tab="${k}" aria-selected="${k === state.tab}">${lines(t(k))}<em>${count}</em></button>`;
   }).join("");
   const items = shown();
   const pages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
@@ -376,11 +440,12 @@ function render() {
   const from = (state.page - 1) * PAGE_SIZE;
   $("rows").innerHTML = items.slice(from, from + PAGE_SIZE).map((item, i) => {
     const n = from + i;
-    return `<button type="button" class="row" data-pick="${n}" aria-pressed="${n === state.pick}"><span class="rank">${n + 1}</span><span class="name">${esc(pick(item.name))}<small>${esc(pick(item.what))}</small></span><span class="value">${esc(yen(item.score))}</span></button>`;
+    return `<button type="button" class="row" data-pick="${n}" aria-current="${n === state.pick}"><span class="rank">${n + 1}</span><span class="name">${lines(pick(item.name))}<small>${lines(pick(item.what))}</small></span><span class="value">${esc(yen(item.score))}</span></button>`;
   }).join("");
   // A list that fits on one page shows no pager.
   ["pager-top", "pager-bottom"].forEach((id) => { $(id).innerHTML = pages > 1 ? pager(pages) : ""; $(id).hidden = pages <= 1; });
   renderDetail(items[state.pick]);
+  $("split").classList.toggle("solo", state.solo);
 }
 
 function pager(pages) {
@@ -392,12 +457,14 @@ function pager(pages) {
 
 function detailBody(item) {
   return `<div class="tags">${pick(item.tags).map((g) => `<span>${esc(g)}</span>`).join("")}</div>
-    <table class="kv"><tr><th>${esc(t("what"))}</th><td>${esc(pick(item.what))}</td></tr><tr><th>${esc(t("why"))}</th><td>${esc(pick(item.why))}</td></tr><tr><th>${esc(t("next"))}</th><td>${esc(pick(item.next))}</td></tr></table>`;
+    <table class="kv"><tr><th>${lines(t("what"))}</th><td>${lines(pick(item.what))}</td></tr><tr><th>${lines(t("why"))}</th><td>${lines(pick(item.why))}</td></tr><tr><th>${lines(t("next"))}</th><td>${lines(pick(item.next))}</td></tr></table>`;
 }
 
 function renderDetail(item) {
   if (!item) { $("detail").innerHTML = ""; return; }
-  $("detail").innerHTML = `<div class="detail-head"><h2>${esc(pick(item.name))}</h2><button type="button" class="icon" id="zoom-open" aria-label="${esc(t("enlarge"))}">&#x2922;</button></div>${detailBody(item)}`;
+  const list = shown();
+  const at = list.indexOf(item);
+  $("detail").innerHTML = `<button type="button" class="back" id="back">&#x2190; ${lines(t("back"))}</button><div class="detail-head"><h2 id="detail-title" tabindex="-1">${lines(pick(item.name))}</h2><button type="button" class="icon" id="zoom-open" aria-label="${esc(t("wide"))}">&#x2922;</button></div>${detailBody(item)}<nav class="step-nav" aria-label="${esc(t("between"))}">${list[at - 1] ? `<button type="button" data-step="-1"><small>${lines(t("prevItem"))}</small>${lines(pick(list[at - 1].name))}</button>` : ""}${list[at + 1] ? `<button type="button" data-step="1"><small>${lines(t("nextItem"))}</small>${lines(pick(list[at + 1].name))}</button>` : ""}</nav>`;
 }
 
 // A figure opens larger in the dialog. A chart shows its own title, so the dialog heading stays empty.
@@ -427,20 +494,25 @@ document.addEventListener("click", (e) => {
   const theme = e.target.closest("[data-theme-choice]");
   if (theme) { setTheme(theme.dataset.themeChoice); return; }
   const tab = e.target.closest("[data-tab]");
-  if (tab) { state.tab = tab.dataset.tab; state.page = 1; state.pick = 0; render(); return; }
-  const row = e.target.closest("[data-pick]");
-  if (row) { state.pick = Number(row.dataset.pick); render(); return; }
-  const page = e.target.closest("[data-page]");
-  if (page && !page.disabled) { state.page = Number(page.dataset.page); state.pick = (state.page - 1) * PAGE_SIZE; render(); return; }
-  if (e.target.closest("#help-open")) { $("help").showModal(); return; }
-  if (e.target.closest("#zoom-open")) {
-    const item = shown()[state.pick];
-    $("zoom").classList.remove("wide");
-    $("zoom-title").textContent = pick(item.name);
-    $("zoom-body").innerHTML = detailBody(item);
-    $("zoom").showModal();
+  if (tab) { state.tab = tab.dataset.tab; state.page = 1; state.pick = 0; state.solo = false; render(); remember(false); return; }
+  const step = e.target.closest("[data-step]");
+  if (step) {
+    state.pick = Math.min(Math.max(state.pick + Number(step.dataset.step), 0), shown().length - 1);
+    state.page = Math.floor(state.pick / PAGE_SIZE) + 1;
+    history.replaceState({ solo: true }, "", keyOf());
+    render();
+    $("detail-title").focus();
     return;
   }
+  const row = e.target.closest("[data-pick]");
+  // On a narrow screen the details replace the list, and Back returns to the pressed row.
+  if (row) { state.pick = Number(row.dataset.pick); state.solo = narrow(); render(); remember(state.solo); if (state.solo) $("back").focus(); return; }
+  if (e.target.closest("#back")) { goBack(); return; }
+  const page = e.target.closest("[data-page]");
+  if (page && !page.disabled) { state.page = Number(page.dataset.page); state.pick = (state.page - 1) * PAGE_SIZE; state.solo = false; render(); remember(false); return; }
+  if (e.target.closest("#help-open")) { $("help").showModal(); return; }
+  // Long details open in the full-width view, not in a dialog.
+  if (e.target.closest("#zoom-open")) { state.solo = true; render(); remember(true); $("back").focus(); return; }
   const figure = e.target.closest("[data-figure]");
   if (figure) { openFigure(figure); return; }
   if (e.target.closest("[data-close]")) e.target.closest("dialog").close();
@@ -450,7 +522,11 @@ try { state.lang = localStorage.getItem("page-design-lang") || "en"; } catch (e)
 let startTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 try { startTheme = localStorage.getItem("page-design-theme") || startTheme; } catch (e) {}
 setTheme(startTheme);
+// A link to an item opens it, in the single pane on a narrow screen, and scrolls to it.
+const fromLink = openFromHash();
+if (fromLink) state.solo = narrow();
 render();
+if (fromLink) $("detail").scrollIntoView({ block: "start" });
 </script>
 </body>
 </html>

@@ -23,7 +23,7 @@
     {
       "name": "design-formats",
       "source": "./plugins/design-formats",
-      "description": "How documents and reports explain and look, for skills that write them: two formats, four HTML page templates, and a script that checks a page or a document"
+      "description": "How documents and reports explain and look, for skills that write them: two formats, four pattern files with sourced rules, four HTML page templates, and a script that checks a page or a document"
     },
     {
       "name": "diagram-composer",

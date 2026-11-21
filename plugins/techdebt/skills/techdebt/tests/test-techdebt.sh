@@ -627,14 +627,15 @@ if what == "facts":
                 "ja": [("gitの履歴", "gitのリポジトリではありません"), ("ソースファイル", files), ("作成日時", at)]}
     for lang in ("en", "ja"):
         for tab in tabs:
-            m = re.search(r'<h1 id="title">[^<]*</h1>\s*<dl class="facts" id="facts">(.*?)</dl>', page(lang, tab), re.S)
+            m = re.search(r'<h1 id="title">[^<]*</h1>\s*<div class="facts-wrap"><table class="facts" id="facts"[^>]*><tbody[^>]*>(.*?)</tbody></table></div>', page(lang, tab), re.S)
             if not m:
-                problems.append("%s %s: no facts list under the title" % (lang, tab))
+                problems.append("%s %s: no facts table under the title" % (lang, tab))
                 continue
-            if not re.fullmatch(r"(?:<div><dt>[^<]*</dt><dd>[^<]*</dd></div>)+", m.group(1)):
-                problems.append("%s %s: the facts list holds something besides one div of dt and dd per fact" % (lang, tab))
+            row = r'<tr role="row"><th scope="row" role="rowheader">([^<]*)</th><td role="cell">([^<]*)</td></tr>'
+            if not re.fullmatch("(?:%s)+" % row, m.group(1)):
+                problems.append("%s %s: the facts table holds something besides one row of a row header and a value per fact" % (lang, tab))
                 continue
-            got = [(html.unescape(a), html.unescape(b)) for a, b in re.findall(r"<div><dt>([^<]*)</dt><dd>([^<]*)</dd></div>", m.group(1))]
+            got = [(html.unescape(a), html.unescape(b)) for a, b in re.findall(row, m.group(1))]
             if got != want[lang]:
                 problems.append("%s %s: facts %r, wanted %r" % (lang, tab, got, want[lang]))
 
@@ -645,7 +646,7 @@ elif what == "no-sentence":
     for lang in ("en", "ja"):
         for tab in tabs:
             head = re.search(r"<header>(.*?)</header>", page(lang, tab), re.S)
-            rest = re.sub(r"<h1\b.*?</h1>|<dl class=\"facts\".*?</dl>|<button\b.*?</button>", "", head.group(1) if head else "", flags=re.S)
+            rest = re.sub(r"<h1\b.*?</h1>|<div class=\"facts-wrap\">.*?</table></div>|<button\b.*?</button>", "", head.group(1) if head else "", flags=re.S)
             if not head or text(rest):
                 problems.append("%s %s: the header has text besides the title and the facts: %r" % (lang, tab, text(rest)))
 

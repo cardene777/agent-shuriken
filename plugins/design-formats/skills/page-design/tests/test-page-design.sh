@@ -449,6 +449,8 @@ card_rule() {
 import re, sys
 text = open(sys.argv[1], encoding="utf-8").read()
 style = "".join(re.findall(r"<style>(.*?)</style>", text, re.S))
+# A comment before a rule is not part of its selector.
+style = re.sub(r"/\*.*?\*/", "", style, flags=re.S)
 for selectors, body in re.findall(r"([^{}]+)\{([^{}]*)\}", style):
     if sys.argv[2] in [s.strip() for s in selectors.split(",")]:
         print(body)
@@ -710,9 +712,15 @@ templates_lines() {
   local t f
   for t in "${TYPES[@]}"; do
     f="$SKILL_DIR/templates/$t.html"
-    grep -qE 'const lines = \(s\) => esc\(s\)\.replace\(/\\u3002\(\?=\.\)/gu, "\\u3002<br>"\)' "$f" || { echo "      $t.html does not define lines(), which breaks after each full stop"; return 1; }
+    grep -qE 'const lines = \(s\) => esc\(s\)\.replace\(/\\u3002.*, "\\u3002<br>"\);' "$f" || { echo "      $t.html does not define lines(), which breaks after each full stop"; return 1; }
     grep -qF 'el.innerHTML = lines(t(el.dataset.t))' "$f" || { echo "      $t.html does not put the dictionary's text through lines()"; return 1; }
-    ! grep -qE 'esc\((pick|t)\(' "$f" || { echo "      $t.html puts text from DATA or the dictionary in the page without lines()"; return 1; }
+    # A value in an attribute and the text of a <pre> keep esc(); every other text goes through lines().
+    python3 - "$f" <<'PYEOF' || { echo "      $t.html puts text from DATA or the dictionary in the page without lines()"; return 1; }
+import re, sys
+text = open(sys.argv[1], encoding="utf-8").read()
+bare = [m.start() for m in re.finditer(r"esc\((?:pick|t)\(", text) if not text[:m.start()].endswith(('="${', "<pre>${"))]
+sys.exit(1 if bare else 0)
+PYEOF
   done
 }
 check "the templates break Japanese text after each full stop" templates_lines

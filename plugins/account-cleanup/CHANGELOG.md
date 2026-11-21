@@ -5,6 +5,7 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The details of a candidate show its fields as a table, each name in a row header on the label color, and the list of the candidate sheet keeps a fixed width with the details taking the rest of the row. `musubi.json` follows `look`, `sheet`, and `verify` of page-design at `^2.0.0`
 - The candidate sheet shows the domain under a name only when the name does not already hold it, and wraps a long name, such as a browser extension's ID, instead of cutting it. On a phone, the domain moves under the name instead of cutting both
 - Each tab of the candidate sheet keeps its own sort, and the sort by last round's result is offered only on a tab that has such rows, so the sort shown is the one the rows follow
 - The help of the candidate sheet explains every deletion effort the details can show, including Partial, Service ended, and a site that is gone, in English and Japanese
