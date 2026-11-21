@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- `article-diagram-styles` ships thirty-two built-in styles in eight families, adding `dimensional` (`low-poly`, `papercraft`, `diorama`, `toy-blocks`), `notebook-and-archive` (`notebook-doodle`, `grid-memo`, `patent-drawing`, `old-map`), `ink-and-print` (`sumi-e`, `risograph`, `copperplate`, `paper-cut`), and `signs-and-screens` (`pictogram`, `metro-map`, `terminal-screen`, `sticker`). The definitions of `flat-vector`, `isometric`, `minimal`, and `comic-panel` now name what they forbid: a gradient anywhere, an oblique view, a second place for the accent color, and decoration unrelated to the content
+
 ## [0.2.0] - 2026-11-21
 
 - `article-diagram-styles` ships sixteen built-in styles in four families, each defined in words with the kinds of figures it suits, and draws in them without `~/.styles/`. It draws in the style you name, or picks one from the article and tells you which and why, falling back to `handdraft`. Your catalog in `~/.styles/` adds styles beside the built-in styles, replaces a built-in style of the same name, or retires one with `"status": "retired"`. `diagram_sample_catalog.py` gains `--list` and `--show`, and `style-catalog` and `figure-request` move to version 1.1.0. `tech-book-figure` still needs your style4 samples

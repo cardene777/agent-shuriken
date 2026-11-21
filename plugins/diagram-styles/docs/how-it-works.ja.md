@@ -14,7 +14,7 @@
 | `article-diagram-styles/musubi.json` | 渡す中身の`style4`、`figure-request`、`style-catalog`。`style4`は版1.0.0、`figure-request`と`style-catalog`は版1.1.0 |
 | `article-diagram-styles/references/content-first.md` | 内容の要約と、完成図を確かめた記録の形 |
 | `article-diagram-styles/references/deterministic-technical-diagrams.md` | 図の文字と接続の記録と確かめ方 |
-| `article-diagram-styles/references/style-families.md` | 4つの組に分けた16の既定の画風と、画風の選び方 |
+| `article-diagram-styles/references/style-families.md` | 8つの組に分けた32の既定の画風と、画風の選び方 |
 | `article-diagram-styles/references/pen-technical.md`、`handdraft.md`、`newsprint.md` | 3つの既定の画風の詳しい仕様 |
 | `article-diagram-styles/references/style4.md` | style4の決まり。`style4`として渡す |
 | `article-diagram-styles/references/figure-request.md` | 図を頼む形。`figure-request`として渡す |
@@ -26,7 +26,7 @@
 | `article-diagram-styles/scripts/validate_visual_contract.py` | 見た目の約束と、それに対する図の仕様を確かめる |
 | `article-diagram-styles/scripts/validate_composition_ledger.py` | 記事の図の構図の台帳を確かめる |
 | `article-diagram-styles/scripts/newsprint_finish.py` | HTMLかSVGで描く図のための、同梱の書体の置き場とインクの処理 |
-| `article-diagram-styles/data/built-in-styles.json` | 16の既定の画風。どれも文で定義し、画像を持たない |
+| `article-diagram-styles/data/built-in-styles.json` | 32の既定の画風。どれも文で定義し、画像を持たない |
 | `article-diagram-styles/data/fonts/KaiseiDecol-Bold.ttf`、`OFL.txt` | 書体Kaisei Decol Boldとその利用許諾 |
 | `article-diagram-styles/tests/` | script、頁、pluginの検査。仕込みの画像は一時のフォルダーに描く |
 | `tech-book-figure/SKILL.md` | 本の図を設計し、style4で描く手順 |
@@ -38,7 +38,7 @@
 
 ## 画風の一覧
 
-このpluginは16の既定の画風をそれぞれ文で定義して持つので、`~/.styles/`が無くても`article-diagram-styles`は描きます。
+このpluginは32の既定の画風をそれぞれ文で定義して持つので、`~/.styles/`が無くても`article-diagram-styles`は描きます。
 自分の一覧は、既定の画風の横に画風を足し、同じ名前の既定の画風を置き換え、`status`を`retired`にした既定の画風を使わない物にします。
 `tech-book-figure`は今もstyle4の見本が要ります。一覧も`~/.styles/`に置きます。
 スキルとscriptは、一覧`style-catalog.json`と見本の画像を`~/.styles/`から読みます。

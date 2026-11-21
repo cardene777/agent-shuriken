@@ -1,13 +1,13 @@
 # Diagram Styles
 
-Figures for articles and technical books, designed from the reader's questions first and drawn in one of sixteen built-in styles or a style from your own catalog in `~/.styles/`.
+Figures for articles and technical books, designed from the reader's questions first and drawn in one of thirty-two built-in styles or a style from your own catalog in `~/.styles/`.
 
 English · [日本語](README.ja.md)
 
 A figure drawn to look like a sample often copies the sample's objects and layout and stops explaining the text.
 This plugin keeps the two decisions apart.
 It first decides what the figure must explain from the article or the book, then applies only the look of a style, and checks the finished image against the text.
-The plugin ships sixteen built-in styles, each defined in words, and no sample images, so `article-diagram-styles` draws without `~/.styles/`.
+The plugin ships thirty-two built-in styles, each defined in words, and no sample images, so `article-diagram-styles` draws without `~/.styles/`.
 
 ```
 Article or book ──> Design the content ──> Choose a style ──> Draw with the ──> Check the text, the ──> PNG in the
@@ -39,7 +39,7 @@ In other agents that read `SKILL.md`, unzip the skill zip attached to each relea
 
 ## Styles
 
-The plugin ships sixteen built-in styles in `skills/article-diagram-styles/data/built-in-styles.json`, each defined in words by its line, fill, background, lettering, and the kinds of figures it suits.
+The plugin ships thirty-two built-in styles in `skills/article-diagram-styles/data/built-in-styles.json`, each defined in words by its line, fill, background, lettering, and the kinds of figures it suits.
 
 | Family | Styles |
 |---|---|
@@ -47,6 +47,10 @@ The plugin ships sixteen built-in styles in `skills/article-diagram-styles/data/
 | Drafting and flat | `flat-vector`, `blueprint`, `isometric`, `minimal` |
 | Painting and print | `watercolor`, `newsprint`, `woodblock`, `retro-poster` |
 | Friendly | `whiteboard`, `comic-panel`, `pixel-art`, `clay` |
+| Dimensional | `low-poly`, `papercraft`, `diorama`, `toy-blocks` |
+| Notebook and archive | `notebook-doodle`, `grid-memo`, `patent-drawing`, `old-map` |
+| Ink and print | `sumi-e`, `risograph`, `copperplate`, `paper-cut` |
+| Signs and screens | `pictogram`, `metro-map`, `terminal-screen`, `sticker` |
 
 `article-diagram-styles` draws without `~/.styles/`.
 Name a style, or let the skill choose one from the topic of the article and the kinds of its figures; it tells you the style it chose and why, and uses `handdraft` when no style clearly fits.

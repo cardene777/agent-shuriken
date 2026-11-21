@@ -1,6 +1,6 @@
 # The style catalog
 
-The skill ships sixteen built-in styles in `data/built-in-styles.json`, in the same shape as the `families` and `finish_profiles` of a catalog, without images.
+The skill ships thirty-two built-in styles in `data/built-in-styles.json`, in the same shape as the `families` and `finish_profiles` of a catalog, without images.
 The user may keep a style catalog and sample images in one styles folder, `~/.styles/` by default; the catalog is optional.
 The plugin ships no sample images and never writes into the folder.
 The scripts read another folder only when they are given `--styles <dir>`.
