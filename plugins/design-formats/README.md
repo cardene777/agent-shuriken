@@ -1,12 +1,12 @@
 # Design Formats
 
-How documents and reports explain and how they look, for skills that write them: two formats, four HTML page templates, and a script that checks a page or a document.
+How documents and reports explain and how they look, for skills that write them: two formats, four pattern files with sourced rules, four HTML page templates, and a script that checks a page or a document.
 
 English · [日本語](README.ja.md)
 
 When several skills write pages and documents, each one keeps its own colors, headings, and switches, and the pages drift apart.
 This plugin keeps one copy.
-Its `page-design` skill holds the order of an explanation, the look rules, four page types, and `verify`, the script that checks a page or a document against the rules a script can see.
+Its `page-design` skill holds the order of an explanation, the look rules, four pattern files that say which interface pattern fits and why, four page types, and `verify`, the script that checks a page or a document against the rules a script can see.
 Figures are drawn with dragon: the look rules say which figure fits which kind of information, and `dragon embed` draws each one into the page as an SVG.
 Skills that write reports, approval sheets, explainers, choice pages, or design documents follow it through musubi, a declaration in `musubi.json` that pins the version and fingerprint of what they follow.
 
@@ -42,12 +42,19 @@ In GitHub Copilot CLI, write `/page-design` in your request, and in Gemini CLI, 
 | Content | File | What it holds |
 |---|---|---|
 | `structure` | `formats/structure.md` | The order of an explanation: the conclusion first, the whole picture before the details, one glossary, steps with real output, and the order of a report |
-| `look` | `formats/look.md` | The look rules: headings without colons, facts in a table, text size, details beside the list, which figure fits which kind of information, enlarging, motion, the language and theme switches, colors, and self-contained pages |
-| `report` | `templates/report.html` | A report page with facts about the run, the result numbers, a bar chart and a donut, and a list with the pressed row's details beside it |
+| `look` | `formats/look.md` | The look rules: headings without colons, facts in a table, a line break after each Japanese full stop, text size, which figure fits which kind of information, enlarging, motion, the language and theme switches, colors, and self-contained pages |
+| `details` | `formats/patterns/details.md` | Where the details of a picked item appear: beside a list of fixed width, one pane at a time on narrow screens, a full-width view, or a dialog only for a short task |
+| `lists-and-tables` | `formats/patterns/lists-and-tables.md` | How a list or a table shows its rows: cards or tables, facts in a table of row headers, paging, tabs, sorting, and a number on each row |
+| `input-and-confirmation` | `formats/patterns/input-and-confirmation.md` | How a page takes a choice or an input and confirms it: picking rows, buttons, errors, destructive actions, and the text copied back |
+| `states-and-notices` | `formats/patterns/states-and-notices.md` | How a page shows loading, empty, error, and saved states, and notices such as banners and toasts |
+| `report` | `templates/report.html` | A report page with facts about the run, the result numbers, a bar chart and a donut, and a list of fixed width with the pressed row's details taking the rest |
 | `sheet` | `templates/sheet.html` | An approval sheet with the items to choose, their details, and the text copied back to the chat |
 | `document` | `templates/document.html` | An explainer with the whole picture as a band of steps, sections with a contents list beside them, steps, and a glossary |
 | `choice` | `templates/choice.html` | A choice page with the request, today's version, the options side by side, and the text copied back |
 | `verify` | `scripts/page-design.py` | The check that a page or a document keeps the rules a script can see |
+
+Each rule in the four pattern files names its sources by ID, from design systems, research and articles, public guidance, and accessibility, and `formats/patterns/sources.md` holds the page, the date it was read, and a short quote for each one.
+Where the sources disagree, each file says which side it took and why.
 
 For a page whose title is "Bakery: weekly sales", `verify` names the line and the fix and exits 1.
 

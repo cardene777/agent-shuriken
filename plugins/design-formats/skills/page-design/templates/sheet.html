@@ -13,7 +13,7 @@
 <style>
 :root {
   --bg: #f5f6f8; --surface: #ffffff; --ink: #1b2129; --sub: #4d5664; --line: #dce1e7;
-  --accent: #2a5bd7; --accent-ink: #ffffff; --accent-soft: #e8eefc; --bar: #e9edf2; --warn: #8a5a00; --warn-soft: #fbf1dc;
+  --accent: #2a5bd7; --accent-ink: #ffffff; --accent-soft: #e8eefc; --bar: #e9edf2; --warn: #8a5a00; --warn-soft: #fbf1dc; --label: #eef1f5;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   color-scheme: light;
@@ -21,12 +21,12 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #121519; --surface: #1a1e24; --ink: #e6e9ee; --sub: #a9b2be; --line: #2e343d;
-    --accent: #7d9cff; --accent-ink: #0f1420; --accent-soft: #1f2a45; --bar: #262c35; --warn: #f0b955; --warn-soft: #3a2e16; color-scheme: dark;
+    --accent: #7d9cff; --accent-ink: #0f1420; --accent-soft: #1f2a45; --bar: #262c35; --warn: #f0b955; --warn-soft: #3a2e16; --label: #222831; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #121519; --surface: #1a1e24; --ink: #e6e9ee; --sub: #a9b2be; --line: #2e343d;
-  --accent: #7d9cff; --accent-ink: #0f1420; --accent-soft: #1f2a45; --bar: #262c35; --warn: #f0b955; --warn-soft: #3a2e16; color-scheme: dark;
+  --accent: #7d9cff; --accent-ink: #0f1420; --accent-soft: #1f2a45; --bar: #262c35; --warn: #f0b955; --warn-soft: #3a2e16; --label: #222831; color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.7 var(--sans); }
@@ -45,17 +45,40 @@ a { color: var(--accent); }
 
 main { max-width: 1200px; margin: 0 auto; padding: 22px 24px 120px; display: grid; gap: 18px; }
 .lead { margin: 0; max-width: 75ch; }
-.facts { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
-.facts div { padding: 10px 16px; border-left: 1px solid var(--line); margin-left: -1px; }
-.facts dt { font-size: 12.5px; color: var(--sub); }
-.facts dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.facts-wrap { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
+/* One row per fact: side by side as columns on wide screens, and label and value rows on phones */
+.facts { width: 100%; border-collapse: collapse; }
+.facts, .facts tbody { display: block; }
+.facts tbody { display: grid; grid-auto-flow: column; grid-auto-columns: auto; }
+.facts tr { display: grid; grid-template-rows: auto 1fr; border-left: 1px solid var(--line); }
+.facts tr:first-child { border-left: 0; }
+.facts th, .facts td { padding: 8px 18px; text-align: left; }
+.facts th { font-size: 13px; font-weight: 500; color: var(--sub); background: var(--label); border-bottom: 1px solid var(--line); word-break: auto-phrase; }
+.facts td { font-weight: 600; font-variant-numeric: tabular-nums; }
+@media (max-width: 860px) {
+  .facts tbody { grid-auto-flow: row; }
+  .facts tr { grid-template-columns: 9.5em minmax(0, 1fr); grid-template-rows: auto; border-left: 0; border-top: 1px solid var(--line); }
+  .facts tr:first-child { border-top: 0; }
+  .facts th, .facts td { padding: 9px 14px; }
+  .facts th { border-bottom: 0; }
+}
 
 .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; }
 .tabs button { border: 0; background: transparent; padding: 10px 14px; cursor: pointer; color: var(--sub); white-space: nowrap; transition: color .15s, box-shadow .15s; }
 .tabs button[aria-selected="true"] { color: var(--ink); font-weight: 600; box-shadow: inset 0 -3px 0 var(--accent); }
 .tabs em { font-style: normal; font-size: 12px; margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: var(--bar); color: var(--sub); }
 
-.split { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+/* The list keeps a fixed width and the details take the rest; on a narrow screen the details replace the list */
+.split { display: grid; grid-template-columns: minmax(320px, 380px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.list { min-width: 0; }
+.back, .pick-toggle { display: none; justify-self: start; align-items: center; gap: 6px; }
+.pick-toggle.primary { margin-left: 0; }
+.step-nav { display: none; justify-content: space-between; gap: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.split.solo .step-nav { display: flex; }
+.step-nav button { display: grid; gap: 2px; max-width: 48%; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.step-nav button[data-step="1"] { margin-left: auto; text-align: right; }
+.step-nav small { font-size: 12px; color: var(--sub); }
+.back { padding: 6px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; }
 .rows { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
 .row { width: 100%; display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 16px; border: 0; border-top: 1px solid var(--line); background: transparent; text-align: left; cursor: pointer; transition: background-color .15s; }
 .row:first-child { border-top: 0; }
@@ -70,9 +93,10 @@ main { max-width: 1200px; margin: 0 auto; padding: 22px 24px 120px; display: gri
 
 .detail { position: sticky; top: 84px; padding: 18px 20px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); display: grid; gap: 12px; animation: show .2s ease-out; }
 .detail h2 { margin: 0; font-size: 18px; }
-.kv { width: 100%; border-collapse: collapse; }
-.kv th { width: 150px; padding: 8px 12px 8px 0; text-align: left; vertical-align: top; font-weight: 500; color: var(--sub); border-top: 1px solid var(--line); }
-.kv td { padding: 8px 0; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+.kv { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.kv th { width: 150px; padding: 8px 12px; text-align: left; vertical-align: top; font-weight: 500; color: var(--sub); background: var(--label); border-top: 1px solid var(--line); }
+.kv td { padding: 8px 12px; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+.kv tr:first-child th, .kv tr:first-child td { border-top: 0; }
 .caution { margin: 0; padding: 10px 14px; border-radius: 8px; background: var(--warn-soft); color: var(--warn); }
 @keyframes show { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
@@ -89,10 +113,13 @@ dialog::backdrop { background: rgba(10, 14, 20, .55); }
 .dialog-head .icon { margin-left: auto; }
 .dialog-body { padding: 16px 18px 20px; display: grid; gap: 12px; }
 .dialog-body textarea { width: 100%; min-height: 140px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); font: 14px/1.6 var(--mono); resize: vertical; }
-.status { min-height: 1.6em; margin: 0; color: var(--accent); }
+.status { min-height: 1.6em; margin: 0; color: var(--ink); font-weight: 600; }
+.dock .missing { color: var(--warn); font-weight: 600; }
 
 @media (max-width: 860px) {
   .split { grid-template-columns: 1fr; }
+  .split:not(.solo) .detail, .split.solo .list { display: none; }
+  .split.solo .back, .split.solo .pick-toggle { display: inline-flex; }
   .detail { position: static; }
   .top-in, main, .dock-in { padding-left: 16px; padding-right: 16px; }
 }
@@ -117,11 +144,11 @@ dialog::backdrop { background: rgba(10, 14, 20, .55); }
 
 <main>
   <p class="lead" data-t="lead"></p>
-  <dl class="facts" id="facts"></dl>
+  <div class="facts-wrap"><table class="facts" id="facts" role="table"></table></div>
   <div class="tabs" role="tablist" id="tabs"></div>
-  <div class="split">
-    <div class="rows" id="rows"></div>
-    <section class="detail" id="detail" aria-live="polite"></section>
+  <div class="split" id="split">
+    <div class="list"><div class="rows" id="rows"></div></div>
+    <section class="detail" id="detail" aria-labelledby="detail-title" aria-live="polite"></section>
   </div>
 </main>
 
@@ -151,7 +178,7 @@ const TEXT = {
   en: {
     title: "Pick items to take off the winter menu",
     lead: "Press the items to take off the menu. Nothing changes from this page; the text you paste back in the chat names the items, and the agent checks each one again before it updates the menu board and the order page.",
-    light: "Light", dark: "Dark",
+    light: "Light", dark: "Dark", prevItem: "Previous", nextItem: "Next", between: "Move between items", back: "Back to the list", pickThis: "Choose this", unpick: "Remove from the choice", pickFirst: "Choose at least one item first.",
     week: "Week", menu: "Items on the menu", review: "Items to review", generated: "Generated",
     bread: "Bread", sweets: "Sweets", drinks: "Drinks",
     picked: "{n} picked, {amount} of weekly sales", make: "Make the text",
@@ -166,7 +193,7 @@ const TEXT = {
   ja: {
     title: "冬のメニューから外す商品を選ぶ",
     lead: "メニューから外す商品を押して選びます。この頁からは何も変えません。チャットに貼り返す文が商品を名指し、エージェントがメニュー表と注文の頁を直す前に、商品ごとに確かめ直します。",
-    light: "明るい", dark: "暗い",
+    light: "明るい", dark: "暗い", prevItem: "前へ", nextItem: "次へ", between: "項目の間を移る", back: "一覧へ戻る", pickThis: "これを選ぶ", unpick: "選んだ物から外す", pickFirst: "先に1つ以上選んでください。",
     week: "週", menu: "メニューの商品", review: "見直す商品", generated: "作った日時",
     bread: "パン", sweets: "菓子パン", drinks: "飲み物",
     picked: "{n}件を選択、週の売り上げ{amount}", make: "貼り返す文を作る",
@@ -199,10 +226,14 @@ const DATA = {
   ],
 };
 
-const state = { lang: "en", tab: "bread", open: "pumpkin-bun", picked: new Set() };
+const state = { lang: "en", tab: "bread", open: "pumpkin-bun", picked: new Set(), solo: false, missing: false };
 const $ = (id) => document.getElementById(id);
 const t = (key) => TEXT[state.lang][key] ?? key;
 const pick = (value) => (value && typeof value === "object" && !Array.isArray(value) ? value[state.lang] : value);
+// Japanese text starts a new line after each full stop that has more text after it. A full stop right
+// before a closing bracket or quote ends a quoted sentence inside a longer one, so it stays.
+const lines = (s) => esc(s).replace(/\u3002(?![\u300d\u300f\uff09)\u3011\u3009\u300b]|&quot;|$)/gu, "\u3002<br>");
+const narrow = () => window.matchMedia("(max-width: 860px)").matches;
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const yen = (n) => (state.lang === "ja" ? n.toLocaleString("en-US") + "\u5186" : "\u00a5" + n.toLocaleString("en-US"));
 
@@ -213,25 +244,60 @@ function copyText() {
   return [DATA.skill + " approve", ...ids].join("\n");
 }
 
+const inTab = () => DATA.items.filter((x) => x.tab === state.tab);
+const keyOf = () => (state.open ? "#item-" + state.open : "");
+function focusRow() { const row = document.querySelector(`[data-item="${state.open}"]`); if (row) row.focus(); }
+function openFromHash() {
+  const item = DATA.items.find((x) => "#item-" + x.id === location.hash);
+  if (!item) return false;
+  state.tab = item.tab;
+  state.open = item.id;
+  return true;
+}
+// The open item lives in the URL fragment, so a link opens it again. The single pane and the
+// full-width view add a history entry, so the browser's Back returns to the list.
+function remember(solo) {
+  const hash = keyOf();
+  if (!hash) return;
+  if (solo) history.pushState({ solo: true }, "", hash); else history.replaceState({ solo: false }, "", hash);
+}
+function goBack() {
+  if (history.state && history.state.solo) { history.back(); return; }
+  state.solo = false;
+  history.replaceState({ solo: false }, "", location.hash);
+  render();
+  focusRow();
+}
+window.addEventListener("popstate", (e) => {
+  state.solo = Boolean(e.state && e.state.solo);
+  openFromHash();
+  render();
+  if (state.solo) $("back").focus(); else focusRow();
+});
+
 function render() {
   document.documentElement.lang = state.lang;
   document.title = t("title");
   $("title").textContent = t("title");
-  document.querySelectorAll("[data-t]").forEach((el) => { el.textContent = t(el.dataset.t); });
+  document.querySelectorAll("[data-t]").forEach((el) => { el.innerHTML = lines(t(el.dataset.t)); });
   document.querySelectorAll("[data-lang]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.lang === state.lang)));
-  $("facts").innerHTML = DATA.facts.map(([k, v]) => `<div><dt>${esc(t(k))}</dt><dd>${esc(pick(v))}</dd></div>`).join("");
+  $("facts").innerHTML = `<tbody role="rowgroup">${DATA.facts.map(([k, v]) => `<tr role="row"><th scope="row" role="rowheader">${lines(t(k))}</th><td role="cell">${lines(pick(v))}</td></tr>`).join("")}</tbody>`;
   $("tabs").innerHTML = DATA.tabs.map((k) => {
     const count = DATA.items.filter((item) => item.tab === k).length;
-    return `<button type="button" role="tab" data-tab="${k}" aria-selected="${k === state.tab}">${esc(t(k))}<em>${count}</em></button>`;
+    return `<button type="button" role="tab" data-tab="${k}" aria-selected="${k === state.tab}">${lines(t(k))}<em>${count}</em></button>`;
   }).join("");
   $("rows").innerHTML = DATA.items.filter((item) => item.tab === state.tab).map((item) =>
-    `<button type="button" class="row${item.id === state.open ? " open" : ""}" data-item="${item.id}" aria-pressed="${state.picked.has(item.id)}"><span class="mark" aria-hidden="true">&#x2713;</span><span><span class="name">${esc(pick(item.name))}</span><small>${esc(t("perWeek").replace("{n}", item.sold))}</small></span><span class="size">${yen(item.yen)}</span></button>`
+    `<button type="button" class="row${item.id === state.open ? " open" : ""}" data-item="${item.id}" aria-pressed="${state.picked.has(item.id)}"><span class="mark" aria-hidden="true">&#x2713;</span><span><span class="name">${lines(pick(item.name))}</span><small>${lines(t("perWeek").replace("{n}", item.sold))}</small></span><span class="size">${yen(item.yen)}</span></button>`
   ).join("");
   const item = DATA.items.find((x) => x.id === state.open);
-  $("detail").innerHTML = item ? `<h2>${esc(pick(item.name))}</h2><table class="kv"><tr><th>${esc(t("sold"))}</th><td>${item.sold}</td></tr><tr><th>${esc(t("stock"))}</th><td>${esc(pick(item.stock))}</td></tr><tr><th>${esc(t("after"))}</th><td>${esc(pick(item.after))}</td></tr></table>${item.caution ? `<p class="caution">${esc(pick(item.after))}</p>` : ""}` : "";
+  const list = inTab();
+  const at = list.indexOf(item);
+  $("detail").innerHTML = item ? `<button type="button" class="back" id="back">&#x2190; ${lines(t("back"))}</button><h2 id="detail-title" tabindex="-1">${lines(pick(item.name))}</h2><button type="button" class="primary pick-toggle" data-toggle="${item.id}" aria-pressed="${state.picked.has(item.id)}">${lines(t(state.picked.has(item.id) ? "unpick" : "pickThis"))}</button><table class="kv"><tr><th>${lines(t("sold"))}</th><td>${item.sold}</td></tr><tr><th>${lines(t("stock"))}</th><td>${lines(pick(item.stock))}</td></tr><tr><th>${lines(t("after"))}</th><td>${lines(pick(item.after))}</td></tr></table>${item.caution ? `<p class="caution">${lines(pick(item.after))}</p>` : ""}<nav class="step-nav" aria-label="${esc(t("between"))}">${list[at - 1] ? `<button type="button" data-step="-1"><small>${lines(t("prevItem"))}</small>${lines(pick(list[at - 1].name))}</button>` : ""}${list[at + 1] ? `<button type="button" data-step="1"><small>${lines(t("nextItem"))}</small>${lines(pick(list[at + 1].name))}</button>` : ""}</nav>` : "";
   const chosen = DATA.items.filter((x) => state.picked.has(x.id));
-  $("picked").innerHTML = chosen.length ? esc(t("picked")).replace("{n}", `<b>${chosen.length}</b>`).replace("{amount}", `<b>${yen(chosen.reduce((a, x) => a + x.yen, 0))}</b>`) : esc(t("none"));
-  $("make").disabled = chosen.length === 0;
+  $("picked").innerHTML = chosen.length ? lines(t("picked")).replace("{n}", `<b>${chosen.length}</b>`).replace("{amount}", `<b>${yen(chosen.reduce((a, x) => a + x.yen, 0))}</b>`) : lines(t("none"));
+  // The button stays pressable, and pressing it with nothing chosen says what is missing.
+  if (state.missing && !chosen.length) $("picked").innerHTML = `<span class="missing">${lines(t("pickFirst"))}</span>`;
+  $("split").classList.toggle("solo", state.solo);
 }
 
 function setTheme(mode) {
@@ -246,17 +312,41 @@ document.addEventListener("click", (e) => {
   const theme = e.target.closest("[data-theme-choice]");
   if (theme) { setTheme(theme.dataset.themeChoice); return; }
   const tab = e.target.closest("[data-tab]");
-  if (tab) { state.tab = tab.dataset.tab; const first = DATA.items.find((x) => x.tab === state.tab); state.open = first ? first.id : ""; render(); return; }
+  if (tab) { state.tab = tab.dataset.tab; const first = DATA.items.find((x) => x.tab === state.tab); state.open = first ? first.id : ""; state.solo = false; render(); return; }
+  const toggle = e.target.closest("[data-toggle]");
+  if (toggle) {
+    const id = toggle.dataset.toggle;
+    if (state.picked.has(id)) state.picked.delete(id); else state.picked.add(id);
+    state.missing = false;
+    render();
+    return;
+  }
+  if (e.target.closest("#back")) { goBack(); return; }
+  const step = e.target.closest("[data-step]");
+  if (step) {
+    const list = inTab();
+    const next = list[list.findIndex((x) => x.id === state.open) + Number(step.dataset.step)];
+    if (next) state.open = next.id;
+    history.replaceState({ solo: true }, "", keyOf());
+    render();
+    $("detail-title").focus();
+    return;
+  }
   const row = e.target.closest("[data-item]");
   if (row) {
     const id = row.dataset.item;
-    if (state.picked.has(id)) state.picked.delete(id); else state.picked.add(id);
     state.open = id;
+    // On a narrow screen a row opens its details in place of the list, where the item is chosen.
+    if (narrow()) { state.solo = true; render(); remember(true); $("back").focus(); return; }
+    if (state.picked.has(id)) state.picked.delete(id); else state.picked.add(id);
+    state.missing = false;
     render();
+    remember(false);
     return;
   }
   if (e.target.closest("#help-open")) { $("help").showModal(); return; }
   if (e.target.closest("#make")) {
+    if (!state.picked.size) { state.missing = true; render(); return; }
     const box = $("copy-text");
     box.value = copyText();
     $("copy-status").textContent = "";
@@ -273,7 +363,11 @@ try { state.lang = localStorage.getItem("page-design-lang") || "en"; } catch (e)
 let startTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 try { startTheme = localStorage.getItem("page-design-theme") || startTheme; } catch (e) {}
 setTheme(startTheme);
+// A link to an item opens it, in the single pane on a narrow screen, and scrolls to it.
+const fromLink = openFromHash();
+if (fromLink) state.solo = narrow();
 render();
+if (fromLink) $("detail").scrollIntoView({ block: "start" });
 </script>
 </body>
 </html>

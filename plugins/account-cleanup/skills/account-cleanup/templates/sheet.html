@@ -52,7 +52,8 @@ h1 { font-size: 24px; margin: 0; }
 .seg button { background: var(--panel); border: 0; padding: 8px 12px; cursor: pointer; }
 .seg button + button { border-left: 1px solid var(--line); }
 .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); }
-.panes { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 16px; align-items: start; }
+/* The list keeps a fixed width and the details take the rest of the row */
+.panes { display: grid; grid-template-columns: minmax(360px, 440px) minmax(0, 1fr); gap: 16px; align-items: start; }
 .list { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
 .row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line); cursor: pointer; }
 .row:last-child { border-bottom: 0; }
@@ -78,11 +79,15 @@ h1 { font-size: 24px; margin: 0; }
 .detail { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; position: sticky; top: 12px; max-height: calc(100vh - 100px); overflow: auto; }
 .detail h2 { font-size: 20px; margin: 0; overflow-wrap: anywhere; }
 .detail .key { color: var(--sub); overflow-wrap: anywhere; }
-.facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 16px; margin: 14px 0; }
-.facts dt { color: var(--sub); }
-.facts dd { margin: 0; overflow-wrap: anywhere; }
-.facts p { margin: 4px 0 0; }
-.facts ul { margin: 0; padding-left: 18px; }
+.kv { width: 100%; margin: 14px 0; border-collapse: separate; border-spacing: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.kv th { width: 9.5em; padding: 8px 12px; text-align: left; vertical-align: top; font-weight: 500; color: var(--sub); background: var(--soft); border-top: 1px solid var(--line); }
+.kv td { padding: 8px 12px; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+.kv tr:first-child th, .kv tr:first-child td { border-top: 0; }
+.kv p { margin: 4px 0 0; }
+.kv ul { margin: 0; padding-left: 18px; }
+.fields { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 16px; margin: 14px 0; }
+.fields dt { color: var(--sub); }
+.fields dd { margin: 0; overflow-wrap: anywhere; }
 .levels { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 16px; margin: 0; }
 .levels dd { margin: 0; }
 @media (max-width: 600px) {
@@ -184,7 +189,7 @@ dialog .close { display: block; margin: 16px 0 0 auto; background: var(--accent)
   <p data-i18n="helpNextBody">Starting with the services you marked OK, the AI checks for paid plans, cancels any it finds, and deletes the account.</p>
   <p data-i18n="helpNextYou">You complete two-factor checks, and sign in yourself wherever the AI cannot fill in your login.</p>
   <h2 data-i18n="helpFieldsTitle">Fields in the details panel</h2>
-  <dl class="facts">
+  <dl class="fields">
     <dt data-i18n="fWhat">What it is</dt><dd data-i18n="fWhatHelp">A short description the AI wrote from the name</dd>
     <dt data-i18n="fPrev">Last round</dt><dd data-i18n="fPrevHelp">Why it could not be deleted last time, and what to do next</dd>
     <dt data-i18n="fReasons">Why it is listed</dt><dd data-i18n="fReasonsHelp">Why it looks unused</dd>
@@ -339,7 +344,7 @@ __DATA__
       light: "明るい",
       dark: "暗い",
       lead: "あなたが登録したことのあるWebサービスの一覧です。この画面で押しただけでは、何も消えません。",
-      step1: "消すならOK、残すならダメ。迷えば押さない",
+      step1: "消すならOK、残すならダメ、迷えば押さない",
       step2: "気になることは詳しい欄のメモに書く",
       step3: "「OKの分をコピー」を押してチャットに貼る",
       tabPrev: "前の回の残り",
@@ -445,10 +450,20 @@ __DATA__
     return map && Object.prototype.hasOwnProperty.call(map, key) ? map[key] : key;
   }
 
+  // A Japanese full stop with more text after it ends the line, so each sentence starts on its own
+  // line, as the look of page-design asks. Text without one is written as it is.
+  function setLines(node, text) {
+    var parts = String(text).replace(/\u3002(?![\u300d\u300f\uff09)\u3011\u3009\u300b"'\u201d\u2019]|$)/g, "\u3002\u0000").split("\u0000");
+    node.textContent = parts[0];
+    for (var i = 1; i < parts.length; i++) {
+      node.appendChild(document.createElement("br"));
+      node.appendChild(document.createTextNode(parts[i]));
+    }
+  }
   function el(tag, cls, text) {
     var n = document.createElement(tag);
     if (cls) n.className = cls;
-    if (text != null) n.textContent = text;
+    if (text != null) setLines(n, text);
     return n;
   }
   function title(g) { return g.service || (g.names && g.names[0]) || g.key; }
@@ -601,11 +616,16 @@ __DATA__
     return box;
   }
 
-  function fact(dl, name, value) {
-    dl.appendChild(el("dt", null, name));
-    var dd = el("dd");
-    if (typeof value === "string") dd.textContent = value; else dd.appendChild(value);
-    dl.appendChild(dd);
+  // One row per field, the name in a row header on the label color and the value beside it.
+  function fact(table, name, value) {
+    var row = el("tr");
+    var th = el("th", null, name);
+    th.setAttribute("scope", "row");
+    row.appendChild(th);
+    var td = el("td");
+    if (typeof value === "string") setLines(td, value); else td.appendChild(value);
+    row.appendChild(td);
+    table.appendChild(row);
   }
 
   function renderDetail(box, g) {
@@ -624,13 +644,13 @@ __DATA__
     });
     box.appendChild(tags);
 
-    var dl = el("dl", "facts");
-    fact(dl, t("fWhat"), g.description ? el("span", null, g.description) : el("span", "none", t("noDesc")));
+    var kv = el("table", "kv");
+    fact(kv, t("fWhat"), g.description ? el("span", null, g.description) : el("span", "none", t("noDesc")));
     if (hasPrev(g)) {
       var p = el("div");
       p.appendChild(el("span", "chip prev", g.previous.label));
       if (g.previous.detail) p.appendChild(el("p", null, g.previous.detail));
-      fact(dl, g.previous.round ? fill(t("fPrevRound"), { n: g.previous.round }) : t("fPrev"), p);
+      fact(kv, g.previous.round ? fill(t("fPrevRound"), { n: g.previous.round }) : t("fPrev"), p);
     }
     var rs = el("div");
     if (g.reasons && g.reasons.length) {
@@ -638,21 +658,21 @@ __DATA__
       g.reasons.forEach(function (r) { ul.appendChild(el("li", null, reasonText(r, g))); });
       rs.appendChild(ul);
     } else rs.appendChild(el("span", "none", t("none")));
-    fact(dl, t("fReasons"), rs);
+    fact(kv, t("fReasons"), rs);
     var dates = el("div");
     dates.appendChild(el("span", null, g.updated || t("unknownDate")));
     if (g.last_visit) dates.appendChild(el("span", "visit recent", fill(t("lastOpened"), { date: g.last_visit })));
     else if (g.history_since) dates.appendChild(el("span", "visit", fill(t("notOpenedSince"), { date: g.history_since })));
-    fact(dl, t("fUpdated"), dates);
+    fact(kv, t("fUpdated"), dates);
     var d = diffOf(g);
-    fact(dl, t("fEffort"), el("span", "diff " + d[0], d[1]));
+    fact(kv, t("fEffort"), el("span", "diff " + d[0], d[1]));
     var view = el("div");
     if (g.suggestion === "ok") view.appendChild(el("span", "view-ok", t("chipOk")));
     else if (g.suggestion === "ng") view.appendChild(el("span", "view-ng", t("chipNg")));
     else view.appendChild(el("span", "none", t("noView")));
     if (g.why) view.appendChild(el("p", null, g.why));
-    fact(dl, t("fView"), view);
-    box.appendChild(dl);
+    fact(kv, t("fView"), view);
+    box.appendChild(kv);
 
     var decide = el("div", "decide");
     decide.appendChild(el("span", null, t("decide")));
@@ -747,10 +767,10 @@ __DATA__
   function applyLang() {
     document.documentElement.lang = lang;
     document.title = t("title");
-    Array.prototype.forEach.call(document.querySelectorAll("[data-i18n]"), function (n) { n.textContent = t(n.getAttribute("data-i18n")); });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-i18n]"), function (n) { setLines(n, t(n.getAttribute("data-i18n"))); });
     Array.prototype.forEach.call(document.querySelectorAll("[data-i18n-placeholder]"), function (n) { n.setAttribute("placeholder", t(n.getAttribute("data-i18n-placeholder"))); });
     Array.prototype.forEach.call(document.querySelectorAll("[data-i18n-aria]"), function (n) { n.setAttribute("aria-label", t(n.getAttribute("data-i18n-aria"))); });
-    document.getElementById("opened-help").textContent = fill(t("fOpenedHelp"), { since: since ? fill(t("sinceDate"), { date: since }) : t("sinceUnknown") });
+    setLines(document.getElementById("opened-help"), fill(t("fOpenedHelp"), { since: since ? fill(t("sinceDate"), { date: since }) : t("sinceUnknown") }));
     // Every deletion effort the details panel can show, from the same table as its labels and in the same colors
     var levels = document.getElementById("effort-help");
     levels.textContent = "";

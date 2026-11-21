@@ -11,9 +11,14 @@ The agent of a following skill writes the page or the document; the script in `s
 |---|---|
 | `SKILL.md` | The contents the skill provides, how to write a page or a document with them, and how to run `verify` |
 | `agents/openai.yaml` | How Codex shows and starts the skill |
-| `musubi.json` | The contents the skill provides through musubi: `structure`, `look`, `report`, `sheet`, `document`, `choice`, and `verify`, each at version 1.0.0 |
+| `musubi.json` | The contents the skill provides through musubi: `structure` and the four pattern files at version 1.0.0, and `look`, `report`, `sheet`, `document`, `choice`, and `verify` at version 2.0.0 |
 | `formats/structure.md` | The order of an explanation |
 | `formats/look.md` | The look rules, ending with the table of rules `verify` checks |
+| `formats/patterns/details.md` | Where the details of a picked item appear, with the rules and their sources |
+| `formats/patterns/lists-and-tables.md` | How a list or a table shows its rows, with the rules and their sources |
+| `formats/patterns/input-and-confirmation.md` | How a page takes and confirms a choice or an input, with the rules and their sources |
+| `formats/patterns/states-and-notices.md` | How a page shows states and notices, with the rules and their sources |
+| `formats/patterns/sources.md` | The page, the kind, the date it was read, and a short quote of every source the pattern files cite |
 | `templates/report.html` | The report page type |
 | `templates/sheet.html` | The approval sheet type |
 | `templates/document.html` | The explainer type |
@@ -30,13 +35,13 @@ The agent copies the template of the page type, replaces `DATA` and the words in
 
 | File | Which plugin | What it holds |
 |---|---|---|
-| `formats/structure.md`, `formats/look.md` | design-formats | The order of an explanation and the look rules |
+| `formats/structure.md`, `formats/look.md`, `formats/patterns/<topic>.md` | design-formats | The order of an explanation, the look rules, and the pattern rules |
 | `templates/<type>.html` | design-formats | The frame of each page type, with sample data |
 | `musubi.json` | The following skill | The range and fingerprint of each content it follows |
 
 When a format, a template, or the script changes, its fingerprint changes, and `musubi check` refuses every following skill until that skill is checked again and its fingerprint is updated.
 
-Ten skills in this repository follow page-design, each as an optional follow with the version range `^1.0.0` and `"optional": true`, so each plugin still installs and works alone.
+Ten skills in this repository follow page-design, each as an optional follow with the version range of the major version it was checked against, `^1.0.0` for `structure` and `^2.0.0` for the other contents, and `"optional": true`, so each plugin still installs and works alone.
 
 | Skill | Plugin | What it follows |
 |---|---|---|
@@ -91,6 +96,9 @@ The explainer builds its article from `DATA`, so its figures wait in a hidden `#
 | `external-file` | A script, style, image, frame, or font read from another site; with `--source`, the dragon entry line is allowed | Yes | No |
 | `figure-not-embedded` | A dragon block left on a page that `dragon embed` has not drawn | Yes | No |
 | `figure-not-still` | With `--source`, a dragon block without `data-still` | Yes | No |
+| `facts-not-table` | Facts in an element named `facts` that is not a `<table>`, including one a script builds as markup, or a facts row whose label is not a `<th scope="row">` | Yes | No |
+| `sentence-per-line` | A Japanese full stop with more text after it on the same line, outside a closing bracket or quote | Yes | Yes |
+| `list-detail-width` | A `.split` whose list column grows with the page, such as `1fr` or `minmax(0, 1.1fr)`, instead of keeping a fixed width | Yes | No |
 
 In a page, text inside `script`, `style`, `code`, `pre`, `textarea`, and `svg` is not read as shown text, and the font sizes in a drawn figure's `svg` are not measured; strings in scripts are read only for titles and facts, and only when they hold no markup or code.
 In a document, fenced code, tables, quotes, and HTML comments are skipped, and inline code is removed before a line is checked.

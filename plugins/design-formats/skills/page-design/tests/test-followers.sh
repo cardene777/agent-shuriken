@@ -67,9 +67,11 @@ for line in followers.splitlines():
         problems.append("%s follows %s, not %s" % (skill, ", ".join(mine) or "nothing of page-design", ", ".join(want)))
     for ref in want:
         follow = follows.get(ref, {})
-        if follow and not (follow.get("version") == "^1.0.0" and follow.get("optional") is True
+        # structure is still at 1.0.0; the look, the page types, and verify moved to 2.0.0 with the pattern rules.
+        version = "^1.0.0" if ref == "page-design/structure" else "^2.0.0"
+        if follow and not (follow.get("version") == version and follow.get("optional") is True
                            and re.fullmatch(r"sha256-[A-Za-z0-9+/]{43}=", str(follow.get("integrity", "")))):
-            problems.append("%s follows %s without ^1.0.0, a fingerprint, and optional true" % (skill, ref))
+            problems.append("%s follows %s without %s, a fingerprint, and optional true" % (skill, ref, version))
 for problem in problems:
     print("      " + problem)
 sys.exit(1 if problems else 0)

@@ -957,7 +957,7 @@ function detailEl(it) {
     dt.textContent = t(p[0]);
     dl.appendChild(dt);
     const dd = document.createElement("dd");
-    dd.textContent = p[1];
+    setLines(dd, p[1]);
     if (p[2]) dd.className = p[2];
     dl.appendChild(dd);
   });
@@ -1041,7 +1041,7 @@ function setTheme(mode) {
 }
 function applyLang() {
   document.documentElement.lang = lang;
-  document.querySelectorAll("[data-i18n]").forEach(function (el) { el.textContent = t(el.getAttribute("data-i18n")); });
+  document.querySelectorAll("[data-i18n]").forEach(function (el) { setLines(el, t(el.getAttribute("data-i18n"))); });
   document.querySelectorAll("[data-i18n-aria]").forEach(function (el) { el.setAttribute("aria-label", t(el.getAttribute("data-i18n-aria"))); });
   document.querySelectorAll("[data-i18n-ph]").forEach(function (el) { el.placeholder = t(el.getAttribute("data-i18n-ph")); });
   document.querySelectorAll("#lang button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.lang === lang)); });
@@ -1090,7 +1090,7 @@ function render() {
     tabs.appendChild(box);
   });
   const leadKey = "lead_" + tab;
-  document.getElementById("tab-lead").textContent = t(leadKey);
+  setLines(document.getElementById("tab-lead"), t(leadKey));
   const overview = tab === "overview";
   document.getElementById("clear").hidden = overview || tab === "skipped";
   document.getElementById("toolbar").hidden = overview || tab === "skipped";
@@ -1115,7 +1115,7 @@ function render() {
   if (!overview && !rows.children.length) {
     const e = document.createElement("div");
     e.className = "empty";
-    e.textContent = t("empty");
+    setLines(e, t("empty"));
     rows.appendChild(e);
   }
   renderTally();
@@ -1147,10 +1147,21 @@ function renderOverview() {
     box.appendChild(c.kind === "bars" ? barCard(c) : pieCard(c));
   });
 }
+// A Japanese full stop with more text after it ends the line, so each sentence starts on its own
+// line, as the look of page-design asks. Text without one is written as it is.
+function setLines(el, text) {
+  const parts = String(text).replace(/\u3002(?![\u300d\u300f\uff09)\u3011\u3009\u300b"'\u201d\u2019]|$)/g, "\u3002\u0000").split("\u0000");
+  if (parts.length === 1) { el.textContent = parts[0]; return; }
+  el.textContent = "";
+  parts.forEach(function (part, i) {
+    if (i) el.appendChild(document.createElement("br"));
+    el.appendChild(document.createTextNode(part));
+  });
+}
 function node(tag, cls, text) {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
-  if (text !== undefined) e.textContent = text;
+  if (text !== undefined) setLines(e, text);
   return e;
 }
 // Makes an element act as a button: it can be focused and pressed with Enter or Space.
@@ -1322,7 +1333,7 @@ function rowEl(name, where, it) {
   n.className = "name";
   n.textContent = name;
   main.appendChild(n);
-  if (where) { const w = document.createElement("div"); w.className = "where"; w.textContent = where; main.appendChild(w); }
+  if (where) { const w = document.createElement("div"); w.className = "where"; setLines(w, where); main.appendChild(w); }
   row.appendChild(it ? mark : document.createElement("span"));
   row.appendChild(main);
   if (it) {
@@ -1390,7 +1401,7 @@ function selectionText(ids) {
 }
 function openModal(id) { document.getElementById(id).hidden = false; }
 function closeModals() { document.querySelectorAll(".modal").forEach(function (m) { if (m.id !== "finished") m.hidden = true; }); }
-function showNote(key) { const n = document.getElementById("note"); n.textContent = t(key); n.hidden = false; }
+function showNote(key) { const n = document.getElementById("note"); setLines(n, t(key)); n.hidden = false; }
 
 // One line of the confirm dialog: how many items an effect covers and, for disk items, their size.
 function sumText(n, size, disk) {
@@ -1441,7 +1452,7 @@ function copySelection() {
 function fallbackCopy(text) {
   const n = document.getElementById("note");
   n.hidden = false;
-  n.textContent = t("copyFailed") + " " + text;
+  setLines(n, t("copyFailed") + " " + text);
 }
 function ping() {
   fetch("/ping?t=" + encodeURIComponent(DATA.token), { cache: "no-store" })

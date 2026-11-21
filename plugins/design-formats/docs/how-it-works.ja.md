@@ -11,9 +11,14 @@
 |---|---|
 | `SKILL.md` | スキルが出す中身と、それで頁とドキュメントを書く手順と、`verify`の回し方 |
 | `agents/openai.yaml` | Codexがスキルを見せて起動する形 |
-| `musubi.json` | musubiで出す中身です。`structure`、`look`、`report`、`sheet`、`document`、`choice`、`verify`をそれぞれバージョン1.0.0で出します |
+| `musubi.json` | musubiで出す中身です。`structure`と4つの規則のfileをバージョン1.0.0で、`look`、`report`、`sheet`、`document`、`choice`、`verify`をバージョン2.0.0で出します |
 | `formats/structure.md` | 説明の構造 |
 | `formats/look.md` | 見た目の決まり。最後に`verify`が確かめる決まりの表を持ちます |
+| `formats/patterns/details.md` | 選んだ物の詳細を出す場所の規則と出所 |
+| `formats/patterns/lists-and-tables.md` | 一覧と表の行の見せ方の規則と出所 |
+| `formats/patterns/input-and-confirmation.md` | 選択と入力の受け取り方と確かめ方の規則と出所 |
+| `formats/patterns/states-and-notices.md` | 状態と知らせの出し方の規則と出所 |
+| `formats/patterns/sources.md` | 規則のfileが引く出所ごとの頁、種類、読んだ日、短い引用 |
 | `templates/report.html` | レポートの頁の型 |
 | `templates/sheet.html` | 承認の頁の型 |
 | `templates/document.html` | 説明の頁の型 |
@@ -30,13 +35,13 @@ agentは頁の型の雛形を写し、`DATA`と`TEXT`の言葉を書き換え、
 
 | file | どのplugin | 持つもの |
 |---|---|---|
-| `formats/structure.md`、`formats/look.md` | design-formats | 説明の構造と見た目の決まり |
+| `formats/structure.md`、`formats/look.md`、`formats/patterns/<topic>.md` | design-formats | 説明の構造、見た目の決まり、画面の型の規則 |
 | `templates/<type>.html` | design-formats | 頁の型ごとの枠と見本のデータ |
 | `musubi.json` | 従うスキル | 従う中身ごとのバージョンの範囲と指紋 |
 
 書式か雛形かscriptが変わると指紋が変わり、従うスキルを確かめ直して指紋を書き直すまで、`musubi check`がそのスキルを拒みます。
 
-このリポジトリの10のスキルが`page-design`に従います。どれもバージョンの範囲`^1.0.0`と`"optional": true`を持つ任意の準拠なので、各pluginは単独でも入れて動かせます。
+このリポジトリの10のスキルが`page-design`に従います。どれも確かめた時のメジャーバージョンの範囲 (`structure`は`^1.0.0`、ほかの中身は`^2.0.0`) と`"optional": true`を持つ任意の準拠なので、各pluginは単独でも入れて動かせます。
 
 | スキル | plugin | 従う中身 |
 |---|---|---|
@@ -91,6 +96,9 @@ styleの規則が頁の言語でない方の塊を隠すので、言語を切り
 | `external-file` | ほかのサイトから読むscript、style、画像、frame、font。`--source`ではdragonを読む行を通します | 見る | 見ない |
 | `figure-not-embedded` | `dragon embed`で描いていないdragonの塊が残る頁 | 見る | 見ない |
 | `figure-not-still` | `--source`で、`data-still`の無いdragonの塊 | 見る | 見ない |
+| `facts-not-table` | `facts`の名の付いた要素が`<table>`でないこと (scriptが文字で組む物を含む)、または付帯の情報の行の見出しが`<th scope="row">`でないこと | 見る | 見ない |
+| `sentence-per-line` | 閉じ括弧の前でない日本語の「。」の後に、同じ行で文が続くこと | 見る | 見る |
+| `list-detail-width` | `.split`の一覧の列が、`1fr`や`minmax(0, 1.1fr)`のように頁の幅につれて伸び、一定の幅に留まらないこと | 見る | 見ない |
 
 頁では、`script`、`style`、`code`、`pre`、`textarea`、`svg`の中の文字を見せる文として読まず、描いた図の`svg`の中の文字の大きさも測りません。scriptの中の文字列は、markupとcodeを持たない時だけ、題と事実について読みます。
 ドキュメントでは、囲んだcode、表、引用、HTMLのcommentを飛ばし、行を確かめる前にinline codeを外します。

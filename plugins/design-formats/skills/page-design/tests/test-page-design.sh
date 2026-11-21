@@ -83,14 +83,15 @@ skill = sys.argv[1]
 declaration = json.load(open(os.path.join(skill, "musubi.json"), encoding="utf-8"))
 want = {
     "structure": {"version": "1.0.0", "file": "formats/structure.md"},
-    "look": {"version": "1.0.0", "file": "formats/look.md"},
-    "report": {"version": "1.0.0", "file": "templates/report.html"},
-    "sheet": {"version": "1.0.0", "file": "templates/sheet.html"},
-    "document": {"version": "1.0.0", "file": "templates/document.html"},
-    "choice": {"version": "1.0.0", "file": "templates/choice.html"},
-    "verify": {"version": "1.0.0", "file": "scripts/page-design.py"},
+    "look": {"version": "2.0.0", "file": "formats/look.md"},
+    "report": {"version": "2.0.0", "file": "templates/report.html"},
+    "sheet": {"version": "2.0.0", "file": "templates/sheet.html"},
+    "document": {"version": "2.0.0", "file": "templates/document.html"},
+    "choice": {"version": "2.0.0", "file": "templates/choice.html"},
+    "verify": {"version": "2.0.0", "file": "scripts/page-design.py"},
 }
-if declaration.get("musubi") != "2026-11-20" or declaration.get("provides") != want:
+provides = declaration.get("provides", {})
+if declaration.get("musubi") != "2026-11-20" or any(provides.get(name) != content for name, content in want.items()):
     print("      musubi.json declares %s" % json.dumps(declaration, sort_keys=True))
     sys.exit(1)
 for content in want.values():
@@ -109,10 +110,210 @@ check "the structure format holds the order of an explanation" structure_format
 
 look_format() {
   has "$LOOK" "## Headings" "## Facts in a table" "## Joining items" "## Text size and weight" \
-    "## Explanations and help" "## Details beside the list" "## Enlarging" "## Motion" \
+    "## Explanations and help" "## Enlarging" "## Motion" \
     "## Header controls" "## Self-contained pages" "data-lang" "data-theme-choice" "prefers-reduced-motion"
 }
 check "the look format holds the rules of headings, facts, text, details, and motion" look_format
+
+PATTERN_DIR="$SKILL_DIR/formats/patterns"
+SOURCES="$PATTERN_DIR/sources.md"
+# Each pattern file and the letter of its rule IDs.
+PATTERNS=(details:D lists-and-tables:L input-and-confirmation:I states-and-notices:S)
+
+# patterns_check <what>: reads the four pattern files and sources.md, and prints a problem for each
+# place that breaks their shape. <what> is shape, sources, kinds, or disagree.
+#
+# A pattern file opens with "## Choose between" and a table whose Rule column names its rules. Each
+# rule is a "### <letter><n> <rule in one line>" heading over an Item and Value table with the rows
+# Use when, Do not use when (naming what to use instead), How, and Sources (source IDs joined with
+# commas). "## Where the sources disagree" holds a Question, What the sources say, Took, and Why
+# table. sources.md holds one ID, Source (a link), Kind, Checked, and Quote table.
+patterns_check() {
+  python3 - "$1" "$PATTERN_DIR" "${PATTERNS[@]}" <<'PYEOF'
+import os, re, sys
+what, folder, pairs = sys.argv[1], sys.argv[2], sys.argv[3:]
+KINDS = {"Design system", "Research and articles", "Public guidance", "Accessibility", "This plugin"}
+OUTSIDE = KINDS - {"This plugin"}
+problems = []
+
+def cells(line):
+    return [c.strip() for c in line.strip().strip("|").split("|")]
+
+def table_after(lines, start):
+    """The rows of the first table after lines[start], before the next heading: header first."""
+    rows = []
+    for line in lines[start + 1:]:
+        if line.startswith("#"):
+            break
+        if line.startswith("|"):
+            if not re.match(r"^\|[-| :]+\|$", line.strip()):
+                rows.append(cells(line))
+        elif rows:
+            break
+    return rows
+
+cited = {}
+for pair in pairs:
+    name, letter = pair.split(":")
+    path = os.path.join(folder, name + ".md")
+    if not os.path.isfile(path):
+        problems.append("formats/patterns/%s.md is missing" % name)
+        continue
+    lines = open(path, encoding="utf-8").read().split("\n")
+    seconds = [i for i, line in enumerate(lines) if line.startswith("## ")]
+    rules = [(i, re.match(r"^### ([A-Z])(\d+) (\S.*)$", line)) for i, line in enumerate(lines) if line.startswith("### ")]
+    if what == "shape":
+        if not seconds or lines[seconds[0]] != "## Choose between":
+            problems.append("%s.md does not open with ## Choose between" % name)
+        else:
+            choose = table_after(lines, seconds[0])
+            if len(choose) < 3 or "Rule" not in choose[0]:
+                problems.append("%s.md: ## Choose between has no table with a Rule column and two rows" % name)
+        numbers = []
+        for i, found in rules:
+            if not found or found.group(1) != letter:
+                problems.append("%s.md:%d: a rule heading is not ### %s<n> <rule>" % (name, i + 1, letter))
+                continue
+            numbers.append(int(found.group(2)))
+            if re.search("[:\uff1a\u3001\u3002]", found.group(3)):
+                problems.append("%s.md:%d: the rule heading holds a colon" % (name, i + 1))
+            rows = table_after(lines, i)
+            if not rows or rows[0] != ["Item", "Value"]:
+                problems.append("%s.md: %s%s has no Item and Value table" % (name, letter, found.group(2)))
+                continue
+            fields = {row[0]: row[1] if len(row) > 1 else "" for row in rows[1:]}
+            if [row[0] for row in rows[1:]] != ["Use when", "Do not use when", "How", "Sources"]:
+                problems.append("%s.md: %s%s does not have the rows Use when, Do not use when, How, and Sources" % (name, letter, found.group(2)))
+                continue
+            if not all(fields.values()):
+                problems.append("%s.md: %s%s leaves a row empty" % (name, letter, found.group(2)))
+            if "instead" not in fields["Do not use when"]:
+                problems.append("%s.md: %s%s does not say what to use instead" % (name, letter, found.group(2)))
+            if not all(re.fullmatch(r"[a-z0-9][a-z0-9-]*", s.strip()) for s in fields["Sources"].split(",")):
+                problems.append("%s.md: %s%s names a source that is not an ID" % (name, letter, found.group(2)))
+        if len(numbers) < 5:
+            problems.append("%s.md holds %d rules, fewer than 5" % (name, len(numbers)))
+        elif numbers != list(range(1, len(numbers) + 1)):
+            problems.append("%s.md numbers its rules %s, not from 1 without gaps" % (name, numbers))
+    for i, found in rules:
+        if found:
+            for row in table_after(lines, i)[1:]:
+                if row[0] == "Sources" and len(row) > 1:
+                    for source in row[1].split(","):
+                        cited.setdefault(source.strip(), []).append("%s%s" % (found.group(1), found.group(2)))
+    if what == "disagree":
+        where = [i for i in seconds if lines[i] == "## Where the sources disagree"]
+        rows = table_after(lines, where[0]) if where else []
+        if not rows or rows[0] != ["Question", "What the sources say", "Took", "Why"]:
+            problems.append("%s.md has no ## Where the sources disagree table of Question, What the sources say, Took, and Why" % name)
+        elif len(rows) < 2 or not all(len(row) == 4 and all(row) for row in rows[1:]):
+            problems.append("%s.md: ## Where the sources disagree has no row, or a row with an empty cell" % name)
+
+if what in ("sources", "kinds"):
+    if not os.path.isfile(os.path.join(folder, "sources.md")):
+        problems.append("formats/patterns/sources.md is missing")
+    else:
+        lines = open(os.path.join(folder, "sources.md"), encoding="utf-8").read().split("\n")
+        start = next((i - 1 for i, line in enumerate(lines) if line.startswith("| ID |")), None)
+        rows = table_after(lines, start) if start is not None else []
+        sources = {}
+        if not rows or rows[0] != ["ID", "Source", "Kind", "Checked", "Quote"]:
+            problems.append("sources.md has no ID, Source, Kind, Checked, and Quote table")
+        for row in rows[1:]:
+            if len(row) != 5:
+                problems.append("sources.md: the row of %s does not have five cells" % row[0])
+                continue
+            source, link, kind, checked, quote = row
+            if source in sources:
+                problems.append("sources.md names %s twice" % source)
+            sources[source] = kind
+            if not re.fullmatch(r"\[[^\]]+\]\(https://[^)\s]+\)", link):
+                problems.append("sources.md: %s has no link to an https URL" % source)
+            if kind not in KINDS:
+                problems.append("sources.md: %s has the kind %r" % (source, kind))
+            if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", checked):
+                problems.append("sources.md: %s has no checked date" % source)
+            if not re.fullmatch(r'".{8,}"', quote):
+                problems.append("sources.md: %s has no quote" % source)
+        if what == "sources":
+            for source, where in sorted(cited.items()):
+                if source not in sources:
+                    problems.append("%s cite %s, which sources.md does not hold" % (", ".join(where), source))
+            for source in sorted(set(sources) - set(cited)):
+                problems.append("sources.md holds %s, which no rule cites" % source)
+        else:
+            missing = sorted(OUTSIDE - {sources[s] for s in cited if s in sources})
+            if missing:
+                problems.append("no rule cites a source of the kind " + ", ".join(missing))
+for problem in problems[:20]:
+    print("      " + problem)
+sys.exit(1 if problems else 0)
+PYEOF
+}
+
+pattern_shape() { patterns_check shape; }
+check "each pattern file opens with a choose-between table and gives every rule an ID, a use, a do-not-use, a how, and its sources" pattern_shape
+
+pattern_sources() { patterns_check sources; }
+check "every source a rule cites is in sources.md with a URL, a kind, a checked date, and a quote" pattern_sources
+
+pattern_kinds() { patterns_check kinds; }
+check "the rules cite all four kinds of sources" pattern_kinds
+
+pattern_disagree() { patterns_check disagree; }
+check "each pattern file names the side it took where its sources disagree, with the reason" pattern_disagree
+
+pattern_rules() {
+  has "$PATTERN_DIR/details.md" "Give the list a fixed width and the details the rest of the row" \
+    "Use a modal dialog only for a short, focused task" || return 1
+  has "$PATTERN_DIR/lists-and-tables.md" "Put facts about the page in a table of row headers" || return 1
+  has "$LOOK" "Break the line after each Japanese full stop"
+}
+check "the pattern rules keep facts in a table, break Japanese after each full stop, hold the list at a fixed width, and keep dialogs for short tasks" pattern_rules
+
+skill_patterns() {
+  local name
+  grep -qE '^\| File \| Read it when \|$' "$SKILL" || { echo "      SKILL.md has no File and Read it when table"; return 1; }
+  for name in details lists-and-tables input-and-confirmation states-and-notices sources; do
+    grep -qE "^\| \`formats/patterns/$name\.md\` \| .{20,} \|$" "$SKILL" || { echo "      SKILL.md does not link formats/patterns/$name.md with when to read it"; return 1; }
+  done
+}
+check "SKILL.md links each pattern file and says when to read it" skill_patterns
+
+look_only_look() {
+  ! grep -qF '## Details beside the list' "$LOOK" || { echo "      look.md still holds ## Details beside the list"; return 1; }
+  ! grep -qF 'Facts sit on one quiet line' "$LOOK" || { echo "      look.md still puts facts on one quiet line"; return 1; }
+  ! grep -qiE 'pressing a row shows its details' "$LOOK" || { echo "      look.md still says how a row shows its details"; return 1; }
+  has "$LOOK" "formats/patterns/details.md" "formats/patterns/lists-and-tables.md"
+}
+check "the look format keeps only the look and leaves the list and details to the patterns" look_only_look
+
+patterns_provided() {
+  python3 - "$SKILL_DIR" <<'PYEOF'
+import json, os, sys
+skill = sys.argv[1]
+provides = json.load(open(os.path.join(skill, "musubi.json"), encoding="utf-8")).get("provides", {})
+problems = []
+for name in ("details", "lists-and-tables", "input-and-confirmation", "states-and-notices"):
+    want = {"version": "1.0.0", "file": "formats/patterns/%s.md" % name}
+    if provides.get(name) != want:
+        problems.append("musubi.json provides %s as %s" % (name, json.dumps(provides.get(name))))
+    elif not os.path.isfile(os.path.join(skill, want["file"])):
+        problems.append("%s is missing" % want["file"])
+for problem in problems:
+    print("      " + problem)
+sys.exit(1 if problems else 0)
+PYEOF
+}
+check "page-design provides the four pattern files in musubi.json" patterns_provided
+
+pattern_pages() {
+  local page
+  for page in README.md README.ja.md docs/how-it-works.md docs/how-it-works.ja.md; do
+    has "$PLUGIN/$page" "formats/patterns/" || return 1
+  done
+}
+check "the design-formats pages describe the pattern files in English and Japanese" pattern_pages
 
 templates_pass() {
   local t f
@@ -126,8 +327,8 @@ templates_pass() {
 check "verify accepts every page type template" templates_pass
 
 report_layout() {
-  has "$LOOK" "Keep facts about the page apart from the results" "Show each value once" \
-    "no paging when the list fits on one page" "Give each row its value as a number" || return 1
+  has "$LOOK" "Keep facts about the page apart from the results" "Show each value once" || return 1
+  has "$PATTERN_DIR/lists-and-tables.md" "no paging when the list fits on one page" "Give each row its value as a number" || return 1
   python3 - "$SKILL_DIR/templates/report.html" <<'PYEOF'
 import re, sys
 text = open(sys.argv[1], encoding="utf-8").read()
@@ -248,6 +449,8 @@ card_rule() {
 import re, sys
 text = open(sys.argv[1], encoding="utf-8").read()
 style = "".join(re.findall(r"<style>(.*?)</style>", text, re.S))
+# A comment before a rule is not part of its selector.
+style = re.sub(r"/\*.*?\*/", "", style, flags=re.S)
 for selectors, body in re.findall(r"([^{}]+)\{([^{}]*)\}", style):
     if sys.argv[2] in [s.strip() for s in selectors.split(",")]:
         print(body)
@@ -406,6 +609,130 @@ verify_markdown_refusals() {
   done
 }
 check "verify refuses a Markdown document that breaks a rule" verify_markdown_refusals
+
+# refused <file> <rule>: verify exits 1 and names the rule with a line and a fix.
+refused() {
+  run verify "$1" > "$1.out" 2>&1
+  [ $? -eq 1 ] || { echo "      $(basename "$1") was not refused"; return 1; }
+  grep -Eq "^.*$(basename "$1"):[0-9]+: $2: .+" "$1.out" || { echo "      $(basename "$1") did not name $2 with a line and a fix"; sed 's/^/        /' "$1.out"; return 1; }
+}
+
+# accepted <file>: verify exits 0.
+accepted() { run verify "$1" > "$1.out" 2>&1 || { echo "      $(basename "$1") was refused"; sed 's/^/        /' "$1.out"; return 1; }; }
+
+verify_facts_table() {
+  local name
+  # The facts of a page are a table whose label cells are row headers.
+  breaks facts-row-headers 'text.replace("<table><tr><th>Store</th>", "<table class=\"facts\"><tbody><tr><th scope=\"row\">Store</th>").replace("<tr><th>Products</th>", "<tr><th scope=\"row\">Products</th>")'
+  accepted "$T/html/facts-row-headers.html" || return 1
+  breaks facts-dl 'text.replace("<table><tr><th>Store</th>", "<dl class=\"facts\"><div><dt>Week</dt><dd>Nov 10 to 16</dd></div></dl><table><tr><th>Store</th>")'
+  breaks facts-div 'text.replace("<table><tr><th>Store</th>", "<div id=\"facts\"><span>Week</span> <b>Nov 10 to 16</b></div><table><tr><th>Store</th>")'
+  breaks facts-cells 'text.replace("<table><tr><th>Store</th>", "<table class=\"facts\"><tr><td>Store</td>").replace("<tr><th>Products</th>", "<tr><td>Products</td>")'
+  breaks facts-column-headers 'text.replace("<table><tr><th>Store</th>", "<table class=\"facts\"><tr><th scope=\"col\">Store</th>").replace("<tr><th>Products</th>", "<tr><th scope=\"col\">Products</th>")'
+  for name in facts-dl facts-div facts-cells facts-column-headers; do
+    refused "$T/html/$name.html" facts-not-table || return 1
+  done
+}
+check "verify refuses facts that are not a table with row headers" verify_facts_table
+
+verify_sentence_lines() {
+  local d="$T/sentences" name
+  mkdir -p "$d"
+  printf '# Sales\n\n売り切れた。明日も焼く。\n' > "$d/md-joined.md"
+  printf '# Sales\n\n- 売り切れた。 明日も焼く。\n' > "$d/md-space.md"
+  breaks html-joined 'text.replace("<p>SECRET_TEXT_MARKER", "<p>売り切れた。明日も焼く。</p><p>SECRET_TEXT_MARKER")'
+  breaks html-source-line 'text.replace("<p>SECRET_TEXT_MARKER", "<p>売り切れた。\n明日も焼く。</p><p>SECRET_TEXT_MARKER")'
+  cp "$T/html/html-joined.html" "$T/html/html-source-line.html" "$d/"
+  for name in md-joined.md md-space.md html-joined.html html-source-line.html; do
+    refused "$d/$name" sentence-per-line || return 1
+  done
+}
+check "verify refuses a Japanese sentence that does not end its line" verify_sentence_lines
+
+verify_sentence_ends() {
+  local d="$T/sentence-ends" name
+  mkdir -p "$d"
+  printf '# Sales\n\n売り切れた。\n明日も焼く。\n「売り切れた。」と店長が言った。\n- 三日とも売り切れた。 \n\n| Item | Value |\n|---|---|\n| Note | 売り切れた。明日も焼く。 |\n\n```text\n売り切れた。明日も焼く。\n```\n' > "$d/md-ends.md"
+  breaks html-ends 'text.replace("<p>SECRET_TEXT_MARKER", "<p>売り切れた。<br>明日も焼く。</p><p>「売り切れた。」と店長が言った。</p><pre>売り切れた。明日も焼く。</pre><p>SECRET_TEXT_MARKER")'
+  cp "$T/html/html-ends.html" "$d/"
+  for name in md-ends.md html-ends.html; do
+    accepted "$d/$name" || return 1
+  done
+}
+check "verify accepts a Japanese sentence that ends its line" verify_sentence_ends
+
+verify_list_width() {
+  local name
+  breaks split-fixed 'text.replace("</style>", ".split { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); }\n.list-detail .split { grid-template-columns: 360px 1fr; }\n@media (max-width: 860px) { .split { grid-template-columns: 1fr; } }\n</style>")'
+  accepted "$T/html/split-fixed.html" || return 1
+  breaks split-shares 'text.replace("</style>", ".split { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }\n</style>")'
+  breaks split-halves 'text.replace("</style>", ".split { display: grid; grid-template-columns: 1fr 1fr; }\n</style>")'
+  breaks split-grows 'text.replace("</style>", ".split { display: grid; grid-template-columns: minmax(320px, 1fr) minmax(0, 1fr); }\n</style>")'
+  breaks split-percent 'text.replace("</style>", ".split { display: grid; grid-template-columns: minmax(0, 40%) 1fr; }\n</style>")'
+  for name in split-shares split-halves split-grows split-percent; do
+    refused "$T/html/$name.html" list-detail-width || return 1
+  done
+}
+check "verify refuses a list column that grows with the page beside its details" verify_list_width
+
+# The report and sheet templates of e5ed749 put the facts in a <dl> and let the list column grow,
+# the two shapes the pattern rules replaced. The check is skipped where git cannot read that commit.
+OLD=e5ed749
+old_templates() {
+  local t
+  mkdir -p "$T/old"
+  for t in report sheet; do
+    git -C "$REPO" show "$OLD:plugins/design-formats/skills/page-design/templates/$t.html" > "$T/old/$t.html" 2>/dev/null || return 1
+    run verify --source "$T/old/$t.html" > "$T/old/$t.out" 2>&1
+    [ $? -eq 1 ] || { echo "      $t.html of $OLD was not refused"; return 1; }
+    grep -q ": facts-not-table: " "$T/old/$t.out" || { echo "      $t.html of $OLD was not refused for its facts"; return 1; }
+    grep -q ": list-detail-width: " "$T/old/$t.out" || { echo "      $t.html of $OLD was not refused for its list column"; return 1; }
+  done
+}
+if git -C "$REPO" cat-file -e "$OLD:plugins/design-formats/skills/page-design/templates/report.html" 2>/dev/null; then
+  check "verify refuses the report and sheet templates of e5ed749, before the pattern rules" old_templates
+else
+  skip "verify refuses the report and sheet templates of e5ed749, before the pattern rules" "git cannot read $OLD here"
+fi
+
+templates_facts() {
+  local t f
+  for t in "${TYPES[@]}"; do
+    f="$SKILL_DIR/templates/$t.html"
+    grep -qE '<table class="facts"' "$f" || { echo "      $t.html does not hold the facts in <table class=\"facts\">"; return 1; }
+    ! grep -qE '<dl class="facts"|<dt>\$\{' "$f" || { echo "      $t.html still builds the facts as <dt> and <dd>"; return 1; }
+    grep -qF '<th scope="row"' "$f" || { echo "      $t.html does not build the facts' labels as row headers"; return 1; }
+    card_rule "$f" ".facts th" | grep -qE 'background: *var\(--label\)' || { echo "      $t.html: .facts th has no background of --label"; return 1; }
+    [ "$(grep -cE -- '--label: *#' "$f")" -ge 3 ] || { echo "      $t.html does not define --label for light, dark, and the dark choice"; return 1; }
+  done
+}
+check "the templates build facts as a table of row headers on a shaded label color" templates_facts
+
+templates_lines() {
+  local t f
+  for t in "${TYPES[@]}"; do
+    f="$SKILL_DIR/templates/$t.html"
+    grep -qE 'const lines = \(s\) => esc\(s\)\.replace\(/\\u3002.*, "\\u3002<br>"\);' "$f" || { echo "      $t.html does not define lines(), which breaks after each full stop"; return 1; }
+    grep -qF 'el.innerHTML = lines(t(el.dataset.t))' "$f" || { echo "      $t.html does not put the dictionary's text through lines()"; return 1; }
+    # A value in an attribute and the text of a <pre> keep esc(); every other text goes through lines().
+    python3 - "$f" <<'PYEOF' || { echo "      $t.html puts text from DATA or the dictionary in the page without lines()"; return 1; }
+import re, sys
+text = open(sys.argv[1], encoding="utf-8").read()
+bare = [m.start() for m in re.finditer(r"esc\((?:pick|t)\(", text) if not text[:m.start()].endswith(('="${', "<pre>${"))]
+sys.exit(1 if bare else 0)
+PYEOF
+  done
+}
+check "the templates break Japanese text after each full stop" templates_lines
+
+templates_list_width() {
+  local t
+  for t in report sheet; do
+    card_rule "$SKILL_DIR/templates/$t.html" ".split" | grep -qE 'grid-template-columns: *minmax\([0-9]+px, *[0-9]+px\) +minmax\(0, *1fr\)' ||
+      { echo "      $t.html: .split does not hold the list at a fixed width beside a detail of 1fr"; return 1; }
+  done
+}
+check "the list templates hold the list at a fixed width and give the details the rest" templates_list_width
 
 # still_page <name> <entry line>: the good page with a still bar chart block, and the entry line when given.
 still_page() {

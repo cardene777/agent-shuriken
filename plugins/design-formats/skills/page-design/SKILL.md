@@ -1,11 +1,11 @@
 ---
 name: page-design
-description: Holds how documents and reports explain and how they look, for skills that write them, such as report pages, approval sheets, explainers, choice pages, design documents, and chat reports. Provides two formats, four HTML page type templates, and a verify script that names each heading with a colon, facts crammed into one line, and missing language or theme switch. Use when another skill says to follow page-design, when writing an HTML page or a document for people to read, or when checking one against these rules.
+description: Holds how documents and reports explain and how they look, for skills that write them, such as report pages, approval sheets, explainers, choice pages, design documents, and chat reports. Provides two formats, four pattern files with sourced rules for details, lists and tables, input and confirmation, and states and notices, four HTML page type templates, and a verify script that names each heading with a colon, facts outside a table, a Japanese sentence that does not end its line, a list column that grows, and missing language or theme switch. Use when another skill says to follow page-design, when writing an HTML page or a document for people to read, or when checking one against these rules.
 ---
 
 # Page design
 
-This skill holds content that other skills follow through musubi: how a document or a report explains its subject, how it looks, four HTML page types, and a script that checks a page or a document.
+This skill holds content that other skills follow through musubi: how a document or a report explains its subject, how it looks, which interface pattern fits, four HTML page types, and a script that checks a page or a document.
 Talk to the user in the language they write in.
 
 The files are next to this `SKILL.md`.
@@ -13,7 +13,11 @@ The files are next to this `SKILL.md`.
 | Content | File | What it holds |
 |---|---|---|
 | `structure` | `formats/structure.md` | The order of an explanation: the conclusion first, the whole picture before the details, one glossary, steps with real output, and the order of a report |
-| `look` | `formats/look.md` | The look: headings without colons, facts in a table, text size, details beside the list, enlarging, motion, the language and theme switches, colors, and self-contained pages |
+| `look` | `formats/look.md` | The look: headings without colons, facts in a table, a line break after each Japanese full stop, text size, enlarging, motion, the language and theme switches, colors, and self-contained pages |
+| `details` | `formats/patterns/details.md` | Where the details of a picked item appear: beside the list, one pane at a time on narrow screens, a full-width view, or a dialog |
+| `lists-and-tables` | `formats/patterns/lists-and-tables.md` | How a list or a table shows its rows: cards or tables, facts in a table of row headers, paging, tabs, sorting, and row values |
+| `input-and-confirmation` | `formats/patterns/input-and-confirmation.md` | How a page takes a choice or an input and confirms it: picking rows, buttons, errors, destructive actions, and copying text back |
+| `states-and-notices` | `formats/patterns/states-and-notices.md` | How a page shows loading, empty, error, and saved states, and notices such as banners and toasts |
 | `report` | `templates/report.html` | A report page: facts about the run, the result numbers, and a list with the pressed row's details beside it |
 | `sheet` | `templates/sheet.html` | An approval sheet: the items to choose, their details, and the text copied back to the chat |
 | `document` | `templates/document.html` | An explainer: the whole picture, sections with a contents list beside them, steps, and a glossary |
@@ -22,13 +26,28 @@ The files are next to this `SKILL.md`.
 
 ## Write a page or a document
 
-1. Read `formats/structure.md` and `formats/look.md`.
+1. Read `formats/structure.md` and `formats/look.md`, and the pattern files below that fit what the page does.
 2. For an HTML page, copy the template of its type to where the following skill says, keep the frame, and replace `DATA` and the words in `TEXT`. Keep `copyText()` free of `TEXT`, so the text copied back never depends on the page's language.
 3. For a Markdown document, write it in the order of `structure.md`, with facts in a table and headings without colons.
 4. Draw the figures as the next section says.
 5. Run `verify` and fix every line it names, then run it again until it prints `ok`.
 
 When the user asks for a page and no skill sent you here, pick the page type that fits, follow the same steps, and tell the user where the page is.
+
+## Pick the patterns
+
+Each pattern file opens with a table that picks the pattern for a situation, and each rule names its sources by ID.
+Read only the files that fit the page.
+
+| File | Read it when |
+|---|---|
+| `formats/patterns/details.md` | The page lets the reader pick an item and read more about it, or you are about to put anything in a dialog |
+| `formats/patterns/lists-and-tables.md` | The page shows a list, a table, cards, or facts about the page |
+| `formats/patterns/input-and-confirmation.md` | The page takes a choice, an input, or an approval, or copies text back to the chat |
+| `formats/patterns/states-and-notices.md` | The page loads, can be empty, can fail, saves, or tells the reader that something happened |
+| `formats/patterns/sources.md` | You need the page, the date, and the quote behind a rule, or you add a rule |
+
+Where the sources disagree, each file says which side it took and why; follow that side.
 
 ## Draw the figures
 

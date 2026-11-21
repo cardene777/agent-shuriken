@@ -41,6 +41,9 @@ FIXES = {
     "external-file": "inline it or embed it as a data: URI; the page reads no other file",
     "figure-not-embedded": "run dragon embed on the page (npx -y @cardenelabs/dragon@<version> embed <page> --out <page>), which draws each still block as an SVG",
     "figure-not-still": "add data-still to the dragon block, so the page shows the last step as one picture",
+    "facts-not-table": 'put the facts in <table class="facts">, one row per fact, with the label in <th scope="row"> and the value in <td>',
+    "sentence-per-line": "end the line after each Japanese full stop, and start the next sentence on its own line in a document or after <br> in a page",
+    "list-detail-width": "give the list column of .split a fixed width, such as minmax(320px, 380px), and the details the rest, minmax(0, 1fr)",
 }
 
 HEADING_MARKS = re.compile("[:\uff1a\u3001\u3002]")
@@ -59,6 +62,16 @@ SCRIPT_HEADING_SET = re.compile(r"""\b\w*(?:title|heading|Title|Heading)\w*\s*:\
 QUOTED = re.compile(r"""(["'])((?:(?!\1).){1,200})\1""")
 SCRIPT_STRING = re.compile(r"""(["'`])((?:(?!\1)[^\\\n]){12,300})\1""")
 CODE_MARKS = re.compile(r"[<>{}()=;$\[\]]")
+# A Japanese full stop with more text after it on the same line. A full stop right before a closing
+# bracket or quote ends a quoted sentence inside a longer one, so it does not end the line.
+CLOSERS = "\u300d\u300f\uff09)\u3011\u3009\u300b\uff63\"'\u201d\u2019"
+JOINED_SENTENCES = re.compile("\u3002(?![" + re.escape(CLOSERS) + "])\\s*\\S")
+CSS_RULE = re.compile(r"([^{}]+)\{([^{}]*)\}")
+SPLIT_SELECTOR = re.compile(r"\.split(?![\w-])")
+GRID_COLUMNS = re.compile(r"grid-template-columns\s*:\s*([^;}]+)", re.I)
+FIXED_LENGTH = re.compile(r"\d+(?:\.\d+)?(?:px|rem|em)", re.I)
+# A facts container that a script builds as markup in a string.
+SCRIPT_FACTS = re.compile(r"""<([a-z][a-z0-9]*)\b[^<>]*\b(?:class=["'](?:[^"']*\s)?facts(?:\s[^"']*)?["']|id=["']facts["'])""", re.I)
 
 
 def facts_in_one_line(text):
@@ -67,6 +80,34 @@ def facts_in_one_line(text):
     if len(parts) < 3:
         return False
     return sum(1 for p in parts if re.search(r"\d", p)) >= 3
+
+
+def top_level(value, separator):
+    """Split a CSS value at the separators that sit outside parentheses."""
+    parts, depth, current = [], 0, ""
+    for char in value:
+        depth += (char == "(") - (char == ")")
+        if depth == 0 and (char.isspace() if separator == " " else char == separator):
+            if current.strip():
+                parts.append(current.strip())
+            current = ""
+        else:
+            current += char
+    if current.strip():
+        parts.append(current.strip())
+    return parts
+
+
+def list_column_grows(columns):
+    """True when the first of two or more grid columns has no fixed or capped width."""
+    tracks = top_level(columns, " ")
+    if len(tracks) < 2:
+        return False
+    first = tracks[0].lower()
+    if first.startswith("minmax(") and first.endswith(")"):
+        limits = top_level(first[7:-1], ",")
+        return len(limits) != 2 or not FIXED_LENGTH.fullmatch(limits[1])
+    return not FIXED_LENGTH.fullmatch(first)
 
 
 def label_joined(text):
@@ -111,6 +152,8 @@ class Page(HTMLParser):
         self.figure_styles = []
         self.scripts = []
         self.current = None
+        self.facts = 0
+        self.first_cell = False
 
     def problem(self, line, rule):
         self.problems.append((line, rule))
@@ -147,6 +190,8 @@ class Page(HTMLParser):
             self.problem(line, "external-file")
         if tag in ("iframe", "object", "embed") and not source:
             self.problem(line, "external-file")
+        if not self.skip and not in_figure:
+            self.check_facts(tag, values, line)
         if tag in ("style", "script"):
             # A figure's own style sizes its text to the figure, so only the page's style is measured.
             self.current = (tag, line, [], in_figure)
@@ -155,7 +200,27 @@ class Page(HTMLParser):
         elif tag in self.HEADINGS and not self.skip:
             self.heading = (line, [])
 
+    def check_facts(self, tag, values, line):
+        """The facts of a page are a table whose rows each start with a row header."""
+        if self.facts:
+            if tag == "table":
+                self.facts += 1
+            elif tag == "tr":
+                self.first_cell = True
+            elif tag in ("th", "td") and self.first_cell:
+                self.first_cell = False
+                if tag == "td" or values.get("scope", "").strip().lower() != "row":
+                    self.problem(line, "facts-not-table")
+            return
+        if "facts" in values.get("class", "").split() or values.get("id", "").strip() == "facts":
+            if tag == "table":
+                self.facts = 1
+            else:
+                self.problem(line, "facts-not-table")
+
     def handle_endtag(self, tag):
+        if self.facts and tag == "table":
+            self.facts -= 1
         if self.current and tag == self.current[0]:
             kind, line, parts, in_figure = self.current
             if kind == "style" and in_figure:
@@ -184,6 +249,9 @@ class Page(HTMLParser):
         if not text:
             return
         line = self.getpos()[0] + data[: len(data) - len(data.lstrip())].count("\n")
+        joined = JOINED_SENTENCES.search(data)
+        if joined:
+            self.problem(self.getpos()[0] + data[: joined.start()].count("\n"), "sentence-per-line")
         if facts_in_one_line(text):
             self.problem(line, "facts-in-one-line")
         elif label_joined(text):
@@ -197,6 +265,13 @@ class Page(HTMLParser):
         for line, text in self.styles + self.figure_styles:
             for match in re.finditer(r"@import|url\(\s*['\"]?(https?:)?//", text, re.I):
                 self.problem(line_at(text, match.start(), line), "external-file")
+        for line, text in self.styles:
+            for rule in CSS_RULE.finditer(text):
+                if not SPLIT_SELECTOR.search(rule.group(1)):
+                    continue
+                for columns in GRID_COLUMNS.finditer(rule.group(2)):
+                    if list_column_grows(columns.group(1)):
+                        self.problem(line_at(text, rule.start(2) + columns.start(), line), "list-detail-width")
         for line, text in self.scripts:
             for match in SCRIPT_HEADING.finditer(text):
                 if HEADING_MARKS.search(match.group(3)):
@@ -205,6 +280,9 @@ class Page(HTMLParser):
                 for value in QUOTED.finditer(match.group(1)):
                     if HEADING_MARKS.search(value.group(2)):
                         self.problem(line_at(text, match.start(1) + value.start(), line), "heading-punctuation")
+            for match in SCRIPT_FACTS.finditer(text):
+                if match.group(1).lower() != "table":
+                    self.problem(line_at(text, match.start(), line), "facts-not-table")
             for match in SCRIPT_STRING.finditer(text):
                 # Only strings that read as prose; markup and code built in strings are skipped.
                 if CODE_MARKS.search(match.group(2)):
@@ -271,6 +349,8 @@ def check_markdown(text):
                 problems.append((number, "heading-punctuation"))
             continue
         body = re.sub(r"^([-*+]|\d+\.)\s+(\[[ xX]\]\s+)?", "", line)
+        if JOINED_SENTENCES.search(INLINE_CODE.sub("", body)):
+            problems.append((number, "sentence-per-line"))
         if facts_in_one_line(INLINE_CODE.sub("", body)):
             problems.append((number, "facts-in-one-line"))
         elif label_joined(body):
