@@ -619,6 +619,9 @@ cat > "$W/probe.js" <<'JS'
     var help = q("#help");
     if (help.showModal) help.showModal(); else help.setAttribute("open", "");
     L.help = qa("#effort-help dt", help).map(function (dt) { var dd = dt.nextElementSibling; return [dt.textContent, dd ? dd.textContent : ""]; });
+    // The narrowest explanation as a share of the dialog, so a column one letter wide shows up
+    var wide = help.getBoundingClientRect().width;
+    L.helpShare = qa("#effort-help dd", help).reduce(function (m, dd) { return Math.min(m, dd.getBoundingClientRect().width / wide); }, 1);
     L.contrast = L.contrast.concat(themes(lang + " help"));
     help.close();
     L.steps = qa(".steps li").map(function (li) {
@@ -758,6 +761,10 @@ elif what == "effort-help":
         missing = sorted(l for l in want if not shown.get(l) or shown[l] == l)
         if missing:
             fail("%s: the help does not explain %s" % (lang, ", ".join(missing)))
+        for width in (1400, 390):
+            share = result("prev", width)["langs"][lang]["helpShare"]
+            if share < 0.4:
+                fail("%spx %s: an explanation in the help is only %d%% of the dialog wide" % (width, lang, share * 100))
 
 elif what in ("sheet-contrast", "followups-contrast"):
     runs = [("prev", 1400), ("prev", 390), ("plain", 1400)] if what == "sheet-contrast" else [("followups", 1400)]

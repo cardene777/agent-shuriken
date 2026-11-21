@@ -78,7 +78,7 @@ Everything lives in `~/.local/share/account-cleanup/`, or in `ACCOUNT_CLEANUP_HO
 | Candidate list, candidate sheet, saved region | No |
 | Browser profile with the sites still signed in | No |
 | Deletion pages the agent found (`additions.json`) | Yes, they hold no personal data and save searching next time |
-| Follow-up list (`followups.tsv`) | Yes, until you finish the follow-ups such as erasure requests |
+| Follow-up list (`followups.tsv`), one line per item with the date, the candidate's domain, what is left, and the service name the candidate sheet showed when it was recorded | Yes, until you finish the follow-ups such as erasure requests |
 | Playwright and Chromium (`node/`) | Yes, so the next run starts faster. Delete the folder to remove them |
 
 ## What it never does
