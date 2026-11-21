@@ -951,8 +951,7 @@ cat > "$T/probe.js" <<'JSEOF'
   document.head.append(style);
   const cards = [...document.querySelectorAll("#cards [data-measure]")];
   out.cards = cards.map((c) => ({ id: c.dataset.measure, top: box(c.querySelector(".n")).top, cardTop: box(c).top }));
-  out.labels = cards.map((c) => {
-    const label = c.querySelector(".l");
+  out.labels = cards.flatMap((c) => [...c.querySelectorAll(".l, .sub")].map((label) => {
     const walker = document.createTreeWalker(label, NodeFilter.SHOW_TEXT);
     const range = document.createRange();
     let node, at = 0, last = null, text = "";
@@ -968,8 +967,9 @@ cat > "$T/probe.js" <<'JSEOF'
         last = rect.top;
       }
     }
-    return { id: c.dataset.measure, text, breaks, overflow: box(label).right > box(c).right + 0.5 || label.scrollWidth > label.clientWidth + 1 };
-  });
+    return { id: c.dataset.measure, note: label.classList.contains("sub"), text, breaks,
+      overflow: box(label).right > box(c).right + 0.5 || label.scrollWidth > label.clientWidth + 1 };
+  }));
   const title = document.getElementById("title"), band = document.getElementById("cards");
   out.header = { title: box(title).left, facts: box(document.getElementById("facts")).left, content: box(band).left };
   const rows = document.getElementById("rows"), detail = document.getElementById("detail");
@@ -1072,8 +1072,8 @@ for name in names:
             if len(p["cards"]) != 9 or tops[-1] - tops[0] > 1:
                 problems.append("%s: the numbers of the band sit at %r" % (where, [(c["id"], round(c["top"])) for c in p["cards"]]))
         if what == "labels" and lang == "ja":
-            if len(p["labels"]) != 9:
-                problems.append("%s: the band has %d labels, wanted 9" % (where, len(p["labels"])))
+            if len([l for l in p["labels"] if not l["note"]]) != 9:
+                problems.append("%s: the band has %d labels, wanted 9" % (where, len([l for l in p["labels"] if not l["note"]])))
             for label in p["labels"]:
                 bad = [i for i in label["breaks"] if label["text"][i - 1] not in "​ " and label["text"][i] != " "]
                 if bad or label["overflow"]:

@@ -1040,7 +1040,7 @@ def describe(reason):
         "long_functions": "%d long function%s" % (v, "" if v == 1 else "s"),
         "markers": "marker weight %d" % v,
         "dup_lines": "%d duplicated lines" % v,
-        "untested": "no test file",
+        "untested": "no matching test file",
     }[k]
 
 
@@ -1058,7 +1058,11 @@ def print_summary(data, sdir):
     where = "HEAD %s on %s, " % (data["head"], data["branch"]) if data["git"] else "not a git repository, "
     print("techdebt scan of %s (%s%d source files, %d test files, %d commits in the last %d months)"
           % (tilde(data["root"]), where, data["files"], data["test_files"], data["commits"], data["months"]))
-    print("Hotspots:       %d files changed 2 or more times" % len(data["hotspots"]))
+    # A measure that could not run is written as not measured, never as 0 or left out.
+    if data["git"]:
+        print("Hotspots:       %d files changed 2 or more times" % len(data["hotspots"]))
+    else:
+        print("Hotspots:       not measured, not a git repository")
     print("Markers:        %d%s%s" % (len(data["markers"]),
                                      " (" + ", ".join("%s %d" % kv for kv in sorted(kinds.items())) + ")" if kinds else "",
                                      ", oldest %d days" % max(ages) if ages else ""))
@@ -1070,6 +1074,8 @@ def print_summary(data, sdir):
     if deps is not None:
         how = "approximate: names not found in imports, configs, or scripts" if deps["source"] == "search" else "from knip"
         print("Unused deps:    %d (%s)" % (len(deps["items"]), how))
+    else:
+        print("Unused deps:    not measured, there is no package.json")
     calls = data["deprecated_calls"]
     ran = [s["tool"] for s in calls["tools"] if s["ran"]]
     idle = [s["tool"] for s in calls["tools"] if not s["ran"]]

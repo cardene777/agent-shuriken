@@ -59,26 +59,28 @@ Deprecated calls: 3 (eslint 3; not run: ruff, semgrep)
 Tool ruff:      not run, ruff is not installed in .venv/bin or on PATH
 
 Start here
- 1  src/billing/invoice.py  score 0.97  changed 31 times, 543 lines, 3 long functions, marker weight 4, 11 duplicated lines, no test file
- 2  src/api/orders.ts  score 0.67  changed 44 times, 331 lines, 1 long function, marker weight 1, 9 duplicated lines, no test file
- 3  src/web/checkout.tsx  score 0.40  changed 25 times, 220 lines, 2 long functions, marker weight 2, no test file
- 4  src/billing/refunds.py  score 0.36  changed 18 times, 163 lines, 1 long function, marker weight 1, 11 duplicated lines, no test file
- 5  src/api/returns.ts  score 0.17  changed 13 times, 70 lines, 9 duplicated lines, no test file
+ 1  src/billing/invoice.py  score 0.97  changed 31 times, 543 lines, 3 long functions, marker weight 4, 11 duplicated lines, no matching test file
+ 2  src/api/orders.ts  score 0.67  changed 44 times, 331 lines, 1 long function, marker weight 1, 9 duplicated lines, no matching test file
+ 3  src/web/checkout.tsx  score 0.40  changed 25 times, 220 lines, 2 long functions, marker weight 2, no matching test file
+ 4  src/billing/refunds.py  score 0.36  changed 18 times, 163 lines, 1 long function, marker weight 1, 11 duplicated lines, no matching test file
+ 5  src/api/returns.ts  score 0.17  changed 13 times, 70 lines, 9 duplicated lines, no matching test file
 ```
 
 順位は20位まで続き、最後の2行にデータと報告のページの置き場が出ます。
 
 報告のページには、順位のタブと項目ごとのタブがあり、英語と日本語を切り替えられます。
+順位のタブは各ファイルの点数を数と棒で並べ、押したファイルの項目とエージェントの注記を一覧の横に出します。50行を超える一覧は頁に分けます。
+上の数の帯は、動かせなかった項目を0ではなく「測っていない」と出し、タブの下の表に各値の測り方と、動かなかったツールの理由を出します。
 見出しの帯には、言語の切り替えの隣に明るい色と暗い色の切り替えがあります。選ぶまではシステムの設定に従い、選んだ色はブラウザのローカルストレージに`techdebt-theme`の名前で残ります。
 使っていない依存は、knipが無い時も、import、設定のファイル、`scripts`で名前を探して見つけるので、その数は概算です。knipが入っている時は、knipの結果を使います。
-非推奨の呼び出しは、すでに入っている道具で探します。ruffは非推奨の規則で、semgrepはプロジェクトの規則のfileだけを`--metrics off`で、ESLintは設定が非推奨の規則を有効にしている時だけ回します。semgrepのセキュリティの規則の結果は出しません。
+非推奨の呼び出しは、すでに入っているツールで探します。ruffは非推奨の規則で、semgrepはプロジェクトの規則のfileだけを`--metrics off`で、ESLintは設定が非推奨の規則を有効にしている時だけ回します。semgrepのセキュリティの規則の結果は出しません。
 
 ## 必要な物
 
-| 道具 | 要る時 |
+| ツール | 要る時 |
 |---|---|
 | `python3` | 常に |
-| `git` | ファイルごとの変更の回数、TODOのコメントの古さ、順位付けに使います。無くてもほかの項目は測れます |
+| `git` | ファイルごとの変更の回数、TODOのコメントの古さ、順位を付けるのに使います。無くてもほかの項目は測れます |
 | `knip` | 任意です。プロジェクトの`node_modules/.bin`に入っている時に使います |
 | `ruff` | 任意です。`.venv/bin`か`PATH`に入っている時に使います |
 | `semgrep` | 任意です。`.venv/bin`か`PATH`に入っていて、プロジェクトが規則のfile(`.semgrep.yml`、`.semgrep.yaml`、`.semgrep/`)を持つ時に使います |
@@ -97,7 +99,7 @@ Start here
 - プロジェクトのファイルは一切書き換えません
 - ネットワークにはつなぎません
 - `scan.json`、エージェントの説明、`report.html`を`~/.local/share/techdebt/<project>/`に置き、あなただけが読めるようにします。消すまで残ります
-- 目印のある行は200文字まで残します。鍵、トークン、パスワードに見える文字列は`***`に、ホームフォルダは`~`に置き換えます
+- TODOなどのコメントの行は200文字まで残します。鍵、トークン、パスワードに見える文字列は`***`に、ホームフォルダは`~`に置き換えます
 - `skills/techdebt/musubi.json`は、`techdebt`が`design-formats`のプラグインにある`page-design`の形式`structure`と`look`、ページの型`report`、`verify`に、`"optional": true`の任意の準拠で従うことをmusubiで宣言します。エージェントは`page-design`が入っている時だけこれらを読み、仕上がった報告のページに`page-design`の`verify`を回します。入っていなければ、スキルのひな形で作ります。ほかのプラグインからはこれ以外を読みません
 
 ## ライセンス

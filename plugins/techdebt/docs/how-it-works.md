@@ -85,6 +85,12 @@ Under the title, the facts about the scan sit on one line as pairs of a name and
 Its header has the language switch and, next to it, a Light and Dark switch.
 The colors follow the system setting until the reader chooses, and the browser keeps both choices in its local storage under `techdebt-lang` and `techdebt-theme`. Nothing is sent anywhere.
 
+Under the header, a band of numbers gives one card per measure, and pressing a card opens its tab.
+A measure that could not run shows as not measured, never as 0: hotspots outside git, unused dependencies when there is no `package.json`, and deprecated calls when none of `ruff`, `semgrep`, and `eslint` ran. Unused dependencies found by name, without knip, say on their card that the count is approximate.
+Japanese labels on the band break only at the phrase breaks the dictionary marks with `\u200b`.
+The ranking tab lists the files on the left, each with its score from 0 to 1 as a number with two decimals, as `scan` prints it, and a bar of the same value. The row you press shows its measures, its score, and the agent's notes in a panel beside the list, or under it on a narrow screen. A list longer than 50 rows is split into pages, with the page buttons above and below it.
+Under the tabs, on every tab, a section says how each value was measured, and a table lists each tool the scan tried, what it is used for, and whether it ran or why not.
+
 - When the page-design skill of the design-formats plugin is installed, the agent reads its `structure` and `look` formats and its `report` page type, which `musubi.json` follows as optional follows, and runs page-design's `verify` on the finished `report.html`. It reads nothing else from other plugins
 - When the `musubi` command is installed, the agent runs `musubi check` before reading them and stops if it fails; the check skips the follows with a warning when design-formats is not installed. When a followed content changes, `musubi check` refuses techdebt until its fingerprint is checked again
 - Without page-design, the report is built from `templates/base.html` alone. Nothing in the plugin requires design-formats

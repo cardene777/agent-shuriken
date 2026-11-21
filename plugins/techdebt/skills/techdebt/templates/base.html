@@ -7,7 +7,7 @@
 <style>
 :root {
   --bg: #f7f7f5; --fg: #1d2024; --muted: #5d636b; --card: #ffffff; --line: #e3e3de;
-  --accent: #9a6a12; --accent-soft: #f6ecd8; --bar: #c8901f; --bar2: #e7c98d;
+  --accent: #8a5d0c; --accent-soft: #f6ecd8; --bar: #9a6a12; --bar2: #e7c98d; --track: #c9c2b2;
   --code: #f1f1ed; --good: #2f7a4a; --warn: #b4364a; --accent-ink: #ffffff;
   --radius: 10px; --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -16,21 +16,24 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #17191c; --fg: #e8e8e4; --muted: #a2a7ad; --card: #202328; --line: #33373d;
-    --accent: #e0a63a; --accent-soft: #3a3020; --bar: #d29a2f; --bar2: #6d5428;
+    --accent: #e0a63a; --accent-soft: #33291a; --bar: #d29a2f; --bar2: #6d5428; --track: #4a5059;
     --code: #2a2d32; --good: #6cc08d; --warn: #f07f8f; --accent-ink: #17191c;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #17191c; --fg: #e8e8e4; --muted: #a2a7ad; --card: #202328; --line: #33373d;
-  --accent: #e0a63a; --accent-soft: #3a3020; --bar: #d29a2f; --bar2: #6d5428;
+  --accent: #e0a63a; --accent-soft: #33291a; --bar: #d29a2f; --bar2: #6d5428; --track: #4a5059;
   --code: #2a2d32; --good: #6cc08d; --warn: #f07f8f; --accent-ink: #17191c;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.6 var(--font); }
-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
-  padding: 16px 24px; border-bottom: 1px solid var(--line); background: var(--card); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* The header and the content share one width and one left edge. */
+.top-in, main { max-width: 1200px; margin: 0 auto; padding-left: 24px; padding-right: 24px; }
+header { border-bottom: 1px solid var(--line); background: var(--card); }
+.top-in { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-top: 16px; padding-bottom: 16px; }
 header h1 { margin: 0; font-size: 20px; }
 .facts { margin: 4px 0 0; display: flex; flex-wrap: wrap; gap: 2px 24px; font-size: 13px; }
 .facts div { display: flex; gap: 6px; align-items: baseline; }
@@ -38,35 +41,58 @@ header h1 { margin: 0; font-size: 20px; }
 .facts dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
 .controls { display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; }
 .seg { display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
-.seg button { border: 0; background: transparent; color: var(--fg); padding: 6px 14px; font: inherit; cursor: pointer; white-space: nowrap; }
+.seg button { border: 0; background: transparent; color: var(--fg); padding: 6px 14px; font: inherit; cursor: pointer; white-space: nowrap; transition: background-color .15s, color .15s; }
 .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
-main { max-width: 1200px; margin: 0 auto; padding: 20px 16px 48px; }
-.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 12px; margin-bottom: 20px; }
-.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px;
-  text-align: left; font: inherit; color: inherit; cursor: pointer; }
+main { padding-top: 20px; padding-bottom: 48px; }
+/* The band: every card stacks its number, label, and note from the top, so the numbers share one line.
+   Japanese labels break only at the phrase breaks the dictionary marks with ​. */
+.cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 20px; }
+@media (min-width: 1100px) { .cards { grid-template-columns: repeat(9, minmax(0, 1fr)); } }
+.card { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 2px;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px;
+  text-align: left; font: inherit; color: inherit; cursor: pointer; transition: border-color .15s; }
 .card:hover { border-color: var(--accent); }
-.card .n { font-size: 26px; font-weight: 700; }
-.card .l { color: var(--muted); font-size: 13px; }
+.card .n { display: flex; align-items: center; min-height: 34px; font-size: 26px; line-height: 1.2; font-weight: 700; font-variant-numeric: tabular-nums; }
+.card .n.none { font-size: 13px; font-weight: 600; word-break: keep-all; }
+.card .l { color: var(--muted); font-size: 13px; line-height: 1.4; word-break: keep-all; overflow-wrap: normal; }
+.card .sub { color: var(--muted); font-size: 12px; line-height: 1.4; word-break: keep-all; }
 .tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
-.tabs button { border: 0; background: transparent; color: var(--muted); padding: 10px 10px; font: inherit;
-  cursor: pointer; white-space: nowrap; border-bottom: 3px solid transparent; }
+.tabs button { border: 0; background: transparent; color: var(--muted); padding: 10px; font: inherit;
+  cursor: pointer; white-space: nowrap; border-bottom: 3px solid transparent; transition: color .15s, border-color .15s; }
 .tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); font-weight: 600; }
 .lead { color: var(--muted); margin: 0 0 14px; }
-.rank { display: grid; grid-template-columns: 1fr; gap: 12px; }
-@media (min-width: 960px) { .rank { grid-template-columns: 1fr 1fr; } .rank .noted { grid-column: 1 / -1; } }
-.item { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
-.item .top { display: grid; grid-template-columns: auto 1fr; align-items: baseline; gap: 10px; }
-.item .no { color: var(--accent); font-weight: 700; }
-.item .file { font-family: var(--mono); font-size: 14px; word-break: break-all; }
-.item .file .dir { color: var(--muted); }
-.item .file b { font-weight: 700; }
-.score { height: 6px; background: var(--code); border-radius: 3px; margin: 8px 0; }
-.score span { display: block; height: 100%; background: var(--bar); border-radius: 3px; }
+/* The ranked list on the left and the pressed row's details beside it, as page-design's report page. */
+.split { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.list { display: grid; gap: 10px; min-width: 0; }
+.rows { border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); overflow: hidden; }
+.rows-head, .row { display: grid; grid-template-columns: 34px minmax(0, 1fr) 104px; gap: 12px; align-items: center; padding: 10px 16px; }
+.rows-head { padding-top: 8px; padding-bottom: 8px; background: var(--code); color: var(--muted); font-size: 13px; }
+.rows-head span { white-space: nowrap; }
+.rows-head .num { text-align: right; }
+.row { width: 100%; border: 0; border-top: 1px solid var(--line); background: transparent; color: inherit; font: inherit;
+  text-align: left; cursor: pointer; transition: background-color .15s; }
+.row:hover { background: var(--bg); }
+.row[aria-pressed="true"] { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+.no { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
+.file { font-family: var(--mono); font-size: 14px; overflow-wrap: anywhere; }
+.file .dir { color: var(--muted); }
+.file b { font-weight: 700; }
+/* The row keeps two lines of the note; the details beside the list show all of it. */
+.name small { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; margin-top: 2px; font-size: 13px; color: var(--muted); line-height: 1.45; }
+.value { display: grid; gap: 4px; justify-items: end; }
+.score { font-weight: 700; font-variant-numeric: tabular-nums; }
+.bar { display: block; width: 100%; height: 8px; background: var(--track); border-radius: 4px; overflow: hidden; }
+.bar i { display: block; height: 100%; min-width: 4px; background: var(--bar); border-radius: 4px; }
+.detail { position: sticky; top: 16px; display: grid; gap: 12px; padding: 18px 20px; background: var(--card);
+  border: 1px solid var(--line); border-radius: var(--radius); animation: show .2s ease-out; }
+.detail-head { display: flex; gap: 10px; align-items: baseline; }
+.detail h2 { margin: 0; font-size: 18px; line-height: 1.4; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip { background: var(--accent-soft); border-radius: 999px; padding: 2px 10px; font-size: 13px; }
-.note { margin-top: 10px; display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; font-size: 14px; }
-.note dt { color: var(--muted); }
-.note dd { margin: 0; }
+.chip { background: var(--accent-soft); border-radius: 999px; padding: 2px 10px; font-size: 13px; white-space: nowrap; }
+.kv { width: 100%; border-collapse: collapse; border: 0; background: transparent; }
+.kv th { width: 132px; padding: 8px 12px 8px 0; text-align: left; vertical-align: top; font-weight: 500; color: var(--muted); background: transparent; border-top: 1px solid var(--line); border-bottom: 0; }
+.kv td { padding: 8px 0; border-top: 1px solid var(--line); border-bottom: 0; font-size: 15px; }
+@keyframes show { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line);
   border-radius: var(--radius); overflow: hidden; }
 th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 14px; }
@@ -74,9 +100,10 @@ th { background: var(--code); font-weight: 600; }
 td.num, th.num { text-align: right; white-space: nowrap; }
 td code, .mono { font-family: var(--mono); font-size: 13px; word-break: break-all; }
 code.said { font-family: var(--mono); font-size: 13px; word-break: normal; overflow-wrap: anywhere; }
-.state code.said, .status code.said { display: block; margin-top: 2px; }
+.state code.said, .status code.said, .how code.said { display: block; margin-top: 2px; }
 .tablewrap { overflow-x: auto; }
 .pager { display: flex; justify-content: center; align-items: center; gap: 4px; margin: 12px 0; flex-wrap: wrap; }
+.list .pager { margin: 0; }
 .pager button { min-width: 36px; padding: 6px 10px; border: 1px solid var(--line); background: var(--card);
   color: var(--fg); border-radius: 6px; font: inherit; cursor: pointer; }
 .pager button[aria-current="page"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
@@ -91,30 +118,55 @@ code.said { font-family: var(--mono); font-size: 13px; word-break: normal; overf
 .tool h3 { margin: 0 0 2px; font-size: 16px; }
 .tool .state { margin: 0 0 8px; color: var(--muted); font-size: 14px; }
 .status { margin: 0 0 14px; }
-.status td:first-child { white-space: nowrap; }
-.status td:first-child code { word-break: normal; }
+.status td:first-child, .how td:first-child { white-space: nowrap; }
+.status td:first-child code, .how td:first-child code { word-break: normal; }
+/* How each value was measured, under the tabs on every tab. */
+.how { margin-top: 32px; display: grid; gap: 10px; }
+.how h2 { margin: 0; font-size: 18px; }
+.how h3 { margin: 10px 0 0; font-size: 16px; }
+.how .measure-name { font-weight: 600; }
+.tools-table th:nth-child(2) { width: 26em; }
 .empty { background: var(--card); border: 1px dashed var(--line); border-radius: var(--radius); padding: 16px; color: var(--muted); }
-@media (max-width: 640px) {
-  header { padding: 12px 16px; }
-  main { padding: 16px 16px 40px; }
-  th, td { padding: 6px 8px; }
+@media (max-width: 860px) {
+  .split { grid-template-columns: 1fr; }
+  .detail { position: static; }
 }
+@media (max-width: 640px) {
+  .top-in, main { padding-left: 16px; padding-right: 16px; }
+  .top-in { padding-top: 12px; padding-bottom: 12px; }
+  main { padding-top: 16px; padding-bottom: 40px; }
+  .card { padding: 10px; }
+  .rows-head, .row { grid-template-columns: 32px minmax(0, 1fr) 72px; gap: 10px; padding-left: 12px; padding-right: 12px; }
+  th, td { padding: 6px 8px; }
+  /* On a phone each name sits on its own line above its text, so neither column is squeezed. */
+  .kv th, .kv td, .how-table td { display: block; width: auto; }
+  .kv th { padding: 8px 0 0; }
+  .kv td { padding: 2px 0 8px; border-top: 0; }
+  .how-table thead { display: none; }
+  .how-table tr { display: block; border-bottom: 1px solid var(--line); padding: 4px 0; }
+  .how-table td { border-bottom: 0; padding: 2px 10px; }
+  .how td:first-child { white-space: normal; font-weight: 600; }
+  .tools-table td:nth-child(2) { color: var(--muted); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
 <body>
 <header>
-  <div>
-    <h1 id="title"></h1>
-    <dl class="facts" id="facts"></dl>
-  </div>
-  <div class="controls">
-    <div class="seg" id="lang-group" role="group" aria-label="Language">
-      <button type="button" data-lang="en">English</button>
-      <button type="button" data-lang="ja">日本語</button>
+  <div class="top-in">
+    <div>
+      <h1 id="title"></h1>
+      <dl class="facts" id="facts"></dl>
     </div>
-    <div class="seg" id="theme-group" role="group" aria-label="Theme">
-      <button type="button" data-theme-choice="light"></button>
-      <button type="button" data-theme-choice="dark"></button>
+    <div class="controls">
+      <div class="seg" id="lang-group" role="group" aria-label="Language">
+        <button type="button" data-lang="en">English</button>
+        <button type="button" data-lang="ja">日本語</button>
+      </div>
+      <div class="seg" id="theme-group" role="group" aria-label="Theme">
+        <button type="button" data-theme-choice="light"></button>
+        <button type="button" data-theme-choice="dark"></button>
+      </div>
     </div>
   </div>
 </header>
@@ -122,6 +174,7 @@ code.said { font-family: var(--mono); font-size: 13px; word-break: normal; overf
   <section class="cards" id="cards"></section>
   <nav class="tabs" role="tablist" id="tabs"></nav>
   <section id="panel" role="tabpanel"></section>
+  <section class="how" id="how"></section>
 </main>
 <script>
 const PAYLOAD = /*TECHDEBT_DATA*/null;
@@ -131,14 +184,16 @@ const I18N = {
     langGroup: "Language", themeGroup: "Theme", light: "Light", dark: "Dark",
     factCommit: "Commit", factBranch: "Branch", factFiles: "Source files", factCommits: "Commits in the last {months} months",
     factGenerated: "Generated", factGit: "Git history", notGit: "Not a git repository",
-    start: "Start here", hotspots: "Hotspots", markers: "Markers", untested: "Untested", functions: "Long functions",
+    start: "Start here", hotspots: "Hotspots", markers: "Markers", untested: "No matching test file", functions: "Long functions",
     large: "Large files", dup: "Duplication", deps: "Unused dependencies", deprecated: "Deprecated calls", tools: "Tools",
-    cStart: "files ranked", cHot: "hotspots", cMarkers: "markers", cUntested: "untested files",
+    cStart: "files ranked", cHot: "hotspots", cMarkers: "markers", cUntested: "no matching test file",
     cFunctions: "long functions", cLarge: "large files", cDup: "duplicated lines", cDeps: "unused dependencies", cDeprecated: "deprecated calls",
-    leadStart: "Files ranked by how often they change, their size, long functions, markers, duplication, and missing tests. Fixing the top files pays off first, because people keep working in them.",
+    notMeasured: "Not measured", approxByName: "approximate, found by name",
+    leadStart: "Files ranked by how often they change, their size, long functions, markers, duplication, and whether a test file of a matching name exists. Press a row to see its details. Fixing the top files pays off first, because people keep working in them.",
     leadHot: "Files changed 2 or more times in the last {months} months, ranked by changes multiplied by non-blank lines.",
+    hotNotGit: "Not measured, because the folder is not in a git repository.",
     leadMarkers: "TODO, FIXME, HACK, XXX, and deprecation markers in comments, oldest first. The age comes from git blame.",
-    leadUntested: "Source files of 20 or more lines with no test file of a matching name (for example foo.py and test_foo.py). Busiest first.",
+    leadUntested: "Source files of 20 or more lines with no test file of a matching name (for example foo.py and test_foo.py). Tests are not run and coverage is not measured. Busiest first.",
     leadFunctions: "Functions over {n} lines. Python is measured exactly; other languages by matching braces, so treat those as approximate.",
     leadLarge: "Source files over {n} non-blank lines.",
     leadDup: "Blocks of {n} or more lines, ignoring whitespace, imports, and comments, that appear in two places.",
@@ -149,30 +204,51 @@ const I18N = {
     leadDeprecated: "Calls to APIs that a library or the language marks as deprecated, found by tools already installed in the project. ruff uses its rules for deprecated imports, aliases, and functions. semgrep runs only the project's own rules, with metrics off, and its findings about deprecation are listed here. ESLint runs when its config turns on a deprecation rule. A tool that did not run is listed with the reason.",
     noCallTool: "No tool looked for deprecated calls, for the reasons above.", toolName: "Tool", result: "Result",
     leadTools: "Tools that were already installed in the project or on PATH. Nothing is downloaded.",
+    rankHead: "Rank", score: "Score",
     what: "What", why: "Why it costs", action: "First step",
     rChanges: "changed {v} times", rChangesOne: "changed once", rLines: "{v} lines", rLong: "{v} long functions", rLongOne: "1 long function", rMarkers: "marker weight {v}",
-    rDup: "{v} duplicated lines", rUntested: "no test file",
+    rDup: "{v} duplicated lines", rUntested: "no matching test file",
     file: "File", changes: "Changes", lines: "Lines", product: "Changes × lines", kind: "Kind", age: "Age", text: "Line",
     fn: "Function", range: "Lines in file", length: "Length", complexity: "Branches", measure: "Measured",
     exact: "exact", approx: "approximate", first: "First place", second: "Second place", rule: "Rule", message: "Finding",
     notCommitted: "not committed", days: "{n} days", months: "{n} months", years: "{n} years {m} months",
     nothing: "Nothing found.", notRun: "Not run because {r}", ran: "{n} findings",
-    prev: "Previous", next: "Next", page: "Page {n}",
-    chartChanges: "changes", chartLines: "non-blank lines"
+    prev: "Previous", next: "Next", page: "Page {n}", pages: "Pages",
+    chartChanges: "changes", chartLines: "non-blank lines",
+    howTitle: "How the values were measured", howMeasure: "Measure", howWay: "How it is measured",
+    toolsTitle: "Tools the scan tried", toolUse: "Used for",
+    howStart: "Each source file gets a score from 0 to 1. Changes multiplied by lines weigh 40%. Long functions weigh 20%. Markers and duplicated lines weigh 15% each. The changes of a file with no matching test file weigh 10%. The top 20 files are listed.",
+    howHot: "Commits that changed each file in the last {months} months, read from git log. A file changed 2 or more times counts, ranked by its changes multiplied by its non-blank lines.",
+    howHotNone: "Not measured, because the folder is not in a git repository.",
+    howMarkers: "TODO, FIXME, HACK, and XXX in comments, and deprecation markers such as @deprecated. FIXME and HACK weigh 2. The age of each comes from git blame.",
+    howUntested: "Looks for a test file whose name matches the source file, such as test_foo.py for foo.py, among source files of 20 or more lines. Tests are not run, and coverage is not measured.",
+    howFunctions: "Functions over {n} lines. Python is measured exactly, and other languages by matching braces, so treat those as approximate.",
+    howFunctionsNone: "Not measured for {langs}.",
+    howLarge: "Source files over {n} non-blank lines.",
+    howDup: "Blocks of {n} or more lines that appear in two places, ignoring whitespace, imports, and comments.",
+    howDepsKnip: "Found by knip.",
+    howDepsSearch: "Approximate. knip did not run, so each name in package.json was searched for in imports, require calls, config files, and scripts.",
+    howDepsNone: "Not measured, because there is no package.json.",
+    howDeprecated: "Found by {tools}, the tools that ran. A tool that did not run is in the table below with its reason.",
+    howDeprecatedNone: "Not measured, because none of ruff, semgrep, and ESLint ran. The reasons are in the table below.",
+    useKnip: "Unused dependencies, files, and exports", useRuff: "Python findings and deprecated calls",
+    useSemgrep: "Findings of the project's own rules and deprecated calls", useEslint: "Calls that its deprecation rules find"
   },
   ja: {
     title: "{p}の技術的負債",
     langGroup: "言語", themeGroup: "配色", light: "明るい", dark: "暗い",
     factCommit: "コミット", factBranch: "ブランチ", factFiles: "ソースファイル", factCommits: "直近{months}か月のコミット",
     factGenerated: "作成日時", factGit: "gitの履歴", notGit: "gitのリポジトリではありません",
-    start: "最初に直す物", hotspots: "変更の集中", markers: "目印", untested: "テストの無いファイル", functions: "長い関数",
-    large: "大きいファイル", dup: "重複", deps: "使っていない依存", deprecated: "非推奨の呼び出し", tools: "道具",
-    cStart: "順位付け", cHot: "変更の集中", cMarkers: "目印", cUntested: "テスト無し",
-    cFunctions: "長い関数", cLarge: "大きいファイル", cDup: "重複した行", cDeps: "使っていない依存", cDeprecated: "非推奨の呼び出し",
-    leadStart: "変更の回数、大きさ、長い関数、目印、重複、テストの有無を合わせて順位を付けたファイルです。人がよく手を入れるファイルなので、上から直すほど効き目が大きくなります。",
+    start: "最初に直す物", hotspots: "変更の集中", markers: "TODOなど", untested: "名前の合うテストが無い", functions: "長い関数",
+    large: "大きいファイル", dup: "重複", deps: "使っていない依存", deprecated: "非推奨の呼び出し", tools: "ツール",
+    cStart: "直す順に​並べた​ファイル", cHot: "変更の​集中", cMarkers: "TODOなどの​コメント", cUntested: "名前の合う​テストが無い",
+    cFunctions: "長い​関数", cLarge: "大きい​ファイル", cDup: "重複した​行", cDeps: "使っていない​依存", cDeprecated: "非推奨の​呼び出し",
+    notMeasured: "測っていない", approxByName: "名前で探した\u200b概算",
+    leadStart: "変更の回数、大きさ、長い関数、TODOなどのコメント、重複、名前の合うテストファイルの有無を合わせて、直す順に並べたファイルです。行を押すと、その行の詳しい中身が出ます。人がよく手を入れるファイルなので、上から直すほど効き目が大きくなります。",
     leadHot: "直近{months}か月に2回以上変更したファイルを、変更の回数と空行を除いた行数の積の順に並べています。",
-    leadMarkers: "コメントにあるTODO、FIXME、HACK、XXXと、非推奨の目印です。古い順に並べ、古さはgit blameで調べています。",
-    leadUntested: "20行以上のソースファイルのうち、名前の合うテストファイル(foo.pyに対するtest_foo.pyなど)が無い物です。変更の多い順に並べています。",
+    hotNotGit: "測っていない値です。gitのリポジトリの外なので、変更の回数を数えられません。",
+    leadMarkers: "コメントにあるTODO、FIXME、HACK、XXXと、@deprecatedなどの非推奨の書き込みです。古い順に並べ、古さはgit blameで調べています。",
+    leadUntested: "20行以上のソースファイルのうち、名前の合うテストファイル(foo.pyに対するtest_foo.pyなど)が見つからなかった物です。テストを動かしたり網羅率を測ったりはしていません。変更の多い順に並べています。",
     leadFunctions: "{n}行を超える関数です。Pythonは正確に測り、ほかの言語は波括弧の対応で測るので、目安として見てください。",
     leadLarge: "空行を除いて{n}行を超えるソースファイルです。",
     leadDup: "空白、import、コメントを除いて{n}行以上同じ並びが2か所にある部分です。",
@@ -180,24 +256,45 @@ const I18N = {
     leadDepsKnip: "package.jsonの依存のうち、knipが使っていないと判定した物です。",
     noPackage: "package.jsonが無いので、依存は調べていません。",
     manifest: "package.json", depName: "依存", depKind: "書かれた欄",
-    leadDeprecated: "ライブラリや言語が非推奨とするAPIを呼んでいる所です。プロジェクトにすでに入っている道具で探しています。ruffは非推奨のimport、別名、関数の規則を使います。semgrepはプロジェクトの規則だけを送信を切って回し、非推奨に関わる結果をここに出します。ESLintは設定が非推奨の規則を有効にしている時だけ回します。動かなかった道具は理由と一緒に挙げています。",
-    noCallTool: "上の理由で、非推奨の呼び出しを探せた道具がありません。", toolName: "道具", result: "結果",
-    leadTools: "プロジェクトかPATHにすでに入っていた道具の結果です。何も取り寄せていません。",
+    leadDeprecated: "ライブラリや言語が非推奨とするAPIを呼んでいる所です。プロジェクトにすでに入っているツールで探しています。ruffは非推奨のimport、別名、関数の規則を使います。semgrepはプロジェクトの規則だけを送信を切って回し、非推奨に関わる結果をここに出します。ESLintは設定が非推奨の規則を有効にしている時だけ回します。動かなかったツールは理由と一緒に挙げています。",
+    noCallTool: "上の理由で、非推奨の呼び出しを探せたツールがありません。", toolName: "ツール", result: "結果",
+    leadTools: "プロジェクトかPATHにすでに入っていたツールの結果です。何も取り寄せていません。",
+    rankHead: "順位", score: "点数",
     what: "何か", why: "負担になる理由", action: "最初の一手",
-    rChanges: "変更{v}回", rChangesOne: "変更1回", rLines: "{v}行", rLong: "長い関数{v}個", rLongOne: "長い関数1個", rMarkers: "目印の重み{v}",
-    rDup: "重複{v}行", rUntested: "テストファイル無し",
+    rChanges: "変更{v}回", rChangesOne: "変更1回", rLines: "{v}行", rLong: "長い関数{v}個", rLongOne: "長い関数1個", rMarkers: "TODOなどの重み{v}",
+    rDup: "重複{v}行", rUntested: "名前の合うテストファイルが無い",
     file: "ファイル", changes: "変更回数", lines: "行数", product: "変更回数×行数", kind: "種類", age: "古さ", text: "行",
     fn: "関数", range: "ファイル内の行", length: "長さ", complexity: "分岐の数", measure: "測り方",
     exact: "正確", approx: "目安", first: "1か所目", second: "2か所目", rule: "規則", message: "内容",
     notCommitted: "未コミット", days: "{n}日", months: "{n}か月", years: "{n}年{m}か月",
     nothing: "見つかりませんでした。", notRun: "動かしていません。{r}", ran: "{n}件",
-    prev: "前へ", next: "次へ", page: "{n}ページ",
-    chartChanges: "変更回数", chartLines: "空行を除いた行数"
+    prev: "前へ", next: "次へ", page: "{n}ページ", pages: "ページ",
+    chartChanges: "変更回数", chartLines: "空行を除いた行数",
+    howTitle: "値の測り方", howMeasure: "項目", howWay: "測り方",
+    toolsTitle: "走査で試したツール", toolUse: "使い道",
+    howStart: "ソースファイルごとに0から1の点数を付けます。変更の回数と行数の積が40%です。長い関数は20%です。TODOなどと重複した行は15%ずつです。名前の合うテストファイルが無いファイルの変更の回数は10%です。上位20件を並べます。",
+    howHot: "直近{months}か月にファイルを変えたコミットの数をgit logから数えます。2回以上変えたファイルを、変更の回数と空行を除いた行数の積の順に並べます。",
+    howHotNone: "測っていない値です。gitのリポジトリの外なので、変更の回数を数えられません。",
+    howMarkers: "コメントにあるTODO、FIXME、HACK、XXXと、@deprecatedなどの非推奨の書き込みです。FIXMEとHACKは2つ分に数えます。古さはgit blameで調べます。",
+    howUntested: "20行以上のソースファイルごとに、名前の合うテストファイル(foo.pyに対するtest_foo.pyなど)を探します。テストを動かしたり網羅率を測ったりはしません。",
+    howFunctions: "{n}行を超える関数です。Pythonは正確に測り、ほかの言語は波括弧の対応で測るので目安です。",
+    howFunctionsNone: "{langs}は測っていません。",
+    howLarge: "空行を除いて{n}行を超えるソースファイルです。",
+    howDup: "空白、import、コメントを除いて{n}行以上同じ並びが2か所にある部分です。",
+    howDepsKnip: "knipで調べました。",
+    howDepsSearch: "概算です。knipが動かなかったので、package.jsonの依存の名前をimport、require、設定のファイル、scriptsで探しました。",
+    howDepsNone: "測っていない値です。package.jsonが無いので依存を調べていません。",
+    howDeprecated: "動いたツール({tools})で探しました。動かなかったツールは理由と一緒に下の表にあります。",
+    howDeprecatedNone: "測っていない値です。ruffもsemgrepもESLintも動かなかったので探していません。理由は下の表にあります。",
+    useKnip: "使っていない依存とファイルとexport", useRuff: "Pythonの指摘と非推奨の呼び出し",
+    useSemgrep: "プロジェクトの規則の指摘と非推奨の呼び出し", useEslint: "設定で有効な非推奨の規則に当たる呼び出し"
   }
 };
 const D = PAYLOAD.data, NOTES = PAYLOAD.notes || {};
 const PAGE = 50;
 let lang = "en", tab = "start";
+// pick is the ranked row whose details sit beside the list.
+let pick = 0;
 const pages = {};
 try { const s = localStorage.getItem("techdebt-lang"); if (s === "ja" || s === "en") lang = s; } catch (e) {}
 // The theme follows the system until the reader picks one, which is kept like the language.
@@ -242,56 +339,74 @@ function reason(r) {
   const key = {changes: "rChanges", lines: "rLines", long_functions: "rLong", markers: "rMarkers", dup_lines: "rDup", untested: "rUntested"}[r.key];
   return t(key, {v: r.value});
 }
+const list = (items) => items.join(lang === "ja" ? "、" : ", ");
 
 const TABS = [
-  ["start", "start", () => D.ranked.length],
-  ["hotspots", "hotspots", () => D.hotspots.length],
-  ["markers", "markers", () => D.markers.length],
-  ["untested", "untested", () => D.untested.length],
-  ["functions", "functions", () => D.functions.length],
-  ["large", "large", () => D.large_files.length],
-  ["dup", "dup", () => D.duplication.length],
-  ["deps", "deps", () => D.unused_dependencies ? D.unused_dependencies.items.length : 0],
-  ["deprecated", "deprecated", () => D.deprecated_calls.items.length],
-  ["tools", "tools", () => D.tools.length],
+  ["start", "start"],
+  ["hotspots", "hotspots"],
+  ["markers", "markers"],
+  ["untested", "untested"],
+  ["functions", "functions"],
+  ["large", "large"],
+  ["dup", "dup"],
+  ["deps", "deps"],
+  ["deprecated", "deprecated"],
+  ["tools", "tools"],
 ];
+// A measure that did not run gives null, which the band shows as not measured, never as 0.
+const ranTools = () => D.deprecated_calls.tools.filter(s => s.ran).map(s => s.tool);
 const CARDS = [
   ["start", "cStart", () => D.ranked.length],
-  ["hotspots", "cHot", () => D.hotspots.length],
+  ["hotspots", "cHot", () => D.git ? D.hotspots.length : null],
   ["markers", "cMarkers", () => D.markers.length],
   ["untested", "cUntested", () => D.untested.length],
   ["functions", "cFunctions", () => D.functions.length],
   ["large", "cLarge", () => D.large_files.length],
   ["dup", "cDup", () => D.duplication.reduce((a, b) => a + b.lines, 0)],
-  ["deps", "cDeps", () => D.unused_dependencies ? D.unused_dependencies.items.length : 0],
-  ["deprecated", "cDeprecated", () => D.deprecated_calls.items.length],
+  ["deps", "cDeps", () => D.unused_dependencies ? D.unused_dependencies.items.length : null],
+  ["deprecated", "cDeprecated", () => ranTools().length ? D.deprecated_calls.items.length : null],
 ];
+// How each value was measured, in the order of the band, with the reason when it was not measured.
+const HOW = [
+  ["start", () => t("howStart")],
+  ["hotspots", () => D.git ? t("howHot", {months: D.months}) : t("howHotNone")],
+  ["markers", () => t("howMarkers")],
+  ["untested", () => t("howUntested")],
+  ["functions", () => t("howFunctions", {n: D.thresholds.long_function})
+    + (D.unmeasured_languages.length ? " " + t("howFunctionsNone", {langs: list(D.unmeasured_languages)}) : "")],
+  ["large", () => t("howLarge", {n: D.thresholds.large_file})],
+  ["dup", () => t("howDup", {n: D.thresholds.duplicate_lines})],
+  ["deps", () => !D.unused_dependencies ? t("howDepsNone") : t(D.unused_dependencies.source === "knip" ? "howDepsKnip" : "howDepsSearch")],
+  ["deprecated", () => ranTools().length ? t("howDeprecated", {tools: list(ranTools())}) : t("howDeprecatedNone")],
+];
+const TOOL_ORDER = ["knip", "ruff", "semgrep", "eslint"];
+const TOOL_USE = {knip: "useKnip", ruff: "useRuff", semgrep: "useSemgrep", eslint: "useEslint"};
 
+function pagerNav(total, cur, go, id) {
+  if (total < 2) return null;
+  const nav = el("nav", {class: "pager", "aria-label": t("pages"), ...(id ? {id} : {})});
+  nav.append(el("button", {type: "button", onclick: () => go(cur - 1), ...(cur === 0 ? {disabled: ""} : {})}, t("prev")));
+  for (let i = 0; i < total; i++) {
+    if (total > 9 && i > 1 && i < total - 2 && Math.abs(i - cur) > 1) {
+      if (i === 2 || i === total - 3) nav.append(el("span", null, "…"));
+      continue;
+    }
+    nav.append(el("button", {type: "button", "aria-label": t("page", {n: i + 1}), onclick: () => go(i),
+      ...(i === cur ? {"aria-current": "page"} : {})}, i + 1));
+  }
+  nav.append(el("button", {type: "button", onclick: () => go(cur + 1), ...(cur === total - 1 ? {disabled: ""} : {})}, t("next")));
+  return nav;
+}
 function paged(id, rows, head, row) {
   if (!rows.length) return el("div", {class: "empty"}, t("nothing"));
   const total = Math.ceil(rows.length / PAGE);
   const cur = Math.min(pages[id] || 0, total - 1);
   const go = (p) => { pages[id] = p; render(); };
-  const pager = () => {
-    if (total < 2) return null;
-    const nav = el("nav", {class: "pager", "aria-label": "pages"});
-    nav.append(el("button", {type: "button", onclick: () => go(cur - 1), ...(cur === 0 ? {disabled: ""} : {})}, t("prev")));
-    for (let i = 0; i < total; i++) {
-      if (total > 9 && i > 1 && i < total - 2 && Math.abs(i - cur) > 1) {
-        if (i === 2 || i === total - 3) nav.append(el("span", null, "…"));
-        continue;
-      }
-      nav.append(el("button", {type: "button", "aria-label": t("page", {n: i + 1}), onclick: () => go(i),
-        ...(i === cur ? {"aria-current": "page"} : {})}, i + 1));
-    }
-    nav.append(el("button", {type: "button", onclick: () => go(cur + 1), ...(cur === total - 1 ? {disabled: ""} : {})}, t("next")));
-    return nav;
-  };
   const body = rows.slice(cur * PAGE, cur * PAGE + PAGE).map(row);
   const table = el("table", null,
     el("thead", null, el("tr", null, head.map(([k, num]) => el("th", num ? {class: "num"} : null, t(k))))),
     el("tbody", null, body));
-  return el("div", null, pager(), el("div", {class: "tablewrap"}, table), pager());
+  return el("div", null, pagerNav(total, cur, go), el("div", {class: "tablewrap"}, table), pagerNav(total, cur, go));
 }
 const td = (v, num) => el("td", num ? {class: "num"} : null, v);
 const tdc = (v) => el("td", null, el("code", null, v));
@@ -305,6 +420,18 @@ function toolState(tool, found) {
   const m = /^(\S+ stopped with exit code -?\d+): ([\s\S]+)$/.exec(tool.reason);
   return m ? [t("notRun", {r: m[1]}), said(m[2])] : [t("notRun", {r: tool.reason})];
 }
+const pathParts = (file) => {
+  const at = file.lastIndexOf("/") + 1;
+  return [el("span", {class: "dir"}, file.slice(0, at)), el("b", null, file.slice(at))];
+};
+// A score with two decimals as the summary of scan prints it, where Python rounds an exact half to even.
+const two = (x) => {
+  const k = x * 100, f = Math.floor(k);
+  return k - f === 0.5 ? ((f % 2 ? f + 1 : f) / 100).toFixed(2) : x.toFixed(2);
+};
+// The score of a row as its number, with a bar under it that shows the same number.
+const scoreOf = (score) => el("span", {class: "value"}, el("span", {class: "score"}, two(score)),
+  el("span", {class: "bar", "aria-hidden": "true"}, el("i", {style: `width:${Math.min(100, score * 100).toFixed(1)}%`})));
 
 function hotChart() {
   const rows = D.hotspots.slice(0, 15);
@@ -332,29 +459,58 @@ function hotChart() {
       el("span", null, el("i", {style: "background:var(--bar2)"}), t("chartLines"))));
 }
 
+// The details of one ranked row: its file, the measures behind its score, and the agent's notes.
+function detail(i) {
+  const r = D.ranked[i];
+  const box = el("section", {class: "detail", id: "detail", "aria-live": "polite"});
+  if (!r) return box;
+  const n = NOTES[r.file];
+  const rows = [["score", el("span", {class: "score"}, two(r.score))]];
+  if (n) rows.push(["what", n.what], ["why", n.why], ["action", n.action]);
+  box.append(
+    el("div", {class: "detail-head"}, el("span", {class: "no"}, i + 1), el("h2", {class: "file"}, pathParts(r.file))),
+    el("div", {class: "chips"}, r.reasons.map(x => el("span", {class: "chip"}, reason(x)))),
+    el("table", {class: "kv"}, el("tbody", null, rows.map(([k, v]) => el("tr", null, el("th", null, t(k)), el("td", null, v))))));
+  return box;
+}
+function choose(i) {
+  pick = i;
+  for (const b of document.querySelectorAll("#rows [data-pick]")) b.setAttribute("aria-pressed", String(Number(b.dataset.pick) === i));
+  const next = detail(i);
+  document.getElementById("detail").replaceWith(next);
+  // On a phone the details sit under the list, so the page moves to them.
+  if (window.matchMedia("(max-width: 860px)").matches) {
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    next.scrollIntoView({block: "start", behavior: still ? "auto" : "smooth"});
+  }
+}
+
 const PANELS = {
   start() {
     const box = el("div", null, el("p", {class: "lead"}, t("leadStart")));
     if (!D.ranked.length) return box.appendChild(el("div", {class: "empty"}, t("nothing"))) && box;
-    const list = el("div", {class: "rank"});
-    D.ranked.forEach((r, i) => {
-      const n = NOTES[r.file];
-      const item = el("article", {class: n ? "item noted" : "item"},
-        el("div", {class: "top"}, el("span", {class: "no"}, i + 1),
-          el("span", {class: "file"}, el("span", {class: "dir"}, r.file.slice(0, r.file.lastIndexOf("/") + 1)),
-            el("b", null, r.file.slice(r.file.lastIndexOf("/") + 1)))),
-        el("div", {class: "score", title: r.score}, el("span", {style: `width:${Math.round(r.score * 100)}%`})),
-        el("div", {class: "chips"}, r.reasons.map(x => el("span", {class: "chip"}, reason(x)))));
-      if (n) item.append(el("dl", {class: "note"},
-        el("dt", null, t("what")), el("dd", null, n.what),
-        el("dt", null, t("why")), el("dd", null, n.why),
-        el("dt", null, t("action")), el("dd", null, n.action)));
-      list.append(item);
-    });
-    box.append(list);
+    const total = Math.ceil(D.ranked.length / PAGE);
+    const cur = Math.min(pages.start || 0, total - 1);
+    const from = cur * PAGE;
+    if (pick < from || pick >= Math.min(from + PAGE, D.ranked.length)) pick = from;
+    const go = (p) => { pages.start = p; pick = p * PAGE; render(); };
+    const rows = el("div", {class: "rows", id: "rows"},
+      el("div", {class: "rows-head", "aria-hidden": "true"},
+        el("span", null, t("rankHead")), el("span", null, t("file")), el("span", {class: "num"}, t("score"))),
+      D.ranked.slice(from, from + PAGE).map((r, k) => {
+        const i = from + k, n = NOTES[r.file];
+        return el("button", {type: "button", class: "row", "data-pick": i, "aria-pressed": String(i === pick), onclick: () => choose(i)},
+          el("span", {class: "no"}, i + 1),
+          el("span", {class: "name"}, el("span", {class: "file"}, pathParts(r.file)), n ? el("small", null, n.what) : null),
+          scoreOf(r.score));
+      }));
+    box.append(el("div", {class: "split"},
+      el("div", {class: "list"}, pagerNav(total, cur, go, "pager-top"), rows, pagerNav(total, cur, go, "pager-bottom")),
+      detail(pick)));
     return box;
   },
   hotspots() {
+    if (!D.git) return el("div", null, el("p", {class: "lead"}, t("leadHot", {months: D.months})), el("div", {class: "empty"}, t("hotNotGit")));
     return el("div", null, el("p", {class: "lead"}, t("leadHot", {months: D.months})), hotChart(),
       paged("hot", D.hotspots, [["file"], ["changes", 1], ["lines", 1], ["product", 1]],
         r => el("tr", null, tdc(r.file), td(r.changes, 1), td(r.lines, 1), td(r.changes * r.lines, 1))));
@@ -416,6 +572,25 @@ const PANELS = {
   },
 };
 
+// The measures and the tools, shown under the tabs on every tab.
+function how() {
+  const tools = new Map();
+  for (const s of D.tools.concat(D.deprecated_calls.tools)) if (!tools.has(s.tool)) tools.set(s.tool, s);
+  const rows = [...tools.values()].sort((a, b) => TOOL_ORDER.indexOf(a.tool) - TOOL_ORDER.indexOf(b.tool));
+  return [
+    el("h2", null, t("howTitle")),
+    el("div", {class: "tablewrap"}, el("table", {class: "how-table"},
+      el("thead", null, el("tr", null, el("th", null, t("howMeasure")), el("th", null, t("howWay")))),
+      el("tbody", null, HOW.map(([id, text]) => el("tr", {"data-measure": id},
+        el("td", {class: "measure-name"}, t(id)), el("td", null, text())))))),
+    el("h3", null, t("toolsTitle")),
+    el("div", {class: "tablewrap"}, el("table", {class: "how-table tools-table"},
+      el("thead", null, el("tr", null, el("th", null, t("toolName")), el("th", null, t("toolUse")), el("th", null, t("result")))),
+      el("tbody", null, rows.map(s => el("tr", {"data-tool": s.tool}, tdc(s.tool), td(t(TOOL_USE[s.tool] || s.tool)),
+        el("td", null, toolState(s, s.findings ? s.findings.length : D.deprecated_calls.items.filter(i => i.tool === s.tool).length))))))),
+  ];
+}
+
 function render() {
   document.documentElement.lang = lang;
   document.title = t("title", {p: D.project});
@@ -432,12 +607,19 @@ function render() {
   document.getElementById("lang-group").setAttribute("aria-label", t("langGroup"));
   document.getElementById("theme-group").setAttribute("aria-label", t("themeGroup"));
   const cards = document.getElementById("cards");
-  cards.replaceChildren(...CARDS.map(([id, key, n]) => el("button", {type: "button", class: "card", onclick: () => show(id)},
-    el("div", {class: "n"}, n()), el("div", {class: "l"}, t(key)))));
+  cards.replaceChildren(...CARDS.map(([id, key, n]) => {
+    const v = n();
+    const approx = id === "deps" && v !== null && D.unused_dependencies.source === "search";
+    return el("button", {type: "button", class: "card", "data-measure": id, onclick: () => show(id)},
+      v === null ? el("span", {class: "n none"}, t("notMeasured")) : el("span", {class: "n"}, v),
+      el("span", {class: "l"}, t(key)),
+      approx ? el("span", {class: "sub"}, t("approxByName")) : null);
+  }));
   const tabs = document.getElementById("tabs");
   tabs.replaceChildren(...TABS.map(([id, key]) => el("button", {type: "button", role: "tab", "aria-selected": String(id === tab),
     onclick: () => show(id)}, t(key))));
   document.getElementById("panel").replaceChildren(PANELS[tab]());
+  document.getElementById("how").replaceChildren(...how());
 }
 for (const b of document.querySelectorAll("[data-lang]")) b.addEventListener("click", () => {
   lang = b.dataset.lang;
