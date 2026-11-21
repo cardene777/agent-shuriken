@@ -339,6 +339,10 @@ function t(key, vars) {
   for (const k in (vars || {})) s = s.split("{" + k + "}").join(String(vars[k]));
   return s;
 }
+// A Japanese full stop with more text after it ends the line, so each sentence starts on its own
+// line, as the look of page-design asks. Text without one is written as it is.
+const lines = (s) => String(s).replace(/\u3002(?![\u300d\u300f\uff09)\u3011\u3009\u300b"'\u201d\u2019]|$)/g, "\u3002\u0000").split("\u0000")
+  .flatMap((part, i) => (i ? [document.createElement("br"), part] : [part]));
 function el(tag, attrs, ...kids) {
   const e = document.createElement(tag);
   for (const k in (attrs || {})) {
@@ -346,7 +350,7 @@ function el(tag, attrs, ...kids) {
     else if (k.startsWith("on")) e.addEventListener(k.slice(2), attrs[k]);
     else e.setAttribute(k, attrs[k]);
   }
-  for (const c of kids.flat()) if (c != null) e.append(c.nodeType ? c : document.createTextNode(String(c)));
+  for (const c of kids.flat()) if (c != null) e.append(...(c.nodeType ? [c] : lines(c)));
   return e;
 }
 function age(d) {

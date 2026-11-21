@@ -20,7 +20,7 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ### Changed
 
-- `musubi.json` follows `look`, `sheet`, and `verify` of page-design at `^2.0.0`, the version that adds the pattern rules
+- `musubi.json` follows `look`, `sheet`, and `verify` of page-design at `^2.0.0`, the version that adds the pattern rules. In Japanese, each sentence of the page starts on its own line
 - A scan made by a previous version is refused with a request to scan again, since it has no levels, no disk size, or no projects, tool versions, and models
 - A row shows only its name, its size, and for a process its CPU share. The reason, location, command, and measurements moved to a dialog that the row's i button opens, where the row can also be picked
 

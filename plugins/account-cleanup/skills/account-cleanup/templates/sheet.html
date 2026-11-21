@@ -344,7 +344,7 @@ __DATA__
       light: "明るい",
       dark: "暗い",
       lead: "あなたが登録したことのあるWebサービスの一覧です。この画面で押しただけでは、何も消えません。",
-      step1: "消すならOK、残すならダメ。迷えば押さない",
+      step1: "消すならOK、残すならダメ、迷えば押さない",
       step2: "気になることは詳しい欄のメモに書く",
       step3: "「OKの分をコピー」を押してチャットに貼る",
       tabPrev: "前の回の残り",
@@ -450,10 +450,20 @@ __DATA__
     return map && Object.prototype.hasOwnProperty.call(map, key) ? map[key] : key;
   }
 
+  // A Japanese full stop with more text after it ends the line, so each sentence starts on its own
+  // line, as the look of page-design asks. Text without one is written as it is.
+  function setLines(node, text) {
+    var parts = String(text).replace(/\u3002(?![\u300d\u300f\uff09)\u3011\u3009\u300b"'\u201d\u2019]|$)/g, "\u3002\u0000").split("\u0000");
+    node.textContent = parts[0];
+    for (var i = 1; i < parts.length; i++) {
+      node.appendChild(document.createElement("br"));
+      node.appendChild(document.createTextNode(parts[i]));
+    }
+  }
   function el(tag, cls, text) {
     var n = document.createElement(tag);
     if (cls) n.className = cls;
-    if (text != null) n.textContent = text;
+    if (text != null) setLines(n, text);
     return n;
   }
   function title(g) { return g.service || (g.names && g.names[0]) || g.key; }
@@ -613,7 +623,7 @@ __DATA__
     th.setAttribute("scope", "row");
     row.appendChild(th);
     var td = el("td");
-    if (typeof value === "string") td.textContent = value; else td.appendChild(value);
+    if (typeof value === "string") setLines(td, value); else td.appendChild(value);
     row.appendChild(td);
     table.appendChild(row);
   }
@@ -757,10 +767,10 @@ __DATA__
   function applyLang() {
     document.documentElement.lang = lang;
     document.title = t("title");
-    Array.prototype.forEach.call(document.querySelectorAll("[data-i18n]"), function (n) { n.textContent = t(n.getAttribute("data-i18n")); });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-i18n]"), function (n) { setLines(n, t(n.getAttribute("data-i18n"))); });
     Array.prototype.forEach.call(document.querySelectorAll("[data-i18n-placeholder]"), function (n) { n.setAttribute("placeholder", t(n.getAttribute("data-i18n-placeholder"))); });
     Array.prototype.forEach.call(document.querySelectorAll("[data-i18n-aria]"), function (n) { n.setAttribute("aria-label", t(n.getAttribute("data-i18n-aria"))); });
-    document.getElementById("opened-help").textContent = fill(t("fOpenedHelp"), { since: since ? fill(t("sinceDate"), { date: since }) : t("sinceUnknown") });
+    setLines(document.getElementById("opened-help"), fill(t("fOpenedHelp"), { since: since ? fill(t("sinceDate"), { date: since }) : t("sinceUnknown") }));
     // Every deletion effort the details panel can show, from the same table as its labels and in the same colors
     var levels = document.getElementById("effort-help");
     levels.textContent = "";

@@ -657,9 +657,10 @@ elif what == "tools":
             problems.append("%s: %d tool sections for %d tools" % (lang, len(sections), len(d["tools"])))
             continue
         for tool, section in zip(d["tools"], sections):
-            m = re.match(r"<h3>([^<]*)</h3><p\b[^>]*>([^<]*)</p>", section)
+            # A Japanese line breaks after each full stop, so the line under the name may hold <br>.
+            m = re.match(r"<h3>([^<]*)</h3><p\b[^>]*>((?:[^<]|<br>)*)</p>", section)
             want = (tool["tool"], status(lang, tool, len(tool["findings"])))
-            got = (html.unescape(m.group(1)), html.unescape(m.group(2))) if m else None
+            got = (html.unescape(m.group(1)), html.unescape(m.group(2).replace("<br>", ""))) if m else None
             if not same(got, want):
                 problems.append("%s: tool section %r, wanted the heading and the line under it %r" % (lang, got or text(section)[:80], want))
 
@@ -671,7 +672,7 @@ elif what == "deprecated":
             problems.append("%s: the deprecated calls tab has no table of the tools" % lang)
             continue
         heads = [text(x) for x in re.findall(r"<th\b[^>]*>(.*?)</th>", table.group(1))]
-        rows = [(html.unescape(a), html.unescape(b)) for a, b in re.findall(r"<tr><td><code>([^<]*)</code></td><td>([^<]*)</td></tr>", table.group(1))]
+        rows = [(html.unescape(a), html.unescape(b.replace("<br>", ""))) for a, b in re.findall(r"<tr><td><code>([^<]*)</code></td><td>((?:[^<]|<br>)*)</td></tr>", table.group(1))]
         want_heads = {"en": ["Tool", "Result"], "ja": ["ツール", "結果"]}[lang]
         want_rows = [(s["tool"], status(lang, s, sum(1 for i in calls["items"] if i["tool"] == s["tool"]))) for s in calls["tools"]]
         if heads != want_heads or len(rows) != len(want_rows) or not all(same(g, w) for g, w in zip(rows, want_rows)) or not rows:
