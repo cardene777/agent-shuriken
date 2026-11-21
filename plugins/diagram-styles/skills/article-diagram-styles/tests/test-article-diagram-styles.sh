@@ -517,6 +517,210 @@ validate_refuses_unknown_style_image() {
 }
 check "validate refuses an image of a style that is neither built in nor in the catalog" validate_refuses_unknown_style_image
 
+STRUCTURES="$SKILL_DIR/data/built-in-structures.json"
+STRUCTURE_NAMES="process-flow message-sequence timeline cycle layers tree nesting network side-by-side before-after two-axis-matrix correspondence-table state-machine decision-branch quantity-trend journey-map"
+
+# Each built-in structure is defined in words, and no two of them share the relation they show or
+# their parts, compared without case and outer spaces.
+built_in_structures() {
+  [ -f "$STRUCTURES" ] || { echo "      missing skills/article-diagram-styles/data/built-in-structures.json"; return 1; }
+  python3 - "$STRUCTURES" <<'PYEOF'
+import json, sys
+want = {
+    "flow-and-order": ["process-flow", "message-sequence", "timeline", "cycle"],
+    "structure-and-containment": ["layers", "tree", "nesting", "network"],
+    "comparison": ["side-by-side", "before-after", "two-axis-matrix", "correspondence-table"],
+    "state-and-change": ["state-machine", "decision-branch", "quantity-trend", "journey-map"],
+}
+try:
+    structures = json.load(open(sys.argv[1], encoding="utf-8")).get("structures")
+except (OSError, ValueError, AttributeError) as error:
+    print("      cannot read the built-in structures: %s" % error)
+    sys.exit(1)
+if not isinstance(structures, dict):
+    print("      structures is not an object")
+    sys.exit(1)
+problems = []
+names = [n for members in want.values() for n in members]
+if sorted(structures) != sorted(names):
+    problems.append("the structures are %s, not the sixteen" % sorted(structures))
+text = lambda value: isinstance(value, str) and bool(value.strip())
+for group, members in want.items():
+    for name in members:
+        structure = structures.get(name)
+        if not isinstance(structure, dict):
+            continue
+        if structure.get("group") != group:
+            problems.append("%s is in %s, not %s" % (name, structure.get("group"), group))
+        for key in ("label", "shows", "parts", "reading_order", "fits", "misfits"):
+            if not text(structure.get(key)):
+                problems.append("%s has no %s" % (name, key))
+        if structure.get("status") != "active":
+            problems.append("%s has status %s, not active" % (name, structure.get("status")))
+for key in ("shows", "parts"):
+    seen = {}
+    for name, structure in structures.items():
+        value = structure.get(key) if isinstance(structure, dict) else None
+        if not isinstance(value, str):
+            continue  # A missing field is reported above.
+        words = value.strip().lower()
+        if words in seen:
+            problems.append("%s and %s share the same %s" % (seen[words], name, key))
+        seen.setdefault(words, name)
+for problem in problems[:12]:
+    print("      " + problem)
+sys.exit(1 if problems else 0)
+PYEOF
+}
+check "the built-in structures hold sixteen structures in four groups with their written definition" built_in_structures
+
+built_in_structures_no_samples() {
+  [ -f "$STRUCTURES" ] || { echo "      missing skills/article-diagram-styles/data/built-in-structures.json"; return 1; }
+  python3 - "$STRUCTURES" <<'PYEOF'
+import json, sys
+found = []
+def walk(value, where):
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key in ("images", "reference_id", "sample_ids"):
+                found.append(where + key)
+            walk(item, where + key + ".")
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            walk(item, "%s%d." % (where, index))
+walk(json.load(open(sys.argv[1], encoding="utf-8")), "")
+for key in found:
+    print("      the built-in structures hold " + key)
+sys.exit(1 if found else 0)
+PYEOF
+}
+check "the built-in structures name no sample image" built_in_structures_no_samples
+
+structures_built_in() {
+  local status
+  mkdir -p "$T/h-structures"
+  HOME="$T/h-structures" catalog "$T/h-structures.out" --structures
+  status=$?
+  exits 0 "$status" "$T/h-structures.out" || return 1
+  [ -f "$STRUCTURES" ] || { echo "      missing skills/article-diagram-styles/data/built-in-structures.json"; return 1; }
+  python3 - "$T/h-structures.out" "$STRUCTURES" <<'PYEOF'
+import json, sys
+lines = [line for line in open(sys.argv[1], encoding="utf-8").read().splitlines() if line.strip()]
+structures = json.load(open(sys.argv[2], encoding="utf-8")).get("structures", {})
+problems = []
+if len(lines) != 16 or len(structures) != 16:
+    problems.append("printed %d lines for %d built-in structures, not 16 for 16" % (len(lines), len(structures)))
+for name, structure in structures.items():
+    rows = [line.split("\t") for line in lines if line.split("\t")[0] == name]
+    if len(rows) != 1:
+        problems.append("%s is on %d lines, not one" % (name, len(rows)))
+        continue
+    row = rows[0]
+    want = [name, "built-in", structure.get("group"), structure.get("label"), structure.get("shows")]
+    if row != want:
+        problems.append("the line of %s is %r, not name, built-in, group, label, and shows" % (name, row))
+for problem in problems[:12]:
+    print("      " + problem)
+sys.exit(1 if problems else 0)
+PYEOF
+}
+check "structures prints the sixteen built-in structures without ~/.styles" structures_built_in
+
+structures_user() {
+  local status name
+  mkdir -p "$T/h-structures-user"
+  styles "$T/h-structures-user/.styles" --user-structure
+  HOME="$T/h-structures-user" catalog "$T/h-structures-user.out" --structures
+  status=$?
+  exits 0 "$status" "$T/h-structures-user.out" || return 1
+  [ "$(lines_of "$T/h-structures-user.out" my-structure)" -eq 1 ] && [ "$(field "$T/h-structures-user.out" my-structure 2)" = user ] ||
+    { echo "      my-structure is not on one line marked user"; sed 's/^/        /' "$T/h-structures-user.out" | head -8; return 1; }
+  for name in $STRUCTURE_NAMES; do
+    [ "$(lines_of "$T/h-structures-user.out" "$name")" -eq 1 ] || { echo "      the built-in structure $name is not on one line"; return 1; }
+  done
+  [ "$(field "$T/h-structures-user.out" process-flow 2)" = built-in ] || { echo "      process-flow is not marked built-in"; return 1; }
+}
+check "structures prints the user's structures beside the built-in ones" structures_user
+
+structures_redefined_once() {
+  local status
+  mkdir -p "$T/h-structures-redefined"
+  styles "$T/h-structures-redefined/.styles" --redefine-structure timeline
+  HOME="$T/h-structures-redefined" catalog "$T/h-structures-redefined.out" --structures
+  status=$?
+  exits 0 "$status" "$T/h-structures-redefined.out" || return 1
+  [ "$(lines_of "$T/h-structures-redefined.out" timeline)" -eq 1 ] || { echo "      timeline is not on exactly one line"; return 1; }
+  [ "$(field "$T/h-structures-redefined.out" timeline 2)" = user ] || { echo "      the line of timeline is not marked user"; return 1; }
+  [ "$(field "$T/h-structures-redefined.out" timeline 5)" = "The user's own words for timeline" ] ||
+    { echo "      the line of timeline does not show the user's words"; return 1; }
+}
+check "structures prints a built-in structure the user redefined once, as the user's" structures_redefined_once
+
+structures_leave_out_retired() {
+  local status
+  mkdir -p "$T/h-structures-retired"
+  styles "$T/h-structures-retired/.styles" --retire-structure timeline
+  HOME="$T/h-structures-retired" catalog "$T/h-structures-retired.out" --structures
+  status=$?
+  exits 0 "$status" "$T/h-structures-retired.out" || return 1
+  [ "$(lines_of "$T/h-structures-retired.out" timeline)" -eq 0 ] || { echo "      the retired timeline is listed"; return 1; }
+  [ "$(lines_of "$T/h-structures-retired.out" process-flow)" -eq 1 ] || { echo "      process-flow is not listed, so the run proves nothing"; return 1; }
+}
+check "structures leaves out a built-in structure the user retired" structures_leave_out_retired
+
+# A catalog whose structures are whole, redefined, or retired passes, so the refusal below is about
+# the missing field and not about the structures object itself.
+validate_refuses_half_structure() {
+  local status
+  mkdir -p "$T/h-structure-whole" "$T/h-structure-half"
+  styles "$T/h-structure-whole/.styles" --user-structure --redefine-structure timeline --retire-structure cycle
+  HOME="$T/h-structure-whole" catalog "$T/h-structure-whole.out" --validate
+  status=$?
+  exits 0 "$status" "$T/h-structure-whole.out" "PASS" || { echo "      (a catalog with whole structures)"; return 1; }
+  styles "$T/h-structure-half/.styles" --structure-lacks shows
+  HOME="$T/h-structure-half" catalog "$T/h-structure-half.out" --validate
+  status=$?
+  exits 1 "$status" "$T/h-structure-half.out" "my-structure" "shows"
+}
+check "validate refuses a catalog structure without its written definition" validate_refuses_half_structure
+
+show_structure_built_in() {
+  local status
+  mkdir -p "$T/h-show-structure"
+  HOME="$T/h-show-structure" catalog "$T/h-show-structure.out" --show-structure process-flow
+  status=$?
+  exits 0 "$status" "$T/h-show-structure.out" || return 1
+  python3 - "$T/h-show-structure.out" "$STRUCTURES" <<'PYEOF'
+import json, sys
+try:
+    s = json.load(open(sys.argv[1], encoding="utf-8"))
+    b = json.load(open(sys.argv[2], encoding="utf-8"))["structures"]["process-flow"]
+except (OSError, ValueError, KeyError) as error:
+    print("      cannot read the shown structure or the built-in process-flow: %s" % error)
+    sys.exit(1)
+keys = ("group", "label", "shows", "parts", "reading_order", "fits", "misfits", "status")
+wrong = [k for k in keys if s.get(k) != b.get(k)]
+if wrong or s.get("name") != "process-flow" or s.get("source") != "built-in":
+    print("      the shown structure differs from the built-in process-flow in %s" % (wrong or "its name or source"))
+    print("        " + json.dumps(s)[:300])
+    sys.exit(1)
+PYEOF
+}
+check "show-structure prints a built-in structure without ~/.styles" show_structure_built_in
+
+show_structure_refuses() {
+  local status
+  mkdir -p "$T/h-show-structure-retired"
+  styles "$T/h-show-structure-retired/.styles" --retire-structure timeline
+  HOME="$T/h-show-structure-retired" catalog "$T/h-show-structure-retired.out" --show-structure timeline
+  status=$?
+  exits 1 "$status" "$T/h-show-structure-retired.out" timeline retired || return 1
+  HOME="$T/h-show-structure-retired" catalog "$T/h-show-structure-retired.out" --show-structure no-such-structure
+  status=$?
+  exits 1 "$status" "$T/h-show-structure-retired.out" no-such-structure || { echo "      (an unknown structure)"; return 1; }
+}
+check "show-structure refuses a structure the user retired" show_structure_refuses
+
 article_draws_built_in() {
   has "$SKILL_DIR/SKILL.md" 'If `~/.styles/style-catalog.json` is missing, draw in the built-in styles'
 }
@@ -566,6 +770,16 @@ check "the article skill passes samples only when the user registered them for t
 
 one_style() { has "$SKILL_DIR/SKILL.md" "Keep the article's drawing style across its figures, unless the user names several styles"; }
 check "the article skill keeps one style across the figures of an article" one_style
+
+chooses_a_structure() {
+  has "$SKILL_DIR/SKILL.md" \
+    'choose a structure for each figure from the question the reader wants answered, among the structures `--structures` prints' \
+    'Record the name of the chosen structure in `structure`, both in the figure spec and in the entry of the figure in `composition-ledger.json`' \
+    'Use the `structure-comparison` mode only when the user asks to compare the same content in different structures' \
+    'draw as many structures as the user asks for, and three when no number is given' \
+    'Choose the structure and the style separately; any structure can be drawn in any style'
+}
+check "SKILL.md says how a structure is chosen and recorded" chooses_a_structure
 
 accepts_version_2() {
   local status
@@ -656,6 +870,8 @@ writes_nothing_under_styles() {
       diagram_sample_catalog.py)
         HOME="$h" python3 "$s" --validate > /dev/null 2>&1
         HOME="$h" python3 "$s" > /dev/null 2>&1
+        HOME="$h" python3 "$s" --structures > /dev/null 2>&1
+        HOME="$h" python3 "$s" --show-structure process-flow > /dev/null 2>&1
         HOME="$h" python3 "$s" --sample "$h/.styles/style-catalog/illustrated/pen-technical/flow-a.png" > /dev/null 2>&1 ;;
       validate_content_brief.py) HOME="$h" python3 "$s" "$w/brief.json" > /dev/null 2>&1 ;;
       validate_figure_spec.py) HOME="$h" python3 "$s" "$w/figure.figure.json" > /dev/null 2>&1 ;;
@@ -681,7 +897,7 @@ import json, os, sys
 skill = sys.argv[1]
 provides = json.load(open(os.path.join(skill, "musubi.json"), encoding="utf-8")).get("provides", {})
 problems = []
-for name, version in (("style-catalog", "1.1.0"), ("figure-request", "1.1.0"), ("style4", "1.0.0")):
+for name, version in (("style-catalog", "1.2.0"), ("figure-request", "1.2.0"), ("style4", "1.0.0")):
     item = provides.get(name)
     if not isinstance(item, dict):
         problems.append("provides no " + name)
@@ -695,7 +911,7 @@ for problem in problems:
 sys.exit(1 if problems else 0)
 PYEOF
 }
-check "article-diagram-styles provides style-catalog and figure-request at 1.1.0 and style4 at 1.0.0" provides_three
+check "article-diagram-styles provides style-catalog and figure-request at 1.2.0 and style4 at 1.0.0" provides_three
 
 pages_say_built_in() {
   local page bad=0
@@ -713,10 +929,23 @@ pages_say_built_in() {
 }
 check "the pages say the built-in styles draw without ~/.styles" pages_say_built_in
 
+pages_say_structures() {
+  local page bad=0
+  for page in README.md docs/how-it-works.md; do
+    has "$PLUGIN/$page" "sixteen built-in structures" "chosen apart from the style" || bad=1
+  done
+  for page in README.ja.md docs/how-it-works.ja.md; do
+    has "$PLUGIN/$page" "16の既定の構図" "構図は画風と別に選び" || bad=1
+  done
+  return "$bad"
+}
+check "the pages say the built-in structures are chosen apart from the style" pages_say_structures
+
 # The plugin's files, the root pages, and the marketplace no longer give sixteen as the number of
 # built-in styles. The tests are left out, and so are the released sections of the changelog, which
 # keep what each release shipped. A count of sixteen colors in a style's own words is not a count
-# of styles, so only sixteen followed by styles, or 16 followed by 画風, is counted.
+# of styles, and neither is the count of the sixteen built-in structures, so only sixteen followed
+# by styles or by built-in without structures, or 16 followed by 画風, is counted.
 no_sixteen() {
   {
     find "$PLUGIN" -type f -not -path '*/tests/*'
@@ -731,8 +960,14 @@ needed = ["README.md", "README.ja.md", ".claude-plugin/marketplace.json", "plugi
           "plugins/diagram-styles/THIRD_PARTY_NOTICES.md", "plugins/diagram-styles/CHANGELOG.md",
           "plugins/diagram-styles/skills/article-diagram-styles/references/style-families.md"]
 problems = ["the counted files do not include " + p for p in needed if repo + "/" + p not in paths]
-count = re.compile(r"\b(?:sixteen|16)\s+(?:built-in\s+)?(?:drawing\s+)?styles?\b|\b(?:sixteen|16)\s+built-in\b"
+count = re.compile(r"\b(?:sixteen|16)\s+(?:built-in\s+)?(?:drawing\s+)?styles?\b"
+                   r"|\b(?:sixteen|16)\s+built-in\b(?!\s+(?:figure\s+)?structures?\b)"
                    r"|16\s*(?:種類?)?の(?:既定の)?画風", re.I)
+# The pattern still counts the styles and lets the structures pass.
+for line, counted in (("ships sixteen built-in styles", True), ("sixteen built-in ones", True), ("16の既定の画風", True),
+                      ("ships sixteen built-in structures", False), ("16の既定の構図", False)):
+    if bool(count.search(line)) != counted:
+        problems.append("the pattern %s %r" % ("misses" if counted else "counts", line))
 for path in paths:
     data = open(path, "rb").read()
     if b"\0" in data:
@@ -777,6 +1012,13 @@ request_page() {
   has "$SKILL_DIR/references/figure-request.md" 'A built-in style, or a style of `~/.styles/style-catalog.json` whose `status` is `active`'
 }
 check "the figure request takes a built-in style or a style of the catalog" request_page
+
+request_structure() {
+  has "$SKILL_DIR/references/figure-request.md" '`figures[].structure`' \
+    'A built-in structure, or a structure of `~/.styles/style-catalog.json` whose `status` is `active`, by the name `--structures` prints' \
+    '`structure-comparison` only when the user asked to compare the same content in different structures'
+}
+check "the figure request names a structure and the structure comparison" request_structure
 
 names_no_tool() {
   skill_files | grep -vE '/(tests|agents)/' > "$T/named-files"
@@ -911,6 +1153,95 @@ PYEOF
 }
 check "validate_figure_spec refuses any other rendering_mode" refuses_other_modes
 
+# ledger_fixture <work> [options]: a composition ledger and its figure specs (see tests/fixtures.py).
+ledger_fixture() { python3 "$FIXTURES" ledger "$@" > /dev/null; }
+
+# ledger_check <HOME> <work> <out>: runs the ledger check on the ledger of the work folder, keeps its
+# output in <out>, and returns its exit.
+ledger_check() {
+  [ -f "$SCRIPTS/validate_composition_ledger.py" ] || { echo "      missing scripts/validate_composition_ledger.py" > "$3"; return 127; }
+  HOME="$1" python3 "$SCRIPTS/validate_composition_ledger.py" --ledger "$2/ledger.json" > "$3" 2>&1
+}
+
+# The check names the structures it read when it passes, so a run that ignores structure does not
+# pass this check.
+ledger_accepts_structures() {
+  local h="$T/h-ledger" hu="$T/h-ledger-user" status
+  mkdir -p "$h" "$hu"
+  ledger_fixture "$T/w-ledger" --structure process-flow --structure timeline
+  ledger_check "$h" "$T/w-ledger" "$T/w-ledger.out"
+  status=$?
+  exits 0 "$status" "$T/w-ledger.out" process-flow timeline || { echo "      (built-in structures)"; return 1; }
+  styles "$hu/.styles" --user-structure
+  ledger_fixture "$T/w-ledger-user" --structure my-structure
+  ledger_check "$hu" "$T/w-ledger-user" "$T/w-ledger-user.out"
+  status=$?
+  exits 0 "$status" "$T/w-ledger-user.out" my-structure || { echo "      (a structure of the user's catalog)"; return 1; }
+}
+check "the ledger accepts figures that name a structure in use" ledger_accepts_structures
+
+ledger_refuses_missing_structure() {
+  local h="$T/h-ledger-refuse" kind status
+  mkdir -p "$h"
+  styles "$h/.styles" --retire-structure timeline
+  for kind in missing unknown retired; do
+    case "$kind" in
+      missing) ledger_fixture "$T/w-ledger-$kind" --no-structure ;;
+      unknown) ledger_fixture "$T/w-ledger-$kind" --structure no-such-structure ;;
+      retired) ledger_fixture "$T/w-ledger-$kind" --structure timeline ;;
+    esac
+    ledger_check "$h" "$T/w-ledger-$kind" "$T/w-ledger-$kind.out"
+    status=$?
+    exits 1 "$status" "$T/w-ledger-$kind.out" "entry 1 structure" || { echo "      (a $kind structure)"; return 1; }
+  done
+}
+check "the ledger refuses a figure without a structure in use" ledger_refuses_missing_structure
+
+ledger_refuses_spec_mismatch() {
+  local h="$T/h-ledger-mismatch" status
+  mkdir -p "$h"
+  ledger_fixture "$T/w-ledger-mismatch" --structure process-flow --spec-structure timeline
+  ledger_check "$h" "$T/w-ledger-mismatch" "$T/w-ledger-mismatch.out"
+  status=$?
+  exits 1 "$status" "$T/w-ledger-mismatch.out" "figure spec structure"
+}
+check "the ledger refuses a figure spec whose structure differs from its entry" ledger_refuses_spec_mismatch
+
+# Two, three, and five structures pass: the comparison has no upper limit.
+ledger_accepts_comparison() {
+  local h="$T/h-comparison" n status name
+  local all=(process-flow timeline cycle layers before-after) args
+  mkdir -p "$h"
+  for n in 2 3 5; do
+    args=()
+    for name in "${all[@]:0:$n}"; do args+=(--structure "$name"); done
+    ledger_fixture "$T/w-comparison-$n" --mode structure-comparison --request "Draw this in several structures." "${args[@]}"
+    ledger_check "$h" "$T/w-comparison-$n" "$T/w-comparison-$n.out"
+    status=$?
+    exits 0 "$status" "$T/w-comparison-$n.out" structure-comparison "${all[@]:0:$n}" || { echo "      ($n structures)"; return 1; }
+  done
+}
+check "the ledger accepts a structure comparison of two or more structures" ledger_accepts_comparison
+
+ledger_refuses_comparison() {
+  local h="$T/h-comparison-refuse" status
+  mkdir -p "$h"
+  ledger_fixture "$T/w-comparison-repeat" --mode structure-comparison --request "Compare the structures." \
+    --structure timeline --structure cycle --structure timeline
+  ledger_check "$h" "$T/w-comparison-repeat" "$T/w-comparison-repeat.out"
+  status=$?
+  exits 1 "$status" "$T/w-comparison-repeat.out" structure-comparison timeline || { echo "      (a repeated structure)"; return 1; }
+  ledger_fixture "$T/w-comparison-one" --mode structure-comparison --request "Compare the structures." --structure timeline
+  ledger_check "$h" "$T/w-comparison-one" "$T/w-comparison-one.out"
+  status=$?
+  exits 1 "$status" "$T/w-comparison-one.out" structure-comparison || { echo "      (one figure)"; return 1; }
+  ledger_fixture "$T/w-comparison-unasked" --mode structure-comparison --structure timeline --structure cycle
+  ledger_check "$h" "$T/w-comparison-unasked" "$T/w-comparison-unasked.out"
+  status=$?
+  exits 1 "$status" "$T/w-comparison-unasked.out" comparison_request || { echo "      (no comparison_request)"; return 1; }
+}
+check "the ledger refuses a structure comparison that repeats a structure or has one figure" ledger_refuses_comparison
+
 tests_under_tests() {
   local found
   [ -f "$SCRIPTS/diagram_sample_catalog.py" ] || { echo "      the counted scripts do not include diagram_sample_catalog.py"; return 1; }
@@ -964,11 +1295,12 @@ check "the changelog has a line under Unreleased or the released version" change
 # names the text.
 names_in_changelog() { { unreleased "$1"; released "$1" "$2"; } | grep '^- ' | grep -qF -- "$3"; }
 
-# A release moves the line from ## [Unreleased] into the section of the version both plugin.json
-# files carry and leaves ## [Unreleased] empty, so either place counts. Both shapes are tried on
-# throwaway changelogs before the plugin's own changelog is read.
-changelog_thirty_two() {
-  local version text="thirty-two built-in styles"
+# changelog_names <text>: a line of the plugin's changelog names the text. A release moves the line
+# from ## [Unreleased] into the section of the version both plugin.json files carry and leaves
+# ## [Unreleased] empty, so either place counts. Both shapes are tried on throwaway changelogs
+# before the plugin's own changelog is read.
+changelog_names() {
+  local version text="$1"
   printf '# Changelog\n\n## [Unreleased]\n\n- ships %s\n\n## [0.2.0] - 2026-11-21\n\n- ships an older set of styles\n' "$text" > "$T/changelog-before"
   printf '# Changelog\n\n## [Unreleased]\n\n## [0.3.0] - 2026-11-22\n\n- ships %s\n\n## [0.2.0] - 2026-11-21\n\n- ships an older set of styles\n' "$text" > "$T/changelog-after"
   names_in_changelog "$T/changelog-before" 0.2.0 "$text" || { echo "      a line under ## [Unreleased] is not counted"; return 1; }
@@ -979,7 +1311,12 @@ changelog_thirty_two() {
   names_in_changelog "$PLUGIN/CHANGELOG.md" "$version" "$text" ||
     { echo "      no line under ## [Unreleased] or ## [$version] names the $text"; return 1; }
 }
+
+changelog_thirty_two() { changelog_names "thirty-two built-in styles"; }
 check "the changelog names the thirty-two built-in styles under Unreleased or the released version" changelog_thirty_two
+
+changelog_structures() { changelog_names "sixteen built-in structures"; }
+check "the changelog names the built-in structures under Unreleased or the released version" changelog_structures
 
 releasing_pages() {
   has "$REPO/docs/releasing.md" 'musubi check plugins/diagram-styles/skills' &&
