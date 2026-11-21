@@ -1,7 +1,7 @@
 # The hand-drafted technical sketch
 
-The `handdraft` finish of the `technical-sketch` family draws data structures, storage, conditions, amounts, and boundaries directly.
-Its reference images are the images that `sample_ids` of the `handdraft` profile name in `~/.styles/style-catalog.json`, and its `reference_id` names the one the user chose as the standard of the drawing feel.
+`handdraft` is a built-in style of the `line-drawing` family that draws data structures, storage, conditions, amounts, and boundaries directly, and the style the skill falls back to when no style clearly fits an article.
+Its reference images are the user's images of `handdraft` that `--show handdraft` lists under `samples`, when the catalog registers any; a catalog that redefines `handdraft` may also name the one the user chose as the standard of the drawing feel with `reference_id`.
 Choosing this finish chooses a style; it does not approve the layout of another figure or a candidate.
 
 ## How it is drawn
