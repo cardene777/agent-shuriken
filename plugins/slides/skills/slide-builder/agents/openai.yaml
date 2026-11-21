@@ -1,0 +1,7 @@
+interface:
+  display_name: "Slide Builder"
+  short_description: "Write the Markdown outline of a deck of ten or more slides and check its structure and readability"
+  default_prompt: "Use $slide-builder to write the outline of a ten-slide deck that explains this project to non-engineers, and check it."
+
+policy:
+  allow_implicit_invocation: true

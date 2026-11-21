@@ -1,0 +1,22 @@
+{
+  "en": {
+    "language": "Language",
+    "save": "Save",
+    "export": "Export JSON",
+    "avatar": "Photo",
+    "reset": "Reset",
+    "saved": "Saved in this browser",
+    "confirmReset": "Discard every edit on this page?",
+    "noAvatar": "This slide has no photo to replace: no element has data-key=\"avatar\"."
+  },
+  "ja": {
+    "language": "言語",
+    "save": "保存",
+    "export": "JSONを書き出す",
+    "avatar": "写真",
+    "reset": "元に戻す",
+    "saved": "このブラウザに保存しました",
+    "confirmReset": "このページの編集をすべて捨てますか？",
+    "noAvatar": "差し替える写真がありません。data-key=\"avatar\" を持つ要素がありません。"
+  }
+}

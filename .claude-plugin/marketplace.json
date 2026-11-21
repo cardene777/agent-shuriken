@@ -116,6 +116,11 @@
       "description": "Measure a plugin's skill with claude plugin eval cases kept in the plugin, shorten its SKILL.md, and measure again so that no case scores lower, with the cost agreed before any run and the size capped in the plugin's test"
     },
     {
+      "name": "slides",
+      "source": "./plugins/slides",
+      "description": "Write and check the outline of a deck of ten or more slides, and design a short presentation as HTML that you edit in the browser and export as PowerPoint, PDF, and HTML"
+    },
+    {
       "name": "techdebt",
       "source": "./plugins/techdebt",
       "description": "Rank the files most worth fixing by combining how often they change with their size, old TODO comments, missing tests, long functions, and duplication, without downloading anything"

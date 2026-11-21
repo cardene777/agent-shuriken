@@ -16,6 +16,7 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 - `agent-shared hooks --agent <name>`, which prints the hook groups `deploy` adds to one agent's hook file and writes nothing, for a guard to compare with
 - `agent-shared placed --source <folder>`, which prints, as JSON, the skills, rules, and hooks one source folder placed in each agent and that are still there, and writes nothing, for an app to list what it deployed
 - The diagram-composer plugin, which designs the diagram area of a slide with one visual metaphor, a meaning for every connector, and labels kept off the lines, and checks the diagram's geometry with a script before the slide is rendered
+- The slides plugin, whose two skills write and check the outline of a deck of ten or more slides, and design a short presentation as HTML that you edit in the browser and export as PowerPoint, PDF, and HTML. The export fetches python-pptx, Pillow, and Playwright through uv for one run, and stops before writing anything when uv is missing
 
 ## [0.20.0] - 2026-11-18
 
