@@ -1,0 +1,7 @@
+interface:
+  display_name: "Slide Forge"
+  short_description: "Design a slide as HTML, edit it in the browser, and export PowerPoint, PDF, and HTML"
+  default_prompt: "Use $slide-forge to make a one-slide self-introduction I can edit in the browser and hand out as PowerPoint."
+
+policy:
+  allow_implicit_invocation: true

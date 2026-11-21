@@ -1,0 +1,20 @@
+# slides
+
+| 条件 | 確かめ方 | 出元 |
+|---|---|---|
+| `plugins/slides/`が既存のプラグインと同じ一式を持つ。一式は2つの`plugin.json`、`README.md`と`README.ja.md`、`CHANGELOG.md`、`LICENSE`、`assets/icon.svg`、`docs/how-it-works.md`と`docs/how-it-works.ja.md`、`skills/slide-builder`と`skills/slide-forge`の`SKILL.md`と`agents/openai.yaml`で、版は`0.1.0`である | `bash scripts/check.sh`の検査`"plugin folders are complete"`、`"plugin manifests agree"`、`"plugin icons are square and present"`、`"versions match the changelogs"`、`"pages have Japanese counterparts"`、`"Codex skill metadata matches SKILL.md"`が通り、`bash scripts/check.sh`が終わり方0で終わる | #324 |
+| マーケットプレイスと2つのREADMEの表と2つの公開の状況の表が`slides`の行を持つ | `bash scripts/check.sh`の検査`"marketplace lists every plugin once"`、`"README tables list every plugin"`、`"publishing tables list every plugin"`、`"claude plugin validate"`が通る | #324 |
+| `plugins/slides/skills/`は`slide-builder`と`slide-forge`の2つだけを持ち、技の名前は手元の写しと同じである | `bash plugins/slides/skills/slide-builder/tests/test-slide-builder.sh`の検査`"the plugin holds the two skills by name"`が通る | #324 |
+| `plugins/slides/`の下のどのfileも、`~/.codex/`、`GH #<数>`か`Issue #<数>`の形の課題の番号、`agent-configs`を書かない。検査はこれらの語を部品から組み立て、そのままの形で書かない | `bash plugins/slides/skills/slide-builder/tests/test-slide-builder.sh`の検査`"no file names a local folder or another repository"`が通る | #324 |
+| 2つの`SKILL.md`は、`AskUserQuestion`、`Claude`、`Codex`、モデルの名前を書かず、利用者に会話で聞くと書く。frontmatterは`allowed-tools`を持たない | `bash plugins/slides/skills/slide-builder/tests/test-slide-builder.sh`の検査`"the SKILL.md files name no agent or its tool"`が通る | #324 |
+| `slide-builder`の読みやすさの決まりは、聴衆の既定を非エンジニアとし、禁じる語を関数やクラスのような一般のコードの語に絞り、分野の語は資料ごとに足せると書く。ブロックチェーンと特許の語 (`smart contract`、`mint`、`patent`) を書かない | `bash plugins/slides/skills/slide-builder/tests/test-slide-builder.sh`の検査`"the readability rules hold only general code words"`が通る | #324 |
+| `slide-builder`の`SKILL.md`は確かめのscript `scripts/validate.py`を、`SKILL.md`を置いたフォルダからの相対の場所で名指す。scriptはPython 3の標準libraryだけを使い、利用者のprojectのフォルダから絶対の場所で呼んでも同じ結果を返す | `bash plugins/slides/skills/slide-builder/tests/test-slide-builder.sh`の検査`"the validator uses only the standard library"`と`"the validator runs from any folder"`が通る | #324 |
+| `slide-builder`の参考の例の`slides-outline.md`は、確かめのscriptを終わり方0で通り、ページの`図の指定`を消した写しは終わり方0以外で断られる | `bash plugins/slides/skills/slide-builder/tests/test-slide-builder.sh`の検査`"the example outline passes the validator"`と`"the validator rejects a page without a figure"`が通る | #324 |
+| `slide-forge`の`SKILL.md`と`scripts/export_all.sh`は、PowerPointを作るscriptを`uv run --with python-pptx --with Pillow`で回す | `bash plugins/slides/skills/slide-forge/tests/test-slide-forge.sh`の検査`"the SKILL.md runs the builder through uv"`が通る | #324 |
+| `uv`が`PATH`に在る時、`scripts/export_all.sh`は`content.json`から`<deck>.pptx`と`<deck>.html`を書く | `bash plugins/slides/skills/slide-forge/tests/test-slide-forge.sh`の検査`"export writes a pptx with uv"`が通る | #324 |
+| `uv`が`PATH`に無い時、`scripts/export_all.sh`は何も書かず、`uv`の入れ方を出し、終わり方0以外で終わる | `bash plugins/slides/skills/slide-forge/tests/test-slide-forge.sh`の検査`"export stops without uv"`が通る | #324 |
+| PDFは`uv run --with playwright`で書く。Playwrightのブラウザが無い時 (`PLAYWRIGHT_BROWSERS_PATH`を空のフォルダにした時) は、PDFだけ飛ばしてブラウザの入れ方を出し、PowerPointとHTMLは書いて終わり方0で終わる | `bash plugins/slides/skills/slide-forge/tests/test-slide-forge.sh`の検査`"export skips the PDF without the browser"`が通る | #324 |
+| 編集の道具の画面は英語を既定にし、画面の上の切り替えで日本語に替わり、画面の文言を1つの辞書に持つ | `bash plugins/slides/skills/slide-forge/tests/test-slide-forge.sh`の検査`"the edit toolbar defaults to English and offers Japanese"`が通る | #324 |
+| `AGENTS.md`の依存の決まりが、`uv run`でその場だけ依存を取る例外として`slides`を名指す | `bash plugins/slides/skills/slide-forge/tests/test-slide-forge.sh`の検査`"AGENTS.md names slides as a uv exception"`が通る | #324 |
+| `AGENTS.md`の依存の決まりは今どおり`japanese-writing`と`design-formats`を例外として名指し、2つのプラグインのscriptが通る | `bash scripts/check.sh`の検査`"script dependencies are named in AGENTS.md"`が通る | #324 |
+| 検査とscriptと文書は英語で書き、日本語は`.ja.md`のfileと、編集の道具の辞書の日本語の側だけが持つ | `bash scripts/check.sh`の検査`"English outside the Japanese pages"`と`"no local user paths"`が通る | #324 |

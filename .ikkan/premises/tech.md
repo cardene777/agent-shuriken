@@ -2,7 +2,7 @@
 
 - skill は Agent Skills の形 (`SKILL.md`) で書き、agent ごとの道具の名前に頼らない (根拠 `AGENTS.md` の Rules for plugins)
 - 実行時に使ってよいのは Bash、`jq`、Python 3 の標準ライブラリで、Node.js はブラウザを動かす時だけ使う。利用者に全体へ入れる package を求めない (根拠 `AGENTS.md`)
-- 例外は `japanese-writing` だけで、上流の script を `uv run` で動かす (根拠 `AGENTS.md`、`scripts/check.sh`)
+- 例外は `AGENTS.md` の依存の決まりが名指す 3 つの plugin だけ。`japanese-writing` は上流の script を `uv run` で動かし、`design-formats` の `page-design` は `npx` で dragon を取り、`slides` の `slide-forge` は `uv run --with` で `python-pptx` と `Pillow` と Playwright をその回だけ取る (根拠 `AGENTS.md`、`scripts/check.sh`)
 - hook を足さない。CI の workflow を足さない (根拠 `AGENTS.md`)
 - 画像と font 以外の binary を置かない。画像以外の file は 256 KiB 未満、plugin は 512 file 未満にする (根拠 `AGENTS.md`)
 - 状態は `~/.local/share/<plugin>/` に置き、環境変数で替えられるようにする (根拠 `AGENTS.md`)

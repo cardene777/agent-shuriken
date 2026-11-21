@@ -1,0 +1,34 @@
+{
+  "name": "slides",
+  "version": "0.1.0",
+  "description": "Write and check the outline of a deck of ten or more slides, and design a short presentation as HTML that you edit in the browser and export as PowerPoint, PDF, and HTML",
+  "author": {
+    "name": "cardene777",
+    "url": "https://github.com/cardene777"
+  },
+  "homepage": "https://github.com/cardene777/agent-shuriken/tree/main/plugins/slides",
+  "repository": "https://github.com/cardene777/agent-shuriken",
+  "license": "MIT",
+  "keywords": [
+    "slides",
+    "presentation",
+    "powerpoint",
+    "outline",
+    "pdf"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Slides",
+    "shortDescription": "Outline and export slides",
+    "longDescription": "Two skills for presentations. Slide Builder writes the Markdown outline of an explanatory deck of ten or more slides, with each slide's takeaway, explanation, and figure described in words for a non-engineer audience, and checks it with a Python script that uses only the standard library: it rejects a slide without its heading, meta line, or takeaway, and a figure without its list of elements, and flags general code words and any words you ban for the deck. Slide Forge designs a one-slide or short presentation as HTML, adds a toolbar in English or Japanese so you edit the text in the browser, and exports PowerPoint, HTML, and PDF. The export runs through uv, which fetches python-pptx, Pillow, and Playwright from the Python Package Index into its own cache for that run, so nothing is installed into your Python; without uv it writes nothing and says how to install it, and without Playwright's browser it skips only the PDF and never downloads the browser. Files are written only to the deck folder you name, edits stay in your browser, and nothing else is sent anywhere.",
+    "developerName": "cardene777",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": [
+      "Make a one-slide self-introduction I can edit in the browser and hand out as PowerPoint",
+      "Write the outline of a ten-slide deck that explains this project to non-engineers"
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
+  }
+}
