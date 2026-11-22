@@ -1,6 +1,6 @@
 ---
 name: evm-standards
-description: Answers whether an ERC is final or an EIP is live on Ethereum mainnet and what it lets contracts and wallets do, finds standards by what they do, and links bitsumi articles, from dated items. Use when the user asks about an ERC or EIP, or which standard to rely on or use.
+description: Answers whether an ERC is final or an EIP is live on Ethereum mainnet and what it lets contracts and wallets do, finds a standard for a task, and links bitsumi articles, from dated items. Use when asked about an ERC or EIP, or which to use. For L2s and consensus-only EIPs, use ethereum-knowledge.
 ---
 
 # EVM standards
@@ -8,7 +8,7 @@ description: Answers whether an ERC is final or an EIP is live on Ethereum mainn
 A model's knowledge stops at its cutoff, and the status of standards keeps moving after it.
 This skill answers from items checked against the official ERC and EIP documents, each with the date it was checked and its source.
 It covers ERCs and the EIPs that change what contracts, wallets, and dApps can do, such as new opcodes, precompiles, gas costs, and EIP-7702.
-It does not cover the state of L2 networks or changes that stay inside consensus.
+For the state of L2 networks and changes that stay inside consensus, use the `ethereum-knowledge` skill.
 
 Talk to the user in the language they write in.
 

@@ -5,6 +5,10 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+### Added
+
+- A new `ethereum-knowledge` skill answers how L2 networks and rollup frameworks work and stand, what is planned for Ethereum L1, and whether EIPs that change only consensus are live, from 51 dated items with their sources. `ethereum-knowledge.sh check` names an item with a missing field, an unknown status, an impossible date, or an ERC name, and `list` marks the items past the days for their status. Questions on ERCs and on EIPs that change what contracts and wallets can do stay with `evm-standards`, whose description now names `ethereum-knowledge` for the rest
+
 ### Changed
 
 - The report of `release-check` follows the `structure` format of page-design in the design-formats plugin through musubi, as an optional follow declared in `skills/release-check/musubi.json`: the result first, what was checked and skipped with the reasons, values not measured written as not measured, and the user's steps last. When the `musubi` command is installed, the agent runs `musubi check` before reading the format. Without design-formats, the skill reports in its own order
