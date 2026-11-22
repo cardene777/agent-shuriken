@@ -652,7 +652,7 @@ texts = {"CHANGELOG.md (Unreleased)": unreleased,
          "docs/how-it-works.ja.md": open(root + "/docs/how-it-works.ja.md", encoding="utf-8").read()}
 want = {"CHANGELOG.md (Unreleased)": ["of any length", "escapes"],
         "docs/how-it-works.md": ["of any length", "escapes"],
-        "docs/how-it-works.ja.md": ["長さによらず", "エスケープ"]}
+        "docs/how-it-works.ja.md": ["\u9577\u3055\u306b\u3088\u3089\u305a", "\u30a8\u30b9\u30b1\u30fc\u30d7"]}
 problems = ["%s does not say %r" % (name, [w for w in words if w not in texts[name]])
             for name, words in want.items() if any(w not in texts[name] for w in words)]
 for p in problems:

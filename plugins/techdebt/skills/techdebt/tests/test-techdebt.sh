@@ -2401,7 +2401,7 @@ import sys
 root = sys.argv[1]
 want = {"CHANGELOG.md": ["five tabs", "#item-", "Stopped"],
         "README.md": ["Change history", "#item-", "Stopped"], "docs/how-it-works.md": ["Change history", "#item-", "Stopped"],
-        "README.ja.md": ["変更の履歴", "#item-", "止まった"], "docs/how-it-works.ja.md": ["変更の履歴", "#item-", "止まった"]}
+        "README.ja.md": ["\u5909\u66f4\u306e\u5c65\u6b74", "#item-", "\u6b62\u307e\u3063\u305f"], "docs/how-it-works.ja.md": ["\u5909\u66f4\u306e\u5c65\u6b74", "#item-", "\u6b62\u307e\u3063\u305f"]}
 problems = []
 for name, words in want.items():
     text = open("%s/%s" % (root, name), encoding="utf-8").read()
@@ -2485,8 +2485,8 @@ texts = {"CHANGELOG.md (Unreleased)": unreleased,
          "docs/how-it-works.ja.md": open(root + "/docs/how-it-works.ja.md", encoding="utf-8").read()}
 want = {"CHANGELOG.md (Unreleased)": ["parameter and return types", "strings that span lines", "lifetimes"],
         "docs/how-it-works.md": ["parameter and return types", "strings that span lines"],
-        "docs/how-it-works.ja.md": ["引数と戻り値の型",
-                                    "複数行にまたがる文字列"]}
+        "docs/how-it-works.ja.md": ["\u5f15\u6570\u3068\u623b\u308a\u5024\u306e\u578b",
+                                    "\u8907\u6570\u884c\u306b\u307e\u305f\u304c\u308b\u6587\u5b57\u5217"]}
 problems = ["%s does not say %r" % (name, [w for w in words if w not in texts[name]])
             for name, words in want.items() if any(w not in texts[name] for w in words)]
 for p in problems:
