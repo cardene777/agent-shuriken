@@ -60,11 +60,11 @@ holds_two_skills() {
 }
 
 # The words are built from parts so that this file does not hold what it looks for.
+# Only general shapes are listed here. Names from the maintainer's private setup are checked in the private repository.
 no_local_names() {
   need "$SKILL" || return 1
   local pattern hits
-  pattern="$(printf '%s|' '~/[.]co''dex/' '/Us''ers/' '(G''H|Iss''ue) #[0-9]' 'agent-''configs' \
-    'jfet''-intro' 'chr-''lt-q1' 'design''-sync')"
+  pattern="$(printf '%s|' '~/[.]co''dex/' '/Us''ers/' '(G''H|Iss''ue) #[0-9]' 'agent-''configs')"
   hits="$(grep -rIlE "${pattern%|}" "$PLUGIN_DIR")"
   [ -z "$hits" ] || { why="found in: $(printf '%s ' $hits)"; return 1; }
 }
