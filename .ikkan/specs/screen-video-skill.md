@@ -35,12 +35,15 @@
 | 編集済みの動画は流れの題の画面で始まり、`chapter`を持つ操作の前に章の名前を出し、`end`を持つ流れは終わりの画面で終わる | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"title, chapter, and end cards appear in order"`が通る | #339 |
 | 字幕はテーマの文字と帯で描かれ、出る時と消える時に短く溶ける | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"captions fade in and out in the theme look"`が通る | #339 |
 | 流れが`voice`を持つ時、字幕ごとの読み上げの声が、その字幕が出る時刻に編集済みの動画の音へ入る | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"each caption is read aloud when it appears"`が通る | #339 |
-| 手元の声は、英語の流れでは`kokoro-js`、日本語の流れではVOICEVOX COREで作る | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"local voices use Kokoro for English and VOICEVOX for Japanese"`が通る | #339 |
+| 手元の声は、英語の流れでは`kokoro-js`、日本語の流れではAivisSpeech Engineのまおの落ち着いた話し方で作る | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"local voices use Kokoro for English and AivisSpeech's まお for Japanese"`が通る | #376 |
+| AivisSpeech Engineは、Sentryを止めて`127.0.0.1`だけで動き、利用者データをデータのフォルダの`voices/aivisspeech/`に置き、読み上げを作り終えると止まる | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"AivisSpeech runs on 127.0.0.1 with Sentry off, keeps its data in the data folder, stops, and asks no credit"`が通る | #376 |
+| AivisSpeechで読み上げた日本語の動画は、終わりの画面に声の表記を入れず、`credits.txt`を書かない | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"a Japanese video narrated by AivisSpeech carries no credit"`が通る | #376 |
 | 手元の声の道具は、声を使う流れを初めて撮る時だけデータのフォルダへ入り、声を使わない流れでは入らない | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"voice engines install into the data folder only when a flow needs them"`が通る | #339 |
 | 外のTTS (Azure、OpenAI、ElevenLabs、Google Cloud) は、流れが`voice.engine`でそのサービスを選んだ時だけ呼ばれ、キーは流れが名指すenvファイルから読まれる | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"each cloud voice is called only when the flow chooses it"`が通る | #339 |
 | 外のTTSのキーは、出力にもfileにも出ない | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"cloud voice keys never appear in output or files"`が通る | #339 |
 | 手元の声の流れでは、台本の文をこのマシンの外へ送らない | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"a local voice sends nothing off the machine"`が通る | #339 |
 | VOICEVOXの声を使った動画は、終わりの画面と`credits.txt`に「VOICEVOX:キャラ名」を入れる | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"VOICEVOX voices are credited on the end card and in credits.txt"`が通る | #339 |
+| 流れが`voicevox`を選んだ時は、流れに規約への同意が書かれるまで声のモデルを取得しない | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"VOICEVOX waits for its terms to be agreed and credits its voice"`が通る | #376 |
 | 編集済みの動画には手元で作った静かな曲が流れ、声が鳴る間は曲の音量が下がる | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"music plays under the video and ducks under the voice"`が通る | #339 |
 | 流れの`music.file`で、プロジェクトの曲のfileを作った曲の代わりに流せる | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"a music file from the project replaces the made music"`が通る | #339 |
 | 押した時と文字を打った時に、同梱のCC0の音がその時刻に鳴る | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"presses and typing make a sound at their times"`が通る | #339 |

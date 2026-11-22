@@ -6,7 +6,7 @@
  * | `dataDir()` | `$SCREEN_VIDEO_HOME`, or `$XDG_DATA_HOME/screen-video`, or `~/.local/share/screen-video` |
  * | `nodeDir()` | `$SCREEN_VIDEO_NODE_DIR`, or `node/` in the data folder: `playwright-core` and `ffmpeg-static`, installed by `screen-video.sh setup` |
  * | `<data>/sessions/` | Saved logins, one file per project and session name, readable only by the user |
- * | `<data>/voices/` | The local voice engines, installed the first time a flow is narrated: `kokoro/` (kokoro-js and its model) and `voicevox/` (VOICEVOX CORE, its models, and a Python virtual environment) |
+ * | `<data>/voices/` | The local voice engines, installed the first time a flow is narrated: `kokoro/` (kokoro-js and its model), `aivisspeech/` (AivisSpeech Engine, its voice models, and its language model), and `voicevox/` (VOICEVOX CORE, its models, and a Python virtual environment) |
  * | `<data>/<project>/<name>/` | Videos and records of a flow or a recording, unless `--out` names another folder |
  */
 import { spawnSync } from "node:child_process";

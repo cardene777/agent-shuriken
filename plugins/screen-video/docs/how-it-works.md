@@ -72,13 +72,14 @@ A theme is read from `.screen-video/themes/<name>.json` of the project first, th
 
 | `voice.engine` | How the voice is made |
 |---|---|
-| `local` | Kokoro for English and VOICEVOX for Japanese, on your machine |
+| `local` | Kokoro for English and AivisSpeech for Japanese, on your machine |
 | `kokoro` | kokoro-js 1.2.1 with the Kokoro-82M model, installed into `voices/kokoro/` of the data folder the first time |
+| `aivisspeech` | AivisSpeech Engine 1.2.0, unpacked into `voices/aivisspeech/engine/` the first time, reading in the voice Mao in its calm style. Mao is downloaded into the engine's user data in `voices/aivisspeech/home/` before the engine first starts, and the engine downloads its language model and AivisHub's default voices there on its first start. It runs on 127.0.0.1 with Sentry off only while the lines are made |
 | `voicevox` | VOICEVOX CORE 0.16.4 in a Python environment in `voices/voicevox/`, with its voice model, ONNX Runtime, and dictionary, downloaded the first time only after the flow says the user agreed to its terms |
 | `openai`, `elevenlabs`, `azure`, `google` | At that company, with the key read from the flow's `envFile` or the environment. Each caption's text is sent there |
 
 Each line is made before the recording and evened out to the same loudness, so every engine sounds alike, and kept in `voice/` with `voice.json`.
-A VOICEVOX voice is named as `VOICEVOX:<character>` on the end card and in `credits.txt`.
+A video narrated by Mao carries no credit. A VOICEVOX voice is named as `VOICEVOX:<character>` on the end card and in `credits.txt`.
 The music is made by ffmpeg as quiet chords, and it drops under each line of narration and rises again after it; `music` may name a music file of the project instead.
 Each press and key makes a short sound from Kenney's UI Audio (CC0), bundled in `data/sounds/`, as [the notices](../THIRD_PARTY_NOTICES.md) list.
 

@@ -35,6 +35,12 @@ These are not bundled. They are installed into the data folder the first time th
 |---|---|---|
 | `playwright-core` and `ffmpeg-static` | The first run of any command | npm, at the versions in `scripts/screen-video.sh` |
 | `kokoro-js` and the Kokoro-82M model (Apache-2.0) | The first narrated English flow with a local voice | npm, and the model from Hugging Face on its first use |
-| VOICEVOX CORE (MIT), its downloader, ONNX Runtime, the Open JTalk dictionary, and the voice model | The first narrated Japanese flow with a local voice, once the user has agreed to the voice model's terms | The VOICEVOX CORE releases on GitHub, through pip and the downloader |
+| AivisSpeech Engine 1.2.0 (LGPL-3.0), the build for the machine | The first narrated Japanese flow with a local voice, or with `aivisspeech` | The AivisSpeech Engine releases on GitHub |
+| Mao, the default AivisSpeech voice (ACML 1.0) | The same flow, before the engine first starts | AivisHub (`api.aivis-project.com`) |
+| The engine's language model and the voices AivisHub names as the engine's defaults | The engine's first start | The engine downloads them itself, the language model from Hugging Face and the voices from AivisHub |
+| VOICEVOX CORE (MIT), its downloader, ONNX Runtime, the Open JTalk dictionary, and the voice model | The first narrated flow with `voicevox`, once the user has agreed to the voice model's terms | The VOICEVOX CORE releases on GitHub, through pip and the downloader |
 
+The plugin runs AivisSpeech Engine unmodified, as a separate program, only while it makes the lines, on 127.0.0.1 with its error reports to Sentry turned off.
+While running, the engine asks AivisHub about its version and its voices.
+Videos narrated by AivisSpeech's Mao carry no credit: AivisSpeech Engine asks for none, and ACML 1.0 allows commercial use and leaves the credit optional.
 Videos narrated by a VOICEVOX voice name it as `VOICEVOX:<character>` on their end card and in `credits.txt`, as the voice's terms ask.

@@ -130,19 +130,22 @@ When a theme changes a background but not the text on it, the text gets whicheve
 
 | `engine` | Where the voice is made | What it needs |
 |---|---|---|
-| `local` | On this machine: Kokoro for English, VOICEVOX for Japanese | Nothing for English. For Japanese, Python 3.10 or later and the user's agreement to the VOICEVOX terms |
+| `local` | On this machine: Kokoro for English, AivisSpeech for Japanese | Nothing; the engine for the language is installed into the data folder the first time |
 | `kokoro` | On this machine, with kokoro-js | Nothing; it is installed into the data folder the first time |
-| `voicevox` | On this machine, with VOICEVOX CORE | As `local` for Japanese |
+| `aivisspeech` | On this machine, with AivisSpeech Engine 1.2.0 and its voice Mao | Nothing; the engine, Mao, the engine's language model, and the voices AivisHub names as the engine's defaults, about 1.3GB in all, are downloaded into the data folder the first time |
+| `voicevox` | On this machine, with VOICEVOX CORE | Python 3.10 or later and the user's agreement to the terms of VOICEVOX and of its voice |
 | `openai`, `elevenlabs`, `azure`, `google` | At that company: each caption's text is sent to it | A key, read from `envFile` or the environment |
 
 | Field | What it holds |
 |---|---|
 | `engine` | One of the engines above |
-| `voice` | The engine's voice name. Without it, a calm voice the skill picks |
+| `voice` | The engine's voice name. For `aivisspeech`, an installed voice as `speaker/style`, with the speaker and style names the engine lists, or as `speaker` for its first style. Without it, a calm voice the skill picks |
 | `envFile` | An env file inside the project that holds the cloud key, such as `.env.local` |
 | `keyEnv` | The variable that holds the key, when it is not the usual one (`OPENAI_API_KEY`, `ELEVENLABS_API_KEY`, `AZURE_SPEECH_KEY` with `AZURE_SPEECH_REGION`, `GOOGLE_TTS_API_KEY`) |
 | `terms` | `"agreed"` once the user has agreed to the terms of VOICEVOX and of its voice |
 
+AivisSpeech Engine runs only while the lines are made, listening on 127.0.0.1 with its error reports to Sentry turned off, and is stopped afterwards.
+A video narrated by AivisSpeech's Mao carries no credit: the engine asks for none, and Mao's license, ACML 1.0, leaves it optional.
 A video narrated by VOICEVOX names the voice as `VOICEVOX:<character>` on its end card and in `credits.txt`, as the voice's terms ask.
 Keys are never printed or written into any file.
 
