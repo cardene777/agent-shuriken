@@ -1,15 +1,16 @@
 # EVM Dev
 
-Know whether an ERC is final or an EIP is live on Ethereum mainnet, design contracts, wallets, and apps across chains, write Solidity and its tests for the versions your project uses, deploy contracts while the key stays with you, check a release against the deployed version and the target chains, plan a dApp's architecture, and design apps built on financial standards such as ISO 20022 and FIX, from items checked against the official documents instead of what the agent remembers.
+Know whether an ERC is final or an EIP is live on Ethereum mainnet and how L2 networks and the Ethereum L1 roadmap stand, design contracts, wallets, and apps across chains, write Solidity and its tests for the versions your project uses, deploy contracts while the key stays with you, check a release against the deployed version and the target chains, plan a dApp's architecture, and design apps built on financial standards such as ISO 20022 and FIX, from items checked against the official documents instead of what the agent remembers.
 
 English · [日本語](README.ja.md)
 
-An agent's knowledge stops at its training cutoff, while standards and tools keep moving: an EIP ships in a network upgrade, a widely cited "ERC" turns out never to have been merged, a library renames the files you import, a framework deprecates the call your script makes, a hosted relayer or automation service shuts down, a payments standard release is deferred.
+An agent's knowledge stops at its training cutoff, while standards and tools keep moving: an EIP ships in a network upgrade, an L2 replaces the system that proves its state, a widely cited "ERC" turns out never to have been merged, a library renames the files you import, a framework deprecates the call your script makes, a hosted relayer or automation service shuts down, a payments standard release is deferred.
 This plugin ships dated items on all of them, each with the date it was checked against the official document and the document it came from.
 
 | Skill | What it does |
 |---|---|
 | `evm-standards` | Answers whether an ERC is final or an EIP is live, and what it lets contracts and wallets do, from 41 items on ERCs and EIPs. It also finds standards by what they do, and links the maintainer's bitsumi article on each standard it names |
+| `ethereum-knowledge` | Answers how L2 networks and rollup frameworks work and stand, what is planned for Ethereum L1, and whether EIPs that change only consensus are live, from 51 items. It leaves ERCs and the EIPs that change what contracts and wallets can do to `evm-standards` |
 | `solidity-code` | Writes and changes contracts in Foundry and Hardhat projects for the solc, OpenZeppelin, forge-std, Foundry, and Hardhat versions the project uses, then scans the code for outdated patterns and builds and tests it |
 | `contract-tests` | Writes unit, fuzz, and invariant tests for a project's contracts in Foundry or Hardhat, or has kiwa write them when it is installed, from a list of what each contract needs tested, then names what no test covers and runs the tests |
 | `contract-deploy` | Writes Foundry and Hardhat Ignition deploy scripts that never touch keys, names every place a project handles a key unsafely, hands you the command to sign with a hardware wallet on production chains and an encrypted keystore on test chains, then records each chain's deployed addresses and checks them |
@@ -22,6 +23,7 @@ This plugin ships dated items on all of them, each with the date it was checked 
 
 ```
 evm-standards:  List the items ──> Read the ones asked about ──> Re-check stale ones ──> Answer with date and source
+ethereum-knowledge:  List the items ──> Read the ones asked about ──> Re-check stale ones ──> Answer with date and source
 solidity-code:  Read the project's versions ──> Read the items for them ──> Write ──> Scan, build, and test
 contract-tests:  Read the versions and items ──> List what needs a test ──> Write the tests, or have kiwa write them ──> Name what no test covers ──> Run the tests
 contract-deploy:  Read the versions and items ──> Write the deploy script ──> Check the key handling ──> Simulate, then the user broadcasts ──> Record and verify
@@ -48,6 +50,7 @@ copilot plugin install evm-dev@agent-shuriken
 copilot plugin install doc-formats@agent-shuriken
 
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/evm-standards   # Gemini CLI
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/ethereum-knowledge
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/solidity-code
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/contract-tests
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/contract-deploy
@@ -67,6 +70,7 @@ In other agents that read `SKILL.md`, unzip the skill zip attached to each relea
 ## Use
 
 `evm-standards` starts when you ask about the status of a standard, for example "is EIP-7702 live on mainnet?" or "can I cite ERC-7281 as final?", or which standard does a job, for example "which standard lets a contract verify a passkey signature?".
+`ethereum-knowledge` starts when you ask how an L2 or the Ethereum L1 roadmap stands, or whether an EIP that changes only consensus is live, for example "is PeerDAS live on mainnet?" or "how does the OP Stack prove withdrawals now?".
 `solidity-code` starts when you ask for a contract to be written or changed, for example "add a pausable ERC-20 token to this Foundry project".
 `contract-tests` starts when you ask for tests of a contract, for example "add tests for src/Vault.sol".
 `contract-deploy` starts when you ask for contracts to be deployed or a deployment to be recorded, for example "deploy src/Vault.sol to Sepolia and then Base" or "write down what my last forge script deployed".
@@ -76,8 +80,8 @@ In other agents that read `SKILL.md`, unzip the skill zip attached to each relea
 `multichain-design` starts when you ask for an app on more than one chain to be designed, for example "plan how our token moves between Ethereum and Base".
 `dapp-architecture` starts when you ask how a dApp should be put together, for example "plan the architecture of this marketplace: who pays the gas, how it reads chain data, and who holds the admin keys".
 `financial-standards` starts when you ask for a design built on a financial standard, for example "design how this project maps ISO 20022 payment messages onto a settlement contract".
-You can also call them: run `/evm-dev:evm-standards`, `/evm-dev:solidity-code`, `/evm-dev:contract-tests`, `/evm-dev:contract-deploy`, `/evm-dev:release-check`, `/evm-dev:contract-design`, `/evm-dev:wallet-design`, `/evm-dev:multichain-design`, `/evm-dev:dapp-architecture`, or `/evm-dev:financial-standards` in Claude Code, or type `$` and pick **EVM Standards**, **Solidity Code**, **Contract Tests**, **Contract Deploy**, **Release Check**, **Contract Design**, **Wallet Design**, **Multichain Design**, **dApp Architecture**, or **Financial Standards** in Codex.
-In GitHub Copilot CLI, write `/evm-standards`, `/solidity-code`, `/contract-tests`, `/contract-deploy`, `/release-check`, `/contract-design`, `/wallet-design`, `/multichain-design`, `/dapp-architecture`, or `/financial-standards` in your request, and in Gemini CLI, describe the task.
+You can also call them: run `/evm-dev:evm-standards`, `/evm-dev:ethereum-knowledge`, `/evm-dev:solidity-code`, `/evm-dev:contract-tests`, `/evm-dev:contract-deploy`, `/evm-dev:release-check`, `/evm-dev:contract-design`, `/evm-dev:wallet-design`, `/evm-dev:multichain-design`, `/evm-dev:dapp-architecture`, or `/evm-dev:financial-standards` in Claude Code, or type `$` and pick **EVM Standards**, **Ethereum Knowledge**, **Solidity Code**, **Contract Tests**, **Contract Deploy**, **Release Check**, **Contract Design**, **Wallet Design**, **Multichain Design**, **dApp Architecture**, or **Financial Standards** in Codex.
+In GitHub Copilot CLI, write `/evm-standards`, `/ethereum-knowledge`, `/solidity-code`, `/contract-tests`, `/contract-deploy`, `/release-check`, `/contract-design`, `/wallet-design`, `/multichain-design`, `/dapp-architecture`, or `/financial-standards` in your request, and in Gemini CLI, describe the task.
 
 ### Check a standard
 
@@ -117,6 +121,32 @@ Each article line, left out here, gives the standard, the link, such as https://
 item eip-7951-secp256r1-precompile live 2026-11-11 3 Contracts can cheaply verify P-256 (secp256r1) signatures, such as passkey, WebAuthn, Secure Enclave, and Android Keystore signatures, with P256VERIFY at 0x100.
 items: 1 matched
 articles: 1 matched of 642 in https://cardene.dev/llms.txt, read 2026-11-17
+```
+
+### Check an L2 or the L1 roadmap
+
+1. The agent lists the items with the date each was checked, and marks the ones that are out of date
+2. The agent reads the items your question needs
+3. For an out-of-date item, the agent re-checks the official documents of the network, framework, or EIP, or says it could not
+4. The agent answers with the status, the date it was checked, and the source
+
+A question on an ERC, or on an EIP that changes what contracts and wallets can do, goes to `evm-standards`.
+The list looks like this.
+
+```text
+ok     live       2026-11-11 eip-7594-peerdas
+ok     specified  2026-11-16 eip-7805-focil
+ok     live       2026-11-11 l2beat-stages
+ok     live       2026-11-16 op-stack-fault-proofs
+51 items, 0 stale as of 2026-11-22
+```
+
+An answer looks like this.
+
+```text
+Yes. PeerDAS (EIP-7594) has each node receive only part of the blob data and sample columns from other nodes to check that the whole was published.
+It went live on mainnet with the Fusaka upgrade on 2025-12-03.
+Status: live, checked 2026-11-11, source: the EIP-7594 document and EIP-7607 (the Fusaka meta EIP).
 ```
 
 ### Write a contract
@@ -367,8 +397,9 @@ financial-standards: 2 problems; fill in or add each section named above
 
 | Covered | Not covered |
 |---|---|
-| ERCs, such as ERC-20, ERC-1271, ERC-4337, ERC-6551, ERC-7683 | The state of L2 networks, which dedicated trackers follow |
-| EIPs that change what contracts and wallets can do: opcodes, precompiles, gas costs, transaction types, EIP-7702, native account abstraction | EIPs that change only consensus, such as validator rules |
+| ERCs, such as ERC-20, ERC-1271, ERC-4337, ERC-6551, ERC-7683 | Live figures of a network, such as fees and the value locked in it, which dedicated trackers follow |
+| EIPs that change what contracts and wallets can do: opcodes, precompiles, gas costs, transaction types, EIP-7702, native account abstraction | Running a validator or a node |
+| How L2 networks and rollup frameworks work and stand, what is planned for Ethereum L1, and EIPs that change only consensus, such as PeerDAS and FOCIL | ERCs and the EIPs that change what contracts and wallets can do, which `evm-standards` covers |
 | How an EIP gets into a network upgrade (EIP-7723) | Choosing how a contract is upgraded, which `contract-design` covers |
 | Writing Solidity for the versions of solc, OpenZeppelin, forge-std, Foundry, and Hardhat a project uses | Checking a release, which `release-check` covers |
 | Writing unit, fuzz, and invariant tests for a project's contracts in Foundry or Hardhat, or having kiwa write them | Mutation testing, coverage targets, and tests of a dApp's screens, which kiwa covers |
@@ -401,6 +432,7 @@ In short:
 
 - It reads the items bundled with the plugin
 - `evm-standards` runs `evm-standards.sh list`, which reads the items and prints one line each
+- `ethereum-knowledge` runs `ethereum-knowledge.sh list`, which reads its own items and prints one line each
 - `evm-standards` runs `standards.py` for `find` and `article`. It reads the items and the bitsumi article index, https://cardene.dev/llms.txt, which it downloads with a plain request to that fixed address, so no word of your question is sent. It keeps the index in `~/.local/share/evm-dev/` (`EVM_DEV_HOME` changes it), readable only by you, for one day, and prints only article titles, descriptions, and `https://cardene.dev/articles/` links
 - `solidity-code` runs `solidity-code.py`, which reads the project's config files and the `package.json` files of its libraries for their versions, and the project's source files for the scan. It never reads `.env` files, dependencies, or build output, and never prints the text of a line
 - `solidity-code` writes only the contracts you ask for, and runs the project's build and tests
@@ -415,7 +447,7 @@ In short:
 - `multichain-design` runs `multichain-design.py`, which reads its items and the design file it writes, and prints only section names when it checks the design. It writes only the design file, never reads `.env` files or keys, never signs, and refuses a command that passes a key
 - `dapp-architecture` runs `dapp-architecture.py`, which reads its items and the design file it writes, and prints only section names when it checks the design. It writes only the design file, and never reads `.env` files or keys
 - `financial-standards` runs `financial-standards.py`, which reads its items and the design file it writes, and prints only section names when it checks the design. It writes only the design file, and never reads `.env` files or keys
-- To re-check an out-of-date item, the agent searches the web and opens the official document with only a standard's number or name, or a tool's or service's name and version
+- To re-check an out-of-date item, the agent searches the web and opens the official document with only a standard's number or name, a network's or framework's name, or a tool's or service's name and version
 - It never edits its items, and keeps nothing but that copy of the article index
 
 ## License

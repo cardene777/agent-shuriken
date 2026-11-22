@@ -2,7 +2,7 @@
 
 English · [日本語](how-it-works.ja.md)
 
-The plugin has ten skills. `evm-standards` answers questions about ERCs and EIPs from items bundled with it, `solidity-code` writes Solidity for the versions a project uses from items about its tools, `contract-tests` writes tests for a project's contracts from items about its test tools, `contract-deploy` writes deploy scripts, checks how a project handles keys, and records what was deployed, from items about keystores, hardware wallets, deployment files, and verification, `release-check` checks contracts before a release against the deployed version and the target chains, from items about EVM versions, the transaction gas cap, storage layouts, and the tools, `contract-design` writes a design for a set of contracts from items about the libraries and services they rely on, `wallet-design` writes a design for an app's wallets and signing from items about accounts, permissions, approvals, gas sponsorship, and payments, `multichain-design` writes a design for an app on more than one chain from items about deployment tools, bridges, message protocols, and token standards, `dapp-architecture` writes a design for how a dApp's parts fit together from items about the services it may use, and `financial-standards` writes a design for an app built on financial standards from items about their versions.
+The plugin has eleven skills. `evm-standards` answers questions about ERCs and EIPs from items bundled with it, `ethereum-knowledge` answers questions about L2 networks, the Ethereum L1 roadmap, and consensus-only EIPs from its own items, `solidity-code` writes Solidity for the versions a project uses from items about its tools, `contract-tests` writes tests for a project's contracts from items about its test tools, `contract-deploy` writes deploy scripts, checks how a project handles keys, and records what was deployed, from items about keystores, hardware wallets, deployment files, and verification, `release-check` checks contracts before a release against the deployed version and the target chains, from items about EVM versions, the transaction gas cap, storage layouts, and the tools, `contract-design` writes a design for a set of contracts from items about the libraries and services they rely on, `wallet-design` writes a design for an app's wallets and signing from items about accounts, permissions, approvals, gas sponsorship, and payments, `multichain-design` writes a design for an app on more than one chain from items about deployment tools, bridges, message protocols, and token standards, `dapp-architecture` writes a design for how a dApp's parts fit together from items about the services it may use, and `financial-standards` writes a design for an app built on financial standards from items about their versions.
 This page describes the skills' items, when an item counts as out of date, the scripts, and what the agent may do with them.
 
 ## The ERC and EIP items
@@ -18,7 +18,7 @@ Its front matter holds four fields.
 | `can` | One sentence on what the standard lets contracts, wallets, or dApps do, which `find` searches |
 
 The body says what the standard is, what it lets contracts, wallets, or dApps do, its current status, and what has not shipped yet.
-Items cover ERCs and the EIPs that change what contracts and wallets can do; EIPs that change only consensus and the state of L2 networks are left out.
+Items cover ERCs and the EIPs that change what contracts and wallets can do; the state of L2 networks and the EIPs that change only consensus are in the `ethereum-knowledge` items.
 
 ## Statuses
 
@@ -64,6 +64,41 @@ It prints only titles, descriptions, and links that start with `https://cardene.
 4. When no item covers the question, it says so, and answers from the official document or says it could not be checked
 5. When asked which standard does a job, it runs `find` with words in English and in the user's language, and takes the status of each standard from its item or the official document, never from an article
 6. For each standard it names, it runs `article` and gives the title and link of each article
+
+## The L2 and L1 items
+
+`ethereum-knowledge` keeps its own items in `skills/ethereum-knowledge/references/items/`, one Markdown file per network, framework, or EIP, such as `op-stack-fault-proofs.md` or `eip-7594-peerdas.md`.
+Its front matter holds three fields.
+
+| Field | What it holds |
+|---|---|
+| `status` | One of `announced`, `specified`, `live`, `stopped` |
+| `checked` | The date the status was confirmed against the official documents, as `YYYY-MM-DD` |
+| `source` | The organization and the documents the item comes from, by name. Items hold no URLs |
+
+The body says how the network, framework, or EIP works, its current status, and what has not shipped yet.
+The statuses and the days after which an item is out of date are those of the ERC and EIP items.
+A published design counts like a specification, and `stopped` also covers a network or its development that stopped.
+An item named after an ERC, such as `erc-20-token.md`, belongs to `evm-standards`.
+
+## The ethereum-knowledge script
+
+`skills/ethereum-knowledge/scripts/ethereum-knowledge.sh` runs on the Bash that macOS ships and reads only the items.
+
+| Command | What it does |
+|---|---|
+| `check` | Checks that every item has the three fields, a known status, and a real date, and that none is named after an ERC. It names each item that does not and exits 1 |
+| `list` | Prints one line per item: `ok` or `stale`, the status, the date it was checked, and its name, then a count |
+
+`--dir` points either command at another folder of items, and `list --today` counts from another date; the plugin's test uses both.
+
+## How the agent answers about an L2 or the L1 roadmap
+
+1. It runs `list` and reads the items the question needs
+2. When an item is `stale`, it re-checks the official documents of the network, framework, or EIP before answering, and says what changed
+3. When the documents cannot be reached, it answers from the item and says it could not confirm it, with the date the item was checked
+4. When no item covers the question, it says so, and answers from the official documents or says it could not be checked
+5. When the question is about an ERC, or an EIP that changes what contracts and wallets can do, it answers with `evm-standards` instead
 
 ## The tool items
 
@@ -459,7 +494,7 @@ The checklist holds the rules a design must never break: nothing private on chai
 ## What it never does
 
 - It never edits its items; a newer fact goes into the answer, not into the plugin's files
-- It searches only with a standard's number or name, or a tool's or service's name and version, and sends nothing about your project
+- It searches only with a standard's number or name, a network's or framework's name, or a tool's or service's name and version, and sends nothing about your project
 - It never writes a private key or a mnemonic into a file, and refuses a command that passes a key
 - `contract-tests` never changes a contract to make a test pass, and writes only test files
 - `contract-deploy` never reads a key, a mnemonic, or a password, never signs or broadcasts, refuses a command that passes `--private-key`, `--mnemonic`, or `--password`, never reads Foundry's `cache/`, and verifies source code only after the user agrees

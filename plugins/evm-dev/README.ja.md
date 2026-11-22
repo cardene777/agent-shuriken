@@ -1,16 +1,17 @@
 # EVM Dev
 
-ERCが確定したか、EIPがEthereumのメインネットで動いているかを答え、プロジェクトが使う版に合わせてSolidityとそのテストを書き、鍵を手元に置いたままコントラクトを配り、出す前に配ってある版と出す先のチェーンに照らして確かめ、コントラクトと、ウォレットと署名と、複数のチェーンにまたがるアプリと、dAppの部品の組み方と、ISO 20022やFIXなどの金融の規格を使うアプリを設計します。どれも、エージェントの記憶ではなく、公式の文書で確かめた項目に基づきます。
+ERCが確定したか、EIPがEthereumのメインネットで動いているか、L2のネットワークとEthereumのL1の今後がどうなっているかを答え、プロジェクトが使う版に合わせてSolidityとそのテストを書き、鍵を手元に置いたままコントラクトを配り、出す前に配ってある版と出す先のチェーンに照らして確かめ、コントラクトと、ウォレットと署名と、複数のチェーンにまたがるアプリと、dAppの部品の組み方と、ISO 20022やFIXなどの金融の規格を使うアプリを設計します。どれも、エージェントの記憶ではなく、公式の文書で確かめた項目に基づきます。
 
 [English](README.md) · 日本語
 
 エージェントの知識は学習の時点で止まりますが、規格と道具はその後も動きます。
-EIPがネットワークの更新で入り、広く呼ばれている「ERC」が実はどこにも取り込まれておらず、ライブラリが読み込むファイルの名前を変え、フレームワークがスクリプトの呼ぶ関数を非推奨にし、取引の中継や自動実行のサービスが終わり、決済の規格の改版が延期されます。
+EIPがネットワークの更新で入り、L2が状態を証明する仕組みを替え、広く呼ばれている「ERC」が実はどこにも取り込まれておらず、ライブラリが読み込むファイルの名前を変え、フレームワークがスクリプトの呼ぶ関数を非推奨にし、取引の中継や自動実行のサービスが終わり、決済の規格の改版が延期されます。
 このプラグインは、そのどれについても、公式の文書で確かめた日と、もとにした文書の名前を持つ項目を持ちます。
 
 | スキル | すること |
 |---|---|
 | `evm-standards` | ERCが確定したか、EIPが動いているか、コントラクトとウォレットで何ができるようになるかを、ERCとEIPの41の項目から答えます。できることから規格を探し、答えに出す規格にメンテナーのbitsumiの記事が在ればリンクを添えます |
+| `ethereum-knowledge` | L2のネットワークとロールアップの枠組みの仕組みと今の状態、EthereumのL1の今後の作り替え、コンセンサスだけを変えるEIPが動いているかを、51の項目から答えます。ERCと、コントラクトとウォレットでできることを変えるEIPは`evm-standards`に任せます |
 | `solidity-code` | FoundryとHardhatのプロジェクトで、プロジェクトが使うsolcとOpenZeppelinとforge-stdとFoundryとHardhatの版に合わせてコントラクトを書き、古い書き方を探してからビルドとテストを回します |
 | `contract-tests` | FoundryかHardhatのプロジェクトで、コントラクトごとに確かめる点を挙げてから、単体とfuzzとinvariantのテストを書きます。kiwaが入っていればkiwaに書かせます。どのテストも触れていない点を名指し、テストを回します |
 | `contract-deploy` | 鍵に触れないFoundryとHardhat Ignitionの配る命令を書き、プロジェクトが鍵を危なく扱う所を全て名指し、本番のチェーンはハードウェアの財布、テストのチェーンは暗号化した鍵の保管で署名する命令を渡し、配った後にチェーンごとの出したアドレスを記録して確かめます |
@@ -23,6 +24,7 @@ EIPがネットワークの更新で入り、広く呼ばれている「ERC」�
 
 ```
 evm-standards:  List the items ──> Read the ones asked about ──> Re-check stale ones ──> Answer with date and source
+ethereum-knowledge:  List the items ──> Read the ones asked about ──> Re-check stale ones ──> Answer with date and source
 solidity-code:  Read the project's versions ──> Read the items for them ──> Write ──> Scan, build, and test
 contract-tests:  Read the versions and items ──> List what needs a test ──> Write the tests, or have kiwa write them ──> Name what no test covers ──> Run the tests
 contract-deploy:  Read the versions and items ──> Write the deploy script ──> Check the key handling ──> Simulate, then the user broadcasts ──> Record and verify
@@ -49,6 +51,7 @@ copilot plugin install evm-dev@agent-shuriken
 copilot plugin install doc-formats@agent-shuriken
 
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/evm-standards   # Gemini CLI
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/ethereum-knowledge
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/solidity-code
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/contract-tests
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/evm-dev/skills/contract-deploy
@@ -71,6 +74,8 @@ Claude Codeはevm-devと一緒にdoc-formatsを入れます。Codex、GitHub Cop
 `evm-standards`は、規格の状態を尋ねると始まります。
 例えば「EIP-7702はメインネットで動いている?」や「ERC-7281を確定した規格として書いてよい?」と尋ねます。
 「パスキーの署名をコントラクトで検証できる規格は?」のように、できることから規格を尋ねても始まります。
+`ethereum-knowledge`は、L2かEthereumのL1の今後がどうなっているか、コンセンサスだけを変えるEIPが動いているかを尋ねると始まります。
+例えば「PeerDASはメインネットで動いている?」や「OP Stackは今どうやって引き出しを証明している?」と尋ねます。
 `solidity-code`は、コントラクトを書くか変えるよう頼むと始まります。
 例えば「このFoundryのプロジェクトに、止められるERC-20のトークンを足して」と頼みます。
 `contract-tests`は、コントラクトのテストを頼むと始まります。
@@ -90,8 +95,8 @@ Claude Codeはevm-devと一緒にdoc-formatsを入れます。Codex、GitHub Cop
 `financial-standards`は、金融の規格を使う設計を頼むと始まります。
 例えば「ISO 20022の支払いのmessageを決済のコントラクトにどう対応させるかを設計して」と頼みます。
 呼び出すこともできます。
-Claude Codeでは`/evm-dev:evm-standards`か`/evm-dev:solidity-code`か`/evm-dev:contract-tests`か`/evm-dev:contract-deploy`か`/evm-dev:release-check`か`/evm-dev:contract-design`か`/evm-dev:wallet-design`か`/evm-dev:multichain-design`か`/evm-dev:dapp-architecture`か`/evm-dev:financial-standards`を実行し、Codexでは`$`を入力して**EVM Standards**か**Solidity Code**か**Contract Tests**か**Contract Deploy**か**Release Check**か**Contract Design**か**Wallet Design**か**Multichain Design**か**dApp Architecture**か**Financial Standards**を選びます。
-GitHub Copilot CLIでは依頼の文に`/evm-standards`か`/solidity-code`か`/contract-tests`か`/contract-deploy`か`/release-check`か`/contract-design`か`/wallet-design`か`/multichain-design`か`/dapp-architecture`か`/financial-standards`と書き、Gemini CLIでは作業を説明します。
+Claude Codeでは`/evm-dev:evm-standards`か`/evm-dev:ethereum-knowledge`か`/evm-dev:solidity-code`か`/evm-dev:contract-tests`か`/evm-dev:contract-deploy`か`/evm-dev:release-check`か`/evm-dev:contract-design`か`/evm-dev:wallet-design`か`/evm-dev:multichain-design`か`/evm-dev:dapp-architecture`か`/evm-dev:financial-standards`を実行し、Codexでは`$`を入力して**EVM Standards**か**Ethereum Knowledge**か**Solidity Code**か**Contract Tests**か**Contract Deploy**か**Release Check**か**Contract Design**か**Wallet Design**か**Multichain Design**か**dApp Architecture**か**Financial Standards**を選びます。
+GitHub Copilot CLIでは依頼の文に`/evm-standards`か`/ethereum-knowledge`か`/solidity-code`か`/contract-tests`か`/contract-deploy`か`/release-check`か`/contract-design`か`/wallet-design`か`/multichain-design`か`/dapp-architecture`か`/financial-standards`と書き、Gemini CLIでは作業を説明します。
 
 ### 規格を確かめる
 
@@ -131,6 +136,32 @@ item eip-7951-secp256r1-precompile live 2026-11-11 3 Contracts can cheaply verif
 items: 1 matched
 article EIP7951 https://cardene.dev/articles/a55db75ffbc68801d968 3 secp256r1プリコンパイルでApple Secure EnclaveやPasskeyをEthereumに繋ぐ仕組みを理解しよう！ | EIP7951は、0x100番地にP256VERIFYプリコンパイルを追加します。
 articles: 1 matched of 642 in https://cardene.dev/llms.txt, read 2026-11-17
+```
+
+### L2とL1の今後を確かめる
+
+1. エージェントが項目を確かめた日付きで並べ、古い項目に印を付けます
+2. エージェントが質問に要る項目を読みます
+3. 古い項目は、エージェントがネットワークか枠組みかEIPの公式の文書で確かめ直します。確かめられない時はそう伝えます
+4. エージェントが状態と確かめた日と出どころを添えて答えます
+
+ERCと、コントラクトとウォレットでできることを変えるEIPの質問は、`evm-standards`が答えます。
+一覧は次のように出ます。
+
+```text
+ok     live       2026-11-11 eip-7594-peerdas
+ok     specified  2026-11-16 eip-7805-focil
+ok     live       2026-11-11 l2beat-stages
+ok     live       2026-11-16 op-stack-fault-proofs
+51 items, 0 stale as of 2026-11-22
+```
+
+答えは次のようになります。
+
+```text
+Yes. PeerDAS (EIP-7594) has each node receive only part of the blob data and sample columns from other nodes to check that the whole was published.
+It went live on mainnet with the Fusaka upgrade on 2025-12-03.
+Status: live, checked 2026-11-11, source: the EIP-7594 document and EIP-7607 (the Fusaka meta EIP).
 ```
 
 ### コントラクトを書く
@@ -381,8 +412,9 @@ financial-standards: 2 problems; fill in or add each section named above
 
 | 扱う | 扱わない |
 |---|---|
-| ERC。例えばERC-20、ERC-1271、ERC-4337、ERC-6551、ERC-7683 | L2のネットワークの状態。専門に追う頁があります |
-| コントラクトとウォレットでできることを変えるEIP。命令、プリコンパイル、ガス代、取引の種類、EIP-7702、プロトコルの中のアカウント抽象 | コンセンサスだけを変えるEIP。例えばバリデータの決まり |
+| ERC。例えばERC-20、ERC-1271、ERC-4337、ERC-6551、ERC-7683 | ネットワークの手数料や預けられた額のような今の数値。専門に追う頁があります |
+| コントラクトとウォレットでできることを変えるEIP。命令、プリコンパイル、ガス代、取引の種類、EIP-7702、プロトコルの中のアカウント抽象 | バリデータやノードを動かすこと |
+| L2のネットワークとロールアップの枠組みの仕組みと今の状態、EthereumのL1の今後の作り替え、コンセンサスだけを変えるEIP。例えばPeerDASとFOCIL | ERCと、コントラクトとウォレットでできることを変えるEIP。`evm-standards`が扱います |
 | EIPがネットワークの更新に入るまでの段階(EIP-7723) | コントラクトの更新の方式を選ぶこと。`contract-design`が扱います |
 | プロジェクトが使うsolcとOpenZeppelinとforge-stdとFoundryとHardhatの版に合わせてSolidityを書くこと | リリースの確かめ。`release-check`が扱います |
 | FoundryかHardhatで、プロジェクトのコントラクトの単体とfuzzとinvariantのテストを書くこと、またはkiwaに書かせること | 変異試験、カバレッジの目標、dAppの画面のテスト。画面のテストはkiwaが扱います |
@@ -415,6 +447,7 @@ financial-standards: 2 problems; fill in or add each section named above
 
 - プラグインに同梱した項目を読みます
 - `evm-standards`は`evm-standards.sh list`を動かし、項目を読んで1件1行で出します
+- `ethereum-knowledge`は`ethereum-knowledge.sh list`を動かし、自分の項目を読んで1件1行で出します
 - `evm-standards`は`find`と`article`で`standards.py`を動かし、項目と、bitsumiの記事の一覧のhttps://cardene.dev/llms.txtを読みます。一覧は決まったアドレスへの素の要求で取るため、質問の語は送りません。一覧は`~/.local/share/evm-dev/`(`EVM_DEV_HOME`で替えられます)に、あなただけが読める形で1日の間残し、出すのは記事の題と説明と`https://cardene.dev/articles/`のリンクだけです
 - `solidity-code`は`solidity-code.py`を動かし、プロジェクトの設定のファイルとライブラリの`package.json`から版を読み、探す時はプロジェクトのソースのファイルを読みます。`.env`のファイルと依存とビルドの出力は読まず、行の中身を出しません
 - `solidity-code`は頼まれたコントラクトだけを書き、プロジェクトのビルドとテストを動かします
@@ -429,7 +462,7 @@ financial-standards: 2 problems; fill in or add each section named above
 - `multichain-design`は`multichain-design.py`を動かし、項目と、書いた設計書を読みます。設計書を確かめる時は節の名前だけを出します。書くのは設計書だけで、`.env`のファイルと鍵は読まず、署名せず、鍵を渡す命令を断ります
 - `dapp-architecture`は`dapp-architecture.py`を動かし、項目と、書いた設計書を読みます。設計書を確かめる時は節の名前だけを出します。書くのは設計書だけで、`.env`のファイルと鍵は読みません
 - `financial-standards`は`financial-standards.py`を動かし、項目と、書いた設計書を読みます。設計書を確かめる時は節の名前だけを出します。書くのは設計書だけで、`.env`のファイルと鍵は読みません
-- 古い項目を確かめ直す時は、規格の番号か名前、または道具かサービスの名前と版だけでWebを検索し、公式の文書を開きます
+- 古い項目を確かめ直す時は、規格の番号か名前、ネットワークか枠組みの名前、または道具かサービスの名前と版だけでWebを検索し、公式の文書を開きます
 - 項目を書き換えず、記事の一覧の写しのほかは何も残しません
 
 ## ライセンス
