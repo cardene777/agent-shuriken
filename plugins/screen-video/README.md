@@ -1,6 +1,6 @@
 # Screen Video
 
-Plan a video of your web app with your agent, check it as a storyboard of pictures, and record it into captioned, edited, vertical, and GIF videos.
+Plan a video of your web app with your agent, check it as a storyboard of pictures, and record it into captioned, edited, vertical, and GIF videos, narrated, with music, in a look you choose.
 
 English · [日本語](README.ja.md)
 
@@ -37,7 +37,7 @@ The plugin starts when you ask for a video of your app, for example "make a 30 s
 You can also call it: run `/screen-video:screen-video` in Claude Code, or type `$` and pick **Screen Video** in Codex.
 In GitHub Copilot CLI, write `/screen-video` in your request, and in Gemini CLI, describe the task.
 
-1. The agent asks what the video is for, who will watch it, how long it should be, which videos to make, what is private, and which steps send something or pay, then proposes the steps with their captions
+1. The agent asks what the video is for, who will watch it, how long it should be, which videos to make, what is private, which steps send something or pay, and how it looks and sounds, then proposes the steps with their captions and chapters
 2. The agent opens the pages, lists their buttons and fields, and writes the flow to `.screen-video/flows/<name>.json` in your project
 3. The agent rehearses the flow without recording and shows you the storyboard: a picture of each step with its target outlined, its action, and its caption
 4. When you agree, the agent records the flow and shows you the videos. To change something, it edits the flow and rehearses again
@@ -67,13 +67,24 @@ Buttons and fields are named the way a screen reader names them, so the flow kee
 | File | What it is |
 |---|---|
 | `raw.mp4` | The recording as it is, 1920x1080 |
-| `captioned.mp4` | The recording with each step's caption, placed away from what the step points at |
-| `edited.mp4` | The recording zoomed in on each action, with the waits cut |
-| `vertical.mp4` | A 1080x1920 video for social media that follows each action, when the flow asks for `9:16` |
+| `captioned.mp4` | The recording with each step's caption, placed away from what the step points at, and the sound |
+| `edited.mp4` | The finished video, described below |
+| `vertical.mp4` | A 1080x1920 video for social media in the same look, its window following each action, when the flow asks for `9:16` |
 | `edited.gif` | The edited video as a GIF, when the flow asks for `gif` |
-| `captions.srt` | The captions as subtitles |
+| `captions.srt`, `edited.srt` | The captions as subtitles, for the recording and for the edited video |
+| `credits.txt` | The voice to credit, when the narration needs a credit |
 
-The pointer moves to each target and a ring shows each press, so viewers can follow what was clicked.
+The edited video eases in on each action, and the pointer moves on a curve that slows as it reaches its target.
+Each press shows a ring and sinks the button, and one page dissolves into the next.
+The screen sits in a frame on the theme's background, with a title card at the start, a card before each chapter, and an end card.
+Each caption is shown below the screen and read aloud, quiet music plays under the voice, and each click and key makes a sound.
+Long waits play fast with a mark instead of being cut, and the video is fitted to the length you planned.
+
+Three looks are bundled: `default` (dark slate), `midnight` (near black with violet), and `paper` (light).
+Your project can add its own as `.screen-video/themes/<name>.json`, listing only the colours and fonts it changes.
+To change the look, the narration, or the music after recording, the agent edits the flow and makes the videos again without opening your site.
+`compare` writes a page that plays the plain recording and the edited video side by side for each of these points.
+
 When you already have a recording, the agent can find its scenes, write the captions, and make the captioned and edited videos from it.
 
 ## Requirements
@@ -83,9 +94,11 @@ When you already have a recording, the agent can find its scenes, write the capt
 | Node.js 20.11 or later | Always |
 | `pnpm` or `npm` | Once, to install Playwright and ffmpeg into the data folder on first use |
 | ffmpeg with libx264 | Optional. When one is on `PATH`, it is used instead of the bundled one |
+| Python 3.10 or later | Only for Japanese narration made on your machine with VOICEVOX |
 
 No global package is installed.
 The first run downloads `playwright-core`, its headless browser, and `ffmpeg-static`, which takes about a minute.
+The first narrated flow installs its voice into `voices/` of the data folder: kokoro-js and its model for English, or VOICEVOX CORE with its model and dictionary for Japanese, after you agree to the VOICEVOX terms.
 
 ## What it reads, runs, and sends
 
@@ -97,7 +110,8 @@ In short:
 - It blurs the values your flow lists in `mask` in every frame
 - It stops a rehearsal before the first step marked as sending something or paying, and records those steps only after you agree
 - It writes videos to `~/.local/share/screen-video/<project>/<flow>/` unless you name another folder, and never empties a folder that holds files it did not write
-- It downloads `playwright-core`, its browser, and `ffmpeg-static` once on first use, and sends nothing else anywhere
+- It downloads `playwright-core`, its browser, and `ffmpeg-static` once on first use, and the voice engine once for the first narrated flow
+- It makes the narration on your machine and sends nothing else anywhere, unless your flow chooses a cloud voice (OpenAI, ElevenLabs, Microsoft Azure, or Google Cloud), which sends each caption's text to that company with the key read from the env file your flow names
 
 ## License
 

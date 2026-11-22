@@ -1,0 +1,21 @@
+{
+  "background": ["#1e293b", "#0b1220"],
+  "window": { "radius": 18, "shadow": 0.6, "border": "#ffffff", "borderOpacity": 0.12 },
+  "caption": {
+    "font": "system-ui, -apple-system, \"Segoe UI\", \"Hiragino Sans\", \"Noto Sans CJK JP\", \"Noto Sans JP\", sans-serif",
+    "size": 34,
+    "weight": 600,
+    "color": "#f8fafc",
+    "band": "#334155",
+    "opacity": 0.94,
+    "radius": 14
+  },
+  "card": {
+    "font": "system-ui, -apple-system, \"Segoe UI\", \"Hiragino Sans\", \"Noto Sans CJK JP\", \"Noto Sans JP\", sans-serif",
+    "background": "#0f172a",
+    "color": "#f8fafc",
+    "muted": "#94a3b8",
+    "accent": "#38bdf8"
+  },
+  "accent": "#38bdf8"
+}

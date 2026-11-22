@@ -6,6 +6,7 @@
  * | `dataDir()` | `$SCREEN_VIDEO_HOME`, or `$XDG_DATA_HOME/screen-video`, or `~/.local/share/screen-video` |
  * | `nodeDir()` | `$SCREEN_VIDEO_NODE_DIR`, or `node/` in the data folder: `playwright-core` and `ffmpeg-static`, installed by `screen-video.sh setup` |
  * | `<data>/sessions/` | Saved logins, one file per project and session name, readable only by the user |
+ * | `<data>/voices/` | The local voice engines, installed the first time a flow is narrated: `kokoro/` (kokoro-js and its model) and `voicevox/` (VOICEVOX CORE, its models, and a Python virtual environment) |
  * | `<data>/<project>/<name>/` | Videos and records of a flow or a recording, unless `--out` names another folder |
  */
 import { spawnSync } from "node:child_process";
@@ -15,7 +16,7 @@ import { homedir } from "node:os";
 import { basename, delimiter, dirname, join, resolve } from "node:path";
 
 /** Folder names in the data folder that a project's videos must not take. */
-const RESERVED = new Set(["node", "sessions"]);
+const RESERVED = new Set(["node", "sessions", "voices"]);
 
 export function dataDir() {
   return process.env.SCREEN_VIDEO_HOME || join(process.env.XDG_DATA_HOME || join(homedir(), ".local", "share"), "screen-video");
@@ -90,6 +91,23 @@ export function ffmpegPath() {
   }
   return chosen;
 }
+
+let scriptFlag;
+/**
+ * The arguments that hand ffmpeg a filter graph written in a file: `-/filter_complex <file>` from
+ * ffmpeg 7, `-filter_complex_script <file>` before it (the bundled ffmpeg is 6).
+ */
+export function filterScriptArgs(file) {
+  if (scriptFlag === undefined) {
+    const banner = spawnSync(ffmpegPath(), ["-hide_banner", "-version"], { encoding: "utf8" }).stdout ?? "";
+    const major = Number((/ffmpeg version n?(\d+)/.exec(banner) ?? [])[1]);
+    scriptFlag = Number.isFinite(major) && major < 7 ? "-filter_complex_script" : "-/filter_complex";
+  }
+  return [scriptFlag, file];
+}
+
+/** The skill's own folder, which holds `themes/`, `data/`, and `templates/`. */
+export const SKILL_DIR = join(import.meta.dirname, "..", "..");
 
 /**
  * The project a flow belongs to: the folder holding `.screen-video/` when the flow sits in

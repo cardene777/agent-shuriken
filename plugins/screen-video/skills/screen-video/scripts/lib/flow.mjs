@@ -8,6 +8,8 @@
  * | `describeTarget` | A short text naming a target, such as `button "Save"` |
  * | `locate` | The Playwright locator for a target, inside an iframe when the target names one |
  * | `readLogin` | The login values and saved session a flow names. The values are never printed |
+ * | `languageOf` | The language the flow is narrated and paced in: its `language`, or Japanese when a caption is written in Japanese |
+ * | `parseEnvFile` | The `KEY=value` lines of an env file, for logins and the keys of cloud voices |
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -16,6 +18,9 @@ import { sessionFile } from "./runtime.mjs";
 
 export const ACTIONS = ["open", "click", "fill", "select", "key", "wait", "hold"];
 export const OUTPUTS = ["16:9", "9:16", "gif"];
+/** Voice engines: `local` picks Kokoro for English and VOICEVOX for Japanese; the others are cloud services. */
+export const ENGINES = ["local", "kokoro", "voicevox", "openai", "elevenlabs", "azure", "google"];
+export const LANGUAGES = ["en", "ja"];
 const LOCATORS = ["role", "label", "placeholder", "text", "testId", "css"];
 const EFFECTS = ["sends", "pays"];
 const ENV_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
@@ -42,6 +47,8 @@ function stepProblems(step) {
   if (!ACTIONS.includes(step.do)) return [`has an unknown action "${String(step.do)}" (use one of ${ACTIONS.join(", ")})`];
   const problems = [];
   if (step.caption !== undefined && typeof step.caption !== "string") problems.push("has a caption that is not text");
+  if (step.say !== undefined && !isText(step.say)) problems.push("has a say that is not text to read aloud");
+  if (step.chapter !== undefined && !isText(step.chapter)) problems.push("has an empty chapter");
   if (step.timeout !== undefined && !isSeconds(step.timeout)) problems.push("has a timeout that is not a positive number of seconds");
   if (step.effect !== undefined) {
     if (!isObject(step.effect) || !EFFECTS.includes(step.effect.kind)) problems.push('has an effect whose kind is not "sends" or "pays"');
@@ -75,12 +82,13 @@ function stepProblems(step) {
     case "wait": {
       const until = step.until;
       if (!isObject(until)) {
-        problems.push("needs until (text, url, visible, enabled, or hidden)");
+        problems.push("needs until (text, url, visible, enabled, hidden, or settled)");
         break;
       }
-      const kinds = ["text", "url", "visible", "enabled", "hidden"].filter((key) => until[key] !== undefined);
-      if (kinds.length !== 1) problems.push("needs exactly one of text, url, visible, enabled, or hidden in until");
+      const kinds = ["text", "url", "visible", "enabled", "hidden", "settled"].filter((key) => until[key] !== undefined);
+      if (kinds.length !== 1) problems.push("needs exactly one of text, url, visible, enabled, hidden, or settled in until");
       else if (["text", "url"].includes(kinds[0]) && !isText(until[kinds[0]])) problems.push(`has an empty ${kinds[0]} in until`);
+      else if (kinds[0] === "settled" && !(isSeconds(until.settled) && until.settled <= 30)) problems.push("has an until.settled that is not a number of seconds from 0 to 30");
       else if (["visible", "enabled", "hidden"].includes(kinds[0])) {
         const problem = targetProblem(until[kinds[0]]);
         if (problem !== undefined) problems.push(problem.replace("its target", `until.${kinds[0]}`));
@@ -127,6 +135,31 @@ export function validate(flow) {
       if (login.start !== undefined && !isText(login.start)) top("login.start must be the page where the login begins");
     }
   }
+  if (flow.title !== undefined && !isText(flow.title)) top("title must be text");
+  if (flow.theme !== undefined && !(typeof flow.theme === "string" && /^[a-z0-9][a-z0-9-]*$/.test(flow.theme))) top("theme must be lowercase letters, digits, and hyphens");
+  if (flow.language !== undefined && !LANGUAGES.includes(flow.language)) top(`language must be one of ${LANGUAGES.join(", ")}`);
+  if (flow.voice !== undefined && flow.voice !== false) {
+    const voice = flow.voice;
+    if (!isObject(voice) || !ENGINES.includes(voice.engine)) top(`voice must be false or an object whose engine is one of ${ENGINES.join(", ")}`);
+    else {
+      if (voice.voice !== undefined && !isText(voice.voice)) top("voice.voice must name a voice of the engine");
+      if (voice.envFile !== undefined && !isText(voice.envFile)) top("voice.envFile must be a path inside the project");
+      if (voice.terms !== undefined && voice.terms !== "agreed") top('voice.terms must be "agreed" once the user has agreed to the VOICEVOX terms');
+      if (voice.keyEnv !== undefined && !(typeof voice.keyEnv === "string" && ENV_NAME.test(voice.keyEnv))) top("voice.keyEnv must be an env variable name");
+    }
+  }
+  if (flow.music !== undefined && typeof flow.music !== "boolean") {
+    const music = flow.music;
+    if (!isObject(music) || !isText(music.file)) top('music must be true, false, or {"file": a sound file inside the project}');
+    else if (music.volume !== undefined && !(typeof music.volume === "number" && music.volume > 0 && music.volume <= 2)) top("music.volume must be a number above 0, up to 2");
+  }
+  if (flow.sounds !== undefined && typeof flow.sounds !== "boolean") top("sounds must be true or false");
+  if (flow.end !== undefined && flow.end !== false) {
+    const end = flow.end;
+    if (!isObject(end)) top("end must be false or an object with title, url, and note");
+    else for (const key of ["title", "url", "note"]) if (end[key] !== undefined && !isText(end[key])) top(`end.${key} must be text`);
+  }
+  if (flow.seconds !== undefined && !isSeconds(flow.seconds)) top("seconds must be the planned length, a positive number of seconds");
   if (!Array.isArray(flow.steps) || flow.steps.length === 0) top("steps must list at least one step");
   else flow.steps.forEach((step, index) => stepProblems(step).forEach((message) => problems.push({ step: index + 1, message })));
   return problems;
@@ -140,6 +173,14 @@ export function loadFlow(file) {
     return { flow: undefined, problems: [{ step: 0, message: `cannot read ${file} as JSON (${error instanceof Error ? error.message : error})` }] };
   }
   return { flow: { outputs: ["16:9"], mask: [], ...flow }, problems: validate(flow) };
+}
+
+const JAPANESE = /[\u3040-\u30ff\u3400-\u9fff\uff66-\uff9f]/u;
+
+export function languageOf(flow) {
+  if (flow.language !== undefined) return flow.language;
+  const texts = [flow.title, ...flow.steps.flatMap((step) => [step.caption, step.say, step.chapter])];
+  return texts.some((text) => typeof text === "string" && JAPANESE.test(text)) ? "ja" : "en";
 }
 
 export function markedSteps(flow) {
@@ -173,6 +214,7 @@ export function describeStep(step) {
       return `Press ${step.key}`;
     case "wait": {
       const [kind, value] = Object.entries(step.until)[0];
+      if (kind === "settled") return `Wait until the page stops changing for ${value}s`;
       return typeof value === "string" ? `Wait for ${kind} "${value}"` : `Wait until ${describeTarget(value)} is ${kind}`;
     }
     case "hold":
@@ -201,7 +243,7 @@ export function locate(page, target) {
 }
 
 /** Reads `KEY=value` lines. Quotes around a value are removed. */
-function parseEnvFile(file) {
+export function parseEnvFile(file) {
   const values = {};
   for (const line of readFileSync(file, "utf8").split(/\r?\n/)) {
     const match = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/.exec(line);

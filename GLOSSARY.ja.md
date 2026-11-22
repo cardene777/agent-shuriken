@@ -17,3 +17,4 @@
 | 流れ | プロジェクトの`.screen-video/flows/`に置くJSONのファイル。`screen-video`のpluginが撮る1本の動画の操作の順と字幕を持つ |
 | 通し | `screen-video`のpluginが流れを録画せずに行うこと。送信か支払いを起こす最初の操作の手前で止まる |
 | 台本 | 通しが書く頁`storyboard.html`。操作ごとの画と、操作の内容と、字幕を並べる |
+| テーマ | `screen-video`のpluginが作る編集済みの動画の見た目を決める、色と字体と角の丸みのJSONのファイル。pluginの`themes/`に同梱した物と、プロジェクトの`.screen-video/themes/`に置く物がある |

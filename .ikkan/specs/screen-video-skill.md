@@ -24,3 +24,38 @@
 | プラグインのfileは、元の製品の名前とドメインと筋書きの語を含まない。検査は語をそのまま持たず、語の指紋 (SHA-256) だけを持つ | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"the plugin names nothing from the product it came from"`が通る | #337 |
 | `plugins/screen-video/`が2つの`plugin.json`、READMEの日英、`CHANGELOG.md`、`LICENSE`、`assets/icon.svg`、`docs/how-it-works.md`の日英、`SKILL.md`と`agents/openai.yaml`を持ち、marketplaceと根のREADMEの日英が載せ、`AGENTS.md`の依存の決まりが例外として名指す | `bash scripts/check.sh`が終了0で、.claude-plugin/marketplace.jsonがscreen-videoの行を持つ | #337 |
 | ほかのプラグインのfileとmarketplaceの既存の行は変わらない | `bash scripts/check.sh`が終了0で、`git diff --stat origin/main -- plugins`がplugins/screen-video/の下だけを挙げる | #337 |
+| 編集済みの動画の寄りとパンは、動き出しと止まり際が遅く、隣り合うコマの間で寄りの倍率も中心も跳ばない | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"the zoom eases in and out without jumps"`が通る | #339 |
+| 押す所が小さいほど深く寄り、大きいほど浅く寄る | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"smaller targets get a closer zoom"`が通る | #339 |
+| ポインターは押す所へ曲線を描いて動き、動き出しと着く前に遅くなる | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"the pointer moves on a curve and slows near the target"`が通る | #339 |
+| 押した時、押した所に輪が広がり、押したボタンが一瞬沈んで見える | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"a press shows a ring and sinks the button"`が通る | #339 |
+| 頁が変わる所で、編集済みの動画は前の画面と後の画面を短く溶け合わせてつなぐ | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"page changes dissolve into each other"`が通る | #339 |
+| 流れの`theme`で、同梱の3つのテーマの名前か、プロジェクトの`.screen-video/themes/`に置いたテーマのfileを選べる。`theme`を持たない流れは既定のテーマになる | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"a flow picks a bundled theme or one of its own"`が通る | #339 |
+| `check`は、無いテーマと、色や大きさの値が壊れたテーマを、理由付きで拒み、終わり方1を返す | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"check refuses a missing or broken theme"`が通る | #339 |
+| 編集済みの動画は、撮った画面を角の丸い窓にし、影を付けてテーマの背景の上に置く | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"the edited video sets the screen in a frame on the theme background"`が通る | #339 |
+| 編集済みの動画は流れの題の画面で始まり、`chapter`を持つ操作の前に章の名前を出し、`end`を持つ流れは終わりの画面で終わる | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"title, chapter, and end cards appear in order"`が通る | #339 |
+| 字幕はテーマの文字と帯で描かれ、出る時と消える時に短く溶ける | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"captions fade in and out in the theme look"`が通る | #339 |
+| 流れが`voice`を持つ時、字幕ごとの読み上げの声が、その字幕が出る時刻に編集済みの動画の音へ入る | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"each caption is read aloud when it appears"`が通る | #339 |
+| 手元の声は、英語の流れでは`kokoro-js`、日本語の流れではVOICEVOX COREで作る | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"local voices use Kokoro for English and VOICEVOX for Japanese"`が通る | #339 |
+| 手元の声の道具は、声を使う流れを初めて撮る時だけデータのフォルダへ入り、声を使わない流れでは入らない | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"voice engines install into the data folder only when a flow needs them"`が通る | #339 |
+| 外のTTS (Azure、OpenAI、ElevenLabs、Google Cloud) は、流れが`voice.engine`でそのサービスを選んだ時だけ呼ばれ、キーは流れが名指すenvファイルから読まれる | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"each cloud voice is called only when the flow chooses it"`が通る | #339 |
+| 外のTTSのキーは、出力にもfileにも出ない | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"cloud voice keys never appear in output or files"`が通る | #339 |
+| 手元の声の流れでは、台本の文をこのマシンの外へ送らない | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"a local voice sends nothing off the machine"`が通る | #339 |
+| VOICEVOXの声を使った動画は、終わりの画面と`credits.txt`に「VOICEVOX:キャラ名」を入れる | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"VOICEVOX voices are credited on the end card and in credits.txt"`が通る | #339 |
+| 編集済みの動画には手元で作った静かな曲が流れ、声が鳴る間は曲の音量が下がる | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"music plays under the video and ducks under the voice"`が通る | #339 |
+| 流れの`music.file`で、プロジェクトの曲のfileを作った曲の代わりに流せる | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"a music file from the project replaces the made music"`が通る | #339 |
+| 押した時と文字を打った時に、同梱のCC0の音がその時刻に鳴る | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"presses and typing make a sound at their times"`が通る | #339 |
+| 字幕は、その声が鳴り終わるまで消えず、次の操作は声が終わるまで始まらない | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"each caption lasts until its voice ends"`が通る | #339 |
+| 字幕は、文字数から決めた読み切れる長さより短く消えない | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"each caption stays long enough to read"`が通る | #339 |
+| `wait`の`until.settled`は、中身と待ちが毎回変わる画面で、表示が決めた秒数だけ変わらなくなるまで待ってから次へ進む | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"a settled wait goes on once the page stops changing"`が通る | #339 |
+| 長い待ちは、切らずに早送りで見せ、早送りの間は印を出す | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"long waits play fast with a mark instead of being cut"`が通る | #339 |
+| 流れが`seconds`で長さを決めた時、編集済みの動画はその長さの1割以内に収まり、収まらない時は詰められなかった秒数を言う | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"the edited video fits the planned length"`が通る | #339 |
+| 全部の点を入れた30秒の流れの撮影と書き出しが、5分以内に終わる | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"a 30 second flow with every point finishes within 5 minutes"`が通る | #339 |
+| 同じ撮影から`remake`を2回打つと、同じ動画と音ができる | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"remake makes the same videos twice"`が通る | #339 |
+| 同じ流れを2回撮ると、寄りと切り方とカードの並びが同じになる | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"recording a flow twice gives the same edit"`が通る | #339 |
+| 縦長の動画とGIFも、テーマの枠と字幕と題と章と終わりの画面を持ち、縦長の動画は音も持つ | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"the vertical video and the GIF get the same look"`が通る | #339 |
+| `compare <flow>`は、同じ撮影の今までの見た目の動画と新しい見た目の動画を、上げた点ごとに横に並べた`compare.html`を書く | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"compare shows the plain and new videos side by side for each point"`が通る | #339 |
+| `raw.mp4`は撮ったままで、枠もカードも音も持たない | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"raw.mp4 stays the recording as it is"`が通る | #339 |
+| 撮った動画と編集済みの動画と字幕付きの動画と記録を、今までどおり書く | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"record writes the raw, captioned, and edited videos and the timeline"`が通る | #339 |
+| ログインの値は、今までどおり出力にもfileにも出ない | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"login values never appear in output or files"`が通る | #339 |
+| 検査は、このマシンで出す頁だけを開き、外のサイトへ繋がない | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"tests open only pages they serve on this machine"`が通る | #339 |
+| repoの検査が通り、同梱した音の許諾が`THIRD_PARTY_NOTICES.md`に載る | `bash scripts/check.sh`が終了0 | #339 |

@@ -387,7 +387,9 @@ await check("record writes the raw, captioned, and edited videos and the timelin
   const cues = readText(join(SHOP_OUT, "captions.srt")).split(/\n\n+/).filter((block) => block.includes("-->"));
   if (cues.length !== SHOP_CAPTIONS) return `${cues.length} captions for ${SHOP_CAPTIONS} captioned steps`;
   if (counts.pay !== before + 1) return `the recording paid ${counts.pay - before} times`;
-  if (probe(join(SHOP_OUT, "edited.mp4")).duration > probe(join(SHOP_OUT, "raw.mp4")).duration) return "edited.mp4 is longer than raw.mp4";
+  // The cards stand on still frames added to the recording, so only the rest is compared with raw.mp4
+  const added = (JSON.parse(readText(join(SHOP_OUT, "edit.json"))).freezes ?? []).reduce((sum, f) => sum + f.seconds, 0);
+  if (probe(join(SHOP_OUT, "edited.mp4")).duration - added > probe(join(SHOP_OUT, "raw.mp4")).duration + 0.05) return "edited.mp4 without its cards is longer than raw.mp4";
   return true;
 });
 
@@ -612,6 +614,10 @@ await check("the plugin names nothing from the product it came from", async () =
   }
   return true;
 });
+
+// How the videos look and sound, checked on a site and data folder of their own (quality.mjs)
+const { qualityChecks } = await import(join(HERE, "quality.mjs"));
+await qualityChecks({ check, SHOP_OUT, FFMPEG });
 
 server.close();
 rmSync(T, { recursive: true, force: true });

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Quality sample</title>
+<style>
+  /* Everything sits at fixed places, so the checks know where to look in the video. */
+  body { margin: 0; width: 1920px; height: 1080px; background: #ffffff; color: #111827; font: 24px/1.4 system-ui, sans-serif; overflow: hidden; }
+  .at { position: absolute; margin: 0; }
+  #press { left: 200px; top: 300px; width: 700px; height: 200px; border: 0; border-radius: 0; background: #1d4ed8; color: #ffffff; font: 700 40px/1 system-ui, sans-serif; }
+  /* A magenta square nothing else on the page uses, so its place in each frame shows how the view moved. */
+  #marker { left: 1000px; top: 520px; width: 24px; height: 24px; background: #ff00ff; }
+  label[for="note"] { left: 200px; top: 540px; }
+  #note { left: 200px; top: 580px; width: 420px; height: 44px; font: inherit; padding: 0 12px; border: 2px solid #9ca3af; }
+  #ask { left: 200px; top: 680px; }
+  #thanks { left: 420px; top: 680px; }
+  #slow { left: 600px; top: 680px; }
+  button.small { height: 44px; padding: 0 18px; font: inherit; border: 2px solid #111827; background: #f3f4f6; }
+  #answer { left: 1000px; top: 620px; width: 760px; height: 200px; font-size: 22px; }
+  #slow-done { left: 600px; top: 760px; font-weight: 700; }
+  #next { left: 1500px; top: 300px; font-size: 32px; }
+</style>
+</head>
+<body>
+<button id="press" class="at" type="button">Press me</button>
+<div id="marker" class="at"></div>
+<label class="at" for="note">Note</label>
+<input id="note" class="at" type="text">
+<button id="ask" class="at small" type="button">Ask</button>
+<button id="thanks" class="at small" type="button">Thanks</button>
+<button id="slow" class="at small" type="button">Slow</button>
+<p id="answer" class="at"></p>
+<p id="slow-done" class="at" hidden>Slow done</p>
+<a id="next" class="at" href="/quality/next.html">Next page</a>
+<script>
+  // The answer arrives in pieces for a different time on every run, like a reply from an AI, and the page
+  // tells the sample server when the last piece arrived.
+  document.getElementById("ask").addEventListener("click", () => {
+    const answer = document.getElementById("answer");
+    const words = "The answer comes in a few pieces and stops when it is complete".split(" ");
+    const total = 1500 + Math.random() * 2000;
+    const started = performance.now();
+    let index = 0;
+    const tick = () => {
+      answer.textContent += `${words[index % words.length]} `;
+      index++;
+      if (performance.now() - started < total) setTimeout(tick, 80 + Math.random() * 120);
+      else fetch("/api/stream-done", { method: "POST" });
+    };
+    tick();
+  });
+  document.getElementById("thanks").addEventListener("click", () => fetch("/api/next", { method: "POST" }));
+  document.getElementById("slow").addEventListener("click", () => {
+    setTimeout(() => { document.getElementById("slow-done").hidden = false; }, 5000);
+  });
+</script>
+</body>
+</html>

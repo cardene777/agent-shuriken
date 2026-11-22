@@ -44,7 +44,10 @@ JA_ALLOWED=(
   plugins/excalidraw-diagram/skills/excalidraw-diagram/tests/test-excalidraw-diagram.sh
   plugins/techdebt/skills/techdebt/templates/base.html
   plugins/screen-video/skills/screen-video/scripts/lib/flow.mjs
+  plugins/screen-video/skills/screen-video/scripts/lib/voice.mjs
   plugins/screen-video/skills/screen-video/templates/storyboard.html
+  plugins/screen-video/skills/screen-video/templates/compare.html
+  plugins/screen-video/skills/screen-video/tests/quality.mjs
   plugins/techdebt/skills/techdebt/tests/test-techdebt.sh
   plugins/japanese-speaking/README.md
   plugins/japanese-speaking/skills/japanese-speaking/SKILL.md
@@ -121,7 +124,7 @@ vendored_files() {
 }
 # Text files written in this repository (no vendored data, no images, no fonts).
 own_text_files() {
-  all_files | grep -vE '\.(png|jpg|jpeg|gif|webp|svg|ico|zip|woff2?|ttf|otf)$' | grep -vxF -f <(vendored_files)
+  all_files | grep -vE '\.(png|jpg|jpeg|gif|webp|svg|ico|zip|woff2?|ttf|otf|ogg)$' | grep -vxF -f <(vendored_files)
 }
 plugin_names() {
   for d in plugins/*/; do basename "$d"; done
@@ -273,7 +276,7 @@ check_plugin_limits() {
   for name in $(plugin_names); do
     count="$(all_files | grep -c "^plugins/$name/")"
     [ "$count" -le 512 ] || { echo "$name: $count files, over 512"; bad=1; }
-    for f in $(all_files | grep "^plugins/$name/" | grep -vE '\.(png|jpg|jpeg|gif|webp|svg|woff2?|ttf|otf)$' | grep -vxF -f <(printf '%s\n' "${SIZE_EXCEPTIONS[@]}")); do
+    for f in $(all_files | grep "^plugins/$name/" | grep -vE '\.(png|jpg|jpeg|gif|webp|svg|woff2?|ttf|otf|ogg)$' | grep -vxF -f <(printf '%s\n' "${SIZE_EXCEPTIONS[@]}")); do
       [ "$(wc -c < "$f")" -le 262144 ] || { echo "$f is over 256 KiB"; bad=1; }
     done
   done
