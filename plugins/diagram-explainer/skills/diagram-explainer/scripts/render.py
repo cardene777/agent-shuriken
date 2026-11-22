@@ -12,17 +12,19 @@ figure come from the same input. Figures are drawn inside the document:
 - A step ladder is an `html` block holding `<div class="ladder" data-ladder="NAME"></div>`,
   filled later by ladder.py.
 
-Fixed shapes that help reading without being figures (keys, cards, note, compare) are built
-from their own fields.
+Fixed shapes that help reading without being figures (keys, cards, note, compare, table) are
+built from their own fields.
 
 Resulting layout:
 
+- a header band holds the title, a language switch (English / Japanese interface text), a light
+  or dark switch, and a help button; on narrow screens the switches move into the top bar
+- with 2 or more `tabs`, page tabs in the header split the document into pages
+- under the first title and lead, a facts table gives the time the document describes, and the
+  specification it follows and the date its sources were read when they are given (`facts`)
 - the left contents list picks a section; one section is shown at a time
-- with 2 or more `tabs`, a header with tabs splits the document into pages; with 1, no header
 - pages not shown first are kept in a `template` and built when opened
 - on narrow screens a bar shows the current section and a contents button slides the list in
-- a language switch (English / Japanese interface text) and a light or dark switch sit in the
-  header with several pages, above the contents list with one, and in the narrow-screen bar
 - the words of the frame and the switches come from assets/ui.json, in the document language
 
 Everything between `<!-- diagram-explainer:content:start -->` and
@@ -59,10 +61,21 @@ SUN_ICON = ('<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circ
             'M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1"/></svg>')
 MOON_ICON = ('<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">'
              '<path d="M13.4 10.1A5.6 5.6 0 0 1 5.9 2.6a5.6 5.6 0 1 0 7.5 7.5z"/></svg>')
+# The icon at the start of a warning note.
+WARN_ICON = ('<svg class="note-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">'
+             '<path d="M8 1.8 14.8 13.8H1.2z"/><path d="M8 6.3v3.6M8 11.6v.1"/></svg>')
 # Chart kinds drawn inside the document. assets/charts.js draws them.
 CHARTS = ("timeband", "capbar", "bars", "period")
+# The most view buttons a time band chart may have; more choices than this are hard to compare.
+MAX_VIEWS = 5
 # Color names for the reading shapes. The colors themselves live in assets/doc.css.
 TONES = ("accent", "good", "warn", "info")
+# The facts under the first title, in this order: the time the document describes, the
+# specification and version it follows, and the date its sources were read. Each pairs the
+# content JSON field with the interface word of its label.
+FACTS = (("asOf", "factAsOf"), ("spec", "factSpec"), ("read", "factRead"))
+# A run of this many `details` blocks or more gets buttons that open or close them all.
+DETAILS_RUN = 4
 # What an `html` block may not contain: things that run on open, things that load from
 # outside, and things that move styles out of the block.
 FREE_BANNED = re.compile(
@@ -162,17 +175,30 @@ def say(ui, key, **values):
 
 
 class Ctx:
-    """Per-document state: the language and the ids already used."""
+    """Per-document state: the language, the ids already used, and the section being written."""
 
     def __init__(self, lang="en"):
         self.lang = lang
         self.ui = ui_words(lang)
         self.names = set()
+        self.section = None
+        self.counts = {}
 
     def claim(self, name, where):
         if name in self.names:
             fail("duplicate %s id: %s" % (where, name))
         self.names.add(name)
+
+    def enter(self, section_id):
+        self.section = section_id
+        self.counts = {}
+
+    def local_id(self, kind):
+        """A new id inside the current section, such as `a-s2-table1`."""
+        self.counts[kind] = self.counts.get(kind, 0) + 1
+        name = "%s-%s%d" % (self.section, kind, self.counts[kind])
+        self.claim(name, kind)
+        return name
 
     def prose(self, text):
         """Body text. Japanese text starts each sentence on a new line, so sentence ends
@@ -203,22 +229,26 @@ def render_chart(block, ctx):
     if views:
         if kind != "timeband" or not isinstance(views, list):
             fail("chart %s: only a timeband chart can have views" % chart_id)
+        if len(views) > MAX_VIEWS:
+            fail("chart %s has %d views; keep at most %d" % (chart_id, len(views), MAX_VIEWS))
         say_id = chart_id + "-say"
         ctx.claim(say_id, "chart")
         buttons = "".join(
-            '<button type="button" data-lanes="%s" data-say="%s">%s</button>'
+            '<button type="button" data-lanes="%s" data-say="%s" aria-pressed="false">%s</button>'
             % (esc(",".join(v.get("lanes", []))), plain(v.get("say", "")), inline(v.get("label", "")))
             for v in views)
         head = ('\n  <div class="chart-views" data-chart="%s" data-text="%s">%s</div>'
                 '\n  <p class="tabtext" id="%s"></p>' % (chart_id, say_id, buttons, say_id))
     data = json.dumps(spec, ensure_ascii=False).replace("</", "<\\/")
     # The chart sits in a frame of its own (`fig-scroll`), so a chart wider than the screen
-    # scrolls sideways there while its buttons and caption stay in place.
+    # scrolls sideways there while its buttons and caption stay in place. The frame is a region
+    # named by the caption, so a keyboard reader can focus it and scroll it.
     return ('<figure class="chart" data-kind="%s">%s\n'
-            '  <div class="fig-scroll"><svg id="%s" data-chart="%s" data-spec="%s" role="img" aria-label="%s"></svg></div>\n'
+            '  <div class="fig-scroll" role="region" tabindex="0" aria-label="%s">'
+            '<svg id="%s" data-chart="%s" data-spec="%s" role="img" aria-label="%s"></svg></div>\n'
             '  <script type="application/json" id="%s">%s</script>\n'
             '  <figcaption>%s</figcaption>\n</figure>'
-            % (kind, head, chart_id, kind, spec_id, plain(cap), spec_id, data, caption(cap)))
+            % (kind, head, plain(cap), chart_id, kind, spec_id, plain(cap), spec_id, data, caption(cap)))
 
 
 def items_of(block, kind, least, most=None):
@@ -239,18 +269,22 @@ def tone_of(value, kind, default):
     return value
 
 
-def render_keys(block):
+def render_keys(block, ctx):
     """Key facts: the numbers or terms to remember, each with a short explanation."""
     items = items_of(block, "keys", 2)
     for x in items:
         if not x.get("term") or not x.get("text"):
             fail("keys.items need term and text")
     return '<div class="keys">\n%s\n</div>' % "\n".join(
-        "  <div><b>%s</b><span>%s</span></div>" % (inline(x["term"]), inline(x["text"])) for x in items)
+        "  <div><b>%s</b><span>%s</span></div>" % (inline(x["term"]), ctx.prose(x["text"])) for x in items)
 
 
 def render_cards(block, ctx):
-    """Cards side by side, for parallel things the reader compares."""
+    """Cards side by side, one per item the reader reads on its own.
+
+    The cards of a block hold the same fields in the same order. A `tone` marks the state of an
+    item (good, warn), never a kind of item; a card without one is not colored.
+    """
     items = items_of(block, "cards", 2)
     out = []
     for x in items:
@@ -263,29 +297,75 @@ def render_cards(block, ctx):
         if x.get("text"):
             parts.append("<p>%s</p>" % ctx.prose(x["text"]))
         if x.get("list"):
-            parts.append("<ul>%s</ul>" % "".join("<li>%s</li>" % inline(i) for i in x["list"]))
-        out.append('  <div class="card" data-tone="%s">%s</div>'
-                   % (tone_of(x.get("tone"), "cards", "accent"), "".join(parts)))
-    return '<div class="cards">\n%s\n</div>' % "\n".join(out)
+            parts.append("<ul>%s</ul>" % "".join("<li>%s</li>" % ctx.prose(i) for i in x["list"]))
+        tone = tone_of(x.get("tone"), "cards", None)
+        out.append('  <li class="card"%s>%s</li>'
+                   % (' data-tone="%s"' % tone if tone else "", "".join(parts)))
+    return '<ul class="cards">\n%s\n</ul>' % "\n".join(out)
 
 
 def render_note(block, ctx):
-    """A colored box that sets exceptions and warnings apart from the body text."""
+    """A note beside the main text.
+
+    `tone` `warn` makes a warning: a framed box with an icon and a title that names the risk.
+    Any other tone makes an explanation: a titled paragraph in gray text, with no box.
+    """
     if not block.get("text"):
         fail("note has no text")
     title = "<b>%s</b>" % inline(block["title"]) if block.get("title") else ""
-    return ('<div class="note" data-tone="%s">%s<p>%s</p></div>'
-            % (tone_of(block.get("tone"), "note", "info"), title, ctx.prose(block["text"])))
+    text = "<p>%s</p>" % ctx.prose(block["text"])
+    if tone_of(block.get("tone"), "note", "info") != "warn":
+        return '<div class="note">%s%s</div>' % (title, text)
+    if not title:
+        fail("warning note %r... has no title (name the risk in a few words)" % str(block["text"])[:40])
+    return '<div class="note warn" role="note">%s%s%s</div>' % (WARN_ICON, title, text)
 
 
-def render_compare(block):
+def render_table(block, ctx):
+    """A table named by its caption, with a header cell for each column and for each row.
+
+    `num` lists the columns that hold numbers, counted from 0; their cells are aligned right.
+    The table sits in a box (`.tbl`) that the reader can focus and scroll when the table is
+    longer or wider than the box, and the caption names that box.
+    """
+    columns, rows = block.get("columns"), block.get("rows")
+    if not isinstance(columns, list) or not columns or not isinstance(rows, list):
+        fail("table needs columns and rows arrays")
+    where = " / ".join(str(c) for c in columns[:3])
+    cap = block.get("caption")
+    if not isinstance(cap, str) or not cap.strip():
+        fail("table (%s) has no caption (name the table in a few words)" % where)
+    width = len(columns)
+    num = block.get("num", [])
+    if not isinstance(num, list) or not all(isinstance(j, int) and not isinstance(j, bool)
+                                            and 0 <= j < width for j in num):
+        fail("table (%s): num must list column numbers from 0 to %d" % (where, width - 1))
+
+    def cell(tag, scope, j, text):
+        attrs = (' scope="%s"' % scope if scope else "") + (' class="num"' if j in num else "")
+        return "<%s%s>%s</%s>" % (tag, attrs, inline(text), tag)
+
+    head = "".join(cell("th", "col", j, x) for j, x in enumerate(columns))
+    body = []
+    for row in rows:
+        if not isinstance(row, list) or len(row) != width:
+            fail("a table row does not have as many cells as columns")
+        body.append("<tr>%s</tr>" % "".join(cell("th", "row", j, x) if j == 0 else cell("td", None, j, x)
+                                            for j, x in enumerate(row)))
+    cap_id = ctx.local_id("table")
+    return ('<div class="tbl" role="region" tabindex="0" aria-labelledby="%s"><table>\n'
+            '<caption id="%s">%s</caption>\n<thead><tr>%s</tr></thead>\n<tbody>\n%s\n</tbody>\n</table></div>'
+            % (cap_id, cap_id, inline(cap), head, "\n".join(body)))
+
+
+def render_compare(block, ctx):
     """Two values side by side (before and after); the second one is emphasized."""
     items = items_of(block, "compare", 2, 2)
     sides = []
     for i, x in enumerate(items):
         if not x.get("label") or not x.get("value"):
             fail("compare.items need label and value")
-        say = '<p class="say">%s</p>' % inline(x["text"]) if x.get("text") else ""
+        say = '<p class="say">%s</p>' % ctx.prose(x["text"]) if x.get("text") else ""
         sides.append('<div class="side%s"><div class="cap">%s</div><div class="big">%s</div>%s</div>'
                      % (" after" if i else "", inline(x["label"]), inline(x["value"]), say))
     return ('<div class="compare">%s<div class="arrow" aria-hidden="true">→</div>%s</div>'
@@ -338,42 +418,63 @@ def render_block(block, ctx):
     if kind == "chart":
         return render_chart(block, ctx)
     if kind == "table":
-        columns = block.get("columns")
-        rows = block.get("rows")
-        if not isinstance(columns, list) or not columns or not isinstance(rows, list):
-            fail("table needs columns and rows arrays")
-        width = len(columns)
-        body = []
-        for row in rows:
-            if not isinstance(row, list) or len(row) != width:
-                fail("a table row does not have as many cells as columns")
-            body.append("<tr>%s</tr>" % "".join("<td>%s</td>" % inline(x) for x in row))
-        return ('<div class="tbl"><table>\n<thead><tr>%s</tr></thead>\n<tbody>\n%s\n</tbody>\n</table></div>'
-                % ("".join("<th>%s</th>" % inline(x) for x in columns), "\n".join(body)))
+        return render_table(block, ctx)
     if kind == "code":
         language = block.get("language")
         cls = ' class="language-%s"' % esc(language) if language else ""
         return "<pre><code%s>%s</code></pre>" % (cls, esc(block.get("text", "")))
     if kind == "keys":
-        return render_keys(block)
+        return render_keys(block, ctx)
     if kind == "cards":
         return render_cards(block, ctx)
     if kind == "note":
         return render_note(block, ctx)
     if kind == "compare":
-        return render_compare(block)
+        return render_compare(block, ctx)
     if kind == "html":
         return render_free(block, ctx)
     if kind == "details":
-        summary = block.get("summary")
-        if not summary:
-            fail("details has no summary")
-        blocks = block.get("blocks", [])
-        return ('<details class="exp">\n  <summary><span class="lbl">%s</span></summary>\n'
-                '  <div class="exp-body">\n%s\n  </div>\n</details>'
-                % (inline(summary), "\n".join("    " + line for b in blocks
-                                                  for line in render_block(b, ctx).splitlines())))
+        return render_details(block, ctx)
     fail("unknown block type: %s" % kind)
+
+
+def render_details(block, ctx):
+    """A collapsed block of long raw data. It holds no other collapsed block."""
+    summary = block.get("summary")
+    if not summary:
+        fail("details has no summary")
+    blocks = block.get("blocks", [])
+    if any(isinstance(b, dict) and b.get("type") == "details" for b in blocks):
+        fail("details %r holds another details block; put the second one beside it" % summary)
+    return ('<details class="exp">\n  <summary><span class="lbl">%s</span></summary>\n'
+            '  <div class="exp-body">\n%s\n  </div>\n</details>'
+            % (inline(summary), "\n".join("    " + line for b in blocks
+                                              for line in render_block(b, ctx).splitlines())))
+
+
+def render_blocks(blocks, ctx):
+    """The blocks of a section. A run of DETAILS_RUN or more `details` blocks in a row starts with
+    buttons that open or close all of them (assets/doc.js runs them)."""
+    out, run = [], []
+
+    def end_run():
+        if len(run) >= DETAILS_RUN:
+            out.append('<div class="details-all">'
+                       '<button type="button" data-ui="openAll" data-details="open">%s</button>'
+                       '<button type="button" data-ui="closeAll" data-details="close">%s</button></div>'
+                       % (esc(say(ctx.ui, "openAll")), esc(say(ctx.ui, "closeAll"))))
+        out.extend(run)
+        del run[:]
+
+    for b in blocks:
+        part = render_block(b, ctx)
+        if b.get("type") == "details":
+            run.append(part)
+        else:
+            end_run()
+            out.append(part)
+    end_run()
+    return "\n".join(out)
 
 
 def render_section(section, number, head, ctx):
@@ -389,16 +490,38 @@ def render_section(section, number, head, ctx):
     if nofigure is not None and (not isinstance(nofigure, str) or not nofigure.strip()):
         fail("section %s: nofigure must be a sentence giving the reason" % section_id)
     nofig = ' data-nofig="%s"' % plain(nofigure) if nofigure else ""
-    body = "\n".join(render_block(b, ctx) for b in blocks)
+    ctx.enter(section_id)
+    body = render_blocks(blocks, ctx)
     return ('<section class="doc-sec" id="%s" data-name="%s"%s>\n%s'
             '  <h2><span class="num">%02d</span>%s</h2>\n%s\n</section>'
             % (section_id, plain(title), nofig, head, number, inline(title), body))
 
 
-def page_head(title, lead, ctx):
+def page_head(title, lead, ctx, facts=""):
     lead_html = '\n    <p class="lead">%s</p>' % ctx.prose(lead) if lead else ""
-    return ('  <div class="doc-pagehead">\n    <h1>%s</h1>%s\n  </div>\n'
-            % (inline(title), lead_html))
+    facts_html = "\n    " + facts if facts else ""
+    return ('  <div class="doc-pagehead">\n    <h1>%s</h1>%s%s\n  </div>\n'
+            % (inline(title), lead_html, facts_html))
+
+
+def render_facts(doc, ui, lang, today=None):
+    """The facts table under the first title, one row per fact in the order of FACTS.
+
+    The time always has a row: `facts.asOf`, else the `date` field, else the build date.
+    """
+    facts = doc.get("facts", {})
+    names = [name for name, _key in FACTS]
+    if not isinstance(facts, dict) or any(k not in names or not isinstance(v, str) or not v.strip()
+                                          for k, v in facts.items()):
+        fail("facts must be an object whose fields are %s, each a non-empty string" % ", ".join(names))
+    date = doc.get("date")
+    if date is not None and (not isinstance(date, str) or not date.strip()):
+        fail("date must be a non-empty string")
+    values = dict(facts, asOf=facts.get("asOf") or date or today_label(lang, today))
+    rows = "".join('\n        <tr><th scope="row" data-ui="%s">%s</th><td>%s</td></tr>'
+                   % (key, esc(say(ui, key)), inline(values[name])) for name, key in FACTS if name in values)
+    return ('<table class="facts" data-ui-label="facts" aria-label="%s">\n      <tbody>%s\n      </tbody>\n    </table>'
+            % (esc(say(ui, "facts")), rows))
 
 
 def today_label(lang="en", today=None):
@@ -448,8 +571,12 @@ def render(doc, template, today=None):
     many = len(tabs) > 1
     ctx = Ctx(lang)
     ui = ctx.ui
-    date = doc.get("date") or today_label(lang, today)
+    facts = render_facts(doc, ui, lang, today)
     ctx.claim("doc-side", "document")
+    if many:
+        for key in keys:
+            ctx.claim("doc-tab-" + key, "page tab")
+            ctx.claim("doc-page-" + key, "page")
 
     tocs, pages, nsec = [], [], 0
     for i, (key, tab) in enumerate(zip(keys, tabs)):
@@ -462,8 +589,9 @@ def render(doc, template, today=None):
         for section in sections:
             ctx.claim(check_id(section.get("id"), "section"), "section")
         nsec += len(sections)
-        heading = page_head(tab.get("title") or label, tab.get("lead") or (lead if i == 0 else ""), ctx) \
-            if many else page_head(title, lead, ctx)
+        # The facts sit under the first title of the document.
+        heading = page_head(tab.get("title") or label, tab.get("lead") or (lead if i == 0 else ""), ctx,
+                            facts if i == 0 else "") if many else page_head(title, lead, ctx, facts)
         body = "\n\n".join(render_section(s, n, heading if n == 1 else "", ctx)
                            for n, s in enumerate(sections, 1))
         toc_head = '\n    <p class="doc-toc-head">%s</p>' % inline(label) if many else ""
@@ -474,30 +602,31 @@ def render(doc, template, today=None):
                        " hidden" if i else "", toc_head,
                        "\n".join('    <button type="button" data-sec="%s">%s</button>'
                                  % (s["id"], inline(s["title"])) for s in sections)))
+        # With several pages, each page is the panel of its tab.
+        panel = (' id="doc-page-%s" role="tabpanel" aria-labelledby="doc-tab-%s"' % (key, key)) if many else ""
         if i == 0:
-            pages.append('<div class="doc-page" data-page="%s">\n\n%s\n\n</div>' % (key, body))
+            pages.append('<div class="doc-page" data-page="%s"%s>\n\n%s\n\n</div>' % (key, panel, body))
         else:
             # Pages not shown first go into a template and are built when opened.
-            pages.append('<div class="doc-page" data-page="%s" hidden>\n<template data-fill="%s">\n\n'
-                         '%s\n\n</template>\n</div>' % (key, key, body))
+            pages.append('<div class="doc-page" data-page="%s"%s hidden>\n<template data-fill="%s">\n\n'
+                         '%s\n\n</template>\n</div>' % (key, panel, key, body))
 
-    # The switches sit in the header of a document with several pages and above the contents
-    # list of a single page. On narrow screens assets/doc.js moves them into the top bar.
-    parts = []
+    # The header band: the title, the page tabs when there are several pages, and on its right the
+    # switches and the help button. print.js puts the PDF button before the help button, and on
+    # narrow screens assets/doc.js moves the switches into the top bar.
+    tablist = ""
     if many:
-        parts.append('<header class="doc-top">\n  <span class="doc-brand">%s</span>\n'
-                     '  <nav class="doc-pages" data-ui-label="pages" aria-label="%s">\n%s\n  </nav>\n'
-                     '  <span class="doc-date">%s</span>\n  %s\n</header>'
-                     % (inline(title), esc(say(ui, "pages")), "\n".join(
-                         '    <button type="button" data-page="%s"%s>%s</button>'
-                         % (key, ' aria-current="page"' if i == 0 else "", inline(tab["label"]))
-                         for i, (key, tab) in enumerate(zip(keys, tabs))), esc(date), switches(ui)))
-        side_head = ""
-    else:
-        side_head = ('  <p class="doc-brand">%s</p>\n  <p class="doc-date">%s</p>\n  %s\n'
-                     % (inline(title), esc(date), switches(ui)))
-    parts.append('<aside class="doc-side" id="doc-side" data-ui-label="contents" aria-label="%s">\n%s%s\n</aside>'
-                 % (esc(say(ui, "contents")), side_head, "\n".join(tocs)))
+        tablist = ('\n  <nav class="doc-pages" role="tablist" data-ui-label="pages" aria-label="%s">\n%s\n  </nav>'
+                   % (esc(say(ui, "pages")), "\n".join(
+                       '    <button type="button" role="tab" id="doc-tab-%s" data-page="%s" aria-controls="doc-page-%s" '
+                       'aria-selected="%s" tabindex="%s">%s</button>'
+                       % (key, key, key, "true" if i == 0 else "false", "0" if i == 0 else "-1", inline(tab["label"]))
+                       for i, (key, tab) in enumerate(zip(keys, tabs)))))
+    parts = ['<header class="doc-top">\n  <span class="doc-brand">%s</span>%s\n  <div class="doc-tools">\n    %s\n'
+             '    <button type="button" class="doc-help" data-ui-label="help" aria-label="%s" aria-haspopup="dialog">?</button>\n'
+             '  </div>\n</header>' % (inline(title), tablist, switches(ui).replace("\n", "\n  "), esc(say(ui, "help")))]
+    parts.append('<aside class="doc-side" id="doc-side" data-ui-label="contents" aria-label="%s">\n%s\n</aside>'
+                 % (esc(say(ui, "contents")), "\n".join(tocs)))
     parts.append('<div class="doc-mbar"><button type="button" data-ui="contents" data-ui-icon="%s" aria-controls="doc-side" '
                  'aria-expanded="false">%s %s</button><span class="doc-here"></span>'
                  '<span class="doc-count"></span></div>'

@@ -41,14 +41,29 @@
     });
   }
 
+  // Collapsed blocks are opened on paper, with their names kept as headings, and the ones the
+  // reader had closed are closed again after printing.
+  var folded = null;
+  function unfold() {
+    if (folded) return;
+    folded = all('details.exp').filter(function (d) { return !d.open; });
+    folded.forEach(function (d) { d.open = true; });
+  }
+  function refold() {
+    if (folded) folded.forEach(function (d) { d.open = false; });
+    folded = null;
+  }
+
   function paperOn(mode) {
     var m = mode === 'page' && many ? 'page' : 'all';
     if (m === 'all' && typeof window.dxFillAllPages === 'function') window.dxFillAllPages();
     expand();
+    unfold();
     root.setAttribute('data-paper', m);
   }
   function paperOff() {
     root.removeAttribute('data-paper');
+    refold();
     chosen = null;
   }
 
@@ -72,8 +87,6 @@
   open.type = 'button';
   open.className = 'doc-pdf printbtn';
   open.setAttribute('data-ui', 'pdf');
-  open.setAttribute('data-ui-label', 'pdfLabel');
-  open.setAttribute('aria-label', say('pdfLabel'));
   open.setAttribute('aria-haspopup', many ? 'true' : 'false');
   open.setAttribute('aria-expanded', 'false');
   open.textContent = say('pdf');
@@ -112,10 +125,8 @@
 
   window.dxUi.relabel(bar);
 
-  // With several pages the button goes to the right of the header; otherwise above the contents list.
-  var top = document.querySelector('.doc-top');
-  var side = document.querySelector('.doc-side');
-  if (top) top.appendChild(bar);
-  else if (side) side.insertBefore(bar, side.querySelector('.doc-toc'));
+  // The button goes to the right of the header band, before the help button.
+  var tools = document.querySelector('.doc-top .doc-tools');
+  if (tools) tools.insertBefore(bar, tools.querySelector('.doc-help'));
   else document.body.appendChild(bar);
 })();

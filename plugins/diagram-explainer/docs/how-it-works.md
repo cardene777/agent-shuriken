@@ -23,10 +23,11 @@ The procedure is in `skills/diagram-explainer/SKILL.md`, and the pages it points
 | Part | Contents |
 |---|---|
 | Contents list | The sections of the current page. Picking one shows that section alone |
-| Header | Shown when there are two or more topics: the title, one tab per page, the date, the PDF button, and the language and light or dark switches. With one topic, the switches sit above the contents list |
-| Sections | Text, a figure, and any of these: key numbers, cards to compare, notes and warnings, a before-and-after comparison, tables, code, and collapsed details |
+| Header band | The title, the page tabs when there are two or more topics, the Save PDF button, the language and light or dark switches, and a `?` button that opens the help in a dialog. The page tabs take the arrow keys, Home, and End |
+| Facts table | Under the first title: the time the document describes, and when given, the specification and version it follows and the date its sources were read |
+| Sections | Text, a figure with an enlarge button, and any of these: key numbers, cards with the same fields in the same order, warnings in a framed box with an icon, explanations as titled paragraphs, a before-and-after comparison, tables with a caption and units in the column headers, code, and raw data of ten lines or more folded under a summary that names it |
 | Phone layout | A bar with the current section and a button that slides the contents list in. A chart or step ladder that would need text under 12px to fit keeps its text size and scrolls sideways inside its frame, with the cut edge faded and a line under it that says it scrolls |
-| Print layout | Every section in order, one per sheet, in light colors, with the header, contents, and switches hidden. The PDF button prints the current page or all pages |
+| Print layout | Every section in order, one per sheet, in light colors, with the header band, contents, and enlarge buttons hidden and every collapsed block open. The Save PDF button prints the current page or all pages |
 
 Every figure is drawn inside the page:
 
@@ -41,6 +42,9 @@ Every figure is drawn inside the page:
 
 Charts are drawn at the width of their frame, so their text keeps its size at every screen width, and step ladders sit in the middle of their frame. Lines in a chart pass under its text, and its bars keep their contrast in light and dark colors.
 
+Every figure has an enlarge button at the right of its caption. It, or a press on the drawing, opens the drawing at twice its size in a dialog, and closing the dialog returns the focus to the button.
+A figure or table wider than its box scrolls inside a named region that the keyboard can reach, with the side that continues faded; a long table keeps its header row and first column in view.
+
 The buttons and labels of the document start in its language, English or Japanese.
 
 ## The template and its switches
@@ -49,12 +53,12 @@ The buttons and labels of the document start in its language, English or Japanes
 
 | File | What it holds |
 |---|---|
-| `templates/starter-doc.html` | The frame of the document: the header, the contents list, the switches, and the markers where `build.py` puts the assets |
+| `templates/starter-doc.html` | The frame of the document: the header band, the facts table, the contents list, the switches, and the markers where `build.py` puts the assets |
 | `assets/` | The styles and scripts copied into every document: the layout and its light and dark colors, charts, step ladders, the print layout, and the script of the switches |
 | `assets/ui.json` | The interface words in English and Japanese, defined only here. `render.py` and `ladder.py` read it when they write the page, and `build.py` copies it into the page, where the switches read it |
 | `musubi.json` | The optional follows of `page-design/structure`, `page-design/look`, `page-design/document`, and `page-design/verify` through musubi: for each, the version range `^1.0.0`, the fingerprint of the content at the last check, and `"optional": true` |
 
-The document header holds two switches side by side: a language switch (English / 日本語) that changes only the interface text, such as the contents button, the previous and next buttons, the PDF menu, and chart units, and a light and dark switch.
+The header band holds two switches side by side: a language switch (English / 日本語) that changes only the interface text, such as the contents button, the previous and next buttons, the Save PDF menu, the help, and chart units, and a light and dark switch.
 The document's own text stays in the language it was written in, and printing always uses light colors.
 The page starts in the document's language and the system's light or dark setting, and the browser remembers the reader's choices in its local storage under `diagram-explainer-lang` and `diagram-explainer-theme`; nothing is sent anywhere.
 
@@ -68,10 +72,12 @@ The page starts in the document's language and the system's light or dark settin
 
 - Nothing is loaded from the network: no script, stylesheet, web font, or image from a URL
 - Every section has a figure, or states why it has none
-- The contents list, the section headings, the header tabs, and the pages agree
+- The contents list, the section headings, the page tabs, and the pages agree
 - Every figure has a caption, and figure numbers on a page have no gaps or repeats
 - Every table row has as many cells as the header
-- No collapsed block ships open, and nothing but one lead sentence sits between a title and its first section
+- No collapsed block ships open, and nothing but one lead sentence and the facts table sits between a title and its first section
+- Every collapsed block holds 10 lines or more, and its summary names what it holds instead of saying only "More" or "Details"
+- No section holds more than two warnings
 - Ids are unique and every reference inside figures resolves
 - Words from the term tables appear neither in the text nor in the figures
 - With a browser, at several screen widths: the page height does not move while the page loads, and nothing overflows sideways

@@ -299,7 +299,9 @@
         say.textContent = (k === 'before' ? s.beforeSay : s.afterSay) || '';
         paint(say, 'fill', k === 'before' ? col('red') : col('green'));
         [].forEach.call(st.ctrl.querySelectorAll('button'), function (b) {
-          b.classList.toggle('on', b.getAttribute('data-k') === k);
+          var on = b.getAttribute('data-k') === k;
+          b.classList.toggle('on', on);
+          b.setAttribute('aria-pressed', on ? 'true' : 'false');
         });
       }
       // Paper has no buttons, so a copy showing the "after" state is placed below.
@@ -452,7 +454,8 @@
   }) : null;
   if (!watcher) window.addEventListener('resize', function () { window.dxCharts(document); });
 
-  // View buttons above a time band keep only the chosen lanes at full strength.
+  // View buttons above a time band keep only the chosen lanes at full strength. The chosen
+  // button is marked as pressed, so a screen reader names the view shown.
   function wireViews(scope) {
     [].forEach.call(scope.querySelectorAll('.chart-views[data-chart]'), function (box) {
       if (box.hasAttribute('data-chart-wired')) return;
@@ -461,7 +464,10 @@
       var text = document.getElementById(box.getAttribute('data-text'));
       var buttons = [].slice.call(box.querySelectorAll('button'));
       function pick(b) {
-        buttons.forEach(function (x) { x.classList.toggle('on', x === b); });
+        buttons.forEach(function (x) {
+          x.classList.toggle('on', x === b);
+          x.setAttribute('aria-pressed', x === b ? 'true' : 'false');
+        });
         if (svg) {
           if (b.getAttribute('data-lanes')) svg.setAttribute('data-keep', b.getAttribute('data-lanes'));
           else svg.removeAttribute('data-keep');

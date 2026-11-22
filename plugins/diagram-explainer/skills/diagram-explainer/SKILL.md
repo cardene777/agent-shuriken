@@ -7,13 +7,12 @@ description: Writes an explainer of a system, a piece of research, or a setup as
 
 Write an explainer as one HTML file that opens without a network connection and can be handed to anyone.
 Talk to the user in the language they write in, and write the document in that language: set `lang` to `ja` for Japanese and to `en` otherwise.
-This skill works in Claude Code, Codex, and other agents that read `SKILL.md`, such as GitHub Copilot CLI and Gemini CLI.
 Where it says to ask the user, use AskUserQuestion in Claude Code, and ask in the chat with numbered options in other agents.
 
 All files are next to this `SKILL.md`.
 Below, the absolute path of that folder is written as `D`.
 When you run a command, put `D=<folder that contains this SKILL.md>` at the start of the same shell command.
-`references/` holds the shapes of the content JSON and the text checks, `examples/` a complete sample in English and in Japanese, and `scripts/` the commands below; `build.py` puts `templates/` and `assets/` into the document.
+`references/` holds the shapes of the content JSON, `examples/` a complete sample in English and Japanese, and `scripts/` the commands below.
 
 ## Rules
 
@@ -28,12 +27,11 @@ When you run a command, put `D=<folder that contains this SKILL.md>` at the star
 ### 1. Research
 
 For a standard, an API, or a protocol, read the primary sources before writing: the official specification, its bindings (for example REST), and its schemas.
-Record the version and the date you read it.
 When the specification has been replaced by a newer one, read the newer one too and explain the version the reader will meet in practice.
 Check operation names, endpoints, states, and required conditions in the original text, not in search summaries.
 Keep the findings as `sources` and `claims` in `claims.json` (see `references/research-plan.md`), and separate facts from design decisions.
 Use one version throughout the text, the figures, and the code examples.
-To tell the reader which version the document follows, state it as a fact about the topic, for example in a note ("RFC X replaces RFC Y and renames Z"), not as a sentence about the document.
+Put that version and the date you read the sources in `facts` (`spec` and `read`); the page shows them in a table under the title, after the date the document describes.
 
 For a system the user owns, read the code and documents they point to instead, and ask about anything that is not written down.
 
@@ -60,9 +58,9 @@ Order the sections by the kind of topic.
 | Research | The answer → how it applies → why it looks good → main results → what it means for us → sources |
 | A setup | What runs where → how the parts connect → who owns what → where things are kept → outside connections → terms |
 
-Within a topic, the basic order is concept → main flow → demo → production → detailed specification (leave out demo and production when there is no implementation); put long specifications in `details` blocks.
+Within a topic, the basic order is concept → main flow → demo → production → detailed specification (leave out demo and production when there is no implementation).
 When several standards work together, first say in one paragraph which boundary each one owns and what it passes on (inputs, outputs, who decides, who signs or verifies), then show the overall flow.
-When there are two or more topics (for example how it works and how it is set up), make one page (`tabs` entry) per topic, as `references/tab-shape.md` shows. With one topic there is no header.
+When there are two or more topics (for example how it works and how it is set up), make one page (`tabs` entry) per topic, as `references/tab-shape.md` shows; the header band then holds the page tabs.
 
 Pick a figure for every section.
 
@@ -93,18 +91,25 @@ Besides figures, these blocks make text easier to read:
 |---|---|
 | Two to four numbers or words the reader should remember | `keys` |
 | Several items whose differences the reader compares | `cards` |
-| An exception or a warning outside the main flow | `note` (`warn` or `info`) |
+| Values compared across rows and columns | `table` with a `caption`, and `num` for number columns |
+| A warning the reader must act on | `note` with `tone` `warn` and a `title`, at most two per section |
+| An explanation beside the main flow | `note` with a `title` |
 | Two numbers before and after, or with and without a condition | `compare` |
+| Raw data of ten lines or more, such as a log | `details` with a `summary` naming it |
 | Anything else | `html` |
+
+Give the cards of one block the same fields or labels in the same order, and use a card `tone` only for a state.
+Put units in the column header, never in the cells.
+Fold only raw data of ten lines or more into `details`, never one inside another.
 
 How to write the text:
 
-- Explain each section fully in text. Do not cut it down to bullet points to fit one screen; this is a document, not slides
+- Explain each section fully in running text, not in bullet points; this is a document, not slides
 - Write `paragraph` text as plain running sentences; `render.py` breaks Japanese text after each `。`
-- The lead under the page title defines the topic in one sentence. Nothing else goes between the title and the first section
+- The lead under the page title defines the topic in one sentence. Only the facts table follows it before the first section
 - Do not write sentences about the document itself ("this document", "this page"). The title and the contents list say what it covers
 - Each page reads on its own: do not send the reader to another page ("see the other page"); move the needed explanation instead
-- Use tables only when a comparison or a mapping is clearer as a table than as text. Do not replace the explanation of a flow with a table
+- Use a table for a comparison or a mapping, never in place of the explanation of a flow
 - Use the same name for a thing in the text and in the figures
 - Number captions per page from 1: `Figure 1 ...` in English, and the Japanese word for figure followed by the number in Japanese, as in `examples/content.sample.ja.json`
 - Write in the present tense about the intended design. No progress words ("for now", "TODO") and no headings for the person making the document ("Next steps", "Open issues")
@@ -139,7 +144,7 @@ python3 "$D/scripts/build.py" --in "$X/body.html" --out "$X/<slug>.html"
 rm "$X/body.html"
 ```
 
-When a script refuses the content, or `build.py` refuses an unfinished document (an empty ladder slot, an `<iframe>`, a leftover asset marker, ...), it names the block, field, or slot; fix the content and build again.
+When a script refuses the content or an unfinished document, it names the block, field, or slot; fix the content and build again.
 To change any text, edit `content.json` and rebuild; never edit the finished HTML by hand.
 
 ### 5. Check
@@ -157,14 +162,14 @@ When it finds no browser, ask the user which Chromium-based browser they use and
 `NG` lines fail and name what to fix; `--` lines only count.
 Fix every `NG` in `content.json` (or the ladder JSON) and build again until `check.py` exits 0.
 
-When the `page-design` skill is installed, run its `verify` on the finished page: run the file it names for `verify` as a shell command, `python3 <that file> verify "$X/<slug>.html"`, fix each line it names in `content.json`, and build and check again until it prints `ok`. Tell the user about any line it names in the frame of this skill's template.
-The document's language comes from `<html lang>`: Japanese documents get every wording rule, other documents get the language-independent checks and the term tables.
+When the `page-design` skill is installed, run the file it names for `verify` as a shell command, `python3 <that file> verify "$X/<slug>.html"`, fix each line it names in `content.json`, and build and check again until it prints `ok`. Tell the user about any line it names in the frame of this skill's template.
+Japanese documents (by `<html lang>`) get every wording rule; others get the language-independent checks.
 
 ### 6. Reread the text
 
 `check.py` cannot tell whether the text is true or clear.
 Follow the rereading steps in `references/prose-check.md`: numbers and units, whether each figure shows what the text says, the direction of tables, and decided versus undecided items.
-Look at the counted lists too: the longest paragraphs and sentences, repeated sentences, and names that appear only in figures (a sign that a figure and the text call one thing by two names).
+Look at the counted lists too, such as names that appear only in figures (one thing called by two names).
 
 Look at every section yourself, at a desktop width and a phone width, before showing it.
 Opening `<slug>.html#<section id>` (for example `#a-s2`) shows that section, also on another page.
@@ -173,8 +178,8 @@ A chart or step ladder that fits its frame fills it; a wider one keeps its text 
 ### 7. Hand it over
 
 Give the user the path of the finished HTML file.
-It opens in any browser, and its PDF button prints either the current page or all pages.
-Its header switches the interface language (contents, PDF menu) and light or dark colors; the document's own text keeps its language, and printing uses the light colors.
+It opens in any browser, and its Save PDF button prints either the current page or all pages, with every `details` block open.
+Its header band switches the interface language and light or dark colors, and its `?` button explains how to read the page; the document's own text keeps its language.
 When the user wants a PDF file, print it:
 
 ```bash

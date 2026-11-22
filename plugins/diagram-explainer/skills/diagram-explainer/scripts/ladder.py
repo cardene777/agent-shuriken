@@ -288,8 +288,12 @@ def render(spec, name, lang="en"):
         ' orient="auto"><path d="M0 0 L8 4 L0 8 z" class="lad-head-back"/></marker>'
         '</defs>' % (name, name))
     width = nx + nw + EDGE
-    return ('<div class="fig-scroll"><svg class="ladfig" viewBox="0 0 %d %d" style="--lad-w:%dpx" role="img" aria-label="%s">%s%s</svg></div>'
-            % (width, height, width, esc(spec["alt"] if "alt" in spec else say(ui, "ladderAlt")), defs, "".join(parts)))
+    alt = esc(spec["alt"] if "alt" in spec else say(ui, "ladderAlt"))
+    # The frame scrolls sideways when the ladder is wider than the page; it is a region named like
+    # the drawing, so a keyboard reader can focus it and scroll it.
+    return ('<div class="fig-scroll" role="region" tabindex="0" aria-label="%s">'
+            '<svg class="ladfig" viewBox="0 0 %d %d" style="--lad-w:%dpx" role="img" aria-label="%s">%s%s</svg></div>'
+            % (alt, width, height, width, alt, defs, "".join(parts)))
 
 
 def fill(doc, src):

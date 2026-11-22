@@ -8,7 +8,17 @@
     "lang": {"enum": ["en", "ja"], "default": "en", "description": "Document language. Sets <html lang>, the interface text, and the language-specific checks"},
     "title": {"type": "string", "description": "Document title"},
     "lead": {"type": "string", "description": "One sentence under the title that says what the subject does"},
-    "date": {"type": "string", "description": "Date shown in the header or above the contents list. Defaults to the build date"},
+    "facts": {
+      "type": "object",
+      "description": "Rows of the facts table under the first title. The As-of row is always shown: asOf, else date, else the build date",
+      "additionalProperties": false,
+      "properties": {
+        "asOf": {"type": "string", "minLength": 1, "description": "The time the document describes, for example May 1, 2026"},
+        "spec": {"type": "string", "minLength": 1, "description": "The specification and version the document follows, for example RFC 9110"},
+        "read": {"type": "string", "minLength": 1, "description": "The date the sources were read"}
+      }
+    },
+    "date": {"type": "string", "minLength": 1, "description": "The time the document describes, when facts.asOf is not given. Defaults to the build date"},
     "tabs": {
       "type": "array",
       "minItems": 1,
@@ -40,6 +50,10 @@
     }
   },
   "$defs": {
+    "inner": {
+      "description": "A block inside a details block: any block but another details block",
+      "allOf": [{"$ref": "#/$defs/block"}, {"not": {"properties": {"type": {"const": "details"}}}}]
+    },
     "block": {
       "type": "object",
       "required": ["type"],
@@ -70,7 +84,8 @@
               "spec": {"type": "object", "description": "What to draw. assets/charts.js reads the fields for each kind; see references/chart-shape.md"},
               "views": {
                 "type": "array",
-                "description": "Buttons above a timeband chart. The chosen lanes stay at full strength",
+                "maxItems": 5,
+                "description": "Buttons above a timeband chart, five at most. The chosen lanes stay at full strength",
                 "items": {
                   "type": "object",
                   "required": ["label"],
@@ -105,13 +120,14 @@
             "properties": {
               "items": {
                 "type": "array", "minItems": 2,
-                "description": "Cards side by side for parallel things. Each needs title and either text or list",
+                "description": "Cards side by side, one per item read on its own. Each needs title and either text or list, and the cards of a block hold the same fields in the same order",
                 "items": {"type": "object", "required": ["title"],
                           "properties": {"label": {"type": "string", "description": "Small tag above the title"},
                                          "title": {"type": "string"},
                                          "text": {"type": "string"},
                                          "list": {"type": "array", "minItems": 1, "items": {"type": "string"}},
-                                         "tone": {"enum": ["accent", "good", "warn", "info"], "default": "accent"}}}
+                                         "tone": {"enum": ["accent", "good", "warn", "info"],
+                                                  "description": "The state of the item (good, warn); leave it out for a card that has no state"}}}
               }
             }
           }
@@ -122,7 +138,9 @@
             "required": ["text"],
             "properties": {"title": {"type": "string"}, "text": {"type": "string"},
                            "tone": {"enum": ["accent", "good", "warn", "info"], "default": "info",
-                                    "description": "warn for cautions, info for side notes"}}
+                                    "description": "warn for a warning, a framed box with an icon; any other tone for an explanation, a titled paragraph"}},
+            "if": {"required": ["tone"], "properties": {"tone": {"const": "warn"}}},
+            "then": {"required": ["title"], "properties": {"title": {"description": "Names the risk"}}}
           }
         },
         {
@@ -155,10 +173,12 @@
         {
           "if": {"properties": {"type": {"const": "table"}}},
           "then": {
-            "required": ["columns", "rows"],
+            "required": ["caption", "columns", "rows"],
             "properties": {
-              "columns": {"type": "array", "minItems": 1, "items": {"type": "string"}},
-              "rows": {"type": "array", "items": {"type": "array", "items": {"type": "string"}}, "description": "Each row has as many cells as columns"}
+              "caption": {"type": "string", "minLength": 1, "description": "Names the table, for example Loan limits by card"},
+              "columns": {"type": "array", "minItems": 1, "items": {"type": "string"}, "description": "Column headers. Units go here, for example Charge ($)"},
+              "rows": {"type": "array", "items": {"type": "array", "items": {"type": "string"}}, "description": "Each row has as many cells as columns; the first cell names the row"},
+              "num": {"type": "array", "items": {"type": "integer", "minimum": 0}, "description": "Columns that hold numbers, counted from 0. Their cells hold bare numbers and are aligned right"}
             }
           }
         },
@@ -171,8 +191,8 @@
           "then": {
             "required": ["summary"],
             "properties": {
-              "summary": {"type": "string", "description": "Label of the collapsed block"},
-              "blocks": {"type": "array", "items": {"$ref": "#/$defs/block"}}
+              "summary": {"type": "string", "description": "What the block holds and how much, for example Raw log, 240 lines"},
+              "blocks": {"type": "array", "items": {"$ref": "#/$defs/inner"}, "description": "Long raw data, ten lines or more. No details block inside"}
             }
           }
         }

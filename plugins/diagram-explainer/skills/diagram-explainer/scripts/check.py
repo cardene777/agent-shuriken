@@ -8,8 +8,9 @@
 | Duplicate ids | Two elements share an id; links and SVG markers point at the wrong one |
 | References | A link, marker, or label points at an id that does not exist |
 | Contents and sections | The contents list keeps a section that was removed |
-| Opening | Something other than one lead sentence sits between the title and the first heading |
-| Collapsed blocks | A `<details>` ships open, so collapsing it achieved nothing |
+| Opening | Something other than one lead sentence and the facts table sits between the title and the first heading |
+| Collapsed blocks | A `<details>` ships open, so collapsing it achieved nothing; holds under 10 lines, which the reader would rather see; or is named only More or Details, so the reader cannot tell what it holds |
+| Warnings | A section has three or more warnings, so none of them stands out |
 | Text | Checked by `prose.py` (words, caption numbers, tables, contents vs headings, links) |
 | Pages and print | Header buttons, pages, per-page contents, section id prefixes, and the PDF button agree |
 | Figure per section | A section has neither a `<figure>` nor a stated reason (`data-nofig`) for having none |
@@ -32,6 +33,7 @@ Usage:
            [--live] [--widths 500,768,1024,1440]
 """
 import argparse
+import html
 import io
 import os
 import re
@@ -66,12 +68,30 @@ DETAILS_OPEN = re.compile(
     r"""<details\b(?:\s+(?!open\b)[\w:.-]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'>]+))?)*"""
     r"""\s+open(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'>]+))?[\s/>]""", re.I)
 DETAILS = re.compile(r"<details\b", re.I)
+# A collapsed block with its name and what it holds. render.py refuses one inside another.
+DETAILS_BLOCK = re.compile(r"<details\b[^>]*>\s*<summary\b[^>]*>(.*?)</summary>(.*?)</details>", re.S | re.I)
+# Only long raw data is collapsed: a block holds at least this many lines (table rows, list
+# items, paragraphs, and lines of code), or the reader would rather see it in the text.
+DETAILS_MIN = 10
+DATA_LINE = re.compile(r"<(?:tr|li|p)\b", re.I)
+HEAD_ROWS = re.compile(r"<thead\b.*?</thead>", re.S | re.I)
+PRE_BODY = re.compile(r"<pre\b[^>]*>(.*?)</pre>", re.S | re.I)
+# Names that say neither what a collapsed block holds nor how much, compared in lower case.
+VAGUE_NAMES = ("more", "show more", "details", "詳細", "もっと見る")
+TAG = re.compile(r"<[^>]+>")
+# Warnings: notes with the `warn` class (render.py writes `note warn`). Three or more in one
+# section make each one easy to skip.
+WARN_NOTE = re.compile(r'<div\b[^>]*\bclass="(?=[^"]*\bnote\b)(?=[^"]*\bwarn\b)[^"]*"')
+WARNINGS_MAX = 2
+ANY_SEC = re.compile(r'<section\b[^>]*\bid="([^"]+)"[^>]*>(.*?)</section>', re.S)
 
-# Opening: after the title, only one lead sentence until the contents or the first heading.
+# Opening: after the title, only one lead sentence and the facts table until the contents or the
+# first heading.
 H1_END = re.compile(r"</h1>")
 TOC_OPEN = re.compile(r'<nav[^>]*class="[^"]*toc[^"]*"')
 H2_OPEN = re.compile(r"<h2\b")
 LEAD = re.compile(r'<p\b[^>]*class="[^"]*lead[^"]*"[^>]*>.*?</p>', re.S)
+FACTS = re.compile(r'<table\b[^>]*\bclass="(?:[^"]*\s)?facts(?:\s[^"]*)?"[^>]*>.*?</table>', re.S)
 # Opening tags only; closing tags of the title's wrapper are not content.
 BLOCK_TAG = re.compile(
     r"<(div|ul|ol|p|table|section|figure|details|blockquote|aside|h[3-6])\b", re.I)
@@ -477,12 +497,14 @@ def print_check(doc, found):
 
 
 def opening_check(body, found):
-    """Between each title and the contents or first heading, only one lead sentence.
+    """Between each title and the contents or first heading, only one lead sentence and one
+    facts table (`<table class="facts">`, the time, the specification followed, and the date the
+    sources were read).
 
     Judged by position, not wording: any other block there fails, whatever it says.
     Returns None for tab documents (the tab bar sits under the title) and for documents
     without a title followed by contents or a heading.
-    Otherwise returns (failures, elements looked at, lead sentences, titles).
+    Otherwise returns (failures, elements looked at, lead sentences, facts tables, titles).
     """
     if PANEL_ANY.search(body):
         return None
@@ -494,19 +516,49 @@ def opening_check(body, found):
             heads.append(body[h1.end():min(stops)])
     if not heads:
         return None
-    n = ntag = nlead = 0
+    n = ntag = nlead = nfacts = 0
     for head in heads:
         leads = LEAD.findall(head)
-        rest = LEAD.sub("", head)
+        facts = FACTS.findall(head)
+        rest = FACTS.sub("", LEAD.sub("", head))
         nlead += len(leads)
+        nfacts += len(facts)
         ntag += len(ANY_TAG.findall(head))
         if len(leads) > 1:
             n += 1
             found.append("%d lead sentences under one title (keep one)" % len(leads))
+        if len(facts) > 1:
+            n += 1
+            found.append("%d facts tables under one title (keep one)" % len(facts))
         for m in BLOCK_TAG.finditer(rest):
             n += 1
             found.append("<%s> between the title and the first heading" % m.group(1).lower())
-    return n, ntag, nlead, len(heads)
+    return n, ntag, nlead, nfacts, len(heads)
+
+
+def details_check(body):
+    """Collapsed blocks that hold too little, and those named only by a vague word.
+
+    Returns (list of (name, lines) under DETAILS_MIN lines, list of vague names).
+    """
+    short, vague = [], []
+    for summary, inner in DETAILS_BLOCK.findall(body):
+        name = re.sub(r"\s+", " ", html.unescape(TAG.sub("", summary))).strip()
+        inner = HEAD_ROWS.sub("", inner)
+        lines = len(DATA_LINE.findall(inner)) + sum(len(code.strip("\n").split("\n"))
+                                                    for code in PRE_BODY.findall(inner))
+        if lines < DETAILS_MIN:
+            short.append((name, lines))
+        if name.casefold() in VAGUE_NAMES:
+            vague.append(name)
+    return short, vague
+
+
+def warnings_check(body):
+    """(section id, warnings) for each section with more than WARNINGS_MAX warnings, and the
+    number of warnings in the document."""
+    counts = [(sid, len(WARN_NOTE.findall(inner))) for sid, inner in ANY_SEC.findall(body)]
+    return [(sid, n) for sid, n in counts if n > WARNINGS_MAX], sum(n for _sid, n in counts)
 
 
 def main(argv=None):
@@ -626,7 +678,7 @@ def main(argv=None):
     if op is None:
         print("-- opening not checked (no title followed by contents or a heading, or a tab document)")
     else:
-        opn, ntag, nlead, nhead = op
+        opn, ntag, nlead, nfacts, nhead = op
         if opn:
             ng += 1
             print("NG opening: %d extra items after the title (titles %d, elements looked at %d)"
@@ -634,19 +686,44 @@ def main(argv=None):
             for b in openbad:
                 print("     %s" % b)
         else:
-            print("OK opening: only lead sentences after the title (titles %d, leads %d, elements looked at %d)"
-                  % (nhead, nlead, ntag))
+            print("OK opening: only the lead sentence and the facts table after the title "
+                  "(titles %d, leads %d, facts tables %d, elements looked at %d)" % (nhead, nlead, nfacts, ntag))
 
-    # 7. Collapsed blocks start closed
+    # 7. Collapsed blocks start closed, hold long raw data, and say what they hold
     nopen = len(DETAILS_OPEN.findall(body))
     ndet = len(DETAILS.findall(body))
+    short, vague = details_check(body)
     if nopen:
         ng += 1
         print("NG open <details>: %d of %d (remove the open attribute)" % (nopen, ndet))
-    else:
-        print("OK %d <details>, all closed" % ndet)
+    if short:
+        ng += 1
+        print("NG <details> under %d lines: %d of %d (show them in the text; collapse only long raw data)"
+              % (DETAILS_MIN, len(short), ndet))
+        for name, lines in short:
+            print('     "%s" ... %d lines' % (name, lines))
+    if vague:
+        ng += 1
+        print("NG <details> named only by a vague word: %d of %d (say what it holds and how much, "
+              "such as Raw log, 240 lines)" % (len(vague), ndet))
+        for name in vague:
+            print('     "%s"' % name)
+    if not (nopen or short or vague):
+        print("OK %d <details>: all closed, each holds %d lines or more and is named for what it holds"
+              % (ndet, DETAILS_MIN))
 
-    # 8. Text (prose.py). Whether the content is true is not checked here.
+    # 8. Warnings stand out: at most WARNINGS_MAX in a section
+    crowded, nwarn = warnings_check(body)
+    if crowded:
+        ng += 1
+        print("NG sections with more than %d warnings: %d (%s)"
+              % (WARNINGS_MAX, len(crowded), " ".join(sid for sid, _n in crowded)))
+        for sid, n in crowded:
+            print("     %s ... %d warnings (keep the ones that matter most, and say the rest in the text)" % (sid, n))
+    else:
+        print("OK no section has more than %d warnings (warnings %d)" % (WARNINGS_MAX, nwarn))
+
+    # 9. Text (prose.py). Whether the content is true is not checked here.
     import prose
     words = prose.load_words(a.words) if a.words else None
     allow = prose.load_allow(a.words) if a.words else None
@@ -661,7 +738,7 @@ def main(argv=None):
     if pn:
         ng += 1
 
-    # 9. Pages, tabs, and printing
+    # 10. Pages, tabs, and printing
     pagebad = []
     tn = tabs_check(body, pagebad, ja)
     pg = pages_check(body, doc, pagebad)
@@ -689,7 +766,7 @@ def main(argv=None):
             print("OK %d tabs: keys, sections, contents, and numbers agree; the PDF button is present"
                   % len(panels_of(body)))
 
-    # 10. A figure in every section of the document template
+    # 11. A figure in every section of the document template
     fr = figure_rule(body)
     if fr is not None:
         if fr[0]:
@@ -700,7 +777,7 @@ def main(argv=None):
             print("OK all %d sections have a figure (sections with a nofigure reason: %d)"
                   % (fr[1], fr[2]))
 
-    # 11. Figures and text (figure.py)
+    # 12. Figures and text (figure.py)
     import figure
     fng, fnotes, fdetail = figure.run(doc, words=words, allow=allow,
                                       use_default=not a.no_default_words)
@@ -713,7 +790,7 @@ def main(argv=None):
     if fng:
         ng += 1
 
-    # 12. Open it in a browser
+    # 13. Open it in a browser
     if a.live:
         bad, notes = live(doc, widths)
         for line in notes:
