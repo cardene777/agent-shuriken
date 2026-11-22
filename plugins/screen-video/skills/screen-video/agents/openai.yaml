@@ -1,0 +1,7 @@
+interface:
+  display_name: "Screen Video"
+  short_description: "Plan a web app video, rehearse it as a storyboard, and record captioned and edited videos"
+  default_prompt: "Use $screen-video to make a demo video of the signup flow of this app."
+
+policy:
+  allow_implicit_invocation: true
