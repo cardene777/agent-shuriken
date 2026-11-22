@@ -264,7 +264,7 @@ th[aria-sort] .sort svg { color: var(--accent); }
   <section class="cards" id="cards"></section>
   <div class="tabs" role="tablist" id="tabs"></div>
   <section id="panel" role="tabpanel"></section>
-  <section class="how" id="how"></section>
+  <section class="how" id="how" aria-labelledby="how-title"></section>
 </main>
 <p class="sr-only" id="status" role="status"></p>
 <script>
@@ -661,7 +661,6 @@ const empty = (head, text, vars) => el("div", {class: "empty"}, el("h4", null, t
 // A column: the dictionary key of its header, the value it sorts by, the text it shows and searches,
 // how it draws a cell, whether it holds numbers, and whether its first press sorts up or down.
 const col = (key, val, more) => Object.assign({key, val, text: (r) => String(val(r))}, more || {});
-const textOf = (c, r) => c.text(r);
 function cellOf(c, r) {
   if (c.show) return c.show(r);
   if (c.said) return code(c.text(r), "said");
@@ -748,7 +747,7 @@ function rowsOf(spec, st, draw) {
   const q = st.query.trim().toLowerCase();
   const filtered = !!(q || st.filter);
   let rows = spec.rows.filter(r => (!st.filter || String(spec.filter.val(r)) === st.filter)
-    && (!q || spec.cols.some(c => textOf(c, r).toLowerCase().includes(q))));
+    && (!q || spec.cols.some(c => c.text(r).toLowerCase().includes(q))));
   const c = spec.cols[st.sort], sign = st.dir === "descending" ? -1 : 1;
   rows = rows.map((r, i) => [r, i]).sort((a, b) => cmp(c.val(a[0]), c.val(b[0])) * sign || a[1] - b[1]).map(x => x[0]);
   const pages = Math.max(1, Math.ceil(rows.length / PAGE));
@@ -1095,7 +1094,6 @@ function render() {
   panel.setAttribute("aria-labelledby", "tab-" + tab);
   panel.replaceChildren(el("h2", {class: "sr-only"}, t(key)), ...PANELS[tab]().filter(Boolean));
   panelTab = tab;
-  $("how").setAttribute("aria-labelledby", "how-title");
   $("how").replaceChildren(...how());
   // The chosen tab is scrolled into the tab row, which scrolls sideways on a phone.
   const b = $("tab-" + tab), left = b.offsetLeft, right = left + b.offsetWidth;
