@@ -51,7 +51,7 @@ S=<skill folder>/scripts; python3 "$S/machine_cleanup.py" serve
 It prints the page's address on `127.0.0.1`, opens it in the browser, and waits up to 9 minutes for the user to pick and press Free.
 Run it with a shell timeout of at least 10 minutes, such as `timeout: 600000` in Claude Code, or in the background.
 Tell the user the page is open and that nothing changes until they press Free and confirm.
-The page opens on an overview of charts, and the i button on each row shows its reason, location, and command.
+The page opens on an overview of charts. The Disk and Programs tabs list the rows in one table per level, and pressing a row's name shows its reason, location, and command beside the list.
 
 When it ends, its last line is the selection, `machine-cleanup:select <id> <id> ...`.
 
@@ -61,13 +61,13 @@ When it ends, its last line is the selection, `machine-cleanup:select <id> <id> 
 | 4 | The user has not pressed Free yet. Run `serve` again; the open page keeps working at the same address |
 | 2 | No scan yet. Go back to section 1 |
 
-When the page cannot reach the agent, it offers Copy the selection, and the user pastes a `machine-cleanup:select ...` line into the chat.
-Use that line as it is.
+When the page cannot reach the agent, a notice says so, and its confirm window offers Copy. The user pastes a selection into the chat: `machine-cleanup:select` on the first line and one id per line under it.
+Use the pasted text as it is; `apply` also reads the one-line form that `serve` prints.
 
 ## 3. Free the picks
 
 ```bash
-S=<skill folder>/scripts; python3 "$S/machine_cleanup.py" apply --select '<the machine-cleanup:select line>'
+S=<skill folder>/scripts; python3 "$S/machine_cleanup.py" apply --select '<the selection, as printed or pasted>'
 ```
 
 Each item gets one line.

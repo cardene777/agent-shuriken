@@ -83,50 +83,74 @@ The inner row keeps its own row, so that it can be freed alone, and lists in `wi
 
 ## How rows are ranked
 
-The scan gives every item one of three levels and a reason, and the page groups each tab by level, with the rows in use last.
+The scan gives every item one of three levels and a reason, stored as `recommended`, `check`, and `careful`.
+The page splits each list tab into one table per level, with the rows in use last, and shows each row's level as a tag with an icon and its word.
 The level only orders the rows and explains them; `apply` checks every pick the same way whatever its level.
 
 | Level | Items | Reason shown |
 |---|---|---|
 | Recommended | Caches that tools rebuild, build output of a project with no commit for more than 30 days, the Trash, logs and installers older than 30 days, and dev servers still running after their session ended | Rebuilt the next time it is needed, how many days the project has had no commit, or how old the files are |
-| Check first | Build output of a project with a commit in the last 30 days, large files, duplicates, unused work folders, unused apps, app leftovers, unused tool versions, AI models, login items, and a `next-server` process, since `next start` runs under the same name | How many days since the last commit, checkout, or download, since the app was opened, or since the leftover last changed, or that the item can be put back or installed again |
-| Careful | Heavy processes and running containers | Ending it stops its work |
+| Restorable | Build output of a project with a commit in the last 30 days, large files, duplicates, unused work folders, unused apps, app leftovers, unused tool versions, AI models, login items, and a `next-server` process, since `next start` runs under the same name | How many days since the last commit, checkout, or download, since the app was opened, or since the leftover last changed, or that the item can be put back or installed again |
+| Risky | Heavy processes and running containers | Ending it stops its work |
+| In use | Any item that is in use, whatever its level | Why it is in use |
 
-The headings of the recommended and check-first groups have a button that picks every row in the group except copies of duplicates, which are picked one copy at a time so that one copy always stays.
-The copies of one set sit together under a heading that names how many copies there are and the size of each, wherever the scan found them.
-The careful and in-use groups have no such button, and the page opens with nothing picked.
+The headings of the recommended and restorable levels have a Pick all button that picks every row of the level except copies of duplicates, which are picked one copy at a time so that one copy always stays.
+The copies of one set sit together, wherever the scan found them, and the first of them says how many copies there are and the size of each.
+The risky and in-use levels have no such button, and the page opens with nothing picked.
 
 ## The overview tab
 
+The page has four tabs: Overview, Disk, Programs, and Not measured, and each tab after the first names how many rows it holds.
+The tabs stay on one line. The arrow keys, Home, and End move between them, and the strip scrolls sideways when the window is too narrow for them.
 The page opens on the overview tab, which draws the scan as seven charts.
-The other tabs sit in a Disk group and a Programs group, and the tab strip wraps onto more lines when the window is narrow.
-Pressing a part of a ring or a legend row that leads to a tab opens that tab, and pressing a bar opens the details of that row.
+Pressing a part of a ring or a legend row that names a kind opens the Disk or Programs tab showing only that kind, and pressing a bar opens the details of that row.
 A value the scan could not measure is shown as "Not measured", never as zero.
 The hole of a ring holds only its name and value, and the lines below the ring hold the rest, such as the whole disk.
 
 | Chart | What it shows |
 |---|---|
 | What can be freed | The disk each kind of row gives back, without rows in use and keeping one copy of each set of duplicates. The line below is how much of it is rebuilt on next use |
-| Size by level | The same disk split into recommended, check first, and careful, with the rows in use apart. The line below is the free disk after freeing every recommended row |
+| Size by level | The same disk split into recommended, restorable, and risky, with the rows in use apart. The line below is the free disk after freeing every recommended row |
 | Disk | The whole disk as what you picked, what can be freed but is not picked, other use, and free space. The line below is the free disk after freeing what you picked |
 | Memory | Memory used by processes that can end, by processes in use, by everything else, and free memory. Containers are left out, since the process that runs them already counts their memory. The line below is the load over the last minute |
-| Largest items | The 8 largest rows on disk, coloured by their group. A long name wraps onto a second line instead of being cut |
+| Largest items | The 8 largest rows on disk, coloured by their level. A long name wraps onto a second line instead of being cut |
 | Processes using the most memory | The 6 processes that use the most memory |
 | Processes using the most CPU | The 6 processes with the highest CPU share between the two `ps` samples |
 
-A row in the other tabs shows its name, its size, and for a process or container its CPU share.
+Each bar reads its name and its value, and a bar shows where its row is when another bar of its chart has the same name, such as two Host processes.
+
+## The Disk and Programs tabs
+
+The Disk tab lists caches, build output, the Trash and logs, large and duplicate files, projects, apps, and tools and models.
+The Programs tab lists processes, login items, and containers.
+Each level is a table under its heading, with the column headers kept on top as the list scrolls.
+A row has its name as the row header, then its size, or for a process or container its memory and its share of CPU in the CPU (%) column, and a pick button named by the row.
+A login item has neither memory nor a CPU share, so both of its cells stay empty.
 A large file, a copy of a duplicate, and a row whose name another row in the tab has, such as one of three Vite dev servers, show a second line as plain text: the folder the file is in, or for a process its working folder or command.
-A bar in the overview shows the same line when another bar of its chart has the same name, such as two Host processes.
-The bar at the bottom shows how many rows are picked and, apart from it, how much disk they free.
-The i button at the end of the row opens a dialog with the reason, what happens when it is freed, and the location, or for a process its memory, CPU share, start time, working folder, and command.
-A row that can be picked can also be picked or unpicked in that dialog.
-Above the rows, three tools change what the tab shows; they never change what is picked.
+Below 600px each row is a card that puts each value under its label.
+
+Pressing a row's name shows its details beside the list: the reason, what happens when it is freed, and the location, or for a process its memory, CPU share, start time, working folder, and command, each label beside its value.
+A list of more than 10 lines, such as the places of an app leftover or the copies of a duplicate, folds until you open it.
+A row that is deleted for good says so in its own notice, and a row that can be picked can also be picked or unpicked there.
+The list and the details scroll apart, and the name of the shown row stays at the top of its details.
+A list tab opens on its first row, and the address keeps the shown row as `#item-<id>`, so opening the page with that address shows that row in its tab.
+Below 860px the list and the details take turns. Pressing a name opens the details in place of the list, with Back to the list above them and links to the previous and next rows under them, and Back in the browser also returns to the list.
+
+Above the rows, these tools change what the tab shows; they never change what is picked.
 
 | Tool | What it does |
 |---|---|
-| Search | Shows only the rows whose name or location holds the typed text, ignoring case |
-| Groups | One button per group. Turning a group off hides its rows |
-| Sort | Orders the rows inside each group largest first, smallest first, or by name |
+| Search | Shows only the rows whose name or location holds the typed text, ignoring case. A search that finds nothing names the text and offers Clear filters |
+| Kind | One button per kind with how many rows it has. Pressing one shows only that kind, and its explanation replaces the tab's |
+| Levels | One button per level with how many rows it has. Turning a level off hides its rows |
+| Sort | Pressing the Name or Size header, or Memory or CPU (%) in the Programs tab, sorts the rows inside each level by it. Pressing it again reverses the order |
+| Pages | A tab with more than 50 rows shows 50 at a time, with a pager above and below the list. The line above the list says which rows are shown out of how many |
+
+Clear picks unpicks every row of the tab and offers Undo, which puts those picks back.
+The top right of the page says how many rows are picked and not sent, and while that is so the browser asks before you leave the page.
+The bar at the bottom shows how many rows are picked and, apart from it, how much disk they free.
+Pressing Free with nothing picked says so in the bar.
+With rows picked, it opens a confirm window titled with how many items it frees, which lists each row under what freeing it does and says what can be put back, with Cancel and Free.
 
 ## What counts as in use
 
@@ -172,9 +196,12 @@ It saves the port and the token in `session.json`, so running `serve` again keep
 Anything else gets 403 or 404, so another site open in the browser cannot read the page or send a selection.
 The page and every response carry a Content-Security-Policy that allows no outside connection.
 
-When the server accepts a selection, it prints `machine-cleanup:select <id> <id> ...` and ends.
-When it waited `--wait` seconds (540 by default) without one, it ends with exit code 4, and the open page shows that the agent is not waiting and offers Copy the selection, which copies the same line.
-The line does not depend on the page's language.
+When the server accepts a selection, it prints `machine-cleanup:select <id> <id> ...` and ends, and the page says in its bar and at its top right when it was sent.
+When the server refuses one, the bar shows the error as an alert with an icon, and the page asks again whether the agent waits.
+When it waited `--wait` seconds (540 by default) without a selection, it ends with exit code 4.
+The open page then shows a notice above the tabs that the agent is not waiting, and its confirm window offers Copy instead of Free.
+Copy puts `machine-cleanup:select` on the first line and one id per line under it, in a read-only text box and on the clipboard. When the browser refuses the clipboard, the text box is selected for Command+C or Ctrl+C.
+`apply --select` reads both forms, and neither depends on the page's language.
 
 ## The page's template
 

@@ -7,14 +7,18 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ### Added
 
-- Every row has a level, Recommended, Check first, or Careful, with the reason, and the page groups each tab by level with the count and size of each group and the rows in use last. The recommended and check-first groups have a button that picks the whole group, which replaces the tab's button that also picked careful rows
+- Every row has a level, Recommended, Restorable, or Risky, with the reason, and a row that a running program holds is marked In use. Each list shows one table per level with the count and size of the level, and the rows in use last. The Recommended and Restorable tables have a Pick all button, which replaces the tab's button that also picked risky rows
 - The scan summary says how many items are recommended and how much disk they hold
-- The page opens on an Overview tab with seven charts: what can be freed by kind, size by level, the whole disk with what is picked, memory, the largest items, and the processes using the most memory and CPU. Pressing a part of a chart opens its tab, and pressing a bar opens that row's details
-- The list tabs can be searched by name or location, filtered by group, and sorted largest first, smallest first, or by name
+- The page opens on an Overview tab with seven charts: what can be freed by kind, size by level, the whole disk with what is picked, memory, the largest items, and the processes using the most memory and CPU. Pressing a part of a chart opens the Disk or Programs tab with that kind chosen, and pressing a bar opens that row's details
+- The Disk and Programs tabs can be searched by name or location, narrowed to one kind and to chosen levels, and sorted by size, by name, or for programs by CPU. A search that finds nothing names the words and has a Clear filters button
+- Lists longer than 50 rows show 50 rows a page, with page buttons above and below the list
+- Pressing a row's name shows its reason, location, command, and measurements beside the list. On a narrow screen the details take the whole width, with Back and the previous and next rows. Each row's details have their own address, `#item-<id>`, so the browser's Back returns to the list and a reload opens the same row
+- The header says how many rows are picked and not sent, or when the picks were sent. Clear picks takes every pick off, with Undo until the next change
+- When the agent cannot be reached, a notice says so, and the confirm window has Copy, which copies `machine-cleanup:select` followed by one id per line for pasting into the chat. `apply --select` reads that form as well as the one-line form
 - The scan records the whole disk size next to the free space
-- A Projects tab lists git projects with no commit or checkout for 30 days, nothing uncommitted, and every commit on the remote as of the last fetch. Picked projects move to the Trash, and restore puts them back
-- The Apps tab also lists, on macOS, files that removed apps left in the eight Library folders, one row per bundle id, when no installed or running app is from the same company and the newest file is older than 30 days. They move to the Trash
-- A Tools and models tab lists versions kept by nvm, fnm, pyenv, rbenv, asdf, mise, and rustup that are neither the default nor named by a project's version file, and models downloaded by Ollama, Hugging Face, and LM Studio. Tool versions are deleted, with `rustup toolchain uninstall` for Rust. Ollama models are removed with `ollama rm` while Ollama runs, and otherwise by deleting the manifest and the blobs no other model uses
+- The Disk tab has a Projects kind that lists git projects with no commit or checkout for 30 days, nothing uncommitted, and every commit on the remote as of the last fetch. Picked projects move to the Trash, and restore puts them back
+- The Apps kind also lists, on macOS, files that removed apps left in the eight Library folders, one row per bundle id, when no installed or running app is from the same company and the newest file is older than 30 days. They move to the Trash
+- A Tools and models kind lists versions kept by nvm, fnm, pyenv, rbenv, asdf, mise, and rustup that are neither the default nor named by a project's version file, and models downloaded by Ollama, Hugging Face, and LM Studio. Tool versions are deleted, with `rustup toolchain uninstall` for Rust. Ollama models are removed with `ollama rm` while Ollama runs, and otherwise by deleting the manifest and the blobs no other model uses
 - `musubi.json` follows the `structure` and `look` formats, the `sheet` page type, and `verify` of page-design in the design-formats plugin through musubi, as optional follows. When page-design is installed, the agent reads them and runs page-design's verify on `templates/sheet.html`; when the `musubi` command is installed, it runs `musubi check` first. Without design-formats, the page works as before
 - The page's header has a Light and Dark switch next to the language switch. It follows the system setting until you choose, and keeps your choice in the browser's local storage under `machine-cleanup-theme`
 
@@ -22,7 +26,9 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 - `musubi.json` follows `look`, `sheet`, and `verify` of page-design at `^2.0.0`, the version that adds the pattern rules. In Japanese, each sentence of the page starts on its own line
 - A scan made by a previous version is refused with a request to scan again, since it has no levels, no disk size, or no projects, tool versions, and models
-- A row shows only its name, its size, and for a process its CPU share. The reason, location, command, and measurements moved to a dialog that the row's i button opens, where the row can also be picked
+- The page has four tabs, Overview, Disk, Programs, and Not measured. The Disk tab holds caches, build output, trash and logs, large and duplicate files, projects, apps, and tools and models as kinds, and the Programs tab holds processes, login items, and containers, instead of one tab for each
+- A row shows only its name, its level, its size, and for a process its memory and CPU share. It is picked with its + button, and the reason and measurements are in the details beside the list
+- The page follows the page-design patterns: a light and a dark set of colors with readable contrast, a level drawn with an icon and a word, keyboard keys for the tabs, and a confirm window that groups the picks by what happens to them and says how to put them back
 
 ### Fixed
 

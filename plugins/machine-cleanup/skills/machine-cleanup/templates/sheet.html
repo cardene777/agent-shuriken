@@ -7,100 +7,225 @@
 <meta name="referrer" content="no-referrer">
 <title>Free up this computer</title>
 <style>
+/* Lines between rows stand out from the card and the shown row by 3 to 1 or more. Good, warn, and
+   critical, the colors of the levels, are kept apart from the blue accent of picked rows. */
 :root {
-  --bg: #f6f7f9; --panel: #ffffff; --soft: #eef1f6; --text: #1d2330; --sub: #5b6475; --line: #dfe3ea;
-  --accent: #2f5bd3; --accent-text: #ffffff; --pick: #e8eefc; --rebuilt: #2e7d4f; --rebuilt-bg: #e7f5ec;
-  --trash: #8a5a00; --trash-bg: #fff4dc; --gone: #c8342b; --gone-bg: #fdecea; --run: #5b3fb5; --run-bg: #efeafd;
-  --lock: #5f6673; --lock-bg: #f1f2f4; --go: #2f5bd3; --check: #8a5a00; --care: #c8342b;
+  --bg: #f6f7f9; --fg: #1d2330; --muted: #5b6475; --card: #ffffff; --stripe: #f4f6f9; --selected: #e6edfb;
+  --label: #eef1f6; --line: #78808f; --soft-line: #dfe3ea; --track: #e3e7ee;
+  --accent: #2f5bd3; --accent-ink: #ffffff;
+  --good: #19693a; --good-soft: #e3f4e8; --warn: #8a5100; --warn-soft: #fdf0dc; --critical: #b3263e; --critical-soft: #fbe7eb; --critical-ink: #ffffff;
   --c1: #2f5bd3; --c2: #2e9d8f; --c3: #d08a1c; --c4: #9b59d0; --c5: #d0506e; --c6: #5b7f1e; --c7: #7a5c3e; --c-other: #aab2c0; --c-free: #e3e7ee; --c-pick: #17357f;
+  --radius: 10px; --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #12151b; --panel: #1b2029; --soft: #232a36; --text: #e7eaf0; --sub: #a3abba; --line: #2c3340;
-    --accent: #6d8ff0; --accent-text: #0d1117; --pick: #1f2a44; --rebuilt: #56d38a; --rebuilt-bg: #16301f;
-    --trash: #e3b341; --trash-bg: #33290f; --gone: #ff7b72; --gone-bg: #3a1d1b; --run: #b9a6ff; --run-bg: #2a2342;
-    --lock: #9aa3b2; --lock-bg: #232833; --go: #6d8ff0; --check: #e3b341; --care: #ff7b72;
+    --bg: #12151b; --fg: #e7eaf0; --muted: #a3abba; --card: #1b2029; --stripe: #20262f; --selected: #22304d;
+    --label: #232a36; --line: #7d8698; --soft-line: #2c3340; --track: #2c3340;
+    --accent: #6d8ff0; --accent-ink: #12151b;
+    --good: #5cc285; --good-soft: #1a3324; --warn: #e5a43a; --warn-soft: #3a2c14; --critical: #f07f8f; --critical-soft: #3d1c22; --critical-ink: #12151b;
     --c1: #6d8ff0; --c2: #4cc3b3; --c3: #e3b341; --c4: #b98ef0; --c5: #f0788f; --c6: #9cc95a; --c7: #c9a27e; --c-other: #5d6676; --c-free: #2c3340; --c-pick: #c9d6ff;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #12151b; --panel: #1b2029; --soft: #232a36; --text: #e7eaf0; --sub: #a3abba; --line: #2c3340;
-  --accent: #6d8ff0; --accent-text: #0d1117; --pick: #1f2a44; --rebuilt: #56d38a; --rebuilt-bg: #16301f;
-  --trash: #e3b341; --trash-bg: #33290f; --gone: #ff7b72; --gone-bg: #3a1d1b; --run: #b9a6ff; --run-bg: #2a2342;
-  --lock: #9aa3b2; --lock-bg: #232833; --go: #6d8ff0; --check: #e3b341; --care: #ff7b72;
+  --bg: #12151b; --fg: #e7eaf0; --muted: #a3abba; --card: #1b2029; --stripe: #20262f; --selected: #22304d;
+  --label: #232a36; --line: #7d8698; --soft-line: #2c3340; --track: #2c3340;
+  --accent: #6d8ff0; --accent-ink: #12151b;
+  --good: #5cc285; --good-soft: #1a3324; --warn: #e5a43a; --warn-soft: #3a2c14; --critical: #f07f8f; --critical-soft: #3d1c22; --critical-ink: #12151b;
   --c1: #6d8ff0; --c2: #4cc3b3; --c3: #e3b341; --c4: #b98ef0; --c5: #f0788f; --c6: #9cc95a; --c7: #c9a27e; --c-other: #5d6676; --c-free: #2c3340; --c-pick: #c9d6ff;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.6 var(--font); }
 button { font: inherit; color: inherit; }
-main { max-width: 1200px; margin: 0 auto; padding: 20px 16px 120px; }
-.head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-h1 { font-size: 24px; margin: 0; }
-.icon { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); font-weight: 700; cursor: pointer; }
-.right { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.status { font-size: 13px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--sub); }
-.status::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--lock); }
-.status.on::before { background: var(--rebuilt); }
-.status.off::before { background: var(--gone); }
-.switches { display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; }
-.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-.seg button { background: var(--panel); border: 0; padding: 4px 12px; cursor: pointer; font-size: 14px; white-space: nowrap; }
-.seg button + button { border-left: 1px solid var(--line); }
-.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); font-weight: 600; }
-.lead { margin: 6px 0 16px; color: var(--sub); }
-/* The tabs wrap onto as many lines as they need, in groups: what frees disk, and the programs that
-   run. Each group keeps its tabs together and wraps inside itself only when it is wider than the page. */
-.tabs { display: flex; flex-wrap: wrap; align-items: flex-end; column-gap: 20px; border-bottom: 1px solid var(--line); margin-bottom: 10px; }
-.tab-group { display: flex; flex-wrap: wrap; align-items: center; column-gap: 2px; min-width: 0; }
-.tab-label { padding: 0 6px 0 0; color: var(--sub); font-size: 12px; font-weight: 600; }
-.tabs button { font-weight: 600; color: var(--sub); background: none; border: 0; border-bottom: 3px solid transparent; padding: 10px 12px; cursor: pointer; white-space: nowrap; transition: color .15s, border-color .15s; }
-.tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
-.tabs button span { display: inline-block; min-width: 20px; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: var(--soft); font-size: 12px; font-weight: 600; }
-.tabhead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 6px 0 10px; }
-.tabhead p { margin: 0; flex: 1 1 320px; color: var(--sub); }
-.tool { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
-.list { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
-.row { display: flex; align-items: center; gap: 14px; padding: 10px 14px; border-bottom: 1px solid var(--line); cursor: pointer; }
-.row:last-child { border-bottom: 0; }
-.row:hover { background: var(--soft); }
-.row[aria-pressed="true"] { background: var(--pick); box-shadow: inset 4px 0 0 var(--accent); }
-.row.lvl-recommended { border-left: 4px solid var(--go); padding-left: 10px; }
-.row.lvl-check { border-left: 4px solid var(--check); padding-left: 10px; }
-.row.lvl-careful { border-left: 4px solid var(--care); padding-left: 10px; }
-.row[class*="lvl-"][aria-pressed="true"] { box-shadow: none; }
-.group { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 8px 14px; background: var(--soft); border-bottom: 1px solid var(--line); }
-.group b { font-size: 14px; }
-.group span { color: var(--sub); font-size: 13px; }
-.group .pick-group { margin-left: auto; padding: 4px 10px; font-size: 13px; }
-.group.lvl-recommended b { color: var(--go); }
-.group.lvl-check b { color: var(--check); }
-.group.lvl-careful b { color: var(--care); }
-.group.lvl-inuse b { color: var(--lock); }
-.row[aria-disabled="true"] { cursor: default; background: var(--lock-bg); }
-.row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-.mark { flex: none; width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--line); display: grid; place-items: center; font-size: 14px; font-weight: 700; color: var(--accent-text); }
-.row[aria-pressed="true"] .mark { background: var(--accent); border-color: var(--accent); }
-.row[aria-disabled="true"] .mark { border-style: dashed; }
-.main { flex: 1; min-width: 0; }
-.name { font-weight: 600; overflow-wrap: anywhere; }
-.where { color: var(--sub); font-size: 13px; overflow-wrap: anywhere; }
-/* The heading of the copies of one content, indented to the names of the rows under it. */
-.set-head { padding: 6px 14px 4px 50px; border-bottom: 1px dashed var(--line); color: var(--sub); font-size: 13px; font-weight: 600; }
-.cpu { flex: none; color: var(--sub); font-size: 13px; font-variant-numeric: tabular-nums; min-width: 72px; text-align: right; }
-.info { flex: none; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); color: var(--sub); font: italic 700 14px Georgia, serif; cursor: pointer; }
-.info:hover, .info:focus-visible { color: var(--accent); border-color: var(--accent); }
-.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 10px; }
-.toolbar[hidden], .overview[hidden], .list[hidden] { display: none; }
-.search { flex: 1 1 180px; min-width: 0; padding: 7px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--text); font: inherit; font-size: 14px; }
-.levels { display: flex; flex-wrap: wrap; gap: 6px; }
-.levels button { padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--sub); font-size: 13px; font-weight: 600; cursor: pointer; }
-.levels button[aria-pressed="true"] { color: var(--lv); border-color: var(--lv); background: var(--soft); }
-.sort { padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--text); font: inherit; font-size: 14px; }
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+[tabindex="-1"]:focus { outline: none; }
+a { color: var(--accent); }
+/* The header and the content share one width and one left edge. */
+.top-in, main { max-width: 1200px; margin: 0 auto; padding-left: 24px; padding-right: 24px; }
+header { border-bottom: 1px solid var(--line); background: var(--card); }
+.top-in { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px 24px; padding-top: 16px; padding-bottom: 14px; }
+.top-in > div:first-child { flex: 1 1 480px; min-width: 0; }
+.title-row { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; }
+h1 { margin: 0; font-size: 20px; line-height: 1.35; }
+.icon-button { display: inline-grid; place-items: center; flex: none; width: 32px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: var(--card); color: var(--fg); cursor: pointer; }
+.icon-button:hover { border-color: var(--accent); color: var(--accent); }
+/* One row per fact, its name beside its value: in a line on wide screens, and one under another below 860px.
+   The caption names the table for screen readers and takes no room. */
+.facts { position: relative; border-collapse: collapse; font-size: 13px; }
+.facts, .facts tbody { display: block; }
+.facts caption { position: absolute; top: 0; left: 0; width: 1px; height: 1px; clip-path: inset(50%); white-space: nowrap; }
+.facts tbody { display: flex; flex-wrap: wrap; gap: 2px 20px; }
+.facts tr { display: flex; gap: 6px; align-items: baseline; }
+.facts th, .facts td { padding: 0; border: 0; text-align: left; background: none; font-size: 13px; }
+.facts th { font-weight: 600; color: var(--muted); white-space: nowrap; }
+.facts td { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+@media (max-width: 860px) {
+  .facts tbody { display: grid; gap: 2px; }
+  .facts tr { display: grid; grid-template-columns: 11em minmax(0, 1fr); gap: 8px; }
+  .facts th { white-space: normal; }
+}
+/* The state of the page sits at the top right: what is picked and not sent, and the connection. */
+.controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 12px; }
+.save-state { margin: 0; font-size: 14px; font-weight: 600; }
+.save-state:empty { display: none; }
+.status { display: inline-flex; align-items: center; gap: 6px; margin: 0; padding: 4px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--muted); font-size: 13px; }
+.status::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.status.on::before { background: var(--good); }
+.status.off::before { background: var(--critical); }
+.status.sent::before { background: var(--accent); }
+.switches { display: flex; flex-wrap: nowrap; gap: 8px; }
+.seg { display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.seg button { border: 0; background: transparent; color: var(--fg); padding: 6px 14px; min-height: 36px; font-size: 14px; cursor: pointer; white-space: nowrap; transition: background-color .15s, color .15s; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+main { padding-top: 20px; padding-bottom: 140px; }
+.lead { color: var(--muted); margin: 0 0 12px; max-width: 76em; }
+/* A notice that holds for the whole page sits first in the content, above the tabs. */
+.banner { display: flex; gap: 12px; align-items: flex-start; margin: 0 0 16px; padding: 12px 16px; border: 1px solid var(--warn); border-left-width: 4px; border-radius: var(--radius); background: var(--warn-soft); }
+.banner svg, .caution svg { flex: none; color: var(--warn); margin-top: 3px; }
+.banner strong, .caution strong { display: block; }
+.banner p, .caution p { margin: 2px 0 0; }
+/* The tabs stay on one line, and the strip scrolls when they do not fit. */
+.tabs { position: relative; display: flex; flex-wrap: nowrap; gap: 4px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--line); margin: 4px 0 18px; }
+.tabs::-webkit-scrollbar { display: none; }
+.tabs [role="tab"] { flex: none; border: 0; border-bottom: 3px solid transparent; background: transparent; color: var(--muted); padding: 10px 12px; min-height: 44px;
+  cursor: pointer; white-space: nowrap; font-variant-numeric: tabular-nums; transition: color .15s, border-color .15s; }
+.tabs [role="tab"]:hover { color: var(--fg); }
+.tabs [role="tab"]:focus-visible { outline-offset: -3px; }
+.tabs [role="tab"][aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); font-weight: 600; }
+#panel:focus-visible { outline-offset: 4px; }
+#panel > h2 { margin: 0 0 4px; font-size: 18px; line-height: 1.4; }
+/* A warning sits in its own block right after the explanation it qualifies. */
+.caution { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 14px; padding: 10px 14px; border: 1px solid var(--warn); border-radius: 8px; background: var(--warn-soft); }
+.caution h3 { margin: 0; font-size: 15px; line-height: 1.5; }
+/* Search, kinds, levels, and Clear above the list. */
+.toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 20px; margin: 0 0 12px; }
+.field { display: grid; gap: 4px; min-width: 0; }
+.field label, .field-label { font-size: 13px; font-weight: 600; color: var(--muted); }
+.field input { width: min(320px, 100%); min-height: 40px; padding: 8px 10px; font: inherit; color: var(--fg); background: var(--card); border: 1px solid var(--line); border-radius: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { min-height: 36px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--fg); font-size: 14px; cursor: pointer; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.chips button:hover { border-color: var(--accent); }
+.chips button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.clear-box { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.clear-box p { margin: 0; color: var(--muted); font-size: 14px; }
+.count { margin: 0 0 8px; color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+.pager { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; margin: 10px 0; }
+.pager button { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 40px; min-height: 40px; padding: 6px 12px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--fg); font-variant-numeric: tabular-nums; cursor: pointer; }
+.pager button:hover:not(:disabled) { border-color: var(--accent); }
+.pager button:disabled { opacity: .5; cursor: default; }
+.pager button[aria-current="page"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.pager .gap { min-width: 20px; text-align: center; color: var(--muted); }
+.primary, .secondary, .danger { min-height: 40px; padding: 8px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.primary { border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); }
+.secondary { border: 1px solid var(--line); background: var(--card); color: var(--fg); }
+.secondary:hover { border-color: var(--accent); }
+.danger { border: 1px solid var(--critical); background: var(--critical); color: var(--critical-ink); }
+/* The list on the left and the shown row's details beside it, each scrolling on its own. */
+.split { display: grid; grid-template-columns: minmax(320px, 400px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.list { min-width: 0; }
+.group-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin: 18px 0 8px; }
+.group-head:first-child { margin-top: 0; }
+.group-head h3 { margin: 0; font-size: 16px; line-height: 1.4; font-variant-numeric: tabular-nums; }
+.group-sum { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+.pick-group { margin-left: auto; min-height: 36px; padding: 4px 14px; }
+.table-wrap { border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); }
+table { border-collapse: separate; border-spacing: 0; }
+th, td { padding: 8px 12px; text-align: left; vertical-align: top; font-size: 14px; overflow-wrap: anywhere; }
+.rows-table, .grid { width: 100%; table-layout: fixed; }
+.rows-table thead th, .grid thead th { position: sticky; top: 0; z-index: 2; background: var(--label); border-bottom: 1px solid var(--line); color: var(--muted); font-size: 13px; font-weight: 600; white-space: nowrap; }
+.rows-table thead th:first-child, .grid thead th:first-child { border-top-left-radius: var(--radius); }
+.rows-table thead th:last-child, .grid thead th:last-child { border-top-right-radius: var(--radius); }
+.rows-table .col-num { width: 96px; }
+.rows-table .col-cpu { width: 92px; }
+.rows-table .num { padding-left: 8px; padding-right: 8px; }
+.rows-table .col-pick { width: 64px; }
+.rows-table tbody tr > *, .grid tbody tr > * { border-bottom: 1px solid var(--line); vertical-align: middle; transition: background-color .15s; }
+.rows-table tbody tr:last-child > *, .grid tbody tr:last-child > * { border-bottom: 0; }
+.rows-table tbody tr:last-child > :first-child, .grid tbody tr:last-child > :first-child { border-bottom-left-radius: var(--radius); }
+.rows-table tbody tr:last-child > :last-child, .grid tbody tr:last-child > :last-child { border-bottom-right-radius: var(--radius); }
+.rows-table tbody th { border-left: 4px solid transparent; padding-left: 8px; font-weight: 400; }
+.rows-table tbody tr:hover > * { background: var(--stripe); }
+.rows-table tbody tr.current > * { background: var(--selected); }
+.rows-table tbody tr.picked > th { border-left-color: var(--accent); }
+.rows-table tbody tr.copy > th { padding-left: 22px; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.sort { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: 0; background: none; color: inherit; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.sort svg { color: var(--muted); }
+th[aria-sort] .sort { color: var(--fg); }
+th[aria-sort] .sort svg { color: var(--accent); }
+.open { display: block; padding: 0; border: 0; background: none; color: var(--fg); font-weight: 600; text-align: left; cursor: pointer; overflow-wrap: anywhere; }
+.open:hover { color: var(--accent); text-decoration: underline; }
+.where, .set-note { display: block; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+/* The level of a row as a tag: its icon and its word, never its color alone. */
+.tag { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; padding: 1px 9px 1px 7px; border-radius: 999px; font-size: 13px; font-weight: 600; line-height: 1.6; white-space: nowrap; }
+.tag svg { flex: none; }
+.tier-recommended { color: var(--good); background: var(--good-soft); }
+.tier-check { color: var(--warn); background: var(--warn-soft); }
+.tier-careful { color: var(--critical); background: var(--critical-soft); }
+.tier-inuse { color: var(--muted); background: var(--label); }
+.pick-cell { text-align: center; }
+.pick { display: inline-grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: var(--card); color: var(--muted); cursor: pointer; }
+.pick:hover { border-color: var(--accent); color: var(--accent); }
+.pick .tick, .pick[aria-pressed="true"] .plus { display: none; }
+.pick[aria-pressed="true"] .tick { display: inline; }
+.pick[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+/* Below 600px each row is a card of label and value pairs. */
+.cards { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.cards li { padding: 12px 14px; border: 1px solid var(--line); border-left: 4px solid var(--line); border-radius: var(--radius); background: var(--card); }
+.cards li.current { background: var(--selected); }
+.cards li.picked { border-left-color: var(--accent); }
+.card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.card-top h4 { margin: 0; font-size: 15px; line-height: 1.45; min-width: 0; }
+.cards dl { display: flex; flex-wrap: wrap; gap: 4px 28px; margin: 8px 0 0; }
+.cards dt { font-size: 13px; font-weight: 600; color: var(--muted); }
+.cards dd { margin: 0; font-variant-numeric: tabular-nums; }
+/* The details of the shown row. */
+.detail { display: grid; gap: 12px; align-content: start; padding: 0 20px 18px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); }
+.detail-head { position: sticky; top: 0; z-index: 1; display: grid; gap: 2px; justify-items: start; padding: 16px 0 10px; background: var(--card); border-bottom: 1px solid var(--line); }
+.detail-head h2 { margin: 0; font-size: 18px; line-height: 1.4; overflow-wrap: anywhere; }
+.detail-body { display: grid; gap: 12px; }
+.kv { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.kv th { width: 34%; padding: 8px 12px 8px 0; color: var(--muted); font-size: 14px; font-weight: 600; border-top: 1px solid var(--soft-line); }
+.kv td { padding: 8px 0; font-size: 15px; white-space: pre-line; border-top: 1px solid var(--soft-line); }
+.kv tr:first-child > * { border-top: 0; }
+.kv .mono, .kv .lines.mono { font-family: var(--mono); font-size: 13px; }
+.kv details summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+.kv .lines { margin-top: 6px; white-space: pre-line; }
+.detail-pick { justify-self: start; }
+.back, .step { display: none; }
+@media (min-width: 861px) {
+  .split .list, .split .detail { position: sticky; top: 16px; max-height: calc(100vh - 120px); overflow-y: auto; overflow-x: hidden; }
+  .split .list { padding: 2px; }
+}
+/* Below 860px the list and the details take turns: a row opens its details, which lead back to the
+   list and on to the rows before and after it. */
+@media (max-width: 860px) {
+  .split { grid-template-columns: minmax(0, 1fr); }
+  .split[data-view="list"] .detail { display: none; }
+  .split[data-view="detail"] .list { display: none; }
+  .detail { padding: 0 16px 16px; }
+  .back { display: inline-flex; justify-self: start; align-items: center; gap: 6px; min-height: 40px; margin-top: 12px; padding: 6px 12px 6px 8px;
+    border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--fg); cursor: pointer; }
+  .step { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+  .step a { display: grid; gap: 2px; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; color: inherit; text-decoration: none; }
+  .step a[rel="next"] { grid-column: 2; text-align: right; }
+  .step .k { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--accent); }
+  .step a[rel="next"] .k { justify-content: flex-end; }
+  .step .n { font-size: 14px; overflow-wrap: anywhere; }
+}
+.empty { padding: 28px 20px; border: 1px dashed var(--line); border-radius: var(--radius); background: var(--card); text-align: center; }
+.empty h3 { margin: 0 0 4px; font-size: 17px; line-height: 1.4; overflow-wrap: anywhere; }
+.empty p { margin: 0; color: var(--muted); }
+.empty button { margin-top: 14px; }
+.grid tbody th { font-family: var(--mono); font-size: 13px; font-weight: 400; }
+/* The overview: charts in two columns, one below 700px. */
 .overview { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
-.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; min-width: 0; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; min-width: 0; }
 .card h3 { margin: 0 0 10px; font-size: 15px; }
 .overview .card:last-child:nth-child(odd) { grid-column: 1 / -1; }
 .pie { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 14px 18px; }
@@ -114,73 +239,102 @@ h1 { font-size: 24px; margin: 0; }
 /* The hole of the ring is 96px across, so it holds only the name and the value; the whole size sits
    in the line under the ring. A value that could not be measured wraps in smaller letters. */
 .mid { position: absolute; inset: 0; padding: 0 34px; display: grid; place-content: center; text-align: center; line-height: 1.25; }
-.mid small { color: var(--sub); font-size: 12px; }
+.mid small { color: var(--muted); font-size: 12px; }
 .mid b { font-size: 17px; overflow-wrap: anywhere; }
 .mid b.none { font-size: 13px; }
 .legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; flex: 1 1 180px; min-width: 0; font-size: 13px; }
 .legend li { display: flex; align-items: center; gap: 8px; padding: 2px 6px; border-radius: 6px; }
 .legend li.go { cursor: pointer; }
-.legend li.go:hover, .legend li.go:focus-visible { background: var(--soft); }
+.legend li.go:hover, .legend li.go:focus-visible { background: var(--label); }
 .legend i { flex: none; width: 10px; height: 10px; border-radius: 3px; }
 .legend span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .legend b, .foot b, .bars b { flex: none; font-weight: 600; font-variant-numeric: tabular-nums; }
-.foot { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); display: grid; gap: 4px; font-size: 13px; color: var(--sub); }
+.foot { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--soft-line); display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
 .foot div { display: flex; justify-content: space-between; gap: 12px; }
-.foot b { color: var(--text); }
+.foot b { color: var(--fg); }
 .bars { display: grid; gap: 4px; }
-.bar-row { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(48px, 1fr) auto; align-items: center; gap: 10px; font-size: 13px; padding: 3px 6px; border-radius: 6px; cursor: pointer; }
-.bar-row:hover, .bar-row:focus-visible { background: var(--soft); }
-.bar-row span { overflow-wrap: anywhere; }
-.bar-row .where { display: block; font-size: 12px; }
-.track { height: 12px; border-radius: 4px; background: var(--c-free); overflow: hidden; }
+.bar-row { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(48px, 1fr) auto; align-items: center; gap: 10px; width: 100%; padding: 3px 6px; border: 0; border-radius: 6px; background: none; font-size: 13px; text-align: left; cursor: pointer; }
+.bar-row:hover, .bar-row:focus-visible { background: var(--label); }
+.bar-name span { overflow-wrap: anywhere; }
+.bar-name .where { display: block; font-size: 12px; }
+.track { display: block; height: 12px; border-radius: 4px; background: var(--c-free); overflow: hidden; }
 .track i { display: block; height: 100%; border-radius: 4px; }
 .anim .track i { animation: widen .8s ease-out both; }
 @keyframes widen { from { width: 0; } }
 .bars b { min-width: 64px; text-align: right; }
-@media (prefers-reduced-motion: reduce) { .donut circle, .tabs button { transition: none; } .anim .donut circle, .anim .track i { animation: none; } }
-.lv { display: inline-block; font-size: 12px; font-weight: 700; }
-.lv-recommended { color: var(--go); } .lv-check { color: var(--check); } .lv-careful { color: var(--care); } .lv-inuse { color: var(--lock); }
-.det h2 { padding-right: 40px; overflow-wrap: anywhere; margin-bottom: 2px; }
-.det dl { margin: 4px 0 0; }
-.det dt { color: var(--sub); font-size: 12px; margin-top: 12px; }
-.det dd { margin: 2px 0 0; overflow-wrap: anywhere; white-space: pre-line; }
-.det dd.mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; max-height: 168px; overflow: auto; background: var(--soft); padding: 6px 8px; border-radius: 8px; }
-.size { flex: none; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; min-width: 92px; }
-.size small { display: block; color: var(--sub); font-weight: 400; font-size: 12px; }
-.empty { padding: 28px; text-align: center; color: var(--sub); }
-.bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--panel); border-top: 1px solid var(--line); }
-.bar > div { max-width: 1200px; margin: 0 auto; padding: 12px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-/* The bottom bar's figures: each a small name over its value, so the count and the size read apart. */
-.tally { flex: 1; display: flex; flex-wrap: wrap; gap: 4px 28px; }
+.bars-none { margin: 0; color: var(--muted); }
+/* The bottom bar: the picked count and the disk it frees, what happened last, and Free. */
+.bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--card); border-top: 1px solid var(--line); }
+.bar > div { max-width: 1200px; margin: 0 auto; padding: 12px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; }
+.tally { display: flex; flex-wrap: wrap; gap: 4px 28px; }
 .stat { display: grid; line-height: 1.3; }
-.stat small { color: var(--sub); font-size: 12px; }
+.stat small { color: var(--muted); font-size: 12px; }
 .stat b { font-size: 18px; font-variant-numeric: tabular-nums; }
-.primary { background: var(--accent); color: var(--accent-text); border: 0; border-radius: 10px; padding: 10px 22px; font-weight: 700; cursor: pointer; }
-.primary[disabled] { opacity: .45; cursor: default; }
-.secondary { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; cursor: pointer; }
-.note { width: 100%; margin: 0; color: var(--gone); font-size: 14px; }
-.modal { position: fixed; inset: 0; background: rgba(10, 14, 22, .55); display: grid; place-items: center; padding: 16px; }
-.modal[hidden] { display: none; }
-.dialog { position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; max-width: 620px; width: 100%; max-height: 86vh; overflow: auto; padding: 22px 24px; }
-.dialog h2 { margin: 0 0 12px; font-size: 20px; }
-.dialog h3 { margin: 16px 0 4px; font-size: 15px; }
-.dialog p { margin: 4px 0; }
-.close { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); cursor: pointer; font-size: 18px; line-height: 1; }
-.sum { display: grid; gap: 8px; margin: 12px 0; }
-.sum div { display: flex; justify-content: space-between; gap: 12px; padding: 8px 12px; border-radius: 10px; background: var(--soft); }
-.actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
-.done { text-align: center; padding: 40px 16px; }
-.done b { display: block; font-size: 20px; margin-bottom: 6px; }
-@media (max-width: 640px) { .row { gap: 10px; } .size { min-width: 72px; } h1 { font-size: 20px; } .tabs { column-gap: 12px; } .tabs button { padding: 8px 8px; } .set-head { padding-left: 14px; } }
+.bar-line { flex: 1 1 240px; margin: 0; font-size: 14px; }
+.note { display: none; }
+.note.on { display: flex; flex: 1 1 100%; order: -1; gap: 8px; align-items: flex-start; padding: 8px 12px; border-left: 3px solid var(--critical); border-radius: 0 8px 8px 0; background: var(--critical-soft); font-size: 14px; }
+.note svg { flex: none; color: var(--critical); margin-top: 3px; }
+#free { margin-left: auto; min-width: 140px; }
+/* Dialogs: the confirm, and the help. */
+dialog { width: min(620px, calc(100% - 32px)); max-height: calc(100vh - 48px); padding: 22px 24px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); color: var(--fg); }
+dialog::backdrop { background: rgba(10, 14, 22, .55); }
+dialog h2 { margin: 0 0 12px; font-size: 20px; line-height: 1.35; }
+#help h2 { padding-right: 44px; }
+#help h3 { margin: 16px 0 4px; font-size: 15px; }
+#help p { margin: 4px 0; }
+.close { position: absolute; top: 14px; right: 14px; }
+.effect { margin: 10px 0; padding: 10px 14px; border-radius: var(--radius); background: var(--label); }
+.effect h3 { margin: 0; font-size: 15px; line-height: 1.45; }
+.effect p { margin: 2px 0 0; }
+.effect .sum { font-variant-numeric: tabular-nums; font-weight: 600; }
+.effect ul { margin: 6px 0 0; padding-left: 20px; }
+.effect li { overflow-wrap: anywhere; }
+.copy-box { display: grid; gap: 4px; margin: 12px 0 0; }
+.copy-box label { font-size: 13px; font-weight: 600; color: var(--muted); }
+.copy-box textarea { min-height: 96px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--label); color: var(--fg); font: 13px/1.5 var(--mono); resize: vertical; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+.copy-status { flex: 1 1 200px; margin: 0; font-size: 14px; }
+@media (max-width: 640px) {
+  .top-in, main { padding-left: 16px; padding-right: 16px; }
+  .top-in { padding-top: 12px; padding-bottom: 12px; }
+  main { padding-top: 16px; }
+  .bar > div { padding: 10px 16px; }
+  th, td { padding: 6px 8px; }
+  .rows-table tbody th { padding-left: 6px; }
+}
+/* Below 480px the tabs reach the screen's edges, and the buttons of the bar and the confirm fill the
+   width, one above the other. */
+@media (max-width: 479px) {
+  .tabs { margin-left: -16px; margin-right: -16px; padding: 0 8px; gap: 0; }
+  .tabs [role="tab"] { padding: 10px 4px; font-size: 13px; }
+  .bar > div { flex-direction: column; align-items: stretch; }
+  #free { width: 100%; margin-left: 0; }
+  .actions { flex-direction: column; align-items: stretch; }
+  .actions button { width: 100%; }
+  main { padding-bottom: 200px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
 </style>
 </head>
 <body>
-<main>
-  <div class="head">
-    <h1 data-i18n="title">Free up this computer</h1>
-    <button type="button" class="icon" id="help-open" data-i18n-aria="help" aria-label="About this page">?</button>
-    <div class="right">
-      <span class="status" id="status" data-i18n="statusWait">Checking the connection</span>
+<header>
+  <div class="top-in">
+    <div>
+      <div class="title-row">
+        <h1 data-i18n="title">Free up this computer</h1>
+        <button type="button" class="icon-button" id="help-open" data-i18n-aria="help" aria-label="About this page"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></button>
+      </div>
+      <table class="facts">
+        <caption data-i18n="factsCaption">About this scan</caption>
+        <tbody>
+          <tr><th scope="row" data-i18n="factScanned">Scanned</th><td><time id="scanned-at"></time></td></tr>
+          <tr><th scope="row" data-i18n="factSkipped">Places not measured</th><td id="skipped-count"></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="controls">
+      <p class="save-state" id="save-state" role="status"></p>
+      <p class="status" id="status" role="status"></p>
       <div class="switches">
         <div class="seg" id="lang" role="group" data-i18n-aria="langGroup" aria-label="Language">
           <button type="button" data-lang="en" aria-pressed="true">English</button>
@@ -193,73 +347,95 @@ h1 { font-size: 24px; margin: 0; }
       </div>
     </div>
   </div>
+</header>
+<main>
+  <div class="banner" id="offline-banner" hidden>
+    <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16.5h.01"/></svg>
+    <div><strong data-i18n="bannerTitle">The agent is not waiting for this page</strong><p data-i18n="bannerText">Pick rows and press Free, then press Copy in the window that opens and paste the selection into the chat.</p></div>
+  </div>
   <p class="lead" data-i18n="lead">Pick what to free. Nothing changes until you press Free and confirm.</p>
   <div class="tabs" id="tabs" role="tablist"></div>
-  <div class="tabhead">
-    <p id="tab-lead"></p>
-    <button type="button" class="tool" id="clear" data-i18n="clear">Clear</button>
-  </div>
-  <div class="overview" id="overview" hidden></div>
-  <div class="toolbar" id="toolbar">
-    <input type="search" class="search" id="search" data-i18n-ph="search" data-i18n-aria="search" placeholder="Search by name or location" aria-label="Search by name or location">
-    <div class="levels" id="levels" role="group" data-i18n-aria="levelGroup" aria-label="Groups to show"></div>
-    <select class="sort" id="sort" data-i18n-aria="sortLabel" aria-label="Sort">
-      <option value="size-desc" data-i18n="sortSizeDesc">Largest first</option>
-      <option value="size-asc" data-i18n="sortSizeAsc">Smallest first</option>
-      <option value="name" data-i18n="sortName">By name</option>
-    </select>
-  </div>
-  <div class="list" id="rows" role="list"></div>
+  <section id="panel" role="tabpanel" tabindex="0" aria-labelledby="tab-overview">
+    <h2 id="panel-title"></h2>
+    <p class="lead" id="tab-lead"></p>
+    <div class="caution" id="caution" hidden>
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+      <div><h3 data-i18n="cautionTitle">Some rows cannot be put back</h3><p data-i18n="cautionText">Emptying the Trash and deleting old logs, tool versions, and models cannot be undone. The other rows are rebuilt the next time they are needed or move to the Trash.</p></div>
+    </div>
+    <div class="overview" id="overview" hidden></div>
+    <div class="toolbar" id="toolbar" hidden>
+      <div class="field">
+        <label for="search" data-i18n="searchLabel">Search by name or location</label>
+        <input type="search" id="search" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="field">
+        <span class="field-label" id="kinds-label" data-i18n="kindGroup">Kind</span>
+        <div class="chips" id="kinds" role="group" aria-labelledby="kinds-label"></div>
+      </div>
+      <div class="field">
+        <span class="field-label" id="levels-label" data-i18n="levelGroup">Levels</span>
+        <div class="chips" id="levels" role="group" aria-labelledby="levels-label"></div>
+      </div>
+      <div class="clear-box">
+        <button type="button" class="secondary" id="clear" data-i18n="clear">Clear picks</button>
+        <button type="button" class="secondary" id="undo" data-i18n="undo" hidden>Undo</button>
+        <p id="clear-line" role="status"></p>
+      </div>
+    </div>
+    <p class="count" id="count" aria-live="polite" hidden></p>
+    <nav class="pager" id="pager-top" hidden></nav>
+    <div class="split" id="split" data-view="list" hidden>
+      <div class="list" id="rows"></div>
+      <section class="detail" id="detail" aria-labelledby="detail-title"></section>
+    </div>
+    <nav class="pager" id="pager-bottom" hidden></nav>
+    <div class="empty" id="empty" hidden></div>
+    <div class="table-wrap" id="places" hidden></div>
+  </section>
 </main>
 <div class="bar">
   <div>
     <div class="tally" id="tally"></div>
-    <button type="button" class="secondary" id="copy" data-i18n="copy" hidden>Copy the selection</button>
-    <button type="button" class="primary" id="free" data-i18n="free" disabled>Free</button>
-    <p class="note" id="note" hidden></p>
+    <p class="bar-line" id="bar-line" role="status"></p>
+    <div class="note" id="note" role="alert"></div>
+    <button type="button" class="primary" id="free" data-i18n="free">Free</button>
   </div>
 </div>
-<div class="modal" id="confirm" hidden>
-  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
-    <button type="button" class="close" data-close data-i18n-aria="close" aria-label="Close">&times;</button>
-    <h2 id="confirm-title" data-i18n="confirmTitle">Free these items?</h2>
-    <div class="sum" id="confirm-sum"></div>
-    <p data-i18n="confirmCheck">The agent checks each item again right before acting and skips any that changed or came into use.</p>
-    <div class="actions">
-      <button type="button" class="secondary" data-close data-i18n="back">Back</button>
-      <button type="button" class="primary" id="send" data-i18n="send">Send to the agent</button>
-    </div>
+<dialog id="confirm" role="alertdialog" aria-labelledby="confirm-title" aria-describedby="confirm-check">
+  <h2 id="confirm-title"></h2>
+  <div id="confirm-groups"></div>
+  <p id="confirm-check" data-i18n="confirmCheck">The agent checks each item again right before freeing it and skips any that changed or came into use.</p>
+  <div class="copy-box" id="copy-box" hidden>
+    <label for="copy-text" data-i18n="copyLabel">Selection to paste into the chat</label>
+    <textarea id="copy-text" rows="4" readonly spellcheck="false"></textarea>
   </div>
-</div>
-<div class="modal" id="detail" hidden>
-  <div class="dialog det" role="dialog" aria-modal="true" aria-labelledby="detail-title">
-    <button type="button" class="close" data-close data-i18n-aria="close" aria-label="Close">&times;</button>
-    <div id="detail-body"></div>
+  <div class="actions">
+    <p class="copy-status" id="copy-status" role="status"></p>
+    <button type="button" class="secondary" id="cancel" data-i18n="cancel">Cancel</button>
+    <button type="button" class="secondary" id="copy" data-i18n="copy" hidden>Copy</button>
+    <button type="button" class="danger" id="send" data-i18n="send">Free</button>
   </div>
-</div>
-<div class="modal" id="help" hidden>
-  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="help-title">
-    <button type="button" class="close" data-close data-i18n-aria="close" aria-label="Close">&times;</button>
-    <h2 id="help-title" data-i18n="helpTitle">About this page</h2>
-    <h3 data-i18n="helpWhatTitle">What is listed</h3>
-    <p data-i18n="helpWhat">Caches that tools rebuild, build output that git ignores, the Trash, old logs and installers, large and duplicate files, git projects nobody has used for 30 days, apps you have not opened for 90 days and files left behind by removed apps, tool versions no project uses, downloaded AI models, dev servers left running after their session ended, heavy processes, login items, and running containers.</p>
-    <h3 data-i18n="helpLockTitle">Why some rows cannot be picked</h3>
-    <p data-i18n="helpLock">A row is in use when a live agent session or an open terminal runs it, when a live agent session runs inside it or inside its app, or when a live agent session or another running program works in the same project. Close that session or program, and ask the agent to scan again.</p>
-    <h3 data-i18n="helpLevelTitle">What the groups mean</h3>
-    <p data-i18n="helpLevel">Recommended rows are rebuilt the next time they are needed, or were already thrown away or left unused for 30 days. Check first rows are your own files, apps, and login items, which you can put back. Careful rows are running programs and containers, whose work stops when they end.</p>
-    <h3 data-i18n="helpOverviewTitle">What the overview shows</h3>
-    <p data-i18n="helpOverview">What can be freed by kind and by group, the whole disk and memory, the largest items, and the processes using the most memory and CPU. Press a part of a chart to open its tab, or a bar to see that row. Each row's i button shows its reason, location, and command.</p>
-    <h3 data-i18n="helpOnceTitle">Rows inside other rows</h3>
-    <p data-i18n="helpOnce">Each file or folder appears in one row. A row inside another row, such as node_modules in an unused project or an app's cache, is counted once in the totals. When both are picked, the agent frees the outer row with the inner one in it.</p>
-    <h3 data-i18n="helpNeverTitle">What is never touched</h3>
-    <p data-i18n="helpNever">Sync folders such as iCloud Drive, Dropbox, Google Drive, and OneDrive, Windows drives under WSL, files git tracks, Docker volumes, and anything that needs an administrator password.</p>
-    <h3 data-i18n="helpNextTitle">What happens next</h3>
-    <p data-i18n="helpNext">The agent frees only what you picked, then reports the free disk space, memory, and load before and after, measured on this computer.</p>
-  </div>
-</div>
-<div class="modal" id="finished" hidden>
-  <div class="dialog done"><b data-i18n="sentTitle">Sent to the agent</b><p data-i18n="sent">The agent is freeing them now and will report the result in the chat. You can close this page.</p></div>
-</div>
+</dialog>
+<dialog id="help" aria-labelledby="help-title">
+  <button type="button" class="icon-button close" id="help-close" data-i18n-aria="close" aria-label="Close"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  <h2 id="help-title" data-i18n="helpTitle">About this page</h2>
+  <h3 data-i18n="helpWhatTitle">What is listed</h3>
+  <p data-i18n="helpWhat">Caches that tools rebuild, build output that git ignores, the Trash, old logs and installers, large and duplicate files, git projects nobody has used for 30 days, apps you have not opened for 90 days and files left behind by removed apps, tool versions no project uses, downloaded AI models, dev servers left running after their session ended, heavy processes, login items, and running containers.</p>
+  <h3 data-i18n="helpLevelTitle">What the levels mean</h3>
+  <p data-i18n="helpLevel"></p>
+  <h3 data-i18n="helpLockTitle">Why some rows cannot be picked</h3>
+  <p data-i18n="helpLock"></p>
+  <h3 data-i18n="helpDetailTitle">Details and the address</h3>
+  <p data-i18n="helpDetail"></p>
+  <h3 data-i18n="helpOverviewTitle">What the overview shows</h3>
+  <p data-i18n="helpOverview"></p>
+  <h3 data-i18n="helpOnceTitle">Rows inside other rows</h3>
+  <p data-i18n="helpOnce"></p>
+  <h3 data-i18n="helpNeverTitle">What is never touched</h3>
+  <p data-i18n="helpNever"></p>
+  <h3 data-i18n="helpNextTitle">What happens next</h3>
+  <p data-i18n="helpNext"></p>
+</dialog>
 <script id="i18n" type="application/json">
 {
   "en": {
@@ -272,26 +448,100 @@ h1 { font-size: 24px; margin: 0; }
     "statusWait": "Checking the connection",
     "statusOn": "Connected to the agent",
     "statusOff": "The agent is not waiting",
+    "statusSent": "Sent to the agent",
     "lead": "Pick what to free. Nothing changes until you press Free and confirm.",
+    "factsCaption": "About this scan",
+    "factScanned": "Scanned",
+    "factSkipped": "Places not measured",
+    "placesOne": "1 place",
+    "placesMany": "{n} places",
+    "bannerTitle": "The agent is not waiting for this page",
+    "bannerText": "Pick rows and press Free, then press Copy in the window that opens and paste the selection into the chat.",
     "statLoad": "Load over the last minute",
     "statRebuilt": "Rebuilt on next use",
-    "search": "Search by name or location",
-    "levelGroup": "Groups to show",
-    "sortLabel": "Sort",
-    "sortSizeDesc": "Largest first",
-    "sortSizeAsc": "Smallest first",
-    "sortName": "By name",
-    "details": "Details",
-    "pick": "Pick",
-    "unpick": "Unpick",
-    "cpuShort": "CPU {cpu}%",
     "notMeasured": "Not measured",
     "ch_wholeDisk": "Whole disk",
     "ch_wholeMemory": "Whole memory",
-    "tg_disk": "Disk",
-    "tg_programs": "Programs",
     "tab_overview": "Overview",
-    "lead_overview": "What can be freed, and how the disk, memory, and CPU are used. Press a part of a chart to open its tab, or a bar to see that row.",
+    "tab_disk": "Disk",
+    "tab_programs": "Programs",
+    "tab_skipped": "Not measured",
+    "tab_cache": "Caches",
+    "tab_build": "Build output",
+    "tab_trash": "Trash and logs",
+    "tab_files": "Large and duplicate files",
+    "tab_project": "Projects",
+    "tab_app": "Apps",
+    "tab_tools": "Tools and models",
+    "tab_process": "Processes",
+    "tab_login": "Login items",
+    "tab_container": "Containers",
+    "lead_overview": "What can be freed, and how the disk, memory, and CPU are used. Press a part of a chart or a bar to open those rows.",
+    "lead_disk": "Caches, build output, the Trash and logs, large and duplicate files, idle projects, unused apps, and tool versions and models. Press a name to see its details.",
+    "lead_programs": "Dev servers left running, heavy processes, login items, and running containers. A process gets the end signal first, so it can save its work.",
+    "lead_skipped": "These places were not measured, so they are not in the lists.",
+    "lead_cache": "Package managers, Docker, Xcode, and apps download or build these again the next time they need them. Where a tool has its own clean command, the agent runs that command.",
+    "lead_build": "Folders such as node_modules and .next that git ignores and that hold no tracked file. Your next install or build makes them again.",
+    "lead_trash": "The Trash, logs older than 30 days, and installers in Downloads older than 30 days. Installers move to the Trash.",
+    "lead_files": "Files of 500 MB or more, and files of 10 MB or more with the same content in several places. Picked files move to the Trash. Keep at least one copy of each duplicate.",
+    "lead_app": "Apps not opened for 90 days, and files that removed apps left in your Library. An app moves to the Trash with its support files, and leftovers move to the Trash.",
+    "lead_project": "git projects with no commit or checkout for 30 days, nothing uncommitted, and every commit on the remote as of the last fetch. Picked projects move to the Trash.",
+    "lead_tools": "Versions kept by nvm, fnm, pyenv, rbenv, asdf, mise, and rustup that are neither the default nor named by a project, and models downloaded by Ollama, Hugging Face, and LM Studio. The tool can download them again.",
+    "lead_process": "Dev servers and watchers left running after the session that started them ended, and the processes that use the most memory or CPU. Picked processes get the end signal, so they can save their work first.",
+    "lead_login": "Programs that start each time you log in. Stopped items are kept, and the agent can turn them back on.",
+    "lead_container": "Docker containers that are running now. Stopping a container keeps its data.",
+    "cautionTitle": "Some rows cannot be put back",
+    "cautionText": "Emptying the Trash and deleting old logs, tool versions, and models cannot be undone. The other rows are rebuilt the next time they are needed or move to the Trash.",
+    "searchLabel": "Search by name or location",
+    "kindGroup": "Kind",
+    "kindAll": "All",
+    "levelGroup": "Levels",
+    "clear": "Clear picks",
+    "undo": "Undo",
+    "cleared": "Cleared {count} in this tab.",
+    "nothingToClear": "Nothing is picked in this tab.",
+    "countRows": "{n} rows",
+    "countFiltered": "{shown} of {n} rows",
+    "countPage": "Rows {from} to {to} of {n}",
+    "countPageFiltered": "Rows {from} to {to} of {shown}, from {n} in this tab",
+    "pagerLabel": "Pages",
+    "prev": "Previous",
+    "next": "Next",
+    "pageN": "Page {n}",
+    "colName": "Name",
+    "colSize": "Size",
+    "colMemory": "Memory",
+    "colCpu": "CPU (%)",
+    "colPick": "Pick",
+    "colPlace": "Place",
+    "colWhy": "Why it was not measured",
+    "pickName": "Pick {name}",
+    "level_recommended": "Recommended",
+    "level_check": "Restorable",
+    "level_careful": "Risky",
+    "level_inuse": "In use",
+    "pickGroup": "Pick all",
+    "copiesHead": "{n} copies with the same contents, {size} each",
+    "back": "Back to the list",
+    "stepLabel": "Rows before and after",
+    "prevRow": "Previous",
+    "nextRow": "Next",
+    "pick": "Pick",
+    "unpick": "Unpick",
+    "showAll": "Show all {n}",
+    "goneTitle": "Cannot be put back",
+    "goneText": "Freeing this deletes it for good.",
+    "emptyDiskTitle": "Nothing to free on the disk",
+    "emptyDiskText": "The scan found no cache, build output, old file, idle project, unused app, or tool version to free.",
+    "emptyProgramsTitle": "No program to end or stop",
+    "emptyProgramsText": "The scan found no dev server left running, heavy process, login item, or running container.",
+    "emptySkippedTitle": "Every place was measured",
+    "emptySkippedText": "No place was left out of the lists.",
+    "noMatchQuery": "No rows match “{q}”",
+    "noMatchFilters": "No rows match these filters",
+    "noMatchText": "Change the search or the filters, or clear them to see every row.",
+    "clearFilters": "Clear filters",
+    "barsNone": "Nothing to show.",
     "ch_freeable": "What can be freed",
     "ch_total": "In all",
     "ch_levels": "Size by level",
@@ -331,15 +581,60 @@ h1 { font-size: 24px; margin: 0; }
     "d_lastTouched": "Last commit or checkout",
     "d_tool": "Tool and version",
     "d_downloaded": "Downloaded",
+    "tallyPicked": "Picked",
+    "tallyDisk": "Disk to free",
+    "countOne": "1 item",
+    "countMany": "{n} items",
+    "countSize": "{count}, {size}",
+    "free": "Free",
+    "needPick": "Pick at least one row first.",
+    "sentLine": "Sent to the agent at {time}. It frees them and reports the result in the chat.",
+    "savePicked": "{n} picked, not sent",
+    "saveSent": "Sent {time}",
+    "error": "Error",
+    "sendRefused": "The agent did not take the selection. Press Free to try again, or copy the selection into the chat.",
+    "sendFailed": "Could not reach the agent. Press Free again to copy the selection into the chat.",
+    "confirmTitle": "Free {count}",
+    "confirmCheck": "The agent checks each item again right before freeing it and skips any that changed or came into use.",
+    "cancel": "Cancel",
+    "send": "Free",
+    "copy": "Copy",
+    "copyLabel": "Selection to paste into the chat",
+    "copied": "Copied. Paste it into the chat.",
+    "copyRefused": "Copying was blocked. Press Command+C, or Ctrl+C on Windows and Linux, to copy the selected text.",
+    "eff_rebuilt": "Rebuilt on next use",
+    "eff_trash": "Moves to the Trash",
+    "eff_gone": "Deleted for good",
+    "eff_uninstall": "Uninstalled",
+    "eff_end": "Ends the process",
+    "eff_login": "Stops at login",
+    "eff_stop": "Stops the container",
+    "then_rebuilt": "They are put back on their own the next time the tool needs them.",
+    "then_trash": "You can put these back from the Trash.",
+    "then_gone": "These are deleted and cannot be put back.",
+    "then_uninstall": "Install it again to put it back.",
+    "then_end": "Their work stops. Start them again to put them back.",
+    "then_login": "They no longer start at login, and restore can put them back.",
+    "then_stop": "What they serve stops, and their data stays. Start them again to put them back.",
+    "oldFiles": "{n} files older than {days} days",
+    "close": "Close",
+    "helpTitle": "About this page",
+    "helpWhatTitle": "What is listed",
+    "helpWhat": "Caches that tools rebuild, build output that git ignores, the Trash, old logs and installers, large and duplicate files, git projects nobody has used for 30 days, apps you have not opened for 90 days and files left behind by removed apps, tool versions no project uses, downloaded AI models, dev servers left running after their session ended, heavy processes, login items, and running containers.",
+    "helpLevelTitle": "What the levels mean",
+    "helpLevel": "Recommended rows are rebuilt the next time they are needed, or were already thrown away or left unused for 30 days. Restorable rows are your own files, apps, projects, tool versions, models, and login items, which you can put back from the Trash, install again, or turn back on. Risky rows are running programs and containers, whose work stops when they end. Rows in use cannot be picked.",
+    "helpLockTitle": "Why some rows cannot be picked",
+    "helpLock": "A row is in use when a live agent session or an open terminal runs it, when a live agent session runs inside it or inside its app, or when a live agent session or another running program works in the same project. Close that session or program, and ask the agent to scan again.",
+    "helpDetailTitle": "Details and the address",
+    "helpDetail": "Press a name to see its reason, location, and command beside the list. On a narrow screen the details take the place of the list. The address keeps the shown row, so opening the page again shows the same row.",
     "helpOverviewTitle": "What the overview shows",
-    "helpOverview": "What can be freed by kind and by group, the whole disk and memory, the largest items, and the processes using the most memory and CPU. Press a part of a chart to open its tab, or a bar to see that row. Each row's i button shows its reason, location, and command.",
-    "level_recommended": "Recommended",
-    "level_check": "Check first",
-    "level_careful": "Careful",
-    "level_inuse": "In use",
-    "pickGroup": "Pick all in this group",
-    "helpLevelTitle": "What the groups mean",
-    "helpLevel": "Recommended rows are rebuilt the next time they are needed, or were already thrown away or left unused for 30 days. Check first rows are your own files, apps, and login items, which you can put back. Careful rows are running programs and containers, whose work stops when they end.",
+    "helpOverview": "What can be freed by kind and by level, the whole disk and memory, the largest items, and the processes using the most memory and CPU. Press a part of a chart to open those rows, or a bar to see that row.",
+    "helpOnceTitle": "Rows inside other rows",
+    "helpOnce": "Each file or folder appears in one row. A row inside another row, such as node_modules in an unused project or an app's cache, is counted once in the totals. When both are picked, the agent frees the outer row with the inner one in it.",
+    "helpNeverTitle": "What is never touched",
+    "helpNever": "Sync folders such as iCloud Drive, Dropbox, Google Drive, and OneDrive, Windows drives under WSL, files git tracks, Docker volumes, and anything that needs an administrator password.",
+    "helpNextTitle": "What happens next",
+    "helpNext": "The agent frees only what you picked, then reports the free disk space, memory, and load before and after, measured on this computer.",
     "why_rebuilt": "Rebuilt the next time it is needed",
     "why_build_idle": "The project has had no commit for {days} days. The next install or build makes it again",
     "why_build_recent": "The project's last commit was {days} days ago. The next install or build makes it again, which takes time",
@@ -361,68 +656,6 @@ h1 { font-size: 24px; margin: 0; }
     "why_login_item": "Only turned off, so restore can turn it back on",
     "why_running_program": "A running program. Ending it stops its work",
     "why_container": "Stopping it stops what it serves. Its data stays",
-    "clear": "Clear",
-    "tallyPicked": "Picked",
-    "tallyDisk": "Disk to free",
-    "copiesHead": "{n} copies with the same contents, {size} each",
-    "helpOnceTitle": "Rows inside other rows",
-    "helpOnce": "Each file or folder appears in one row. A row inside another row, such as node_modules in an unused project or an app's cache, is counted once in the totals. When both are picked, the agent frees the outer row with the inner one in it.",
-    "copy": "Copy the selection",
-    "copied": "Copied. Paste it into the chat.",
-    "copyFailed": "Select the text below and copy it.",
-    "free": "Free",
-    "offline": "The agent is not waiting for this page. Press Copy the selection and paste it into the chat.",
-    "sendFailed": "The agent did not accept the selection. Press Copy the selection and paste it into the chat.",
-    "close": "Close",
-    "back": "Back",
-    "send": "Send to the agent",
-    "confirmTitle": "Free these items?",
-    "confirmCheck": "The agent checks each item again right before acting and skips any that changed or came into use.",
-    "sentTitle": "Sent to the agent",
-    "sent": "The agent is freeing them now and will report the result in the chat. You can close this page.",
-    "helpTitle": "About this page",
-    "helpWhatTitle": "What is listed",
-    "helpWhat": "Caches that tools rebuild, build output that git ignores, the Trash, old logs and installers, large and duplicate files, git projects nobody has used for 30 days, apps you have not opened for 90 days and files left behind by removed apps, tool versions no project uses, downloaded AI models, dev servers left running after their session ended, heavy processes, login items, and running containers.",
-    "helpLockTitle": "Why some rows cannot be picked",
-    "helpLock": "A row is in use when a live agent session or an open terminal runs it, when a live agent session runs inside it or inside its app, or when a live agent session or another running program works in the same project. Close that session or program, and ask the agent to scan again.",
-    "helpNeverTitle": "What is never touched",
-    "helpNever": "Sync folders such as iCloud Drive, Dropbox, Google Drive, and OneDrive, Windows drives under WSL, files git tracks, Docker volumes, and anything that needs an administrator password.",
-    "helpNextTitle": "What happens next",
-    "helpNext": "The agent frees only what you picked, then reports the free disk space, memory, and load before and after, measured on this computer.",
-    "tab_cache": "Caches",
-    "tab_build": "Build output",
-    "tab_trash": "Trash and logs",
-    "tab_files": "Large and duplicate files",
-    "tab_app": "Apps",
-    "tab_process": "Processes",
-    "tab_login": "Login items",
-    "tab_container": "Containers",
-    "tab_project": "Projects",
-    "tab_tools": "Tools and models",
-    "tab_skipped": "Not measured",
-    "lead_cache": "Package managers, Docker, Xcode, and apps download or build these again the next time they need them. Where a tool has its own clean command, the agent runs that command.",
-    "lead_build": "Folders such as node_modules and .next that git ignores and that hold no tracked file. Your next install or build makes them again.",
-    "lead_trash": "Emptying the Trash and deleting old logs cannot be undone. Installers older than 30 days in Downloads move to the Trash.",
-    "lead_files": "Files of 500 MB or more, and files of 10 MB or more with the same content in several places. Picked files move to the Trash. Keep at least one copy of each duplicate.",
-    "lead_app": "Apps not opened for 90 days, and files that removed apps left in your Library. An app moves to the Trash with its support files, and leftovers move to the Trash.",
-    "lead_project": "git projects with no commit or checkout for 30 days, nothing uncommitted, and every commit on the remote as of the last fetch. Picked projects move to the Trash.",
-    "lead_tools": "Versions kept by nvm, fnm, pyenv, rbenv, asdf, mise, and rustup that are neither the default nor named by a project, and models downloaded by Ollama, Hugging Face, and LM Studio. Both are deleted for good, and the tool can download them again.",
-    "lead_process": "Dev servers and watchers left running after the session that started them ended, and the processes that use the most memory or CPU. Picked processes get the end signal, so they can save their work first.",
-    "lead_login": "Programs that start each time you log in. Stopped items are kept, and the agent can turn them back on.",
-    "lead_container": "Docker containers that are running now. Stopping a container keeps its data.",
-    "lead_skipped": "These places were not measured, so they are not in the lists.",
-    "eff_rebuilt": "Rebuilt on next use",
-    "eff_trash": "Moves to the Trash",
-    "eff_gone": "Deleted for good",
-    "eff_end": "Ends the process",
-    "eff_login": "Stops at login",
-    "eff_stop": "Stops the container",
-    "countOne": "1 item",
-    "countMany": "{n} items",
-    "countSize": "{count}, {size}",
-    "eff_uninstall": "Uninstalled",
-    "oldFiles": "{n} files older than {days} days",
-    "empty": "Nothing found here.",
     "lock_agent": "A live agent session ({1}, pid {2}) runs this",
     "lock_isAgent": "This is a live agent session",
     "lock_hosts": "A live agent session ({1}, pid {2}) runs inside this",
@@ -496,31 +729,105 @@ h1 { font-size: 24px; margin: 0; }
     "help": "このページについて",
     "langGroup": "言語",
     "themeGroup": "配色",
-    "light": "明るい",
-    "dark": "暗い",
-    "statusWait": "つながりを確かめています",
-    "statusOn": "エージェントとつながっています",
-    "statusOff": "エージェントが待っていません",
-    "lead": "空ける物を選びます。「空ける」を押して確かめるまで、何も変わりません。",
+    "light": "ライト",
+    "dark": "ダーク",
+    "statusWait": "接続を確認しています",
+    "statusOn": "エージェントに接続しています",
+    "statusOff": "エージェントは待っていません",
+    "statusSent": "エージェントに渡しました",
+    "lead": "空ける物を選んでください。「空ける」を押して確認するまで、何も変わりません。",
+    "factsCaption": "スキャンの情報",
+    "factScanned": "スキャンした日時",
+    "factSkipped": "測らなかった場所",
+    "placesOne": "1か所",
+    "placesMany": "{n}か所",
+    "bannerTitle": "エージェントはこのページを待っていません",
+    "bannerText": "行を選んで「空ける」を押し、開いた画面の「コピー」で選択をコピーして、チャットに貼ってください。",
     "statLoad": "直近1分の負荷",
     "statRebuilt": "次に使う時に作り直される分",
-    "search": "名前か場所で探す",
-    "levelGroup": "出す段",
-    "sortLabel": "並べ替え",
-    "sortSizeDesc": "大きい順",
-    "sortSizeAsc": "小さい順",
-    "sortName": "名前順",
-    "details": "詳しく見る",
-    "pick": "選ぶ",
-    "unpick": "選択を外す",
-    "cpuShort": "CPU {cpu}%",
     "notMeasured": "測れませんでした",
     "ch_wholeDisk": "ディスク全体",
     "ch_wholeMemory": "メモリ全体",
-    "tg_disk": "ディスク",
-    "tg_programs": "プログラム",
     "tab_overview": "全体",
-    "lead_overview": "空けられる分と、ディスクとメモリとCPUの使われ方です。図の色を押すとそのタブへ、棒を押すとその行の詳しい情報へ移ります。",
+    "tab_disk": "ディスク",
+    "tab_programs": "プログラム",
+    "tab_skipped": "測らなかった場所",
+    "tab_cache": "キャッシュ",
+    "tab_build": "ビルドの出力",
+    "tab_trash": "ゴミ箱とログ",
+    "tab_files": "大きいファイルと重複",
+    "tab_project": "プロジェクト",
+    "tab_app": "アプリ",
+    "tab_tools": "道具とモデル",
+    "tab_process": "プロセス",
+    "tab_login": "ログイン項目",
+    "tab_container": "コンテナ",
+    "lead_overview": "空けられる分と、ディスクとメモリとCPUの使われ方です。図の色か棒を押すと、その行を一覧で開きます。",
+    "lead_disk": "キャッシュ、ビルドの出力、ゴミ箱とログ、大きいファイルと重複、使っていないプロジェクトとアプリ、道具のバージョンとモデルです。名前を押すと、詳しい情報が出ます。",
+    "lead_programs": "残っている開発用のサーバー、重いプロセス、ログイン項目、動いているコンテナです。プロセスにはまず終了の合図を送るので、作業を保存してから終われます。",
+    "lead_skipped": "次の場所は測らなかったので、一覧に入っていません。",
+    "lead_cache": "パッケージ管理、Docker、Xcode、アプリが、次に要る時にもう一度ダウンロードするか作り直す物です。道具が自分の消すコマンドを持つ時は、エージェントがそのコマンドを使います。",
+    "lead_build": "gitが無視し、追跡するファイルを1つも持たないnode_modulesや.nextなどのフォルダです。次のインストールかビルドで作り直されます。",
+    "lead_trash": "ゴミ箱と、30日より古いログと、ダウンロードにある30日より古いインストーラーです。インストーラーはゴミ箱へ移します。",
+    "lead_files": "500MB以上のファイルと、同じ中身が複数の場所にある10MB以上のファイルです。選んだファイルはゴミ箱へ移します。重複は少なくとも1つ残してください。",
+    "lead_app": "90日開いていないアプリと、消したアプリがライブラリに残したファイルです。アプリは付属のファイルと一緒に、残りはそのままゴミ箱へ移します。",
+    "lead_project": "30日commitもcheckoutも無く、未commitの変更が無く、最後に取り込んだ時点で全てのcommitがremoteに在るgitのプロジェクトです。選んだプロジェクトはゴミ箱へ移します。",
+    "lead_tools": "nvm、fnm、pyenv、rbenv、asdf、mise、rustupのバージョンのうち、既定でもプロジェクトの指定でもない物と、Ollama、Hugging Face、LM Studioでダウンロードしたモデルです。道具でもう一度ダウンロードできます。",
+    "lead_process": "始めた会話が終わったのに残っている開発用のサーバーと監視と、メモリかCPUを最も多く使うプロセスです。選んだプロセスには終了の合図を送るので、作業を保存してから終われます。",
+    "lead_login": "ログインするたびに起動するプログラムです。止めた物は取っておき、エージェントが元に戻せます。",
+    "lead_container": "いま動いているDockerのコンテナです。止めてもデータは残ります。",
+    "cautionTitle": "戻せない行があります",
+    "cautionText": "ゴミ箱を空にすることと、古いログ、道具のバージョン、モデルを消すことは元に戻せません。ほかの行は、次に要る時に作り直されるか、ゴミ箱へ移ります。",
+    "searchLabel": "名前か場所で探す",
+    "kindGroup": "種類",
+    "kindAll": "すべて",
+    "levelGroup": "推奨度",
+    "clear": "選択を外す",
+    "undo": "元に戻す",
+    "cleared": "このタブの{count}の選択を外しました。",
+    "nothingToClear": "このタブで選んだ行はありません。",
+    "countRows": "{n}行",
+    "countFiltered": "{n}行のうち{shown}行",
+    "countPage": "{n}行のうち{from}〜{to}行目",
+    "countPageFiltered": "{n}行から絞り込んだ{shown}行のうち{from}〜{to}行目",
+    "pagerLabel": "ページ",
+    "prev": "前へ",
+    "next": "次へ",
+    "pageN": "{n}ページ目",
+    "colName": "名前",
+    "colSize": "大きさ",
+    "colMemory": "メモリ",
+    "colCpu": "CPU (%)",
+    "colPick": "選ぶ",
+    "colPlace": "場所",
+    "colWhy": "測らなかった理由",
+    "pickName": "{name}を選ぶ",
+    "level_recommended": "おすすめ",
+    "level_check": "戻せる",
+    "level_careful": "影響あり",
+    "level_inuse": "使用中",
+    "pickGroup": "全部選ぶ",
+    "copiesHead": "同じ中身のコピーが{n}つ、1つ{size}",
+    "back": "一覧へ戻る",
+    "stepLabel": "前後の行",
+    "prevRow": "前の行",
+    "nextRow": "次の行",
+    "pick": "選ぶ",
+    "unpick": "選択を外す",
+    "showAll": "{n}件すべてを見る",
+    "goneTitle": "元に戻せません",
+    "goneText": "空けると完全に消えます。",
+    "emptyDiskTitle": "ディスクで空けられる物はありません",
+    "emptyDiskText": "スキャンで、空けられるキャッシュ、ビルドの出力、古いファイル、使っていないプロジェクトとアプリ、道具のバージョンは見つかりませんでした。",
+    "emptyProgramsTitle": "終わらせるプログラムはありません",
+    "emptyProgramsText": "スキャンで、残っている開発用のサーバー、重いプロセス、ログイン項目、動いているコンテナは見つかりませんでした。",
+    "emptySkippedTitle": "すべての場所を測りました",
+    "emptySkippedText": "一覧から外した場所はありません。",
+    "noMatchQuery": "「{q}」に合う行はありません",
+    "noMatchFilters": "この絞り込みに合う行はありません",
+    "noMatchText": "検索か絞り込みを変えるか、外してすべての行を出してください。",
+    "clearFilters": "絞り込みを外す",
+    "barsNone": "出す物はありません。",
     "ch_freeable": "空けられる分の内訳",
     "ch_total": "合計",
     "ch_levels": "推奨度ごとの大きさ",
@@ -548,7 +855,7 @@ h1 { font-size: 24px; margin: 0; }
     "d_started": "開始",
     "d_folder": "作業フォルダ",
     "d_command": "コマンド",
-    "d_program": "動かす物",
+    "d_program": "実行する物",
     "d_lastUsed": "最後に開いた日",
     "d_copies": "同じ中身のファイル",
     "d_contents": "中身",
@@ -558,17 +865,62 @@ h1 { font-size: 24px; margin: 0; }
     "d_places": "場所",
     "d_newest": "最新のファイル",
     "d_lastTouched": "最後のcommitかcheckout",
-    "d_tool": "道具と版",
-    "d_downloaded": "落とした日",
+    "d_tool": "道具とバージョン",
+    "d_downloaded": "ダウンロードした日",
+    "tallyPicked": "選んだ物",
+    "tallyDisk": "空くディスク",
+    "countOne": "1件",
+    "countMany": "{n}件",
+    "countSize": "{count}、{size}",
+    "free": "空ける",
+    "needPick": "先に1行以上選んでください。",
+    "sentLine": "{time}にエージェントへ渡しました。エージェントが空けて、結果をチャットで知らせます。",
+    "savePicked": "{n}件を選び、まだ渡していません",
+    "saveSent": "{time}に渡しました",
+    "error": "エラー",
+    "sendRefused": "エージェントが選択を受け取りませんでした。もう一度「空ける」を押すか、選択をコピーしてチャットに貼ってください。",
+    "sendFailed": "エージェントに届きませんでした。もう一度「空ける」を押し、選択をコピーしてチャットに貼ってください。",
+    "confirmTitle": "{count}を空ける",
+    "confirmCheck": "エージェントは空ける直前に1件ずつ確認し直し、変わった物と使われ始めた物は飛ばします。",
+    "cancel": "やめる",
+    "send": "空ける",
+    "copy": "コピー",
+    "copyLabel": "チャットに貼る選択",
+    "copied": "コピーしました。チャットに貼ってください。",
+    "copyRefused": "コピーできませんでした。選んだ文字をCommand+C (WindowsとLinuxではCtrl+C) でコピーしてください。",
+    "eff_rebuilt": "次に使う時に作り直される",
+    "eff_trash": "ゴミ箱へ移す",
+    "eff_gone": "完全に消える",
+    "eff_uninstall": "アンインストールする",
+    "eff_end": "プロセスを終了する",
+    "eff_login": "ログイン時に起動しなくなる",
+    "eff_stop": "コンテナを止める",
+    "then_rebuilt": "次に要る時に道具が作り直すので、元に戻せます。",
+    "then_trash": "ゴミ箱から戻せます。",
+    "then_gone": "消えるので、戻せません。",
+    "then_uninstall": "入れ直すと戻せます。",
+    "then_end": "作業が止まります。もう一度起動すると戻せます。",
+    "then_login": "ログイン時に起動しなくなり、restoreで戻せます。",
+    "then_stop": "そのサービスが止まります。データは残り、もう一度起動すると戻せます。",
+    "oldFiles": "{days}日より古いファイル{n}件",
+    "close": "閉じる",
+    "helpTitle": "このページについて",
+    "helpWhatTitle": "並ぶ物",
+    "helpWhat": "道具が作り直すキャッシュ、gitが無視するビルドの出力、ゴミ箱、古いログとインストーラー、大きいファイルと重複、30日使っていないgitのプロジェクト、90日開いていないアプリと消したアプリの残り、どのプロジェクトも使わない道具のバージョン、ダウンロードしたAIモデル、始めた会話が終わったのに残っている開発用のサーバー、重いプロセス、ログイン項目、動いているコンテナです。",
+    "helpLevelTitle": "推奨度の意味",
+    "helpLevel": "おすすめは、次に要る時に作り直される物か、すでに捨てた物か、30日使っていない物です。戻せるは、自分のファイル、アプリ、プロジェクト、道具のバージョン、モデル、ログイン項目で、ゴミ箱から戻すか、入れ直すか、元に戻せます。影響ありは、動いているプログラムとコンテナで、終わらせるとその作業が止まります。使用中の行は選べません。",
+    "helpLockTitle": "選べない行がある理由",
+    "helpLock": "動いているエージェントの会話か開いている端末が動かしている物、中かそのアプリの中で動いているエージェントの会話がある物、動いているエージェントの会話かほかのプログラムが同じプロジェクトで作業している物は、使用中として選べません。その会話かプログラムを閉じてから、エージェントにもう一度スキャンさせてください。",
+    "helpDetailTitle": "詳しい情報とアドレス",
+    "helpDetail": "名前を押すと、理由と場所とコマンドが一覧の横に出ます。幅の狭い画面では、一覧と入れ替わって出ます。アドレスが出している行を覚えるので、ページを開き直しても同じ行が出ます。",
     "helpOverviewTitle": "全体のタブ",
-    "helpOverview": "空けられる分を種類ごとと推奨度ごとに、ディスクとメモリの全体を、大きい物と、メモリとCPUを多く使うプロセスの上位を図にします。図の色を押すとそのタブへ、棒を押すとその行の詳しい情報へ移ります。行ごとのiのボタンで、理由と場所とコマンドを見られます。",
-    "level_recommended": "おすすめ",
-    "level_check": "確かめて選ぶ",
-    "level_careful": "慎重に",
-    "level_inuse": "使用中",
-    "pickGroup": "この段を全部選ぶ",
-    "helpLevelTitle": "段の意味",
-    "helpLevel": "おすすめは、次に要る時に作り直される物か、すでに捨てた物か、30日使っていない物です。確かめて選ぶは、自分のファイル、アプリ、ログイン項目で、後から戻せます。慎重には、動いているプログラムとコンテナで、終わらせるとその作業が止まります。",
+    "helpOverview": "空けられる分を種類ごとと推奨度ごとに、ディスクとメモリの全体を、大きい物と、メモリとCPUを多く使うプロセスの上位を図にします。図の色を押すとその行の一覧を、棒を押すとその行を開きます。",
+    "helpOnceTitle": "ほかの行の中にある行",
+    "helpOnce": "ファイルとフォルダは1つの行にだけ出ます。使っていないプロジェクトの中のnode_modulesやアプリのキャッシュのように、ほかの行の中にある行は、合計で1回だけ数えます。両方を選ぶと、エージェントは外の行を中の行ごと空けます。",
+    "helpNeverTitle": "触らない物",
+    "helpNever": "iCloud Drive、Dropbox、Google Drive、OneDriveなどの同期フォルダ、WSLから見たWindowsのドライブ、gitが追跡するファイル、Dockerのボリューム、管理者のパスワードが要る物です。",
+    "helpNextTitle": "この後に起きること",
+    "helpNext": "エージェントは選んだ物だけを空け、このコンピューターで測ったディスクの空き、メモリ、負荷の前後を知らせます。",
     "why_rebuilt": "次に要る時に作り直されます",
     "why_build_idle": "プロジェクトは{days}日commitされていません。次のインストールかビルドで作り直されます",
     "why_build_recent": "プロジェクトの最後のcommitは{days}日前です。次のインストールかビルドで作り直されますが、時間がかかります",
@@ -577,81 +929,19 @@ h1 { font-size: 24px; margin: 0; }
     "why_old_logs": "{days}日より古いログです",
     "why_old_installer": "{days}日より古いインストーラーです",
     "why_own_file": "自分のファイルです。ゴミ箱から戻せます",
-    "why_duplicate": "同じ中身の写しがほかに残ります",
+    "why_duplicate": "同じ中身のコピーがほかに残ります",
     "why_app_unused": "{days}日開いていません",
     "why_app_unused_unknown": "最後に開いた日をmacOSが持っていません",
     "why_flatpak": "自分用にFlatpakで入れたアプリです",
     "why_project_idle": "{days}日commitもcheckoutも無く、未commitの変更が無く、全てのcommitがremoteに在ります。ゴミ箱から戻せます",
     "why_leftover": "この会社のアプリは入っておらず、最新のファイルは{days}日前の物です",
-    "why_tool_unused": "既定の版でも、プロジェクトが指定する版でもありません。道具で入れ直せます",
-    "why_model": "{days}日前に落としました。落とし直すには時間がかかります",
+    "why_tool_unused": "既定のバージョンでも、プロジェクトが指定するバージョンでもありません。道具で入れ直せます",
+    "why_model": "{days}日前にダウンロードしました。もう一度ダウンロードするには時間がかかります",
     "why_session_ended": "始めた会話が終わった後も動いています",
     "why_next_server": "next startで動かしたサーバーも同じ名前になるため、使っている物かもしれません",
     "why_login_item": "止めるだけなので、restoreで戻せます",
     "why_running_program": "動いているプログラムです。終わらせると作業が止まります",
     "why_container": "止めるとそのサービスが止まります。データは残ります",
-    "clear": "選択を外す",
-    "tallyPicked": "選んだ物",
-    "tallyDisk": "空くディスク",
-    "copiesHead": "同じ中身の写しが{n}つ、1つ{size}",
-    "helpOnceTitle": "ほかの行の中にある行",
-    "helpOnce": "ファイルとフォルダは1つの行にだけ出ます。使っていないプロジェクトの中のnode_modulesやアプリのキャッシュのように、ほかの行の中にある行は、合計で1回だけ数えます。両方を選ぶと、エージェントは外の行を中の行ごと空けます。",
-    "copy": "選択を写す",
-    "copied": "写しました。チャットに貼ってください。",
-    "copyFailed": "下の文を選んで写してください。",
-    "free": "空ける",
-    "offline": "エージェントがこのページを待っていません。「選択を写す」を押して、チャットに貼ってください。",
-    "sendFailed": "エージェントが選択を受け取りませんでした。「選択を写す」を押して、チャットに貼ってください。",
-    "close": "閉じる",
-    "back": "戻る",
-    "send": "エージェントに渡す",
-    "confirmTitle": "これらを空けますか",
-    "confirmCheck": "エージェントは消す直前に1件ずつ確かめ直し、変わった物と使われ始めた物は飛ばします。",
-    "sentTitle": "エージェントに渡しました",
-    "sent": "エージェントが空けていて、結果をチャットで知らせます。このページは閉じて構いません。",
-    "helpTitle": "このページについて",
-    "helpWhatTitle": "並ぶ物",
-    "helpWhat": "道具が作り直すキャッシュ、gitが無視するビルドの出力、ゴミ箱、古いログとインストーラー、大きいファイルと重複、30日使っていないgitのプロジェクト、90日開いていないアプリと消したアプリの残り、どのプロジェクトも使わない道具の版、落としたAIモデル、始めた会話が終わったのに残っている開発用のサーバー、重いプロセス、ログイン項目、動いているコンテナです。",
-    "helpLockTitle": "選べない行がある理由",
-    "helpLock": "動いているエージェントの会話か開いている端末が動かしている物、中かそのアプリの中で動いているエージェントの会話がある物、動いているエージェントの会話かほかのプログラムが同じプロジェクトで作業している物は、使用中として選べません。その会話かプログラムを閉じてから、エージェントにもう一度調べさせてください。",
-    "helpNeverTitle": "触らない物",
-    "helpNever": "iCloud Drive、Dropbox、Google Drive、OneDriveなどの同期フォルダ、WSLから見たWindowsのドライブ、gitが追跡するファイル、Dockerのボリューム、管理者のパスワードが要る物です。",
-    "helpNextTitle": "この後に起きること",
-    "helpNext": "エージェントは選んだ物だけを空け、このコンピューターで測ったディスクの空き、メモリ、負荷の前後を知らせます。",
-    "tab_cache": "キャッシュ",
-    "tab_build": "ビルドの出力",
-    "tab_trash": "ゴミ箱とログ",
-    "tab_files": "大きいファイルと重複",
-    "tab_app": "アプリ",
-    "tab_process": "プロセス",
-    "tab_login": "ログイン項目",
-    "tab_container": "コンテナ",
-    "tab_project": "プロジェクト",
-    "tab_tools": "道具とモデル",
-    "tab_skipped": "測らなかった場所",
-    "lead_cache": "パッケージ管理、Docker、Xcode、アプリが、次に要る時にもう一度取ってくるか作り直す物です。道具が自分の消す命令を持つ時は、エージェントがその命令を使います。",
-    "lead_build": "gitが無視し、追跡するファイルを1つも持たないnode_modulesや.nextなどのフォルダです。次のインストールかビルドで作り直されます。",
-    "lead_trash": "ゴミ箱を空にすることと古いログを消すことは、元に戻せません。ダウンロードの30日より古いインストーラーはゴミ箱へ移します。",
-    "lead_files": "500MB以上のファイルと、同じ中身が複数の場所にある10MB以上のファイルです。選んだファイルはゴミ箱へ移します。重複は少なくとも1つ残してください。",
-    "lead_app": "90日開いていないアプリと、消したアプリがライブラリに残したファイルです。アプリは付属のファイルと一緒に、残りはそのままゴミ箱へ移します。",
-    "lead_project": "30日commitもcheckoutも無く、未commitの変更が無く、最後に取り込んだ時点で全てのcommitがremoteに在るgitのプロジェクトです。選んだプロジェクトはゴミ箱へ移します。",
-    "lead_tools": "nvm、fnm、pyenv、rbenv、asdf、mise、rustupの版のうち既定でもプロジェクトの指定でもない物と、Ollama、Hugging Face、LM Studioで落としたモデルです。どちらも完全に消し、道具で落とし直せます。",
-    "lead_process": "始めた会話が終わったのに残っている開発用のサーバーと監視と、メモリかCPUを最も多く使うプロセスです。選んだプロセスには終了の合図を送るので、作業を保存してから終われます。",
-    "lead_login": "ログインするたびに起動するプログラムです。止めた物は取っておき、エージェントが元に戻せます。",
-    "lead_container": "いま動いているDockerのコンテナです。止めてもデータは残ります。",
-    "lead_skipped": "次の場所は測らなかったので、一覧に入っていません。",
-    "eff_rebuilt": "次に使う時に作り直される",
-    "eff_trash": "ゴミ箱へ移す",
-    "eff_gone": "完全に消える",
-    "eff_end": "プロセスを終了する",
-    "eff_login": "ログイン時に起動しなくなる",
-    "eff_stop": "コンテナを止める",
-    "countOne": "1件",
-    "countMany": "{n}件",
-    "countSize": "{count}、{size}",
-    "eff_uninstall": "アンインストールする",
-    "oldFiles": "{days}日より古いファイル{n}件",
-    "empty": "ここには見つかりませんでした。",
     "lock_agent": "動いているエージェントの会話 ({1}、pid {2}) が動かしています",
     "lock_isAgent": "動いているエージェントの会話そのものです",
     "lock_hosts": "動いているエージェントの会話 ({1}、pid {2}) がこの中で動いています",
@@ -662,10 +952,10 @@ h1 { font-size: 24px; margin: 0; }
     "lock_project": "動いているプログラム ({1}、pid {2}) がこのプロジェクトで作業しています",
     "lock_app": "アプリが動いています",
     "lock_tool": "{1}が動いています",
-    "lock_toolInUse": "動いているプログラムがこの版を使っています",
-    "lock_defaultUnknown": "既定の版がどれか分かりませんでした ({1})",
-    "lock_projectSpec": "プロジェクトが指定する版がどれか分かりませんでした ({1})",
-    "lock_walkCut": "全てのプロジェクトの版の指定を読む前に走査が止まりました",
+    "lock_toolInUse": "動いているプログラムがこのバージョンを使っています",
+    "lock_defaultUnknown": "既定のバージョンがどれか分かりませんでした ({1})",
+    "lock_projectSpec": "プロジェクトが指定するバージョンがどれか分かりませんでした ({1})",
+    "lock_walkCut": "全てのプロジェクトのバージョンの指定を読む前に、スキャンが止まりました",
     "r_time": "時間の上限に達し、測る前に止めました",
     "r_sync": "同期フォルダです。ここで消すとクラウド側からも消えます",
     "r_windows": "WSLから見たWindowsのドライブです",
@@ -727,31 +1017,47 @@ h1 { font-size: 24px; margin: 0; }
 "use strict";
 const I18N = JSON.parse(document.getElementById("i18n").textContent);
 const DATA = JSON.parse(document.getElementById("data").textContent);
+// The kinds of rows, each with the categories it holds. The charts of the overview and the kind
+// filters of the Disk and Programs tabs read it.
 const TABS = [
   ["overview", []], ["cache", ["cache"]], ["build", ["build"]], ["trash", ["trash", "log", "installer"]], ["files", ["large", "duplicate"]],
   ["project", ["project"]], ["app", ["app"]], ["tools", ["tool", "model"]], ["process", ["dev-process", "heavy-process"]],
   ["login", ["login-item"]], ["container", ["container"]]
 ];
-// The tab strip in groups, each with the dictionary key of its name: the overview, what frees disk,
-// the programs that run, and the places not measured.
-const TAB_GROUPS = [
-  ["", ["overview"]], ["tg_disk", ["cache", "build", "trash", "files", "project", "app", "tools"]],
-  ["tg_programs", ["process", "login", "container"]], ["", ["skipped"]]
+// The four tabs of the page, each list tab with the kinds it filters by.
+const PANES = [
+  ["overview", []], ["disk", ["cache", "build", "trash", "files", "project", "app", "tools"]],
+  ["programs", ["process", "login", "container"]], ["skipped", []]
 ];
 const LEVELS = ["recommended", "check", "careful", "inuse"];
-// The colour of each part of a chart and each group, by its key.
+// The colour of each part of a chart and each level, by its key.
 const COLORS = {
   cache: "var(--c1)", build: "var(--c2)", trash: "var(--c3)", files: "var(--c4)", app: "var(--c5)", project: "var(--c6)", tools: "var(--c7)",
-  recommended: "var(--go)", check: "var(--check)", careful: "var(--care)", inuse: "var(--lock)",
-  picked: "var(--c-pick)", freeable: "var(--c1)", canEnd: "var(--c1)", inUse: "var(--lock)", other: "var(--c-other)", free: "var(--c-free)"
+  recommended: "var(--good)", check: "var(--warn)", careful: "var(--critical)", inuse: "var(--muted)",
+  picked: "var(--c-pick)", freeable: "var(--c1)", canEnd: "var(--c1)", inUse: "var(--muted)", other: "var(--c-other)", free: "var(--c-free)"
 };
+const PAGE_SIZE = 50;
 const picked = new Set();
-// What the list tabs show: rows whose name or location holds the query, in the groups switched on, in this order.
+// What the list tabs show: rows whose name or location holds the query, in the levels switched on, in this order.
 const view = { query: "", levels: LEVELS.slice(), sort: "size-desc" };
 let lang = "en";
 let tab = "overview";
 let animate = true;
 let online = null;
+let sentAt = null;
+// Each list tab keeps its kind filter, its page, and the row whose details it shows.
+const kinds = { disk: "all", programs: "all" };
+const pages = { disk: 0, programs: 0 };
+const currentId = { disk: null, programs: null };
+// Below 860px a list tab shows the list or the details; fromList is set when the details were opened
+// from the list, so Back returns to it through the history.
+let mode = "list";
+let fromList = false;
+let cleared = null;
+let lastList = null;
+let opener = null;
+const narrow = window.matchMedia("(max-width: 860px)");
+const small = window.matchMedia("(max-width: 599px)");
 try { const saved = localStorage.getItem("machine-cleanup-lang"); if (saved === "ja" || saved === "en") lang = saved; } catch (e) { /* storage may be blocked */ }
 // The theme follows the system until the reader picks one, which is kept like the language.
 let theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
@@ -786,6 +1092,10 @@ function when(s) {
   if (!/^\d{4}-\d\d-\d\dT/.test(String(s)) || isNaN(d.getTime())) return String(s || "-");
   const p = function (n) { return String(n).padStart(2, "0"); };
   return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+}
+function clock(d) {
+  const p = function (n) { return String(n).padStart(2, "0"); };
+  return p(d.getHours()) + ":" + p(d.getMinutes());
 }
 function effect(it) {
   if (it.category === "login-item") return ["eff_login", "run"];
@@ -824,10 +1134,22 @@ function reasonText(s) {
   if (/Full Disk Access/.test(s)) return t("r_fda");
   return s;
 }
-// Processes the page can end: the rows of the processes tab. Containers are left out, since their
-// memory is already counted in the process that runs them.
+// Processes the page can end. Containers are left out, since their memory is already counted in the
+// process that runs them.
 function isProc(it) { return it.category === "dev-process" || it.category === "heavy-process"; }
 function levelOf(it) { return it.locked ? "inuse" : (it.level || "check"); }
+// The tab a row is listed in, and the kind it is filtered by there.
+function paneOf(it) { return it.group === "process" ? "programs" : "disk"; }
+function kindOf(it) {
+  const k = TABS.find(function (x) { return x[0] !== "overview" && x[1].indexOf(it.category) >= 0; });
+  return k ? k[0] : "";
+}
+function paneItems(key) {
+  if (key !== "disk" && key !== "programs") return [];
+  return DATA.items.filter(function (it) { return paneOf(it) === key; });
+}
+function paneCount(key) { return key === "skipped" ? DATA.skipped.length : paneItems(key).length; }
+function itemById(id) { return DATA.items.find(function (it) { return it.id === id; }) || null; }
 // How much disk each row of the list gives back when every row of the list is freed, by id, counting
 // each byte once. A row inside another row of the list (its within) keeps its size, and the nearest
 // row that holds it gives back that much less. With keep, of each duplicate set whose every copy is in
@@ -862,7 +1184,8 @@ function unionSize(list) {
 // A measured value, or the words for one that could not be measured (never shown as zero).
 function partText(v) { return v === null || v === undefined ? t("notMeasured") : human(v); }
 // The seven charts of the overview tab, as data: titles and labels are dictionary keys, values are
-// bytes (CPU in percent), and a value that could not be measured is null.
+// bytes (CPU in percent), and a value that could not be measured is null. A part's tab is the kind
+// whose rows it opens.
 function overviewCharts(items, m, pickedIds) {
   const num = function (v) { return typeof v === "number" ? v : null; };
   const sum = function (list) { return list.reduce(function (s, it) { return s + (it.size || 0); }, 0); };
@@ -905,7 +1228,7 @@ function overviewCharts(items, m, pickedIds) {
     { key: "cpuTop", kind: "bars", title: "ch_cpuTop", bars: top(procs, "cpu", 6) }
   ];
 }
-// What the details dialog lists for a row: [dictionary key of the label, value, "mono" for paths and commands].
+// What the details list for a row: [dictionary key of the label, value, "mono" for paths and commands].
 function detailPairs(it) {
   const d = it.detail || {};
   const out = [];
@@ -938,61 +1261,121 @@ function detailPairs(it) {
   if (it.category === "log") out.push(["d_contents", t("oldFiles", { n: d.file_count || 0, days: d.older_than_days || 30 })]);
   return out;
 }
-// The body of the details dialog. A row that can be picked gets one button that picks or unpicks it;
-// a row in use gets none.
+// A row's level as a tag: an icon and the level's word.
+function tierTag(it) {
+  const level = levelOf(it);
+  const paths = {
+    recommended: '<path d="M20 6 9 17l-5-5"/>',
+    check: '<path d="M3 12a9 9 0 1 0 2.6-6.4L3 8"/><path d="M3 3v5h5"/>',
+    careful: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+    inuse: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'
+  };
+  const tag = document.createElement("span");
+  tag.className = "tag tier-" + level;
+  tag.innerHTML = '<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">' + paths[level] + "</svg>";
+  const word = document.createElement("span");
+  const key = "level_" + level;
+  word.textContent = t(key);
+  tag.appendChild(word);
+  return tag;
+}
+// The button that picks or unpicks a row, named by the row.
+function pickToggle(it, name) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "pick";
+  b.setAttribute("aria-pressed", String(picked.has(it.id)));
+  b.setAttribute("aria-label", t("pickName", { name: name }));
+  b.setAttribute("data-focus", "pick-" + it.id);
+  b.innerHTML = '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path class="plus" d="M12 6v12M6 12h12"/><path class="tick" d="m6 12.5 4 4L18 8"/></svg>';
+  b.addEventListener("click", function () { togglePick(it.id); });
+  return b;
+}
+// The details of the shown row: its name and level, then each field as a row of a table with the
+// label beside the value. A list longer than 10 lines folds, a row that is deleted for good says so
+// in its own notice, and a row that can be picked has one button that picks or unpicks it.
 function detailEl(it) {
   const box = document.createElement("div");
+  box.className = "detail-body";
+  const head = document.createElement("div");
+  head.className = "detail-head";
   const h = document.createElement("h2");
   h.id = "detail-title";
+  h.tabIndex = -1;
   h.textContent = nameOf(it);
-  box.appendChild(h);
-  const lv = document.createElement("span");
-  const levelKey = "level_" + levelOf(it);
-  lv.className = "lv lv-" + levelOf(it);
-  lv.textContent = t(levelKey);
-  box.appendChild(lv);
-  const dl = document.createElement("dl");
+  head.appendChild(h);
+  head.appendChild(tierTag(it));
+  box.appendChild(head);
+  const table = document.createElement("table");
+  table.className = "kv";
+  const body = document.createElement("tbody");
   detailPairs(it).forEach(function (p) {
-    const dt = document.createElement("dt");
-    dt.textContent = t(p[0]);
-    dl.appendChild(dt);
-    const dd = document.createElement("dd");
-    setLines(dd, p[1]);
-    if (p[2]) dd.className = p[2];
-    dl.appendChild(dd);
+    const tr = document.createElement("tr");
+    const th = document.createElement("th");
+    th.setAttribute("scope", "row");
+    th.textContent = t(p[0]);
+    tr.appendChild(th);
+    const td = document.createElement("td");
+    const text = String(p[1]);
+    const lines = text.split("\n");
+    if (lines.length > 10) {
+      const fold = document.createElement("details");
+      const sum = document.createElement("summary");
+      sum.textContent = t("showAll", { n: lines.length });
+      fold.appendChild(sum);
+      const all = document.createElement("div");
+      all.className = p[2] ? "lines mono" : "lines";
+      all.textContent = text;
+      fold.appendChild(all);
+      td.appendChild(fold);
+    } else {
+      if (p[2]) td.className = p[2];
+      setLines(td, text);
+    }
+    tr.appendChild(td);
+    body.appendChild(tr);
   });
-  box.appendChild(dl);
+  table.appendChild(body);
+  box.appendChild(table);
+  if (effect(it)[1] === "gone") {
+    const c = document.createElement("div");
+    c.className = "caution";
+    c.innerHTML = '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>';
+    const words = document.createElement("div");
+    const ct = document.createElement("h3");
+    ct.textContent = t("goneTitle");
+    words.appendChild(ct);
+    const cp = document.createElement("p");
+    cp.textContent = t("goneText");
+    words.appendChild(cp);
+    c.appendChild(words);
+    box.appendChild(c);
+  }
   if (!it.locked) {
-    const act = document.createElement("div");
-    act.className = "actions";
     const b = document.createElement("button");
     b.type = "button";
-    b.className = "primary";
+    b.id = "detail-pick";
+    b.className = picked.has(it.id) ? "secondary detail-pick" : "primary detail-pick";
+    b.setAttribute("data-item", it.id);
+    b.setAttribute("data-focus", "detail-pick");
     b.textContent = picked.has(it.id) ? t("unpick") : t("pick");
-    b.addEventListener("click", function () {
-      if (picked.has(it.id)) picked.delete(it.id); else picked.add(it.id);
-      closeModals();
-      render();
-    });
-    act.appendChild(b);
-    box.appendChild(act);
+    b.addEventListener("click", function () { togglePick(it.id); });
+    box.appendChild(b);
   }
   return box;
 }
-function openDetail(it) {
-  const body = document.getElementById("detail-body");
-  body.textContent = "";
-  body.appendChild(detailEl(it));
-  openModal("detail");
-}
-// The groups of a list tab after the search, the group switches, and the sort order of `view`. The
+// The groups of a list tab after the search, the level switches, and the sort order of `view`. The
 // search reads the name shown, the English name, and the location.
 function viewGroups(list, v) {
   const q = (v.query || "").trim().toLowerCase();
   const rows = q ? list.filter(function (it) { return [nameOf(it), it.name, it.path].join("\n").toLowerCase().indexOf(q) >= 0; }) : list;
+  const byName = function (a, b) { return String(nameOf(a)).localeCompare(String(nameOf(b)), lang, { sensitivity: "base", numeric: true }); };
   const orders = {
     "size-asc": function (a, b) { return (a.size || 0) - (b.size || 0); },
-    "name": function (a, b) { return String(nameOf(a)).localeCompare(String(nameOf(b)), lang, { sensitivity: "base", numeric: true }); }
+    "name": byName,
+    "name-desc": function (a, b) { return byName(b, a); },
+    "cpu-desc": function (a, b) { return (b.cpu || 0) - (a.cpu || 0); },
+    "cpu-asc": function (a, b) { return (a.cpu || 0) - (b.cpu || 0); }
   };
   return groupRows(rows).filter(function (g) { return v.levels.indexOf(g.key) >= 0; }).map(function (g) {
     if (orders[v.sort]) g.items.sort(orders[v.sort]);
@@ -1029,11 +1412,43 @@ function whereFor(it, list) {
   if (d.image) return d.image;
   return d.command ? d.command.split(DATA.home + "/").join("~/") : "";
 }
-function itemsOf(key) {
-  const cats = (TABS.find(function (x) { return x[0] === key; }) || [null, []])[1];
-  return DATA.items.filter(function (it) { return cats.indexOf(it.category) >= 0; });
+// The sort order a tab reads: the Disk tab has no CPU column, so it sorts by size instead.
+function sortFor(key) { return key === "disk" && /^cpu/.test(view.sort) ? "size-desc" : view.sort; }
+// Everything a list tab shows: the rows after the search, the kind, and the levels, in the order of
+// the page with the copies of a set together, cut into pages of 50, and the counts for the filters.
+function listState(key) {
+  const all = paneItems(key);
+  const kind = kinds[key];
+  const inKind = function (it) { return kind === "all" || kindOf(it) === kind; };
+  const inLevel = function (it) { return view.levels.indexOf(levelOf(it)) >= 0; };
+  const found = [];
+  viewGroups(all, { query: view.query, levels: LEVELS, sort: "size-desc" }).forEach(function (g) { g.items.forEach(function (it) { found.push(it); }); });
+  const levelCounts = {}, kindCounts = { all: 0 };
+  LEVELS.forEach(function (l) { levelCounts[l] = 0; });
+  found.forEach(function (it) {
+    if (inKind(it)) levelCounts[levelOf(it)] += 1;
+    if (inLevel(it)) { kindCounts.all += 1; kindCounts[kindOf(it)] = (kindCounts[kindOf(it)] || 0) + 1; }
+  });
+  const entries = [];
+  viewGroups(found.filter(inKind), { query: "", levels: view.levels, sort: sortFor(key) }).forEach(function (g) {
+    let head = null;
+    withSets(g.items).forEach(function (e) {
+      if (e.head) { head = e.head; return; }
+      entries.push({ item: e.item, group: g, head: head, copy: !!(e.item.detail && e.item.detail.set) });
+      head = null;
+    });
+  });
+  const pageCount = Math.max(1, Math.ceil(entries.length / PAGE_SIZE));
+  const page = Math.min(Math.max(pages[key] || 0, 0), pageCount - 1);
+  pages[key] = page;
+  return {
+    key: key, all: all, entries: entries, page: page, pageCount: pageCount,
+    slice: entries.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE), levelCounts: levelCounts, kindCounts: kindCounts,
+    filtered: !!view.query.trim() || kind !== "all" || view.levels.length !== LEVELS.length
+  };
 }
 
+function el(id) { return document.getElementById(id); }
 function setTheme(mode) {
   theme = mode;
   document.documentElement.dataset.theme = mode;
@@ -1041,105 +1456,173 @@ function setTheme(mode) {
 }
 function applyLang() {
   document.documentElement.lang = lang;
-  document.querySelectorAll("[data-i18n]").forEach(function (el) { setLines(el, t(el.getAttribute("data-i18n"))); });
-  document.querySelectorAll("[data-i18n-aria]").forEach(function (el) { el.setAttribute("aria-label", t(el.getAttribute("data-i18n-aria"))); });
-  document.querySelectorAll("[data-i18n-ph]").forEach(function (el) { el.placeholder = t(el.getAttribute("data-i18n-ph")); });
+  document.querySelectorAll("[data-i18n]").forEach(function (e) { setLines(e, t(e.getAttribute("data-i18n"))); });
+  document.querySelectorAll("[data-i18n-aria]").forEach(function (e) { e.setAttribute("aria-label", t(e.getAttribute("data-i18n-aria"))); });
   document.querySelectorAll("#lang button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.lang === lang)); });
   document.title = t("title");
+  const at = el("scanned-at");
+  at.setAttribute("datetime", DATA.scanned_at || "");
+  at.textContent = when(DATA.scanned_at);
+  const n = DATA.skipped.length;
+  el("skipped-count").textContent = n === 1 ? t("placesOne") : t("placesMany", { n: n });
   renderStatus();
   render();
+  if (el("confirm").open) fillConfirm();
 }
+// The connection at the top right, the notice above the tabs while the agent is not waiting, and the
+// buttons of the confirm dialog: Free while the agent waits, Copy while it does not.
 function renderStatus() {
-  const el = document.getElementById("status");
-  el.className = "status" + (online === true ? " on" : online === false ? " off" : "");
-  el.textContent = t(online === true ? "statusOn" : online === false ? "statusOff" : "statusWait");
-  document.getElementById("copy").hidden = online !== false;
+  const s = el("status");
+  const state = sentAt ? "sent" : online === true ? "on" : online === false ? "off" : "wait";
+  const key = { sent: "statusSent", on: "statusOn", off: "statusOff", wait: "statusWait" }[state];
+  s.className = "status " + state;
+  s.textContent = t(key);
+  el("offline-banner").hidden = !(online === false && !sentAt);
+  const off = online !== true;
+  el("copy-box").hidden = !off;
+  el("copy").hidden = !off;
+  el("send").hidden = off;
 }
-function goTab(key) { tab = key; animate = key === "overview"; render(); }
-function render() {
-  const tabs = document.getElementById("tabs");
-  tabs.textContent = "";
-  TAB_GROUPS.forEach(function (g) {
-    const keys = g[1].filter(function (key) { return key !== "skipped" || DATA.skipped.length; });
-    if (!keys.length) return;
-    const box = document.createElement("div");
-    box.className = "tab-group";
-    box.setAttribute("role", "presentation");
-    if (g[0]) {
-      const name = document.createElement("span");
-      name.className = "tab-label";
-      name.setAttribute("aria-hidden", "true");
-      name.textContent = t(g[0]);
-      box.appendChild(name);
-    }
-    keys.forEach(function (key) {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.setAttribute("role", "tab");
-      b.setAttribute("aria-selected", String(key === tab));
-      const label = "tab_" + key;
-      b.textContent = t(label);
-      if (key !== "overview") {
-        const n = document.createElement("span");
-        n.textContent = key === "skipped" ? DATA.skipped.length : itemsOf(key).length;
-        b.appendChild(n);
-      }
-      b.addEventListener("click", function () { goTab(key); });
-      box.appendChild(b);
-    });
-    tabs.appendChild(box);
-  });
-  const leadKey = "lead_" + tab;
-  setLines(document.getElementById("tab-lead"), t(leadKey));
-  const overview = tab === "overview";
-  document.getElementById("clear").hidden = overview || tab === "skipped";
-  document.getElementById("toolbar").hidden = overview || tab === "skipped";
-  document.getElementById("overview").hidden = !overview;
-  const rows = document.getElementById("rows");
-  rows.hidden = overview;
-  rows.textContent = "";
-  renderLevels();
-  if (overview) {
-    renderOverview();
-  } else if (tab === "skipped") {
-    DATA.skipped.forEach(function (s) { rows.appendChild(rowEl(tilde(s.path), reasonText(s.reason), null)); });
-  } else {
-    const all = itemsOf(tab);
-    viewGroups(all, view).forEach(function (g) {
-      rows.appendChild(groupHead(g));
-      withSets(g.items).forEach(function (e) {
-        rows.appendChild(e.head ? node("div", "set-head", setHeadText(e.head)) : rowEl(nameOf(e.item), whereFor(e.item, all), e.item));
-      });
-    });
-  }
-  if (!overview && !rows.children.length) {
-    const e = document.createElement("div");
-    e.className = "empty";
-    setLines(e, t("empty"));
-    rows.appendChild(e);
-  }
-  renderTally();
+function renderSaveState() {
+  const s = el("save-state");
+  if (sentAt) s.textContent = t("saveSent", { time: clock(sentAt) });
+  else if (picked.size) s.textContent = t("savePicked", { n: picked.size });
+  else s.textContent = "";
 }
-// The group switches above the list: one button per group, pressed while its rows are shown.
-function renderLevels() {
-  const box = document.getElementById("levels");
-  box.textContent = "";
-  LEVELS.forEach(function (key) {
+function buildTabs() {
+  const strip = el("tabs");
+  PANES.forEach(function (p, i) {
     const b = document.createElement("button");
-    const levelKey = "level_" + key;
     b.type = "button";
-    b.textContent = t(levelKey);
-    b.style.setProperty("--lv", COLORS[key]);
-    b.setAttribute("aria-pressed", String(view.levels.indexOf(key) >= 0));
-    b.addEventListener("click", function () {
-      view.levels = view.levels.indexOf(key) >= 0 ? view.levels.filter(function (k) { return k !== key; }) : view.levels.concat([key]);
-      render();
+    b.id = "tab-" + p[0];
+    b.setAttribute("role", "tab");
+    b.setAttribute("aria-controls", "panel");
+    b.addEventListener("click", function () { goTab(p[0]); });
+    b.addEventListener("keydown", function (ev) {
+      const moves = { ArrowRight: (i + 1) % PANES.length, ArrowLeft: (i - 1 + PANES.length) % PANES.length, Home: 0, End: PANES.length - 1 };
+      if (!(ev.key in moves)) return;
+      ev.preventDefault();
+      const next = PANES[moves[ev.key]][0];
+      goTab(next);
+      const nb = el("tab-" + next);
+      nb.focus();
+      nb.scrollIntoView({ block: "nearest", inline: "nearest" });
     });
-    box.appendChild(b);
+    strip.appendChild(b);
   });
+}
+function renderTabs() {
+  PANES.forEach(function (p) {
+    const b = el("tab-" + p[0]);
+    const key = "tab_" + p[0];
+    b.textContent = p[0] === "overview" ? t(key) : t(key) + " (" + paneCount(p[0]) + ")";
+    b.setAttribute("aria-selected", String(p[0] === tab));
+    b.tabIndex = p[0] === tab ? 0 : -1;
+  });
+}
+function replaceHash(h) { try { history.replaceState(null, "", h); } catch (e) { /* the address stays */ } }
+function goTab(key) {
+  tab = key;
+  mode = "list";
+  fromList = false;
+  animate = key === "overview";
+  replaceHash("#" + key);
+  render();
+}
+// Opens a kind's rows in its tab, as a part of a chart does.
+function goKind(kind) {
+  const pane = PANES.find(function (p) { return p[1].indexOf(kind) >= 0; });
+  if (!pane) return;
+  kinds[pane[0]] = kind;
+  pages[pane[0]] = 0;
+  currentId[pane[0]] = null;
+  goTab(pane[0]);
+}
+// Opens a row's details. Below 860px the details take the place of the list and the address gets a new
+// entry, so Back in the browser returns to the list; on a wide screen the details change beside the
+// list and the address is replaced.
+function openItem(id) {
+  fromList = true;
+  if (location.hash === "#item-" + id) route(); else location.hash = "#item-" + id;
+}
+function choose(id) {
+  if (narrow.matches) { openItem(id); return; }
+  currentId[tab] = id;
+  replaceHash("#item-" + id);
+  markCurrent();
+  const it = itemById(id);
+  if (it && lastList) renderDetail(it, lastList);
+}
+function back() {
+  if (fromList) { fromList = false; history.back(); return; }
+  location.replace("#" + tab);
+}
+// Reads the address: #item-<id> shows that row in its tab, #<tab> shows a tab, and no address shows the
+// overview. An address the page does not know leaves the page as it is.
+function route() {
+  let h = location.hash.slice(1);
+  try { h = decodeURIComponent(h); } catch (e) { /* keep it as it is */ }
+  if (h.indexOf("item-") === 0) {
+    const it = itemById(h.slice(5));
+    if (it) { showItem(it); return; }
+  }
+  const wasDetail = mode === "detail";
+  if (PANES.some(function (p) { return p[0] === h; })) tab = h;
+  else if (!h) tab = "overview";
+  mode = "list";
+  render();
+  if (wasDetail && narrow.matches) focusRow();
+}
+// Shows a row in its tab: a filter that hides it is cleared, and the page that holds it is opened.
+function showItem(it) {
+  const key = paneOf(it);
+  tab = key;
+  let s = listState(key);
+  if (!s.entries.some(function (e) { return e.item.id === it.id; })) {
+    view.query = "";
+    el("search").value = "";
+    view.levels = LEVELS.slice();
+    kinds[key] = "all";
+    s = listState(key);
+  }
+  const i = s.entries.findIndex(function (e) { return e.item.id === it.id; });
+  pages[key] = Math.floor(Math.max(i, 0) / PAGE_SIZE);
+  currentId[key] = it.id;
+  mode = "detail";
+  animate = false;
+  render();
+  if (narrow.matches) { const h = el("detail-title"); if (h) h.focus(); }
+}
+function focusRow() {
+  const b = document.querySelector('#rows [data-id="' + currentId[tab] + '"] button.open');
+  if (b) b.focus();
+}
+// Draws the tab. The element that had the focus is drawn again, so it gets the focus back.
+function render() {
+  const active = document.activeElement;
+  const focusKey = active && active.getAttribute ? active.getAttribute("data-focus") : null;
+  renderTabs();
+  const list = tab === "disk" || tab === "programs";
+  el("panel").setAttribute("aria-labelledby", "tab-" + tab);
+  const titleKey = "tab_" + tab;
+  el("panel-title").textContent = t(titleKey);
+  const leadKey = list && kinds[tab] !== "all" ? "lead_" + kinds[tab] : "lead_" + tab;
+  setLines(el("tab-lead"), t(leadKey));
+  el("caution").hidden = !(tab === "disk" && paneItems("disk").length);
+  ["overview", "toolbar", "count", "pager-top", "split", "pager-bottom", "empty", "places"].forEach(function (id) { el(id).hidden = true; });
+  if (tab === "overview") renderOverview();
+  else if (list) renderList();
+  else renderSkipped();
+  renderTally();
+  renderSaveState();
+  if (focusKey) {
+    const again = document.querySelector('[data-focus="' + focusKey + '"]');
+    if (again && again !== document.activeElement) again.focus({ preventScroll: true });
+  }
 }
 function renderOverview() {
-  const box = document.getElementById("overview");
+  const box = el("overview");
+  box.hidden = false;
   box.textContent = "";
   box.classList.toggle("anim", animate);
   animate = false;
@@ -1147,10 +1630,435 @@ function renderOverview() {
     box.appendChild(c.kind === "bars" ? barCard(c) : pieCard(c));
   });
 }
+function renderSkipped() {
+  const box = el("places");
+  box.textContent = "";
+  if (!DATA.skipped.length) { showEmpty(t("emptySkippedTitle"), t("emptySkippedText"), false); return; }
+  box.hidden = false;
+  const table = document.createElement("table");
+  table.className = "grid";
+  table.setAttribute("aria-labelledby", "panel-title");
+  const head = document.createElement("thead");
+  const hr = document.createElement("tr");
+  ["colPlace", "colWhy"].forEach(function (k) { const th = document.createElement("th"); th.setAttribute("scope", "col"); th.textContent = t(k); hr.appendChild(th); });
+  head.appendChild(hr);
+  table.appendChild(head);
+  const body = document.createElement("tbody");
+  DATA.skipped.forEach(function (s) {
+    const tr = document.createElement("tr");
+    const th = document.createElement("th");
+    th.setAttribute("scope", "row");
+    th.textContent = tilde(s.path);
+    tr.appendChild(th);
+    const td = document.createElement("td");
+    setLines(td, reasonText(s.reason));
+    tr.appendChild(td);
+    body.appendChild(tr);
+  });
+  table.appendChild(body);
+  box.appendChild(table);
+}
+// An empty tab, or a search that finds nothing: what is missing and why, and for a search the way out.
+function showEmpty(title, text, withClear) {
+  const e = el("empty");
+  e.hidden = false;
+  e.textContent = "";
+  e.appendChild(node("h3", "", title));
+  e.appendChild(node("p", "", text));
+  if (withClear) {
+    const b = node("button", "secondary", t("clearFilters"));
+    b.type = "button";
+    b.addEventListener("click", clearFilters);
+    e.appendChild(b);
+  }
+}
+function clearFilters() {
+  view.query = "";
+  el("search").value = "";
+  view.levels = LEVELS.slice();
+  kinds[tab] = "all";
+  pages[tab] = 0;
+  currentId[tab] = null;
+  render();
+  el("search").focus();
+}
+function renderList() {
+  const s = listState(tab);
+  lastList = s;
+  if (!s.all.length) {
+    const key = tab === "disk" ? "emptyDisk" : "emptyPrograms";
+    showEmpty(t(key + "Title"), t(key + "Text"), false);
+    return;
+  }
+  el("toolbar").hidden = false;
+  renderFilters(s);
+  if (!s.entries.length) {
+    const q = view.query.trim();
+    showEmpty(q ? t("noMatchQuery", { q: q }) : t("noMatchFilters"), t("noMatchText"), true);
+    return;
+  }
+  renderCount(s);
+  renderPager(el("pager-top"), s, "top");
+  renderPager(el("pager-bottom"), s, "bottom");
+  const split = el("split");
+  split.hidden = false;
+  split.setAttribute("data-view", mode);
+  if (!s.slice.some(function (e) { return e.item.id === currentId[tab]; })) currentId[tab] = s.slice[0].item.id;
+  const box = el("rows");
+  box.textContent = "";
+  const cards = small.matches;
+  let i = 0;
+  while (i < s.slice.length) {
+    const g = s.slice[i].group;
+    const run = [];
+    while (i < s.slice.length && s.slice[i].group === g) { run.push(s.slice[i]); i += 1; }
+    box.appendChild(groupHead(g));
+    box.appendChild(cards ? cardsEl(run, s) : tableEl(run, g, s));
+  }
+  markCurrent();
+  renderDetail(itemById(currentId[tab]), s);
+}
+// The kind and level switches above the list, each with how many rows it shows.
+function renderFilters(s) {
+  const kindBox = el("kinds");
+  kindBox.textContent = "";
+  const pane = PANES.find(function (p) { return p[0] === tab; });
+  ["all"].concat(pane[1]).forEach(function (k) {
+    const n = s.kindCounts[k] || 0;
+    if (k !== "all" && !n && kinds[tab] !== k) return;
+    const kindKey = "tab_" + k;
+    const word = k === "all" ? t("kindAll") : t(kindKey);
+    const b = node("button", "", word + " (" + n + ")");
+    b.type = "button";
+    b.setAttribute("aria-pressed", String(kinds[tab] === k));
+    b.setAttribute("data-focus", "kind-" + k);
+    b.addEventListener("click", function () { kinds[tab] = k; pages[tab] = 0; currentId[tab] = null; render(); });
+    kindBox.appendChild(b);
+  });
+  const levelBox = el("levels");
+  levelBox.textContent = "";
+  LEVELS.forEach(function (l) {
+    const n = s.levelCounts[l] || 0;
+    const on = view.levels.indexOf(l) >= 0;
+    if (!n && on) return;
+    const key = "level_" + l;
+    const b = node("button", "", t(key) + " (" + n + ")");
+    b.type = "button";
+    b.setAttribute("aria-pressed", String(on));
+    b.setAttribute("data-focus", "level-" + l);
+    b.addEventListener("click", function () {
+      view.levels = on ? view.levels.filter(function (x) { return x !== l; }) : view.levels.concat([l]);
+      pages[tab] = 0;
+      currentId[tab] = null;
+      render();
+    });
+    levelBox.appendChild(b);
+  });
+}
+function renderCount(s) {
+  const c = el("count");
+  c.hidden = false;
+  const n = s.all.length, shown = s.entries.length;
+  const from = s.page * PAGE_SIZE + 1, to = s.page * PAGE_SIZE + s.slice.length;
+  if (s.pageCount > 1) c.textContent = s.filtered ? t("countPageFiltered", { from: from, to: to, shown: shown, n: n }) : t("countPage", { from: from, to: to, n: n });
+  else c.textContent = s.filtered ? t("countFiltered", { shown: shown, n: n }) : t("countRows", { n: n });
+}
+// The pager above and below the list: Previous, the page numbers, and Next.
+function renderPager(nav, s, where) {
+  nav.textContent = "";
+  if (s.pageCount <= 1) return;
+  nav.hidden = false;
+  nav.setAttribute("aria-label", t("pagerLabel"));
+  const go = function (p) {
+    pages[tab] = p;
+    currentId[tab] = null;
+    render();
+    el("rows").scrollTop = 0;
+    if (where === "bottom") el("count").scrollIntoView({ block: "nearest" });
+  };
+  const arrow = function (d) { return '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="' + d + '"/></svg>'; };
+  const prev = document.createElement("button");
+  prev.type = "button";
+  prev.innerHTML = arrow("m15 18-6-6 6-6");
+  prev.appendChild(node("span", "", t("prev")));
+  prev.disabled = s.page === 0;
+  prev.setAttribute("data-focus", "pager-" + where + "-prev");
+  prev.addEventListener("click", function () { go(s.page - 1); });
+  nav.appendChild(prev);
+  pageList(s.page, s.pageCount).forEach(function (p) {
+    if (p === null) { nav.appendChild(node("span", "gap", "…")); return; }
+    const b = node("button", "", String(p + 1));
+    b.type = "button";
+    b.setAttribute("aria-label", t("pageN", { n: p + 1 }));
+    if (p === s.page) b.setAttribute("aria-current", "page");
+    b.setAttribute("data-focus", "pager-" + where + "-" + p);
+    b.addEventListener("click", function () { go(p); });
+    nav.appendChild(b);
+  });
+  const next = document.createElement("button");
+  next.type = "button";
+  next.appendChild(node("span", "", t("next")));
+  next.insertAdjacentHTML("beforeend", arrow("m9 18 6-6-6-6"));
+  next.disabled = s.page === s.pageCount - 1;
+  next.setAttribute("data-focus", "pager-" + where + "-next");
+  next.addEventListener("click", function () { go(s.page + 1); });
+  nav.appendChild(next);
+}
+// The page numbers a pager shows: all of them up to 7, otherwise the first, the last, and the pages
+// around the current one, with null for a gap.
+function pageList(page, count) {
+  if (count <= 7) return Array.from({ length: count }, function (_, i) { return i; });
+  const out = [0];
+  const from = Math.max(1, page - 1), to = Math.min(count - 2, page + 1);
+  if (from > 1) out.push(null);
+  for (let i = from; i <= to; i++) out.push(i);
+  if (to < count - 2) out.push(null);
+  out.push(count - 1);
+  return out;
+}
+// A column header; a sortable one holds a button that sorts by it, and the sorted one has aria-sort.
+function headCell(labelKey, sorts, cls) {
+  const th = document.createElement("th");
+  th.setAttribute("scope", "col");
+  if (cls) th.className = cls;
+  if (!sorts) { th.textContent = t(labelKey); return th; }
+  const current = sortFor(tab);
+  const at = sorts.indexOf(current);
+  if (at >= 0) th.setAttribute("aria-sort", /-desc$/.test(current) ? "descending" : "ascending");
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "sort";
+  b.setAttribute("data-focus", "sort-" + labelKey);
+  b.appendChild(node("span", "", t(labelKey)));
+  const d = at < 0 ? "M8 9l4-4 4 4M8 15l4 4 4-4" : /-desc$/.test(current) ? "M6 9l6 6 6-6" : "M6 15l6-6 6 6";
+  b.insertAdjacentHTML("beforeend", '<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="' + d + '"/></svg>');
+  b.addEventListener("click", function () {
+    view.sort = at === 0 ? sorts[1] : sorts[0];
+    pages[tab] = 0;
+    currentId[tab] = null;
+    render();
+  });
+  th.appendChild(b);
+  return th;
+}
+// One table per level on the page, named by the level's heading, with its header row kept on top.
+function tableEl(run, g, s) {
+  const wrap = node("div", "table-wrap");
+  const table = document.createElement("table");
+  table.className = "rows-table";
+  table.setAttribute("aria-labelledby", "g-" + g.key);
+  const head = document.createElement("thead");
+  const hr = document.createElement("tr");
+  hr.appendChild(headCell("colName", ["name", "name-desc"]));
+  if (tab === "programs") {
+    hr.appendChild(headCell("colMemory", ["size-desc", "size-asc"], "col-num num"));
+    hr.appendChild(headCell("colCpu", ["cpu-desc", "cpu-asc"], "col-cpu num"));
+  } else {
+    hr.appendChild(headCell("colSize", ["size-desc", "size-asc"], "col-num num"));
+  }
+  hr.appendChild(headCell("colPick", null, "col-pick"));
+  head.appendChild(hr);
+  table.appendChild(head);
+  const body = document.createElement("tbody");
+  run.forEach(function (e) {
+    const tr = rowEl(nameOf(e.item), whereFor(e.item, s.all), e.item);
+    if (e.head) { const th = tr.querySelector("th"); th.insertBefore(node("span", "set-note", setHeadText(e.head)), th.querySelector(".tag")); }
+    if (e.copy) tr.classList.add("copy");
+    if (picked.has(e.item.id)) tr.classList.add("picked");
+    body.appendChild(tr);
+  });
+  table.appendChild(body);
+  wrap.appendChild(table);
+  return wrap;
+}
+function cardsEl(run, s) {
+  const ul = node("ul", "cards");
+  run.forEach(function (e) {
+    const li = cardEl(nameOf(e.item), whereFor(e.item, s.all), e.item);
+    if (e.head) li.insertBefore(node("span", "set-note", setHeadText(e.head)), li.querySelector(".tag"));
+    if (picked.has(e.item.id)) li.classList.add("picked");
+    ul.appendChild(li);
+  });
+  return ul;
+}
+// The groups of one tab in the order the page shows them: recommended, restorable, risky, and the
+// rows in use last. Within a group the largest comes first. Only the first two can be picked at once.
+function groupRows(list) {
+  const groups = { recommended: [], check: [], careful: [], inuse: [] };
+  list.forEach(function (it) { (it.locked ? groups.inuse : groups[it.level] || groups.check).push(it); });
+  return ["recommended", "check", "careful", "inuse"].filter(function (key) { return groups[key].length; }).map(function (key) {
+    const items = groups[key].sort(function (a, b) { return (b.size || 0) - (a.size || 0); });
+    return {
+      key: key, items: items, pickAll: key === "recommended" || key === "check",
+      disk: items.every(function (it) { return it.group === "disk"; }),
+      total: items.reduce(function (s, it) { return s + (it.size || 0); }, 0)
+    };
+  });
+}
+function groupHeadText(g) { return sumText(g.items.length, g.total, g.disk); }
+// A level's heading over its table: its name, then its count and how much disk it holds, and for the
+// recommended and restorable levels a button that picks every row in it (copies of a duplicate set
+// stay one by one, since picking every copy of a set is refused).
+function groupHead(g) {
+  const head = document.createElement("div");
+  head.className = "group-head";
+  const h = document.createElement("h3");
+  h.id = "g-" + g.key;
+  const titleKey = "level_" + g.key;
+  h.textContent = t(titleKey);
+  head.appendChild(h);
+  const sum = document.createElement("span");
+  sum.className = "group-sum";
+  sum.textContent = groupHeadText(g);
+  head.appendChild(sum);
+  if (g.pickAll) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "secondary pick-group";
+    b.setAttribute("data-focus", "pickall-" + g.key);
+    b.textContent = t("pickGroup");
+    b.addEventListener("click", function () { pickAll(g); });
+    head.appendChild(b);
+  }
+  return head;
+}
+function whyText(it) {
+  const r = it.reason || {};
+  const key = "why_" + r.code;
+  return r.code ? t(key, { days: r.days }) : "";
+}
+// One row of a list tab: the name as a button that shows its details, where it is when the caller
+// passes it (a row whose name does not tell it apart), and its level as a tag, then the size, or the
+// memory and CPU of a process, and the pick button. A row in use has no pick button.
+function rowEl(name, where, it) {
+  const tr = document.createElement("tr");
+  tr.setAttribute("data-id", it.id);
+  const th = document.createElement("th");
+  th.setAttribute("scope", "row");
+  const open = document.createElement("button");
+  open.type = "button";
+  open.className = "open";
+  open.setAttribute("data-focus", "open-" + it.id);
+  open.textContent = name;
+  open.addEventListener("click", function () { choose(it.id); });
+  th.appendChild(open);
+  if (where) {
+    const w = document.createElement("span");
+    w.className = "where";
+    w.textContent = where;
+    th.appendChild(w);
+  }
+  th.appendChild(tierTag(it));
+  tr.appendChild(th);
+  const cell = function (text) {
+    const td = document.createElement("td");
+    td.className = "num";
+    td.textContent = text;
+    tr.appendChild(td);
+  };
+  if (it.group === "process") {
+    const login = it.category === "login-item";
+    cell(login ? "" : human(it.size));
+    cell(login ? "" : String(it.cpu || 0));
+  } else {
+    cell(human(it.size));
+  }
+  const td = document.createElement("td");
+  td.className = "pick-cell";
+  if (!it.locked) td.appendChild(pickToggle(it, name));
+  tr.appendChild(td);
+  return tr;
+}
+// The same row as a card below 600px: the name and the pick button, where it is, the level, and each
+// value under its label.
+function cardEl(name, where, it) {
+  const li = document.createElement("li");
+  li.setAttribute("data-id", it.id);
+  const top = document.createElement("div");
+  top.className = "card-top";
+  const h = document.createElement("h4");
+  const open = document.createElement("button");
+  open.type = "button";
+  open.className = "open";
+  open.setAttribute("data-focus", "open-" + it.id);
+  open.textContent = name;
+  open.addEventListener("click", function () { choose(it.id); });
+  h.appendChild(open);
+  top.appendChild(h);
+  if (!it.locked) top.appendChild(pickToggle(it, name));
+  li.appendChild(top);
+  if (where) {
+    const w = document.createElement("span");
+    w.className = "where";
+    w.textContent = where;
+    li.appendChild(w);
+  }
+  li.appendChild(tierTag(it));
+  const dl = document.createElement("dl");
+  const pair = function (labelKey, value) {
+    const div = document.createElement("div");
+    const dt = document.createElement("dt");
+    dt.textContent = t(labelKey);
+    const dd = document.createElement("dd");
+    dd.textContent = value;
+    div.appendChild(dt);
+    div.appendChild(dd);
+    dl.appendChild(div);
+  };
+  if (it.category === "login-item") pair("d_effect", t(effect(it)[0]));
+  else if (it.group === "process") { pair("colMemory", human(it.size)); pair("colCpu", String(it.cpu || 0)); }
+  else pair("colSize", human(it.size));
+  li.appendChild(dl);
+  return li;
+}
+// Marks the row whose details are shown.
+function markCurrent() {
+  const id = currentId[tab];
+  document.querySelectorAll("#rows [data-id]").forEach(function (r) {
+    const on = r.getAttribute("data-id") === id;
+    r.classList.toggle("current", on);
+    if (on) r.setAttribute("aria-current", "true"); else r.removeAttribute("aria-current");
+  });
+}
+// The details beside the list: below 860px with a way back to the list before them and links to the
+// rows before and after it under them.
+function renderDetail(it, s) {
+  const d = el("detail");
+  d.textContent = "";
+  if (!it) return;
+  const backButton = document.createElement("button");
+  backButton.type = "button";
+  backButton.className = "back";
+  backButton.innerHTML = '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>';
+  backButton.appendChild(node("span", "", t("back")));
+  backButton.addEventListener("click", back);
+  d.appendChild(backButton);
+  d.appendChild(detailEl(it));
+  const i = s.entries.findIndex(function (e) { return e.item.id === it.id; });
+  const nav = document.createElement("nav");
+  nav.className = "step";
+  nav.setAttribute("aria-label", t("stepLabel"));
+  if (i > 0) nav.appendChild(stepLink("prev", s.entries[i - 1].item));
+  if (i >= 0 && i < s.entries.length - 1) nav.appendChild(stepLink("next", s.entries[i + 1].item));
+  d.appendChild(nav);
+}
+function stepLink(rel, it) {
+  const a = document.createElement("a");
+  a.rel = rel;
+  a.href = "#item-" + it.id;
+  const k = node("span", "k");
+  const arrow = '<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="' + (rel === "prev" ? "m15 18-6-6 6-6" : "m9 18 6-6-6-6") + '"/></svg>';
+  const word = rel === "prev" ? t("prevRow") : t("nextRow");
+  if (rel === "prev") { k.innerHTML = arrow; k.appendChild(document.createTextNode(word)); } else { k.textContent = word; k.insertAdjacentHTML("beforeend", arrow); }
+  a.appendChild(k);
+  a.appendChild(node("span", "n", nameOf(it)));
+  a.addEventListener("click", function (ev) { ev.preventDefault(); location.replace("#item-" + it.id); });
+  return a;
+}
 // A Japanese full stop with more text after it ends the line, so each sentence starts on its own
 // line, as the look of page-design asks. Text without one is written as it is.
 function setLines(el, text) {
-  const parts = String(text).replace(/\u3002(?![\u300d\u300f\uff09)\u3011\u3009\u300b"'\u201d\u2019]|$)/g, "\u3002\u0000").split("\u0000");
+  const parts = String(text).replace(/。(?![」』）)】〉》"'”’]|$)/g, "。\u0000").split("\u0000");
   if (parts.length === 1) { el.textContent = parts[0]; return; }
   el.textContent = "";
   parts.forEach(function (part, i) {
@@ -1178,6 +2086,7 @@ function card(c) {
   return box;
 }
 // A pie chart card: a ring of the measured parts, the legend with every part, and the line below it.
+// A part with a kind opens that kind's rows.
 function pieCard(c) {
   const box = card(c);
   const pie = node("div", "pie");
@@ -1201,7 +2110,7 @@ function pieCard(c) {
     const tip = document.createElementNS(ns, "title");
     tip.textContent = t(p.label) + " " + human(p.value);
     arc.appendChild(tip);
-    if (p.tab) { arc.classList.add("go"); arc.addEventListener("click", function () { goTab(p.tab); }); }
+    if (p.tab) { arc.classList.add("go"); arc.addEventListener("click", function () { goKind(p.tab); }); }
     svg.appendChild(arc);
     offset += len;
   });
@@ -1221,7 +2130,7 @@ function pieCard(c) {
     li.appendChild(node("span", "", t(p.label)));
     li.appendChild(node("b", "", partText(p.value)));
     const tabKey = "tab_" + p.tab;
-    if (p.tab) pressable(li, t(tabKey), function () { goTab(p.tab); });
+    if (p.tab) pressable(li, t(tabKey), function () { goKind(p.tab); });
     legend.appendChild(li);
   });
   pie.appendChild(legend);
@@ -1240,139 +2149,37 @@ function pieCard(c) {
   box.appendChild(foot);
   return box;
 }
-// A bar chart card: one bar per row, coloured by its group; pressing a bar opens that row's details.
+// A bar chart card: one bar per row, coloured by its level, reading its name and value; pressing a bar
+// shows that row's details.
 function barCard(c) {
   const box = card(c);
   const list = node("div", "bars");
   const max = Math.max.apply(null, c.bars.map(function (b) { return b.value; }).concat([1]));
   const items = c.bars.map(function (b) { return b.item; });
   c.bars.forEach(function (b) {
-    const row = node("div", "bar-row");
+    const row = node("button", "bar-row");
+    row.type = "button";
     const name = nameOf(b.item);
     // Two bars of one name, such as two Vite dev servers, show where each is under the name.
     const shared = items.some(function (x) { return x !== b.item && nameOf(x) === name; });
     const where = shared ? whereFor(b.item, items) : "";
-    row.title = where ? name + "\n" + where : name;
-    const label = node("span");
+    const label = node("span", "bar-name");
     label.appendChild(node("span", "", name));
     if (where) label.appendChild(node("span", "where", where));
     row.appendChild(label);
-    const track = node("div", "track");
+    const track = node("span", "track");
     const fill = node("i");
     fill.style.width = (b.value / max * 100) + "%";
     fill.style.background = COLORS[levelOf(b.item)];
     track.appendChild(fill);
     row.appendChild(track);
     row.appendChild(node("b", "", c.key === "cpuTop" ? b.value + "%" : human(b.value)));
-    pressable(row, name, function () { openDetail(b.item); });
+    row.addEventListener("click", function () { openItem(b.item.id); });
     list.appendChild(row);
   });
-  if (!c.bars.length) list.appendChild(node("div", "empty", t("empty")));
+  if (!c.bars.length) list.appendChild(node("p", "bars-none", t("barsNone")));
   box.appendChild(list);
   return box;
-}
-// The groups of one tab in the order the page shows them: recommended, check first, careful, and the
-// rows in use last. Within a group the largest comes first. Only the first two can be picked at once.
-function groupRows(list) {
-  const groups = { recommended: [], check: [], careful: [], inuse: [] };
-  list.forEach(function (it) { (it.locked ? groups.inuse : groups[it.level] || groups.check).push(it); });
-  return ["recommended", "check", "careful", "inuse"].filter(function (key) { return groups[key].length; }).map(function (key) {
-    const items = groups[key].sort(function (a, b) { return (b.size || 0) - (a.size || 0); });
-    return {
-      key: key, items: items, pickAll: key === "recommended" || key === "check",
-      disk: items.every(function (it) { return it.group === "disk"; }),
-      total: items.reduce(function (s, it) { return s + (it.size || 0); }, 0)
-    };
-  });
-}
-function groupHeadText(g) { return sumText(g.items.length, g.total, g.disk); }
-// A group's heading: its level, how many rows and how much disk it holds, and for the recommended
-// and check-first groups a button that picks every row in it (copies of a duplicate set stay one by
-// one, since picking every copy of a set is refused).
-function groupHead(g) {
-  const head = document.createElement("div");
-  head.className = "group lvl-" + g.key;
-  const title = document.createElement("b");
-  const titleKey = "level_" + g.key;
-  title.textContent = t(titleKey);
-  head.appendChild(title);
-  const count = document.createElement("span");
-  count.textContent = groupHeadText(g);
-  head.appendChild(count);
-  if (g.pickAll) {
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "tool pick-group";
-    b.textContent = t("pickGroup");
-    b.addEventListener("click", function () {
-      g.items.forEach(function (it) { if (!it.locked && !(it.detail && it.detail.set)) picked.add(it.id); });
-      render();
-    });
-    head.appendChild(b);
-  }
-  return head;
-}
-function whyText(it) {
-  const r = it.reason || {};
-  const key = "why_" + r.code;
-  return r.code ? t(key, { days: r.days }) : "";
-}
-// One row of a list tab: the name, the size, and for a process its CPU share, with where it is under
-// the name when the caller passes it (a row whose name does not tell it apart). The reason, location,
-// and command are in the details dialog behind the i button. A row of the skipped tab has no item
-// and shows its reason under the place instead.
-function rowEl(name, where, it) {
-  const row = document.createElement("div");
-  row.className = it && !it.locked ? "row lvl-" + it.level : "row";
-  row.setAttribute("role", "listitem");
-  const mark = document.createElement("span");
-  mark.className = "mark";
-  const main = document.createElement("div");
-  main.className = "main";
-  const n = document.createElement("div");
-  n.className = "name";
-  n.textContent = name;
-  main.appendChild(n);
-  if (where) { const w = document.createElement("div"); w.className = "where"; setLines(w, where); main.appendChild(w); }
-  row.appendChild(it ? mark : document.createElement("span"));
-  row.appendChild(main);
-  if (it) {
-    if (it.group === "process" && it.category !== "login-item") {
-      const c = document.createElement("div");
-      c.className = "cpu";
-      c.textContent = t("cpuShort", { cpu: it.cpu || 0 });
-      row.appendChild(c);
-    }
-    const s = document.createElement("div");
-    s.className = "size";
-    s.textContent = human(it.size);
-    row.appendChild(s);
-    const info = document.createElement("button");
-    info.type = "button";
-    info.className = "info";
-    info.textContent = "i";
-    info.setAttribute("aria-label", t("details"));
-    info.addEventListener("click", function (ev) { ev.stopPropagation(); openDetail(it); });
-    info.addEventListener("keydown", function (ev) { ev.stopPropagation(); });
-    row.appendChild(info);
-    if (it.locked) {
-      row.setAttribute("aria-disabled", "true");
-    } else {
-      row.tabIndex = 0;
-      row.setAttribute("role", "button");
-      row.setAttribute("aria-pressed", String(picked.has(it.id)));
-      mark.textContent = picked.has(it.id) ? "✓" : "";
-      const toggle = function () {
-        if (picked.has(it.id)) picked.delete(it.id); else picked.add(it.id);
-        row.setAttribute("aria-pressed", String(picked.has(it.id)));
-        mark.textContent = picked.has(it.id) ? "✓" : "";
-        renderTally();
-      };
-      row.addEventListener("click", toggle);
-      row.addEventListener("keydown", function (ev) { if (ev.key === " " || ev.key === "Enter") { ev.preventDefault(); toggle(); } });
-    }
-  }
-  return row;
 }
 function pickedItems() { return DATA.items.filter(function (it) { return picked.has(it.id); }); }
 // The figures of the bottom bar for these picked rows, each a name and a value: how many, and the
@@ -1385,81 +2192,144 @@ function tallyParts(items) {
   return out;
 }
 function renderTally() {
-  const items = pickedItems();
-  const box = document.getElementById("tally");
+  const box = el("tally");
   box.textContent = "";
-  tallyParts(items).forEach(function (p) {
+  tallyParts(pickedItems()).forEach(function (p) {
     const stat = node("span", "stat");
     stat.appendChild(node("small", "", p.label));
     stat.appendChild(node("b", "", p.value));
     box.appendChild(stat);
   });
-  document.getElementById("free").disabled = items.length === 0;
 }
+// The text Copy puts on the clipboard: the prefix on the first line, then one id per line. It does not
+// depend on the language of the page, and apply reads it as it is.
 function selectionText(ids) {
-  return "machine-cleanup:select " + ids.join(" ");
+  return "machine-cleanup:select\n" + ids.join("\n");
 }
-function openModal(id) { document.getElementById(id).hidden = false; }
-function closeModals() { document.querySelectorAll(".modal").forEach(function (m) { if (m.id !== "finished") m.hidden = true; }); }
-function showNote(key) { const n = document.getElementById("note"); setLines(n, t(key)); n.hidden = false; }
-
 // One line of the confirm dialog: how many items an effect covers and, for disk items, their size.
 function sumText(n, size, disk) {
   const count = n === 1 ? t("countOne") : t("countMany", { n: n });
   return disk ? t("countSize", { count: count, size: human(size) }) : count;
 }
-// The confirm dialog leaves out a row inside another picked row, which is freed with it.
-function confirmFree() {
-  const groups = {};
-  pickedItems().filter(function (it) { return !(it.within || []).some(function (w) { return picked.has(w); }); }).forEach(function (it) {
-    const e = effect(it)[0];
-    const g = groups[e] || (groups[e] = { n: 0, size: 0, disk: it.group === "disk" });
-    g.n += 1; g.size += it.size || 0;
+function togglePick(id) {
+  if (picked.has(id)) picked.delete(id); else picked.add(id);
+  const on = picked.has(id);
+  document.querySelectorAll('[data-id="' + id + '"]').forEach(function (r) {
+    r.classList.toggle("picked", on);
+    const b = r.querySelector("button.pick");
+    if (b) b.setAttribute("aria-pressed", String(on));
   });
-  const sum = document.getElementById("confirm-sum");
-  sum.textContent = "";
-  ["eff_rebuilt", "eff_trash", "eff_gone", "eff_uninstall", "eff_end", "eff_login", "eff_stop"].forEach(function (e) {
-    if (!groups[e]) return;
-    const row = document.createElement("div");
-    const a = document.createElement("span");
-    a.textContent = t(e);
-    const b = document.createElement("b");
-    b.textContent = sumText(groups[e].n, groups[e].size, groups[e].disk);
-    row.appendChild(a); row.appendChild(b);
-    sum.appendChild(row);
-  });
-  openModal("confirm");
+  const d = el("detail-pick");
+  if (d && d.getAttribute("data-item") === id) { d.textContent = on ? t("unpick") : t("pick"); d.className = on ? "secondary detail-pick" : "primary detail-pick"; }
+  picksChanged(false);
 }
+function pickAll(g) {
+  g.items.forEach(function (it) { if (!it.locked && !(it.detail && it.detail.set)) picked.add(it.id); });
+  picksChanged(false);
+  render();
+}
+// After the picks change: the selection is no longer the one sent, and the lines about the last copy,
+// the last send, and the last Clear no longer hold.
+function picksChanged(keepUndo) {
+  sentAt = null;
+  setLines(el("bar-line"), "");
+  setLines(el("copy-status"), "");
+  if (!keepUndo) { cleared = null; el("undo").hidden = true; setLines(el("clear-line"), ""); }
+  renderTally();
+  renderSaveState();
+  renderStatus();
+}
+// The confirm dialog lists the picked rows under their effects, leaving out a row inside another
+// picked row, which is freed with it.
+function fillConfirm() {
+  const items = pickedItems();
+  const top = items.filter(function (it) { return !(it.within || []).some(function (w) { return picked.has(w); }); });
+  el("confirm-title").textContent = t("confirmTitle", { count: top.length === 1 ? t("countOne") : t("countMany", { n: top.length }) });
+  const groups = {};
+  top.forEach(function (it) {
+    const e = effect(it)[0];
+    const g = groups[e] || (groups[e] = { items: [], size: 0, disk: it.group === "disk" });
+    g.items.push(it);
+    g.size += it.size || 0;
+  });
+  const box = el("confirm-groups");
+  box.textContent = "";
+  const then = { eff_rebuilt: "then_rebuilt", eff_trash: "then_trash", eff_gone: "then_gone", eff_uninstall: "then_uninstall", eff_end: "then_end", eff_login: "then_login", eff_stop: "then_stop" };
+  Object.keys(then).forEach(function (e) {
+    const g = groups[e];
+    if (!g) return;
+    const sec = node("section", "effect");
+    sec.appendChild(node("h3", "", t(e)));
+    sec.appendChild(node("p", "sum", sumText(g.items.length, g.size, g.disk)));
+    sec.appendChild(node("p", "", t(then[e])));
+    const ul = node("ul");
+    g.items.forEach(function (it) { ul.appendChild(node("li", "", nameOf(it))); });
+    sec.appendChild(ul);
+    box.appendChild(sec);
+  });
+  el("copy-text").value = selectionText(items.map(function (it) { return it.id; }));
+}
+function openConfirm() {
+  const dialog = el("confirm");
+  if (dialog.open) return;
+  fillConfirm();
+  setLines(el("copy-status"), "");
+  clearAlert();
+  renderStatus();
+  opener = document.activeElement;
+  dialog.showModal();
+  el("cancel").focus();
+}
+function showAlert(key) {
+  const n = el("note");
+  n.textContent = "";
+  n.className = "note on";
+  n.innerHTML = '<svg role="img" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5"/><path d="M12 16.5h.01"/></svg>';
+  n.querySelector("svg").setAttribute("aria-label", t("error"));
+  n.appendChild(node("span", "", t(key)));
+}
+function clearAlert() { const n = el("note"); n.textContent = ""; n.className = "note"; }
 function send() {
   const ids = pickedItems().map(function (it) { return it.id; });
+  const dialog = el("confirm");
   fetch("/select", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ t: DATA.token, ids: ids }) })
     .then(function (r) {
-      closeModals();
-      if (r.ok) { online = false; renderStatus(); document.getElementById("copy").hidden = true; openModal("finished"); }
-      else { showNote("sendFailed"); online = false; renderStatus(); }
+      dialog.close();
+      if (r.ok) {
+        sentAt = new Date();
+        clearAlert();
+        setLines(el("bar-line"), t("sentLine", { time: clock(sentAt) }));
+        renderStatus();
+        renderSaveState();
+      } else {
+        showAlert("sendRefused");
+        ping();
+      }
     })
-    .catch(function () { closeModals(); online = false; renderStatus(); showNote("offline"); });
+    .catch(function () { dialog.close(); showAlert("sendFailed"); ping(); });
 }
 function copySelection() {
-  const text = selectionText(pickedItems().map(function (it) { return it.id; }));
-  const done = function () { showNote("copied"); };
+  const ta = el("copy-text");
+  const status = el("copy-status");
+  const refused = function () { ta.focus(); ta.select(); setLines(status, t("copyRefused")); };
   if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(done).catch(function () { fallbackCopy(text); });
+    navigator.clipboard.writeText(ta.value).then(function () { setLines(status, t("copied")); }).catch(refused);
   } else {
-    fallbackCopy(text);
+    refused();
   }
-}
-function fallbackCopy(text) {
-  const n = document.getElementById("note");
-  n.hidden = false;
-  setLines(n, t("copyFailed") + " " + text);
 }
 function ping() {
   fetch("/ping?t=" + encodeURIComponent(DATA.token), { cache: "no-store" })
-    .then(function (r) { online = r.status === 204; renderStatus(); })
-    .catch(function () { online = false; renderStatus(); });
+    .then(function (r) { setOnline(r.status === 204); })
+    .catch(function () { setOnline(false); });
+}
+function setOnline(v) {
+  if (online === v) return;
+  online = v;
+  renderStatus();
 }
 
+buildTabs();
 document.querySelectorAll("#lang button").forEach(function (b) {
   b.addEventListener("click", function () {
     lang = b.dataset.lang;
@@ -1473,18 +2343,56 @@ document.querySelectorAll("#theme button").forEach(function (b) {
     try { localStorage.setItem("machine-cleanup-theme", theme); } catch (e) { /* storage may be blocked */ }
   });
 });
-document.getElementById("help-open").addEventListener("click", function () { openModal("help"); });
-document.querySelectorAll("[data-close]").forEach(function (b) { b.addEventListener("click", closeModals); });
-document.querySelectorAll(".modal").forEach(function (m) { m.addEventListener("click", function (ev) { if (ev.target === m && m.id !== "finished") closeModals(); }); });
-document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") closeModals(); });
-document.getElementById("free").addEventListener("click", function () { if (online === false) { showNote("offline"); return; } confirmFree(); });
-document.getElementById("send").addEventListener("click", send);
-document.getElementById("copy").addEventListener("click", copySelection);
-document.getElementById("clear").addEventListener("click", function () { itemsOf(tab).forEach(function (it) { picked.delete(it.id); }); render(); });
-document.getElementById("search").addEventListener("input", function (ev) { view.query = ev.target.value; render(); });
-document.getElementById("sort").addEventListener("change", function (ev) { view.sort = ev.target.value; render(); });
+el("help-open").addEventListener("click", function () { opener = el("help-open"); el("help").showModal(); });
+el("help-close").addEventListener("click", function () { el("help").close(); });
+el("help").addEventListener("click", function (ev) { if (ev.target === el("help")) el("help").close(); });
+// Focus goes back to the button that opened a dialog. Browsers that remember the focused element do
+// this inside close(); the close event comes later as its own task, so it only steps in when focus was
+// left on the page itself (as in browsers where a pressed button takes no focus), and never takes focus
+// from something chosen after the dialog closed.
+["confirm", "help"].forEach(function (id) {
+  el(id).addEventListener("close", function () {
+    const now = document.activeElement;
+    const lost = !now || now === document.body || now === document.documentElement || el(id).contains(now);
+    if (lost && opener && document.contains(opener)) opener.focus();
+    opener = null;
+  });
+});
+el("free").addEventListener("click", function () {
+  if (!picked.size) { setLines(el("bar-line"), t("needPick")); return; }
+  openConfirm();
+});
+el("cancel").addEventListener("click", function () { el("confirm").close(); });
+el("send").addEventListener("click", send);
+el("copy").addEventListener("click", copySelection);
+el("clear").addEventListener("click", function () {
+  const ids = paneItems(tab).filter(function (it) { return picked.has(it.id); }).map(function (it) { return it.id; });
+  if (!ids.length) { setLines(el("clear-line"), t("nothingToClear")); return; }
+  ids.forEach(function (id) { picked.delete(id); });
+  picksChanged(true);
+  cleared = ids;
+  setLines(el("clear-line"), t("cleared", { count: ids.length === 1 ? t("countOne") : t("countMany", { n: ids.length }) }));
+  el("undo").hidden = false;
+  render();
+});
+el("undo").addEventListener("click", function () {
+  (cleared || []).forEach(function (id) { picked.add(id); });
+  picksChanged(false);
+  render();
+  el("clear").focus();
+});
+el("search").addEventListener("input", function (ev) { view.query = ev.target.value; pages[tab] = 0; currentId[tab] = null; render(); });
+window.addEventListener("hashchange", route);
+window.addEventListener("beforeunload", function (ev) {
+  if (!picked.size || sentAt) return;
+  ev.preventDefault();
+  ev.returnValue = "";
+});
+narrow.addEventListener("change", function () { render(); });
+small.addEventListener("change", function () { render(); });
 setTheme(theme);
 applyLang();
+route();
 ping();
 setInterval(ping, 4000);
 </script>

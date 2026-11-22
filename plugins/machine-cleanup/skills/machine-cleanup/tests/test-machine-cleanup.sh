@@ -741,7 +741,7 @@ const picked = new Set();
 print("const I18N = %s;\nlet lang = \"en\";\n%s%s%s" % (words, dom, "".join(code), sys.argv[3]))
 PY
 }
-ROW_FNS="t human tilde when day effect lockText whyText isProc levelOf nameOf setLines rowEl detailPairs detailEl"
+ROW_FNS="t human tilde when day effect lockText whyText isProc levelOf nameOf setLines tierTag pickToggle rowEl detailPairs detailEl"
 ROW_JS='const disk = { id: "d1", group: "disk", category: "build", name: "node_modules in app", path: "/h/projects/app/node_modules",
   size: 1000000, level: "recommended", reason: { code: "build_idle", days: 42 }, rebuilt: true, locked: null };
 const proc = { id: "p1", group: "process", category: "dev-process", name: "Vite dev server", size: 52000000, cpu: 12,
@@ -881,7 +881,7 @@ lang = "en"; const en = show(its); const none = tallyParts([]);
 lang = "ja"; const ja = show(its);
 console.log(en + "#" + ja + "#" + none.length + "#" + (/[:：・]/.test(en + ja) ? "joined" : "apart"));'
 # Two copies of one file, a large file, two dev servers with one name, an app, a cache, and a container.
-WHERE_FNS="t human tilde nameOf whereFor setLines rowEl"
+WHERE_FNS="t human tilde nameOf whereFor setLines levelOf tierTag pickToggle rowEl"
 WHERE_JS='const files = [
   { id: "u1", group: "disk", category: "duplicate", name: "archive.zip", path: "/h/Backup/archive.zip", size: 1, within: [], detail: { set: "s", copies: [] } },
   { id: "u2", group: "disk", category: "duplicate", name: "archive.zip", path: "/h/Documents/archive.zip", size: 1, within: [], detail: { set: "s", copies: [] } },
@@ -928,8 +928,8 @@ if [ -n "$NODE" ]; then
   ROW_OUT="$(page_eval "$ROW_FNS" "$ROW_JS" 2>&1)"
   CHART_OUT="$(page_eval "$CHART_FNS" "$CHART_JS" 2>&1)"
   LIST_OUT="$(page_eval "$LIST_FNS" "$LIST_JS" 2>&1)"
-  check "a list row shows only the name, the size, the CPU of a process, and a details button" \
-    '[ "$(printf "%s\n" "$ROW_OUT" | sed -n 1p)" = "node_modules in app|1.0 MB|i#Vite dev server|CPU 12%|52.0 MB|i" ] || { echo "  $ROW_OUT"; false; }'
+  check "a list row shows only the name, the level, the size, and the memory and CPU of a process" \
+    '[ "$(printf "%s\n" "$ROW_OUT" | sed -n 1p)" = "node_modules in app|Recommended|1.0 MB#Vite dev server|Recommended|52.0 MB|12" ] || { echo "  $ROW_OUT"; false; }'
   check "a list row shows no path, command, or reason" \
     'r="$(printf "%s\n" "$ROW_OUT" | sed -n 1p)"; [ -n "$r" ] && case "$r" in *projects*|*5173*|*commit*|*"has no"*) false;; *) true;; esac'
   check "the details dialog shows the reason, the effect, and the path or the process details" \
@@ -975,17 +975,17 @@ if [ -n "$NODE" ]; then
     'out="$(page_eval "$TOTAL_FNS" "$TALLY_JS" 2>&1)"; [ "$out" = "Picked|2 items|Disk to free|1.0 KB#選んだ物|2件|空くディスク|1.0 KB#1#apart" ] || { echo "  $out"; false; }'
   check "a list row shows where it is when its name does not tell it apart" \
     'out="$(page_eval "$WHERE_FNS" "$WHERE_JS" 2>&1)"; [ "$out" = "~/Backup|~/Videos|~/projects/app|node ~/work/b/node_modules/.bin/vite --port 5174
-archive.zip|~/Backup|1 B|i" ] || { echo "  $out"; false; }'
+archive.zip|~/Backup|Restorable|1 B" ] || { echo "  $out"; false; }'
   check "a list row adds no second line when its name tells it apart" \
     'out="$(page_eval "$WHERE_FNS" "$NO_WHERE_JS" 2>&1)"; [ "$out" = "[||||]
 3" ] || { echo "  $out"; false; }'
   check "the copies of one content are listed together under one heading" \
     'out="$(page_eval "$SET_FNS" "$SET_JS" 2>&1)"; [ "$out" = "head:2:500,a,c,b,d#b,d,head:2:500,a,c#head:2:500,c
-2 copies with the same contents, 500 B each|同じ中身の写しが2つ、1つ500 B" ] || { echo "  $out"; false; }'
+2 copies with the same contents, 500 B each|同じ中身のコピーが2つ、1つ500 B" ] || { echo "  $out"; false; }'
   check "a bar shows where it is when another bar in its chart has the same name" \
     'out="$(page_eval "$BAR_FNS" "$BAR_JS" 2>&1)"; [ "$out" = "Vite dev server|~/projects/shop|5%|Vite dev server|~/projects/blog|3%|Browser|2%" ] || { echo "  $out"; false; }'
 else
-  for name in "a list row shows only the name, the size, the CPU of a process, and a details button" \
+  for name in "a list row shows only the name, the level, the size, and the memory and CPU of a process" \
     "a list row shows no path, command, or reason" \
     "the details dialog shows the reason, the effect, and the path or the process details" \
     "the details dialog has a pick button for a row that can be picked" \
@@ -1046,7 +1046,7 @@ check "serve and apply refuse a version 4 scan, which may list a path twice" \
 
 PLUGIN_DIR="$(cd "$SKILL_DIR/../.." && pwd)"
 check "how-it-works lists the three levels and their rules in both languages" \
-  'grep -qx "## How rows are ranked" "$PLUGIN_DIR/docs/how-it-works.md" && grep -q "^| Recommended |" "$PLUGIN_DIR/docs/how-it-works.md" && grep -q "^| Check first |" "$PLUGIN_DIR/docs/how-it-works.md" && grep -q "^| Careful |" "$PLUGIN_DIR/docs/how-it-works.md" && grep -qx "## 行の推奨度" "$PLUGIN_DIR/docs/how-it-works.ja.md" && grep -q "^| おすすめ |" "$PLUGIN_DIR/docs/how-it-works.ja.md" && grep -q "^| 確かめて選ぶ |" "$PLUGIN_DIR/docs/how-it-works.ja.md" && grep -q "^| 慎重に |" "$PLUGIN_DIR/docs/how-it-works.ja.md"'
+  'grep -qx "## How rows are ranked" "$PLUGIN_DIR/docs/how-it-works.md" && grep -q "^| Recommended |" "$PLUGIN_DIR/docs/how-it-works.md" && grep -q "^| Restorable |" "$PLUGIN_DIR/docs/how-it-works.md" && grep -q "^| Risky |" "$PLUGIN_DIR/docs/how-it-works.md" && grep -qx "## 行の推奨度" "$PLUGIN_DIR/docs/how-it-works.ja.md" && grep -q "^| おすすめ |" "$PLUGIN_DIR/docs/how-it-works.ja.md" && grep -q "^| 戻せる |" "$PLUGIN_DIR/docs/how-it-works.ja.md" && grep -q "^| 影響あり |" "$PLUGIN_DIR/docs/how-it-works.ja.md"'
 # docs_rows <file> <heading> <first cells...>: the file has the heading and a table row for each cell.
 docs_rows() {
   local f="$1" h="$2" c
@@ -1055,7 +1055,7 @@ docs_rows() {
   for c in "$@"; do grep -qF "| $c |" "$f" || { echo "  no row \"$c\" in $f"; return 1; }; done
 }
 check "how-it-works describes the overview charts and the list tools in both languages" \
-  'docs_rows "$PLUGIN_DIR/docs/how-it-works.md" "## The overview tab" "What can be freed" "Size by level" "Disk" "Memory" "Largest items" "Processes using the most memory" "Processes using the most CPU" "Search" "Groups" "Sort" && docs_rows "$PLUGIN_DIR/docs/how-it-works.ja.md" "## 全体のタブ" "空けられる分の内訳" "推奨度ごとの大きさ" "ディスク" "メモリ" "大きい物の上位" "メモリを多く使うプロセス" "CPUを多く使うプロセス" "探す" "段" "並べ替え"'
+  'docs_rows "$PLUGIN_DIR/docs/how-it-works.md" "## The overview tab" "What can be freed" "Size by level" "Disk" "Memory" "Largest items" "Processes using the most memory" "Processes using the most CPU" "Search" "Kind" "Levels" "Sort" && docs_rows "$PLUGIN_DIR/docs/how-it-works.ja.md" "## 全体のタブ" "空けられる分の内訳" "推奨度ごとの大きさ" "ディスク" "メモリ" "大きい物の上位" "メモリを多く使うプロセス" "CPUを多く使うプロセス" "探す" "種類" "推奨度" "並べ替え"'
 check "the READMEs and how-it-works describe the four new kinds in both languages" \
   'docs_rows "$PLUGIN_DIR/README.md" "## What it finds" "Projects" "Apps" "Tools and models" && grep -q "left behind by removed apps" "$PLUGIN_DIR/README.md" && docs_rows "$PLUGIN_DIR/README.ja.md" "## 見つける物" "プロジェクト" "アプリ" "道具とモデル" && grep -q "消したアプリの残り" "$PLUGIN_DIR/README.ja.md" && docs_rows "$PLUGIN_DIR/docs/how-it-works.md" "## The scan" "Work folders" "App leftovers" "Tool versions" "AI models" && docs_rows "$PLUGIN_DIR/docs/how-it-works.md" "## How each item is freed" "Work folders and app leftovers" "Tool versions" "AI models" && docs_rows "$PLUGIN_DIR/docs/how-it-works.ja.md" "## 調べ方" "作業フォルダ" "消したアプリの残り" "道具の版" "AIモデル" && docs_rows "$PLUGIN_DIR/docs/how-it-works.ja.md" "## 項目ごとの空け方" "作業フォルダと消したアプリの残り" "道具の版" "AIモデル"'
 
@@ -1171,7 +1171,8 @@ for name in names:
         continue
     for key in keys:
         if key == "tabs":
-            ok = len(data["tabs"]) == 12
+            # How many tabs there are is checked on its own; here every tab must be drawn.
+            ok = len(data["tabs"]) >= 2
             value = data["tabs"]
         elif key == "ringTexts":
             ok = data["ringTexts"] >= 16
@@ -1188,7 +1189,11 @@ PY
 verify_opened() {
   local f
   for f in "$T/opened/en-light-1400.dom.html" "$T/opened/ja-light-1400.dom.html"; do
-    [ "$(grep -o 'copies&quot;:[0-9]*' "$f" | tr -dc 0-9)" = 12 ] || { echo "  $f has no copy of each tab"; return 1; }
+    "$PY" - "$f" <<'PY' || { echo "  $f has no copy of each tab"; return 1; }
+import html, json, re, sys
+data = json.loads(html.unescape(re.search(r'\sdata-measure="([^"]*)"', open(sys.argv[1], encoding="utf-8").read()).group(1)))
+sys.exit(0 if data["copies"] >= 2 and data["copies"] == len(data["tabs"]) else 1)
+PY
     "$PY" "$REPO/plugins/design-formats/skills/page-design/scripts/page-design.py" verify "$f" || return 1
   done
 }
@@ -1214,6 +1219,1012 @@ PY
   check "every text on the opened page has a contrast of 4.5 to 1 in light and dark" 'opened "en-light-1400 ja-light-1400 en-dark-1400 ja-dark-1400" contrast'
   check "the opened page passes page-design verify on every tab in both languages" 'verify_opened'
 fi
+
+# --- the page as the patterns of page-design ask (#320) -----------------------------------------
+# Three pages are built from this scan: the page as serve builds it, a page with 60 more caches and a
+# duplicate of 12 copies, and a page with one disk row and no program. behave.js runs inside each
+# opened copy. It answers the page's requests itself (the agent waiting or not, a send taken or
+# refused, the clipboard taking the text or not), presses tabs, rows, pick buttons, filters, column
+# headers, and dialogs, and writes what the browser drew into <pre id="behave">. The browser runs with
+# a virtual time budget, so the waits between presses take no real time.
+PATTERNS="$T/patterns"
+mkdir -p "$PATTERNS"
+cat > "$PATTERNS/behave.js" <<'JSEOF'
+(async () => {
+  const out = { errors: [], width: innerWidth, lang: PROBE.lang };
+  addEventListener("error", (e) => out.errors.push(String(e.message)));
+  const finish = () => {
+    const pre = document.createElement("pre");
+    pre.id = "behave";
+    pre.hidden = true;
+    pre.textContent = JSON.stringify(out);
+    document.body.append(pre);
+  };
+  try {
+    const tick = (ms = 60) => new Promise((r) => setTimeout(r, ms));
+    const $ = (s, r = document) => (r ? r.querySelector(s) : null);
+    const $$ = (s, r = document) => (r ? [...r.querySelectorAll(s)] : []);
+    const box = (e) => e.getBoundingClientRect();
+    const shown = (e) => !!e && e.getClientRects().length > 0 && getComputedStyle(e).visibility !== "hidden" && !e.closest("[hidden]");
+    const css = (e, p) => getComputedStyle(e).getPropertyValue(p);
+    const txt = (e) => (e ? e.textContent.replace(/\u200b/g, "").replace(/\s+/g, " ").trim() : "");
+    const rgb = (s) => (String(s).match(/[\d.]+/g) || []).map(Number);
+    const behind = (e) => {
+      for (; e; e = e.parentElement) {
+        const c = rgb(getComputedStyle(e).backgroundColor);
+        if (c.length === 3 || (c.length === 4 && c[3] > 0)) return c.slice(0, 3);
+      }
+      return [255, 255, 255];
+    };
+    const lum = (c) => c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; })
+      .reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0);
+    const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+    // A token that is not defined falls back to rgb(1, 2, 3), which no page uses.
+    const resolve = (v) => {
+      const i = document.createElement("i");
+      i.style.color = `var(${v}, rgb(1, 2, 3))`;
+      document.body.append(i);
+      const c = css(i, "color");
+      i.remove();
+      return c;
+    };
+    const freeze = document.createElement("style");
+    freeze.textContent = "*, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }";
+    document.head.append(freeze);
+
+    // The page's requests: /ping answers while the agent waits, /select takes or refuses a send.
+    const mode = { ping: false, select: true };
+    const realFetch = window.fetch;
+    window.fetch = (url, opts) => {
+      const u = String(url);
+      if (u.includes("/ping")) return mode.ping ? Promise.resolve({ status: 204, ok: true }) : Promise.reject(new TypeError("no agent"));
+      if (u.includes("/select")) {
+        out.selects = (out.selects || 0) + 1;
+        return Promise.resolve(mode.select ? { status: 200, ok: true } : { status: 403, ok: false });
+      }
+      return realFetch(url, opts);
+    };
+    const clip = { ok: true, text: null };
+    Object.defineProperty(navigator, "clipboard", { configurable: true,
+      value: { writeText: (s) => { clip.text = s; return clip.ok ? Promise.resolve() : Promise.reject(new Error("refused")); } } });
+    const agent = async (on) => { mode.ping = on; if (typeof ping === "function") ping(); await tick(120); };
+    const press = async (e, ms) => { if (e) { e.click(); await tick(ms); } return !!e; };
+    const key = async (e, k) => { if (e) { e.focus(); e.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true, cancelable: true })); await tick(); } };
+    const type = async (input, value) => { if (input) { input.value = value; input.dispatchEvent(new Event("input", { bubbles: true })); await tick(); } };
+    const theme = async (m) => { await press($(`[data-theme-choice="${m}"]`)); };
+
+    await press($(`[data-lang="${PROBE.lang}"]`));
+    await theme("light");
+    await tick(150);
+
+    const tabs = () => $$('#tabs [role="tab"]');
+    const selected = () => tabs().find((t) => t.getAttribute("aria-selected") === "true") || null;
+    const panel = () => {
+      const t = selected(), id = t && t.getAttribute("aria-controls");
+      return (id && document.getElementById(id)) || $('[role="tabpanel"]') || $("main");
+    };
+    const tabAt = (i) => tabs()[i] || null;
+    const detail = () => $("#detail");
+    const listBox = () => $(".split .list") || $(".list") || $("#rows");
+    const tables = () => $$("table", panel()).filter((t) => shown(t) && !t.closest("#detail") && !t.classList.contains("facts"));
+    // The rows of the list: the table rows, or below 600px the stacked records.
+    const rows = () => {
+      const trs = tables().flatMap((t) => $$(":scope > tbody > tr", t)).filter(shown);
+      return trs.length ? trs : $$("ul > li", panel()).filter((li) => shown(li) && $("dl", li) && !li.closest("#detail, dialog"));
+    };
+    const nameButton = (tr) => $('th[scope="row"] button', tr) || $("h3 button, h4 button", tr) || $("button.open", tr);
+    // Between 400 and 480px the probe measures only the buttons of the bar and of the confirm dialog.
+    const buttonsFlow = innerWidth > 400 && innerWidth < 480;
+    const pickButton = (tr) => $$("button[aria-pressed]", tr).find((b) => b !== nameButton(tr)) || null;
+    const openDialogs = () => $$("dialog[open]").length + $$('[role="dialog"], [role="alertdialog"], [aria-modal="true"]').filter((e) => e.tagName !== "DIALOG" && shown(e)).length;
+    const statusIn = (root) => $$('[role="status"]', root).map(txt).filter(Boolean);
+    const tagOf = (el) => { const g = $(".tag", el); return g ? { text: txt(g), icon: !!$('svg[aria-hidden="true"]', g), color: css(g, "color") } : null; };
+
+    const view = () => {
+      const d = detail(), title = $("#detail-title"), list = listBox(), a = document.activeElement;
+      const back = d && $(".back", d);
+      const link = (rel) => { const x = d && $(`a[rel="${rel}"]`, d); return x && shown(x) ? txt(x) : null; };
+      const sticky = (() => { for (let e = title; e && e !== d; e = e.parentElement) if (css(e, "position") === "sticky") return true; return false; })();
+      const kv = d ? $$("table", d).flatMap((t) => $$("tr", t)).map((tr) => {
+        const th = $("th", tr), td = $("td", tr);
+        return { scope: th && th.getAttribute("scope"), size: th ? parseFloat(css(th, "font-size")) : 0,
+          side: !!(th && td) && shown(th) && box(th).right <= box(td).left + 1 && Math.abs(box(th).top - box(td).top) < 8,
+          boxed: !!td && $$("*", td).concat([td]).some((e) => css(e, "max-height") !== "none" && ["auto", "scroll"].includes(css(e, "overflow-y"))),
+          folds: td ? $$("details", td).map((x) => txt($("summary", x))) : [] };
+      }) : [];
+      return {
+        list: shown(list), detail: shown(d), tag: d ? d.tagName : null, labelledby: d ? d.getAttribute("aria-labelledby") : null,
+        inDialog: !!(d && d.closest('dialog, [role="dialog"], [aria-modal="true"], .modal')),
+        title: txt(title), titleTabindex: title ? title.getAttribute("tabindex") : null, focusTitle: !!title && a === title, sticky,
+        back: back ? { shown: shown(back), first: !!title && !!(back.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING), text: txt(back) } : null,
+        prev: link("prev"), next: link("next"), hash: location.hash, tab: txt(selected()),
+        current: $$('[aria-current="true"]', panel()).filter(shown).map((e) => { const r = e.closest("tr, li"); return r ? txt(nameButton(r) || r) : txt(e); }),
+        currentBg: (() => { const c = $$('[aria-current="true"]', panel()).find(shown); const r = c && c.closest("tr, li"); return r ? behind($("th", r) || r).join() : null; })(),
+        side: shown(list) && shown(d) ? { listRight: Math.round(box(list).right), detailLeft: Math.round(box(d).left), listWidth: Math.round(box(list).width),
+          listScroll: css(list, "overflow-y"), detailScroll: css(d, "overflow-y"), listMax: css(list, "max-height"), detailMax: css(d, "max-height"),
+          sideways: [css(list, "overflow-x"), css(d, "overflow-x")] } : null,
+        kv, dialogs: openDialogs(), cautions: d ? $$(".caution", d).filter(shown).length : 0,
+      };
+    };
+    const tableInfo = (t) => {
+      const heads = $$(":scope > thead > tr > th", t);
+      const body = $$(":scope > tbody > tr", t);
+      const lab = t.getAttribute("aria-labelledby");
+      return {
+        name: txt($(":scope > caption", t)) || (lab ? lab.split(/\s+/).map((id) => txt(document.getElementById(id))).join(" ") : ""),
+        heads: heads.map((th) => ({ text: txt(th), scope: th.getAttribute("scope"), sort: th.getAttribute("aria-sort"), button: !!$("button", th), sticky: css(th, "position") === "sticky" })),
+        rows: body.map((tr) => {
+          const nb = nameButton(tr), pb = pickButton(tr);
+          return { name: txt(nb), head: !!(tr.firstElementChild && tr.firstElementChild.tagName === "TH" && tr.firstElementChild.getAttribute("scope") === "row"),
+            role: tr.getAttribute("role"), nested: $$("button", tr).some((b) => !!b.parentElement.closest("button")),
+            pick: pb ? { label: pb.getAttribute("aria-label") || txt(pb), pressed: pb.getAttribute("aria-pressed"), inName: !!(nb && nb.contains(pb)) } : null,
+            tag: tagOf(tr), cells: [...tr.children].map(txt),
+            line: (() => { const c = tr.lastElementChild; return c ? ratio(rgb(css(c, "border-bottom-color")).slice(0, 3), behind(c)) : 0; })() };
+        }),
+      };
+    };
+    const panelInfo = () => {
+      const p = panel(), search = $('input[type="search"]', p);
+      const lab = search && search.id ? $(`label[for="${search.id}"]`) : null;
+      const groups = $$('[role="group"]', p).filter(shown).map((g) => ({ name: g.getAttribute("aria-label") || txt(document.getElementById(g.getAttribute("aria-labelledby") || "")),
+        buttons: $$("button", g).filter(shown).map((b) => ({ text: txt(b), pressed: b.getAttribute("aria-pressed") })) }));
+      const first = $$("h2, h3", p).find(shown);
+      const lead = $$("p", p).filter((e) => shown(e) && !e.closest(".caution, .empty, table, #detail, .banner, [role=status], .count")).map(txt);
+      return {
+        role: p.getAttribute("role"), labelledby: p.getAttribute("aria-labelledby"), heading: txt(first),
+        headingFirst: !!first && [...p.querySelectorAll("*")].filter(shown)[0] === first,
+        search: search && shown(search) ? { label: !!lab && shown(lab), placeholder: search.getAttribute("placeholder") || "" } : null,
+        selects: $$("select", p).filter(shown).length, groups, lead,
+        count: $$("p.count, .count", p).filter(shown).map(txt),
+        countFirst: (() => { const c = $$(".count", p).find(shown), t0 = tables()[0]; return !!c && !!t0 && !!(c.compareDocumentPosition(t0) & Node.DOCUMENT_POSITION_FOLLOWING); })(),
+        pagers: $$("nav.pager, nav[aria-label] .pager, .pager", p).filter(shown).map((n) => ({
+          center: css(n, "justify-content") === "center", buttons: $$("button", n).filter(shown).map(txt),
+          before: !!tables()[0] && !!(n.compareDocumentPosition(tables()[0]) & Node.DOCUMENT_POSITION_FOLLOWING) })),
+        tables: tables().map(tableInfo),
+        cards: $$("ul", p).filter((u) => shown(u) && !u.closest("#detail, .caution, .empty, .banner, dialog") && $("dl", u)).map((u) => $$(":scope > li", u).map((li) => ({
+          heading: txt($("h3, h4", li)), pairs: $$("dt", li).map((dt) => { const dd = dt.nextElementSibling; return { label: txt(dt), above: !!dd && box(dt).bottom <= box(dd).top + 1 }; }) }))),
+        empty: $$(".empty", p).filter(shown).map((e) => ({ heading: txt($("h2, h3, h4", e)), text: txt($("p", e)), buttons: $$("button", e).filter(shown).map(txt) })),
+        clear: shown($("#clear")),
+        cautions: $$(".caution", p).filter((c) => shown(c) && !c.closest("#detail")).map((c) => ({ icon: !!$("svg", c), title: txt($("h3, h4, strong", c)), text: txt($("p", c)) })),
+        rowsShown: rows().length,
+      };
+    };
+    const tabsInfo = () => {
+      const strip = $("#tabs");
+      return { tabs: tabs().map((t) => ({ text: txt(t), id: t.id, controls: t.getAttribute("aria-controls"), selected: t.getAttribute("aria-selected"), tabindex: t.getAttribute("tabindex") })),
+        wrap: strip ? css(strip, "flex-wrap") : null, overflow: strip ? css(strip, "overflow-x") : null };
+    };
+
+    // At load the page cannot reach the agent, since this copy is opened from a file.
+    await tick(200);
+    out.load = {
+      tabs: tabsInfo(), view: view(),
+      banners: $$(".banner").filter(shown).map((b) => ({ icon: !!$("svg", b), title: txt($("h2, h3, strong", b)), text: txt(b), beforeTabs: !!$("#tabs") && !!(b.compareDocumentPosition($("#tabs")) & Node.DOCUMENT_POSITION_FOLLOWING) })),
+      alerts: $$('[role="alert"]').map((e) => ({ id: e.id, text: txt(e) })),
+      statuses: $$('[role="status"]').map((e) => ({ id: e.id, cls: e.className, text: txt(e), header: !!e.closest(".head, header") })),
+      facts: (() => { const f = $("table.facts"); return f ? { caption: !!$("caption", f), rows: $$("tr", f).map((tr) => ({ scope: ($("th", tr) || {}).getAttribute ? $("th", tr).getAttribute("scope") : null, label: txt($("th", tr)), value: txt($("td", tr)), time: $("time", tr) ? $("time", tr).getAttribute("datetime") : null })) } : null; })(),
+      unload: (() => { const ev = new Event("beforeunload", { cancelable: true }); dispatchEvent(ev); return ev.defaultPrevented; })(),
+    };
+    out.bar = (() => {
+      const bar = $(".bar");
+      if (!bar) return null;
+      const inner = $(":scope > div", bar) || bar;
+      const w = box(inner).width - parseFloat(css(inner, "padding-left")) - parseFloat(css(inner, "padding-right"));
+      const bs = $$("button", bar).filter(shown);
+      return { buttons: bs.map((b) => ({ w: Math.round(box(b).width), top: Math.round(box(b).top) })), width: Math.round(w),
+        stacked: bs.length > 0 && bs.every((b) => box(b).width >= 0.9 * w) && new Set(bs.map((b) => Math.round(box(b).top))).size === bs.length };
+    })();
+    await agent(true);
+    out.online = { banners: $$(".banner").filter(shown).length, statuses: $$('[role="status"]').filter((e) => e.closest(".head, header")).map(txt) };
+
+    // A page opened on a row: its tab, its details, and below 860px the way back.
+    if (location.hash.startsWith("#item-")) {
+      out.item = view();
+      out.item.panel = panelInfo();
+      if (innerWidth <= 860) { await press($("#detail .back"), 120); out.itemBack = view(); }
+      finish();
+      return;
+    }
+
+    // The overview: each bar reads its value.
+    out.overview = { bars: $$(".bars > *", panel()).filter(shown).map((b) => ({ label: b.getAttribute("aria-label") || txt(b), value: txt($("b", b)) })) };
+
+    // The tabs and their keys.
+    const before = tabs();
+    await key(selected(), "ArrowRight");
+    out.keys = { right: txt(selected()), rightFocus: document.activeElement === selected(), same: tabs().length === before.length && tabs().every((t, i) => t === before[i]) };
+    await key(selected(), "End");
+    out.keys.end = txt(selected());
+    out.keys.endFocus = document.activeElement === selected();
+    if (innerWidth < 600) { const s = $("#tabs"), t = selected(); out.keys.endInView = !!s && !!t && box(t).right <= box(s).right + 1 && box(t).left >= box(s).left - 1; }
+    await key(selected(), "Home");
+    out.keys.home = txt(selected());
+    out.keys.same = out.keys.same && tabs().every((t, i) => t === before[i]);
+
+    // The disk tab.
+    await press(tabAt(1), 120);
+    out.disk = { panel: panelInfo(), view: view(), tabs: tabsInfo() };
+    out.disk.panelHead = { heading: out.disk.panel.heading, labelledby: out.disk.panel.labelledby, tabId: selected() ? selected().id : null, controls: selected() ? selected().getAttribute("aria-controls") : null, panelId: panel().id };
+    out.disk.accent = resolve("--accent");
+    out.disk.critical = resolve("--critical");
+    const lines = {};
+    for (const m of ["light", "dark"]) { await theme(m); lines[m] = rows().filter((tr) => tr.closest("table")).map((tr) => tableInfo(tr.closest("table")).rows.find((r) => r.name === txt(nameButton(tr)))).filter(Boolean).map((r) => r.line); }
+    await theme("light");
+    out.disk.lines = lines;
+
+    // Pressing rows: the second row's details, then below 860px the next row.
+    const r2 = rows()[1];
+    if (r2 && !buttonsFlow) {
+      await press(nameButton(r2), 120);
+      out.pressed = view();
+      if (innerWidth <= 860) { await press($('#detail a[rel="next"]'), 120); out.next = view(); }
+    }
+    if (innerWidth <= 860 && !buttonsFlow) { finish(); return; }
+
+    // Picking: the edge of a picked row, the save state, and leaving the page.
+    const pickRows = rows().filter((tr) => pickButton(tr));
+    if (pickRows[0] && !buttonsFlow) {
+      await press(pickButton(pickRows[0]));
+      const t0 = pickRows[0], th = $("th", t0) || t0, other = pickRows[1] && ($("th", pickRows[1]) || pickRows[1]);
+      out.picked = {
+        pressed: pickButton(t0).getAttribute("aria-pressed"),
+        edge: { width: parseFloat(css(th, "border-left-width")), color: css(th, "border-left-color"), shadow: css(t0, "box-shadow") + " " + css(th, "box-shadow") },
+        otherEdge: other ? { width: parseFloat(css(other, "border-left-width")), color: css(other, "border-left-color"), shadow: css(pickRows[1], "box-shadow") + " " + css(other, "box-shadow") } : null,
+        save: $$('[role="status"]').filter((e) => e.closest(".head, header")).map(txt),
+        unload: (() => { const ev = new Event("beforeunload", { cancelable: true }); dispatchEvent(ev); return ev.defaultPrevented; })(),
+      };
+      // Clear and Undo.
+      if (pickRows[1]) await press(pickButton(pickRows[1]));
+      const count = () => rows().filter((tr) => pickButton(tr) && pickButton(tr).getAttribute("aria-pressed") === "true").length;
+      out.clear = { before: count() };
+      await press($("#clear"));
+      out.clear.after = count();
+      const undo = $$("button", panel()).concat($$("button")).find((b) => shown(b) && /^(Undo|元に戻す)$/.test(txt(b)));
+      out.clear.undo = undo ? txt(undo) : null;
+      if (undo) await press(undo);
+      out.clear.back = count();
+      // Free with nothing picked.
+      for (const tr of rows()) if (pickButton(tr) && pickButton(tr).getAttribute("aria-pressed") === "true") await press(pickButton(tr), 20);
+      const free = $("#free");
+      out.none = { disabled: !!(free && free.disabled) };
+      await press(free);
+      out.none.dialogs = openDialogs();
+      out.none.status = free ? statusIn(free.closest(".bar") || document.body).filter((s) => !/agent|エージェント/i.test(s)) : [];
+      if (openDialogs()) document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      $$("dialog[open]").forEach((d) => d.close());
+      await tick();
+    }
+
+    // The confirm dialog with two picks, from two tiers when the rows have tier tags.
+    const pickables = rows().filter((tr) => pickButton(tr));
+    const byTier = {};
+    for (const tr of pickables) { const g = (tagOf(tr) || {}).text || "?"; if (!byTier[g]) byTier[g] = tr; }
+    let two = Object.values(byTier).slice(0, 2);
+    if (two.length < 2) two = pickables.slice(0, 2);
+    for (const tr of two) await press(pickButton(tr), 20);
+    const names = two.map((tr) => txt(nameButton(tr)));
+    const free = $("#free");
+    const confirmOpen = async () => { if (free) free.focus(); await press(free, 120); return $("dialog[open]") || $$('[role="dialog"], [role="alertdialog"]').find(shown) || null; };
+    const dialogInfo = (dl) => dl ? {
+      tag: dl.tagName, modal: (() => { try { return dl.matches(":modal"); } catch (e) { return false; } })(), role: dl.getAttribute("role"),
+      focus: txt(document.activeElement), close: $$("button", dl).filter((b) => shown(b) && /^[×✕✖]$|^$/.test(txt(b))).length,
+      title: txt($("h2", dl)), items: $$("li", dl).map(txt), text: txt(dl),
+      buttons: $$("button", dl).filter(shown).map((b) => ({ text: txt(b), bg: css(b, "background-color"), w: Math.round(box(b).width), top: Math.round(box(b).top) })),
+      width: Math.round(box($(".actions", dl) || dl).width),
+      textarea: (() => { const ta = $("textarea", dl); return ta ? { readonly: ta.readOnly, label: !!(ta.id && $(`label[for="${ta.id}"]`, dl)), value: ta.value } : null; })(),
+    } : null;
+    if (two.length === 2) {
+      const dl = await confirmOpen();
+      out.confirm = dialogInfo(dl) || {};
+      out.confirm.names = names;
+      out.confirm.freeBg = free ? css(free, "background-color") : null;
+      const cancel = dl && $$("button", dl).find((b) => /^(Cancel|やめる)$/.test(txt(b)));
+      await press(cancel);
+      out.confirm.afterCancel = { dialogs: openDialogs(), focusFree: document.activeElement === free };
+      if (buttonsFlow) { finish(); return; }
+      // Copying while the agent is not waiting.
+      await agent(false);
+      out.offline = { banners: $$(".banner").filter(shown).map((b) => ({ icon: !!$("svg", b), title: txt($("h2, h3, strong", b)), text: txt(b) })) };
+      const dc = await confirmOpen();
+      out.copy = dialogInfo(dc) || {};
+      const copyButton = dc && $$("button", dc).find((b) => /^(Copy|コピー)$/.test(txt(b)));
+      clip.ok = true;
+      await press(copyButton, 120);
+      const near = (b) => { if (!b) return null; const s = $$('[role="status"]', b.closest(".actions, dialog, .bar") || document).find(shown); return s ? { text: txt(s), color: css(s, "color") } : null; };
+      out.copy.copied = { text: clip.text, status: near(copyButton) };
+      clip.ok = false;
+      await press(copyButton, 120);
+      const ta = dc && $("textarea", dc), a = document.activeElement;
+      out.copy.refused = { status: near(copyButton), focused: !!ta && a === ta, selected: !!ta && ta.selectionStart === 0 && ta.selectionEnd === ta.value.length };
+      await press(dc && $$("button", dc).find((b) => /^(Cancel|やめる)$/.test(txt(b))));
+      await press(pickButton(two[1]), 20);
+      const dc2 = await confirmOpen();
+      out.copy.afterChange = near(dc2 && $$("button", dc2).find((b) => /^(Copy|コピー)$/.test(txt(b))));
+      await press(dc2 && $$("button", dc2).find((b) => /^(Cancel|やめる)$/.test(txt(b))));
+      await press(pickButton(two[1]), 20);
+      out.colors = { accent: resolve("--accent"), critical: resolve("--critical") };
+      // A refused send, then a send the agent takes.
+      await agent(true);
+      mode.select = false;
+      const d3 = await confirmOpen();
+      await press(d3 && $$("button", d3).find((b) => /^(Free|空ける)$/.test(txt(b))), 160);
+      const alert = $$('[role="alert"]').find((e) => txt(e));
+      out.refused = { alert: alert ? { text: txt(alert), icon: !!$("svg", alert), border: parseFloat(css(alert, "border-left-width")), color: css(alert, "border-left-color") } : null, dialogs: openDialogs() };
+      $$("dialog[open]").forEach((d) => d.close());
+      mode.select = true;
+      const d4 = await confirmOpen();
+      await press(d4 && $$("button", d4).find((b) => /^(Free|空ける)$/.test(txt(b))), 200);
+      out.sent = { dialogs: openDialogs(), bar: free ? statusIn(free.closest(".bar") || document.body) : [], header: $$('[role="status"]').filter((e) => e.closest(".head, header")).map(txt), selects: out.selects || 0 };
+    }
+
+    // The help dialog gives focus back to its button.
+    const help = $("#help-open");
+    if (help) {
+      help.focus();
+      await press(help);
+      const dh = $("dialog[open]") || $$('[role="dialog"]').find(shown);
+      out.help = { tag: dh ? dh.tagName : null, modal: !!dh && (() => { try { return dh.matches(":modal"); } catch (e) { return false; } })() };
+      const close = dh && $$("button", dh).find(shown);
+      await press(close);
+      out.help.back = document.activeElement === help;
+    }
+
+    // A search that finds nothing, and the way out of it.
+    await press(tabAt(1), 120);
+    const search = $('input[type="search"]', panel());
+    await type(search, "zzqx-nothing");
+    out.nomatch = { panel: panelInfo(), view: view() };
+    const clearFilters = $$("button", panel()).find((b) => shown(b) && /Clear filters|絞り込みを外す/.test(txt(b)));
+    await press(clearFilters);
+    out.nomatch.after = { value: search ? search.value : null, focus: document.activeElement === search, rows: rows().length };
+
+    // The kinds of the disk tab.
+    const kinds = $$('[role="group"] button', panel()).filter((b) => shown(b) && /^(Caches|キャッシュ) \(\d+\)$/.test(txt(b)));
+    if (kinds[0]) { await press(kinds[0], 120); out.kind = { button: txt(kinds[0]), rows: rows().length, count: panelInfo().count }; }
+
+    // The programs tab.
+    await press(tabAt(2), 120);
+    out.programs = { panel: panelInfo(), view: view() };
+
+    // Sorting by the name column, when the tab has a sortable table.
+    await press(tabAt(1), 120);
+    const nameHead = tables().map((t) => $$(":scope > thead th", t)[0]).find((th) => th && $("button", th));
+    if (nameHead) {
+      await press($("button", nameHead), 120);
+      const t = tables()[0];
+      const names = t ? $$(":scope > tbody > tr", t).filter(shown).map((tr) => txt(nameButton(tr))) : [];
+      out.sorted = { sort: t ? $$(":scope > thead th", t).map((th) => th.getAttribute("aria-sort")) : [], names,
+        ordered: names.length > 1 && names.every((n, i) => i === 0 || names[i - 1].localeCompare(n, PROBE.lang, { sensitivity: "base", numeric: true }) <= 0) };
+    }
+    out.theme = { light: {}, dark: {} };
+    for (const m of ["light", "dark"]) { await theme(m); out.theme[m] = { accent: resolve("--accent"), critical: resolve("--critical"), tags: rows().map((tr) => tagOf(tr)).filter(Boolean) }; }
+    await theme("light");
+  } catch (e) {
+    out.errors.push(String(e && e.stack || e));
+  }
+  finish();
+})();
+JSEOF
+
+"$PY" - "$SCRIPTS" "$PATTERNS" <<'PY'
+import copy, json, sys
+sys.path.insert(0, sys.argv[1])
+import machine_cleanup as m
+folder = sys.argv[2]
+ctx = m.Ctx(platform="darwin")
+scan = m.load_scan(ctx)
+if not scan:
+    sys.exit(0)
+pages = {"main": scan}
+big = copy.deepcopy(scan)
+base = next(it for it in big["items"] if it.get("category") == "cache" and not it.get("locked"))
+for i in range(60):
+    it = copy.deepcopy(base)
+    it["id"] = "c-%08x" % (0x10000000 + i)
+    it["path"] = "%s/Library/Caches/probe-%02d" % (big["home"], i)
+    it["name"] = "probe cache %02d" % i
+    it.pop("label", None)
+    it["size"] = 1000000 * (i + 1)
+    it.pop("within", None)
+    big["items"].append(it)
+dup = next((it for it in big["items"] if it.get("category") == "duplicate"), None)
+if dup:
+    many = copy.deepcopy(dup)
+    many["id"] = "f-%08x" % 0x20000000
+    many["path"] = "%s/Movies/probe-copy.mov" % big["home"]
+    many["detail"] = dict(many.get("detail") or {}, set="probe-set", copies=["%s/Movies/copy-%02d.mov" % (big["home"], i) for i in range(12)])
+    big["items"].append(many)
+pages["big"] = big
+empty = copy.deepcopy(scan)
+empty["items"] = [next(it for it in scan["items"] if it.get("group") == "disk" and not it.get("locked"))]
+pages["empty"] = empty
+for name, s in pages.items():
+    open("%s/%s.html" % (folder, name), "w", encoding="utf-8").write(m.page_html(ctx, s, "test-token"))
+    json.dump(s, open("%s/%s.json" % (folder, name), "w", encoding="utf-8"))
+proc = next((it for it in scan["items"] if it.get("group") == "process" and it.get("category") != "login-item" and not it.get("locked")), None)
+open("%s/ids" % folder, "w").write("%s %s %s\n" % (proc["id"] if proc else "none", "f-20000000", next(it["id"] for it in scan["items"] if it.get("group") == "disk" and not it.get("locked"))))
+PY
+
+# behave <page> <label> <lang> <width> [fragment]: opens a copy of the page with behave.js and keeps what
+# it measured in $PATTERNS/<label>.json.
+behave() {
+  local copy="$PATTERNS/$2.html"
+  "$PY" - "$PATTERNS/$1.html" "$copy" "$3" "$PATTERNS/behave.js" <<'PY' || return 1
+import sys
+src, dst, lang, probe = sys.argv[1:5]
+page = open(src, encoding="utf-8").read()
+end = page.rindex("</body>")
+code = 'const PROBE = { lang: "%s" };\n' % lang + open(probe, encoding="utf-8").read()
+open(dst, "w", encoding="utf-8").write(page[:end] + "<script>\n" + code + "\n</script>\n" + page[end:])
+PY
+  "$REAL_BROWSER" --headless --disable-gpu --no-first-run --hide-scrollbars --user-data-dir="$PATTERNS/profile-$2" \
+    --window-size="$4,900" --virtual-time-budget=60000 --dump-dom "file://$copy${5:-}" > "$copy.dom" 2>/dev/null || return 1
+  "$PY" - "$copy.dom" "$PATTERNS/$2.json" <<'PY'
+import html, re, sys
+m = re.search(r'<pre id="behave" hidden="">(.*?)</pre>', open(sys.argv[1], encoding="utf-8").read(), re.S)
+if not m:
+    sys.exit(1)
+open(sys.argv[2], "w", encoding="utf-8").write(html.unescape(m.group(1)))
+PY
+}
+
+cat > "$PATTERNS/judge.py" <<'PY'
+import json, os, re, sys
+
+what, folder, sheet, plugin = sys.argv[1:5]
+problems = []
+TABS = {"en": ["Overview", "Disk", "Programs", "Not measured"], "ja": ["全体", "ディスク", "プログラム", "測らなかった場所"]}
+TIERS = {"en": ["Recommended", "Restorable", "Risky", "In use"], "ja": ["おすすめ", "戻せる", "影響あり", "使用中"]}
+
+def run(label):
+    path = "%s/%s.json" % (folder, label)
+    if not os.path.exists(path):
+        problems.append("%s: the page was not measured" % label)
+        return {}
+    r = json.load(open(path, encoding="utf-8"))
+    for e in r.get("errors", []):
+        problems.append("%s: the page threw %s" % (label, e.splitlines()[0]))
+    return r
+
+def fail(label, message):
+    problems.append("%s: %s" % (label, message))
+
+def scan(name):
+    return json.load(open("%s/%s.json" % (folder, name), encoding="utf-8"))
+
+def numbers(s):
+    return [int(x.replace(",", "")) for x in re.findall(r"\d[\d,]*", s or "")]
+
+def get(d, *keys):
+    for k in keys:
+        if not isinstance(d, dict):
+            return None
+        d = d.get(k)
+    return d
+
+def rgbs(c):
+    return [int(float(x)) for x in re.findall(r"[\d.]+", c or "")][:3]
+
+def dictionary():
+    html = open(sheet, encoding="utf-8").read()
+    return json.loads(re.search(r'<script id="i18n" type="application/json">(.*?)</script>', html, re.S).group(1))
+
+ids = open(folder + "/ids").read().split()
+
+if what == "beside":
+    for label in ("m-en-1400", "m-ja-1400"):
+        v = get(run(label), "disk", "view") or {}
+        if not v.get("detail") or v.get("inDialog") or v.get("tag") != "SECTION" or v.get("labelledby") != "detail-title" or v.get("titleTabindex") != "-1":
+            fail(label, "the details on the disk tab are %r" % {k: v.get(k) for k in ("detail", "inDialog", "tag", "labelledby", "titleTabindex")})
+        s = v.get("side") or {}
+        if not s or s["detailLeft"] < s["listRight"] or not 320 <= s["listWidth"] <= 400:
+            fail(label, "the list and the details do not sit side by side with a list of 320 to 380px: %r" % s)
+        p = get(run(label), "pressed") or {}
+        if p.get("dialogs") or not p.get("detail"):
+            fail(label, "pressing a row opened %r dialogs and details %r" % (p.get("dialogs"), p.get("detail")))
+
+elif what == "first-row":
+    for label in ("m-en-1400", "b-en-1400"):
+        r = run(label)
+        v, t = get(r, "disk", "view") or {}, (get(r, "disk", "panel", "tables") or [{}])[0]
+        first = ((t.get("rows") or [{}])[0]).get("name")
+        if not first or v.get("title") != first or v.get("current") != [first]:
+            fail(label, "the disk tab opens on %r with %r marked, wanted its first row %r" % (v.get("title"), v.get("current"), first))
+        p = get(r, "pressed") or {}
+        if len(p.get("current") or []) != 1 or p.get("current") != [p.get("title")]:
+            fail(label, "after pressing the second row %r is marked for %r" % (p.get("current"), p.get("title")))
+        if v.get("currentBg") in (None, "255,255,255"):
+            fail(label, "the shown row has no tinted band")
+
+elif what == "scroll-apart":
+    v = get(run("m-en-1400"), "disk", "view") or {}
+    s = v.get("side") or {}
+    if s.get("listScroll") not in ("auto", "scroll") or s.get("detailScroll") not in ("auto", "scroll") or s.get("listMax") == "none" or s.get("detailMax") == "none":
+        fail("m-en-1400", "the list and the details do not scroll apart: %r" % s)
+    if any(x in ("auto", "scroll") for x in s.get("sideways") or []):
+        fail("m-en-1400", "a pane scrolls sideways: %r" % s.get("sideways"))
+    if not v.get("sticky"):
+        fail("m-en-1400", "the details title is not kept on top")
+
+elif what == "narrow":
+    r = run("m-en-820")
+    d = get(r, "disk", "view") or {}
+    if not d.get("list") or d.get("detail"):
+        fail("m-en-820", "the disk tab below 860px shows list %r and details %r at first" % (d.get("list"), d.get("detail")))
+    p = r.get("pressed") or {}
+    if not p.get("detail") or p.get("list") or not p.get("focusTitle") or not get(p, "back", "shown") or not get(p, "back", "first") or not p.get("prev") or not p.get("next"):
+        fail("m-en-820", "pressing the second row shows %r" % {k: p.get(k) for k in ("list", "detail", "focusTitle", "back", "prev", "next")})
+    n = r.get("next") or {}
+    if not n.get("detail") or n.get("title") == p.get("title") or not n.get("prev"):
+        fail("m-en-820", "the next link shows %r" % {k: n.get(k) for k in ("detail", "title", "prev")})
+    i = run("m-en-820-item")
+    if not get(i, "item", "detail") or get(i, "item", "list"):
+        fail("m-en-820-item", "a page opened on a row below 860px shows %r" % {k: get(i, "item", k) for k in ("list", "detail")})
+    b = i.get("itemBack") or {}
+    if not b.get("list") or b.get("detail"):
+        fail("m-en-820-item", "the back button shows %r" % {k: b.get(k) for k in ("list", "detail")})
+
+elif what == "never-under":
+    for label in ("m-en-820", "m-en-820-item", "m-en-390"):
+        r = run(label)
+        for k in ("pressed", "next", "item", "itemBack"):
+            v = r.get(k)
+            if k == "item" and v is None:
+                continue
+            if v and v.get("list") and v.get("detail"):
+                fail(label, "%s shows the list and the details together" % k)
+        if label != "m-en-820-item" and not r.get("pressed"):
+            fail(label, "no row was pressed")
+
+elif what == "fragment":
+    p = get(run("m-en-1400"), "pressed") or {}
+    if not re.match(r"^#item-[a-z]+-[0-9a-f]{8}$", p.get("hash") or ""):
+        fail("m-en-1400", "pressing a row left the address at %r" % p.get("hash"))
+    i = get(run("m-en-1400-item"), "item") or {}
+    s = scan("main")
+    want = next((it for it in s["items"] if it["id"] == ids[0]), None)
+    if not want or not i.get("detail") or not re.match(r"^(Programs|プログラム)", i.get("tab") or "") or i.get("hash") != "#item-" + ids[0]:
+        fail("m-en-1400-item", "a page opened on #item-%s shows %r" % (ids[0], {k: i.get(k) for k in ("tab", "title", "hash", "detail")}))
+
+elif what == "row-buttons":
+    for label in ("m-en-1400", "b-en-1400"):
+        for t in get(run(label), "disk", "panel", "tables") or []:
+            for row in t["rows"]:
+                # A row in use cannot be picked, so it has no pick button.
+                if row["tag"] and row["tag"]["text"] in ("In use", "使用中") and not row["pick"]:
+                    continue
+                if not row["name"] or not row["pick"] or row["pick"]["inName"] or row["name"] not in row["pick"]["label"] or row["pick"]["pressed"] not in ("true", "false"):
+                    fail(label, "the row %r has the buttons %r" % (row["name"], row["pick"]))
+                    break
+        if not get(run(label), "disk", "panel", "tables"):
+            fail(label, "the disk tab has no table")
+
+elif what == "not-nested":
+    seen = False
+    for label in ("m-en-1400", "b-en-1400"):
+        for t in get(run(label), "disk", "panel", "tables") or []:
+            for row in t["rows"]:
+                seen = True
+                if row["role"] or row["nested"]:
+                    fail(label, "the row %r is role %r with a nested button %r" % (row["name"], row["role"], row["nested"]))
+                    break
+    if not seen:
+        fail("m-en-1400", "no row was measured")
+
+elif what == "fields":
+    for label, key in (("m-en-1400", ("disk", "view")), ("m-en-390", ("pressed",))):
+        kv = get(run(label), *key, "kv") if len(key) == 1 else get(run(label), key[0], key[1], "kv")
+        if not kv or any(r["scope"] != "row" or not r["side"] or r["size"] < 14 for r in kv):
+            fail(label, "the details fields are %r" % (kv or [])[:4])
+
+elif what == "fold":
+    v = get(run("m-en-1400"), "disk", "view") or {}
+    if not v.get("kv") or any(r["boxed"] for r in v["kv"]):
+        fail("m-en-1400", "a field of the first row sits in a scrolling box: %r" % [r for r in v.get("kv") or [] if r["boxed"]])
+    i = get(run("b-en-1400-dup"), "item") or {}
+    folds = [f for r in i.get("kv") or [] for f in r["folds"]]
+    if not any("12" in f for f in folds) or any(r["boxed"] for r in i.get("kv") or []):
+        fail("b-en-1400-dup", "the 12 copies fold as %r" % folds)
+
+elif what == "dialogs":
+    r = run("m-en-1400")
+    c = r.get("confirm") or {}
+    if c.get("tag") != "DIALOG" or not c.get("modal") or get(c, "afterCancel", "dialogs") or not get(c, "afterCancel", "focusFree"):
+        fail("m-en-1400", "the confirm dialog is %r" % {k: c.get(k) for k in ("tag", "modal", "afterCancel")})
+    h = r.get("help") or {}
+    if h.get("tag") != "DIALOG" or not h.get("modal") or not h.get("back"):
+        fail("m-en-1400", "the help dialog is %r" % h)
+
+elif what == "alertdialog":
+    for label in ("m-en-1400", "m-ja-1400"):
+        c = run(label).get("confirm") or {}
+        if c.get("role") != "alertdialog" or c.get("focus") not in ("Cancel", "やめる") or c.get("close"):
+            fail(label, "the confirm dialog has role %r, focus on %r, and %r close buttons" % (c.get("role"), c.get("focus"), c.get("close")))
+
+elif what == "confirm-names":
+    for label, word in (("m-en-1400", r"^Free 2 items$"), ("m-ja-1400", r"^2件を空ける$")):
+        c = run(label).get("confirm") or {}
+        if not re.match(word, c.get("title") or ""):
+            fail(label, "the confirm title is %r" % c.get("title"))
+        if not c.get("names") or any(n not in (c.get("items") or []) for n in c["names"]):
+            fail(label, "the confirm lists %r, wanted %r" % (c.get("items"), c.get("names")))
+        if not re.search(r"put back|戻せ", c.get("text") or ""):
+            fail(label, "the confirm does not say what can be put back")
+
+elif what == "confirm-buttons":
+    for label, words in (("m-en-1400", ["Cancel", "Free"]), ("m-ja-1400", ["やめる", "空ける"])):
+        r = run(label)
+        c = r.get("confirm") or {}
+        texts = [b["text"] for b in c.get("buttons") or []]
+        if texts != words:
+            fail(label, "the confirm buttons are %r" % texts)
+        crit = rgbs(get(r, "colors", "critical"))
+        if not c.get("buttons") or rgbs(c["buttons"][-1]["bg"]) != crit or any(rgbs(b["bg"]) == crit for b in c["buttons"][:-1]) or rgbs(c.get("freeBg")) == crit:
+            fail(label, "the critical color %r is on %r and the Free button %r" % (crit, [b["bg"] for b in c.get("buttons") or []], c.get("freeBg")))
+
+elif what == "tags-edge":
+    r = run("m-en-1400")
+    for t in get(r, "disk", "panel", "tables") or []:
+        for row in t["rows"]:
+            if not row["tag"] or not row["tag"]["icon"] or row["tag"]["text"] not in TIERS["en"]:
+                fail("m-en-1400", "the row %r has the tag %r" % (row["name"], row["tag"]))
+                break
+    p = r.get("picked") or {}
+    acc = rgbs(get(r, "disk", "accent"))
+    e, o = p.get("edge") or {}, p.get("otherEdge") or {}
+    if not (e.get("width", 0) >= 3 and rgbs(e.get("color")) == acc) or (o and o.get("width", 0) >= 2 and rgbs(o.get("color")) == acc):
+        fail("m-en-1400", "the picked row's edge is %r and an unpicked row's %r" % (e, o))
+
+elif what == "colors":
+    r = run("m-en-1400")
+    for m in ("light", "dark"):
+        th = get(r, "theme", m) or {}
+        rec = [g for g in th.get("tags") or [] if g["text"] == "Recommended"]
+        if not rec or any(rgbs(g["color"]) == rgbs(th.get("accent")) for g in rec):
+            fail("m-en-1400", "in %s the Recommended tag is %r and the accent %r" % (m, rec[:1], th.get("accent")))
+    s = get(r, "copy", "copied", "status") or {}
+    if not s.get("text") or rgbs(s.get("color")) == rgbs(get(r, "colors", "critical")):
+        fail("m-en-1400", "the copied notice is %r" % s)
+
+elif what == "words":
+    d = dictionary()
+    for lang in ("en", "ja"):
+        got = [d[lang].get("level_" + k) for k in ("recommended", "check", "careful", "inuse")]
+        if got != TIERS[lang] or d[lang].get("pickGroup") != {"en": "Pick all", "ja": "全部選ぶ"}[lang]:
+            fail(lang, "the tiers are %r and pick all is %r" % (got, d[lang].get("pickGroup")))
+
+elif what == "search":
+    for label in ("m-en-1400", "m-ja-1400"):
+        p = get(run(label), "disk", "panel") or {}
+        if not p.get("search") or not p["search"]["label"] or p["search"]["placeholder"]:
+            fail(label, "the search box is %r" % p.get("search"))
+        tiers = [b["text"] for g in p.get("groups") or [] for b in g["buttons"] if any(b["text"].startswith(w) for w in TIERS[run(label).get("lang", "en")])]
+        if not tiers or any(not re.search(r"\(\d+\)$", t) for t in tiers):
+            fail(label, "the tier switches are %r" % tiers)
+
+elif what == "none-picked":
+    n = run("m-en-1400").get("none") or {}
+    if n.get("disabled") or n.get("dialogs") or not n.get("status"):
+        fail("m-en-1400", "pressing Free with nothing picked gives %r" % n)
+
+elif what == "narrow-buttons":
+    r = run("m-en-440")
+    c = r.get("confirm") or {}
+    b = c.get("buttons") or []
+    if len(b) < 2 or any(x["w"] < 0.9 * c.get("width", 1) for x in b) or len({x["top"] for x in b}) != len(b):
+        fail("m-en-440", "the confirm buttons are %r in %r" % (b, c.get("width")))
+    bar = get(r, "bar") or {}
+    if not bar.get("stacked"):
+        fail("m-en-440", "the bar buttons are %r" % bar)
+
+elif what == "undo":
+    c = run("m-en-1400").get("clear") or {}
+    if c.get("before") != 2 or c.get("after") != 0 or not c.get("undo") or c.get("back") != 2:
+        fail("m-en-1400", "Clear and Undo give %r" % c)
+
+elif what == "copy-text":
+    for label in ("m-en-1400", "m-ja-1400"):
+        r = run(label)
+        c = r.get("copy") or {}
+        ta = c.get("textarea") or {}
+        lines = (ta.get("value") or "").split("\n")
+        if not ta.get("readonly") or not ta.get("label") or lines[0] != "machine-cleanup:select" or len(lines) < 2 or any(not re.match(r"^[a-z]+-[0-9a-f]{8}$", x) for x in lines[1:]):
+            fail(label, "the text to copy is %r" % ta)
+        if get(c, "copied", "text") != ta.get("value"):
+            fail(label, "the clipboard got %r" % get(c, "copied", "text"))
+        f = c.get("refused") or {}
+        if not f.get("focused") or not f.get("selected") or not re.search(r"Command|Ctrl|⌘", get(f, "status", "text") or ""):
+            fail(label, "a refused copy gives %r" % f)
+
+elif what == "copy-status":
+    for label in ("m-en-1400", "m-ja-1400"):
+        c = run(label).get("copy") or {}
+        if not get(c, "copied", "status", "text") or get(c, "afterChange", "text"):
+            fail(label, "the copied notice reads %r and after a change %r" % (get(c, "copied", "status"), c.get("afterChange")))
+
+elif what == "facts":
+    for label in ("m-en-1400", "m-ja-1400"):
+        f = get(run(label), "load", "facts") or {}
+        s = scan("main")
+        rows = f.get("rows") or []
+        if not f.get("caption") or any(r["scope"] != "row" for r in rows) or not any(r["time"] == s["scanned_at"] or (r["time"] or "")[:16] == s["scanned_at"][:16] for r in rows) \
+                or not any(numbers(r["value"]) == [len(s["skipped"])] for r in rows):
+            fail(label, "the facts are %r" % f)
+
+elif what == "table":
+    for label in ("m-en-1400", "b-en-1400"):
+        ts = get(run(label), "disk", "panel", "tables") or []
+        if not ts:
+            fail(label, "the disk tab has no table")
+        for t in ts:
+            if not t["name"] or not t["heads"] or any(h["scope"] != "col" or not h["sticky"] for h in t["heads"]) or not all(r["head"] for r in t["rows"]):
+                fail(label, "the table %r has the headers %r" % (t["name"], t["heads"]))
+
+elif what == "cards":
+    p = get(run("m-en-560"), "disk", "panel") or {}
+    cards = [li for u in p.get("cards") or [] for li in u]
+    if p.get("tables") or not cards or any(not c["heading"] or not c["pairs"] or not all(x["above"] for x in c["pairs"]) for c in cards):
+        fail("m-en-560", "below 600px the disk tab shows %d tables and the cards %r" % (len(p.get("tables") or []), cards[:2]))
+
+elif what == "sort":
+    r = run("b-en-1400")
+    p = get(r, "disk", "panel") or {}
+    big = [t for t in p.get("tables") or [] if len(t["rows"]) > 10]
+    if p.get("selects") or not big:
+        fail("b-en-1400", "the disk tab has %r selects and %d tables of more than 10 rows" % (p.get("selects"), len(big)))
+    for t in big:
+        heads = t["heads"]
+        if len(heads) < 2 or not heads[0]["button"] or not heads[1]["button"] or len([h for h in heads if h["sort"]]) != 1:
+            fail("b-en-1400", "the headers are %r" % heads)
+    s = r.get("sorted") or {}
+    if not s.get("sort") or s["sort"][0] != "ascending" or not s.get("ordered"):
+        fail("b-en-1400", "pressing the name header sorts %r as %r" % ((s.get("names") or [])[:4], s.get("sort")))
+
+elif what == "cpu":
+    for label in ("m-en-1400", "m-ja-1400"):
+        r = run(label)
+        ts = get(r, "programs", "panel", "tables") or []
+        col = None
+        for t in ts:
+            for i, h in enumerate(t["heads"]):
+                if h["text"] == "CPU (%)":
+                    col = i
+                    # A login item has no CPU share, so its cell is empty.
+                    if any(row["cells"][i] and not re.match(r"^\d+(\.\d+)?$", row["cells"][i]) for row in t["rows"] if len(row["cells"]) > i):
+                        fail(label, "a CPU cell is not a number: %r" % [row["cells"][i] for row in t["rows"]][:4])
+        if col is None:
+            fail(label, "the programs tab has no CPU (%) column")
+        bars = get(r, "overview", "bars") or []
+        if not bars or any(b["value"] not in b["label"] for b in bars):
+            fail(label, "the overview bars read %r" % bars[:3])
+
+elif what == "pager":
+    # Each page decides from its own disk rows whether it needs pagers.
+    for label, page in (("b-en-1400", "big"), ("m-en-1400", "main")):
+        p = get(run(label), "disk", "panel") or {}
+        pg = p.get("pagers") or []
+        rows = len([it for it in scan(page)["items"] if it.get("group") == "disk"])
+        if rows <= 50:
+            if pg:
+                fail(label, "a tab of %d rows has pagers %r" % (rows, pg))
+            continue
+        if len(pg) != 2 or not pg[0]["before"] or pg[1]["before"] or not all(x["center"] for x in pg) or p.get("rowsShown", 0) > 50 or p.get("rowsShown", 0) < 1:
+            fail(label, "the pagers are %r with %r rows of %d" % (pg, p.get("rowsShown"), rows))
+    if len([it for it in scan("big")["items"] if it.get("group") == "disk"]) <= 50:
+        fail("b-en-1400", "the page with 60 more caches has 50 disk rows or fewer")
+
+elif what == "count":
+    s = scan("main")
+    disk = len([it for it in s["items"] if it.get("group") == "disk"])
+    p = get(run("m-en-1400"), "disk", "panel") or {}
+    if not p.get("count") or disk not in numbers(p["count"][0]) or not p.get("countFirst"):
+        fail("m-en-1400", "the count line is %r for %d rows" % (p.get("count"), disk))
+    b = get(run("b-en-1400"), "disk", "panel") or {}
+    total = len([it for it in scan("big")["items"] if it.get("group") == "disk"])
+    if not b.get("count") or total not in numbers(b["count"][0]) or 50 not in numbers(b["count"][0]):
+        fail("b-en-1400", "the count line is %r for %d rows" % (b.get("count"), total))
+
+elif what == "lines":
+    for label in ("m-en-1400",):
+        for m, ls in (get(run(label), "disk", "lines") or {}).items():
+            if not ls or min(ls) < 3:
+                fail(label, "in %s the row lines stand out by %r" % (m, sorted(ls)[:3]))
+        if not get(run(label), "disk", "lines"):
+            fail(label, "no row line was measured")
+
+elif what == "tabs":
+    for label in ("m-en-1400", "m-ja-1400"):
+        r = run(label)
+        lang = r.get("lang", "en")
+        got = [t["text"] for t in get(r, "load", "tabs", "tabs") or []]
+        s = scan("main")
+        counts = [None, len([it for it in s["items"] if it.get("group") == "disk"]), len([it for it in s["items"] if it.get("group") == "process"]), len(s["skipped"])]
+        want = [TABS[lang][0]] + ["%s (%d)" % (TABS[lang][i], counts[i]) for i in (1, 2, 3)]
+        if got != want:
+            fail(label, "the tabs are %r, wanted %r" % (got, want))
+
+elif what == "kinds":
+    k = run("m-en-1400").get("kind") or {}
+    if not k or numbers(k.get("button"))[-1:] != [k.get("rows")]:
+        fail("m-en-1400", "the caches filter gives %r" % k)
+    p = get(run("m-en-1400"), "programs", "panel") or {}
+    kinds = [b["text"] for g in p.get("groups") or [] for b in g["buttons"]]
+    if not any(re.match(r"^(Processes|Login items|Containers) \(\d+\)$", x) for x in kinds):
+        fail("m-en-1400", "the programs tab has the filters %r" % kinds)
+
+elif what == "one-line":
+    for label in ("m-en-1400", "m-en-390"):
+        t = get(run(label), "load", "tabs") or {}
+        if t.get("wrap") != "nowrap" or t.get("overflow") not in ("auto", "scroll"):
+            fail(label, "the tab strip wraps %r and scrolls %r" % (t.get("wrap"), t.get("overflow")))
+    if not get(run("m-en-390"), "keys", "endInView"):
+        fail("m-en-390", "the last tab is not scrolled into view")
+
+elif what == "tab-keys":
+    for label in ("m-en-1400", "m-ja-1400"):
+        r = run(label)
+        k = r.get("keys") or {}
+        names = [t["text"] for t in get(r, "load", "tabs", "tabs") or []]
+        if len(names) < 3 or k.get("right") != names[1] or not k.get("rightFocus") or k.get("end") != names[-1] or not k.get("endFocus") or k.get("home") != names[0] or not k.get("same"):
+            fail(label, "the keys give %r for %r" % (k, names))
+        tabs = get(r, "load", "tabs", "tabs") or []
+        if any(not t["controls"] or t["tabindex"] != ("0" if t["selected"] == "true" else "-1") for t in tabs):
+            fail(label, "the tabs are %r" % tabs)
+        h = get(r, "disk", "panelHead") or {}
+        if get(r, "disk", "panel", "role") != "tabpanel" or h.get("labelledby") != h.get("tabId") or h.get("controls") != h.get("panelId") or not re.match(r"^(Disk|ディスク)$", h.get("heading") or "") or not get(r, "disk", "panel", "headingFirst"):
+            fail(label, "the disk panel is %r with role %r" % (h, get(r, "disk", "panel", "role")))
+
+elif what == "empty":
+    p = get(run("e-en-1400"), "programs", "panel") or {}
+    e = p.get("empty") or []
+    if len(e) != 1 or not e[0]["heading"] or not e[0]["text"] or e[0]["heading"] in ("Nothing found here.", "No data") or p.get("search") or p.get("clear") or any(g["buttons"] for g in p.get("groups") or []):
+        fail("e-en-1400", "the empty programs tab shows %r with search %r, Clear %r, and groups %r" % (e, p.get("search"), p.get("clear"), p.get("groups")))
+
+elif what == "nomatch":
+    for label in ("m-en-1400", "m-ja-1400"):
+        n = run(label).get("nomatch") or {}
+        e = get(n, "panel", "empty") or []
+        if len(e) != 1 or "zzqx-nothing" not in (e[0]["heading"] + e[0]["text"]) or not any(re.search(r"Clear filters|絞り込みを外す", b) for b in e[0]["buttons"]) or not get(n, "panel", "search"):
+            fail(label, "a search that finds nothing shows %r" % e)
+        a = n.get("after") or {}
+        if a.get("value") != "" or not a.get("focus") or not a.get("rows"):
+            fail(label, "clearing the filters gives %r" % a)
+
+elif what == "alert":
+    r = run("m-en-1400")
+    a = get(r, "load", "alerts") or []
+    if len(a) != 1 or a[0]["text"]:
+        fail("m-en-1400", "at load the alert lines are %r" % a)
+    f = get(r, "refused", "alert") or {}
+    if not f.get("text") or not f.get("icon") or f.get("border", 0) < 2 or rgbs(f.get("color")) != rgbs(get(r, "colors", "critical")):
+        fail("m-en-1400", "a refused send shows %r" % f)
+    st = [s for s in get(r, "load", "statuses") or [] if s["header"]]
+    if not any(re.search(r"agent", s["text"], re.I) for s in st):
+        fail("m-en-1400", "the connection is not a status: %r" % st)
+
+elif what == "sent":
+    for label in ("m-en-1400", "m-ja-1400"):
+        s = run(label).get("sent") or {}
+        if s.get("dialogs") or not s.get("bar") or not any(re.search(r"\d\d:\d\d", h) for h in s.get("header") or []) or s.get("selects", 0) < 2:
+            fail(label, "after sending %r" % s)
+
+elif what == "save-state":
+    for label, word in (("m-en-1400", r"\b1 picked, not sent"), ("m-ja-1400", r"1件を選び、まだ渡していません")):
+        r = run(label)
+        p = r.get("picked") or {}
+        if not any(re.search(word, s) for s in p.get("save") or []) or not p.get("unload") or get(r, "load", "unload"):
+            fail(label, "with one pick the top right says %r, leaving asks %r, and at load %r" % (p.get("save"), p.get("unload"), get(r, "load", "unload")))
+
+elif what == "caution":
+    for label in ("m-en-1400", "m-ja-1400"):
+        p = get(run(label), "disk", "panel") or {}
+        c = p.get("cautions") or []
+        if len(c) != 1 or not c[0]["icon"] or not c[0]["title"] or not c[0]["text"]:
+            fail(label, "the disk tab has the cautions %r" % c)
+        if any(re.search(r"cannot be undone|deleted for good|元に戻せません|完全に消し", x) for x in p.get("lead") or []):
+            fail(label, "a warning is still in the explanation: %r" % p.get("lead"))
+
+elif what == "banner":
+    for label in ("m-en-1400", "m-ja-1400"):
+        r = run(label)
+        b = get(r, "load", "banners") or []
+        if len(b) != 1 or not b[0]["icon"] or not b[0]["title"] or not b[0]["beforeTabs"] or not re.search(r"chat|チャット", b[0]["text"]) or not re.search(r"[Cc]opy|コピー", b[0]["text"]):
+            fail(label, "while the agent is not waiting the banners are %r" % b)
+        if get(r, "online", "banners"):
+            fail(label, "while the agent waits there are %r banners" % get(r, "online", "banners"))
+
+elif what == "docs":
+    want = {"README.md": ["Restorable", "Risky", "#item-", "Programs"], "README.ja.md": ["戻せる", "影響あり", "#item-", "プログラム"],
+            "docs/how-it-works.md": ["Restorable", "Risky", "#item-", "Programs"], "docs/how-it-works.ja.md": ["戻せる", "影響あり", "#item-", "プログラム"],
+            "CHANGELOG.md": ["Restorable", "#item-"]}
+    for name, words in want.items():
+        text = open("%s/%s" % (plugin, name), encoding="utf-8").read()
+        missing = [w for w in words if w not in text]
+        if missing:
+            fail(name, "does not say %r" % missing)
+
+for p in problems[:10]:
+    print("      " + p)
+sys.exit(1 if problems else 0)
+PY
+pattern_check() { "$PY" "$PATTERNS/judge.py" "$1" "$PATTERNS" "$SHEET" "$PLUGIN_DIR"; }
+
+# The page's copied text, read the way apply reads a pasted selection.
+copy_lines_ok() {
+  [ -n "$NODE" ] || return 1
+  local text
+  text="$(page_eval "selectionText" 'process.stdout.write(selectionText(["d-0000aaaa", "p-0000bbbb"]))' 2>&1)" || return 1
+  "$PY" - "$SCRIPTS" "$text" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+import machine_cleanup as m
+text = sys.argv[2]
+lines = text.split("\n")
+ids, bad = m.parse_selection(text)
+sys.exit(0 if lines == ["machine-cleanup:select", "d-0000aaaa", "p-0000bbbb"] and ids == ["d-0000aaaa", "p-0000bbbb"] and not bad else 1)
+PY
+}
+check "apply reads a copied selection with one id per line" 'copy_lines_ok'
+check "the tiers are named Recommended, Restorable, Risky, and In use, with Pick all, in both languages" 'pattern_check words'
+
+PATTERN_CHECKS=(
+  "beside|at 1400px the details sit in a section beside the list, named by its focusable heading"
+  "first-row|a list tab opens on its first row, and only the shown row is marked current"
+  "scroll-apart|the list and the details scroll apart at 1400px, with the details title kept on top"
+  "narrow|below 860px a list tab shows the list or the details, with a way back and links to the previous and next rows"
+  "never-under|below 860px the details never sit under the list"
+  "fragment|the address keeps the shown row as #item-<id> and opens that row on load"
+  "row-buttons|each row has a pick button and a button named by the item, side by side"
+  "not-nested|no row is a button that holds another button"
+  "fields|the details put each field label beside its value, also at 390px"
+  "fold|the details show one path or command whole and fold only lists longer than 10 lines"
+  "dialogs|every dialog is a dialog element opened as modal, and closing it returns focus to its button"
+  "alertdialog|the confirm dialog is an alert dialog with focus on Cancel and no close button"
+  "confirm-names|the confirm dialog counts the picked items in its title and names each one under its effect"
+  "confirm-buttons|the confirm buttons are Cancel and Free, and only the confirming one is critical"
+  "tags-edge|a row's tier is a tag with an icon and words, and only a picked row has the accent edge"
+  "colors|the recommended tier and the copied notice do not share the accent or the error color"
+  "search|the search box has a visible label and no placeholder, and each tier switch shows its count"
+  "none-picked|pressing Free with nothing picked says so instead of being disabled"
+  "narrow-buttons|below 480px the bar and confirm buttons fill the width, one above the other"
+  "undo|Clear offers Undo, which puts the tab's picks back"
+  "copy-text|the selection to copy lists one id per line in a labeled read-only text box"
+  "copy-status|the copied notice is a status beside Copy and clears when the picks change"
+  "facts|the facts under the title give the scan time and the places not measured"
+  "table|each list tab is a table with a caption, column headers kept on top, and the name as row header"
+  "cards|below 600px each row reads as pairs of a label and a value"
+  "sort|the Name and Size headers sort the table, with aria-sort on the sorted one"
+  "cpu|the CPU column is headed CPU (%), and each overview bar reads its value"
+  "pager|a tab of more than 50 rows shows 50 per page with a pager above and below"
+  "count|a line above the list says how many rows are shown out of how many"
+  "lines|the row lines have a contrast of 3 to 1 in light and dark"
+  "tabs|the page has four tabs, Overview, Disk, Programs, and Not measured, each named with its count"
+  "kinds|the disk and programs tabs filter their rows by kind, each kind with its count"
+  "one-line|the tabs stay on one line and scroll the chosen tab into view"
+  "tab-keys|the tabs move with the arrows, Home, and End, keep their buttons, and head their panels"
+  "empty|an empty tab says what is missing and why, without the search, the tiers, or Clear"
+  "nomatch|a search that finds nothing names the words and offers to clear the filters"
+  "alert|a failed send is an alert line with an icon, and the connection is a status"
+  "sent|after sending, the bar and the top right say it was sent, with no dialog"
+  "save-state|the top right says how many rows are picked and not sent, and leaving asks first"
+  "caution|the warning that rows cannot be put back sits in its own notice with an icon and a title"
+  "banner|while the agent is not waiting, one notice at the top says to copy the selection into the chat"
+)
+if [ -z "$REAL_BROWSER" ] || [ ! -s "$PATTERNS/ids" ]; then
+  for entry in "${PATTERN_CHECKS[@]}"; do printf 'skip  %s (needs a Chromium-based browser)\n' "${entry#*|}"; done
+else
+  read -r PROC_ID DUP_ID _ < "$PATTERNS/ids"
+  for spec in "main m-en-1400 en 1400" "main m-ja-1400 ja 1400" "main m-en-820 en 820" "main m-en-560 en 560" \
+    "main m-en-440 en 440" "main m-en-390 en 390" "main m-en-1400-item en 1400 #item-$PROC_ID" "main m-en-820-item en 820 #item-$PROC_ID" \
+    "big b-en-1400 en 1400" "big b-en-1400-dup en 1400 #item-$DUP_ID" "empty e-en-1400 en 1400"; do
+    # shellcheck disable=SC2086
+    behave $spec || echo "      the browser could not measure $spec"
+  done
+  for entry in "${PATTERN_CHECKS[@]}"; do
+    check "${entry#*|}" "pattern_check ${entry%%|*}"
+  done
+fi
+check "the READMEs and how-it-works describe the tabs, the details beside the list, and the tier names in both languages" 'pattern_check docs'
 
 # The copied text is built without the dictionary, and apply reads it as it is.
 copy_ok() {
