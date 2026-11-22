@@ -99,7 +99,7 @@ The agent lists each skill once, and the plugin you chose to install keeps worki
 |---|---|
 | Reads | The source folders, `~/.claude/plugins/installed_plugins.json`, `enabledPlugins` in `~/.claude/settings.json`, `~/.codex/config.toml`, and the skill folders under `~/.codex/plugins/cache`. `placed` reads only the record and the places in the agent table |
 | Writes | The places in the agent table, only for what it placed itself |
-| Keeps | `~/.local/share/agent-shared/placed.json`, readable only by you, which names each link it placed. `AGENT_SHARED_STATE` moves the folder |
+| Keeps | `~/.local/share/agent-shared/placed.json`, readable only by you, which names each link it placed, and `off.json` beside it, the switch list that `agent-shared off` and `agent-shared on` write. `AGENT_SHARED_STATE` moves the folder |
 | Runs | `codex app-server`, to write Codex's trust for the hooks it placed. `AGENT_SHARED_CODEX_BIN` names another `codex` command |
 | Sends | Nothing over the network |
 
@@ -163,12 +163,43 @@ agent-shared placed --source ~/.shared
 | `skills` | The names of the skill links the source placed for that agent that still point where they were placed |
 | `rules` | The file names of the rule links, or of the rules in the source's block of the rules file |
 | `hooks` | Each hook with the source's mark: its `event`, the group's `matcher` when the group has one, and its `command` without the mark |
+| `left_out` | Only on an agent the switch list names items of this source for: those items, as `agent-shared off` was given them |
 
 `--source` names one folder, and only what that folder placed is printed.
 A skill that a plugin already has was never placed for that agent, so it is not listed.
 A link you removed or pointed elsewhere, and a hook without the mark, are not listed either.
 A folder that was never deployed lists every agent with empty lists and ends with exit status 0.
-A call without `--source`, a folder that does not exist, a record or hook file that is not JSON, and a broken rules block end with exit status 2 and print nothing.
+A call without `--source`, a folder that does not exist, a record, switch list, or hook file that is not JSON, and a broken rules block end with exit status 2 and print nothing.
+
+## Switching a rule or hook off for one agent
+
+`agent-shared off` leaves one rule or hook of a source out of one agent, and `agent-shared on` places it there again.
+Neither places anything: the next `deploy` honors the choice, whichever tool runs it, and takes a switched-off item out of the agent where it was placed before.
+
+```
+agent-shared off --source ~/.shared --agent Codex rules/writing.md
+agent-shared off --source ~/.shared --agent Codex hooks/guardrails/stop-guard.sh
+agent-shared off --source ~/.shared --agent "Claude Code" "afplay /System/Library/Sounds/Glass.aiff"
+agent-shared on --source ~/.shared --agent Codex rules/writing.md
+```
+
+| Item | What it names |
+|---|---|
+| `rules/<name>.md` | One rule file: no link for an agent with linked rules, and no text in the block for an agent with a rules block |
+| A file under the source folder | Every hook command that runs that file, also through a wrapper such as `/bin/sh hooks/lib/run.sh bash hooks/x.sh`. A command whose path only starts the same way is kept |
+| A whole hook command | A hook that runs no file of the source, written as `hooks.json` declares it |
+
+The choice is kept in `off.json`, beside the record and readable only by you.
+
+```json
+{"version": 1, "off": [{"source": "/path/to/.shared", "agent": "Codex", "item": "rules/writing.md"}]}
+```
+
+Each entry names the source folder, so the same path in another source stays placed.
+Write the file only with `off` and `on`.
+`off` refuses with exit status 2, writing nothing, an agent the table does not have, and an item the source does not hold or a path outside it; `on` takes out a matching entry and otherwise changes nothing.
+`deploy`, `hooks`, and `placed` read the list on every run, and when `off.json` cannot be read they end with exit status 2, write nothing, and name the file.
+Without `off.json`, every command places and prints what it did before the list existed.
 
 ## When it refuses
 
@@ -184,4 +215,4 @@ The command checks the whole change first, and when anything is in the way it wr
 | The rules block in a file is broken | Remove its marker lines by hand |
 | A rule has a line that starts like a marker | Change that line |
 
-Exit status 0 means deployed, and 2 means the command line, a source folder, the agent table, or the record could not be used.
+Exit status 0 means deployed, and 2 means the command line, a source folder, the agent table, the record, or the switch list could not be used.
