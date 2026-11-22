@@ -613,6 +613,10 @@ await check("the plugin names nothing from the product it came from", async () =
   return true;
 });
 
+// How the videos look and sound, checked on a site and data folder of their own (quality.mjs)
+const { qualityChecks } = await import(join(HERE, "quality.mjs"));
+await qualityChecks({ check, SHOP_OUT, FFMPEG });
+
 server.close();
 rmSync(T, { recursive: true, force: true });
 process.stdout.write(`\n${passed} passed, ${failed} failed (${passed + failed} ran)\n`);
