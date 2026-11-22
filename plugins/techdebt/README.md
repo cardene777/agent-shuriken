@@ -67,9 +67,11 @@ Start here
 
 The ranking goes on to 20 files, and the last two lines give the folders of the data and the report.
 
-The report has a tab for the ranking and one per measure, and switches between English and Japanese.
-The ranking lists each file with its score as a number and a bar, and the file you press shows its measures and the agent's notes beside the list. Lists longer than 50 rows are split into pages.
-The band of numbers at the top writes a measure that could not run as not measured, never as 0, and under the tabs a table says how each value was measured and why each tool did not run.
+The report has five tabs, Priorities, Change history, Code, Dependencies, and Tools, each with the number of rows it holds, and switches between English and Japanese.
+The Priorities tab lists each file with its score as a number and a bar, and the file you press shows its measures and the agent's notes beside the list. The address keeps the open file as `#item-<path>`, so a link opens the report on that file.
+Tables keep their header row in view and sort by a column, and lists longer than 50 rows have a search box and a filter and are split into pages.
+The band of numbers at the top writes a measure that could not run as not measured, never as 0, and under the tabs a table says how each value was measured.
+Each tool has a tag that says Ran, Not run, or Stopped, and a tool that did not run says what happened and what to do next.
 Its header has a Light and Dark switch next to the language switch. The colors follow your system setting until you choose, and your browser keeps the choice in its local storage under `techdebt-theme`.
 Unused dependencies are found without knip by searching for each name in imports, config files, and `scripts`, so that count is approximate. When knip is installed, its findings are used instead.
 Deprecated calls are listed by tools that are already installed: ruff with its deprecation rules, semgrep with the project's own rule files and `--metrics off`, and ESLint when its config turns on a deprecation rule. semgrep findings of security rules are left out.
