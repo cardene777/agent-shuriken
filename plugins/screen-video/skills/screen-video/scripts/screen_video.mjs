@@ -237,7 +237,7 @@ async function finish({ out, timeline, flow, root, theme, voice, work }) {
     });
   const editedSound = soundFor("edited.wav", plan.seconds, (event) => event.at);
 
-  const drawer = await openDrawer(look, work);
+  const drawer = await openDrawer(look, work, language);
   try {
     // The captioned video: the recording with captions over it and the sound at the recording's times
     const over = [];

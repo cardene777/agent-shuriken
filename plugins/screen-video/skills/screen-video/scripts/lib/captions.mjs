@@ -2,7 +2,9 @@
  * Draws captions as see-through pictures the size of the caption band.
  *
  * The text is drawn by Playwright's Chromium, because many ffmpeg builds cannot draw text, and a
- * browser lays out every script and wraps long lines on its own.
+ * browser lays out every script and wraps long lines on its own. Lines are evened out and broken
+ * between phrases, and a caption with kana or kanji is drawn as Japanese, so Chromium keeps its
+ * phrases whole.
  *
  * A caption goes at the bottom of the screen. When it would cover something it must avoid (`avoid`,
  * the boxes of what is clicked or typed into), it moves to the top edge; when the top covers one too,
@@ -26,13 +28,14 @@ export const FRAMES = {
 };
 
 const escape = (text) => text.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const JAPANESE = /[\u3040-\u30ff\u3400-\u9fff]/;
 
 function page(text, place, frame) {
   const align = place === "top" ? "flex-start" : "flex-end";
   const margin = place === "top" ? "6px 0 0" : `0 0 ${frame.bottom}px`;
-  return `<!doctype html><html><head><meta charset="utf-8"><style>
+  return `<!doctype html><html lang="${JAPANESE.test(text) ? "ja" : "en"}"><head><meta charset="utf-8"><style>
 html,body{margin:0;background:transparent}
-body{width:${frame.width}px;height:${frame.band}px;display:flex;align-items:${align};justify-content:center}
+body{width:${frame.width}px;height:${frame.band}px;display:flex;align-items:${align};justify-content:center;text-wrap:balance;word-break:auto-phrase}
 p{margin:${margin};max-width:${frame.maxWidth}px;padding:8px 28px;border-radius:12px;background:rgba(16,42,67,${BACKGROUND_ALPHA});
 border:1px solid rgba(255,255,255,.18);color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.55);
 font:600 ${frame.font}px/1.4 ${FONTS};text-align:center;letter-spacing:.02em}
