@@ -519,6 +519,21 @@ for path in sys.stdin.read().split():
   return "$bad"
 }
 
+# Issues are written in English and titled like commit subjects, because the pull request and the
+# squashed commit take an issue's title. New ikkan records are in English too.
+check_agents_english() {
+  local phrase bad=0
+  for phrase in \
+    'commits, issues, and pull requests in English' \
+    'the sections the ikkan workflow adds to an issue' \
+    'Title an issue in English like a commit subject' \
+    'New records under `.ikkan/` are written in English' \
+    'older ones are in Japanese'; do
+    grep -qF -- "$phrase" AGENTS.md || { echo "AGENTS.md does not say: $phrase"; bad=1; }
+  done
+  return "$bad"
+}
+
 check_plugin_validate() {
   command -v claude >/dev/null || { echo "claude is not installed"; return 77; }
   local target bad=0
@@ -553,6 +568,7 @@ run "Japanese headings have no commas or colons" check_japanese_headings
 run "no build output tracked" check_no_build_output
 run "bundled data is credited" check_notices
 run "script dependencies are named in AGENTS.md" check_script_dependencies
+run "AGENTS.md asks for issues and new .ikkan records in English" check_agents_english
 run "claude plugin validate" check_plugin_validate
 
 printf '%d passed, %d failed, %d skipped\n' "$pass" "$fail" "$skip"
