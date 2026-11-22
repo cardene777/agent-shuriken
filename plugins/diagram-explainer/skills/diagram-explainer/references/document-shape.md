@@ -26,13 +26,15 @@ Explainers of a standard, an API, or a protocol follow this order.
 3. **States and failures**: order of operations, completion, cancellation, and retries.
 4. **Demo**, when there is one: what a demo leaves out, stated in the text.
 5. **Production**, when there is an implementation: what production adds (transport, authentication, storage, payment, stock).
-6. **Details**: endpoints, schemas, code, and exception tables, in collapsed `details` blocks.
+6. **Details**: endpoints, schemas, code, and exception tables; fold only raw data of ten lines or more, such as a log or a full schema, into collapsed `details` blocks.
 
 Before writing, list the main operations, states, boundaries, and, when they apply, demo and production differences, and give each one a section or a figure.
 If an item has neither, write the missing text before adding tables or figures.
 
 Use tables for comparisons, mappings, and lists.
 Paragraphs and figures carry the explanation; a reader of the tables alone should not be expected to understand the subject.
+Put units in the column header, as in "Loan period (weeks)", and bare numbers in the cells.
+Give the cards of one block the same fields or labels in the same order, so the reader compares them line by line.
 
 Open with one plain sentence, then a concrete sequence of two to four steps, then what is out of scope.
 Introduce technical terms after the sequence that uses them, not in the first sentence.
@@ -50,8 +52,9 @@ Name what the subject actually defines (requests, responses, states, orders) ins
 | `lang` | no | `en` (default) or `ja`. Sets `<html lang>`, the date, the language-specific checks, and the interface language the page starts in (contents button, labels, PDF menu, chart units) |
 | `title` | yes | Document title |
 | `lead` | yes | One sentence under the title |
-| `date` | no | Date shown in the header or above the contents list. Defaults to the build date (`As of November 12, 2026`, or the Japanese form in Japanese documents) |
-| `tabs` | yes | Pages. One tab gives a single page with no header; two or more add header tabs ([tab-shape.md](tab-shape.md)) |
+| `facts` | no | Rows of the facts table under the first title: `asOf` (the time the document describes), `spec` (the specification and its version), and `read` (the date the sources were read) |
+| `date` | no | The time the document describes, used when `facts.asOf` is not given. Defaults to the build date (`November 12, 2026`, or the Japanese form in Japanese documents) |
+| `tabs` | yes | Pages. One tab gives a single page; two or more add page tabs to the header band ([tab-shape.md](tab-shape.md)) |
 
 Each tab has `id`, `label`, `sections`, and optionally `title` (page heading, defaults to `label`) and `lead` (the first page falls back to the document `lead`).
 Each section has `id`, `title`, `blocks`, and optionally `nofigure`.
@@ -62,13 +65,17 @@ Ids start with a letter and use letters, digits, `-`, and `_`; every id in a doc
 `render.py` produces this shape (single page shown). Write the same shape when editing by hand.
 
 ```html
-<aside class="doc-side" id="doc-side" data-ui-label="contents" aria-label="Contents">
-  <p class="doc-brand">Document title</p>
-  <p class="doc-date">As of November 12, 2026</p>
-  <div class="doc-ctrl">
-    <div class="doc-seg" role="group" data-ui-label="language" aria-label="Language"><button type="button" data-lang="en" lang="en">English</button><button type="button" data-lang="ja" lang="ja">日本語</button></div>
-    <div class="doc-seg" role="group" data-ui-label="theme" aria-label="Light or dark"><button type="button" data-theme-choice="light" ...><svg>...</svg></button><button type="button" data-theme-choice="dark" ...><svg>...</svg></button></div>
+<header class="doc-top">
+  <span class="doc-brand">Document title</span>
+  <div class="doc-tools">
+    <div class="doc-ctrl">
+      <div class="doc-seg" role="group" data-ui-label="language" aria-label="Language"><button type="button" data-lang="en" lang="en">English</button><button type="button" data-lang="ja" lang="ja">日本語</button></div>
+      <div class="doc-seg" role="group" data-ui-label="theme" aria-label="Light or dark"><button type="button" data-theme-choice="light" ...><svg>...</svg></button><button type="button" data-theme-choice="dark" ...><svg>...</svg></button></div>
+    </div>
+    <button type="button" class="doc-help" data-ui-label="help" aria-label="Help" aria-haspopup="dialog">?</button>
   </div>
+</header>
+<aside class="doc-side" id="doc-side" data-ui-label="contents" aria-label="Contents">
   <nav class="doc-toc" data-page="a" data-ui-label="pageContents" data-ui-name="First page" aria-label="First page contents">
     <button type="button" data-sec="a-s1">First section</button>
     <button type="button" data-sec="a-s2">Second section</button>
@@ -78,7 +85,16 @@ Ids start with a letter and use letters, digits, `-`, and `_`; every id in a doc
 <main class="doc-main">
 <div class="doc-page" data-page="a">
 <section class="doc-sec" id="a-s1" data-name="First section">
-  <div class="doc-pagehead"><h1>Document title</h1><p class="lead">One sentence on what the subject does.</p></div>
+  <div class="doc-pagehead">
+    <h1>Document title</h1>
+    <p class="lead">One sentence on what the subject does.</p>
+    <table class="facts" data-ui-label="facts" aria-label="About this document">
+      <tbody>
+        <tr><th scope="row" data-ui="factAsOf">As of</th><td>November 12, 2026</td></tr>
+        <tr><th scope="row" data-ui="factSpec">Follows</th><td>RFC 9110</td></tr>
+      </tbody>
+    </table>
+  </div>
   <h2><span class="num">01</span>First section</h2>
   <p>Body text.</p>
   <figure class="free" id="a-flow">
@@ -95,7 +111,7 @@ Ids start with a letter and use letters, digits, `-`, and `_`; every id in a doc
 <div class="doc-scrim"></div>
 ```
 
-With two or more pages the switches (`div.doc-ctrl`) sit in the header instead, and on narrow screens `assets/doc.js` moves them into the top bar.
+The header band (`header.doc-top`) holds the title, the page tabs when there are two or more pages, the switches (`div.doc-ctrl`), and the `?` button that opens the help in a dialog. On narrow screens `assets/doc.js` moves the switches into the top bar.
 
 The left contents list switches sections; only the chosen section is shown.
 Each section explains its topic fully in prose; do not cut text to fit one screen.
@@ -103,8 +119,11 @@ Each section explains its topic fully in prose; do not cut text to fit one scree
 
 ## The opening
 
-The first section of a page opens with the title (`<h1>`) and one `<p class="lead">`, nothing else.
+The first section of a page opens with the title (`<h1>`) and one `<p class="lead">`; the first page adds the facts table (`table.facts`), nothing else.
 Do not add a summary box, a list of assumptions, or reading instructions there.
+
+The facts table always has an As-of row: the time the document describes goes in `facts` as `asOf`, else in `date`, else the build date is used.
+Put the specification and the version the document follows in `facts` as `spec`, and the date you read its sources as `read`.
 
 A summary box repeats what the sections say next, so the reader reads it twice.
 Write assumptions and reading notes in the section that needs them.
@@ -128,6 +147,9 @@ Numbers run from 1 on each page and are counted separately for each prefix; `pro
 
 Do not put figures inside a collapsed `details` block: the reader would not see the figure while reading the section.
 
+Every figure gets an enlarge button at the right of its caption (`assets/doc.js`); it, or a press on the drawing, opens a copy of the drawing at twice its size in a dialog (`dialog.fig-zoom`), and closing the dialog returns the focus to the button.
+A figure or table wider than its box scrolls sideways in a named region that takes the focus, and fades the side where it continues.
+
 ## Blocks
 
 | `type` | Fields | Rendered as |
@@ -135,18 +157,21 @@ Do not put figures inside a collapsed `details` block: the reader would not see 
 | `paragraph` | `text` | `<p>` |
 | `heading` | `text` (required) | `<h3>` sub-heading inside the section |
 | `list` | `items` (non-empty array of strings) | `<ul>` |
-| `table` | `columns` (non-empty array), `rows` (each row has as many cells as `columns`) | `<div class="tbl"><table>` |
+| `table` | `caption` (required), `columns` (non-empty array), `rows` (each row has as many cells as `columns`), optional `num` (the number columns, counted from 0) | `<div class="tbl" role="region">` with a `<table>`, its `<caption>`, column headers (`th scope="col"`), and the first cell of each row as a row header (`th scope="row"`) |
 | `code` | `text`, optional `language` | `<pre><code class="language-NAME">`; the text is shown exactly as written |
 | `keys` | `items`: 2 or more objects with `term` and `text` | `<div class="keys">`: key numbers or terms with a short explanation |
-| `cards` | `items`: 2 or more objects with `title` and `text` or `list`; optional `label` (small tag) and `tone` | `<div class="cards">` of `.card` |
-| `note` | `text`, optional `title` and `tone` (`warn` for cautions, `info` for side notes; default `info`) | `<div class="note">`, a colored box |
+| `cards` | `items`: 2 or more objects with `title` and `text` or `list`; optional `label` (small tag) and `tone` (the item's state) | `<ul class="cards">` of `<li class="card">` |
+| `note` | `text`, optional `title` and `tone` (default `info`); `warn` needs a `title` that names the risk | `warn`: `<div class="note warn" role="note">`, a framed box with an icon; other tones: `<div class="note">`, a titled paragraph in gray |
 | `compare` | `items`: exactly 2 objects with `label` and `value` (the large value), optional `text` | `<div class="compare">`, left and right with the right side emphasized |
-| `chart` | `id`, `kind`, `caption`, `spec`, optional `views` (timeband only) | `<figure class="chart">` with an `<svg data-chart>` and its JSON |
+| `chart` | `id`, `kind`, `caption`, `spec`, optional `views` (timeband only, at most 5) | `<figure class="chart">` with an `<svg data-chart>` and its JSON |
 | `html` | `id`, `html`, optional `css` and `caption` | `<figure class="free">` with a caption, otherwise `<div class="free">` |
-| `details` | `summary`, `blocks` (any blocks) | `<details class="exp">`, closed |
+| `details` | `summary`, `blocks` (any blocks but `details`) | `<details class="exp">`, closed |
 
 `tone` is one of `accent`, `good`, `warn`, `info`.
-`keys` and `cards` change how many fit in a row with the screen width; `compare` stacks below 640 px.
+On a card it marks a state: `good` and `warn` color the card, and the others leave it plain.
+Keep a section to two warnings at most; `check.py` fails a section with three or more.
+A table's number cells (`td class="num"`) align right; its box keeps the header row and the first column in view while the table scrolls.
+`keys` change how many fit in a row with the screen width, cards fill columns at least 260 px wide, and `compare` stacks below 640 px.
 
 In text fields (all except `code` and `html`), `` `name` `` becomes `<code>name</code>` and any other markup is escaped.
 
@@ -186,13 +211,16 @@ For boxes that differ by fill, give the swatch a fill instead of a border, for e
 ## Collapsed details
 
 `details` blocks render closed. Do not add `open`: `check.py` fails open `<details>`.
-Collapse only long supporting material.
+Fold only raw data of ten lines or more, such as a log or a full schema; `check.py` fails a block of fewer than 10 lines.
+The `summary` names what the block holds ("Scan log for one morning, 12 lines"); `check.py` fails a summary that is only "More" or "Details".
+A `details` block never holds another, and `render.py` refuses one that does.
+A run of four or more blocks starts with buttons that open or close all of them.
 If one collapsed block would span several sub-headings, write it as normal text instead.
 
 ## Language and light or dark
 
-Two switches sit side by side in the header (above the contents list in a single-page document).
-The language switch (`English`, `日本語`) changes only the interface text: the contents button and labels, the previous and next buttons, the PDF menu, and chart units.
+Two switches sit side by side on the right of the header band, before the `?` button.
+The language switch (`English`, `日本語`) changes only the interface text: the contents button and labels, the previous and next buttons, the Save PDF menu, the help, and chart units.
 The document's own text and `<html lang>` stay in the language it was written in.
 The light and dark switch changes the colors.
 The page starts in the document's language and in the system's light or dark setting, and the browser remembers the reader's choices (`localStorage`), when it allows storage.
@@ -213,18 +241,21 @@ Use the variables rather than fixed colors, so the figure stays readable in dark
 |---|---|
 | `--bg`, `--panel`, `--card` | Page background, box background, card background |
 | `--line`, `--line-2` | Light and stronger borders |
+| `--rule` | Row lines of tables, at least 3:1 against the page |
+| `--label` | Background of the facts table row headers and of card labels |
 | `--ink`, `--ink-2`, `--ink-3`, `--ink-sub`, `--ink-faint` | Text, from strongest to faintest |
 | `--accent`, `--accent-soft` | Emphasis and its light fill |
 | `--good`, `--good-soft` | Success and its light fill |
 | `--warn`, `--warn-soft` | Caution and its light fill |
-| `--bad`, `--bad-soft` | Failure and its light fill |
+| `--critical`, `--critical-soft` | Failure and its light fill |
 | `--edge` | Lines and arrows |
 | `--radius` | Corner radius of boxes |
 
 ## Print
 
 On paper the header, contents list, and switches are hidden, every section is printed in order in light colors, and each section starts a new page (`assets/print.css`).
-Collapsed details are opened, time band view buttons are listed with their text, and capped bars show both states.
+Every collapsed `details` block is opened with its summary, and the ones the reader had closed are closed again after printing.
+Time band view buttons are listed with their text, capped bars show both states, and boxes that scroll are printed in full.
 Figures are kept on one page (`break-inside: avoid`).
 How to choose which pages to print is in [tab-shape.md](tab-shape.md).
 

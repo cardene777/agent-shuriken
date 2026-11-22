@@ -4,7 +4,7 @@ Have your agent write an explainer with a figure in every section, as one HTML f
 
 English · [日本語](README.ja.md)
 
-![A section of an explainer on how a TLS 1.3 connection is set up, with the contents list on the left and the handshake drawn as boxes and arrows, and the same section on a phone](assets/screenshot.png)
+![The first section of the bundled sample on how a public library lends books, with the header band holding the page tabs, the language and light or dark switches, Save PDF, and the help button, the facts table under the title, cards, and a figure with its enlarge button, and the same section on a phone](assets/screenshot.png)
 
 Asked to explain a system, an agent tends to write one long Markdown file, leave whole sections without a figure, call the same thing by different names in the text and in the figures, and produce pages that pull fonts and scripts from the network.
 This plugin gives your agent one way to do it instead.
@@ -44,11 +44,15 @@ In GitHub Copilot CLI, write `/diagram-explainer` in your request, and in Gemini
 3. The agent writes the content and builds the document
 4. The agent checks the document and rereads the text, then gives you the path of the HTML file. Ask for any change, and it rebuilds the document
 
-The document shows one section at a time from a contents list, splits two or more topics into pages with tabs in the header, slides its contents list in on a phone, and has a PDF button.
+The document shows one section at a time from a contents list, splits two or more topics into pages with page tabs in the header band, slides its contents list in on a phone, and has a Save PDF button that prints every collapsed block open.
+Under the title, a facts table gives the time the document describes, the specification and version it follows, and the date its sources were read.
 Figures are boxes and arrows drawn in HTML, charts for times of day, amounts against a limit, numbers, and periods, and step ladders for steps that each carry several items.
+Every figure has an enlarge button that opens it at twice its size in a dialog.
+Comparisons sit in tables with a caption, units in the column headers, and numbers aligned right; a long or wide table scrolls in its box and keeps its header row and first column in view.
+Warnings are framed boxes with an icon and a title, explanations are titled paragraphs, and raw data of ten lines or more is folded under a summary that names it.
 On a phone, a figure too wide for the screen keeps its text size and scrolls sideways, with a line under it that says so.
 It is written in the language you write in, and its buttons and labels start in that language (English or Japanese).
-The header holds two switches side by side: English / 日本語, which changes only the interface text, such as the contents button, the previous and next buttons, the PDF menu, and chart units, and a light and dark switch. The document's own text stays in the language it was written in, and printing always uses light colors.
+The header band holds the title, the page tabs, two switches side by side, and a `?` button that explains how to read the page. English / 日本語 changes only the interface text, such as the contents button, the previous and next buttons, the Save PDF menu, the help, and chart units, and the other switch chooses light or dark colors. The document's own text stays in the language it was written in, and printing always uses light colors.
 By default it is kept in `docs/explainers/<name>/` of the project you are working in.
 
 ## Requirements

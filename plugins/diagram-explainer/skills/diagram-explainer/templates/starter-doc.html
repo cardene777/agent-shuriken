@@ -24,13 +24,17 @@
 </head>
 <body>
 <!-- diagram-explainer:content:start -->
-<aside class="doc-side" id="doc-side" data-ui-label="contents" aria-label="Contents">
-  <p class="doc-brand">Document title</p>
-  <p class="doc-date">Date</p>
-  <div class="doc-ctrl">
-    <div class="doc-seg" role="group" data-ui-label="language" aria-label="Language"><button type="button" data-lang="en" lang="en" aria-pressed="false">English</button><button type="button" data-lang="ja" lang="ja" aria-pressed="false">日本語</button></div>
-    <div class="doc-seg" role="group" data-ui-label="theme" aria-label="Light or dark"><button type="button" data-theme-choice="light" data-ui-label="light" data-ui-title="light" aria-label="Light" title="Light" aria-pressed="false"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="3"/><path d="M8 1.5V3M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1"/></svg></button><button type="button" data-theme-choice="dark" data-ui-label="dark" data-ui-title="dark" aria-label="Dark" title="Dark" aria-pressed="false"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M13.4 10.1A5.6 5.6 0 0 1 5.9 2.6a5.6 5.6 0 1 0 7.5 7.5z"/></svg></button></div>
+<header class="doc-top">
+  <span class="doc-brand">Document title</span>
+  <div class="doc-tools">
+    <div class="doc-ctrl">
+      <div class="doc-seg" role="group" data-ui-label="language" aria-label="Language"><button type="button" data-lang="en" lang="en" aria-pressed="false">English</button><button type="button" data-lang="ja" lang="ja" aria-pressed="false">日本語</button></div>
+      <div class="doc-seg" role="group" data-ui-label="theme" aria-label="Light or dark"><button type="button" data-theme-choice="light" data-ui-label="light" data-ui-title="light" aria-label="Light" title="Light" aria-pressed="false"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="3"/><path d="M8 1.5V3M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1"/></svg></button><button type="button" data-theme-choice="dark" data-ui-label="dark" data-ui-title="dark" aria-label="Dark" title="Dark" aria-pressed="false"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M13.4 10.1A5.6 5.6 0 0 1 5.9 2.6a5.6 5.6 0 1 0 7.5 7.5z"/></svg></button></div>
+    </div>
+    <button type="button" class="doc-help" data-ui-label="help" aria-label="Help" aria-haspopup="dialog">?</button>
   </div>
+</header>
+<aside class="doc-side" id="doc-side" data-ui-label="contents" aria-label="Contents">
   <nav class="doc-toc" data-page="a" data-ui-label="pageContents" data-ui-name="Document title" aria-label="Document title contents">
     <button type="button" data-sec="a-s1">What it does</button>
     <button type="button" data-sec="a-s2">Terms</button>
@@ -44,6 +48,11 @@
   <div class="doc-pagehead">
     <h1>Document title</h1>
     <p class="lead">One plain sentence that says what the subject does.</p>
+    <table class="facts" data-ui-label="facts" aria-label="About this document">
+      <tbody>
+        <tr><th scope="row" data-ui="factAsOf">As of</th><td>Date</td></tr>
+      </tbody>
+    </table>
   </div>
   <h2><span class="num">01</span>What it does</h2>
   <p>Explain who the subject serves and what it handles, as a concrete sequence.</p>

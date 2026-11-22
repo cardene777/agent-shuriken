@@ -1,11 +1,11 @@
 # Pages with header tabs
 
-A document with two or more topics (for example how something works and how it is set up) is split into pages by tabs in the header.
+A document with two or more topics (for example how something works and how it is set up) is split into pages by page tabs in the header band.
 The left contents list holds only the current page's sections, so readers can read just the pages that concern them.
-A single-topic document has no header: a bar with one tab tells the reader nothing.
+A single-topic document has the same header band with the title and the switches but no page tabs: a bar with one tab tells the reader nothing.
 
 The template is [`starter-doc.html`](../templates/starter-doc.html).
-With two or more `tabs` in the content JSON, `render.py` builds the header and the pages.
+With two or more `tabs` in the content JSON, `render.py` builds the page tabs and the pages.
 All pages live in one HTML file and are switched in place.
 
 ## Rules
@@ -15,6 +15,7 @@ All pages live in one HTML file and are switched in place.
 | Page keys are short | `a` / `b` / `c` | They become the section id prefix |
 | Section ids are `<key>-s<number>` | `a-s1` / `b-s3` | Sections on different pages never share an id |
 | Header buttons and pages match one to one | `nav.doc-pages` `data-page="a"` and `div.doc-page[data-page="a"]` | A click knows which page to show |
+| The tabs are a tab list | `nav.doc-pages` with `role="tablist"`, each button `role="tab"` with `aria-selected` and `aria-controls`, each page `role="tabpanel"` | Screen readers announce the tabs and the page each one shows |
 | Pages other than the first are kept in a `template` | `<template data-fill="b">` | Their content is built only when the page opens |
 | Each page has its own contents list | `nav.doc-toc[data-page="a"]` | The order inside a page is shown on that page |
 | The first section of each page opens with a heading | Page title (`<h1>`) and one lead sentence | The reader knows which page they are on |
@@ -22,6 +23,12 @@ All pages live in one HTML file and are switched in place.
 `check.py` checks these rules: header buttons and pages, pages kept in a `template`, contents and sections per page, section id prefixes, and the PDF button.
 
 Caption numbers start at 1 on each page (`Figure 1`, `Figure 2`, ...); `prose.py` counts them per section id prefix.
+
+## Moving between tabs
+
+Only the chosen tab takes the Tab key; the left and right arrow keys move to the previous and next tab, and Home and End to the first and last, showing that page.
+The keys move between tabs only while a tab has the focus, so they never also move between sections.
+The chosen tab is scrolled into view when the tabs do not fit, and its 3px underline moves in 0.2 seconds.
 
 ## Why later pages wait in a `template`
 
@@ -38,15 +45,16 @@ Opening the document with a `#` fragment in the URL also shows that page and sec
 ## Narrow screens
 
 A bar at the top shows the current section name and a `☰ Contents` button (in Japanese documents, the Japanese word for contents).
-The button slides in the same contents list; choosing a section closes it.
+The button slides in the same contents list and moves the focus into it; choosing a section or closing the list returns the focus to the button.
+While the list is closed it cannot be reached with the keyboard, and while it is open the page behind it cannot.
 The header tabs stay above the bar and scroll sideways when they do not fit.
 The language and light or dark switches move from the header into the bar, on a second row when the bar has no room for them.
 A long document title is cut short with an ellipsis so that the tabs keep their room; keep the `title` short.
 
 ## Printing
 
-In a multi-page document the `PDF` button at the right of the header offers two choices.
-In a single-page document the button sits above the contents list and prints everything.
+In a multi-page document the Save PDF button at the right of the header band, before the `?` button, offers two choices.
+In a single-page document the button sits in the same place and prints everything.
 
 | Choice | Printed |
 |---|---|
@@ -57,6 +65,7 @@ Neither is the default because both uses are common: handing one topic to someon
 Printing from the browser's own print command prints all pages.
 
 On paper the header and contents list are hidden, every section is printed in order, and each section starts a new page.
+Every collapsed `details` block is printed open, and the enlarge buttons are left out.
 Time band view buttons are listed with their text, and capped bars show both states.
 Open the document with `?paper=1` (all pages) or `?paper=page` to see the paper layout on screen.
 

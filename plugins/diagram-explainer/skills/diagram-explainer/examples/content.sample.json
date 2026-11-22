@@ -2,6 +2,9 @@
   "lang": "en",
   "title": "How a public library lends books",
   "lead": "A library keeps one record for every copy it owns, sets a due date when a copy leaves the desk, and holds returned copies for the next member in line.",
+  "facts": {
+    "spec": "Loan rules, 2023 edition"
+  },
   "tabs": [
     {
       "id": "a",
@@ -202,7 +205,6 @@
                 {
                   "label": "Ages 18 and up",
                   "title": "Adult card",
-                  "tone": "accent",
                   "list": [
                     "30 items at a time",
                     "15 holds at a time",
@@ -212,7 +214,6 @@
                 {
                   "label": "Ages 13 to 17",
                   "title": "Teen card",
-                  "tone": "good",
                   "list": [
                     "20 items at a time",
                     "10 holds at a time",
@@ -222,13 +223,22 @@
                 {
                   "label": "Under 13",
                   "title": "Child card",
-                  "tone": "info",
-                  "text": "A parent or guardian signs for the card and is told about overdue items."
+                  "list": [
+                    "10 items at a time",
+                    "5 holds at a time",
+                    "A parent or guardian signs for the card and is told about overdue items"
+                  ]
                 }
               ]
             },
             {
               "type": "table",
+              "caption": "Limits by card type",
+              "num": [
+                1,
+                2,
+                3
+              ],
               "columns": [
                 "Card",
                 "Items at once",
@@ -384,37 +394,47 @@
             },
             {
               "type": "details",
-              "summary": "Replacement charges by item type",
+              "summary": "Scan log for one morning, 12 lines",
               "blocks": [
                 {
-                  "type": "paragraph",
-                  "text": "A copy that is lost or comes back damaged is charged at a flat rate."
-                },
-                {
-                  "type": "table",
-                  "columns": [
-                    "Item",
-                    "Loan period",
-                    "Replacement charge"
-                  ],
-                  "rows": [
-                    [
-                      "Book",
-                      "3 weeks",
-                      "$20"
-                    ],
-                    [
-                      "DVD",
-                      "1 week",
-                      "$15"
-                    ],
-                    [
-                      "Magazine",
-                      "1 week",
-                      "$5"
-                    ]
-                  ]
+                  "type": "code",
+                  "language": "text",
+                  "text": "09:02 scan copy 31207 member 5521 oldest overdue  0 days -> lend\n09:05 scan copy 18842 member 4410 oldest overdue 12 days -> lend\n09:11 scan copy 40113 member 6630 oldest overdue 31 days -> pause\n09:14 scan copy 22950 member 3307 oldest overdue  0 days -> lend\n09:20 scan copy 51076 member 6630 oldest overdue 31 days -> pause\n09:26 scan copy 33418 member 7012 oldest overdue  5 days -> lend\n09:31 scan copy 47205 member 2289 oldest overdue 30 days -> lend\n09:37 scan copy 12964 member 5108 oldest overdue 44 days -> pause\n09:42 scan copy 38871 member 4410 oldest overdue 12 days -> lend\n09:48 scan copy 26530 member 6194 oldest overdue  0 days -> lend\n09:53 scan copy 41187 member 2289 oldest overdue 30 days -> lend\n09:58 scan copy 19043 member 7735 oldest overdue 62 days -> pause"
                 }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "text": "A copy that is lost or comes back damaged is charged at a flat rate."
+            },
+            {
+              "type": "table",
+              "caption": "Replacement charges by item type",
+              "num": [
+                1,
+                2
+              ],
+              "columns": [
+                "Item",
+                "Loan period (weeks)",
+                "Replacement charge ($)"
+              ],
+              "rows": [
+                [
+                  "Book",
+                  "3",
+                  "20"
+                ],
+                [
+                  "DVD",
+                  "1",
+                  "15"
+                ],
+                [
+                  "Magazine",
+                  "1",
+                  "5"
+                ]
               ]
             }
           ]

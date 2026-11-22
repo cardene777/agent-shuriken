@@ -2,6 +2,9 @@
   "lang": "ja",
   "title": "公共図書館が本を貸す仕組み",
   "lead": "図書館は持っている本の1冊ごとに記録を持ち、窓口から出る時に返す日を決め、返ってきた本を次に待つ人のために取り置きます。",
+  "facts": {
+    "spec": "2023年版の貸出の規則"
+  },
   "tabs": [
     {
       "id": "a",
@@ -202,7 +205,6 @@
                 {
                   "label": "18歳以上",
                   "title": "大人の券",
-                  "tone": "accent",
                   "list": [
                     "一度に30冊",
                     "予約は15件まで",
@@ -212,7 +214,6 @@
                 {
                   "label": "13歳から17歳",
                   "title": "10代の券",
-                  "tone": "good",
                   "list": [
                     "一度に20冊",
                     "予約は10件まで",
@@ -222,13 +223,22 @@
                 {
                   "label": "13歳未満",
                   "title": "子どもの券",
-                  "tone": "info",
-                  "text": "親か保護者が券に署名し、返す日を過ぎた本があると知らせを受けます。"
+                  "list": [
+                    "一度に10冊",
+                    "予約は5件まで",
+                    "親か保護者が券に署名し、返す日を過ぎた本があると知らせを受ける"
+                  ]
                 }
               ]
             },
             {
               "type": "table",
+              "caption": "券の種類ごとの上限",
+              "num": [
+                1,
+                2,
+                3
+              ],
               "columns": [
                 "券",
                 "一度に借りる数",
@@ -384,37 +394,47 @@
             },
             {
               "type": "details",
-              "summary": "種類ごとの弁償の額",
+              "summary": "ある朝の読み取りの記録（12行）",
               "blocks": [
                 {
-                  "type": "paragraph",
-                  "text": "なくした本と傷んで返った本は、決まった額を払います。"
-                },
-                {
-                  "type": "table",
-                  "columns": [
-                    "種類",
-                    "貸出の期間",
-                    "弁償の額"
-                  ],
-                  "rows": [
-                    [
-                      "本",
-                      "3週間",
-                      "20ドル"
-                    ],
-                    [
-                      "DVD",
-                      "1週間",
-                      "15ドル"
-                    ],
-                    [
-                      "雑誌",
-                      "1週間",
-                      "5ドル"
-                    ]
-                  ]
+                  "type": "code",
+                  "language": "text",
+                  "text": "09:02 scan copy 31207 member 5521 oldest overdue  0 days -> lend\n09:05 scan copy 18842 member 4410 oldest overdue 12 days -> lend\n09:11 scan copy 40113 member 6630 oldest overdue 31 days -> pause\n09:14 scan copy 22950 member 3307 oldest overdue  0 days -> lend\n09:20 scan copy 51076 member 6630 oldest overdue 31 days -> pause\n09:26 scan copy 33418 member 7012 oldest overdue  5 days -> lend\n09:31 scan copy 47205 member 2289 oldest overdue 30 days -> lend\n09:37 scan copy 12964 member 5108 oldest overdue 44 days -> pause\n09:42 scan copy 38871 member 4410 oldest overdue 12 days -> lend\n09:48 scan copy 26530 member 6194 oldest overdue  0 days -> lend\n09:53 scan copy 41187 member 2289 oldest overdue 30 days -> lend\n09:58 scan copy 19043 member 7735 oldest overdue 62 days -> pause"
                 }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "text": "なくした本と傷んで返った本は、決まった額を払います。"
+            },
+            {
+              "type": "table",
+              "caption": "種類ごとの弁償の額",
+              "num": [
+                1,
+                2
+              ],
+              "columns": [
+                "種類",
+                "貸出の期間（週）",
+                "弁償の額（ドル）"
+              ],
+              "rows": [
+                [
+                  "本",
+                  "3",
+                  "20"
+                ],
+                [
+                  "DVD",
+                  "1",
+                  "15"
+                ],
+                [
+                  "雑誌",
+                  "1",
+                  "5"
+                ]
               ]
             }
           ]
