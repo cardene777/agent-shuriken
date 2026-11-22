@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Toggle</title>
+</head>
+<!-- White page whose background flips between white and black on each mousedown, for timing checks. -->
+<body style="margin:0;height:100vh;background:#fff">
+<button id="press" type="button" style="position:absolute;left:860px;top:480px;width:200px;height:80px">Press</button>
+<script>
+  document.getElementById("press").addEventListener("mousedown", () => {
+    document.body.style.background = document.body.style.background === "rgb(0, 0, 0)" ? "#fff" : "#000";
+  });
+</script>
+</body>
+</html>
