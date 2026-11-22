@@ -1,7 +1,7 @@
 {
   "name": "screen-video",
   "version": "0.1.0",
-  "description": "Plan a screen video of a web app with your agent, check it as a storyboard of pictures, and record it in a browser into captioned, edited, vertical, and GIF videos, blurring private values and stopping before steps that send something or pay",
+  "description": "Plan a screen video of a web app with your agent, check it as a storyboard of pictures, and record it in a browser into narrated videos with quiet music, a themed frame, title and chapter cards, and a zoom on each action, as 16:9, 9:16, and GIF, blurring private values and stopping before steps that send something or pay",
   "author": {
     "name": "cardene777",
     "url": "https://github.com/cardene777"
@@ -14,13 +14,14 @@
     "demo-video",
     "playwright",
     "storyboard",
-    "captions"
+    "captions",
+    "narration"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Screen Video",
     "shortDescription": "Plan and record web app videos",
-    "longDescription": "Makes videos of a web app. The agent asks what the video is for, who will watch it, and how long it should be, proposes the steps, and writes them as a flow file in the project, naming each button and field by its accessible name so the flow survives layout changes. A rehearsal runs the flow in a headless browser without recording and writes a storyboard of pictures, one per step, and stops before the first step marked as sending something or paying. After you have seen the storyboard, the agent records the flow with Playwright and makes a raw video, a captioned video, an edited video that zooms in on each action and cuts the waits, and, when the flow asks, a 9:16 video and a GIF. Private values are blurred in every frame, login values are read from an env file and never shown, and steps that send something or pay are recorded only after you agree. It can also caption a recording you made.",
+    "longDescription": "Makes videos of a web app. The agent asks what the video is for, who will watch it, and how long it should be, proposes the steps, and writes them as a flow file in the project, naming each button and field by its accessible name so the flow survives layout changes. A rehearsal runs the flow in a headless browser without recording and writes a storyboard of pictures, one per step, and stops before the first step marked as sending something or paying. After you have seen the storyboard, the agent records the flow with Playwright and makes a raw video, a captioned video, and an edited video, and, when the flow asks, a 9:16 video and a GIF in the same look. The edited video eases in on each action, sets the screen in a frame on a theme's background with title, chapter, and end cards, reads the captions aloud with a voice made on your machine, plays quiet music and click sounds, plays long waits fast instead of cutting them, and fits the length you planned. Private values are blurred in every frame, login values are read from an env file and never shown, and steps that send something or pay are recorded only after you agree. It can also caption a recording you made.",
     "developerName": "cardene777",
     "category": "Productivity",
     "capabilities": [],
