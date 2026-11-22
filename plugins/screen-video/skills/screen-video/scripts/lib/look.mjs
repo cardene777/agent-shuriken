@@ -3,7 +3,10 @@
  * screen, the captions, the title, chapter, and end cards, and the fast-forward mark.
  *
  * Every picture is drawn by Playwright's Chromium, because many ffmpeg builds cannot draw text, and
- * a browser lays out every script and wraps long lines on its own. All themes share one layout
+ * a browser lays out every script and wraps long lines on its own. Captions and cards are drawn in a
+ * page whose `lang` is the flow's language, and their lines are evened out (`text-wrap: balance`) and
+ * broken between phrases (`word-break: auto-phrase`, which Chromium applies to Japanese), so a long
+ * title never leaves one or two characters on its last line. All themes share one layout
  * (`LAYOUTS`); a theme changes only colours, fonts, and corners.
  *
  * | Layout | Size | Where the screen sits | Where captions go |
@@ -25,18 +28,22 @@ const OVER = { width: 1920, height: 1080, maxWidth: 1500, margin: 24, scale: 1 }
 const CLEARANCE = 24;
 
 const escape = (text) => String(text).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+/** Lines of about the same length, broken between phrases where the language allows. */
+const EVEN_LINES = "text-wrap:balance;word-break:auto-phrase";
 
-function captionPage(text, look, maxWidth, scale) {
+/** The page a caption is drawn from, its text in a `<p>`. */
+export function captionPage(text, look, maxWidth, scale, language = "en") {
   const c = look.caption;
-  return `<!doctype html><html><head><meta charset="utf-8"><style>
+  return `<!doctype html><html lang="${escape(language)}"><head><meta charset="utf-8"><style>
 html,body{margin:0;background:transparent}
-p{display:inline-block;margin:0;max-width:${maxWidth}px;box-sizing:border-box;padding:${Math.round(12 * scale)}px ${Math.round(30 * scale)}px;
+p{display:inline-block;margin:0;max-width:${maxWidth}px;box-sizing:border-box;padding:${Math.round(12 * scale)}px ${Math.round(30 * scale)}px;${EVEN_LINES};
 border-radius:${c.radius}px;background:${rgba(c.band, c.opacity)};color:${c.color};
 font:${c.weight} ${Math.round(c.size * scale)}px/1.32 ${c.font};text-align:center;letter-spacing:.01em}
 </style></head><body><p>${escape(text)}</p></body></html>`;
 }
 
-function cardPage(card, look, size, number) {
+/** The page a title, chapter, or end card is drawn from, its text in an `<h1>`. */
+export function cardPage(card, look, size, number, language = "en") {
   const k = look.card;
   const tall = size.height > size.width;
   const unit = tall ? 1.15 : 1;
@@ -48,9 +55,9 @@ function cardPage(card, look, size, number) {
   if (card.url) lines.push(`<div class="url">${escape(card.url)}</div>`);
   if (card.note) lines.push(`<div class="note">${escape(card.note)}</div>`);
   const credit = card.credit ? `<div class="credit">${escape(card.credit)}</div>` : "";
-  return `<!doctype html><html><head><meta charset="utf-8"><style>
+  return `<!doctype html><html lang="${escape(language)}"><head><meta charset="utf-8"><style>
 html,body{margin:0;width:${size.width}px;height:${size.height}px;background:${k.background};overflow:hidden}
-body{display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:${k.font};color:${k.color};text-align:center}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:${k.font};color:${k.color};text-align:center;${EVEN_LINES}}
 main{max-width:${Math.round(size.width * 0.8)}px;display:flex;flex-direction:column;align-items:center;gap:${Math.round(22 * unit)}px}
 .bar{width:${Math.round(72 * unit)}px;height:${Math.round(6 * unit)}px;border-radius:3px;background:${k.accent}}
 .kicker{font-weight:700;font-size:${Math.round(30 * unit)}px;letter-spacing:.2em;color:${k.accent}}
@@ -95,8 +102,8 @@ html,body{margin:0;background:transparent}
 const overlaps = (a, b) =>
   a.x < b.x + b.width + CLEARANCE && b.x - CLEARANCE < a.x + a.width && a.y < b.y + b.height + CLEARANCE && b.y - CLEARANCE < a.y + a.height;
 
-/** Opens one browser for all the pictures of a run. Close it with `close()`. */
-export async function openDrawer(look, dir) {
+/** Opens one browser for all the pictures of a run, whose text is in `language`. Close it with `close()`. */
+export async function openDrawer(look, dir, language = "en") {
   const { chromium } = playwright();
   const browser = await chromium.launch();
   const tab = await browser.newPage({ viewport: { width: 1920, height: 1920 }, deviceScaleFactor: 1 });
@@ -122,14 +129,14 @@ export async function openDrawer(look, dir) {
     /** A caption below the screen. Returns its file and its box in the video. */
     async caption(text, layout) {
       const area = layout.captions;
-      const shot = await shoot(captionPage(text, look, area.maxWidth, area.scale), "p", "caption", { width: layout.width, height: Math.max(200, area.height * 2) });
+      const shot = await shoot(captionPage(text, look, area.maxWidth, area.scale, language), "p", "caption", { width: layout.width, height: Math.max(200, area.height * 2) });
       const x = Math.round((layout.width - shot.width) / 2);
       const y = Math.round(area.top + Math.max(0, (area.height - shot.height) / 2));
       return { file: shot.file, box: { x, y, width: shot.width, height: shot.height } };
     },
     /** A caption laid over the recording: at the bottom, or at the top when the bottom would cover a box in `avoid`. */
     async over(text, avoid = []) {
-      const shot = await shoot(captionPage(text, look, OVER.maxWidth, OVER.scale), "p", "over", { width: OVER.width, height: 400 });
+      const shot = await shoot(captionPage(text, look, OVER.maxWidth, OVER.scale, language), "p", "over", { width: OVER.width, height: 400 });
       const x = Math.round((OVER.width - shot.width) / 2);
       const bottom = { x, y: OVER.height - OVER.margin - shot.height, width: shot.width, height: shot.height };
       const top = { ...bottom, y: OVER.margin };
@@ -138,7 +145,7 @@ export async function openDrawer(look, dir) {
     },
     /** A card filling the whole video. `number` is the chapter's number. */
     async card(card, layout, number) {
-      return (await shoot(cardPage(card, look, layout, number), "body", "card", { width: layout.width, height: layout.height })).file;
+      return (await shoot(cardPage(card, look, layout, number, language), "body", "card", { width: layout.width, height: layout.height })).file;
     },
     /** The fast-forward mark, at the top right of the screen. */
     async mark(speed, layout) {
