@@ -44,9 +44,9 @@ Function length is not measured for Ruby, Lua, shell, Elixir, Clojure, and Haske
 | `semgrep` | `.venv/bin/semgrep`, then `PATH`, when the folder has `.semgrep.yml`, `.semgrep.yaml`, or `.semgrep/` | It runs as `semgrep scan --json --quiet --metrics off --disable-version-check` with a `--config` for each of those rule files, and never with registry rules such as `auto` or `p/...`. A finding whose rule id or `category` says security is dropped. A finding whose rule id, message, or metadata mentions deprecation goes to the deprecated calls measure. The rest are kept here. semgrep's settings, anonymous id, and log go to a temporary folder that is removed after the run, so `~/.semgrep` is not written and a semgrep login is not used |
 | `eslint` | `node_modules/.bin/eslint`, when `package.json` exists | It first runs `eslint --print-config` on a JavaScript or TypeScript file. Only when the config turns on a deprecation rule, such as `@typescript-eslint/no-deprecated`, `react/no-deprecated`, `import/no-deprecated`, or `deprecation/deprecation`, it runs `eslint --format json .` with the project's config and keeps the findings of those rules, under the deprecated calls measure |
 
-A tool that is not installed is reported as not run, with the reason. `scan.json` and the summary write each reason in English; the Japanese report puts the reasons it knows in Japanese and quotes any other reason as written.
-A tool that stops with an error is also reported as not run, with its exit code and the first line it wrote, so that its findings are not counted as zero.
-The report quotes the words a tool wrote, its findings and the first line of a tool that stopped, in code and letter for letter, apart from the report's own words. `scan.json` keeps them as the tool wrote them.
+A tool that is not installed is reported as not run, with the reason. `scan.json` and the summary write each reason in English. The report gives each reason in its own words, in English or Japanese, as two sentences: what happened and what to do next.
+A tool that stops with an error is also reported as not run in `scan.json` and the summary, with its exit code and the first line it wrote, so that its findings are not counted as zero. The report tags it Stopped and never shows its exit code or the error it wrote.
+The report quotes the findings a tool wrote in code and letter for letter, apart from the report's own words. `scan.json` keeps them as the tool wrote them.
 The plugin never downloads or installs a tool.
 
 ## The ranking
@@ -78,18 +78,32 @@ Notes stay with the same file in later scans while the file is still ranked.
 | File | What it holds |
 |---|---|
 | `templates/base.html` | The report page, with its styles and script inside. `report` puts the scan, the notes, and the project name into it |
-| `musubi.json` | The optional follows of `page-design/structure`, `page-design/look`, `page-design/report`, and `page-design/verify` through musubi: for each, the version range `^1.0.0`, the fingerprint of the content at the last check, and `"optional": true` |
+| `musubi.json` | The optional follows of `page-design/structure`, `page-design/look`, `page-design/report`, and `page-design/verify` through musubi: for each, its version range (`^1.0.0` for `structure` and `^2.0.0` for the others), the fingerprint of the content at the last check, and `"optional": true` |
 
 The report is titled `Technical debt in <project>`.
-Under the title, the facts about the scan sit on one line as pairs of a name and a value: the commit, the branch, the number of source files, the commits in the window, and when the report was generated. Outside git, the first pair says that there is no git history.
+Under the title, the facts about the scan are rows of a table, each with its name in bold beside its value: the commit, the branch, the number of source files, the commits in the window, and when the report was generated. Outside git, the first row says that there is no git history, and a notice at the top of the content says which values that leaves out.
 Its header has the language switch and, next to it, a Light and Dark switch.
 The colors follow the system setting until the reader chooses, and the browser keeps both choices in its local storage under `techdebt-lang` and `techdebt-theme`. Nothing is sent anywhere.
 
-Under the header, a band of numbers gives one card per measure, and pressing a card opens its tab.
-A measure that could not run shows as not measured, never as 0: hotspots outside git, unused dependencies when there is no `package.json`, and deprecated calls when none of `ruff`, `semgrep`, and `eslint` ran. Unused dependencies found by name, without knip, say on their card that the count is approximate.
+Under the header, a band of numbers gives one card per measure. Pressing a card opens the tab that holds the measure and moves to its section.
+A measure that could not run shows as not measured, never as 0: hotspots outside git, unused dependencies when there is no `package.json`, and deprecated calls when none of `ruff`, `semgrep`, and `eslint` ran. Unused dependencies found by name, without knip, say on their card that the count is approximate, and a caution above their table asks to check each one before removing it.
 Japanese labels on the band break only at the phrase breaks the dictionary marks with `\u200b`.
-The ranking tab lists the files on the left, each with its score from 0 to 1 as a number with two decimals, as `scan` prints it, and a bar of the same value. The row you press shows its measures, its score, and the agent's notes in a panel beside the list, or under it on a narrow screen. A list longer than 50 rows is split into pages, with the page buttons above and below it.
-Under the tabs, on every tab, a section says how each value was measured, and a table lists each tool the scan tried, what it is used for, and whether it ran or why not.
+
+The report has five tabs, and each tab shows the number of rows it holds beside its name.
+
+| Tab | What it holds |
+|---|---|
+| Priorities | The ranked files, with the details of the pressed file beside them |
+| Change history | Hotspots and markers |
+| Code | Files without a matching test, long functions, large files, and duplication |
+| Dependencies | Unused dependencies and deprecated calls |
+| Tools | What each tool the scan ran found |
+
+The Priorities tab lists each file with its score from 0 to 1 as a number with two decimals, as `scan` prints it, and a bar of the same value. Pressing a row shows its measures, its score, and the agent's notes beside the list, and the list and the details scroll apart. Below 860px the details take the place of the list, with a button back to the list and links to the previous and next files.
+The address of the page keeps what is open: `#item-<path>` for an open file, `#<tab>` for a tab such as `#history`, `#<measure>` for a measure such as `#markers`, and `#list` for the ranked list. A link with one of them opens the page at the same place, and the browser's Back returns from a file to the list.
+Each table keeps its header row and its first column in view and scrolls sideways inside its own box. A table of more than 10 rows sorts by pressing a column header. A table of more than 50 rows has a search box and a filter, says which rows are on view, and is split into pages of 50 rows with the page buttons above and below it. The hotspots table puts a bar beside each changes times lines value, sized against the largest value in the list.
+A tag with an icon says whether each tool Ran, was Not run, or Stopped, and the tools are listed from the one that stopped to the ones that ran. A tool that did not run says in the report's own words what happened and what to do next.
+Under the tabs, on every tab, a section says how each value was measured, and a table lists each tool the scan tried, what it is used for, and its tag and result. Below 600px these tables show as lists of names and values.
 
 - When the page-design skill of the design-formats plugin is installed, the agent reads its `structure` and `look` formats and its `report` page type, which `musubi.json` follows as optional follows, and runs page-design's `verify` on the finished `report.html`. It reads nothing else from other plugins
 - When the `musubi` command is installed, the agent runs `musubi check` before reading them and stops if it fails; the check skips the follows with a warning when design-formats is not installed. When a followed content changes, `musubi check` refuses techdebt until its fingerprint is checked again

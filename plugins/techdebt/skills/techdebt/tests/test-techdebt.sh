@@ -217,7 +217,7 @@ H="$STATE/report.html"
 check "the report is written" "[ -s \"$H\" ]"
 check "the report loads nothing from the network" "! grep -qiE '(src|href)=\"https?:|url\\(https?:|fetch\\(|XMLHttpRequest|<link ' \"$H\""
 check "a marker containing a closing script tag does not break the page" "[ \"\$(grep -o '</script>' \"$H\" | wc -l | tr -d ' ')\" = 1 ]"
-check "the report has English and Japanese labels" "grep -q 'Start here' \"$H\" && grep -q '最初に直す物' \"$H\""
+check "the report has English and Japanese labels" "grep -q 'Priorities' \"$H\" && grep -q '優先順' \"$H\""
 check "the report has a tab for deprecated calls" "grep -q 'Deprecated calls' \"$H\" && grep -q '非推奨の呼び出し' \"$H\""
 
 # Masking of marker lines
@@ -603,14 +603,14 @@ def text(s):
 def panel(dom):
     return dom[dom.find('id="panel"'):]
 
-def status(lang, tool, found):
-    if tool["ran"]:
-        return {"en": "%d findings", "ja": "%d件"}[lang] % found
-    # The Japanese page puts the reason in its own words, which the checks of the reasons read.
-    return "Not run because " + tool["reason"] if lang == "en" else None
+# The state of a tool, as the tag before its result says it.
+STATE_WORDS = {"en": {"ran": "Ran", "not-run": "Not run", "stopped": "Stopped"},
+               "ja": {"ran": "動いた", "not-run": "動かしていない", "stopped": "止まった"}}
 
-def same(got, want):
-    return got == want or (want is not None and want[1] is None and got is not None and got[0] == want[0] and got[1] != "")
+def state_of(tool):
+    if tool["ran"]:
+        return "ran"
+    return "stopped" if re.match(r"^\S+ stopped with exit code", tool["reason"]) else "not-run"
 
 if what == "facts":
     at = d["generated_at"][:16].replace("T", " ")
@@ -627,15 +627,16 @@ if what == "facts":
                 "ja": [("gitの履歴", "gitのリポジトリではありません"), ("ソースファイル", files), ("作成日時", at)]}
     for lang in ("en", "ja"):
         for tab in tabs:
-            m = re.search(r'<h1 id="title">[^<]*</h1>\s*<div class="facts-wrap"><table class="facts" id="facts"[^>]*><tbody[^>]*>(.*?)</tbody></table></div>', page(lang, tab), re.S)
+            # The table may name itself in a caption before its rows, and a value may sit in an element such as <time>.
+            m = re.search(r'<h1 id="title">[^<]*</h1>\s*<div class="facts-wrap"><table class="facts" id="facts"[^>]*>(?:<caption\b[^>]*>[^<]*</caption>)?<tbody[^>]*>(.*?)</tbody></table></div>', page(lang, tab), re.S)
             if not m:
                 problems.append("%s %s: no facts table under the title" % (lang, tab))
                 continue
-            row = r'<tr role="row"><th scope="row" role="rowheader">([^<]*)</th><td role="cell">([^<]*)</td></tr>'
+            row = r'<tr[^>]*><th scope="row"[^>]*>([^<]*)</th><td[^>]*>((?:[^<]|<time\b[^>]*>[^<]*</time>)*)</td></tr>'
             if not re.fullmatch("(?:%s)+" % row, m.group(1)):
                 problems.append("%s %s: the facts table holds something besides one row of a row header and a value per fact" % (lang, tab))
                 continue
-            got = [(html.unescape(a), html.unescape(b)) for a, b in re.findall(row, m.group(1))]
+            got = [(html.unescape(a), text(b)) for a, b in re.findall(row, m.group(1))]
             if got != want[lang]:
                 problems.append("%s %s: facts %r, wanted %r" % (lang, tab, got, want[lang]))
 
@@ -652,37 +653,45 @@ elif what == "no-sentence":
 
 elif what == "tools":
     for lang in ("en", "ja"):
-        sections = re.findall(r'<section class="tool">(.*?)</section>', panel(page(lang, "tools")), re.S)
+        sections = re.findall(r'<section class="tool"[^>]*>(.*?)</section>', panel(page(lang, "tools")), re.S)
         if len(sections) != len(d["tools"]) or not sections:
             problems.append("%s: %d tool sections for %d tools" % (lang, len(sections), len(d["tools"])))
             continue
-        for tool, section in zip(d["tools"], sections):
-            # A Japanese line breaks after each full stop, so the line under the name may hold <br>.
-            m = re.match(r"<h3>([^<]*)</h3><p\b[^>]*>((?:[^<]|<br>)*)</p>", section)
-            want = (tool["tool"], status(lang, tool, len(tool["findings"])))
-            got = (html.unescape(m.group(1)), html.unescape(m.group(2).replace("<br>", ""))) if m else None
-            if not same(got, want):
-                problems.append("%s: tool section %r, wanted the heading and the line under it %r" % (lang, got or text(section)[:80], want))
+        # Each section is headed by the tool's name alone, and the line under it starts with the tag of its state.
+        got = {}
+        for section in sections:
+            m = re.match(r"\s*<h3\b[^>]*>([^<]*)</h3>\s*<p\b[^>]*>(.*?)</p>", section, re.S)
+            tag = re.search(r'<span class="tag\b[^"]*"[^>]*>(.*?)</span>', m.group(2), re.S) if m else None
+            if m:
+                got[html.unescape(m.group(1))] = text(tag.group(1)) if tag else None
+        for tool in d["tools"]:
+            want = STATE_WORDS[lang][state_of(tool)]
+            if got.get(tool["tool"]) != want:
+                problems.append("%s: the section of %s shows %r under its name, wanted the tag %r" % (lang, tool["tool"], got.get(tool["tool"], "no section"), want))
 
 elif what == "deprecated":
     calls = d["deprecated_calls"]
     for lang in ("en", "ja"):
-        table = re.search(r"<table>(.*?)</table>", panel(page(lang, "deprecated")), re.S)
+        # The deprecated calls are a section of the dependencies tab, headed by the table of the tools.
+        part = re.search(r'<section\b[^>]*data-measure="deprecated"[^>]*>(.*?)</section>', panel(page(lang, "deps")), re.S)
+        table = re.search(r"<table\b[^>]*>(.*?)</table>", part.group(1), re.S) if part else None
         if not table:
-            problems.append("%s: the deprecated calls tab has no table of the tools" % lang)
+            problems.append("%s: the dependencies tab has no table of the tools in its deprecated calls section" % lang)
             continue
-        heads = [text(x) for x in re.findall(r"<th\b[^>]*>(.*?)</th>", table.group(1))]
-        rows = [(html.unescape(a), html.unescape(b.replace("<br>", ""))) for a, b in re.findall(r"<tr><td><code>([^<]*)</code></td><td>((?:[^<]|<br>)*)</td></tr>", table.group(1))]
+        heads = [text(x) for x in re.findall(r"<th\b[^>]*scope=\"col\"[^>]*>(.*?)</th>", table.group(1), re.S)]
+        rows = {text(a): text((re.search(r'<span class="tag\b[^"]*"[^>]*>(.*?)</span>', b, re.S) or [None, ""])[1])
+                for a, b in re.findall(r"<tr\b[^>]*><th scope=\"row\"[^>]*>(.*?)</th>\s*<td\b[^>]*>(.*?)</td></tr>", table.group(1), re.S)}
         want_heads = {"en": ["Tool", "Result"], "ja": ["ツール", "結果"]}[lang]
-        want_rows = [(s["tool"], status(lang, s, sum(1 for i in calls["items"] if i["tool"] == s["tool"]))) for s in calls["tools"]]
-        if heads != want_heads or len(rows) != len(want_rows) or not all(same(g, w) for g, w in zip(rows, want_rows)) or not rows:
+        want_rows = {s["tool"]: STATE_WORDS[lang][state_of(s)] for s in calls["tools"]}
+        if heads != want_heads or rows != want_rows or not rows:
             problems.append("%s: the table has %r and %r, wanted %r and %r" % (lang, heads, rows, want_heads, want_rows))
 
 elif what in ("quoted", "plain"):
     # The words of a finding belong to the tool, so the page quotes them in code, letter for letter.
+    # The deprecated calls are a section of the dependencies tab.
     said = {"tools": [f["message"] for tool in d["tools"] if tool["ran"] for f in tool["findings"]],
-            "deprecated": [i["message"] for i in d["deprecated_calls"]["items"]]}
-    if not said["tools"] or not said["deprecated"]:
+            "deps": [i["message"] for i in d["deprecated_calls"]["items"]]}
+    if not said["tools"] or not said["deps"]:
         problems.append("the report has no findings on the tools tab or the deprecated calls tab")
     for lang in ("en", "ja"):
         for tab, messages in said.items():
@@ -694,34 +703,6 @@ elif what in ("quoted", "plain"):
                 if what == "plain" and "<td>%s</td>" % words in body:
                     problems.append("%s %s: %r is plain text of the page" % (lang, tab, message))
 
-elif what == "stopped":
-    # A tool that stopped: the exit code in the page's words, then the tool's first line quoted in code.
-    split = re.compile(r"^(\S+ stopped with exit code -?\d+): (.+)$", re.S)
-    prefix = {"en": "Not run because ", "ja": "動かしていません。"}
-    places = (("tools", d["tools"], '<h3>{name}</h3><p class="state">{shown}</p>'),
-              ("deprecated", d["deprecated_calls"]["tools"], '<tr><td><code>{name}</code></td><td>{shown}</td></tr>'))
-    if not any(not t["ran"] and split.match(t["reason"]) for _, tools, _ in places for t in tools):
-        problems.append("no tool in this report stopped with a first line")
-    for lang in ("en", "ja"):
-        for tab, tools, form in places:
-            body = panel(page(lang, tab))
-            for tool in tools:
-                m = None if tool["ran"] else split.match(tool["reason"])
-                if not m:
-                    continue
-                words, first = m.groups()
-                quoted = '<code class="said">%s</code>' % html.escape(first, quote=False)
-                if lang == "en":
-                    found = form.format(name=tool["tool"], shown=html.escape(prefix[lang] + words, quote=False) + quoted) in body
-                else:
-                    # The Japanese page says the exit code in its own words before the quoted first line.
-                    code = re.search(r"-?\d+$", words).group(0)
-                    pre, post = form.format(name=tool["tool"], shown="\x00").split("\x00")
-                    pattern = re.escape(pre) + "[^<]*" + re.escape(code) + "[^<]*" + re.escape(quoted) + re.escape(post)
-                    found = re.search(pattern, body) is not None
-                if words + ": " + first != tool["reason"] or not found:
-                    problems.append("%s %s: %s does not show %r in words and %r quoted in code" % (lang, tab, tool["tool"], words, first))
-
 for p in problems[:8]:
     print("      " + p)
 sys.exit(1 if problems else 0)
@@ -732,7 +713,7 @@ PYEOF
 opened_verify() {
   local name pages=()
   for name in "$@"; do pages+=("$T"/opened/"$name"-*.dom.html); done
-  [ "$(wc -w < "$T/opened/tabs")" -ge 10 ] && [ "${#pages[@]}" -eq "$(( $(wc -w < "$T/opened/tabs") * 2 * $# ))" ] \
+  [ "$(wc -w < "$T/opened/tabs")" -ge 5 ] && [ "${#pages[@]}" -eq "$(( $(wc -w < "$T/opened/tabs") * 2 * $# ))" ] \
     || { echo "      ${#pages[@]} pages were opened for the tabs $(cat "$T/opened/tabs")"; return 1; }
   python3 "$PAGE_DESIGN" verify "${pages[@]}" > "$T/opened-verify.out" 2>&1 \
     || { grep -v '^page-design:' "$T/opened-verify.out" | sed "s|$T/opened/||; s/^/      /" | head -12; return 1; }
@@ -788,7 +769,7 @@ OPENED_CHECKS=(
   "the opened report of a folder outside git lists its facts one per item in English and Japanese"
   "the report keeps no sentence that joins the facts"
   "the tools tab heads each tool with its name and says under it whether it ran"
-  "the deprecated calls tab lists each tool and its result in a table"
+  "the deprecated calls section lists each tool and its result in a table"
 )
 VERIFY_CHECK="every tab of the opened reports passes the verify of page-design in English and Japanese"
 # The main fixture's report, where the stand-ins of knip, ruff, semgrep, and eslint return findings,
@@ -796,7 +777,6 @@ VERIFY_CHECK="every tab of the opened reports passes the verify of page-design i
 QUOTED_CHECKS=(
   "the opened report quotes each finding in code as the tool wrote it"
   "no finding is shown as plain text of the page"
-  "a stopped tool shows its exit code in words and its first line quoted in code"
 )
 QUOTED_VERIFY_CHECK="every tab of the opened reports with tool findings or stopped tools passes the verify of page-design in English and Japanese"
 FSTATE="$(dirname "$FJ")"
@@ -813,7 +793,6 @@ else
   check "${OPENED_CHECKS[4]}" 'opened_check deprecated "$OSTATE" git && opened_check deprecated "$PSTATE" plain'
   check "${QUOTED_CHECKS[0]}" 'opened_check quoted "$STATE" tools'
   check "${QUOTED_CHECKS[1]}" 'opened_check plain "$STATE" tools'
-  check "${QUOTED_CHECKS[2]}" 'opened_check stopped "$FSTATE" stopped'
   if [ -f "$PAGE_DESIGN" ]; then
     check "$VERIFY_CHECK" 'opened_verify git plain'
     check "$QUOTED_VERIFY_CHECK" 'opened_verify tools stopped'
@@ -914,7 +893,8 @@ if what in ("not-measured", "never-zero", "approximate"):
 
 elif what == "scores":
     for lang in ("en", "ja"):
-        rows = re.findall(r'<button\b[^>]*\bdata-pick="\d+"[^>]*>(.*?)</button>', page(lang, "start"), re.S)
+        # A ranked row is a table row that holds its button, or the button itself.
+        rows = [r for _, r in re.findall(r'<(button|tr)\b[^>]*\bdata-pick="\d+"[^>]*>(.*?)</\1>', page(lang, "start"), re.S)]
         shown = [text((re.search(r'class="score">(.*?)</span>', r, re.S) or [None, ""])[1]) for r in rows]
         want = ["%.2f" % r["score"] for r in d["ranked"]]
         if shown != want or not want:
@@ -944,23 +924,23 @@ elif what == "how":
             for tool, t in tools.items():
                 if tool not in rows:
                     problems.append("%s %s: no row for %s" % (lang, tab, tool))
-                # The English page gives the reason as techdebt.py wrote it, and the Japanese page in its own
-                # words, apart from the first line a stopped tool wrote, which both quote.
-                elif not t["ran"] and any(part not in rows[tool] for part in t["reason"].split(": ", 1)[0 if lang == "en" else 1:]):
-                    problems.append("%s %s: the %s row does not give the reason %r" % (lang, tab, tool, t["reason"]))
+                # A tool that did not run shows the tag of its state, and the page says why in its own words.
+                elif not t["ran"]:
+                    word = {"en": ("Stopped", "Not run"), "ja": ("止まった", "動かしていない")}[lang][0 if " stopped with exit code" in t["reason"] else 1]
+                    if word not in rows[tool]:
+                        problems.append("%s %s: the %s row does not show the tag %r: %r" % (lang, tab, tool, word, rows[tool]))
 
 elif what == "ja-words":
     # The words techdebt.py wrote for a tool that did not run, before the first line a stopped tool wrote.
     words = {t["tool"]: t["reason"].split(": ", 1)[0] for t in d["tools"] + d["deprecated_calls"]["tools"] if not t["ran"]}
     if not words:
         problems.append("every tool ran in this report")
-    for tab in ("tools", "deprecated", "start"):
-        en, ja = (page(lang, tab) for lang in ("en", "ja"))
+    # The deprecated calls are a section of the dependencies tab.
+    for tab in ("tools", "deps", "start"):
+        ja = page("ja", tab)
         # The page's own data and code sit in <script>, which a reader never sees.
-        en, ja = (text(re.sub(r'<code class="said">.*?</code>|<script\b.*?</script>|<style\b.*?</style>', "", s[s.find('id="panel"'):], flags=re.S)) for s in (en, ja))
+        ja = text(re.sub(r'<code class="said">.*?</code>|<script\b.*?</script>|<style\b.*?</style>', "", ja[ja.find('id="panel"'):], flags=re.S))
         for tool, said in sorted(words.items()):
-            if said not in en:
-                problems.append("en %s: the page does not give the reason of %s, %r" % (tab, tool, said))
             if said in ja:
                 problems.append("ja %s: the page gives the reason of %s in English, %r" % (tab, tool, said))
 
@@ -1013,7 +993,11 @@ cat > "$T/probe.js" <<'JSEOF'
       second.click();
       out.split.second = (document.querySelector("#detail h2") || {}).textContent || "";
       out.split.secondText = document.getElementById("detail").textContent;
-      out.split.pressed = [...document.querySelectorAll("#rows [data-pick]")].map((b) => b.getAttribute("aria-pressed"));
+      // The mark of the shown row sits on the row's button.
+      out.split.pressed = [...document.querySelectorAll("#rows [data-pick]")].map((r) => {
+        const b = r.matches("button") ? r : r.querySelector("button") || r;
+        return String(b.getAttribute("aria-current") === "true" || b.getAttribute("aria-pressed") === "true");
+      });
     }
   }
   const rgb = (s) => (s.match(/[\d.]+/g) || []).map(Number);
@@ -1114,7 +1098,8 @@ for name in names:
             h = p["header"]
             if abs(h["title"] - h["content"]) > 1 or abs(h["facts"] - h["content"]) > 1:
                 problems.append("%s: the title starts at %.0f and the facts at %.0f, the content at %.0f" % (where, h["title"], h["facts"], h["content"]))
-        if what == "split":
+        # Below 860px the list and the details show one at a time, which the checks of #319 read.
+        if what == "split" and width == "1400":
             s = p.get("split")
             first, second = d["ranked"][0]["file"], d["ranked"][1]["file"]
             notes = json.load(open(scan.rsplit("/", 1)[0] + "/notes.json", encoding="utf-8"))
@@ -1123,8 +1108,6 @@ for name in names:
                 continue
             if width == "1400" and not (s["detailLeft"] >= s["rowsRight"] - 1 and abs(s["detailTop"] - s["rowsTop"]) < 80):
                 problems.append("%s: the details are not beside the list (%r)" % (where, s))
-            if width == "375" and s["detailTop"] < s["rowsBottom"] - 1:
-                problems.append("%s: the details are not under the list (%r)" % (where, s))
             if first not in s["first"] or second not in s.get("second", "") or notes[second]["action"] not in s.get("secondText", ""):
                 problems.append("%s: the details show %r, then %r after pressing the second row" % (where, s["first"], s.get("second")))
             if s.get("pressed", [None, None])[:2] != ["false", "true"]:
@@ -1158,7 +1141,7 @@ PROBE_CHECKS=(
   "the numbers of the band sit on one level at 1400px"
   "the Japanese labels of the band break only between words at 1400px and 375px"
   "the header lines up with the content at 1400px and 375px"
-  "the ranked tab shows the pressed row's details beside the list at 1400px and under it at 375px"
+  "the ranked tab shows the pressed row's details beside the list at 1400px"
   "a ranked list longer than 50 rows pages with the pager above and below the list"
 )
 if [ -z "$real_browser" ]; then
@@ -1200,12 +1183,15 @@ print(json.dumps(samples))
 PYEOF
 
 # reason_words: opens the Japanese page with every reason and reads what the page shows for each.
-reason_words() {
-  local copy="$T/opened/reasons-ja.html"
-  python3 - "$OSTATE/report.html" "$copy" "$T/reasons.json" <<'PYEOF' || return 1
+# reasons_open <lang>: opens the page in that language with every reason, and writes what the page shows
+# for each to $T/opened/reasons-<lang>.html.dom.
+reasons_open() {
+  local copy="$T/opened/reasons-$1.html"
+  [ -s "$copy.dom" ] && return 0
+  python3 - "$OSTATE/report.html" "$copy" "$T/reasons.json" "$1" <<'PYEOF' || return 1
 import sys
-src, dst, reasons = sys.argv[1:4]
-page = open(src, encoding="utf-8").read().replace('let lang = "en"', 'let lang = "ja"', 1)
+src, dst, reasons, lang = sys.argv[1:5]
+page = open(src, encoding="utf-8").read().replace('let lang = "en"', 'let lang = "%s"' % lang, 1)
 probe = """<script type="application/json" id="reasons-in">%s</script>
 <script>
 (() => {
@@ -1224,8 +1210,13 @@ end = page.rindex("</body>")
 open(dst, "w", encoding="utf-8").write(page[:end] + probe + page[end:])
 PYEOF
   "$real_browser" --headless --disable-gpu --no-first-run --user-data-dir="$T/browser-profile" \
-    --dump-dom "file://$copy" > "$copy.dom" 2>/dev/null || return 1
-  python3 - "$copy.dom" <<'PYEOF'
+    --dump-dom "file://$copy" > "$copy.dom" 2>/dev/null || { rm -f "$copy.dom"; return 1; }
+}
+
+# reason_words: reads what the Japanese page shows for each reason.
+reason_words() {
+  reasons_open ja || return 1
+  python3 - "$T/opened/reasons-ja.html.dom" <<'PYEOF'
 import html, json, re, sys
 m = re.search(r'<pre id="reasons-out">(.*?)</pre>', open(sys.argv[1], encoding="utf-8").read(), re.S)
 problems = []
@@ -1233,11 +1224,8 @@ shown = json.loads(html.unescape(m.group(1))) if m else []
 if len(shown) < 15:
     problems.append("the page showed %d reasons, wanted every reason techdebt.py writes" % len(shown))
 for s in shown:
-    stopped = re.match(r"^\S+ stopped with exit code (-?\d+)(?:: (.+))?$", s["reason"], re.S)
     if not re.search(r"[぀-ヿ一-鿿]", s["words"]) or re.search(r"[A-Za-z]+ [a-z]+", s["words"]):
         problems.append("%r is shown as %r" % (s["reason"], s["words"]))
-    elif stopped and (stopped.group(1) not in s["words"] or s["quoted"] != ([stopped.group(2)] if stopped.group(2) else [])):
-        problems.append("%r is shown as %r with %r quoted" % (s["reason"], s["words"], s["quoted"]))
 for p in problems[:8]:
     print("      " + p)
 sys.exit(1 if problems else 0)
@@ -1254,6 +1242,1104 @@ else
   check "${REASON_CHECKS[0]}" 'reason_words'
   check "${REASON_CHECKS[1]}" 'band_check ja-words "$OSTATE" git && band_check ja-words "$PSTATE" plain && band_check ja-words "$FSTATE" stopped'
 fi
+
+# --- The report as the patterns of page-design ask (#319)
+# behave.js runs inside the opened report. It reads the page as the browser drew it, presses its tabs,
+# rows, cards, pagers, and column headers, and waits for the page between presses, so the browser runs
+# with a virtual time budget. It never presses the browser's Back after moving in the page, which a
+# headless browser on a file does not finish; the way back is pressed on a page opened on an item.
+cat > "$T/behave.js" <<'JSEOF'
+(async () => {
+  const out = { errors: [], width: innerWidth, height: innerHeight };
+  const finish = () => {
+    const pre = document.createElement("pre");
+    pre.id = "behave";
+    pre.textContent = JSON.stringify(out);
+    document.body.append(pre);
+  };
+  try {
+    const tick = (ms = 40) => new Promise((r) => setTimeout(r, ms));
+    const $ = (s, r = document) => r.querySelector(s);
+    const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+    const box = (e) => e.getBoundingClientRect();
+    const shown = (e) => !!e && e.getClientRects().length > 0 && getComputedStyle(e).visibility !== "hidden";
+    const css = (e, p) => getComputedStyle(e).getPropertyValue(p);
+    const txt = (e) => (e ? e.textContent.replace(/​/g, "").replace(/\s+/g, " ").trim() : "");
+    const rgb = (s) => (String(s).match(/[\d.]+/g) || []).map(Number);
+    const behind = (e) => {
+      for (; e; e = e.parentElement) {
+        const c = rgb(getComputedStyle(e).backgroundColor);
+        if (c.length === 3 || (c.length === 4 && c[3] > 0)) return c.slice(0, 3);
+      }
+      return [255, 255, 255];
+    };
+    const lum = (c) => c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; })
+      .reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0);
+    const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+    const freeze = document.createElement("style");
+    freeze.textContent = "*, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }";
+    document.head.append(freeze);
+    const setTheme = (mode) => { document.documentElement.dataset.theme = mode; };
+    // A token that is not defined falls back to rgb(1, 2, 3), which no page uses.
+    const resolve = (v) => {
+      const i = document.createElement("i");
+      i.style.color = `var(${v}, rgb(1, 2, 3))`;
+      document.body.append(i);
+      const c = css(i, "color");
+      i.remove();
+      return c;
+    };
+    const tabs = () => $$('[role="tablist"] [role="tab"]');
+    const selected = () => tabs().find((t) => t.getAttribute("aria-selected") === "true") || null;
+    const panel = () => { const t = selected(); return (t && document.getElementById(t.getAttribute("aria-controls"))) || $("#panel"); };
+    const statusLine = () => $$('[role="status"]').find((e) => !e.closest('#panel, [role="tabpanel"]')) || null;
+    const press = async (e) => { if (e) { e.click(); await tick(); } return !!e; };
+    const key = async (e, k) => { if (e) { e.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true, cancelable: true })); await tick(); } };
+    const ids = (e, a) => (e.getAttribute(a) || "").split(/\s+/).filter(Boolean);
+    const nameOf = (t) => {
+      const c = t.querySelector(":scope > caption");
+      if (c && txt(c)) return txt(c);
+      return ids(t, "aria-labelledby").map((id) => txt(document.getElementById(id))).join(" ").trim();
+    };
+    const data = typeof PAYLOAD === "object" && PAYLOAD && PAYLOAD.data ? PAYLOAD.data : null;
+    const files = data ? data.ranked.map((r) => r.file) : [];
+    const big = !!data && data.markers.length > 50;
+    const narrow = innerWidth <= 860;
+    setTheme("light");
+
+    const detail = () => $("#detail");
+    const kvOf = (d) => {
+      const kv = d && $("table", d);
+      return kv ? $$("tr", kv).map((tr) => {
+        const th = tr.querySelector("th"), td = tr.querySelector("td");
+        return { scope: th && th.getAttribute("scope"),
+          side: !!(th && td) && shown(th) && box(th).right <= box(td).left + 1 && Math.abs(box(th).top - box(td).top) < 6 };
+      }) : [];
+    };
+    const view = () => {
+      const d = detail(), title = $("#detail-title"), list = $(".split .list") || $(".list");
+      const back = d && d.querySelector(".back");
+      const link = (rel) => { const a = d && d.querySelector(`a[rel="${rel}"]`); return a ? txt(a) : null; };
+      const a = document.activeElement;
+      const row = a && a.closest ? a.closest("[data-pick]") : null;
+      return {
+        list: shown(list), detail: shown(d), title: txt(title), focusTitle: !!title && a === title,
+        focusRow: row ? Number(row.dataset.pick) : null,
+        back: back ? { shown: shown(back), first: !!title && !!(back.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING), text: txt(back) } : null,
+        prev: link("prev"), next: link("next"), hash: location.hash, tab: txt(selected()),
+        current: $$('#rows [aria-current="true"]').map((e) => { const r = e.closest("[data-pick]"); return r ? Number(r.dataset.pick) : -1; }),
+        status: statusLine() ? txt(statusLine()) : null, kv: kvOf(d),
+      };
+    };
+
+    out.load = view();
+    out.load.sections = $$("section[data-measure]").map((s) => s.dataset.measure);
+    out.load.banners = $$(".banner").filter(shown).map((b) => ({
+      first: !!b.parentElement && b.parentElement.tagName === "MAIN" && [...b.parentElement.children].filter(shown)[0] === b,
+      title: txt(b.querySelector("h2, h3, strong")), text: txt(b) }));
+    const pe = $(".page-error");
+    out.load.pageError = pe ? { shown: shown(pe), heading: txt(pe.querySelector("h2")),
+      tabindex: pe.querySelector("h2") ? pe.querySelector("h2").getAttribute("tabindex") : null,
+      sentence: txt(pe.querySelector("p")), actions: $$("button, a[href]", pe).filter(shown).map(txt) } : null;
+    out.load.tabCount = tabs().length;
+    out.load.statusEl = !!statusLine();
+    if (!data) return;
+
+    // A page opened on an item below 860px: the way back to the list.
+    if (narrow && location.hash.startsWith("#item-") && out.load.detail) {
+      await press($("#detail .back"));
+      out.backPress = view();
+    }
+
+    out.colors = {};
+    for (const mode of ["light", "dark"]) {
+      setTheme(mode);
+      out.colors[mode] = Object.fromEntries(["--good", "--good-soft", "--warn", "--warn-soft", "--critical", "--critical-soft", "--accent", "--selected", "--line"].map((v) => [v, resolve(v)]));
+    }
+    setTheme("light");
+
+    const facts = $("#facts");
+    out.facts = facts ? { tag: facts.tagName,
+      caption: (() => { const c = facts.querySelector("caption"); return c ? { text: txt(c), w: box(c).width, h: box(c).height } : null; })(),
+      rows: $$("tr", facts).map((tr) => {
+        const th = tr.querySelector("th"), td = tr.querySelector("td"), tm = td && td.querySelector("time");
+        return { scope: th && th.getAttribute("scope"), label: txt(th), weight: th ? Number(css(th, "font-weight")) : 0,
+          value: txt(td), time: tm ? tm.getAttribute("datetime") : null,
+          side: !!(th && td) && box(th).right <= box(td).left + 1 && Math.abs(box(th).top - box(td).top) < 6 };
+      }) } : null;
+
+    const lineOf = (cell) => rgb(parseFloat(css(cell, "border-bottom-width")) >= 1 ? css(cell, "border-bottom-color") : css(cell, "border-top-color")).slice(0, 3);
+    const NUM = /^\d[\d,.]*(?:\s*[–-]\s*\d[\d,.]*)?$/;
+    const tableInfo = (t) => {
+      const heads = $$(":scope > thead > tr > th", t);
+      const rows = $$(":scope > tbody > tr", t);
+      const wrap = t.closest('[role="region"]');
+      const sample = rows.length >= 3 ? [rows[1], rows[2]] : rows.slice(0, 2);
+      const sec = t.closest("section[data-measure]");
+      const info = {
+        name: nameOf(t), caption: !!t.querySelector(":scope > caption"), measure: sec ? sec.dataset.measure : null,
+        ranked: !!t.querySelector("#rows") || t.id === "rows",
+        where: t.closest("#how") ? "how" : t.id === "facts" ? "facts" : t.closest("#detail") ? "detail" : t.closest('#panel, [role="tabpanel"]') ? "panel" : "other",
+        shown: shown(t),
+        heads: heads.map((th) => ({ text: txt(th), scope: th.getAttribute("scope"), sort: th.getAttribute("aria-sort"),
+          button: !!th.querySelector("button"), sticky: css(th, "position") === "sticky" })),
+        rowCount: rows.length,
+        rowHead: rows.length > 0 && rows.every((tr) => tr.firstElementChild && tr.firstElementChild.tagName === "TH" && tr.firstElementChild.getAttribute("scope") === "row"),
+        firstSticky: rows.length ? css(rows[0].firstElementChild, "position") === "sticky" && css(rows[0].firstElementChild, "left") === "0px" : null,
+        cells: rows.slice(0, 60).map((tr) => [...tr.children].map(txt)),
+        numeric: rows.slice(0, 20).flatMap((tr) => [...tr.children].filter((c) => NUM.test(txt(c)))
+          .map((c) => ({ text: txt(c), align: css(c, "text-align"), tab: css(c, "font-variant-numeric") }))),
+        striped: sample.length === 2 && behind(sample[0].lastElementChild).join() !== behind(sample[1].lastElementChild).join(),
+        wrapStyle: rows.length ? css(rows[0].lastElementChild, "overflow-wrap") : null,
+        cut: $$("th, td, th *, td *", t).some((c) => css(c, "text-overflow") === "ellipsis" || !["none", ""].includes(css(c, "-webkit-line-clamp"))),
+        width: box(t).width, room: box(wrap || t.parentElement).width,
+        bars: rows.map((tr) => {
+          const b = tr.querySelector(".bar"), i = b && b.querySelector("i");
+          if (!b || !i) return null;
+          const cell = b.closest("td, th");
+          return { ratio: box(i).width / Math.max(1, box(b).width), fill: box(i).width, hidden: b.getAttribute("aria-hidden"),
+            column: [...tr.children].indexOf(cell), cell: txt(cell) };
+        }),
+        region: null, lines: {},
+      };
+      if (wrap) {
+        wrap.focus();
+        const ring = { style: css(wrap, "outline-style"), width: parseFloat(css(wrap, "outline-width")) };
+        wrap.blur();
+        info.region = { tabindex: wrap.getAttribute("tabindex"),
+          named: !!wrap.getAttribute("aria-label") || ids(wrap, "aria-labelledby").some((id) => txt(document.getElementById(id))),
+          overflowX: css(wrap, "overflow-x"), ring, overflows: wrap.scrollWidth > wrap.clientWidth + 1,
+          shadow: css(wrap, "box-shadow") !== "none" || /gradient/.test(css(wrap, "background-image")) };
+      }
+      for (const mode of ["light", "dark"]) {
+        setTheme(mode);
+        const cells = rows.slice(0, 3).map((tr) => tr.lastElementChild).filter(Boolean);
+        const cur = rows.find((tr) => tr.querySelector('[aria-current="true"]'));
+        if (cur) cells.push(cur.lastElementChild);
+        info.lines[mode] = cells.filter(shown).map((c) => Math.round(ratio(lineOf(c), behind(c)) * 100) / 100);
+      }
+      setTheme("light");
+      return info;
+    };
+    const pagerInfo = (s) => $$("nav.pager", s).filter(shown).map((n) => ({
+      buttons: $$("button", n).filter(shown).map((b) => ({ text: txt(b), w: Math.round(box(b).width), h: Math.round(box(b).height), current: b.getAttribute("aria-current") })) }));
+    const labelOf = (e) => (e.labels && e.labels.length ? txt(e.labels[0]) : ids(e, "aria-labelledby").map((id) => txt(document.getElementById(id))).join(" ").trim());
+    const sectionInfo = (s) => {
+      const count = $("p.count", s), pager = $("nav.pager", s), search = $('input[type="search"]', s), pick = $("select", s);
+      const h = s.querySelector("h2, h3");
+      return {
+        measure: s.dataset.measure,
+        heading: h ? { text: txt(h), tag: h.tagName, tabindex: h.getAttribute("tabindex") } : null,
+        leads: $$("p.lead", s).map(txt),
+        cautions: $$(".caution", s).map((c) => ({ icon: !!c.querySelector("svg"), title: txt(c.querySelector("strong, h3, h4")), text: txt(c),
+          afterLead: !!(c.previousElementSibling && c.previousElementSibling.matches("p.lead")) })),
+        empties: $$(".empty", s).filter(shown).map((e) => {
+          const eh = e.querySelector("h3, h4, h5"), p = e.querySelector("p"), parent = e.parentElement;
+          return { heading: txt(eh), size: eh ? parseFloat(css(eh, "font-size")) : 0, sentence: txt(p), align: css(e, "text-align"),
+            centered: Math.abs((box(e).left + box(e).right) / 2 - (box(parent).left + box(parent).right) / 2) < 3 };
+        }),
+        search: search ? { label: labelOf(search), labelShown: !!(search.labels && search.labels[0] && shown(search.labels[0])) } : null,
+        select: pick ? { label: labelOf(pick), options: [...pick.options].map((o) => o.textContent.trim()) } : null,
+        count: count ? txt(count) : null,
+        countFirst: !!count && (!pager || !!(count.compareDocumentPosition(pager) & Node.DOCUMENT_POSITION_FOLLOWING)),
+        pagers: pagerInfo(s),
+        tables: $$("table", s).map(tableInfo),
+      };
+    };
+    const tagOf = (e) => {
+      const t = e && e.querySelector(".tag");
+      return t ? { text: txt(t), icon: !!(t.querySelector("svg") || (t.previousElementSibling && t.previousElementSibling.tagName.toLowerCase() === "svg")),
+        color: css(t, "color") } : null;
+    };
+    const howView = () => ({
+      tables: $$("#how table").map((t) => ({ shown: shown(t), rows: $$(":scope > tbody > tr", t).length,
+        blockRows: $$("tr", t).some((tr) => css(tr, "display") === "block") })),
+      lists: $$("#how ul").map((u) => ({ shown: shown(u), items: $$(":scope > li", u).map((li) => ({
+        heading: !!li.querySelector("h3, h4"), dt: $$("dt", li).length, dd: $$("dd", li).length })) })),
+    });
+
+    out.tabsInfo = tabs().map((t) => ({ id: t.id, text: txt(t), controls: t.getAttribute("aria-controls"),
+      tabindex: t.getAttribute("tabindex"), selected: t.getAttribute("aria-selected") }));
+    out.how = howView();
+    out.howTags = $$("#how tr[data-tool]").map((tr) => ({ tool: txt(tr.firstElementChild), tag: tagOf(tr) }));
+    out.panels = [];
+    for (const t of tabs()) {
+      await press(t);
+      const p = panel(), list = $('[role="tablist"]');
+      const dep = $('section[data-measure="deprecated"]');
+      const depTable = dep && $("table", dep);
+      out.panels.push({
+        tab: txt(t), hash: location.hash, tabindex: t.getAttribute("tabindex"),
+        panel: p ? { role: p.getAttribute("role"), id: p.id, labelledby: p.getAttribute("aria-labelledby"),
+          first: p.firstElementChild ? { tag: p.firstElementChild.tagName, text: txt(p.firstElementChild) } : null } : null,
+        inView: !!list && box(t).left >= box(list).left - 1 && box(t).right <= box(list).right + 1,
+        sections: p ? $$("section[data-measure]", p).map(sectionInfo) : [],
+        tables: $$("table").map(tableInfo),
+        charts: p ? $$("svg", p).filter((g) => box(g).width > 60).length + $$(".chart", p).length : 0,
+        depTags: depTable ? $$(":scope > tbody > tr", depTable).map((tr) => ({ tool: txt(tr.firstElementChild), tag: tagOf(tr) })) : [],
+        toolTags: $$("section.tool", p || document).map((s) => ({ tool: txt(s.querySelector("h3")), tag: tagOf(s) })),
+        text: document.body.innerText,
+      });
+    }
+
+    // The ranked tab: the list, the details, and pressing rows.
+    await press(tabs()[0]);
+    const rowsNow = () => $$("#rows [data-pick]");
+    const buttonOf = (r) => (r.matches("button") ? r : r.querySelector('th[scope="row"] button') || r.querySelector("button"));
+    const rowInfo = (r) => {
+      const b = buttonOf(r), last = r.lastElementChild;
+      const label = b ? ids(b, "aria-labelledby").map((id) => txt(document.getElementById(id))).join(" ").trim() : "";
+      return { tag: r.tagName, name: label || txt(b), described: b ? ids(b, "aria-describedby").map((id) => txt(document.getElementById(id))).join(" | ") : "",
+        inRowHeader: !!(b && b.closest('th[scope="row"]')), chevron: !!last && !!last.querySelector('svg[aria-hidden="true"]') };
+    };
+    const rt = $("#rows") ? $("#rows").closest("table") : null;
+    const d0 = detail(), tt = $("#detail-title");
+    out.ranked = {
+      table: rt ? tableInfo(rt) : null,
+      rows: rowsNow().map(rowInfo),
+      listHeading: (() => {
+        const list = $(".split .list") || $(".list"), h = list && list.querySelector("h2");
+        return h ? { text: txt(h), before: !!$("#rows") && !!(h.compareDocumentPosition($("#rows")) & Node.DOCUMENT_POSITION_FOLLOWING) } : null;
+      })(),
+      detail: d0 ? { tag: d0.tagName, labelledby: d0.getAttribute("aria-labelledby"), live: d0.getAttribute("aria-live"),
+        title: tt ? { tag: tt.tagName, tabindex: tt.getAttribute("tabindex"), text: txt(tt) } : null, kv: kvOf(d0) } : null,
+      scroll: (() => {
+        const list = $(".split .list"), d = detail();
+        const pane = (e) => (e ? { oy: css(e, "overflow-y"), ox: css(e, "overflow-x"), mh: css(e, "max-height") } : null);
+        let stuck = false;
+        for (let e = tt; e && e !== d; e = e.parentElement) if (css(e, "position") === "sticky") stuck = true;
+        return { list: pane(list), detail: pane(d), titleSticky: stuck };
+      })(),
+      view: view(), selectedBg: {},
+    };
+    for (const mode of ["light", "dark"]) {
+      setTheme(mode);
+      const cur = $('#rows [aria-current="true"]');
+      out.ranked.selectedBg[mode] = { want: rgb(resolve("--selected")).slice(0, 3), got: cur ? behind(cur) : null };
+    }
+    setTheme("light");
+    if (!narrow && rowsNow().length > 1) {
+      const r = rowsNow()[1];
+      // A press on the row away from its button.
+      const cell = r.matches("tr") ? [...r.children].find((c) => !c.querySelector("button")) || r.lastElementChild : r;
+      await press(cell);
+      out.ranked.cellPress = view();
+      await press(buttonOf(rowsNow()[0]));
+      out.ranked.buttonPress = view();
+    }
+    if (narrow && rowsNow().length > 1 && !location.hash.startsWith("#item-") && !out.backPress) {
+      out.narrow = { load: out.load };
+      await press(buttonOf(rowsNow()[1]));
+      out.narrow.opened = view();
+      out.narrow.nexts = [];
+      for (let i = 0; i < 25; i++) {
+        const nx = $('#detail a[rel="next"]');
+        if (!nx || !shown(nx)) break;
+        await press(nx);
+        out.narrow.nexts.push(view());
+      }
+    }
+
+    // The tabs from the keyboard.
+    if (tabs().length) {
+      await press(tabs()[0]);
+      tabs()[0].focus();
+      const idx = () => tabs().findIndex((t) => t.getAttribute("aria-selected") === "true");
+      out.keys = [];
+      for (const k of ["ArrowRight", "End", "Home", "ArrowLeft"]) {
+        await key(document.activeElement, k);
+        out.keys.push({ key: k, selected: idx(), focus: tabs().indexOf(document.activeElement) });
+      }
+    }
+
+    // The cards of the band, and the fragment of the URL.
+    out.cards = [];
+    for (const c of $$("#cards [data-measure]")) {
+      const m = c.dataset.measure;
+      await press($(`#cards [data-measure="${m}"]`));
+      const p = panel();
+      out.cards.push({ measure: m, hash: location.hash, tab: txt(selected()),
+        section: !!(p && (p.querySelector(`section[data-measure="${m}"]`) || (m === "start" && p.querySelector("#rows")))) });
+    }
+    if (files.length > 1) {
+      location.hash = "#tools";
+      await tick(80);
+      out.hashTools = txt(selected());
+      location.hash = "#item-" + encodeURIComponent(files[1]);
+      await tick(80);
+      out.hashItem = view();
+    }
+
+    // Long lists: paging, the count line, searching, filtering, and sorting.
+    if (big) {
+      const sec = (m) => $(`section[data-measure="${m}"]`);
+      const card = async (m) => { await press($(`#cards [data-measure="${m}"]`)); return sec(m); };
+      const brief = (m) => {
+        const s = sec(m);
+        return s ? { count: txt($("p.count", s)), pagers: pagerInfo(s), rows: $$("table tbody tr", s).length } : null;
+      };
+      const pagerButton = (re) => { const s = sec("markers"), p = s && $("nav.pager", s); return p ? $$("button", p).find((b) => re.test(txt(b))) : null; };
+      out.big = {};
+      let s = await card("markers");
+      out.big.markers = s ? sectionInfo(s) : null;
+      out.big.page1 = brief("markers");
+      await press(pagerButton(/^2$/));
+      const a = document.activeElement;
+      out.big.page2 = Object.assign(brief("markers") || {}, { focus: { heading: /^H[1-6]$/.test(a.tagName),
+        inSection: !!sec("markers") && sec("markers").contains(a), tabindex: a.getAttribute("tabindex") } });
+      await press(pagerButton(/^(Next|次へ)$/));
+      await press(pagerButton(/^(Next|次へ)$/));
+      out.big.page4 = brief("markers");
+      await press(pagerButton(new RegExp("^" + Math.ceil(data.markers.length / 50) + "$")));
+      out.big.last = brief("markers");
+      await card("functions");
+      await card("markers");
+      out.big.backAgain = brief("markers");
+      const typed = async (value) => {
+        const input = sec("markers") && $('input[type="search"]', sec("markers"));
+        if (!input) return false;
+        input.value = value;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        await tick();
+        return true;
+      };
+      if (await typed("zz-unique")) {
+        out.big.search = brief("markers");
+        await typed("");
+      }
+      const pick = sec("markers") && $("select", sec("markers"));
+      if (pick && pick.options.length > 2) {
+        pick.selectedIndex = 2;
+        pick.dispatchEvent(new Event("change", { bubbles: true }));
+        await tick();
+        const p2 = $("select", sec("markers"));
+        out.big.filter = Object.assign(brief("markers"), { picked: p2 ? p2.options[p2.selectedIndex].textContent.trim() : "",
+          kinds: $$("table tbody tr", sec("markers")).map((tr) => txt(tr.children[1])) });
+      }
+      const fstate = () => {
+        const t = sec("functions") && $("table", sec("functions"));
+        return t ? { sort: $$(":scope > thead th", t).map((th) => [txt(th), th.getAttribute("aria-sort")]),
+          cells: $$(":scope > tbody > tr", t).map((tr) => [...tr.children].map(txt)) } : null;
+      };
+      const headButton = (re) => {
+        const t = sec("functions") && $("table", sec("functions"));
+        const th = t && $$(":scope > thead th", t).find((h) => re.test(txt(h)));
+        return th ? th.querySelector("button") : null;
+      };
+      await card("functions");
+      out.big.sort = { start: fstate() };
+      await press(headButton(/^(Length|長さ)/));
+      out.big.sort.length1 = fstate();
+      await press(headButton(/^(Length|長さ)/));
+      out.big.sort.length2 = fstate();
+      await press(headButton(/^(File|ファイル)/));
+      out.big.sort.file1 = fstate();
+      s = await card("untested");
+      out.big.untested = s ? sectionInfo(s) : null;
+      s = await card("hotspots");
+      out.big.hotspots = s ? sectionInfo(s) : null;
+      s = await card("large");
+      out.big.large = s ? sectionInfo(s) : null;
+    }
+  } catch (e) {
+    out.errors.push(String((e && e.stack) || e));
+  } finally {
+    finish();
+  }
+})();
+JSEOF
+
+# behave <report.html> <label> <lang> <width> [fragment]: opens the report with behave.js and writes what
+# it measured to $T/opened/behave-<label>.json.
+behave() {
+  local copy="$T/opened/behave-$2.html"
+  python3 - "$1" "$copy" "$3" "$T/behave.js" <<'PYEOF' || return 1
+import sys
+src, dst, lang, probe = sys.argv[1:5]
+page = open(src, encoding="utf-8").read().replace('let lang = "en"', 'let lang = "%s"' % lang, 1)
+end = page.rindex("</body>")
+open(dst, "w", encoding="utf-8").write(page[:end] + "<script>\n" + open(probe, encoding="utf-8").read() + "\n</script>\n" + page[end:])
+PYEOF
+  "$real_browser" --headless --disable-gpu --no-first-run --hide-scrollbars --user-data-dir="$T/browser-profile" \
+    --window-size="$4,900" --virtual-time-budget=30000 --dump-dom "file://$copy${5:-}" > "$copy.dom" 2>/dev/null || return 1
+  python3 - "$copy.dom" "$T/opened/behave-$2.json" <<'PYEOF'
+import html, re, sys
+m = re.search(r'<pre id="behave">(.*?)</pre>', open(sys.argv[1], encoding="utf-8").read(), re.S)
+if not m:
+    sys.exit(1)
+open(sys.argv[2], "w", encoding="utf-8").write(html.unescape(m.group(1)))
+PYEOF
+}
+
+# A report with long lists: 400 markers, 12 long functions, 20 hotspots, 3 large files, and 3 files
+# without a matching test whose order in scan.json follows a value the table does not show.
+BSTATE="$T/big-state"
+mkdir -p "$BSTATE"
+cp "$OSTATE/notes.json" "$BSTATE/notes.json"
+python3 - "$OSTATE/scan.json" "$BSTATE/scan.json" <<'PYEOF'
+import json, sys
+d = json.load(open(sys.argv[1], encoding="utf-8"))
+kinds = ["TODO", "FIXME", "HACK", "XXX"]
+d["markers"] = [{"file": "src/m%03d.py" % i, "line": i + 1, "kind": kinds[i % 4], "age_days": 400 - i,
+                 "text": "# %s note %d" % (kinds[i % 4], i)} for i in range(400)]
+d["markers"][17]["text"] = "# HACK zz-unique note"
+d["functions"] = [{"file": "src/f%02d.py" % i, "name": "fn%02d" % i, "start": 1, "end": 61 + (i * 7) % 12,
+                   "lines": 61 + (i * 7) % 12, "complexity": i, "exact": i % 2 == 0} for i in range(12)]
+d["hotspots"] = [{"file": "src/h%02d.py" % i, "changes": 2 + i, "lines": 40 + (i * 37) % 300} for i in range(20)]
+d["large_files"] = [{"file": "src/l%d.py" % i, "lines": 600 + i} for i in range(3)]
+d["untested"] = [{"file": "src/u-a.py", "changes": 1, "lines": 900}, {"file": "src/u-b.py", "changes": 5, "lines": 200},
+                 {"file": "src/u-c.py", "changes": 0, "lines": 1000}]
+json.dump(d, open(sys.argv[2], "w", encoding="utf-8"))
+PYEOF
+python3 - "$SCRIPT" "$BSTATE" <<'PYEOF'
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location("techdebt", sys.argv[1])
+techdebt = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(techdebt)
+techdebt.build_report(sys.argv[2])
+PYEOF
+# A page without its data: the template as it is, before scan writes the data into it.
+cp "$TEMPLATE_FILE" "$T/opened/nodata-report.html"
+
+cat > "$T/behave_check.py" <<'PYEOF'
+import colorsys, html, json, os, re, sys
+from urllib.parse import quote
+
+what, folder, template = sys.argv[1:4]
+states = dict(zip("gptsb", sys.argv[4:9]))
+problems = []
+WANT_TABS = {"en": ["Priorities", "Change history", "Code", "Dependencies", "Tools"],
+             "ja": ["優先順", "変更の履歴", "コード", "依存", "ツール"]}
+GROUP = {"start": 0, "hotspots": 1, "markers": 1, "untested": 2, "functions": 2, "large": 2, "dup": 2, "deps": 3, "deprecated": 3}
+STATE_WORDS = {"en": {"ran": "Ran", "not-run": "Not run", "stopped": "Stopped"},
+               "ja": {"ran": "動いた", "not-run": "動かしていない", "stopped": "止まった"}}
+SEVERITY = {"stopped": 0, "not-run": 1, "ran": 2}
+
+def run(label):
+    path = "%s/behave-%s.json" % (folder, label)
+    if not os.path.exists(path):
+        problems.append("%s: the page was not measured" % label)
+        return None
+    r = json.load(open(path, encoding="utf-8"))
+    for e in r.get("errors", []):
+        problems.append("%s: the page threw %s" % (label, e.splitlines()[0]))
+    return r
+
+def scan(label):
+    return json.load(open(states[label[0]] + "/scan.json", encoding="utf-8"))
+
+def notes(label):
+    path = states[label[0]] + "/notes.json"
+    return json.load(open(path, encoding="utf-8")) if os.path.exists(path) else {}
+
+def fail(label, message):
+    problems.append("%s: %s" % (label, message))
+
+def bare(label):
+    return re.sub(r"\s*[(（]\d+[)）]$", "", label or "").strip()
+
+def item(path):
+    return "#item-" + quote(path, safe="-_.!~*'()")
+
+def state_of(tool):
+    if tool["ran"]:
+        return "ran"
+    return "stopped" if re.match(r"^\S+ stopped with exit code", tool["reason"]) else "not-run"
+
+def tab_ids():
+    return open(folder + "/tabs", encoding="utf-8").read().split()
+
+def numbers(s):
+    return [int(x.replace(",", "")) for x in re.findall(r"\d[\d,]*", s or "")]
+
+def hue(c):
+    r, g, b = [v / 255 for v in [int(x) for x in re.findall(r"\d+", c)[:3]]]
+    h, l, s = colorsys.rgb_to_hls(r, g, b)
+    return h * 360, s
+
+def section(r, measure):
+    for p in r.get("panels", []):
+        for s in p["sections"]:
+            if s["measure"] == measure:
+                return s
+    return None
+
+def all_tables(r):
+    return [t for p in r.get("panels", []) for t in p["tables"]]
+
+def sorted_by(values, how):
+    nums = [float(v.replace(",", "")) if re.fullmatch(r"\d[\d,.]*", v) else None for v in values]
+    keys = nums if all(n is not None for n in nums) else [v.lower() for v in values]
+    want = sorted(keys, reverse=(how == "descending"))
+    return keys == want
+
+if what == "detail-section":
+    for label in ("g-en-1400", "g-ja-1400"):
+        r = run(label)
+        d = r and (r.get("ranked") or {}).get("detail")
+        top = scan(label)["ranked"][0]["file"]
+        if not d or d["tag"] != "SECTION" or d["labelledby"] != "detail-title" or not d["title"] \
+                or d["title"]["tag"] != "H2" or d["title"]["tabindex"] != "-1" or top not in d["title"]["text"]:
+            fail(label, "the details panel is %r, wanted a section named by h2#detail-title with tabindex -1 and %s" % (d, top))
+
+elif what == "current-row":
+    r = run("g-en-1400")
+    k = r and r.get("ranked")
+    if k:
+        if k["view"]["current"] != [0] or (k.get("cellPress") or {}).get("current") != [1]:
+            fail("g-en-1400", "the rows marked current are %r on load and %r after pressing the second row" % (k["view"]["current"], (k.get("cellPress") or {}).get("current")))
+        for mode, bg in k["selectedBg"].items():
+            if not bg["got"] or any(abs(a - b) > 2 for a, b in zip(bg["got"], bg["want"])):
+                fail("g-en-1400", "%s: the shown row sits on %r, wanted the selected color %r" % (mode, bg["got"], bg["want"]))
+
+elif what == "row-button":
+    r = run("g-en-1400")
+    d, n = scan("g-en-1400"), notes("g-en-1400")
+    rows = (r or {}).get("ranked", {}).get("rows", [])
+    if len(rows) != min(len(d["ranked"]), 50):
+        fail("g-en-1400", "%d ranked rows, wanted %d" % (len(rows), len(d["ranked"])))
+    for row, want in zip(rows, d["ranked"]):
+        note = n.get(want["file"], {}).get("what", "")
+        if row["name"] != want["file"] or not row["inRowHeader"] or "%.2f" % want["score"] not in row["described"] \
+                or note not in row["described"] or not row["chevron"]:
+            fail("g-en-1400", "the row of %s is %r" % (want["file"], row))
+
+elif what == "detail-fields":
+    for label, key in (("g-en-1400", "ranked"), ("g-en-375-item", "load")):
+        r = run(label) or {}
+        kv = ((r.get("ranked") or {}).get("detail") or {}).get("kv") if key == "ranked" else (r.get("load") or {}).get("kv")
+        if not kv or not all(f["scope"] == "row" and f["side"] for f in kv):
+            fail(label, "the fields of the details are %r" % kv)
+
+elif what == "scroll-apart":
+    r = run("g-en-1400")
+    s = (r or {}).get("ranked", {}).get("scroll")
+    def pane_ok(p):
+        return p and p["oy"] in ("auto", "scroll") and p["ox"] in ("hidden", "clip") and p["mh"].endswith("px") and float(p["mh"][:-2]) <= r["height"]
+    if not s or not pane_ok(s["list"]) or not pane_ok(s["detail"]) or not s["titleSticky"]:
+        fail("g-en-1400", "the panes scroll as %r" % s)
+
+elif what == "headings":
+    r = run("g-en-1400")
+    k = (r or {}).get("ranked") or {}
+    if not k.get("listHeading") or not k["listHeading"]["text"] or not k["listHeading"]["before"] \
+            or not k.get("detail") or not k["detail"]["title"] or k["detail"]["title"]["tag"] != "H2":
+        fail("g-en-1400", "the list heading is %r and the details title %r" % (k.get("listHeading"), (k.get("detail") or {}).get("title")))
+
+elif what == "narrow":
+    files = [x["file"] for x in scan("g-en-375")["ranked"]]
+    r = run("g-en-375")
+    n = (r or {}).get("narrow")
+    if not n:
+        fail("g-en-375", "the ranked rows could not be pressed")
+    else:
+        if not n["load"]["list"] or n["load"]["detail"]:
+            fail("g-en-375", "on load the list shows %s and the details %s" % (n["load"]["list"], n["load"]["detail"]))
+        o = n["opened"]
+        if o["list"] or not o["detail"] or not o["focusTitle"] or files[1] not in o["title"] \
+                or not o["back"] or not o["back"]["shown"] or not o["back"]["first"] \
+                or files[0] not in (o["prev"] or "") or (len(files) > 2 and files[2] not in (o["next"] or "")):
+            fail("g-en-375", "after pressing the second row the page shows %r" % o)
+        if not n["nexts"] or n["nexts"][-1]["next"] is not None or files[-1] not in n["nexts"][-1]["title"]:
+            fail("g-en-375", "going to the next row ends at %r" % (n["nexts"][-1] if n["nexts"] else None))
+    r = run("g-en-375-item")
+    if r:
+        if not r["load"]["detail"] or r["load"]["list"] or r["load"]["prev"] is not None or files[0] not in r["load"]["title"]:
+            fail("g-en-375-item", "the page opened on the first row shows %r" % r["load"])
+        b = r.get("backPress")
+        if not b or not b["list"] or b["detail"] or b["focusRow"] != 0 or b["hash"].startswith("#item-"):
+            fail("g-en-375-item", "the way back shows %r" % b)
+
+elif what == "never-under":
+    views = []
+    for label in ("g-en-375", "g-en-375-item"):
+        r = run(label) or {}
+        n = r.get("narrow") or {}
+        views += [(label, v) for v in [r.get("load"), r.get("backPress"), r.get("hashItem"), n.get("opened")] + n.get("nexts", []) if v]
+    if not views:
+        problems.append("no page below 860px was measured")
+    for label, v in views:
+        if v["list"] and v["detail"]:
+            fail(label, "the list and the details show together (%r)" % v["title"])
+
+elif what == "fragment":
+    files = [x["file"] for x in scan("g-en-1400")["ranked"]]
+    r = run("g-en-1400")
+    if r:
+        if (r.get("ranked", {}).get("buttonPress") or {}).get("hash") != item(files[0]):
+            fail("g-en-1400", "pressing the first row gives the fragment %r, wanted %r" % ((r.get("ranked", {}).get("buttonPress") or {}).get("hash"), item(files[0])))
+        got = [p["hash"] for p in r["panels"]]
+        if got != ["#" + t for t in tab_ids()]:
+            fail("g-en-1400", "the tabs give the fragments %r" % got)
+        for c in r.get("cards", []):
+            if c["hash"] != "#" + c["measure"]:
+                fail("g-en-1400", "the %s card gives the fragment %r" % (c["measure"], c["hash"]))
+        if bare(r.get("hashTools")) != "Tools":
+            fail("g-en-1400", "#tools opens %r" % r.get("hashTools"))
+        h = r.get("hashItem") or {}
+        if files[1] not in h.get("title", "") or bare(h.get("tab")) != "Priorities":
+            fail("g-en-1400", "#item-%s opens %r" % (files[1], h))
+    r = run("g-en-1400-item")
+    if r and (files[1] not in r["load"]["title"] or r["load"]["current"] != [1] or bare(r["load"]["tab"]) != "Priorities"):
+        fail("g-en-1400-item", "the page opened on %s shows %r" % (item(files[1]), r["load"]))
+    r = run("g-en-1400-markers")
+    if r and (bare(r["load"]["tab"]) != "Change history" or "markers" not in r["load"]["sections"]):
+        fail("g-en-1400-markers", "#markers opens the tab %r with %r" % (r["load"]["tab"], r["load"]["sections"]))
+
+elif what == "facts":
+    for label in ("g-en-1400", "g-ja-1400", "p-en-1400", "g-en-375"):
+        r = run(label)
+        f = (r or {}).get("facts")
+        at = scan(label)["generated_at"][:16]
+        if not f or f["tag"] != "TABLE" or not f["caption"] or not f["caption"]["text"] or min(f["caption"]["w"], f["caption"]["h"]) > 1:
+            fail(label, "the facts are %r, wanted a table with a hidden caption" % (f and {k: f[k] for k in ("tag", "caption")}))
+            continue
+        if not f["rows"] or not all(x["scope"] == "row" and x["weight"] >= 600 and x["side"] for x in f["rows"]):
+            fail(label, "the fact rows are %r" % f["rows"])
+        if f["rows"] and f["rows"][-1]["time"] != at:
+            fail(label, "the generated time is %r, wanted a time element with datetime %r" % (f["rows"][-1]["time"], at))
+
+elif what == "ranked-table":
+    files = [x["file"] for x in scan("g-en-1400")["ranked"]]
+    r = run("g-en-1400")
+    t = (r or {}).get("ranked", {}).get("table")
+    if not t or not t["caption"] or not t["heads"] or not all(h["scope"] == "col" for h in t["heads"]) or not t["rowHead"]:
+        fail("g-en-1400", "the ranked list is %r" % (t and {k: t[k] for k in ("caption", "heads", "rowHead")}))
+    c = (r or {}).get("ranked", {}).get("cellPress") or {}
+    if files[1] not in c.get("title", ""):
+        fail("g-en-1400", "a press on the second row away from its button shows %r" % c.get("title"))
+
+elif what == "named-tables":
+    for label in ("g-en-1400", "p-en-1400", "t-en-1400", "s-en-1400", "b-en-1400"):
+        r = run(label)
+        for t in all_tables(r or {}):
+            if not t["name"] or not all(h["scope"] == "col" for h in t["heads"]):
+                fail(label, "a table in %s (%s) is named %r with headers %r" % (t["where"], t["measure"], t["name"], [(h["text"], h["scope"]) for h in t["heads"]]))
+                break
+
+elif what == "pager-focus":
+    for label in ("b-en-1400", "b-en-375"):
+        b = (run(label) or {}).get("big") or {}
+        sizes = [(x["text"], x["w"], x["h"]) for p in (b.get("page1") or {}).get("pagers", []) for x in p["buttons"]]
+        if not sizes or any(w < 40 or h < 40 for _, w, h in sizes):
+            fail(label, "the pager buttons measure %r" % sizes)
+        f = (b.get("page2") or {}).get("focus") or {}
+        if not (f.get("heading") and f.get("inSection") and f.get("tabindex") == "-1"):
+            fail(label, "after a new page the focus is on %r" % f)
+        if numbers((b.get("backAgain") or {}).get("count"))[:2] != [1, 50]:
+            fail(label, "after another tab the markers show %r" % (b.get("backAgain") or {}).get("count"))
+
+elif what == "count-line":
+    b = (run("b-en-1400") or {}).get("big") or {}
+    total = len(scan("b-en-1400")["markers"])
+    m = b.get("markers") or {}
+    if not m.get("countFirst") or numbers((b.get("page1") or {}).get("count")) != [1, 50, total]:
+        fail("b-en-1400", "the first page says %r" % (b.get("page1") or {}).get("count"))
+    if numbers((b.get("page2") or {}).get("count")) != [51, 100, total]:
+        fail("b-en-1400", "the second page says %r" % (b.get("page2") or {}).get("count"))
+    if numbers((b.get("search") or {}).get("count")) != [1, total]:
+        fail("b-en-1400", "the search says %r" % (b.get("search") or {}).get("count"))
+
+elif what == "pager-ends":
+    for label in ("b-en-1400", "b-en-375"):
+        b = (run(label) or {}).get("big") or {}
+        words = lambda key: [x["text"] for p in (b.get(key) or {}).get("pagers", []) for x in p["buttons"]]
+        if not words("page1") or any(w in ("Previous", "前へ") for w in words("page1")):
+            fail(label, "the first page has %r" % words("page1"))
+        if not words("last") or any(w in ("Next", "次へ") for w in words("last")):
+            fail(label, "the last page has %r" % words("last"))
+        if label.endswith("375"):
+            for key in ("page1", "page2", "page4", "last"):
+                for p in (b.get(key) or {}).get("pagers", []):
+                    nums = [x["text"] for x in p["buttons"] if x["text"].isdigit()]
+                    if len(nums) > 5:
+                        fail(label, "%s shows the numbers %r" % (key, nums))
+
+elif what == "bars":
+    r = run("g-en-1400")
+    d = scan("g-en-1400")
+    top = max(x["score"] for x in d["ranked"])
+    bars = ((r or {}).get("ranked", {}).get("table") or {}).get("bars", [])
+    if not bars or None in bars:
+        fail("g-en-1400", "the ranked rows have the bars %r" % bars)
+    for bar, x in zip(bars, d["ranked"]):
+        if bar and abs(bar["ratio"] - x["score"] / top) > 0.03 and bar["fill"] > 6:
+            fail("g-en-1400", "the bar of %s fills %.2f, wanted %.2f" % (x["file"], bar["ratio"], x["score"] / top))
+    for label in ("g-en-1400", "b-en-1400"):
+        for t in all_tables(run(label) or {}):
+            if t["where"] != "panel":
+                continue
+            bad = [c for c in t["numeric"] if c["align"] not in ("right", "end") or "tabular-nums" not in c["tab"]]
+            if bad:
+                fail(label, "number cells in %s (%s) are %r" % (t["where"], t["measure"], bad[:2]))
+                break
+
+elif what == "lines":
+    for label in ("g-en-1400", "b-en-1400"):
+        for t in all_tables(run(label) or {}):
+            low = {m: [x for x in v if x < 3] for m, v in t["lines"].items()}
+            if any(low.values()):
+                fail(label, "row lines in %s (%s) stand out by %r" % (t["where"], t["measure"], t["lines"]))
+                break
+            cols = len(t["heads"]) or (len(t["cells"][0]) if t["cells"] else 0)
+            if t["rowCount"] >= 3 and t["striped"] != (cols >= 6):
+                fail(label, "the table of %s with %d columns is striped: %s" % (t["measure"] or t["where"], cols, t["striped"]))
+                break
+
+elif what == "sticky-region":
+    for label in ("b-en-1400", "b-en-375"):
+        r = run(label)
+        tables = [t for t in all_tables(r or {}) if t["where"] == "panel" and not t["ranked"] and t["rowCount"]]
+        if not tables:
+            fail(label, "no table in a section of a tab")
+        for t in tables:
+            g = t["region"]
+            if not all(h["sticky"] for h in t["heads"]) or not t["rowHead"] or not t["firstSticky"] or not g \
+                    or g["tabindex"] != "0" or not g["named"] or g["overflowX"] not in ("auto", "scroll") \
+                    or g["ring"]["style"] == "none" or g["ring"]["width"] < 2 or (g["overflows"] and not g["shadow"]):
+                fail(label, "the table %r keeps %r with the box %r" % (t["name"], [h["sticky"] for h in t["heads"]], g))
+                break
+
+elif what == "wrap":
+    for label in ("g-en-1400", "b-en-1400"):
+        for t in all_tables(run(label) or {}):
+            if t["cut"] or (t["rowCount"] and t["wrapStyle"] not in ("break-word", "anywhere")):
+                fail(label, "cells of %s (%s) cut text or wrap as %r" % (t["where"], t["measure"], t["wrapStyle"]))
+                break
+    large = ((run("b-en-1400") or {}).get("big") or {}).get("large") or {}
+    t = (large.get("tables") or [None])[0]
+    if not t or t["width"] >= t["room"] - 1:
+        fail("b-en-1400", "the large files table takes %r of %r" % (t and t["width"], t and t["room"]))
+
+elif what == "sort":
+    for label in ("g-en-1400", "b-en-1400"):
+        for t in all_tables(run(label) or {}):
+            if t["where"] != "panel" or not t["rowCount"]:
+                continue
+            marked = [i for i, h in enumerate(t["heads"]) if h["sort"] in ("ascending", "descending")]
+            if len(marked) != 1:
+                fail(label, "the table of %s marks %d sorted columns" % (t["measure"] or "ranked", len(marked)))
+                break
+            if t["rowCount"] <= 10 and not t["ranked"] and any(h["button"] for h in t["heads"]):
+                fail(label, "the short table of %s has sort buttons" % t["measure"])
+                break
+    b = (run("b-en-1400") or {}).get("big") or {}
+    u = ((b.get("untested") or {}).get("tables") or [None])[0]
+    if u:
+        col = [i for i, h in enumerate(u["heads"]) if h["sort"]]
+        if not col or not sorted_by([row[col[0]] for row in u["cells"]], u["heads"][col[0]]["sort"]):
+            fail("b-en-1400", "the table of untested files is marked %r but ordered %r" % ([h["sort"] for h in u["heads"]], u["cells"]))
+    else:
+        fail("b-en-1400", "no table of untested files")
+    s = b.get("sort") or {}
+    def sorted_state(key, column):
+        st = s.get(key)
+        if not st:
+            return None
+        names = [h for h, _ in st["sort"]]
+        i = next((n for n, h in enumerate(names) if re.match(column, h)), None)
+        how = st["sort"][i][1] if i is not None else None
+        ok = how in ("ascending", "descending") and sorted_by([row[i] for row in st["cells"]], how)
+        return how if ok else None
+    first, second, by_name = sorted_state("length1", r"^(Length|長さ)"), sorted_state("length2", r"^(Length|長さ)"), sorted_state("file1", r"^(File|ファイル)")
+    if not first or not second or first == second or by_name != "ascending":
+        fail("b-en-1400", "pressing Length twice and then File gives %r, %r, %r" % (first, second, by_name))
+
+elif what == "search":
+    b = (run("b-en-1400") or {}).get("big") or {}
+    m = b.get("markers") or {}
+    if not m.get("search") or not m["search"]["label"] or not m["search"]["labelShown"] or not m.get("select") or len(m["select"]["options"]) < 3:
+        fail("b-en-1400", "the markers have the search %r and the filter %r" % (m.get("search"), m.get("select")))
+    if (b.get("search") or {}).get("rows") != 1:
+        fail("b-en-1400", "searching for a word on one row leaves %r rows" % (b.get("search") or {}).get("rows"))
+    f = b.get("filter") or {}
+    kind = (f.get("picked") or "").split(" ")[0].split("（")[0]
+    if not f.get("kinds") or any(k != kind for k in f["kinds"]) or numbers(f.get("count")) != [1, 50, 100, 400]:
+        fail("b-en-1400", "filtering by %r shows the kinds %r and says %r" % (f.get("picked"), sorted(set(f.get("kinds") or [])), f.get("count")))
+    if (b.get("hotspots") or {}).get("search"):
+        fail("b-en-1400", "the hotspots table of 20 rows has a search box")
+
+elif what == "tabs":
+    for label, lang in (("g-en-1400", "en"), ("g-ja-1400", "ja")):
+        r = run(label)
+        d = scan(label)
+        if not r:
+            continue
+        got = [bare(t["text"]) for t in r["tabsInfo"]]
+        if got != WANT_TABS[lang]:
+            fail(label, "the tabs are %r, wanted %r" % (got, WANT_TABS[lang]))
+            continue
+        deps = len((d.get("unused_dependencies") or {}).get("items", []))
+        found = sum(len(t["findings"]) for t in d["tools"] if t["ran"])
+        counts = [len(d["ranked"]), len(d["hotspots"]) + len(d["markers"]),
+                  len(d["functions"]) + len(d["large_files"]) + len(d["duplication"]) + len(d["untested"]),
+                  deps + len(d["deprecated_calls"]["items"]), found]
+        shown = [numbers(re.search(r"[(（]\d+[)）]$", t["text"]).group(0) if re.search(r"[(（]\d+[)）]$", t["text"]) else "")[:1] for t in r["tabsInfo"]]
+        if shown != [[c] for c in counts]:
+            fail(label, "the tabs count %r, wanted %r" % (shown, counts))
+        if lang == "en" and any(len(x.split()) > 2 for x in got):
+            fail(label, "a tab has more than two words: %r" % got)
+        for c in r.get("cards", []):
+            if bare(c["tab"]) != WANT_TABS[lang][GROUP[c["measure"]]] or not c["section"]:
+                fail(label, "the %s card opens %r (its table shown: %s)" % (c["measure"], c["tab"], c["section"]))
+
+elif what == "tab-keys":
+    r = run("g-en-1400")
+    if r:
+        info = r["tabsInfo"]
+        if [t["tabindex"] for t in info] != ["0"] + ["-1"] * (len(info) - 1) or [t["selected"] for t in info][:1] != ["true"]:
+            fail("g-en-1400", "the tabs have tabindex %r" % [t["tabindex"] for t in info])
+        for t, p in zip(info, r["panels"]):
+            pn = p["panel"] or {}
+            if not t["controls"] or pn.get("id") != t["controls"] or pn.get("role") != "tabpanel" or pn.get("labelledby") != t["id"] \
+                    or (pn.get("first") or {}).get("tag") != "H2" or (pn.get("first") or {}).get("text") != bare(t["text"]):
+                fail("g-en-1400", "the tab %r controls %r, whose panel is %r" % (t["text"], t["controls"], pn))
+                break
+        if [(k["selected"], k["focus"]) for k in r.get("keys", [])] != [(1, 1), (4, 4), (0, 0), (4, 4)]:
+            fail("g-en-1400", "the keys Right, End, Home, and Left move to %r" % r.get("keys"))
+    r = run("g-en-375")
+    if r and not all(p["inView"] for p in r["panels"]):
+        fail("g-en-375", "the chosen tab is out of view for %r" % [p["tab"] for p in r["panels"] if not p["inView"]])
+    r = run("g-en-375-tools")
+    if r and bare(r["load"]["tab"]) != "Tools":
+        fail("g-en-375-tools", "#tools opens %r" % r["load"]["tab"])
+
+elif what == "how-lists":
+    for label, narrow in (("g-en-375", True), ("p-en-375", True), ("g-en-1400", False)):
+        h = (run(label) or {}).get("how") or {}
+        tables, lists = h.get("tables", []), h.get("lists", [])
+        if not tables or any(t["blockRows"] for t in tables):
+            fail(label, "the tables of how values were measured are %r" % tables)
+            continue
+        if narrow:
+            shown = [l for l in lists if l["shown"]]
+            if any(t["shown"] for t in tables) or len(shown) != len(tables) or [len(l["items"]) for l in shown] != [t["rows"] for t in tables] \
+                    or not all(i["heading"] and i["dt"] and i["dt"] == i["dd"] for l in shown for i in l["items"]):
+                fail(label, "below 600px the tables show %r and the lists %r" % ([t["shown"] for t in tables], [(l["shown"], len(l["items"])) for l in lists]))
+        elif not all(t["shown"] for t in tables) or any(l["shown"] for l in lists):
+            fail(label, "at 1400px the tables show %r and the lists %r" % ([t["shown"] for t in tables], [l["shown"] for l in lists]))
+
+elif what == "empty":
+    r = run("p-en-1400")
+    empties = [(s["measure"], e) for p in (r or {}).get("panels", []) for s in p["sections"] for e in s["empties"]]
+    if len(empties) < 2:
+        fail("p-en-1400", "%d empty tables, wanted the empty tables of this report" % len(empties))
+    for m, e in empties:
+        if not e["heading"] or e["heading"] in ("Nothing found.", "No data", "Nothing here") or e["size"] < 16 \
+                or not e["sentence"] or e["align"] != "center" or not e["centered"]:
+            fail("p-en-1400", "the empty %s table shows %r" % (m, e))
+    if len({e["heading"] for _, e in empties}) < len(empties):
+        fail("p-en-1400", "empty tables share a heading: %r" % [e["heading"] for _, e in empties])
+
+elif what in ("words", "never-raw"):
+    for lang in ("en", "ja"):
+        path = "%s/reasons-%s.html.dom" % (folder, lang)
+        m = re.search(r'<pre id="reasons-out">(.*?)</pre>', open(path, encoding="utf-8").read(), re.S) if os.path.exists(path) else None
+        shown = json.loads(html.unescape(m.group(1))) if m else []
+        if len(shown) < 15:
+            problems.append("%s: the page showed %d reasons" % (lang, len(shown)))
+        for s in shown:
+            words = s["words"]
+            if what == "words":
+                ends = len(re.findall(r"[.!?](?:\s|$)", words)) if lang == "en" else words.count("。")
+                if ends < 2 or (lang == "en" and s["reason"].split(": ")[0] in words):
+                    problems.append("%s: %r is shown as %r" % (lang, s["reason"], words))
+            elif s["quoted"] or re.search(r"exit code|終了コード|\b[A-Z]\w*(?:Error|Exception|Expired)\b", words):
+                problems.append("%s: %r is shown as %r with %r quoted" % (lang, s["reason"], words, s["quoted"]))
+    for label in ("s-en-1400", "s-ja-1400"):
+        r = run(label)
+        d = scan(label)
+        tools = d["tools"] + d["deprecated_calls"]["tools"]
+        for p in (r or {}).get("panels", []):
+            for t in tools:
+                if t["ran"]:
+                    continue
+                said, _, first = t["reason"].partition(": ")
+                if what == "words" and said in p["text"]:
+                    fail(label, "%s: the page gives the reason of %s as techdebt.py wrote it" % (p["tab"], t["tool"]))
+                if what == "never-raw" and ((first and first in p["text"]) or re.search(r"exit code|終了コード", p["text"])):
+                    fail(label, "%s: the page shows the exit code or the error %s wrote" % (p["tab"], t["tool"]))
+
+elif what == "tags":
+    for label in ("t-en-1400", "s-en-1400", "s-ja-1400", "p-en-1400"):
+        r = run(label)
+        if not r:
+            continue
+        lang = label.split("-")[1]
+        d = scan(label)
+        tools = {t["tool"]: t for t in d["tools"] + d["deprecated_calls"]["tools"]}
+        critical = r["colors"]["light"]["--critical"]
+        lists = [("how", r.get("howTags", []))] + [("deprecated", p["depTags"]) for p in r["panels"] if p["depTags"]] + [("tools", p["toolTags"]) for p in r["panels"] if p["toolTags"]]
+        if len(lists) < 3:
+            fail(label, "tags were found in %r" % [n for n, _ in lists])
+        for where, entries in lists:
+            order = []
+            for e in entries:
+                t = tools.get(e["tool"])
+                want = STATE_WORDS[lang][state_of(t)] if t else None
+                if not e["tag"] or e["tag"]["text"] != want or not e["tag"]["icon"]:
+                    fail(label, "%s: %s shows %r, wanted the tag %r with an icon" % (where, e["tool"], e["tag"], want))
+                elif state_of(t) == "stopped" and e["tag"]["color"] != critical:
+                    fail(label, "%s: the stopped tag of %s is %s, wanted the critical color %s" % (where, e["tool"], e["tag"]["color"], critical))
+                if t:
+                    order.append(SEVERITY[state_of(t)])
+            if order != sorted(order):
+                fail(label, "%s: the tools are ordered %r" % (where, [e["tool"] for e in entries]))
+
+elif what == "no-data":
+    r = run("n-en-1400")
+    pe = (r or {}).get("load", {}).get("pageError")
+    if not pe or not pe["shown"] or not pe["heading"] or pe["tabindex"] != "-1" or not pe["sentence"] or not pe["actions"] or r["load"]["tabCount"]:
+        fail("n-en-1400", "the page without data shows %r" % pe)
+
+elif what == "banner":
+    r = run("p-en-1400")
+    b = (r or {}).get("load", {}).get("banners", [])
+    if len(b) != 1 or not b[0]["first"] or not b[0]["title"]:
+        fail("p-en-1400", "the folder outside git shows the notices %r" % b)
+    r = run("g-en-1400")
+    if r and r["load"]["banners"]:
+        fail("g-en-1400", "the git repository shows the notices %r" % r["load"]["banners"])
+
+elif what == "caution":
+    for label, said in (("g-en-1400", "check each one"), ("g-ja-1400", "確かめてください")):
+        s = section(run(label) or {}, "deps")
+        if not s or len(s["cautions"]) != 1 or not s["cautions"][0]["afterLead"] or not s["cautions"][0]["icon"] \
+                or not s["cautions"][0]["title"] or any(said in x for x in s["leads"]):
+            fail(label, "the dependencies section has the explanation %r and the cautions %r" % (s and s["leads"], s and s["cautions"]))
+
+elif what == "status":
+    page = re.sub(r"<script\b.*?</script>", "", open(template, encoding="utf-8").read(), flags=re.S)
+    if not re.search(r'<[a-z]+\b[^>]*\brole="status"', page):
+        problems.append("the template has no element with role=status outside its script")
+    files = [x["file"] for x in scan("g-en-1400")["ranked"]]
+    r = run("g-en-1400")
+    k = (r or {}).get("ranked") or {}
+    if (k.get("detail") or {}).get("live") is not None:
+        fail("g-en-1400", "the details panel has aria-live=%r" % k["detail"]["live"])
+    if r and (not r["load"]["statusEl"] or r["load"]["status"] != "" or files[1] not in ((k.get("cellPress") or {}).get("status") or "")):
+        fail("g-en-1400", "the status line says %r on load and %r after pressing a row" % (r["load"]["status"], (k.get("cellPress") or {}).get("status")))
+
+elif what == "colors":
+    r = run("g-en-1400")
+    for mode, c in ((r or {}).get("colors") or {}).items():
+        missing = [k for k, v in c.items() if v == "rgb(1, 2, 3)"]
+        if missing:
+            fail("g-en-1400", "%s: %r are not defined" % (mode, missing))
+            continue
+        hues = {k: hue(c[k]) for k in ("--good", "--warn", "--critical", "--accent")}
+        if not 90 <= hues["--good"][0] <= 170 or not 25 <= hues["--warn"][0] <= 55 or not (hues["--critical"][0] <= 15 or hues["--critical"][0] >= 340) \
+                or not 200 <= hues["--accent"][0] <= 250 or len({c[k] for k in hues}) < 4:
+            fail("g-en-1400", "%s: the hues are %r" % (mode, {k: round(v[0]) for k, v in hues.items()}))
+    if not r or not r.get("colors"):
+        problems.append("the colors were not measured")
+
+elif what == "hot-bars":
+    d = scan("b-en-1400")
+    top = max(h["changes"] * h["lines"] for h in d["hotspots"])
+    s = ((run("b-en-1400") or {}).get("big") or {}).get("hotspots") or {}
+    t = (s.get("tables") or [None])[0]
+    if not t:
+        fail("b-en-1400", "no hotspots table")
+    else:
+        col = next((i for i, h in enumerate(t["heads"]) if re.match(r"^(Changes × lines|変更回数×行数)", h["text"])), None)
+        for bar in t["bars"]:
+            v = numbers(bar["cell"])[:1] if bar else []
+            if not bar or bar["hidden"] != "true" or bar["column"] != col or not v or abs(bar["ratio"] - v[0] / top) > 0.03:
+                fail("b-en-1400", "a hotspots row has the bar %r in the column %r" % (bar, col))
+                break
+
+elif what == "no-chart":
+    for label in ("g-en-1400", "b-en-1400"):
+        for p in (run(label) or {}).get("panels", []):
+            if p["charts"]:
+                fail(label, "the %s tab draws %d charts" % (p["tab"], p["charts"]))
+
+for p in problems[:10]:
+    print("      " + p)
+sys.exit(1 if problems else 0)
+PYEOF
+
+behave_check() { python3 "$T/behave_check.py" "$1" "$T/opened" "$TEMPLATE_FILE" "$OSTATE" "$PSTATE" "$STATE" "$FSTATE" "$BSTATE"; }
+
+# The words a reader needs about the report, in the changelog, the READMEs, and how-it-works.
+docs_words() {
+  python3 - "$PLUGIN" <<'PYEOF'
+import sys
+root = sys.argv[1]
+want = {"CHANGELOG.md": ["five tabs", "#item-", "Stopped"],
+        "README.md": ["Change history", "#item-", "Stopped"], "docs/how-it-works.md": ["Change history", "#item-", "Stopped"],
+        "README.ja.md": ["変更の履歴", "#item-", "止まった"], "docs/how-it-works.ja.md": ["変更の履歴", "#item-", "止まった"]}
+problems = []
+for name, words in want.items():
+    text = open("%s/%s" % (root, name), encoding="utf-8").read()
+    missing = [w for w in words if w not in text]
+    if missing:
+        problems.append("%s does not say %r" % (name, missing))
+for p in problems:
+    print("      " + p)
+sys.exit(1 if problems else 0)
+PYEOF
+}
+
+PATTERN_CHECKS=(
+  "detail-section|the details panel is a section named by its focusable heading"
+  "current-row|only the shown row is marked current, on the selected color in light and dark"
+  "row-button|each ranked row opens by a button named by its file, described by its note and score, with a chevron at the end"
+  "detail-fields|the details put each field label beside its value, also at 375px"
+  "scroll-apart|the list and the details scroll apart at 1400px, with the details title kept on top"
+  "headings|the ranked list and the details each start with a heading"
+  "narrow|below 860px the ranked tab shows the list or the details, with a way back and links to the previous and next rows"
+  "never-under|below 860px the details never sit under the list"
+  "fragment|the open row, the tab, and the measure are kept in the URL fragment and opened from it"
+  "facts|the facts are one row per fact with a hidden caption, bold labels, and the generated time in a time element"
+  "ranked-table|the ranked list is a table with a caption and headers, and a press anywhere on a row opens it"
+  "named-tables|every table is named by a caption or a heading and its column headers have scope"
+  "pager-focus|pager buttons are 40px or more, a new page moves focus to the table heading, and a new tab opens on page 1"
+  "count-line|a paged or filtered table says which rows are on view and how many there are"
+  "pager-ends|the pager leaves out previous on the first page and next on the last, with at most 5 numbers below 600px"
+  "bars|bars are sized against the largest value in their list and number columns use tabular figures"
+  "lines|row lines stand out by 3 to 1 or more in light and dark, and only tables of 6 or more columns are striped"
+  "sticky-region|tables keep their headers and name column in view and scroll sideways inside a focusable region"
+  "wrap|cells wrap long text without cutting it and tables take the width of their content"
+  "sort|each table marks its sorted column, and tables of more than 10 rows sort by pressing a column header"
+  "search|a table of more than 50 rows has a search box and a filter above it"
+  "tabs|the report has 5 tabs, each named in one or two words with its count"
+  "tab-keys|tabs point at their panel, move with the arrow keys, Home, and End, and scroll the chosen tab into view"
+  "how-lists|below 600px the tables of how values were measured show as label and value lists"
+  "empty|an empty table shows a centered heading of what is missing and one sentence why"
+  "words|a tool that did not run says what happened and what to do next in the page's words"
+  "never-raw|the page never shows an exit code, an exception name, or the error a stopped tool wrote"
+  "tags|each tool state is a tag with an icon, a stopped tool in the critical color, ordered from stopped to ran"
+  "no-data|a report without its data says it cannot be shown and offers a way forward"
+  "banner|a folder outside git shows one notice at the top of the content"
+  "caution|the warning about removing dependencies sits in a caution block after the explanation"
+  "status|the details panel has no live region and a status line from load announces the shown row"
+  "colors|good, warn, and critical colors are defined for light and dark apart from the blue accent"
+  "hot-bars|the hotspots table puts a bar beside each changes times lines value"
+  "no-chart|the report draws no chart that repeats the rows of a table"
+)
+if [ -z "$real_browser" ]; then
+  for entry in "${PATTERN_CHECKS[@]}"; do skip "${entry#*|}" "needs a Chromium-based browser"; done
+else
+  first_file="$(python3 -c 'import json,sys; from urllib.parse import quote; print(quote(json.load(open(sys.argv[1]))["ranked"][0]["file"], safe="-_.!~*'"'"'()"))' "$OSTATE/scan.json")"
+  second_file="$(python3 -c 'import json,sys; from urllib.parse import quote; print(quote(json.load(open(sys.argv[1]))["ranked"][1]["file"], safe="-_.!~*'"'"'()"))' "$OSTATE/scan.json")"
+  for spec in "$OSTATE/report.html g-en-1400 en 1400" "$OSTATE/report.html g-ja-1400 ja 1400" "$OSTATE/report.html g-en-375 en 375" \
+    "$OSTATE/report.html g-en-375-item en 375 #item-$first_file" "$OSTATE/report.html g-en-1400-item en 1400 #item-$second_file" \
+    "$OSTATE/report.html g-en-1400-markers en 1400 #markers" "$OSTATE/report.html g-en-375-tools en 375 #tools" \
+    "$PSTATE/report.html p-en-1400 en 1400" "$PSTATE/report.html p-en-375 en 375" "$STATE/report.html t-en-1400 en 1400" \
+    "$FSTATE/report.html s-en-1400 en 1400" "$FSTATE/report.html s-ja-1400 ja 1400" \
+    "$BSTATE/report.html b-en-1400 en 1400" "$BSTATE/report.html b-en-375 en 375" "$T/opened/nodata-report.html n-en-1400 en 1400"; do
+    # shellcheck disable=SC2086
+    behave $spec || echo "      the browser could not measure $spec"
+  done
+  reasons_open en || echo "      the browser could not open the English page with every reason"
+  reasons_open ja || echo "      the browser could not open the Japanese page with every reason"
+  for entry in "${PATTERN_CHECKS[@]}"; do
+    check "${entry#*|}" "behave_check ${entry%%|*}"
+  done
+fi
+check "the changelog, README, and how-it-works describe the tabs, the link to an open row, and the tool tags" docs_words
 
 printf '\n%d passed, %d failed (%d ran, %d skipped)\n' "$PASS" "$FAIL" "$((PASS + FAIL))" "$SKIP"
 [ "$FAIL" -eq 0 ]

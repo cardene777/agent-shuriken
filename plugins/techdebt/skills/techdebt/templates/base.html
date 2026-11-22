@@ -5,164 +5,240 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{TITLE}} tech debt</title>
 <style>
+/* Lines between rows stand out from the card, the stripe, and the selected row by 3 to 1 or more.
+   Good, warn, and critical are kept apart from the blue accent. */
 :root {
-  --bg: #f7f7f5; --fg: #1d2024; --muted: #5d636b; --card: #ffffff; --line: #e3e3de; --label: #f0f0eb;
-  --accent: #8a5d0c; --accent-soft: #f6ecd8; --bar: #9a6a12; --bar2: #e7c98d; --track: #c9c2b2;
-  --code: #f1f1ed; --good: #2f7a4a; --warn: #b4364a; --accent-ink: #ffffff;
+  --bg: #f6f7f9; --fg: #1d2330; --muted: #5b6475; --card: #ffffff; --stripe: #f4f6f9; --selected: #e6edfb;
+  --label: #eef1f6; --line: #7f8796; --track: #dfe4ec; --code: #eef1f6; --shadow: rgba(29, 35, 48, 0.22);
+  --accent: #2f5bd3; --accent-ink: #ffffff;
+  --good: #1f7a3e; --good-soft: #e3f4e8; --warn: #9a5a06; --warn-soft: #fdf0dc; --critical: #c4314b; --critical-soft: #fbe7eb;
   --radius: 10px; --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #17191c; --fg: #e8e8e4; --muted: #a2a7ad; --card: #202328; --line: #33373d; --label: #282b30;
-    --accent: #e0a63a; --accent-soft: #33291a; --bar: #d29a2f; --bar2: #6d5428; --track: #4a5059;
-    --code: #2a2d32; --good: #6cc08d; --warn: #f07f8f; --accent-ink: #17191c;
+    --bg: #12151b; --fg: #e7eaf0; --muted: #a3abba; --card: #1b2029; --stripe: #20262f; --selected: #22304d;
+    --label: #232a36; --line: #767f90; --track: #343b48; --code: #232a36; --shadow: rgba(0, 0, 0, 0.55);
+    --accent: #6d8ff0; --accent-ink: #12151b;
+    --good: #5cc285; --good-soft: #1a3324; --warn: #e5a43a; --warn-soft: #3a2c14; --critical: #f07f8f; --critical-soft: #3d1c22;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #17191c; --fg: #e8e8e4; --muted: #a2a7ad; --card: #202328; --line: #33373d; --label: #282b30;
-  --accent: #e0a63a; --accent-soft: #33291a; --bar: #d29a2f; --bar2: #6d5428; --track: #4a5059;
-  --code: #2a2d32; --good: #6cc08d; --warn: #f07f8f; --accent-ink: #17191c;
+  --bg: #12151b; --fg: #e7eaf0; --muted: #a3abba; --card: #1b2029; --stripe: #20262f; --selected: #22304d;
+  --label: #232a36; --line: #767f90; --track: #343b48; --code: #232a36; --shadow: rgba(0, 0, 0, 0.55);
+  --accent: #6d8ff0; --accent-ink: #12151b;
+  --good: #5cc285; --good-soft: #1a3324; --warn: #e5a43a; --warn-soft: #3a2c14; --critical: #f07f8f; --critical-soft: #3d1c22;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.6 var(--font); }
-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+[tabindex="-1"]:focus { outline: none; }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: 13px; overflow-wrap: break-word; }
 /* The header and the content share one width and one left edge. */
 .top-in, main { max-width: 1200px; margin: 0 auto; padding-left: 24px; padding-right: 24px; }
 header { border-bottom: 1px solid var(--line); background: var(--card); }
-.top-in { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-top: 16px; padding-bottom: 16px; }
-header h1 { margin: 0; font-size: 20px; }
-.facts-wrap { margin-top: 6px; width: fit-content; max-width: 100%; border: 1px solid var(--line); border-radius: 8px; background: var(--card); overflow: hidden; }
-/* One row per fact, as page-design shows facts: side by side as columns, and label and value rows on phones */
+.top-in { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px 24px; padding-top: 16px; padding-bottom: 14px; }
+.top-in > div:first-child { flex: 1 1 560px; min-width: 0; }
+header h1 { margin: 0 0 6px; font-size: 20px; line-height: 1.35; }
+/* One row per fact, its bold name beside its value: in a line on wide screens, and one under another below 860px. */
+.facts-wrap { max-width: 100%; }
 .facts { border-collapse: collapse; font-size: 13px; }
 .facts, .facts tbody { display: block; }
-.facts tbody { display: grid; grid-auto-flow: column; grid-auto-columns: auto; }
-.facts tr { display: grid; grid-template-rows: auto 1fr; border-left: 1px solid var(--line); }
-.facts tr:first-child { border-left: 0; }
-.facts th, .facts td { padding: 4px 12px; text-align: left; }
-.facts th { font-weight: 500; color: var(--muted); background: var(--label); border-bottom: 1px solid var(--line); }
-.facts td { font-weight: 600; font-variant-numeric: tabular-nums; }
+.facts tbody { display: flex; flex-wrap: wrap; gap: 2px 20px; }
+.facts tr { display: flex; gap: 6px; align-items: baseline; }
+.facts th, .facts td { padding: 0; border: 0; text-align: left; background: none; }
+.facts th { font-weight: 600; color: var(--muted); white-space: nowrap; }
+.facts td { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 @media (max-width: 860px) {
-  .facts-wrap { width: auto; }
-  .facts tbody { grid-auto-flow: row; }
-  .facts tr { grid-template-columns: 9em minmax(0, 1fr); grid-template-rows: auto; border-left: 0; border-top: 1px solid var(--line); }
-  .facts tr:first-child { border-top: 0; }
-  .facts th { border-bottom: 0; }
+  .facts tbody { display: grid; gap: 2px; }
+  .facts tr { display: grid; grid-template-columns: 11em minmax(0, 1fr); gap: 8px; }
+  .facts th { white-space: normal; }
 }
-.controls { display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .seg { display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
-.seg button { border: 0; background: transparent; color: var(--fg); padding: 6px 14px; font: inherit; cursor: pointer; white-space: nowrap; transition: background-color .15s, color .15s; }
+.seg button { border: 0; background: transparent; color: var(--fg); padding: 6px 14px; min-height: 36px; font: inherit; font-size: 14px; cursor: pointer; white-space: nowrap; transition: background-color .15s, color .15s; }
 .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
-main { padding-top: 20px; padding-bottom: 48px; }
+main { padding-top: 20px; padding-bottom: 56px; }
+/* A notice that holds for the whole report sits first in the content. */
+.banner { display: flex; gap: 12px; align-items: flex-start; margin: 0 0 16px; padding: 12px 16px; border: 1px solid var(--warn); border-left-width: 4px; border-radius: var(--radius); background: var(--warn-soft); }
+.banner svg { flex: none; color: var(--warn); margin-top: 3px; }
+.banner strong { display: block; }
+.banner p { margin: 2px 0 0; }
 /* The band: every card stacks its number, label, and note from the top, so the numbers share one line.
-   Japanese labels break only at the phrase breaks the dictionary marks with \u200b. */
+   Japanese labels break only at the phrase breaks the dictionary marks with ​. */
 .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 20px; }
 @media (min-width: 1100px) { .cards { grid-template-columns: repeat(9, minmax(0, 1fr)); } }
 .card { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 2px;
   background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px;
-  text-align: left; font: inherit; color: inherit; cursor: pointer; transition: border-color .15s; }
-.card:hover { border-color: var(--accent); }
+  text-align: left; font: inherit; color: inherit; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.card:hover { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .card .n { display: flex; align-items: center; min-height: 34px; font-size: 26px; line-height: 1.2; font-weight: 700; font-variant-numeric: tabular-nums; }
 .card .n.none { font-size: 13px; font-weight: 600; word-break: keep-all; }
 .card .l { color: var(--muted); font-size: 13px; line-height: 1.4; word-break: keep-all; overflow-wrap: normal; }
 .card .sub { color: var(--muted); font-size: 12px; line-height: 1.4; word-break: keep-all; }
-.tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
-.tabs button { border: 0; background: transparent; color: var(--muted); padding: 10px; font: inherit;
-  cursor: pointer; white-space: nowrap; border-bottom: 3px solid transparent; transition: color .15s, border-color .15s; }
-.tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); font-weight: 600; }
-.lead { color: var(--muted); margin: 0 0 14px; }
-/* The ranked list on the left and the pressed row's details beside it, as page-design's report page. */
-/* The list keeps a fixed width and the details take the rest of the row */
-.split { display: grid; grid-template-columns: minmax(320px, 380px) minmax(0, 1fr); gap: 16px; align-items: start; }
-.list { display: grid; gap: 10px; min-width: 0; }
-.rows { border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); overflow: hidden; }
-.rows-head, .row { display: grid; grid-template-columns: 34px minmax(0, 1fr) 104px; gap: 12px; align-items: center; padding: 10px 16px; }
-.rows-head { padding-top: 8px; padding-bottom: 8px; background: var(--code); color: var(--muted); font-size: 13px; }
-.rows-head span { white-space: nowrap; }
-.rows-head .num { text-align: right; }
-.row { width: 100%; border: 0; border-top: 1px solid var(--line); background: transparent; color: inherit; font: inherit;
-  text-align: left; cursor: pointer; transition: background-color .15s; }
-.row:hover { background: var(--bg); }
-.row[aria-pressed="true"] { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
-.no { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
+.tabs { position: relative; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--line); margin: 4px 0 18px; }
+.tabs::-webkit-scrollbar { display: none; }
+.tabs [role="tab"] { flex: none; border: 0; border-bottom: 3px solid transparent; background: transparent; color: var(--muted); padding: 10px 12px; min-height: 44px;
+  font: inherit; cursor: pointer; white-space: nowrap; transition: color .15s, border-color .15s; }
+.tabs [role="tab"]:hover { color: var(--fg); }
+.tabs [role="tab"]:focus-visible { outline-offset: -3px; }
+.tabs [role="tab"][aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); font-weight: 600; }
+.tabs .count { color: var(--muted); font-weight: 400; font-variant-numeric: tabular-nums; }
+.lead { color: var(--muted); margin: 0 0 12px; max-width: 76em; }
+.measure { margin: 0 0 40px; }
+.measure > h3, .tool > h3 { margin: 0 0 4px; font-size: 18px; line-height: 1.4; }
+.tool > h3 { font-family: var(--mono); font-size: 17px; }
+.tool { margin: 0 0 32px; }
+.tool .state { margin: 0 0 12px; }
+/* A warning sits in its own block right after the explanation it qualifies. */
+.caution { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 14px; padding: 10px 14px; border: 1px solid var(--warn); border-radius: 8px; background: var(--warn-soft); }
+.caution svg { flex: none; color: var(--warn); margin-top: 3px; }
+.caution strong { display: block; }
+.caution p { margin: 2px 0 0; }
+.filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; margin: 0 0 10px; }
+.field { display: grid; gap: 4px; }
+.field label { font-size: 13px; font-weight: 600; color: var(--muted); }
+.field input, .field select { min-height: 40px; padding: 8px 10px; font: inherit; color: var(--fg); background: var(--card); border: 1px solid var(--line); border-radius: 8px; }
+.field input { width: min(320px, 80vw); }
+.count { margin: 0 0 8px; color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+.pager { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; margin: 10px 0; }
+.pager button { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 40px; min-height: 40px; padding: 6px 12px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--fg); font: inherit; font-variant-numeric: tabular-nums; cursor: pointer; }
+.pager button:hover { border-color: var(--accent); }
+.pager button[aria-current="page"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.pager .gap { min-width: 20px; text-align: center; color: var(--muted); }
+/* Tables: the header row and the name column stay in view, and a wide table scrolls sideways inside its
+   focusable region, with a shadow on the side that has more. */
+table { border-collapse: separate; border-spacing: 0; }
+th, td { padding: 8px 12px; text-align: left; vertical-align: top; font-size: 14px; overflow-wrap: break-word; }
+th { font-weight: 600; }
+.table-scroll { position: relative; width: fit-content; max-width: 100%; overflow: auto; max-height: min(78vh, 900px); border: 1px solid var(--line); border-radius: var(--radius);
+  background:
+    linear-gradient(to right, var(--card) 30%, transparent) left center / 32px 100% no-repeat local,
+    linear-gradient(to left, var(--card) 30%, transparent) right center / 32px 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, var(--shadow), transparent) left center / 12px 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, var(--shadow), transparent) right center / 12px 100% no-repeat scroll;
+  background-color: var(--card); }
+.table-scroll:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+.table-scroll table { width: auto; max-width: 100%; }
+.table-scroll thead th { position: sticky; top: 0; z-index: 2; background: var(--label); border-bottom: 1px solid var(--line); white-space: nowrap; }
+.table-scroll thead th:first-child { left: 0; z-index: 3; }
+.table-scroll tbody th[scope="row"] { position: sticky; left: 0; z-index: 1; background: var(--card); font-weight: 400; box-shadow: inset -1px 0 0 var(--line); }
+.table-scroll tbody tr > * { border-bottom: 1px solid var(--line); }
+.table-scroll tbody tr:last-child > * { border-bottom: 0; }
+.striped tbody tr:nth-child(even) > * { background: var(--stripe); }
+th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.sort { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: 0; background: none; color: inherit; font: inherit; font-weight: 600; cursor: pointer; }
+.sort svg { color: var(--muted); }
+th[aria-sort] .sort svg { color: var(--accent); }
+.barcell { display: inline-flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.bar { display: block; flex: none; height: 8px; background: var(--track); border-radius: 4px; overflow: hidden; }
+.barcell .bar { width: 96px; }
+.bar i { display: block; height: 100%; min-width: 2px; background: var(--accent); border-radius: 4px; }
+/* The state of a tool as a tag: its icon and its word, never its color alone. */
+.tag { display: inline-flex; align-items: center; gap: 4px; margin-right: 8px; padding: 1px 9px 1px 7px; border-radius: 999px; font-size: 13px; font-weight: 600; line-height: 1.6; white-space: nowrap; vertical-align: 1px; }
+.tag svg { flex: none; }
+.tag.good { color: var(--good); background: var(--good-soft); }
+.tag.warn { color: var(--warn); background: var(--warn-soft); }
+.tag.crit { color: var(--critical); background: var(--critical-soft); }
+.block + .block, .block + .empty { margin-top: 16px; }
+.empty { padding: 28px 20px; border: 1px dashed var(--line); border-radius: var(--radius); background: var(--card); text-align: center; }
+.empty h4 { margin: 0 0 4px; font-size: 17px; line-height: 1.4; }
+.empty p { margin: 0; color: var(--muted); }
+/* The ranked list on the left and the pressed row's details beside it, each scrolling on its own. */
+.split { display: grid; grid-template-columns: minmax(320px, 400px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.list { min-width: 0; }
+.list > h2 { margin: 0 0 8px; font-size: 16px; line-height: 1.4; }
+.ranked-wrap { border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); }
+.ranked { width: 100%; }
+.ranked thead th { position: sticky; top: 0; z-index: 2; background: var(--label); border-bottom: 1px solid var(--line); font-size: 13px; }
+.ranked thead th:first-child { border-top-left-radius: var(--radius); }
+.ranked thead th:last-child { border-top-right-radius: var(--radius); }
+.ranked tbody tr { cursor: pointer; }
+.ranked tbody tr > * { border-bottom: 1px solid var(--line); vertical-align: middle; transition: background-color .15s; }
+.ranked tbody tr:last-child > * { border-bottom: 0; }
+.ranked tbody tr:hover > * { background: var(--stripe); }
+.ranked tbody tr.current > * { background: var(--selected); }
+.ranked tbody tr.current > th { box-shadow: inset 3px 0 0 var(--accent); }
+.ranked tbody th { font-weight: 400; }
+.rank { display: flex; gap: 10px; align-items: flex-start; }
+.no { flex: none; min-width: 1.6em; color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
+.name { min-width: 0; }
+.pick { display: block; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .file { font-family: var(--mono); font-size: 14px; overflow-wrap: anywhere; }
 .file .dir { color: var(--muted); }
 .file b { font-weight: 700; }
-/* The row keeps two lines of the note; the details beside the list show all of it. */
-.name small { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; margin-top: 2px; font-size: 13px; color: var(--muted); line-height: 1.45; }
-.value { display: grid; gap: 4px; justify-items: end; }
+/* A path shows its file name first and its folder under it, and breaks only after a slash. */
+.path { display: flex; flex-direction: column-reverse; }
+.path .dir { font-size: 12.5px; font-weight: 400; }
+.name small { display: block; margin-top: 2px; font-size: 13px; color: var(--muted); line-height: 1.45; }
+.value { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.value .bar { width: 56px; }
 .score { font-weight: 700; font-variant-numeric: tabular-nums; }
-.bar { display: block; width: 100%; height: 8px; background: var(--track); border-radius: 4px; overflow: hidden; }
-.bar i { display: block; height: 100%; min-width: 4px; background: var(--bar); border-radius: 4px; }
-.detail { position: sticky; top: 16px; display: grid; gap: 12px; padding: 18px 20px; background: var(--card);
-  border: 1px solid var(--line); border-radius: var(--radius); animation: show .2s ease-out; }
-.detail-head { display: flex; gap: 10px; align-items: baseline; }
+.value svg { flex: none; color: var(--muted); }
+.detail { display: grid; gap: 12px; align-content: start; padding: 0 20px 18px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); }
+.detail-head { position: sticky; top: 0; z-index: 1; display: flex; gap: 10px; align-items: flex-start; padding: 16px 0 10px; background: var(--card); border-bottom: 1px solid var(--line); }
 .detail h2 { margin: 0; font-size: 18px; line-height: 1.4; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip { background: var(--accent-soft); border-radius: 999px; padding: 2px 10px; font-size: 13px; white-space: nowrap; }
-.kv { width: 100%; border-collapse: collapse; border: 0; background: transparent; }
-.kv th { width: 132px; padding: 8px 12px 8px 0; text-align: left; vertical-align: top; font-weight: 500; color: var(--muted); background: transparent; border-top: 1px solid var(--line); border-bottom: 0; }
-.kv td { padding: 8px 0; border-top: 1px solid var(--line); border-bottom: 0; font-size: 15px; }
-@keyframes show { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line);
-  border-radius: var(--radius); overflow: hidden; }
-th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 14px; }
-th { background: var(--code); font-weight: 600; }
-td.num, th.num { text-align: right; white-space: nowrap; }
-td code, .mono { font-family: var(--mono); font-size: 13px; word-break: break-all; }
-code.said { font-family: var(--mono); font-size: 13px; word-break: normal; overflow-wrap: anywhere; }
-.state code.said, .status code.said, .how code.said { display: block; margin-top: 2px; }
-.tablewrap { overflow-x: auto; }
-.pager { display: flex; justify-content: center; align-items: center; gap: 4px; margin: 12px 0; flex-wrap: wrap; }
-.list .pager { margin: 0; }
-.pager button { min-width: 36px; padding: 6px 10px; border: 1px solid var(--line); background: var(--card);
-  color: var(--fg); border-radius: 6px; font: inherit; cursor: pointer; }
-.pager button[aria-current="page"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-.pager button:disabled { opacity: 0.4; cursor: default; }
-.chart { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; margin-bottom: 16px; }
-.chart svg { width: 100%; height: auto; display: block; }
-.chart text { fill: var(--fg); font: 12px var(--font); }
-.chart .lbl { fill: var(--muted); }
-.legend { display: flex; gap: 16px; font-size: 13px; color: var(--muted); margin: 4px 4px 0; }
-.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-.tool { margin-bottom: 20px; }
-.tool h3 { margin: 0 0 2px; font-size: 16px; }
-.tool .state { margin: 0 0 8px; color: var(--muted); font-size: 14px; }
-.status { margin: 0 0 14px; }
-.status td:first-child, .how td:first-child { white-space: nowrap; }
-.status td:first-child code, .how td:first-child code { word-break: normal; }
-/* How each value was measured, under the tabs on every tab. */
-.how { margin-top: 32px; display: grid; gap: 10px; }
-.how h2 { margin: 0; font-size: 18px; }
-.how h3 { margin: 10px 0 0; font-size: 16px; }
-.how .measure-name { font-weight: 600; }
-.tools-table th:nth-child(2) { width: 26em; }
-.empty { background: var(--card); border: 1px dashed var(--line); border-radius: var(--radius); padding: 16px; color: var(--muted); }
-@media (max-width: 860px) {
-  .split { grid-template-columns: 1fr; }
-  .detail { position: static; }
+.chip { padding: 2px 10px; border-radius: 999px; background: var(--label); font-size: 13px; }
+.kv { width: 100%; border-collapse: collapse; }
+.kv th { width: 8.5em; padding: 8px 12px 8px 0; color: var(--muted); border-top: 1px solid var(--line); }
+.kv td { padding: 8px 0; border-top: 1px solid var(--line); font-size: 15px; }
+.back, .step { display: none; }
+@media (min-width: 861px) {
+  .split .list, .split .detail { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; overflow-x: hidden; }
+  .split .list { padding: 2px; }
 }
+/* Below 860px the list and the details take turns: a row opens its details, which lead back to the
+   list and on to the rows before and after it. */
+@media (max-width: 860px) {
+  .split { grid-template-columns: minmax(0, 1fr); }
+  .split[data-view="list"] .detail { display: none; }
+  .split[data-view="detail"] .list { display: none; }
+  .detail { padding: 0 16px 16px; }
+  .back { display: inline-flex; justify-self: start; align-items: center; gap: 6px; min-height: 40px; margin-top: 12px; padding: 6px 12px 6px 8px;
+    border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--fg); font: inherit; cursor: pointer; }
+  .step { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+  .step a { display: grid; gap: 2px; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; color: inherit; text-decoration: none; }
+  .step a[rel="next"] { grid-column: 2; text-align: right; }
+  .step .k { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--accent); }
+  .step a[rel="next"] .k { justify-content: flex-end; }
+  .step .file { font-size: 13px; }
+}
+/* How each value was measured, under the tabs on every tab: tables, and label and value lists on phones. */
+.how { display: grid; gap: 12px; margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--line); }
+.how > h2 { margin: 0; font-size: 18px; }
+.how > h3 { margin: 12px 0 0; font-size: 16px; }
+.how-list { display: none; margin: 0; padding: 0; list-style: none; }
+@media (max-width: 599px) {
+  .how .table-scroll { display: none; }
+  .how-list { display: grid; gap: 10px; }
+  .how-list li { padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); }
+  .how-list h3, .how-list h4 { margin: 0 0 6px; font-size: 15px; }
+  .how-list dl { display: grid; gap: 2px; margin: 0; }
+  .how-list dt { font-size: 13px; font-weight: 600; color: var(--muted); }
+  .how-list dd { margin: 0 0 6px; }
+  .pager .word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+  .pager button { padding: 6px; }
+}
+.page-error { max-width: 560px; margin: 48px auto; padding: 28px; text-align: center; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); }
+.page-error h2 { margin: 0 0 6px; font-size: 20px; }
+.page-error p { margin: 0 0 16px; color: var(--muted); }
+.page-error button { min-height: 40px; padding: 8px 18px; border: 1px solid var(--accent); border-radius: 8px; background: var(--accent); color: var(--accent-ink); font: inherit; font-weight: 600; cursor: pointer; }
 @media (max-width: 640px) {
   .top-in, main { padding-left: 16px; padding-right: 16px; }
   .top-in { padding-top: 12px; padding-bottom: 12px; }
   main { padding-top: 16px; padding-bottom: 40px; }
   .card { padding: 10px; }
-  .rows-head, .row { grid-template-columns: 32px minmax(0, 1fr) 72px; gap: 10px; padding-left: 12px; padding-right: 12px; }
   th, td { padding: 6px 8px; }
-  /* On a phone each name sits on its own line above its text, so neither column is squeezed. */
-  .kv th, .kv td, .how-table td { display: block; width: auto; }
-  .kv th { padding: 8px 0 0; }
-  .kv td { padding: 2px 0 8px; border-top: 0; }
-  .how-table thead { display: none; }
-  .how-table tr { display: block; border-bottom: 1px solid var(--line); padding: 4px 0; }
-  .how-table td { border-bottom: 0; padding: 2px 10px; }
-  .how td:first-child { white-space: normal; font-weight: 600; }
-  .tools-table td:nth-child(2) { color: var(--muted); }
 }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
 </style>
 </head>
 <body>
@@ -186,49 +262,89 @@ code.said { font-family: var(--mono); font-size: 13px; word-break: normal; overf
 </header>
 <main>
   <section class="cards" id="cards"></section>
-  <nav class="tabs" role="tablist" id="tabs"></nav>
+  <div class="tabs" role="tablist" id="tabs"></div>
   <section id="panel" role="tabpanel"></section>
-  <section class="how" id="how"></section>
+  <section class="how" id="how" aria-labelledby="how-title"></section>
 </main>
+<p class="sr-only" id="status" role="status"></p>
 <script>
 const PAYLOAD = /*TECHDEBT_DATA*/null;
 const I18N = {
   en: {
-    title: "Technical debt in {p}",
+    title: "Technical debt in {p}", titleNoData: "Technical debt report",
     langGroup: "Language", themeGroup: "Theme", light: "Light", dark: "Dark",
+    factsCaption: "About this scan",
     factCommit: "Commit", factBranch: "Branch", factFiles: "Source files", factCommits: "Commits in the last {months} months",
     factGenerated: "Generated", factGit: "Git history", notGit: "Not a git repository",
-    start: "Start here", hotspots: "Hotspots", markers: "Markers", untested: "No matching test file", functions: "Long functions",
+    bannerTitle: "Not a git repository",
+    bannerText: "Changes, hotspots, and the age of markers come from git history, so they were not measured. Scan a folder inside a git repository to measure them.",
+    errorTitle: "This report has no data",
+    errorText: "The page was opened before the scan wrote its results into it. Run the scan again and open the report it writes.",
+    reload: "Reload",
+    tabsLabel: "Parts of the report", tabCount: " ({n})",
+    tabStart: "Priorities", tabHistory: "Change history", tabCode: "Code", tabDeps: "Dependencies", tabTools: "Tools",
+    start: "Priority score", hotspots: "Hotspots", markers: "Markers", untested: "No matching test file", functions: "Long functions",
     large: "Large files", dup: "Duplication", deps: "Unused dependencies", deprecated: "Deprecated calls", tools: "Tools",
     cStart: "files ranked", cHot: "hotspots", cMarkers: "markers", cUntested: "no matching test file",
     cFunctions: "long functions", cLarge: "large files", cDup: "duplicated lines", cDeps: "unused dependencies", cDeprecated: "deprecated calls",
     notMeasured: "Not measured", approxByName: "approximate, found by name",
     leadStart: "Files ranked by how often they change, their size, long functions, markers, duplication, and whether a test file of a matching name exists. Press a row to see its details. Fixing the top files pays off first, because people keep working in them.",
     leadHot: "Files changed 2 or more times in the last {months} months, ranked by changes multiplied by non-blank lines.",
-    hotNotGit: "Not measured, because the folder is not in a git repository.",
     leadMarkers: "TODO, FIXME, HACK, XXX, and deprecation markers in comments, oldest first. The age comes from git blame.",
     leadUntested: "Source files of 20 or more lines with no test file of a matching name (for example foo.py and test_foo.py). Tests are not run and coverage is not measured. Busiest first.",
     leadFunctions: "Functions over {n} lines. Python is measured exactly; other languages by matching braces, so treat those as approximate.",
     leadLarge: "Source files over {n} non-blank lines.",
     leadDup: "Blocks of {n} or more lines, ignoring whitespace, imports, and comments, that appear in two places.",
-    leadDepsSearch: "Dependencies in package.json whose names were not found in any import, require, config file, or scripts entry, counting packages that a used package needs as a peer and plugins named by their short names. This is approximate: check each one before removing it.",
+    leadDepsSearch: "Dependencies in package.json whose names were not found in any import, require, config file, or scripts entry, counting packages that a used package needs as a peer and plugins named by their short names.",
     leadDepsKnip: "Dependencies in package.json that knip found unused.",
-    noPackage: "There is no package.json, so dependencies were not checked.",
-    manifest: "package.json", depName: "Dependency", depKind: "Listed under",
+    cautionTitle: "Check before removing",
+    cautionText: "The names were searched for as text, so a dependency that is used in another way can be listed. Check each one before removing it.",
     leadDeprecated: "Calls to APIs that a library or the language marks as deprecated, found by tools already installed in the project. ruff uses its rules for deprecated imports, aliases, and functions. semgrep runs only the project's own rules, with metrics off, and its findings about deprecation are listed here. ESLint runs when its config turns on a deprecation rule. A tool that did not run is listed with the reason.",
-    noCallTool: "No tool looked for deprecated calls, for the reasons above.", toolName: "Tool", result: "Result",
     leadTools: "Tools that were already installed in the project or on PATH. Nothing is downloaded.",
-    rankHead: "Rank", score: "Score",
-    what: "What", why: "Why it costs", action: "First step",
+    listTitle: "Files to fix first", rankCaption: "Files ranked by score, highest first",
+    file: "File", score: "Score", what: "What", why: "Why it costs", action: "First step",
+    back: "Back to the list", prevFile: "Previous", nextFile: "Next", stepLabel: "Other ranked files", showing: "Showing {f}",
     rChanges: "changed {v} times", rChangesOne: "changed once", rLines: "{v} lines", rLong: "{v} long functions", rLongOne: "1 long function", rMarkers: "marker weight {v}",
     rDup: "{v} duplicated lines", rUntested: "no matching test file",
-    file: "File", changes: "Changes", lines: "Lines", product: "Changes × lines", kind: "Kind", age: "Age", text: "Line",
+    changes: "Changes", lines: "Lines", product: "Changes × lines", kind: "Kind", age: "Age", text: "Line",
     fn: "Function", range: "Lines in file", length: "Length", complexity: "Branches", measure: "Measured",
     exact: "exact", approx: "approximate", first: "First place", second: "Second place", rule: "Rule", message: "Finding",
+    manifest: "Listed in", depName: "Dependency", depKind: "Listed under",
     notCommitted: "not committed", days: "{n} days", months: "{n} months", years: "{n} years {m} months",
-    nothing: "Nothing found.", notRun: "Not run because {r}", ran: "{n} findings",
+    search: "Search", filterKind: "Kind", filterTool: "Tool", filterRule: "Rule", allRows: "All ({n})", optionCount: "{v} ({n})",
+    countRange: "Rows {a} to {b} of {n}", countMatch: "{m} of {n} rows match", countMatchRange: "Rows {a} to {b} of the {m} that match, out of {n}",
+    noMatch: "No rows match", noMatchText: "Clear the search or pick another value to see rows.",
     prev: "Previous", next: "Next", page: "Page {n}", pages: "Pages",
-    chartChanges: "changes", chartLines: "non-blank lines",
+    toolName: "Tool", result: "Result", statusCaption: "Whether each tool ran",
+    tagRan: "Ran", tagNotRun: "Not run", tagStopped: "Stopped", ran: "{n} findings", ranOne: "1 finding",
+    whyStopped: "{tool} stopped before it finished. Run {tool} in the project to see its error, then scan again.",
+    whyNotOnPath: "{tool} was not found in {where} or on PATH. Install it in the project to add its results.",
+    whyNotInstalled: "{tool} was not found in {where}. Install it in the project to add its results.",
+    whyTimeout: "{tool} took longer than {n} minutes, so the scan stopped waiting for it. Run {tool} in the project to see why it is slow, then scan again.",
+    whyConfigTimeout: "{tool} took longer than {n} minutes to print its config. Check that {tool} starts in the project, then scan again.",
+    whyNotStarted: "{tool} could not be started. Check that {tool} runs in the project, then scan again.",
+    whyUnreadable: "The output of {tool} could not be read. Run {tool} in the project to check what it prints, then scan again.",
+    whyNoConfig: "{tool} gave no config for {file}. Check the config of {tool} in the project, then scan again.",
+    whyNoRule: "The ESLint config of the project turns on no rule about deprecated calls. Turn on a rule such as {rules} to find them.",
+    whyNoRules: "The project keeps no semgrep rules in {files}. Write rules there to have semgrep run in the scan.",
+    whyNoPython: "No Python files were found, so {tool} had nothing to check. Nothing needs to be done.",
+    whyNoScripts: "No JavaScript or TypeScript files were found, so {tool} had nothing to check. Nothing needs to be done.",
+    whyNoPackage: "No package.json was found, so {tool} had nothing to check. Nothing needs to be done.",
+    whyOther: "{tool} did not run. Run {tool} in the project to see why, then scan again.",
+    emptyStart: "No files to rank", emptyStartText: "No source files were found, so no file is ranked.",
+    emptyHotGit: "Changes not counted", emptyHotGitText: "The folder is not in a git repository, so how often each file changed is unknown.",
+    emptyHot: "No file changed twice", emptyHotText: "No source file changed 2 or more times in the last {months} months.",
+    emptyMarkers: "No markers", emptyMarkersText: "No TODO, FIXME, HACK, XXX, or deprecation marker was found in comments.",
+    emptyUntested: "Every file has a matching test", emptyUntestedText: "Each source file of 20 or more lines has a test file of a matching name.",
+    emptyFunctions: "No long functions", emptyFunctionsText: "No function is longer than {n} lines.",
+    emptyLarge: "No large files", emptyLargeText: "No source file has more than {n} non-blank lines.",
+    emptyDup: "No duplicated blocks", emptyDupText: "No block of {n} or more lines appears in two places.",
+    emptyDepsNone: "Dependencies not checked", emptyDepsNoneText: "No package.json was found, so dependencies were not checked.",
+    emptyDeps: "No unused dependencies", emptyDepsText: "Every dependency in package.json is used.",
+    emptyCallsNone: "Deprecated calls not checked", emptyCallsNoneText: "None of ruff, semgrep, and ESLint ran, so no call was checked. The table above says why for each tool.",
+    emptyCalls: "No deprecated calls", emptyCallsText: "The tools that ran found no call to a deprecated API.",
+    emptyTool: "{tool} found nothing", emptyToolText: "{tool} ran and reported no findings.",
+    emptyTools: "No tools found", emptyToolsText: "None of knip, ruff, and semgrep was found in the project or on PATH.",
     howTitle: "How the values were measured", howMeasure: "Measure", howWay: "How it is measured",
     toolsTitle: "Tools the scan tried", toolUse: "Used for",
     howStart: "Each source file gets a score from 0 to 1. Changes multiplied by lines weigh 40%. Long functions weigh 20%. Markers and duplicated lines weigh 15% each. The changes of a file with no matching test file weigh 10%. The top 20 files are listed.",
@@ -242,57 +358,87 @@ const I18N = {
     howDup: "Blocks of {n} or more lines that appear in two places, ignoring whitespace, imports, and comments.",
     howDepsKnip: "Found by knip.",
     howDepsSearch: "Approximate. knip did not run, so each name in package.json was searched for in imports, require calls, config files, and scripts.",
-    howDepsNone: "Not measured, because there is no package.json.",
+    howDepsNone: "Not measured, because no package.json was found.",
     howDeprecated: "Found by {tools}, the tools that ran. A tool that did not run is in the table below with its reason.",
     howDeprecatedNone: "Not measured, because none of ruff, semgrep, and ESLint ran. The reasons are in the table below.",
     useKnip: "Unused dependencies, files, and exports", useRuff: "Python findings and deprecated calls",
     useSemgrep: "Findings of the project's own rules and deprecated calls", useEslint: "Calls that its deprecation rules find"
   },
   ja: {
-    title: "{p}の技術的負債",
+    title: "{p}の技術的負債", titleNoData: "技術的負債のレポート",
     langGroup: "言語", themeGroup: "配色", light: "明るい", dark: "暗い",
+    factsCaption: "この走査について",
     factCommit: "コミット", factBranch: "ブランチ", factFiles: "ソースファイル", factCommits: "直近{months}か月のコミット",
     factGenerated: "作成日時", factGit: "gitの履歴", notGit: "gitのリポジトリではありません",
-    start: "最初に直す物", hotspots: "変更の集中", markers: "TODOなど", untested: "名前の合うテストが無い", functions: "長い関数",
+    bannerTitle: "gitのリポジトリではありません",
+    bannerText: "変更の回数、変更の集中、TODOなどの古さはgitの履歴から測るので、測っていません。gitのリポジトリの中のフォルダを走査すると測れます。",
+    errorTitle: "このレポートにはデータがありません",
+    errorText: "走査の結果が書き込まれる前のページを開いています。もう一度走査して、書き出されたレポートを開いてください。",
+    reload: "読み込み直す",
+    tabsLabel: "レポートの区分", tabCount: "（{n}）",
+    tabStart: "優先順", tabHistory: "変更の履歴", tabCode: "コード", tabDeps: "依存", tabTools: "ツール",
+    start: "直す順の点数", hotspots: "変更の集中", markers: "TODOなど", untested: "名前の合うテストが無い", functions: "長い関数",
     large: "大きいファイル", dup: "重複", deps: "使っていない依存", deprecated: "非推奨の呼び出し", tools: "ツール",
-    cStart: "直す順に\u200b並べた\u200bファイル", cHot: "変更の\u200b集中", cMarkers: "TODOなどの\u200bコメント", cUntested: "名前の合う\u200bテストが無い",
-    cFunctions: "長い\u200b関数", cLarge: "大きい\u200bファイル", cDup: "重複した\u200b行", cDeps: "使っていない\u200b依存", cDeprecated: "非推奨の\u200b呼び出し",
-    notMeasured: "測っていない", approxByName: "名前で探した\u200b概算",
+    cStart: "直す順に​並べた​ファイル", cHot: "変更の​集中", cMarkers: "TODOなどの​コメント", cUntested: "名前の合う​テストが無い",
+    cFunctions: "長い​関数", cLarge: "大きい​ファイル", cDup: "重複した​行", cDeps: "使っていない​依存", cDeprecated: "非推奨の​呼び出し",
+    notMeasured: "測っていない", approxByName: "名前で探した​概算",
     leadStart: "変更の回数、大きさ、長い関数、TODOなどのコメント、重複、名前の合うテストファイルの有無を合わせて、直す順に並べたファイルです。行を押すと、その行の詳しい中身が出ます。人がよく手を入れるファイルなので、上から直すほど効き目が大きくなります。",
     leadHot: "直近{months}か月に2回以上変更したファイルを、変更の回数と空行を除いた行数の積の順に並べています。",
-    hotNotGit: "測っていない値です。gitのリポジトリの外なので、変更の回数を数えられません。",
     leadMarkers: "コメントにあるTODO、FIXME、HACK、XXXと、@deprecatedなどの非推奨の書き込みです。古い順に並べ、古さはgit blameで調べています。",
     leadUntested: "20行以上のソースファイルのうち、名前の合うテストファイル(foo.pyに対するtest_foo.pyなど)が見つからなかった物です。テストを動かしたり網羅率を測ったりはしていません。変更の多い順に並べています。",
     leadFunctions: "{n}行を超える関数です。Pythonは正確に測り、ほかの言語は波括弧の対応で測るので、目安として見てください。",
     leadLarge: "空行を除いて{n}行を超えるソースファイルです。",
     leadDup: "空白、import、コメントを除いて{n}行以上同じ並びが2か所にある部分です。",
-    leadDepsSearch: "package.jsonの依存のうち、import、require、設定のファイル、scriptsのどこにも名前が見つからなかった物です。使っている依存が求める依存と、短い名前で書かれた差し込みは使っている物と数えています。名前で探した概算なので、消す前に1つずつ確かめてください。",
+    leadDepsSearch: "package.jsonの依存のうち、import、require、設定のファイル、scriptsのどこにも名前が見つからなかった物です。使っている依存が求める依存と、短い名前で書かれた差し込みは使っている物と数えています。",
     leadDepsKnip: "package.jsonの依存のうち、knipが使っていないと判定した物です。",
-    noPackage: "package.jsonが無いので、依存は調べていません。",
-    manifest: "package.json", depName: "依存", depKind: "書かれた欄",
+    cautionTitle: "消す前に確かめる",
+    cautionText: "名前を文字として探した概算なので、ほかの書き方で使っている依存もここに並ぶことがあります。消す前に1つずつ確かめてください。",
     leadDeprecated: "ライブラリや言語が非推奨とするAPIを呼んでいる所です。プロジェクトにすでに入っているツールで探しています。ruffは非推奨のimport、別名、関数の規則を使います。semgrepはプロジェクトの規則だけを送信を切って回し、非推奨に関わる結果をここに出します。ESLintは設定が非推奨の規則を有効にしている時だけ回します。動かなかったツールは理由と一緒に挙げています。",
-    noCallTool: "上の理由で、非推奨の呼び出しを探せたツールがありません。", toolName: "ツール", result: "結果",
     leadTools: "プロジェクトかPATHにすでに入っていたツールの結果です。何も取り寄せていません。",
-    rankHead: "順位", score: "点数",
-    what: "何か", why: "負担になる理由", action: "最初の一手",
+    listTitle: "先に直すファイル", rankCaption: "点数の高い順に並べたファイル",
+    file: "ファイル", score: "点数", what: "何か", why: "負担になる理由", action: "最初の一手",
+    back: "一覧へ戻る", prevFile: "前のファイル", nextFile: "次のファイル", stepLabel: "ほかのファイル", showing: "{f}を表示しています",
     rChanges: "変更{v}回", rChangesOne: "変更1回", rLines: "{v}行", rLong: "長い関数{v}個", rLongOne: "長い関数1個", rMarkers: "TODOなどの重み{v}",
     rDup: "重複{v}行", rUntested: "名前の合うテストファイルが無い",
-    file: "ファイル", changes: "変更回数", lines: "行数", product: "変更回数×行数", kind: "種類", age: "古さ", text: "行",
+    changes: "変更回数", lines: "行数", product: "変更回数×行数", kind: "種類", age: "古さ", text: "行",
     fn: "関数", range: "ファイル内の行", length: "長さ", complexity: "分岐の数", measure: "測り方",
     exact: "正確", approx: "目安", first: "1か所目", second: "2か所目", rule: "規則", message: "内容",
+    manifest: "書かれたファイル", depName: "依存", depKind: "書かれた欄",
     notCommitted: "未コミット", days: "{n}日", months: "{n}か月", years: "{n}年{m}か月",
-    nothing: "見つかりませんでした。", notRun: "動かしていません。{r}", ran: "{n}件",
-    whyStopped: "{tool}が終了コード{code}で止まりました。",
-    whyNotOnPath: "{where}にもPATHにも{tool}が入っていません。", whyNotInstalled: "{where}に{tool}が入っていません。",
-    whyTimeout: "{tool}が{n}分以内に終わりませんでした。", whyConfigTimeout: "{tool}が{n}分以内に設定を出しませんでした。",
-    whyNotStarted: "{tool}を起動できませんでした({error})。", whyUnreadable: "{tool}の出力を読めませんでした({error})。",
-    whyNoConfig: "{tool}が{file}の設定を出しませんでした。",
-    whyNoRule: "ESLintの設定が、{rules}のような非推奨の規則を1つも有効にしていません。",
-    whyNoRules: "プロジェクト独自のsemgrepの規則のファイル({files})がありません。",
-    whyNoPython: "Pythonのファイルがありません。", whyNoScripts: "JavaScriptとTypeScriptのファイルがありません。",
-    whyNoPackage: "package.jsonがありません。",
+    search: "検索", filterKind: "種類", filterTool: "ツール", filterRule: "規則", allRows: "すべて（{n}）", optionCount: "{v}（{n}）",
+    countRange: "{n}件中{a}〜{b}件目", countMatch: "{n}件中{m}件が一致", countMatchRange: "{n}件中、一致した{m}件の{a}〜{b}件目",
+    noMatch: "一致する行がありません", noMatchText: "検索を消すか、ほかの値を選ぶと行が出ます。",
     prev: "前へ", next: "次へ", page: "{n}ページ", pages: "ページ",
-    chartChanges: "変更回数", chartLines: "空行を除いた行数",
+    toolName: "ツール", result: "結果", statusCaption: "ツールごとに動いたかどうか",
+    tagRan: "動いた", tagNotRun: "動かしていない", tagStopped: "止まった", ran: "{n}件", ranOne: "1件",
+    whyStopped: "{tool}が途中で止まりました。プロジェクトで{tool}を動かしてエラーを確かめ、もう一度走査してください。",
+    whyNotOnPath: "{where}にもPATHにも{tool}が入っていません。プロジェクトに入れると、その結果も載ります。",
+    whyNotInstalled: "{where}に{tool}が入っていません。プロジェクトに入れると、その結果も載ります。",
+    whyTimeout: "{tool}が{n}分以内に終わらなかったので、待つのをやめました。プロジェクトで{tool}を動かして遅い理由を確かめ、もう一度走査してください。",
+    whyConfigTimeout: "{tool}が{n}分以内に設定を出しませんでした。プロジェクトで{tool}が起動するかを確かめ、もう一度走査してください。",
+    whyNotStarted: "{tool}を起動できませんでした。プロジェクトで{tool}が動くかを確かめ、もう一度走査してください。",
+    whyUnreadable: "{tool}の出力を読めませんでした。プロジェクトで{tool}を動かして出力を確かめ、もう一度走査してください。",
+    whyNoConfig: "{tool}が{file}の設定を出しませんでした。プロジェクトの{tool}の設定を確かめ、もう一度走査してください。",
+    whyNoRule: "ESLintの設定が、非推奨の呼び出しの規則を1つも有効にしていません。{rules}のような規則を有効にすると見つかります。",
+    whyNoRules: "プロジェクト独自のsemgrepの規則のファイル（{files}）がありません。規則を書くと、走査でsemgrepが動きます。",
+    whyNoPython: "Pythonのファイルが無いので、{tool}が調べる物はありませんでした。することはありません。",
+    whyNoScripts: "JavaScriptとTypeScriptのファイルが無いので、{tool}が調べる物はありませんでした。することはありません。",
+    whyNoPackage: "package.jsonが無いので、{tool}が調べる物はありませんでした。することはありません。",
+    whyOther: "{tool}が動きませんでした。プロジェクトで{tool}を動かして理由を確かめ、もう一度走査してください。",
+    emptyStart: "並べるファイルがありません", emptyStartText: "ソースファイルが見つからなかったので、並べたファイルはありません。",
+    emptyHotGit: "変更の回数を数えていません", emptyHotGitText: "gitのリポジトリの外なので、ファイルごとの変更の回数が分かりません。",
+    emptyHot: "2回以上変わったファイルはありません", emptyHotText: "直近{months}か月に2回以上変更したソースファイルはありませんでした。",
+    emptyMarkers: "TODOなどはありません", emptyMarkersText: "コメントにTODO、FIXME、HACK、XXXと非推奨の書き込みは見つかりませんでした。",
+    emptyUntested: "全てのファイルに名前の合うテストがあります", emptyUntestedText: "20行以上のソースファイルには、どれも名前の合うテストファイルがあります。",
+    emptyFunctions: "長い関数はありません", emptyFunctionsText: "{n}行を超える関数はありませんでした。",
+    emptyLarge: "大きいファイルはありません", emptyLargeText: "空行を除いて{n}行を超えるソースファイルはありませんでした。",
+    emptyDup: "重複した部分はありません", emptyDupText: "{n}行以上同じ並びが2か所にある部分はありませんでした。",
+    emptyDepsNone: "依存を調べていません", emptyDepsNoneText: "package.jsonが見つからなかったので、依存は調べていません。",
+    emptyDeps: "使っていない依存はありません", emptyDepsText: "package.jsonの依存は全て使われています。",
+    emptyCallsNone: "非推奨の呼び出しを調べていません", emptyCallsNoneText: "ruffもsemgrepもESLintも動かなかったので、探していません。理由は上の表にあります。",
+    emptyCalls: "非推奨の呼び出しはありません", emptyCallsText: "動いたツールは非推奨のAPIの呼び出しを見つけませんでした。",
+    emptyTool: "{tool}の指摘はありません", emptyToolText: "{tool}は動き、何も指摘しませんでした。",
+    emptyTools: "ツールが見つかりません", emptyToolsText: "プロジェクトにもPATHにもknip、ruff、semgrepが見つかりませんでした。",
     howTitle: "値の測り方", howMeasure: "項目", howWay: "測り方",
     toolsTitle: "走査で試したツール", toolUse: "使い道",
     howStart: "ソースファイルごとに0から1の点数を付けます。変更の回数と行数の積が40%です。長い関数は20%です。TODOなどと重複した行は15%ずつです。名前の合うテストファイルが無いファイルの変更の回数は10%です。上位20件を並べます。",
@@ -313,12 +459,15 @@ const I18N = {
     useSemgrep: "プロジェクトの規則の指摘と非推奨の呼び出し", useEslint: "設定で有効な非推奨の規則に当たる呼び出し"
   }
 };
-const D = PAYLOAD.data, NOTES = PAYLOAD.notes || {};
+const D = PAYLOAD && PAYLOAD.data ? PAYLOAD.data : null, NOTES = (PAYLOAD && PAYLOAD.notes) || {};
 const PAGE = 50;
-let lang = "en", tab = "start";
-// pick is the ranked row whose details sit beside the list.
-let pick = 0;
-const pages = {};
+let lang = "en";
+// The tab on view, the ranked row whose details are shown, whether the list or the details show below
+// 860px, whether the details were opened from the list, and the page of the ranked list.
+let tab = "start", pick = 0, view = "list", fromList = false, rankPage = 0, panelTab = null;
+// Each long table keeps its page, sorted column, search, and filter while its tab is open.
+const tables = {};
+const NARROW = window.matchMedia("(max-width: 860px)"), SMALL = window.matchMedia("(max-width: 599px)");
 try { const s = localStorage.getItem("techdebt-lang"); if (s === "ja" || s === "en") lang = s; } catch (e) {}
 // The theme follows the system until the reader picks one, which is kept like the language.
 let theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
@@ -328,11 +477,6 @@ function setTheme(mode) {
   document.documentElement.dataset.theme = mode;
   for (const b of document.querySelectorAll("[data-theme-choice]")) b.setAttribute("aria-pressed", String(b.dataset.themeChoice === mode));
 }
-function show(id) {
-  tab = id;
-  try { history.replaceState(null, "", "#" + id); } catch (e) {}
-  render();
-}
 
 function t(key, vars) {
   let s = (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key;
@@ -341,17 +485,48 @@ function t(key, vars) {
 }
 // A Japanese full stop with more text after it ends the line, so each sentence starts on its own
 // line, as the look of page-design asks. Text without one is written as it is.
-const lines = (s) => String(s).replace(/\u3002(?![\u300d\u300f\uff09)\u3011\u3009\u300b"'\u201d\u2019]|$)/g, "\u3002\u0000").split("\u0000")
+const lines = (s) => String(s).replace(/。(?![」』）)】〉》"'”’]|$)/g, "。\u0000").split("\u0000")
   .flatMap((part, i) => (i ? [document.createElement("br"), part] : [part]));
 function el(tag, attrs, ...kids) {
   const e = document.createElement(tag);
   for (const k in (attrs || {})) {
-    if (k === "class") e.className = attrs[k];
-    else if (k.startsWith("on")) e.addEventListener(k.slice(2), attrs[k]);
-    else e.setAttribute(k, attrs[k]);
+    const v = attrs[k];
+    if (v == null || v === false) continue;
+    if (k === "class") e.className = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v);
   }
-  for (const c of kids.flat()) if (c != null) e.append(...(c.nodeType ? [c] : lines(c)));
+  for (const c of kids.flat(Infinity)) if (c != null && c !== false) e.append(...(c.nodeType ? [c] : lines(c)));
   return e;
+}
+const $ = (id) => document.getElementById(id);
+// The words a tool or a file wrote, kept letter for letter in code. A path may break after each slash,
+// so a narrow column breaks it between folders instead of in the middle of a name.
+function code(text, cls, path) {
+  const e = document.createElement("code");
+  if (cls) e.className = cls;
+  if (!path) e.textContent = text;
+  else String(text).split("/").forEach((part, i, all) => {
+    e.append(part + (i < all.length - 1 ? "/" : ""));
+    if (i < all.length - 1) e.append(document.createElement("wbr"));
+  });
+  return e;
+}
+const ICONS = {
+  ok: '<path d="M3.5 8.5l3 3 6-7"/>',
+  minus: '<path d="M4 8h8"/>',
+  stop: '<circle cx="8" cy="8" r="5.5"/><path d="M6 6l4 4M10 6l-4 4"/>',
+  alert: '<path d="M8 2.5l6 11H2z"/><path d="M8 7v2.5M8 11.6v.1"/>',
+  right: '<path d="M6 3.5l4.5 4.5L6 12.5"/>',
+  left: '<path d="M10 3.5L5.5 8l4.5 4.5"/>',
+  up: '<path d="M8 12.5v-9M4.5 7L8 3.5 11.5 7"/>',
+  down: '<path d="M8 3.5v9M4.5 9L8 12.5 11.5 9"/>',
+  both: '<path d="M5.5 6L8 3.5 10.5 6M5.5 10L8 12.5 10.5 10"/>',
+};
+function icon(name, size) {
+  const box = document.createElement("span");
+  box.innerHTML = '<svg viewBox="0 0 16 16" width="' + (size || 16) + '" height="' + (size || 16) + '" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + ICONS[name] + "</svg>";
+  return box.firstChild;
 }
 function age(d) {
   if (d == null) return t("notCommitted");
@@ -367,19 +542,45 @@ function reason(r) {
   return t(key, {v: r.value});
 }
 const list = (items) => items.join(lang === "ja" ? "、" : ", ");
+// Choices joined as a reader says them: a, b, or c in English, and a、b、c in Japanese.
+const either = (items) => (lang === "ja" || items.length < 2 ? list(items)
+  : items.slice(0, -1).join(", ") + (items.length > 2 ? "," : "") + " or " + items[items.length - 1]);
+// The folder and the name of a path, the folder free to break after each slash.
+const pathParts = (file) => {
+  const at = file.lastIndexOf("/") + 1, dir = el("span", {class: "dir"});
+  for (const part of file.slice(0, at).split("/").slice(0, -1)) dir.append(part + "/", document.createElement("wbr"));
+  return [dir, el("b", null, file.slice(at))];
+};
+// A score with two decimals as the summary of scan prints it, where Python rounds an exact half to even.
+const two = (x) => {
+  const k = x * 100, f = Math.floor(k);
+  return k - f === 0.5 ? ((f % 2 ? f + 1 : f) / 100).toFixed(2) : x.toFixed(2);
+};
+const hashOf = (i) => "#item-" + encodeURIComponent(D.ranked[i].file);
+const focusOn = (e) => { if (e) e.focus(); };
+function setStatus(text) { $("status").textContent = text; }
 
+// Each tab: its id in the URL, its name in the dictionary, and the measures it holds in the order of the band.
 const TABS = [
-  ["start", "start"],
-  ["hotspots", "hotspots"],
-  ["markers", "markers"],
-  ["untested", "untested"],
-  ["functions", "functions"],
-  ["large", "large"],
-  ["dup", "dup"],
-  ["deps", "deps"],
-  ["deprecated", "deprecated"],
-  ["tools", "tools"],
+  ["start", "tabStart", ["start"]],
+  ["history", "tabHistory", ["hotspots", "markers"]],
+  ["code", "tabCode", ["untested", "functions", "large", "dup"]],
+  ["deps", "tabDeps", ["deps", "deprecated"]],
+  ["tools", "tabTools", ["tools"]],
 ];
+const TAB_OF = {};
+for (const [id, , measures] of TABS) for (const m of measures) TAB_OF[m] = id;
+// The number of rows each tab holds, shown beside its name.
+function tabCount(id) {
+  const u = D.unused_dependencies;
+  return {
+    start: D.ranked.length,
+    history: D.hotspots.length + D.markers.length,
+    code: D.functions.length + D.large_files.length + D.duplication.length + D.untested.length,
+    deps: (u ? u.items.length : 0) + D.deprecated_calls.items.length,
+    tools: D.tools.filter(s => s.ran).reduce((a, s) => a + s.findings.length, 0),
+  }[id];
+}
 // A measure that did not run gives null, which the band shows as not measured, never as 0.
 const ranTools = () => D.deprecated_calls.tools.filter(s => s.ran).map(s => s.tool);
 const CARDS = [
@@ -408,49 +609,20 @@ const HOW = [
 ];
 const TOOL_ORDER = ["knip", "ruff", "semgrep", "eslint"];
 const TOOL_USE = {knip: "useKnip", ruff: "useRuff", semgrep: "useSemgrep", eslint: "useEslint"};
+const TOOL_NAME = {eslint: "ESLint"};
 
-function pagerNav(total, cur, go, id) {
-  if (total < 2) return null;
-  const nav = el("nav", {class: "pager", "aria-label": t("pages"), ...(id ? {id} : {})});
-  nav.append(el("button", {type: "button", onclick: () => go(cur - 1), ...(cur === 0 ? {disabled: ""} : {})}, t("prev")));
-  for (let i = 0; i < total; i++) {
-    if (total > 9 && i > 1 && i < total - 2 && Math.abs(i - cur) > 1) {
-      if (i === 2 || i === total - 3) nav.append(el("span", null, "…"));
-      continue;
-    }
-    nav.append(el("button", {type: "button", "aria-label": t("page", {n: i + 1}), onclick: () => go(i),
-      ...(i === cur ? {"aria-current": "page"} : {})}, i + 1));
-  }
-  nav.append(el("button", {type: "button", onclick: () => go(cur + 1), ...(cur === total - 1 ? {disabled: ""} : {})}, t("next")));
-  return nav;
-}
-function paged(id, rows, head, row) {
-  if (!rows.length) return el("div", {class: "empty"}, t("nothing"));
-  const total = Math.ceil(rows.length / PAGE);
-  const cur = Math.min(pages[id] || 0, total - 1);
-  const go = (p) => { pages[id] = p; render(); };
-  const body = rows.slice(cur * PAGE, cur * PAGE + PAGE).map(row);
-  const table = el("table", null,
-    el("thead", null, el("tr", null, head.map(([k, num]) => el("th", num ? {class: "num"} : null, t(k))))),
-    el("tbody", null, body));
-  return el("div", null, pagerNav(total, cur, go), el("div", {class: "tablewrap"}, table), pagerNav(total, cur, go));
-}
-const td = (v, num) => el("td", num ? {class: "num"} : null, v);
-const tdc = (v) => el("td", null, el("code", null, v));
-// The words a tool wrote are quoted in code, letter for letter, apart from the words of the page.
-const said = (v) => el("code", {class: "said"}, v);
-const tds = (v) => el("td", null, said(v));
-// techdebt.py writes each reason in English, for its summary and scan.json. The English page shows it as
-// written. The Japanese page puts the reasons it knows in its own words, and quotes any other reason as
-// written. Each entry is a pattern of a reason, its key in the dictionary, and the names of its parts.
+// techdebt.py writes each reason in English, for its summary and scan.json. The page puts every reason in
+// its own words, in two sentences: what happened and what to do next. It never shows the exit code, the
+// name of an exception, or the error a stopped tool wrote. Each entry is a pattern of a reason, its key
+// in the dictionary, and the names of its parts.
 const REASONS = [
-  [/^(\S+) stopped with exit code (-?\d+)(?:: ([\s\S]+))?$/, "whyStopped", ["tool", "code", "said"]],
+  [/^(\S+) stopped with exit code -?\d+(?::[\s\S]*)?$/, "whyStopped", ["tool"]],
   [/^(\S+) is not installed in (\S+) or on PATH$/, "whyNotOnPath", ["tool", "where"]],
   [/^(\S+) is not installed in (\S+)$/, "whyNotInstalled", ["tool", "where"]],
   [/^(\S+) did not finish within (\d+) minutes$/, "whyTimeout", ["tool", "n"]],
   [/^(\S+) did not print its config within (\d+) minutes$/, "whyConfigTimeout", ["tool", "n"]],
-  [/^(\S+) could not be started \((\w+)\)$/, "whyNotStarted", ["tool", "error"]],
-  [/^(\S+) output could not be read \((\w+)\)$/, "whyUnreadable", ["tool", "error"]],
+  [/^(\S+) could not be started \(\w+\)$/, "whyNotStarted", ["tool"]],
+  [/^(\S+) output could not be read \(\w+\)$/, "whyUnreadable", ["tool"]],
   [/^(\S+) printed no config for (.+)$/, "whyNoConfig", ["tool", "file"]],
   [/^the ESLint config turns on no deprecation rule \(such as (.+)\)$/, "whyNoRule", ["rules"]],
   [/^the project has no semgrep rules of its own \((.+)\)$/, "whyNoRules", ["files"]],
@@ -458,227 +630,523 @@ const REASONS = [
   [/^there are no JavaScript or TypeScript files$/, "whyNoScripts", []],
   [/^there is no package\.json$/, "whyNoPackage", []],
 ];
-// A tool that stopped gives the reason "TOOL stopped with exit code N: FIRST LINE". The exit code stays in
-// the words of the page and the first line is quoted under it, without the colon.
+// The words of a tool's result, without its tag: the number of findings, or why it did not run.
 function toolState(tool, found) {
-  if (tool.ran) return [t("ran", {n: found})];
-  if (lang === "en") {
-    const m = /^(\S+ stopped with exit code -?\d+): ([\s\S]+)$/.exec(tool.reason);
-    return m ? [t("notRun", {r: m[1]}), said(m[2])] : [t("notRun", {r: tool.reason})];
-  }
+  if (tool.ran) return [found === 1 ? t("ranOne") : t("ran", {n: found})];
+  const parts = {tool: TOOL_NAME[tool.tool] || tool.tool};
   for (const [pattern, key, names] of REASONS) {
-    const m = pattern.exec(tool.reason);
+    const m = pattern.exec(tool.reason || "");
     if (!m) continue;
-    const parts = {};
     names.forEach((name, i) => { parts[name] = m[i + 1] || ""; });
-    if (key === "whyStopped") return parts.said ? [t(key, parts), said(parts.said)] : [t(key, parts)];
-    if (parts.rules) parts.rules = list(parts.rules.split(" or "));
-    if (parts.files) parts.files = list(parts.files.split(/,? or |, /));
-    return [t("notRun", {r: t(key, parts)})];
+    if (parts.rules) parts.rules = either(parts.rules.split(" or "));
+    if (parts.files) parts.files = either(parts.files.split(/,? or |, /));
+    return [t(key, parts)];
   }
-  return [t("notRun", {r: ""}), said(tool.reason)];
+  return [t("whyOther", parts)];
 }
-const pathParts = (file) => {
-  const at = file.lastIndexOf("/") + 1;
-  return [el("span", {class: "dir"}, file.slice(0, at)), el("b", null, file.slice(at))];
-};
-// A score with two decimals as the summary of scan prints it, where Python rounds an exact half to even.
-const two = (x) => {
-  const k = x * 100, f = Math.floor(k);
-  return k - f === 0.5 ? ((f % 2 ? f + 1 : f) / 100).toFixed(2) : x.toFixed(2);
-};
-// The score of a row as its number, with a bar under it that shows the same number.
-const scoreOf = (score) => el("span", {class: "value"}, el("span", {class: "score"}, two(score)),
-  el("span", {class: "bar", "aria-hidden": "true"}, el("i", {style: `width:${Math.min(100, score * 100).toFixed(1)}%`})));
+const stateOf = (tool) => tool.ran ? "ran" : /^\S+ stopped with exit code/.test(tool.reason || "") ? "stopped" : "not-run";
+const SEVERITY = {stopped: 0, "not-run": 1, ran: 2};
+const TAGS = {ran: ["good", "ok", "tagRan"], "not-run": ["warn", "minus", "tagNotRun"], stopped: ["crit", "stop", "tagStopped"]};
+function tag(tool) {
+  const [cls, name, key] = TAGS[stateOf(tool)];
+  return el("span", {class: "tag " + cls}, icon(name, 14), t(key));
+}
+// Tools from the one that stopped to the ones that ran, and in the order of TOOL_ORDER within each state.
+const byState = (tools) => tools.slice().sort((a, b) => SEVERITY[stateOf(a)] - SEVERITY[stateOf(b)] || TOOL_ORDER.indexOf(a.tool) - TOOL_ORDER.indexOf(b.tool));
+const result = (tool, found) => [tag(tool), el("span", {class: "words"}, toolState(tool, found))];
+const callsOf = (tool) => D.deprecated_calls.items.filter(i => i.tool === tool).length;
+const empty = (head, text, vars) => el("div", {class: "empty"}, el("h4", null, t(head, vars)), el("p", null, t(text, vars)));
 
-function hotChart() {
-  const rows = D.hotspots.slice(0, 15);
-  if (!rows.length) return null;
-  const W = 760, rowH = 26, left = 300, H = rows.length * rowH + 10;
-  const maxC = Math.max(...rows.map(r => r.changes)), maxL = Math.max(...rows.map(r => r.lines));
-  const ns = "http://www.w3.org/2000/svg";
-  const svg = document.createElementNS(ns, "svg");
-  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-  svg.setAttribute("role", "img");
-  const mk = (tag, a, txt) => { const e = document.createElementNS(ns, tag); for (const k in a) e.setAttribute(k, a[k]); if (txt != null) e.textContent = txt; svg.append(e); return e; };
-  const span = W - left - 70;
-  rows.forEach((r, i) => {
-    const y = i * rowH + 4;
-    const name = r.file.length > 42 ? "…" + r.file.slice(-41) : r.file;
-    mk("text", {x: left - 8, y: y + 12, "text-anchor": "end", class: "lbl"}, name);
-    mk("rect", {x: left, y: y, width: Math.max(2, span * r.changes / maxC), height: 9, rx: 2, fill: "var(--bar)"});
-    mk("rect", {x: left, y: y + 11, width: Math.max(2, span * r.lines / maxL), height: 9, rx: 2, fill: "var(--bar2)"});
-    mk("text", {x: left + span * r.changes / maxC + 6, y: y + 9}, r.changes);
-    mk("text", {x: left + span * r.lines / maxL + 6, y: y + 20, class: "lbl"}, r.lines);
+// --- Tables
+// A column: the dictionary key of its header, the value it sorts by, the text it shows and searches,
+// how it draws a cell, whether it holds numbers, and whether its first press sorts up or down.
+const col = (key, val, more) => Object.assign({key, val, text: (r) => String(val(r))}, more || {});
+function cellOf(c, r) {
+  if (c.show) return c.show(r);
+  if (c.said) return code(c.text(r), "said");
+  if (c.code) return code(c.text(r), null, true);
+  return c.text(r);
+}
+const natural = (c) => c.natural || (c.num ? "descending" : "ascending");
+function cmp(a, b) {
+  if (typeof a === "number" && typeof b === "number") return a - b;
+  const x = String(a).toLowerCase(), y = String(b).toLowerCase();
+  return x < y ? -1 : x > y ? 1 : 0;
+}
+function tableState(spec) {
+  if (!tables[spec.id]) tables[spec.id] = {page: 0, sort: spec.sort, dir: spec.dir, query: "", filter: ""};
+  return tables[spec.id];
+}
+function resetTables() {
+  for (const k in tables) Object.assign(tables[k], {page: 0, query: "", filter: ""});
+}
+// The numbers of the pager: the first and last pages and the pages around the current one, at most 5
+// below 600px.
+function pageNumbers(total, cur) {
+  const small = SMALL.matches, set = new Set([0, total - 1]);
+  if (!small && total <= 9) for (let i = 0; i < total; i++) set.add(i);
+  for (let i = cur - (small ? 1 : 2); i <= cur + (small ? 1 : 2); i++) if (i >= 0 && i < total) set.add(i);
+  return [...set].sort((a, b) => a - b);
+}
+function pager(total, cur, go) {
+  if (total < 2) return null;
+  const nav = el("nav", {class: "pager", "aria-label": t("pages")});
+  if (cur > 0) nav.append(el("button", {type: "button", onclick: () => go(cur - 1)}, icon("left"), el("span", {class: "word"}, t("prev"))));
+  let last = -1;
+  for (const i of pageNumbers(total, cur)) {
+    if (i - last > 1) nav.append(el("span", {class: "gap", "aria-hidden": "true"}, "…"));
+    nav.append(el("button", {type: "button", "aria-label": t("page", {n: i + 1}), "aria-current": i === cur ? "page" : null, onclick: () => go(i)}, i + 1));
+    last = i;
+  }
+  if (cur < total - 1) nav.append(el("button", {type: "button", onclick: () => go(cur + 1)}, el("span", {class: "word"}, t("next")), icon("right")));
+  return nav;
+}
+function countLine(n, m, filtered, from, k, pages) {
+  if (!filtered) return t("countRange", {a: from + 1, b: from + k, n});
+  return pages > 1 ? t("countMatchRange", {a: from + 1, b: from + k, m, n}) : t("countMatch", {m, n});
+}
+// A table of a measure: a search and a filter above a table of more than 50 rows, the count of the rows
+// on view, a pager above and below, and the table in a region that scrolls sideways.
+function tableBlock(spec) {
+  const st = tableState(spec);
+  const results = el("div", {class: "results"});
+  const draw = (after) => {
+    results.replaceChildren(...rowsOf(spec, st, draw).filter(Boolean));
+    if (after) after();
+  };
+  const block = el("div", {class: "block"});
+  if (spec.rows.length > PAGE) block.append(filters(spec, st, () => {
+    draw();
+    const c = results.querySelector(".count");
+    if (c) setStatus(c.textContent);
+  }));
+  block.append(results);
+  draw();
+  return block;
+}
+function filters(spec, st, redraw) {
+  const qid = "q-" + spec.id, fid = "f-" + spec.id;
+  const input = el("input", {type: "search", id: qid, value: st.query, autocomplete: "off", spellcheck: "false"});
+  input.addEventListener("input", () => { st.query = input.value; st.page = 0; redraw(); });
+  const fields = [el("div", {class: "field"}, el("label", {for: qid}, t("search")), input)];
+  if (spec.filter) {
+    const counts = new Map();
+    for (const r of spec.rows) { const v = String(spec.filter.val(r)); counts.set(v, (counts.get(v) || 0) + 1); }
+    const order = spec.filter.order || [];
+    const at = (v) => (order.indexOf(v) < 0 ? order.length : order.indexOf(v));
+    const values = [...counts.keys()].sort((a, b) => at(a) - at(b));
+    const select = el("select", {id: fid}, el("option", {value: ""}, t("allRows", {n: spec.rows.length})),
+      values.map(v => el("option", {value: v}, t("optionCount", {v, n: counts.get(v)}))));
+    select.value = st.filter;
+    select.addEventListener("change", () => { st.filter = select.value; st.page = 0; redraw(); });
+    fields.push(el("div", {class: "field"}, el("label", {for: fid}, t(spec.filter.key)), select));
+  }
+  return el("div", {class: "filters"}, fields);
+}
+function rowsOf(spec, st, draw) {
+  const q = st.query.trim().toLowerCase();
+  const filtered = !!(q || st.filter);
+  let rows = spec.rows.filter(r => (!st.filter || String(spec.filter.val(r)) === st.filter)
+    && (!q || spec.cols.some(c => c.text(r).toLowerCase().includes(q))));
+  const c = spec.cols[st.sort], sign = st.dir === "descending" ? -1 : 1;
+  rows = rows.map((r, i) => [r, i]).sort((a, b) => cmp(c.val(a[0]), c.val(b[0])) * sign || a[1] - b[1]).map(x => x[0]);
+  const pages = Math.max(1, Math.ceil(rows.length / PAGE));
+  st.page = Math.min(st.page, pages - 1);
+  const from = st.page * PAGE, shown = rows.slice(from, from + PAGE);
+  const out = [];
+  if (spec.rows.length > PAGE) out.push(el("p", {class: "count"}, countLine(spec.rows.length, rows.length, filtered, from, shown.length, pages)));
+  if (!rows.length) return out.concat(empty("noMatch", "noMatchText"));
+  // A new page starts at the heading of its table, so the reader does not lose the place.
+  const go = (p) => { st.page = p; draw(() => focusOn($(spec.heading))); };
+  out.push(pager(pages, st.page, go), tableOf(spec, st, shown, rows.length > 10 && spec.sortable !== false, draw), pager(pages, st.page, go));
+  return out;
+}
+function tableOf(spec, st, rows, sortable, draw) {
+  const label = spec.caption ? "cap-" + spec.id : spec.heading;
+  const heads = spec.cols.map((c, k) => {
+    const on = k === st.sort;
+    const press = () => {
+      if (on) st.dir = st.dir === "ascending" ? "descending" : "ascending";
+      else { st.sort = k; st.dir = natural(c); }
+      st.page = 0;
+      draw(() => focusOn(document.querySelector('[data-table="' + spec.id + '"] th[data-col="' + k + '"] button')));
+    };
+    return el("th", {scope: "col", class: c.num ? "num" : null, "aria-sort": on ? st.dir : null, "data-col": k},
+      sortable ? el("button", {type: "button", class: "sort", onclick: press}, t(c.key), icon(on ? (st.dir === "ascending" ? "up" : "down") : "both", 14)) : t(c.key));
   });
-  return el("div", {class: "chart"}, svg,
-    el("div", {class: "legend"},
-      el("span", null, el("i", {style: "background:var(--bar)"}), t("chartChanges")),
-      el("span", null, el("i", {style: "background:var(--bar2)"}), t("chartLines"))));
+  const body = rows.map(r => el("tr", null, spec.cols.map((c, k) => k
+    ? el("td", {class: c.num ? "num" : null}, cellOf(c, r))
+    : el("th", {scope: "row", class: c.num ? "num" : null}, cellOf(c, r)))));
+  const table = el("table", {class: spec.cols.length >= 6 ? "striped" : null, "aria-labelledby": spec.caption ? null : label, "data-table": spec.id},
+    spec.caption ? el("caption", {id: label, class: "sr-only"}, t(spec.caption)) : null,
+    el("thead", null, el("tr", null, heads)), el("tbody", null, body));
+  return el("div", {class: "table-scroll", role: "region", tabindex: "0", "aria-labelledby": label}, table);
 }
+// A cell of a number with a bar beside it, sized against the largest value of the whole list.
+const barCell = (v, top) => el("span", {class: "barcell"},
+  el("span", {class: "bar", "aria-hidden": "true"}, el("i", {style: "width:" + Math.min(100, v / top * 100).toFixed(2) + "%"})), el("span", null, v));
+const at = (file, line) => file + (line ? ":" + line : "");
+const atKey = (file, line) => file + ":" + String(line || 0).padStart(9, "0");
 
-// The details of one ranked row: its file, the measures behind its score, and the agent's notes.
-function detail(i) {
-  const r = D.ranked[i];
-  const box = el("section", {class: "detail", id: "detail", "aria-live": "polite"});
-  if (!r) return box;
-  const n = NOTES[r.file];
-  const rows = [["score", el("span", {class: "score"}, two(r.score))]];
-  if (n) rows.push(["what", n.what], ["why", n.why], ["action", n.action]);
-  box.append(
-    el("div", {class: "detail-head"}, el("span", {class: "no"}, i + 1), el("h2", {class: "file"}, pathParts(r.file))),
-    el("div", {class: "chips"}, r.reasons.map(x => el("span", {class: "chip"}, reason(x)))),
-    el("table", {class: "kv"}, el("tbody", null, rows.map(([k, v]) => el("tr", null, el("th", null, t(k)), el("td", null, v))))));
-  return box;
+// --- The sections of the measures
+function measure(m, lead, ...body) {
+  return el("section", {class: "measure", "data-measure": m, "aria-labelledby": "h-" + m},
+    el("h3", {id: "h-" + m, tabindex: "-1"}, t(m)), lead ? el("p", {class: "lead"}, lead) : null, ...body);
 }
-function choose(i) {
-  pick = i;
-  for (const b of document.querySelectorAll("#rows [data-pick]")) b.setAttribute("aria-pressed", String(Number(b.dataset.pick) === i));
-  const next = detail(i);
-  document.getElementById("detail").replaceWith(next);
-  // On a phone the details sit under the list, so the page moves to them.
-  if (window.matchMedia("(max-width: 860px)").matches) {
-    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    next.scrollIntoView({block: "start", behavior: still ? "auto" : "smooth"});
-  }
-}
-
-const PANELS = {
-  start() {
-    const box = el("div", null, el("p", {class: "lead"}, t("leadStart")));
-    if (!D.ranked.length) return box.appendChild(el("div", {class: "empty"}, t("nothing"))) && box;
-    const total = Math.ceil(D.ranked.length / PAGE);
-    const cur = Math.min(pages.start || 0, total - 1);
-    const from = cur * PAGE;
-    if (pick < from || pick >= Math.min(from + PAGE, D.ranked.length)) pick = from;
-    const go = (p) => { pages.start = p; pick = p * PAGE; render(); };
-    const rows = el("div", {class: "rows", id: "rows"},
-      el("div", {class: "rows-head", "aria-hidden": "true"},
-        el("span", null, t("rankHead")), el("span", null, t("file")), el("span", {class: "num"}, t("score"))),
-      D.ranked.slice(from, from + PAGE).map((r, k) => {
-        const i = from + k, n = NOTES[r.file];
-        return el("button", {type: "button", class: "row", "data-pick": i, "aria-pressed": String(i === pick), onclick: () => choose(i)},
-          el("span", {class: "no"}, i + 1),
-          el("span", {class: "name"}, el("span", {class: "file"}, pathParts(r.file)), n ? el("small", null, n.what) : null),
-          scoreOf(r.score));
-      }));
-    box.append(el("div", {class: "split"},
-      el("div", {class: "list"}, pagerNav(total, cur, go, "pager-top"), rows, pagerNav(total, cur, go, "pager-bottom")),
-      detail(pick)));
-    return box;
-  },
+const SECTIONS = {
   hotspots() {
-    if (!D.git) return el("div", null, el("p", {class: "lead"}, t("leadHot", {months: D.months})), el("div", {class: "empty"}, t("hotNotGit")));
-    return el("div", null, el("p", {class: "lead"}, t("leadHot", {months: D.months})), hotChart(),
-      paged("hot", D.hotspots, [["file"], ["changes", 1], ["lines", 1], ["product", 1]],
-        r => el("tr", null, tdc(r.file), td(r.changes, 1), td(r.lines, 1), td(r.changes * r.lines, 1))));
+    const lead = t("leadHot", {months: D.months});
+    if (!D.git) return measure("hotspots", lead, empty("emptyHotGit", "emptyHotGitText"));
+    if (!D.hotspots.length) return measure("hotspots", lead, empty("emptyHot", "emptyHotText", {months: D.months}));
+    const top = Math.max(1, ...D.hotspots.map(h => h.changes * h.lines));
+    return measure("hotspots", lead, tableBlock({id: "hotspots", heading: "h-hotspots", rows: D.hotspots, sort: 3, dir: "descending", cols: [
+      col("file", h => h.file, {code: true}),
+      col("changes", h => h.changes, {num: true}),
+      col("lines", h => h.lines, {num: true}),
+      col("product", h => h.changes * h.lines, {num: true, show: h => barCell(h.changes * h.lines, top)}),
+    ]}));
   },
   markers() {
-    return el("div", null, el("p", {class: "lead"}, t("leadMarkers")),
-      paged("markers", D.markers, [["file"], ["kind"], ["age", 1], ["text"]],
-        m => el("tr", null, tdc(m.file + ":" + m.line), td(m.kind), td(age(m.age_days), 1), tdc(m.text))));
+    const lead = t("leadMarkers");
+    if (!D.markers.length) return measure("markers", lead, empty("emptyMarkers", "emptyMarkersText"));
+    return measure("markers", lead, tableBlock({id: "markers", heading: "h-markers", rows: D.markers, sort: 2, dir: "descending",
+      filter: {key: "filterKind", val: m => m.kind, order: ["TODO", "FIXME", "HACK", "XXX", "deprecated"]}, cols: [
+        col("file", m => atKey(m.file, m.line), {code: true, text: m => at(m.file, m.line)}),
+        col("kind", m => m.kind),
+        col("age", m => (m.age_days == null ? -1 : m.age_days), {num: true, text: m => age(m.age_days)}),
+        col("text", m => m.text, {code: true}),
+      ]}));
   },
   untested() {
-    return el("div", null, el("p", {class: "lead"}, t("leadUntested")),
-      paged("untested", D.untested, [["file"], ["changes", 1], ["lines", 1]],
-        r => el("tr", null, tdc(r.file), td(r.changes, 1), td(r.lines, 1))));
+    const lead = t("leadUntested");
+    if (!D.untested.length) return measure("untested", lead, empty("emptyUntested", "emptyUntestedText"));
+    return measure("untested", lead, tableBlock({id: "untested", heading: "h-untested", rows: D.untested, sort: 1, dir: "descending", cols: [
+      col("file", r => r.file, {code: true}),
+      col("changes", r => r.changes, {num: true}),
+      col("lines", r => r.lines, {num: true}),
+    ]}));
   },
   functions() {
-    return el("div", null, el("p", {class: "lead"}, t("leadFunctions", {n: D.thresholds.long_function})),
-      paged("functions", D.functions, [["file"], ["fn"], ["range", 1], ["length", 1], ["complexity", 1], ["measure"]],
-        f => el("tr", null, tdc(f.file), tdc(f.name), td(f.start + "–" + f.end, 1), td(f.lines, 1), td(f.complexity, 1), td(t(f.exact ? "exact" : "approx")))));
+    const n = D.thresholds.long_function, lead = t("leadFunctions", {n});
+    if (!D.functions.length) return measure("functions", lead, empty("emptyFunctions", "emptyFunctionsText", {n}));
+    return measure("functions", lead, tableBlock({id: "functions", heading: "h-functions", rows: D.functions, sort: 3, dir: "descending", cols: [
+      col("file", f => f.file, {code: true}),
+      col("fn", f => f.name, {code: true}),
+      col("range", f => f.start, {num: true, natural: "ascending", text: f => f.start + "–" + f.end}),
+      col("length", f => f.lines, {num: true}),
+      col("complexity", f => f.complexity, {num: true}),
+      col("measure", f => t(f.exact ? "exact" : "approx")),
+    ]}));
   },
   large() {
-    return el("div", null, el("p", {class: "lead"}, t("leadLarge", {n: D.thresholds.large_file})),
-      paged("large", D.large_files, [["file"], ["lines", 1]], f => el("tr", null, tdc(f.file), td(f.lines, 1))));
+    const n = D.thresholds.large_file, lead = t("leadLarge", {n});
+    if (!D.large_files.length) return measure("large", lead, empty("emptyLarge", "emptyLargeText", {n}));
+    return measure("large", lead, tableBlock({id: "large", heading: "h-large", rows: D.large_files, sort: 1, dir: "descending", cols: [
+      col("file", f => f.file, {code: true}),
+      col("lines", f => f.lines, {num: true}),
+    ]}));
   },
   dup() {
-    return el("div", null, el("p", {class: "lead"}, t("leadDup", {n: D.thresholds.duplicate_lines})),
-      paged("dup", D.duplication, [["first"], ["second"], ["lines", 1]],
-        d => el("tr", null, tdc(`${d.a}:${d.a_start}–${d.a_end}`), tdc(`${d.b}:${d.b_start}–${d.b_end}`), td(d.lines, 1))));
+    const n = D.thresholds.duplicate_lines, lead = t("leadDup", {n});
+    if (!D.duplication.length) return measure("dup", lead, empty("emptyDup", "emptyDupText", {n}));
+    return measure("dup", lead, tableBlock({id: "dup", heading: "h-dup", rows: D.duplication, sort: 2, dir: "descending", cols: [
+      col("first", d => atKey(d.a, d.a_start), {code: true, text: d => d.a + ":" + d.a_start + "–" + d.a_end}),
+      col("second", d => atKey(d.b, d.b_start), {code: true, text: d => d.b + ":" + d.b_start + "–" + d.b_end}),
+      col("lines", d => d.lines, {num: true}),
+    ]}));
   },
   deps() {
     const u = D.unused_dependencies;
-    if (!u) return el("div", {class: "empty"}, t("noPackage"));
-    return el("div", null, el("p", {class: "lead"}, t(u.source === "knip" ? "leadDepsKnip" : "leadDepsSearch")),
-      paged("deps", u.items, [["manifest"], ["depName"], ["depKind"]],
-        d => el("tr", null, tdc(d.package), tdc(d.name), tdc(d.kind))));
+    if (!u) return measure("deps", null, empty("emptyDepsNone", "emptyDepsNoneText"));
+    const lead = t(u.source === "knip" ? "leadDepsKnip" : "leadDepsSearch");
+    if (!u.items.length) return measure("deps", lead, empty("emptyDeps", "emptyDepsText"));
+    // Names found by searching can be wrong, so the warning stands apart from the explanation.
+    const caution = u.source === "knip" ? null : el("div", {class: "caution"}, icon("alert", 18),
+      el("div", null, el("strong", null, t("cautionTitle")), el("p", null, t("cautionText"))));
+    return measure("deps", lead, caution, tableBlock({id: "deps", heading: "h-deps", rows: u.items, sort: 0, dir: "ascending", cols: [
+      col("depName", d => d.name, {code: true}),
+      col("depKind", d => d.kind, {code: true}),
+      col("manifest", d => d.package, {code: true}),
+    ]}));
   },
   deprecated() {
     const c = D.deprecated_calls;
-    const box = el("div", null, el("p", {class: "lead"}, t("leadDeprecated")),
-      el("div", {class: "tablewrap status"}, el("table", null,
-        el("thead", null, el("tr", null, el("th", null, t("toolName")), el("th", null, t("result")))),
-        el("tbody", null, c.tools.map(s => el("tr", null, tdc(s.tool),
-          el("td", null, toolState(s, c.items.filter(i => i.tool === s.tool).length))))))));
-    if (!c.tools.some(s => s.ran)) return box.appendChild(el("div", {class: "empty"}, t("noCallTool"))) && box;
-    box.append(paged("deprecated", c.items, [["file"], ["toolName"], ["rule"], ["message"]],
-      i => el("tr", null, tdc(i.file + (i.line ? ":" + i.line : "")), td(i.tool), tdc(i.rule), tds(i.message))));
-    return box;
-  },
-  tools() {
-    const box = el("div", null, el("p", {class: "lead"}, t("leadTools")));
-    if (!D.tools.length) return box.appendChild(el("div", {class: "empty"}, t("nothing"))) && box;
-    for (const tool of D.tools) {
-      const sec = el("section", {class: "tool"}, el("h3", null, tool.tool),
-        el("p", {class: "state"}, toolState(tool, tool.findings.length)));
-      if (tool.ran) sec.append(paged("tool-" + tool.tool, tool.findings, [["file"], ["rule"], ["message"]],
-        f => el("tr", null, tdc(f.file + (f.line ? ":" + f.line : "")), tdc(f.rule), tds(f.message))));
-      box.append(sec);
-    }
-    return box;
+    const status = tableBlock({id: "calls-tools", heading: "h-deprecated", caption: "statusCaption", rows: byState(c.tools), sort: 1, dir: "descending", sortable: false, cols: [
+      col("toolName", s => s.tool, {code: true}),
+      col("result", s => 2 - SEVERITY[stateOf(s)], {show: s => result(s, callsOf(s.tool))}),
+    ]});
+    let calls;
+    if (!c.tools.some(s => s.ran)) calls = empty("emptyCallsNone", "emptyCallsNoneText");
+    else if (!c.items.length) calls = empty("emptyCalls", "emptyCallsText");
+    else calls = tableBlock({id: "calls", heading: "h-deprecated", rows: c.items, sort: 0, dir: "ascending",
+      filter: {key: "filterTool", val: i => i.tool, order: TOOL_ORDER}, cols: [
+        col("file", i => atKey(i.file, i.line), {code: true, text: i => at(i.file, i.line)}),
+        col("toolName", i => i.tool),
+        col("rule", i => i.rule, {code: true}),
+        col("message", i => i.message, {said: true}),
+      ]});
+    return measure("deprecated", t("leadDeprecated"), status, calls);
   },
 };
 
-// The measures and the tools, shown under the tabs on every tab.
+// --- The ranked tab: the list on the left and the shown row's details beside it
+function rankRow(r, i, top) {
+  const n = NOTES[r.file], on = i === pick;
+  return el("tr", {"data-pick": i, class: on ? "current" : null, onclick: (e) => { if (!e.target.closest("button, a")) choose(i); }},
+    el("th", {scope: "row"}, el("div", {class: "rank"}, el("span", {class: "no"}, i + 1),
+      el("div", {class: "name"},
+        el("button", {type: "button", class: "pick file path", "aria-describedby": (n ? "note-" + i + " " : "") + "score-" + i, "aria-current": on ? "true" : null, onclick: () => choose(i)}, pathParts(r.file)),
+        n ? el("small", {id: "note-" + i}, n.what) : null))),
+    el("td", {class: "num"}, el("div", {class: "value"},
+      el("span", {class: "bar", "aria-hidden": "true"}, el("i", {style: "width:" + Math.min(100, r.score / top * 100).toFixed(1) + "%"})),
+      el("span", {id: "score-" + i, class: "score"}, two(r.score)), icon("right"))));
+}
+function detail(i) {
+  const r = D.ranked[i], n = NOTES[r.file];
+  const fields = [["score", two(r.score)]];
+  if (n) fields.push(["what", n.what], ["why", n.why], ["action", n.action]);
+  const link = (j, rel) => el("a", {rel, href: hashOf(j), onclick: (e) => { e.preventDefault(); step(j); }},
+    el("span", {class: "k"}, rel === "prev" ? icon("left", 14) : null, t(rel === "prev" ? "prevFile" : "nextFile"), rel === "next" ? icon("right", 14) : null),
+    el("span", {class: "file path"}, pathParts(D.ranked[j].file)));
+  const last = D.ranked.length - 1;
+  return el("section", {class: "detail", id: "detail", "aria-labelledby": "detail-title"},
+    el("button", {type: "button", class: "back", onclick: back}, icon("left"), t("back")),
+    el("div", {class: "detail-head"}, el("span", {class: "no"}, i + 1), el("h2", {id: "detail-title", class: "file path", tabindex: "-1"}, pathParts(r.file))),
+    el("div", {class: "chips"}, r.reasons.map(x => el("span", {class: "chip"}, reason(x)))),
+    el("table", {class: "kv", "aria-labelledby": "detail-title"}, el("tbody", null,
+      fields.map(([k, v]) => el("tr", null, el("th", {scope: "row"}, t(k)), el("td", null, v))))),
+    last > 0 ? el("nav", {class: "step", "aria-label": t("stepLabel")}, i > 0 ? link(i - 1, "prev") : null, i < last ? link(i + 1, "next") : null) : null);
+}
+function startPanel() {
+  const out = [el("p", {class: "lead"}, t("leadStart"))];
+  const R = D.ranked;
+  if (!R.length) return out.concat(empty("emptyStart", "emptyStartText"));
+  if (pick >= R.length) pick = 0;
+  const pages = Math.ceil(R.length / PAGE);
+  rankPage = Math.min(rankPage, pages - 1);
+  const from = rankPage * PAGE, top = Math.max(...R.map(r => r.score)) || 1;
+  const go = (p) => {
+    rankPage = p;
+    if (Math.floor(pick / PAGE) !== p) pick = p * PAGE;
+    render();
+    focusOn($("rank-title"));
+  };
+  const body = R.slice(from, from + PAGE).map((r, k) => rankRow(r, from + k, top));
+  const table = el("table", {class: "ranked"}, el("caption", {class: "sr-only"}, t("rankCaption")),
+    el("thead", null, el("tr", null, el("th", {scope: "col"}, t("file")), el("th", {scope: "col", class: "num", "aria-sort": "descending"}, t("score")))),
+    el("tbody", {id: "rows"}, body));
+  const listPane = el("div", {class: "list"}, el("h2", {id: "rank-title", tabindex: "-1"}, t("listTitle")),
+    R.length > PAGE ? el("p", {class: "count"}, t("countRange", {a: from + 1, b: from + body.length, n: R.length})) : null,
+    pager(pages, rankPage, go), el("div", {class: "ranked-wrap"}, table), pager(pages, rankPage, go));
+  out.push(el("div", {class: "split", id: "split", "data-view": view}, listPane, detail(pick)));
+  return out;
+}
+// Shows the picked row in place, so the list keeps its scroll and the pressed button keeps the focus.
+function syncStart() {
+  if (panelTab !== "start" || !$("split") || Math.floor(pick / PAGE) !== rankPage) {
+    rankPage = Math.floor(pick / PAGE);
+    render();
+    return;
+  }
+  $("split").dataset.view = view;
+  for (const tr of document.querySelectorAll("#rows [data-pick]")) {
+    const on = Number(tr.dataset.pick) === pick, b = tr.querySelector("button.pick");
+    tr.classList.toggle("current", on);
+    if (on) b.setAttribute("aria-current", "true"); else b.removeAttribute("aria-current");
+  }
+  $("detail").replaceWith(detail(pick));
+}
+// A pressed row: beside the list on a wide screen, or in place of the list below 860px, where the
+// browser's Back returns to the list.
+function choose(i) {
+  pick = i;
+  if (NARROW.matches) {
+    view = "detail";
+    fromList = true;
+    syncStart();
+    location.hash = hashOf(i);
+    focusOn($("detail-title"));
+  } else {
+    syncStart();
+    try { history.replaceState(null, "", hashOf(i)); } catch (e) {}
+  }
+  setStatus(t("showing", {f: D.ranked[i].file}));
+}
+// The previous and next rows replace the open row in the history, so Back still leads to the list.
+function step(i) {
+  pick = i;
+  view = "detail";
+  syncStart();
+  try { location.replace(hashOf(i)); } catch (e) {}
+  focusOn($("detail-title"));
+  setStatus(t("showing", {f: D.ranked[i].file}));
+}
+// The way back shows the list at once, with the focus on the row that was open.
+function back() {
+  view = "list";
+  syncStart();
+  focusOn(document.querySelector('#rows [data-pick="' + pick + '"] button.pick'));
+  if (fromList) { fromList = false; history.back(); }
+  else { try { location.replace("#list"); } catch (e) {} }
+}
+
+const PANELS = {
+  start: startPanel,
+  history: () => [SECTIONS.hotspots(), SECTIONS.markers()],
+  code: () => [SECTIONS.untested(), SECTIONS.functions(), SECTIONS.large(), SECTIONS.dup()],
+  deps: () => [SECTIONS.deps(), SECTIONS.deprecated()],
+  tools() {
+    const out = [el("p", {class: "lead"}, t("leadTools"))];
+    if (!D.tools.length) return out.concat(empty("emptyTools", "emptyToolsText"));
+    for (const tool of byState(D.tools)) {
+      const id = "tool-" + tool.tool;
+      const sec = el("section", {class: "tool", "aria-labelledby": id}, el("h3", {id, tabindex: "-1"}, tool.tool),
+        el("p", {class: "state"}, result(tool, tool.findings.length)));
+      if (tool.ran) sec.append(!tool.findings.length ? empty("emptyTool", "emptyToolText", {tool: tool.tool})
+        : tableBlock({id: id, heading: id, rows: tool.findings, sort: 0, dir: "ascending", filter: {key: "filterRule", val: f => f.rule}, cols: [
+          col("file", f => atKey(f.file, f.line), {code: true, text: f => at(f.file, f.line)}),
+          col("rule", f => f.rule, {code: true}),
+          col("message", f => f.message, {said: true}),
+        ]}));
+      out.push(sec);
+    }
+    return out;
+  },
+};
+
+// The measures and the tools, under the tabs on every tab: tables, and the same rows as lists below 600px.
 function how() {
   const tools = new Map();
   for (const s of D.tools.concat(D.deprecated_calls.tools)) if (!tools.has(s.tool)) tools.set(s.tool, s);
-  const rows = [...tools.values()].sort((a, b) => TOOL_ORDER.indexOf(a.tool) - TOOL_ORDER.indexOf(b.tool));
+  const rows = byState([...tools.values()]);
+  const found = (s) => (s.findings ? s.findings.length : callsOf(s.tool));
+  const head = (...keys) => el("thead", null, el("tr", null, keys.map(k => el("th", {scope: "col"}, t(k)))));
+  const region = (label, table) => el("div", {class: "table-scroll", role: "region", tabindex: "0", "aria-labelledby": label}, table);
   return [
-    el("h2", null, t("howTitle")),
-    el("div", {class: "tablewrap"}, el("table", {class: "how-table"},
-      el("thead", null, el("tr", null, el("th", null, t("howMeasure")), el("th", null, t("howWay")))),
-      el("tbody", null, HOW.map(([id, text]) => el("tr", {"data-measure": id},
-        el("td", {class: "measure-name"}, t(id)), el("td", null, text())))))),
-    el("h3", null, t("toolsTitle")),
-    el("div", {class: "tablewrap"}, el("table", {class: "how-table tools-table"},
-      el("thead", null, el("tr", null, el("th", null, t("toolName")), el("th", null, t("toolUse")), el("th", null, t("result")))),
-      el("tbody", null, rows.map(s => el("tr", {"data-tool": s.tool}, tdc(s.tool), td(t(TOOL_USE[s.tool] || s.tool)),
-        el("td", null, toolState(s, s.findings ? s.findings.length : D.deprecated_calls.items.filter(i => i.tool === s.tool).length))))))),
+    el("h2", {id: "how-title"}, t("howTitle")),
+    region("how-title", el("table", {class: "how-table", "aria-labelledby": "how-title"}, head("howMeasure", "howWay"),
+      el("tbody", null, HOW.map(([id, text]) => el("tr", {"data-measure": id}, el("th", {scope: "row"}, t(id)), el("td", null, text())))))),
+    el("ul", {class: "how-list", "aria-labelledby": "how-title"}, HOW.map(([id, text]) =>
+      el("li", null, el("h3", null, t(id)), el("dl", null, el("dt", null, t("howWay")), el("dd", null, text()))))),
+    el("h3", {id: "tools-title"}, t("toolsTitle")),
+    region("tools-title", el("table", {class: "how-table tools-table", "aria-labelledby": "tools-title"}, head("toolName", "toolUse", "result"),
+      el("tbody", null, rows.map(s => el("tr", {"data-tool": s.tool}, el("th", {scope: "row"}, code(s.tool)),
+        el("td", null, t(TOOL_USE[s.tool] || s.tool)), el("td", null, result(s, found(s)))))))),
+    el("ul", {class: "how-list", "aria-labelledby": "tools-title"}, rows.map(s =>
+      el("li", null, el("h4", null, s.tool), el("dl", null, el("dt", null, t("toolUse")), el("dd", null, t(TOOL_USE[s.tool] || s.tool)),
+        el("dt", null, t("result")), el("dd", null, result(s, found(s))))))),
   ];
+}
+
+// A page opened before scan wrote its data says so and offers a way forward instead of the report.
+function noData() {
+  document.title = t("titleNoData");
+  $("title").textContent = t("titleNoData");
+  for (const id of ["cards", "tabs", "panel", "how"]) $(id).hidden = true;
+  document.querySelector(".facts-wrap").hidden = true;
+  const box = el("section", {class: "page-error", "aria-labelledby": "error-title"},
+    el("h2", {id: "error-title", tabindex: "-1"}, t("errorTitle")), el("p", null, t("errorText")),
+    el("button", {type: "button", onclick: () => location.reload()}, t("reload")));
+  const old = document.querySelector(".page-error");
+  if (old) old.replaceWith(box); else document.querySelector("main").prepend(box);
 }
 
 function render() {
   document.documentElement.lang = lang;
-  document.title = t("title", {p: D.project});
-  document.getElementById("title").textContent = t("title", {p: D.project});
-  // One row per fact, the name in a row header and the value beside it, as page-design shows facts, never one sentence.
-  const at = D.generated_at.slice(0, 16).replace("T", " ");
-  const facts = D.git
-    ? [["factCommit", D.head], ["factBranch", D.branch], ["factFiles", D.files], ["factCommits", D.commits], ["factGenerated", at]]
-    : [["factGit", t("notGit")], ["factFiles", D.files], ["factGenerated", at]];
-  document.getElementById("facts").replaceChildren(el("tbody", {role: "rowgroup"}, ...facts.map(([k, v]) =>
-    el("tr", {role: "row"}, el("th", {scope: "row", role: "rowheader"}, t(k, {months: D.months})), el("td", {role: "cell"}, v)))));
   for (const b of document.querySelectorAll("[data-lang]")) b.setAttribute("aria-pressed", String(b.dataset.lang === lang));
   for (const b of document.querySelectorAll("[data-theme-choice]")) b.textContent = t(b.dataset.themeChoice);
-  document.getElementById("lang-group").setAttribute("aria-label", t("langGroup"));
-  document.getElementById("theme-group").setAttribute("aria-label", t("themeGroup"));
-  const cards = document.getElementById("cards");
-  cards.replaceChildren(...CARDS.map(([id, key, n]) => {
+  $("lang-group").setAttribute("aria-label", t("langGroup"));
+  $("theme-group").setAttribute("aria-label", t("themeGroup"));
+  if (!D) return noData();
+  document.title = t("title", {p: D.project});
+  $("title").textContent = t("title", {p: D.project});
+  // One row per fact, the name in a row header and the value beside it, as page-design shows facts, never one sentence.
+  const stamp = D.generated_at.slice(0, 16);
+  const when = el("time", {datetime: stamp}, stamp.replace("T", " "));
+  const facts = D.git
+    ? [["factCommit", D.head], ["factBranch", D.branch], ["factFiles", D.files], ["factCommits", D.commits], ["factGenerated", when]]
+    : [["factGit", t("notGit")], ["factFiles", D.files], ["factGenerated", when]];
+  $("facts").replaceChildren(el("caption", {class: "sr-only"}, t("factsCaption")), el("tbody", {role: "rowgroup"}, ...facts.map(([k, v]) =>
+    el("tr", {role: "row"}, el("th", {scope: "row", role: "rowheader"}, t(k, {months: D.months})), el("td", {role: "cell"}, v)))));
+  const main = document.querySelector("main"), old = main.querySelector(":scope > .banner");
+  if (old) old.remove();
+  if (!D.git) main.prepend(el("div", {class: "banner"}, icon("alert", 18), el("div", null, el("strong", null, t("bannerTitle")), el("p", null, t("bannerText")))));
+  $("cards").replaceChildren(...CARDS.map(([id, key, n]) => {
     const v = n();
     const approx = id === "deps" && v !== null && D.unused_dependencies.source === "search";
-    return el("button", {type: "button", class: "card", "data-measure": id, onclick: () => show(id)},
+    return el("button", {type: "button", class: "card", "data-measure": id, onclick: () => showMeasure(id)},
       v === null ? el("span", {class: "n none"}, t("notMeasured")) : el("span", {class: "n"}, v),
       el("span", {class: "l"}, t(key)),
       approx ? el("span", {class: "sub"}, t("approxByName")) : null);
   }));
-  const tabs = document.getElementById("tabs");
-  tabs.replaceChildren(...TABS.map(([id, key]) => el("button", {type: "button", role: "tab", "aria-selected": String(id === tab),
-    onclick: () => show(id)}, t(key))));
-  document.getElementById("panel").replaceChildren(PANELS[tab]());
-  document.getElementById("how").replaceChildren(...how());
+  const tabs = $("tabs");
+  if (!tabs.children.length) for (const [id] of TABS) tabs.append(el("button", {type: "button", role: "tab", id: "tab-" + id, "aria-controls": "panel", onclick: () => selectTab(id, false)}));
+  tabs.setAttribute("aria-label", t("tabsLabel"));
+  let key = "tabStart";
+  for (const [id, name] of TABS) {
+    const b = $("tab-" + id), on = id === tab;
+    if (on) key = name;
+    b.replaceChildren(t(name), el("span", {class: "count"}, t("tabCount", {n: tabCount(id)})));
+    b.setAttribute("aria-selected", String(on));
+    b.tabIndex = on ? 0 : -1;
+  }
+  const panel = $("panel");
+  panel.setAttribute("aria-labelledby", "tab-" + tab);
+  panel.replaceChildren(el("h2", {class: "sr-only"}, t(key)), ...PANELS[tab]().filter(Boolean));
+  panelTab = tab;
+  $("how").replaceChildren(...how());
+  // The chosen tab is scrolled into the tab row, which scrolls sideways on a phone.
+  const b = $("tab-" + tab), left = b.offsetLeft, right = left + b.offsetWidth;
+  if (left < tabs.scrollLeft) tabs.scrollLeft = Math.max(0, left - 8);
+  else if (right > tabs.scrollLeft + tabs.clientWidth) tabs.scrollLeft = right - tabs.clientWidth + 8;
 }
+function selectTab(id, focus) {
+  if (id !== tab) resetTables();
+  tab = id;
+  if (id === "start") view = "list";
+  try { history.replaceState(null, "", "#" + id); } catch (e) {}
+  render();
+  if (focus) focusOn($("tab-" + id));
+}
+// A card opens the tab that holds its measure and moves to the measure's heading.
+function showMeasure(m) {
+  const id = TAB_OF[m];
+  if (id !== tab) resetTables();
+  tab = id;
+  if (id === "start") view = "list";
+  try { history.replaceState(null, "", "#" + m); } catch (e) {}
+  render();
+  focusOn($(m === "start" ? "rank-title" : "h-" + m));
+}
+// The URL fragment keeps the open row (#item-<path>), the tab (#<tab>), or a measure (#<measure>), and
+// #list returns to the ranked list.
+function fromHash() {
+  let h = location.hash.slice(1);
+  if (h.startsWith("item-")) {
+    let path = h.slice(5);
+    try { path = decodeURIComponent(path); } catch (e) {}
+    const i = D.ranked.findIndex(r => r.file === path);
+    return i < 0 ? {tab: "start", view: "list"} : {tab: "start", pick: i, view: "detail"};
+  }
+  if (h === "list" || !h) return {tab: "start", view: "list"};
+  if (TABS.some(([id]) => id === h)) return {tab: h, view: "list"};
+  if (TAB_OF[h]) return {tab: TAB_OF[h], view: "list", measure: h};
+  return {tab: "start", view: "list"};
+}
+function applyHash(first) {
+  const s = fromHash(), was = [tab, pick, view].join("|"), wasView = view;
+  if (s.tab !== tab) resetTables();
+  tab = s.tab;
+  if (s.pick != null) pick = s.pick;
+  view = s.view;
+  if (!first && was === [tab, pick, view].join("|")) return;
+  if (s.pick != null) fromList = false;
+  if (!first && tab === "start" && panelTab === "start" && $("split")) syncStart(); else render();
+  if (s.measure) focusOn($("h-" + s.measure));
+  else if (!first && tab === "start" && wasView === "detail" && view === "list") focusOn(document.querySelector('#rows [data-pick="' + pick + '"] button.pick'));
+  else if (!first && view === "detail" && NARROW.matches) focusOn($("detail-title"));
+}
+
 for (const b of document.querySelectorAll("[data-lang]")) b.addEventListener("click", () => {
   lang = b.dataset.lang;
   try { localStorage.setItem("techdebt-lang", lang); } catch (e) {}
@@ -688,9 +1156,28 @@ for (const b of document.querySelectorAll("[data-theme-choice]")) b.addEventList
   setTheme(b.dataset.themeChoice);
   try { localStorage.setItem("techdebt-theme", theme); } catch (e) {}
 });
-if (PANELS[location.hash.slice(1)]) tab = location.hash.slice(1);
+// The tabs move with the arrow keys, Home, and End, and the tab that gets the focus is shown.
+$("tabs").addEventListener("keydown", (e) => {
+  const ids = TABS.map(([id]) => id), n = ids.length;
+  let i = ids.indexOf(tab);
+  if (e.key === "ArrowRight") i = (i + 1) % n;
+  else if (e.key === "ArrowLeft") i = (i - 1 + n) % n;
+  else if (e.key === "Home") i = 0;
+  else if (e.key === "End") i = n - 1;
+  else return;
+  e.preventDefault();
+  selectTab(ids[i], true);
+});
 setTheme(theme);
-render();
+if (D) {
+  applyHash(true);
+  window.addEventListener("hashchange", () => applyHash(false));
+  NARROW.addEventListener("change", render);
+  SMALL.addEventListener("change", render);
+} else {
+  render();
+  focusOn($("error-title"));
+}
 </script>
 </body>
 </html>
