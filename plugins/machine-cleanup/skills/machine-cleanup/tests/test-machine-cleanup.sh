@@ -741,7 +741,7 @@ const picked = new Set();
 print("const I18N = %s;\nlet lang = \"en\";\n%s%s%s" % (words, dom, "".join(code), sys.argv[3]))
 PY
 }
-ROW_FNS="t human tilde when day effect lockText whyText isProc levelOf nameOf setLines rowEl detailPairs detailEl"
+ROW_FNS="t human tilde when day effect lockText whyText isProc levelOf nameOf setLines tierTag pickToggle rowEl detailPairs detailEl"
 ROW_JS='const disk = { id: "d1", group: "disk", category: "build", name: "node_modules in app", path: "/h/projects/app/node_modules",
   size: 1000000, level: "recommended", reason: { code: "build_idle", days: 42 }, rebuilt: true, locked: null };
 const proc = { id: "p1", group: "process", category: "dev-process", name: "Vite dev server", size: 52000000, cpu: 12,
@@ -881,7 +881,7 @@ lang = "en"; const en = show(its); const none = tallyParts([]);
 lang = "ja"; const ja = show(its);
 console.log(en + "#" + ja + "#" + none.length + "#" + (/[:：・]/.test(en + ja) ? "joined" : "apart"));'
 # Two copies of one file, a large file, two dev servers with one name, an app, a cache, and a container.
-WHERE_FNS="t human tilde nameOf whereFor setLines rowEl"
+WHERE_FNS="t human tilde nameOf whereFor setLines levelOf tierTag pickToggle rowEl"
 WHERE_JS='const files = [
   { id: "u1", group: "disk", category: "duplicate", name: "archive.zip", path: "/h/Backup/archive.zip", size: 1, within: [], detail: { set: "s", copies: [] } },
   { id: "u2", group: "disk", category: "duplicate", name: "archive.zip", path: "/h/Documents/archive.zip", size: 1, within: [], detail: { set: "s", copies: [] } },
@@ -928,8 +928,8 @@ if [ -n "$NODE" ]; then
   ROW_OUT="$(page_eval "$ROW_FNS" "$ROW_JS" 2>&1)"
   CHART_OUT="$(page_eval "$CHART_FNS" "$CHART_JS" 2>&1)"
   LIST_OUT="$(page_eval "$LIST_FNS" "$LIST_JS" 2>&1)"
-  check "a list row shows only the name, the size, the CPU of a process, and a details button" \
-    '[ "$(printf "%s\n" "$ROW_OUT" | sed -n 1p)" = "node_modules in app|1.0 MB|i#Vite dev server|CPU 12%|52.0 MB|i" ] || { echo "  $ROW_OUT"; false; }'
+  check "a list row shows only the name, the level, the size, and the memory and CPU of a process" \
+    '[ "$(printf "%s\n" "$ROW_OUT" | sed -n 1p)" = "node_modules in app|Recommended|1.0 MB#Vite dev server|Recommended|52.0 MB|12" ] || { echo "  $ROW_OUT"; false; }'
   check "a list row shows no path, command, or reason" \
     'r="$(printf "%s\n" "$ROW_OUT" | sed -n 1p)"; [ -n "$r" ] && case "$r" in *projects*|*5173*|*commit*|*"has no"*) false;; *) true;; esac'
   check "the details dialog shows the reason, the effect, and the path or the process details" \
@@ -975,17 +975,17 @@ if [ -n "$NODE" ]; then
     'out="$(page_eval "$TOTAL_FNS" "$TALLY_JS" 2>&1)"; [ "$out" = "Picked|2 items|Disk to free|1.0 KB#選んだ物|2件|空くディスク|1.0 KB#1#apart" ] || { echo "  $out"; false; }'
   check "a list row shows where it is when its name does not tell it apart" \
     'out="$(page_eval "$WHERE_FNS" "$WHERE_JS" 2>&1)"; [ "$out" = "~/Backup|~/Videos|~/projects/app|node ~/work/b/node_modules/.bin/vite --port 5174
-archive.zip|~/Backup|1 B|i" ] || { echo "  $out"; false; }'
+archive.zip|~/Backup|Restorable|1 B" ] || { echo "  $out"; false; }'
   check "a list row adds no second line when its name tells it apart" \
     'out="$(page_eval "$WHERE_FNS" "$NO_WHERE_JS" 2>&1)"; [ "$out" = "[||||]
 3" ] || { echo "  $out"; false; }'
   check "the copies of one content are listed together under one heading" \
     'out="$(page_eval "$SET_FNS" "$SET_JS" 2>&1)"; [ "$out" = "head:2:500,a,c,b,d#b,d,head:2:500,a,c#head:2:500,c
-2 copies with the same contents, 500 B each|同じ中身の写しが2つ、1つ500 B" ] || { echo "  $out"; false; }'
+2 copies with the same contents, 500 B each|同じ中身のコピーが2つ、1つ500 B" ] || { echo "  $out"; false; }'
   check "a bar shows where it is when another bar in its chart has the same name" \
     'out="$(page_eval "$BAR_FNS" "$BAR_JS" 2>&1)"; [ "$out" = "Vite dev server|~/projects/shop|5%|Vite dev server|~/projects/blog|3%|Browser|2%" ] || { echo "  $out"; false; }'
 else
-  for name in "a list row shows only the name, the size, the CPU of a process, and a details button" \
+  for name in "a list row shows only the name, the level, the size, and the memory and CPU of a process" \
     "a list row shows no path, command, or reason" \
     "the details dialog shows the reason, the effect, and the path or the process details" \
     "the details dialog has a pick button for a row that can be picked" \
@@ -1046,7 +1046,7 @@ check "serve and apply refuse a version 4 scan, which may list a path twice" \
 
 PLUGIN_DIR="$(cd "$SKILL_DIR/../.." && pwd)"
 check "how-it-works lists the three levels and their rules in both languages" \
-  'grep -qx "## How rows are ranked" "$PLUGIN_DIR/docs/how-it-works.md" && grep -q "^| Recommended |" "$PLUGIN_DIR/docs/how-it-works.md" && grep -q "^| Check first |" "$PLUGIN_DIR/docs/how-it-works.md" && grep -q "^| Careful |" "$PLUGIN_DIR/docs/how-it-works.md" && grep -qx "## 行の推奨度" "$PLUGIN_DIR/docs/how-it-works.ja.md" && grep -q "^| おすすめ |" "$PLUGIN_DIR/docs/how-it-works.ja.md" && grep -q "^| 確かめて選ぶ |" "$PLUGIN_DIR/docs/how-it-works.ja.md" && grep -q "^| 慎重に |" "$PLUGIN_DIR/docs/how-it-works.ja.md"'
+  'grep -qx "## How rows are ranked" "$PLUGIN_DIR/docs/how-it-works.md" && grep -q "^| Recommended |" "$PLUGIN_DIR/docs/how-it-works.md" && grep -q "^| Restorable |" "$PLUGIN_DIR/docs/how-it-works.md" && grep -q "^| Risky |" "$PLUGIN_DIR/docs/how-it-works.md" && grep -qx "## 行の推奨度" "$PLUGIN_DIR/docs/how-it-works.ja.md" && grep -q "^| おすすめ |" "$PLUGIN_DIR/docs/how-it-works.ja.md" && grep -q "^| 戻せる |" "$PLUGIN_DIR/docs/how-it-works.ja.md" && grep -q "^| 影響あり |" "$PLUGIN_DIR/docs/how-it-works.ja.md"'
 # docs_rows <file> <heading> <first cells...>: the file has the heading and a table row for each cell.
 docs_rows() {
   local f="$1" h="$2" c
@@ -1055,7 +1055,7 @@ docs_rows() {
   for c in "$@"; do grep -qF "| $c |" "$f" || { echo "  no row \"$c\" in $f"; return 1; }; done
 }
 check "how-it-works describes the overview charts and the list tools in both languages" \
-  'docs_rows "$PLUGIN_DIR/docs/how-it-works.md" "## The overview tab" "What can be freed" "Size by level" "Disk" "Memory" "Largest items" "Processes using the most memory" "Processes using the most CPU" "Search" "Groups" "Sort" && docs_rows "$PLUGIN_DIR/docs/how-it-works.ja.md" "## 全体のタブ" "空けられる分の内訳" "推奨度ごとの大きさ" "ディスク" "メモリ" "大きい物の上位" "メモリを多く使うプロセス" "CPUを多く使うプロセス" "探す" "段" "並べ替え"'
+  'docs_rows "$PLUGIN_DIR/docs/how-it-works.md" "## The overview tab" "What can be freed" "Size by level" "Disk" "Memory" "Largest items" "Processes using the most memory" "Processes using the most CPU" "Search" "Kind" "Levels" "Sort" && docs_rows "$PLUGIN_DIR/docs/how-it-works.ja.md" "## 全体のタブ" "空けられる分の内訳" "推奨度ごとの大きさ" "ディスク" "メモリ" "大きい物の上位" "メモリを多く使うプロセス" "CPUを多く使うプロセス" "探す" "種類" "推奨度" "並べ替え"'
 check "the READMEs and how-it-works describe the four new kinds in both languages" \
   'docs_rows "$PLUGIN_DIR/README.md" "## What it finds" "Projects" "Apps" "Tools and models" && grep -q "left behind by removed apps" "$PLUGIN_DIR/README.md" && docs_rows "$PLUGIN_DIR/README.ja.md" "## 見つける物" "プロジェクト" "アプリ" "道具とモデル" && grep -q "消したアプリの残り" "$PLUGIN_DIR/README.ja.md" && docs_rows "$PLUGIN_DIR/docs/how-it-works.md" "## The scan" "Work folders" "App leftovers" "Tool versions" "AI models" && docs_rows "$PLUGIN_DIR/docs/how-it-works.md" "## How each item is freed" "Work folders and app leftovers" "Tool versions" "AI models" && docs_rows "$PLUGIN_DIR/docs/how-it-works.ja.md" "## 調べ方" "作業フォルダ" "消したアプリの残り" "道具の版" "AIモデル" && docs_rows "$PLUGIN_DIR/docs/how-it-works.ja.md" "## 項目ごとの空け方" "作業フォルダと消したアプリの残り" "道具の版" "AIモデル"'
 
@@ -1448,7 +1448,7 @@ cat > "$PATTERNS/behave.js" <<'JSEOF'
     out.disk.accent = resolve("--accent");
     out.disk.critical = resolve("--critical");
     const lines = {};
-    for (const m of ["light", "dark"]) { await theme(m); lines[m] = rows().map((tr) => tableInfo(tr.closest("table")).rows.find((r) => r.name === txt(nameButton(tr)))).filter(Boolean).map((r) => r.line); }
+    for (const m of ["light", "dark"]) { await theme(m); lines[m] = rows().filter((tr) => tr.closest("table")).map((tr) => tableInfo(tr.closest("table")).rows.find((r) => r.name === txt(nameButton(tr)))).filter(Boolean).map((r) => r.line); }
     await theme("light");
     out.disk.lines = lines;
 
@@ -1752,7 +1752,7 @@ elif what == "narrow":
     if not d.get("list") or d.get("detail"):
         fail("m-en-820", "the disk tab below 860px shows list %r and details %r at first" % (d.get("list"), d.get("detail")))
     p = r.get("pressed") or {}
-    if not p.get("detail") or p.get("list") or not p.get("focusTitle") or not get(p, "back", "shown") or not get(p, "back", "first") or p.get("prev") or not p.get("next"):
+    if not p.get("detail") or p.get("list") or not p.get("focusTitle") or not get(p, "back", "shown") or not get(p, "back", "first") or not p.get("prev") or not p.get("next"):
         fail("m-en-820", "pressing the second row shows %r" % {k: p.get(k) for k in ("list", "detail", "focusTitle", "back", "prev", "next")})
     n = r.get("next") or {}
     if not n.get("detail") or n.get("title") == p.get("title") or not n.get("prev"):
@@ -1999,13 +1999,19 @@ elif what == "cpu":
             fail(label, "the overview bars read %r" % bars[:3])
 
 elif what == "pager":
-    p = get(run("b-en-1400"), "disk", "panel") or {}
-    pg = p.get("pagers") or []
-    if len(pg) != 2 or not pg[0]["before"] or pg[1]["before"] or not all(x["center"] for x in pg) or p.get("rowsShown", 0) > 50 or p.get("rowsShown", 0) < 1:
-        fail("b-en-1400", "the pagers are %r with %r rows" % (pg, p.get("rowsShown")))
-    m = get(run("m-en-1400"), "disk", "panel") or {}
-    if m.get("pagers"):
-        fail("m-en-1400", "a tab of 50 rows or fewer has pagers %r" % m.get("pagers"))
+    # Each page decides from its own disk rows whether it needs pagers.
+    for label, page in (("b-en-1400", "big"), ("m-en-1400", "main")):
+        p = get(run(label), "disk", "panel") or {}
+        pg = p.get("pagers") or []
+        rows = len([it for it in scan(page)["items"] if it.get("group") == "disk"])
+        if rows <= 50:
+            if pg:
+                fail(label, "a tab of %d rows has pagers %r" % (rows, pg))
+            continue
+        if len(pg) != 2 or not pg[0]["before"] or pg[1]["before"] or not all(x["center"] for x in pg) or p.get("rowsShown", 0) > 50 or p.get("rowsShown", 0) < 1:
+            fail(label, "the pagers are %r with %r rows of %d" % (pg, p.get("rowsShown"), rows))
+    if len([it for it in scan("big")["items"] if it.get("group") == "disk"]) <= 50:
+        fail("b-en-1400", "the page with 60 more caches has 50 disk rows or fewer")
 
 elif what == "count":
     s = scan("main")
@@ -2147,7 +2153,7 @@ pattern_check() { "$PY" "$PATTERNS/judge.py" "$1" "$PATTERNS" "$SHEET" "$PLUGIN_
 copy_lines_ok() {
   [ -n "$NODE" ] || return 1
   local text
-  text="$(page_eval "selectionText" 'process.stdout.write(selectionText(["d-0000aaaa", "c-0000bbbb"]))' 2>&1)" || return 1
+  text="$(page_eval "selectionText" 'process.stdout.write(selectionText(["d-0000aaaa", "p-0000bbbb"]))' 2>&1)" || return 1
   "$PY" - "$SCRIPTS" "$text" <<'PY'
 import sys
 sys.path.insert(0, sys.argv[1])
@@ -2155,7 +2161,7 @@ import machine_cleanup as m
 text = sys.argv[2]
 lines = text.split("\n")
 ids, bad = m.parse_selection(text)
-sys.exit(0 if lines == ["machine-cleanup:select", "d-0000aaaa", "c-0000bbbb"] and ids == ["d-0000aaaa", "c-0000bbbb"] and not bad else 1)
+sys.exit(0 if lines == ["machine-cleanup:select", "d-0000aaaa", "p-0000bbbb"] and ids == ["d-0000aaaa", "p-0000bbbb"] and not bad else 1)
 PY
 }
 check "apply reads a copied selection with one id per line" 'copy_lines_ok'

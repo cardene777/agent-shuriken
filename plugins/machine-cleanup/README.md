@@ -39,19 +39,20 @@ You can also call it: run `/machine-cleanup:machine-cleanup` in Claude Code, or 
 In GitHub Copilot CLI, write `/machine-cleanup` in your request, and in Gemini CLI, describe the task.
 
 1. The agent scans, which takes up to 90 seconds at the lowest priority, and tells you the totals
-2. A page opens in your browser on the **Overview** tab, whose charts show what can be freed and how the disk, memory, and CPU are used. The other tabs, in a **Disk** group and a **Programs** group, list rows by name and size, grouped into **Recommended**, **Check first**, and **Careful**. Copies of one file sit together under a heading, a row whose name does not tell it apart shows its folder or command under the name, and the **i** button on a row shows its reason, location, and command. Search, hide groups, or sort the rows, pick the rows you want to free, or press **Pick all in this group** on a recommended or check-first group, press **Free**, check the summary, and press **Send to the agent**
-3. The agent checks each pick again, skips any that changed or came into use, frees the rest, and reports free disk, memory, and load before and after
-4. When a process ignores the end signal, the agent asks you before ending it at once
+2. A page opens in your browser on the **Overview** tab, whose charts show what can be freed and how the disk, memory, and CPU are used. The **Disk** and **Programs** tabs list the rows in one table per level, **Recommended**, **Restorable**, **Risky**, and **In use**, with the level of each row as a tag. Press a row's name to see its reason, location, and command beside the list. On a narrow screen the details take the place of the list, with **Back to the list** and links to the previous and next rows, and the address keeps the shown row as `#item-<id>`
+3. Search by name or location, filter by kind and level, sort by the column headers, and page through 50 rows at a time. Pick the rows you want to free with the button at the end of each row, or press **Pick all** on the recommended or restorable level. Press **Free**, check the window that lists each picked row under what freeing it does, and press **Free** there
+4. The agent checks each pick again, skips any that changed or came into use, frees the rest, and reports free disk, memory, and load before and after
+5. When a process ignores the end signal, the agent asks you before ending it at once
 
-![The Processes tab grouped into Recommended, Check first, Careful, and In use, with the details of a Vite dev server open: its reason, memory, CPU, start time, working folder, command, and a Pick button](assets/screenshot-details.png)
+![The Programs tab with its rows in tables by level, Recommended, Restorable, Risky, and In use, and the details of a Vite dev server beside the list: its reason, memory, CPU, start time, working folder, command, and a Pick button](assets/screenshot-details.png)
 
 The page opens in English and has an English / 日本語 switch in its header.
 Next to it, a Light and Dark switch changes the colors. The colors follow your system setting until you choose, and your browser keeps the choice in its local storage under `machine-cleanup-theme`.
-When the agent stopped waiting for the page, press **Copy the selection** and paste the text into the chat.
+When the agent stopped waiting for the page, a notice above the tabs says so. Press **Free**, then **Copy** in the window that opens, and paste the selection into the chat.
 
 ## What it finds
 
-| Tab | What it lists | What freeing it does |
+| Kind | What it lists | What freeing it does |
 |---|---|---|
 | Caches | Caches of npm, pnpm, Yarn, Bun, pip, uv, Homebrew, Cargo, Go, Gradle, Maven, and CocoaPods, Docker images and build cache, Xcode DerivedData and device support, and app caches of 50 MB or more | The tool downloads or builds it again the next time it needs it. Where the tool has its own clean command, such as `npm cache clean --force`, `brew cleanup --prune=all`, or `docker builder prune`, that command runs |
 | Build output | `node_modules`, `.next`, `dist`, `target`, `.venv`, and similar folders in git projects that git ignores and that hold no tracked file | Deleted. The next install or build makes it again |
