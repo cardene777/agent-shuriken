@@ -5,6 +5,10 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-22
+
+- The `digital-dashboard` test no longer spells out the names of the maintainer's products. It still checks that no file holds a home path, a local agent path, an issue reference, or the name of the private configuration repository
+
 ## [0.1.0] - 2026-11-22
 
 - The `digital-dashboard` skill judges which screens of a design are presentation dashboards in two passes: `screen_kind.py` marks a screen whose item definitions have a chart and a total as a candidate, in Japanese or English specifications, and the agent keeps the candidates whose main purpose is to read the whole situation and decide the next action, asking the user in the chat when it cannot tell
@@ -13,5 +17,6 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - The agent writes one request for the user's drawing tool that applies the guidebook to the dashboard screens only, and checks the drawn screens itself
 - `THIRD_PARTY_NOTICES.md` gives the source and the terms of use of every downloaded file: the Public Data License (PDL) 1.0 of digital.go.jp, and the terms of the National Land Numerical Information for the maps
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/digital-dashboard--v0.1.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/digital-dashboard--v0.1.1...HEAD
+[0.1.1]: https://github.com/cardene777/agent-shuriken/releases/tag/digital-dashboard--v0.1.1
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/digital-dashboard--v0.1.0
