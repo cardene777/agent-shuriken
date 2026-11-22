@@ -6,10 +6,11 @@ English · [日本語](README.ja.md)
 
 An agent's knowledge stops at its training cutoff, while standards and tools keep moving: an EIP ships in a network upgrade, an L2 replaces the system that proves its state, a widely cited "ERC" turns out never to have been merged, a library renames the files you import, a framework deprecates the call your script makes, a hosted relayer or automation service shuts down, a payments standard release is deferred.
 This plugin ships dated items on all of them, each with the date it was checked against the official document and the document it came from.
+`contract-deploy` signs deploys to production chains only with a Ledger or Trezor hardware wallet, and deploys to test chains with an encrypted keystore.
 
 | Skill | What it does |
 |---|---|
-| `evm-standards` | Answers whether an ERC is final or an EIP is live, and what it lets contracts and wallets do, from 41 items on ERCs and EIPs. It also finds standards by what they do, and links the maintainer's bitsumi article on each standard it names |
+| `evm-standards` | Answers whether an ERC is final or an EIP is live, and what it lets contracts and wallets do, from 41 items on ERCs and EIPs. It also finds standards by what they do, and links the article on each standard it names from an article index you name |
 | `ethereum-knowledge` | Answers how L2 networks and rollup frameworks work and stand, what is planned for Ethereum L1, and whether EIPs that change only consensus are live, from 51 items. It leaves ERCs and the EIPs that change what contracts and wallets can do to `evm-standards` |
 | `solidity-code` | Writes and changes contracts in Foundry and Hardhat projects for the solc, OpenZeppelin, forge-std, Foundry, and Hardhat versions the project uses, then scans the code for outdated patterns and builds and tests it |
 | `contract-tests` | Writes unit, fuzz, and invariant tests for a project's contracts in Foundry or Hardhat, or has kiwa write them when it is installed, from a list of what each contract needs tested, then names what no test covers and runs the tests |
@@ -110,17 +111,24 @@ Status: live, checked 2026-11-11, source: the EIP-7951 document and EIP-7607 (th
 
 ### Find a standard by what it does
 
-1. The agent searches the items and the maintainer's bitsumi articles with words for what you want, in English and in your language
+1. The agent searches the items, and the articles of the index you named, with words for what you want, in English and in your language
 2. The agent answers with the standards that match, with the status of each from the items or the official document
-3. For each standard it names, the agent gives the title and link of the bitsumi article on it, when there is one
+3. When you named an article index, for each standard it names, the agent gives the title and link of the article on it, when there is one
 
 The search looks like this.
-Each article line, left out here, gives the standard, the link, such as https://cardene.dev/articles/a55db75ffbc68801d968 for EIP-7951, and the article's title and description, which are in Japanese.
+With no article index named, it prints no article line.
 
 ```text
 item eip-7951-secp256r1-precompile live 2026-11-11 3 Contracts can cheaply verify P-256 (secp256r1) signatures, such as passkey, WebAuthn, Secure Enclave, and Android Keystore signatures, with P256VERIFY at 0x100.
 items: 1 matched
-articles: 1 matched of 642 in https://cardene.dev/llms.txt, read 2026-11-17
+articles: no article index is named
+```
+
+To have it link articles, put the URL or the path of an index in `~/.evm-dev/article-index`, or in `EVM_DEV_INDEX_URL`, which wins when both are set.
+The index has the line form of an llms.txt list, one article per line, and each title starts with `[ERC<number>]` or `[EIP<number>]`.
+
+```text
+- [\[EIP7951\] Verifying passkey signatures](https://example.com/articles/eip-7951.md): How contracts check P-256 signatures.
 ```
 
 ### Check an L2 or the L1 roadmap
@@ -422,7 +430,8 @@ financial-standards: 2 problems; fill in or add each section named above
 | Node.js and `@openzeppelin/upgrades-core` in the project | Optional. When both are there, `release-check` also runs OpenZeppelin's upgrade check |
 | The kiwa plugin | Optional. When its skills are installed, `contract-tests` has kiwa write the tests |
 | Web access in the agent | To re-check an out-of-date item. Without it the agent answers from the item and says it could not confirm it |
-| Network access to `cardene.dev` | To link bitsumi articles. Without it `evm-standards` searches only its items and says it could not read the article index |
+| A Ledger or Trezor hardware wallet | To sign deploys to production chains with `contract-deploy`. Test chains use an encrypted keystore |
+| Network access to the host of your article index | Only when `~/.evm-dev/article-index` or `EVM_DEV_INDEX_URL` names a URL. Without it `evm-standards` searches only its items and says it could not read the article index |
 | The `musubi` command | Optional. When it is installed, the agent runs `musubi check` before a design skill reads the `design-doc` format and before `release-check` reads the page-design format |
 
 ## What it reads, runs, and sends
@@ -433,7 +442,7 @@ In short:
 - It reads the items bundled with the plugin
 - `evm-standards` runs `evm-standards.sh list`, which reads the items and prints one line each
 - `ethereum-knowledge` runs `ethereum-knowledge.sh list`, which reads its own items and prints one line each
-- `evm-standards` runs `standards.py` for `find` and `article`. It reads the items and the bitsumi article index, https://cardene.dev/llms.txt, which it downloads with a plain request to that fixed address, so no word of your question is sent. It keeps the index in `~/.local/share/evm-dev/` (`EVM_DEV_HOME` changes it), readable only by you, for one day, and prints only article titles, descriptions, and `https://cardene.dev/articles/` links
+- `evm-standards` runs `standards.py` for `find` and `article`. It reads the items, and the article index you name in `~/.evm-dev/article-index` or `EVM_DEV_INDEX_URL`, if any. An index named by a URL is downloaded with a plain request to that address, so no word of your question is sent, and kept in `~/.local/share/evm-dev/` (`EVM_DEV_HOME` changes it), readable only by you, for one day, one copy per URL. An index named by a path is read in place. It prints only article titles, descriptions, and https links, and for an index from a URL only links on that URL's host
 - `solidity-code` runs `solidity-code.py`, which reads the project's config files and the `package.json` files of its libraries for their versions, and the project's source files for the scan. It never reads `.env` files, dependencies, or build output, and never prints the text of a line
 - `solidity-code` writes only the contracts you ask for, and runs the project's build and tests
 - `contract-tests` runs `contract-tests.py`, which reads the project's config files, contracts, and tests, and prints only kinds, names, and `file:line`, never the text of a contract or a test. It writes only test files, never changes a contract, and never reads `.env` files, dependencies, or build output
@@ -448,7 +457,7 @@ In short:
 - `dapp-architecture` runs `dapp-architecture.py`, which reads its items and the design file it writes, and prints only section names when it checks the design. It writes only the design file, and never reads `.env` files or keys
 - `financial-standards` runs `financial-standards.py`, which reads its items and the design file it writes, and prints only section names when it checks the design. It writes only the design file, and never reads `.env` files or keys
 - To re-check an out-of-date item, the agent searches the web and opens the official document with only a standard's number or name, a network's or framework's name, or a tool's or service's name and version
-- It never edits its items, and keeps nothing but that copy of the article index
+- It never edits its items, and keeps nothing but the copies of an article index named by a URL
 
 ## License
 

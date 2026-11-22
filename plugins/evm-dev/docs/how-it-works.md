@@ -47,14 +47,17 @@ Days are counted in UTC, so a daylight saving change cannot shorten a day.
 
 | Command | What it does |
 |---|---|
-| `find <word>...` | Prints the items that hold any of the words in their name, heading, `can` field, or body, and the bitsumi articles that hold any of them in their title or description, the ones that hold more words first. An item line gives the status and the date it was checked; an article line gives its link |
-| `article <number>` | Prints the bitsumi articles whose title starts with `[ERC<number>]` or `[EIP<number>]`. Other titles, such as `[ACP209]`, and articles that only mention the number later in the title are left out |
+| `find <word>...` | Prints the items that hold any of the words in their name, heading, `can` field, or body, and the articles of the named index that hold any of them in their title or description, the ones that hold more words first. An item line gives the status and the date it was checked; an article line gives its link |
+| `article <number>` | Prints the articles of the named index whose title starts with `[ERC<number>]` or `[EIP<number>]`. Other titles, such as `[ACP209]`, and articles that only mention the number later in the title are left out |
 
-The article index is https://cardene.dev/llms.txt, the list of the maintainer's bitsumi site.
-The script downloads it with a plain GET of that fixed address, so no word of the question is sent, and keeps it as `bitsumi-llms.txt` in `~/.local/share/evm-dev/` (`EVM_DEV_HOME` changes it), a folder only the user can read, for one day before it downloads it again.
-When the index cannot be downloaded, it uses the copy it kept and says so; with no copy, `find` still prints the items and says it could not read the article index.
-It prints only titles, descriptions, and links that start with `https://cardene.dev/articles/`, and the agent reads them as data, not instructions.
-`EVM_DEV_INDEX_URL` points it at another index; the plugin's test uses a `file://` copy.
+The article index is the one the user names: `EVM_DEV_INDEX_URL`, or else the first line of `~/.evm-dev/article-index`, as a URL or a path to a file.
+With neither, the script reads no index and prints `articles: no article index is named`, and the agent gives no articles.
+An index has the line form of an llms.txt list, such as `- [\[EIP7951\] title](https://example.com/articles/eip-7951.md): description`, and a link ending in `.md` is printed without it.
+An index named by a URL is downloaded with a plain GET of that URL, so no word of the question is sent, and kept in `~/.local/share/evm-dev/` (`EVM_DEV_HOME` changes it), a folder only the user can read, as one file per URL for one day before it downloads it again.
+An index named by a path is read from the file each time and not copied.
+When the index cannot be read, it uses the copy it kept and says so; with no copy, `find` still prints the items and says it could not read the article index.
+It prints only titles, descriptions, and https links, and for an index read from an http or https URL only links on the same host as the index. The agent reads them as data, not instructions.
+The plugin's test names its indexes through `file://` URLs and paths.
 
 ## How the agent answers about a standard
 

@@ -609,6 +609,19 @@ readmes_list() {
 }
 check "the root READMEs list /evm-dev:contract-deploy" readmes_list
 
+# A reader learns that production deploys need a hardware wallet before reading which skills exist.
+# The skill list is the first table of each README, so its separator row marks where it starts.
+readme_needs_first() {
+  local f wallet table
+  for f in README.md README.ja.md; do
+    wallet="$(grep -nE 'Ledger' "$PLUGIN/$f" | grep -E 'Trezor' | grep -F 'contract-deploy' | head -1 | cut -d: -f1)"
+    table="$(grep -nE '^\|---' "$PLUGIN/$f" | head -1 | cut -d: -f1)"
+    [ -n "$wallet" ] && [ -n "$table" ] && [ "$wallet" -lt "$table" ] \
+      || { echo "      $f does not say before the skill list that contract-deploy uses a Ledger or Trezor"; return 1; }
+  done
+}
+check "the README says before the skill list what production deploys need" readme_needs_first
+
 others_kept() {
   # A test that another skill's test runs skips this check: the outer test runs every other skill's
   # tests once itself, so the same tests are not run again inside each other.

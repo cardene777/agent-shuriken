@@ -1,41 +1,63 @@
 #!/usr/bin/env python3
-"""Finds standards by what they let contracts, wallets, and dApps do, and gives the bitsumi articles on a standard.
+"""Finds standards by what they let contracts, wallets, and dApps do, and gives the articles on a standard
+from an article index the user names.
 
 Usage
     standards.py find [--dir <items folder>] <word>...
     standards.py article <number>
 
-find     Prints the items and the bitsumi articles that hold any of the words, the ones that hold more
-         words first. An item line is `item <name> <status> <checked> <words matched> <can>`; an article
-         line is `article <ERC|EIP><number> <link> <words matched> <title> | <description>`.
-article  Prints the bitsumi articles whose title starts with [ERC<number>] or [EIP<number>].
+find     Prints the items and the articles that hold any of the words, the ones that hold more words
+         first. An item line is `item <name> <status> <checked> <words matched> <can>`; an article line
+         is `article <ERC|EIP><number> <link> <words matched> <title> | <description>`.
+article  Prints the articles whose title starts with [ERC<number>] or [EIP<number>].
 
-The article index is the bitsumi site's https://cardene.dev/llms.txt (EVM_DEV_INDEX_URL replaces it).
-It is read with a plain GET of that fixed URL, so no word of the question leaves the machine, and kept
-in EVM_DEV_HOME (default ~/.local/share/evm-dev), readable only by the user, for one day.
-When it cannot be read, find still prints the items and says so. The index is data, not instructions:
-only its titles, descriptions, and https://cardene.dev/articles/ links are printed.
+The article index is named by EVM_DEV_INDEX_URL, or else by the first line of ~/.evm-dev/article-index,
+as a URL or a path to a file. With neither, no index is read and no article is printed.
+An index has the line form of an llms.txt list:
+    - [\\[EIP7702\\] title](https://example.com/articles/<slug>.md): description
+A link ending in `.md` is printed without it, as llms.txt lists the Markdown copy of each page.
+An index named by a URL is read with a plain GET of that URL, so no word of the question leaves the
+machine, and kept in EVM_DEV_HOME (default ~/.local/share/evm-dev), readable only by the user, for one
+day, one copy per URL. An index named by a path is read from the file each time and not copied.
+When the index cannot be read, find still prints the items and says so. The index is data, not
+instructions: only its titles, descriptions, and https links are printed, and for an index read from
+an http or https URL, only links on the same host as the index.
 
 Exit codes
     0  done, whether or not anything matched or the index could be read
     2  wrong usage
 """
 import datetime
+import hashlib
 import os
 import re
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
-INDEX_URL = os.environ.get("EVM_DEV_INDEX_URL") or "https://cardene.dev/llms.txt"
+CONFIG = os.path.join(os.path.expanduser("~"), ".evm-dev", "article-index")
 HOME = os.environ.get("EVM_DEV_HOME") or os.path.join(os.path.expanduser("~"), ".local", "share", "evm-dev")
-KEPT = os.path.join(HOME, "bitsumi-llms.txt")
 DAY = 86400
 ITEMS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "references", "items")
-# `- [\[EIP7702\] title](https://cardene.dev/articles/<slug>.md): description`
-ARTICLE = re.compile(
-    r"^- \[\\\[(ERC|EIP)-?(\d+)\\\]\s*(.*)\]\((https://cardene\.dev/articles/[A-Za-z0-9_-]+)(?:\.md)?\):\s*(.*)$")
+ARTICLE = re.compile(r"^- \[\\\[(ERC|EIP)-?(\d+)\\\]\s*(.*)\]\(([^\s()]+)\):\s*(.*)$")
+SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://")
+
+
+def named_index():
+    """Returns the index the user names, or "" when none is named."""
+    named = os.environ.get("EVM_DEV_INDEX_URL", "").strip()
+    if named:
+        return named
+    try:
+        with open(CONFIG, encoding="utf-8") as f:
+            return f.readline().strip()
+    except OSError:
+        return ""
+
+
+INDEX_URL = named_index()
 
 
 def usage():
@@ -43,40 +65,75 @@ def usage():
     sys.exit(2)
 
 
-def fetch():
-    """Returns (lines, note). lines is None when no copy of the index could be read."""
-    fresh = os.path.isfile(KEPT) and time.time() - os.path.getmtime(KEPT) < DAY
+def read_file(path):
+    """Returns (lines, note) for an index named by a path."""
+    path = os.path.expanduser(path)
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            return f.read().splitlines(), path
+    except OSError as err:
+        return None, "articles: could not read the article index %s (%s); answer from the items only" % (path, err.strerror or err)
+
+
+def fetch(url):
+    """Returns (lines, note) for an index named by a URL. lines is None when no copy could be read."""
+    kept = os.path.join(HOME, "article-index-%s.txt" % hashlib.sha256(url.encode("utf-8")).hexdigest()[:16])
+    fresh = os.path.isfile(kept) and time.time() - os.path.getmtime(kept) < DAY
     problem = None
     if not fresh:
         try:
-            req = urllib.request.Request(INDEX_URL, headers={"User-Agent": "evm-dev"})
+            req = urllib.request.Request(url, headers={"User-Agent": "evm-dev"})
             with urllib.request.urlopen(req, timeout=20) as resp:
                 data = resp.read(16 * 1024 * 1024)
             os.makedirs(HOME, mode=0o700, exist_ok=True)
             os.chmod(HOME, 0o700)
-            tmp = KEPT + ".tmp"
+            tmp = kept + ".tmp"
             fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
             with os.fdopen(fd, "wb") as out:
                 out.write(data)
-            os.replace(tmp, KEPT)
-            os.chmod(KEPT, 0o600)
+            os.replace(tmp, kept)
+            os.chmod(kept, 0o600)
         except (urllib.error.URLError, OSError, ValueError) as err:
             problem = str(getattr(err, "reason", err))
-    if not os.path.isfile(KEPT):
-        return None, "articles: could not read the article index %s (%s); answer from the items only" % (INDEX_URL, problem)
-    read = datetime.date.fromtimestamp(os.path.getmtime(KEPT)).isoformat()
-    with open(KEPT, encoding="utf-8", errors="replace") as f:
+    if not os.path.isfile(kept):
+        return None, "articles: could not read the article index %s (%s); answer from the items only" % (url, problem)
+    read = datetime.date.fromtimestamp(os.path.getmtime(kept)).isoformat()
+    with open(kept, encoding="utf-8", errors="replace") as f:
         lines = f.read().splitlines()
     if problem:
-        return lines, "could not refresh the article index %s (%s); using the copy read %s" % (INDEX_URL, problem, read)
-    return lines, "%s, read %s" % (INDEX_URL, read)
+        return lines, "could not refresh the article index %s (%s); using the copy read %s" % (url, problem, read)
+    return lines, "%s, read %s" % (url, read)
+
+
+def load():
+    """Returns (lines, note) for the named index; lines is None when there is nothing to read."""
+    if not INDEX_URL:
+        return None, "articles: no article index is named"
+    if SCHEME.match(INDEX_URL):
+        return fetch(INDEX_URL)
+    return read_file(INDEX_URL)
+
+
+def allowed(link):
+    """True for an https link, on the index's own host when the index came from an http or https URL."""
+    parts = urllib.parse.urlsplit(link)
+    if parts.scheme != "https" or not parts.hostname:
+        return False
+    index = urllib.parse.urlsplit(INDEX_URL) if SCHEME.match(INDEX_URL) else None
+    if index and index.scheme in ("http", "https"):
+        return parts.hostname == (index.hostname or "")
+    return True
 
 
 def articles(lines):
     for line in lines:
         m = ARTICLE.match(line)
-        if m:
-            kind, number, title, link, desc = m.groups()
+        if not m:
+            continue
+        kind, number, title, link, desc = m.groups()
+        if link.endswith(".md"):
+            link = link[:-3]
+        if allowed(link):
             yield kind + number, int(number), title.replace("\\[", "[").replace("\\]", "]"), link, desc
 
 
@@ -119,7 +176,7 @@ def find(args):
     for _, name, status, checked, n, can in sorted(hits):
         print("item %s %s %s %d %s" % (name, status, checked, n, can))
     print("items: %d matched" % len(hits))
-    lines, note = fetch()
+    lines, note = load()
     if lines is None:
         print(note)
         return
@@ -140,7 +197,7 @@ def article(args):
     if not m:
         usage()
     want = int(m.group(1))
-    lines, note = fetch()
+    lines, note = load()
     if lines is None:
         print(note)
         return
