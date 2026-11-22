@@ -894,6 +894,45 @@ else
   fi
 fi
 
+# --- Notes as page-design's verify reads them on report.html, as the agent runs it
+# The notes live in the JSON of the page's script. A note that joins facts with numbers is named by
+# verify whatever its length, and notes that join none pass.
+NOTE_LONG="long note"
+NOTE_SHORT="short note"
+NOTE_CLEAN="notes that join no facts"
+note_verify() { # <long|short|clean>: exits 0 when verify answers as that note asks
+  local kind="$1" out="$T/note-verify-$1.out"
+  python3 - "$OSTATE/scan.json" "$T/note-$kind.json" "$kind" <<'PYEOF'
+import json, sys
+d = json.load(open(sys.argv[1], encoding="utf-8"))
+facts = "the loop runs 64 steps, 12 callers use it, 3 tests cover it, 2 releases changed it"
+prose = "The loop is the busiest code in the repository and the place most releases touch. " * 3
+why = {"long": prose + facts, "short": facts, "clean": prose.strip()}[sys.argv[3]]
+top = d["ranked"][0]["file"]
+notes = {top: {"what": "What %s does" % top, "why": why, "action": "Split the loop into steps"}}
+json.dump(notes, open(sys.argv[2], "w", encoding="utf-8"), ensure_ascii=False)
+PYEOF
+  PATH="$T/onlygit" "$(command -v python3)" "$SCRIPT" explain --notes "$T/note-$kind.json" "$O" > /dev/null 2>&1 || return 1
+  python3 "$PAGE_DESIGN" verify "$OSTATE/report.html" > "$out" 2>&1
+  local status=$?
+  if [ "$kind" = clean ]; then
+    [ "$status" -eq 0 ] || { sed 's/^/      /' "$out" | head -5; return 1; }
+  else
+    [ "$status" -eq 1 ] && grep -q ": facts-in-one-line: " "$out" || { echo "      verify did not name the $kind note"; return 1; }
+  fi
+}
+if [ -f "$PAGE_DESIGN" ]; then
+  check "verify on report.html names a $NOTE_LONG that joins facts in one line" "note_verify long"
+  check "verify on report.html names a $NOTE_SHORT that joins facts in one line" "note_verify short"
+  check "verify on report.html accepts $NOTE_CLEAN" "note_verify clean"
+else
+  for name in "names a $NOTE_LONG that joins facts in one line" "names a $NOTE_SHORT that joins facts in one line" "accepts $NOTE_CLEAN"; do
+    skip "verify on report.html $name" "needs page-design of design-formats next to this plugin"
+  done
+fi
+# Put the notes the opened-page checks wrote back, for any check after this one.
+PATH="$T/onlygit" "$(command -v python3)" "$SCRIPT" explain --notes "$T/opened-notes.json" "$O" > /dev/null 2>&1
+
 # --- How the report reads: values not measured, the score of each row, the band, the header, and the list
 # The words of the page come from its one dictionary, so the Japanese words are read there.
 TEMPLATE_FILE="$HERE/../templates/base.html"
