@@ -108,10 +108,11 @@ Read `formats/patterns/lists-and-tables.md` for the rows, the paging, and the ta
 - Give `body` a background from a token
 - Keep good, warning, and critical colors apart from the accent color
 - Avoid decorative gradients and plain circles used as decoration
+- The user's own colors, fonts, text size, page width, and corners come from a theme file. Its places and keys are in `theme.md`, next to this file, and `page-design.py theme <page>` writes it into a page made from a template
 
 ## Layout
 
-- Cap the content width on wide screens, around 1200px for pages and 720px for forms
+- Cap the content width on wide screens, around 1200px for pages and 720px for forms. The templates keep the page width in the `--page-width` token and the corners in `--radius-small`, `--radius`, and `--radius-large`, so a theme file can change them
 - Align items on a shared center line
 - Put things to compare side by side, with sideways scrolling inside their own box when they do not fit
 - A page that shows changes puts the request first and gives each change its own tab

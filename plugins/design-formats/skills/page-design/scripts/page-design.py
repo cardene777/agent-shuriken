@@ -3,6 +3,7 @@
 
 Usage:
   page-design.py verify [--source] <file>...
+  page-design.py theme [--defaults] <page.html>
 
 Each file ending in .html or .htm is read as a page, and each file ending in .md as a document.
 Every problem is printed as one line, <file>:<line>: <rule>: <how to fix>. The text of the page is
@@ -14,15 +15,25 @@ the file is checked as the source of a page, such as a template: it may hold sti
 the dragon entry line, and a block without data-still is refused. The text inside a block and inside
 a drawn figure is the figure's own, so the text rules do not read it.
 
-Exit codes:
-  0  every file keeps the rules
-  1  a file breaks a rule; each problem is named above the summary line
-  2  called wrongly: no file, a missing file, or a file that is neither HTML nor Markdown
+theme writes the user's theme into a page made from a template. The theme is .design-theme.json at
+the root of the git repository the command runs in, or else ~/.design-theme.json. Its keys and their
+types are in formats/theme.md. The values replace the tokens in the light :root block and in both
+dark blocks; keys the theme leaves out keep the page's values. Without a theme file the page is left
+as it is. A theme file with an unknown key or a bad value is refused, each key named, and the page is
+left as it is. With --defaults, theme prints the keys a page defines and their values as JSON.
 
-Uses only the Python standard library, reads only the files it is given, runs no other program,
-connects to nothing, and keeps nothing.
+Exit codes:
+  0  every file keeps the rules; or theme applied the theme, found no theme file, or printed the defaults
+  1  a file breaks a rule; each problem is named above the summary line
+  2  called wrongly: no file, a missing file, or a file that is neither HTML nor Markdown; or a theme
+     file that cannot be read or holds an unknown key or a bad value
+
+Uses only the Python standard library, reads only the files it is given and the theme file, writes
+only the page theme is given, runs no other program, connects to nothing, and keeps nothing.
 """
 
+import json
+import os
 import re
 import sys
 from html.parser import HTMLParser
@@ -372,11 +383,178 @@ def check_markdown(text):
     return problems
 
 
+# The theme file. A user's look lives in .design-theme.json at the root of the repository the
+# command runs in, or else in ~/.design-theme.json, as JSON keyed like the template tokens.
+THEME_NAME = ".design-theme.json"
+COLOR_KEYS = ("bg", "surface", "ink", "sub", "line", "accent", "accent-ink", "accent-soft", "bar", "label")
+# key: (CSS token, kind). A px value is written as a number of pixels.
+FONT_KEYS = {"sans": ("sans", "font"), "mono": ("mono", "font"), "size": ("text-size", "px"),
+             "line-height": ("line-height", "number")}
+SPACE_KEYS = {"page-width": ("page-width", "px"), "radius-small": ("radius-small", "px"),
+              "radius": ("radius", "px"), "radius-large": ("radius-large", "px")}
+LIGHT_BLOCK = re.compile(r"(:root\s*\{)([^}]*)(\})")
+DARK_BLOCKS = (re.compile(r'(:root:not\(\[data-theme="light"\]\)\s*\{)([^}]*)(\})'),
+               re.compile(r'(:root\[data-theme="dark"\]\s*\{)([^}]*)(\})'))
+TOKEN = r"(--%s\s*:\s*)([^;}]+)(;?)"
+COLOR = re.compile(r"^(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(rgb|rgba|hsl|hsla)\([0-9.,%\s/+-]+\))$")
+# Each number key: (smallest, largest). The text stays at 12px or larger, as verify asks.
+LIMITS = {"text-size": (12, 40), "line-height": (1, 3), "page-width": (320, 4000),
+          "radius-small": (0, 64), "radius": (0, 64), "radius-large": (0, 64)}
+
+
+def tokens_of(block):
+    return {name: value.strip() for name, value in re.findall(r"--([a-z][a-z0-9-]*)\s*:\s*([^;}]+)", block)}
+
+
+def number_of(value):
+    """Returns the number in a value such as 15px or 1.7, as an int when it has no fraction."""
+    m = re.match(r"^\s*(\d+(?:\.\d+)?)(px)?\s*$", value)
+    if not m:
+        return None
+    n = float(m.group(1))
+    return int(n) if n.is_integer() else n
+
+
+def theme_defaults(text):
+    """Returns the theme keys a page defines, with their values."""
+    light = LIGHT_BLOCK.search(text)
+    light_tokens = tokens_of(light.group(2)) if light else {}
+    dark = DARK_BLOCKS[1].search(text) or DARK_BLOCKS[0].search(text)
+    dark_tokens = tokens_of(dark.group(2)) if dark else {}
+    result = {"light": {k: light_tokens[k] for k in COLOR_KEYS if k in light_tokens},
+              "dark": {k: dark_tokens[k] for k in COLOR_KEYS if k in dark_tokens},
+              "font": {}, "space": {}}
+    for group, keys in (("font", FONT_KEYS), ("space", SPACE_KEYS)):
+        for key, (token, kind) in keys.items():
+            if token in light_tokens:
+                value = light_tokens[token]
+                result[group][key] = value if kind == "font" else number_of(value)
+    return result
+
+
+def theme_problems(theme):
+    """Returns one line per key the theme file may not hold, naming the key."""
+    if not isinstance(theme, dict):
+        return ["the theme file holds %s, not an object of light, dark, font, and space" % type(theme).__name__]
+    problems = []
+    for group, values in theme.items():
+        known = {"light": COLOR_KEYS, "dark": COLOR_KEYS, "font": tuple(FONT_KEYS), "space": tuple(SPACE_KEYS)}.get(group)
+        if known is None:
+            problems.append("%s: not a key; the keys are light, dark, font, and space" % group)
+            continue
+        if not isinstance(values, dict):
+            problems.append("%s: holds %s, not an object" % (group, type(values).__name__))
+            continue
+        for key, value in values.items():
+            name = "%s.%s" % (group, key)
+            if key not in known:
+                problems.append("%s: not a key; %s takes %s" % (name, group, ", ".join(known)))
+            elif group in ("light", "dark"):
+                if not isinstance(value, str) or not COLOR.match(value.strip()):
+                    problems.append("%s: %r is not a color such as #2a5bd7 or rgb(42, 91, 215)" % (name, value))
+            elif {**FONT_KEYS, **SPACE_KEYS}[key][1] == "font":
+                if not isinstance(value, str) or not value.strip() or re.search(r"[;{}<>\\]", value) or len(value) > 300:
+                    problems.append("%s: %r is not a font list such as \"Inter\", sans-serif" % (name, value))
+            else:
+                token = {**FONT_KEYS, **SPACE_KEYS}[key][0]
+                low, high = LIMITS[token]
+                if isinstance(value, bool) or not isinstance(value, (int, float)) or not low <= value <= high:
+                    problems.append("%s: %r is not a number from %s to %s" % (name, value, low, high))
+    return problems
+
+
+def css_value(group, key, value):
+    if group in ("light", "dark"):
+        return value.strip()
+    kind = {**FONT_KEYS, **SPACE_KEYS}[key][1]
+    if kind == "font":
+        return value.strip()
+    text = ("%d" % value) if float(value).is_integer() else ("%g" % value)
+    return text + "px" if kind == "px" else text
+
+
+def set_tokens(block, values):
+    for token, value in values.items():
+        block = re.sub(TOKEN % re.escape(token), lambda m: m.group(1) + value + (m.group(3) or ";"), block, count=1)
+    return block
+
+
+def apply_theme(text, theme):
+    """Returns the page with the theme's values in its light block and its two dark blocks."""
+    light = {name: css_value("light", name, v) for name, v in theme.get("light", {}).items()}
+    for group, keys in (("font", FONT_KEYS), ("space", SPACE_KEYS)):
+        for key, value in theme.get(group, {}).items():
+            light[keys[key][0]] = css_value(group, key, value)
+    dark = {name: css_value("dark", name, v) for name, v in theme.get("dark", {}).items()}
+    text = LIGHT_BLOCK.sub(lambda m: m.group(1) + set_tokens(m.group(2), light) + m.group(3), text, count=1)
+    for pattern in DARK_BLOCKS:
+        text = pattern.sub(lambda m: m.group(1) + set_tokens(m.group(2), dark) + m.group(3), text, count=1)
+    return text
+
+
+def theme_file():
+    """Returns the theme file to use: the repository's, else the home one, else None."""
+    folder = os.path.abspath(os.getcwd())
+    while True:
+        if os.path.exists(os.path.join(folder, ".git")):
+            candidate = os.path.join(folder, THEME_NAME)
+            if os.path.isfile(candidate):
+                return candidate
+            break
+        parent = os.path.dirname(folder)
+        if parent == folder:
+            break
+        folder = parent
+    home = os.path.join(os.path.expanduser("~"), THEME_NAME)
+    return home if os.path.isfile(home) else None
+
+
+def theme_main(args):
+    defaults = args[:1] == ["--defaults"]
+    pages = args[1:] if defaults else args
+    if len(pages) != 1 or not re.search(r"\.html?$", pages[0], re.I):
+        print("usage: page-design.py theme [--defaults] <page.html>", file=sys.stderr)
+        return 2
+    page = pages[0]
+    try:
+        text = open(page, encoding="utf-8").read()
+    except OSError:
+        print("page-design: cannot read %s" % page, file=sys.stderr)
+        return 2
+    if defaults:
+        print(json.dumps(theme_defaults(text), ensure_ascii=False, indent=2))
+        return 0
+    path = theme_file()
+    if path is None:
+        print("page-design: no theme file (%s at the root of the repository or ~/%s); %s left as it is" % (THEME_NAME, THEME_NAME, page))
+        return 0
+    try:
+        raw = open(path, encoding="utf-8").read()
+        theme = json.loads(raw) if raw.strip() else {}
+    except (OSError, ValueError) as err:
+        print("page-design: cannot read the theme file %s (%s)" % (path, err), file=sys.stderr)
+        return 2
+    problems = theme_problems(theme)
+    if problems:
+        for line in problems:
+            print("page-design: %s: %s" % (path, line), file=sys.stderr)
+        print("page-design: %s left as it is; fix the theme file and run theme again" % page, file=sys.stderr)
+        return 2
+    themed = apply_theme(text, theme)
+    if themed != text:
+        with open(page, "w", encoding="utf-8") as out:
+            out.write(themed)
+    print("page-design: theme %s applied to %s" % (path, page))
+    return 0
+
+
 def main(argv):
+    if argv[:1] == ["theme"]:
+        return theme_main(argv[1:])
     source = len(argv) > 1 and argv[1] == "--source"
     files = argv[2:] if source else argv[1:]
     if not argv or argv[0] != "verify" or not files:
-        print("usage: page-design.py verify [--source] <file>...", file=sys.stderr)
+        print("usage: page-design.py verify [--source] <file>...\n       page-design.py theme [--defaults] <page.html>", file=sys.stderr)
         return 2
     for path in files:
         if not re.search(r"\.(html?|md)$", path, re.I):
