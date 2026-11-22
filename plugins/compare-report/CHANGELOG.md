@@ -15,7 +15,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - Each candidate card has a key in `data-candidate`, and the table rows name their candidate by it. `check-report.py` fails on a card without a key, on two cards with one key, and on a row whose key no card has
 - Risks are ordered most severe first, with an icon for each level, and the caution is titled with the risk itself. `check-report.py` fails on a caution titled only "Risk" or "Caution" and on a caution with `role="alert"`
 - When page-design is installed, the agent draws the bar charts with dragon and runs `dragon embed`, which draws them into the report as SVG. `check-report.py` fails while a dragon block is left undrawn. Without Node.js, the report keeps the CSS bar charts, which show the numbers only, with the unit in the chart title
-- Tables have captions and keep their header row in view inside a box that scrolls. Tables of six or more columns and tables that scroll sideways are striped, and a table that scrolls sideways keeps its name column in view and shows a shadow on the side that has more to scroll. A chart or a figure opens larger in a dialog when you press it
+- The README's screenshot comes from a new report on the same four static site generators, made by the skill's steps, and shows the facts table on the cover, the build-time charts, and the candidate list on screen
+- Tables have captions and keep their header row in view inside a box that scrolls. In the PDF, a table's caption and header row stay on the page of its first row, and the sentence under a section heading stays with what follows it. Tables of six or more columns and tables that scroll sideways are striped, and a table that scrolls sideways keeps its name column in view and shows a shadow on the side that has more to scroll. A chart or a figure opens larger in a dialog when you press it
 
 ## [0.5.0] - 2026-11-16
 

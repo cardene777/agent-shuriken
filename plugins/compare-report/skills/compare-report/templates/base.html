@@ -166,7 +166,6 @@ h2, h3 { line-height: 1.35; }
 .chapter > h2 { display: flex; gap: 12px; align-items: baseline; margin: 0 0 20px; padding-bottom: 10px; border-bottom: 2px solid var(--ink); font-size: 24px; }
 .chapter > h2::before { content: counter(chapter, decimal-leading-zero); color: var(--accent); font-size: 16px; font-weight: 700; }
 .chapter h3 { margin: 28px 0 10px; font-size: 18px; }
-.lead { margin: 0 0 20px; color: var(--muted); font-size: 16px; }
 .note { margin: 8px 0 0; color: var(--faint); font-size: 12.5px; }
 
 /* A warning, in its own block after what it belongs to, with an icon and a title that names the risk */
@@ -374,7 +373,7 @@ dialog.zoom::backdrop { background: var(--backdrop); }
   .page-break { break-after: page; }
   .table-wrap { max-height: none; overflow: visible; box-shadow: none; }
   .no-break, .picks, .pick, .card, .caution, .bars, .figure, .legend, tr { break-inside: avoid; }
-  h2, h3, h4, .lead { break-after: avoid; }
+  h2, h3, h4, .chapter > h2 + p, caption, thead { break-after: avoid; }
   a { color: inherit; text-decoration: none; }
   .sources a { color: var(--accent); }
 }

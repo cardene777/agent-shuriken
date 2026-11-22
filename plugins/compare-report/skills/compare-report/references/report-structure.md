@@ -48,6 +48,7 @@ The template numbers the sections, so do not number the headings yourself.
 
 ### One section per axis (`.axis`)
 
+- One sentence right under the heading on what the axis measures and which way is better
 - A table that compares every candidate on the axis, with a score and a rationale
 - A bar chart when the axis has numbers to compare, drawn as [Charts with dragon](#charts-with-dragon) describes
 - A `note` under each table or chart saying where the data comes from and under which conditions it was measured, written as [Figures in text](#figures-in-text) describes
@@ -314,5 +315,5 @@ The browser remembers the reader's choice, and print hides the switches.
 
 The template starts a new page after the cover, and lets the rest flow.
 Table rows, cards, cautions, and charts are never split across pages.
-A heading always stays on the same page as what follows it.
+A heading and the paragraph right under it stay on the same page as what follows them, and a table's caption and header row stay with its first row.
 Add `<div class="page-break"></div>` only before a section that must start on a new page, because a forced break leaves the rest of the page empty.

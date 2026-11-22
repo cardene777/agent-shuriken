@@ -4,7 +4,7 @@ Have your agent research the options for a choice and write a comparison report 
 
 English · [日本語](README.ja.md)
 
-![The cover, a page with a build-time chart and scored table, and the ranking page of a report comparing four static site generators](assets/screenshot.png)
+![From a report comparing four static site generators, the PDF cover with its facts table, a PDF page with two build-time charts, and the candidate list beside the details of Astro on screen in the dark colors](assets/screenshot.png)
 
 Asked to compare tools, an agent tends to hand out scores without evidence, mix vendor claims with independent measurements, and fill gaps with guesses.
 This plugin gives your agent one way to do it instead.
