@@ -4,7 +4,7 @@
 
 [English](README.md) · 日本語
 
-![報告のページの順位。上位2つのファイルに、何のファイルか、チームの負担になる理由、直す最初の一手をエージェントが書いています](assets/screenshot.png)
+![見本のリポジトリshopの報告のページで、優先順のタブのinvoice.pyを押したところ。一覧の横に、そのファイルの項目と、何のファイルか、チームの負担になる理由、直す最初の一手を書いたエージェントの注記が出ている](assets/screenshot.png)
 
 リンターは何千もの警告を並べますが、どれが大事かは教えてくれません。
 負債が効いてくるのは人が作業し続ける所です。誰も触らない2,000行のファイルの負担は小さく、毎週変わる400行のファイルの負担は大きくなります。
@@ -47,23 +47,24 @@ GitHub Copilot CLIでは依頼の中に`/techdebt`と書き、Gemini CLIでは�
 画像のリポジトリを調べた結果の要約は、次のように始まります。
 
 ```text
-techdebt scan of ~/work/shop (HEAD 61d7f14 on main, 26 source files, 5 test files, 199 commits in the last 12 months)
-Hotspots:       19 files changed 2 or more times
+techdebt scan of ~/work/shop (HEAD d884000 on main, 31 source files, 5 test files, 180 commits in the last 12 months)
+Hotspots:       26 files changed 2 or more times
 Markers:        6 (FIXME 1, HACK 1, TODO 4), oldest 360 days
-Untested:       15 source files have no test file with a matching name
+Untested:       20 source files have no test file with a matching name
 Long functions: 7 over 60 lines
 Large files:    1 over 500 lines
 Duplication:    2 blocks, 20 lines
 Unused deps:    2 (approximate: names not found in imports, configs, or scripts)
-Deprecated calls: 3 (eslint 3; not run: ruff, semgrep)
+Deprecated calls: not checked (not run: ruff, semgrep, eslint)
+Tool knip:      not run, knip is not installed in node_modules/.bin
 Tool ruff:      not run, ruff is not installed in .venv/bin or on PATH
 
 Start here
- 1  src/billing/invoice.py  score 0.97  changed 31 times, 543 lines, 3 long functions, marker weight 4, 11 duplicated lines, no matching test file
- 2  src/api/orders.ts  score 0.67  changed 44 times, 331 lines, 1 long function, marker weight 1, 9 duplicated lines, no matching test file
- 3  src/web/checkout.tsx  score 0.40  changed 25 times, 220 lines, 2 long functions, marker weight 2, no matching test file
- 4  src/billing/refunds.py  score 0.36  changed 18 times, 163 lines, 1 long function, marker weight 1, 11 duplicated lines, no matching test file
- 5  src/api/returns.ts  score 0.17  changed 13 times, 70 lines, 9 duplicated lines, no matching test file
+ 1  src/billing/invoice.py  score 0.97  changed 31 times, 544 lines, 3 long functions, marker weight 4, 12 duplicated lines, no matching test file
+ 2  src/api/orders.ts  score 0.62  changed 44 times, 302 lines, 1 long function, marker weight 1, 8 duplicated lines, no matching test file
+ 3  src/web/checkout.tsx  score 0.39  changed 25 times, 212 lines, 2 long functions, marker weight 2, no matching test file
+ 4  src/billing/refunds.py  score 0.36  changed 18 times, 150 lines, 1 long function, marker weight 1, 12 duplicated lines, no matching test file
+ 5  src/api/returns.ts  score 0.15  changed 13 times, 67 lines, 8 duplicated lines, no matching test file
 ```
 
 順位は20位まで続き、最後の2行にデータと報告のページの置き場が出ます。
