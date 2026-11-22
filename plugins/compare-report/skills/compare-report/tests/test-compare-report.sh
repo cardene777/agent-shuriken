@@ -996,5 +996,730 @@ skill_rules() {
 }
 check "the SKILL.md keeps its rules on searching, sources, estimates, and the author's name" skill_rules
 
+# --- the sample report: the list and details, the facts, the tables, the charts, and the switches
+# sample_report.py fills the real template the way report-structure.md describes, with three candidates,
+# two axes, a long table, and a caution, in English or in Japanese. sample-probe.js, added to the page,
+# acts as a reader would at the window's width and writes what the browser drew as JSON.
+sample() { python3 "$HERE/sample_report.py" "$TEMPLATE" "$@"; }
+mkdir -p "$T/sample"
+
+# guide_html <heading>: the html examples under a ### heading of report-structure.md, as one text
+guide_html() {
+  python3 - "$STRUCTURE" "$1" <<'PY'
+import re, sys
+guide = open(sys.argv[1], encoding="utf-8").read()
+part = re.search(r"(?ms)^### %s\n(.*?)(?=^### |^## |\Z)" % re.escape(sys.argv[2]), guide)
+print("".join(re.findall(r"(?ms)^```html\n(.*?)^```", part.group(1))) if part else "")
+PY
+}
+
+# refused <variant> <word>: check-report refuses the sample of that variant on one line naming the word
+refused() {
+  local out rc
+  sample en "$T/sample/$1.html" --variant "$1" || return 1
+  out="$(check_report "$T/sample/$1.html")"; rc=$?
+  if [ "$rc" = 1 ] && [ "$(printf '%s\n' "$out" | wc -l | tr -d ' ')" = 1 ] && printf '%s\n' "$out" | grep -qF -- "$2"; then return 0; fi
+  printf '      the %s sample: exit %s, %s\n' "$1" "$rc" "$(printf '%s' "$out" | tr '\n' ' ')"
+  return 1
+}
+samples_pass_check_report() {
+  local lang out
+  for lang in en ja; do
+    sample "$lang" "$T/sample/plain-$lang.html" || return 1
+    out="$(check_report "$T/sample/plain-$lang.html")" || { printf '      the %s sample: %s\n' "$lang" "$out"; return 1; }
+  done
+}
+refuses_counts() { samples_pass_check_report && refused bad-count candidates && refused bad-axes axes && refused bad-sources sources; }
+refuses_keys() { samples_pass_check_report && refused bad-key zephyr && refused no-key Quarry; }
+check "check-report refuses facts whose counts differ from the cards, the axes, and the sources" refuses_counts
+check "check-report refuses a table row or a card whose candidate key does not match" refuses_keys
+
+# The candidate cards of the guide hold their parts in one order, and each part has its class or key.
+card_parts() {
+  python3 - "$(guide_html "Candidate cards")" <<'PY'
+import sys
+block, at = sys.argv[1], 0
+for part in ('<ul class="cards">', '<li class="card" data-candidate="', "<h3>", '<p class="summary">', "<dl>",
+             '<dt data-t="fieldType">', '<dt data-t="fieldUsers">', '<dt data-t="fieldStrength">', '<dt data-t="fieldWeakness">',
+             "</dl>", "<p>", "</li>", "</ul>"):
+    found = block.find(part, at)
+    if found < 0:
+        print("      the candidate cards of report-structure.md have no %s after the parts before it" % part)
+        sys.exit(1)
+    at = found + len(part)
+PY
+}
+check "every card holds the name, a summary line, the type, users, strength, and weakness, and the description in that order" card_parts
+
+row_order() {
+  python3 - "$STRUCTURE" <<'PY'
+import re, sys
+guide = open(sys.argv[1], encoding="utf-8").read()
+part = re.search(r"(?ms)^## Row order\n(.*?)(?=^## |\Z)", guide)
+if not part:
+    print("      report-structure.md has no ## Row order section")
+    sys.exit(1)
+problems = ["the row order does not say %r" % p for p in ("best first", "overall rank", "most severe first") if p not in part.group(1)]
+if not re.search(r'aria-sort="(ascending|descending)"', part.group(1)):
+    problems.append("the row order shows no column marked with aria-sort")
+print("\n".join("      " + p for p in problems))
+sys.exit(1 if problems else 0)
+PY
+}
+check "report-structure.md orders the rows of each table and marks the sorted column with aria-sort" row_order
+
+dragon_docs() {
+  local file phrase
+  for phrase in "dragon embed" "data-still" 'class="bars"'; do
+    grep -qF -- "$phrase" "$STRUCTURE" || { echo "      report-structure.md does not show $phrase"; return 1; }
+  done
+  grep -qF "dragon embed" "$SKILL" || { echo "      SKILL.md does not say to run dragon embed"; return 1; }
+  grep -qiF "page-design is installed" "$STRUCTURE" || { echo "      report-structure.md does not say when dragon is used"; return 1; }
+}
+check "the docs draw charts with dragon when page-design is installed and keep the CSS bar chart otherwise" dragon_docs
+
+# The English and Japanese pages name the same four things, the Japanese words escaped so that this
+# file stays in English, and the changelog names the list and dragon under Unreleased.
+described() {
+  python3 - "$PLUGIN" <<'PY'
+import re, sys
+root, problems = sys.argv[1], []
+en = ["candidate list", "facts table", "dragon", "language switch"]
+ja = ["候補の一覧", "事実の表", "dragon", "言語の切り替え"]
+for name, words in (("README.md", en), ("docs/how-it-works.md", en), ("README.ja.md", ja), ("docs/how-it-works.ja.md", ja)):
+    text = open("%s/%s" % (root, name), encoding="utf-8").read()
+    problems += ["%s does not name %s" % (name, w.encode("unicode_escape").decode()) for w in words if w not in text]
+log = open(root + "/CHANGELOG.md", encoding="utf-8").read()
+unreleased = re.search(r"(?ms)^## \[Unreleased\]\n(.*?)(?=^## |\Z)", log)
+problems += ["CHANGELOG.md does not name %r under Unreleased" % w for w in ("candidate list", "dragon") if not unreleased or w not in unreleased.group(1)]
+print("\n".join("      " + p for p in problems))
+sys.exit(1 if problems else 0)
+PY
+}
+check "the docs describe the list and details, the facts, the dragon charts, and the words the language switch changes" described
+
+samples_verified() {
+  local lang out
+  for lang in en ja; do
+    sample "$lang" "$T/sample/verify-$lang.html" || return 1
+    out="$(python3 "$PAGE_DESIGN" verify "$T/sample/verify-$lang.html" 2>&1)"
+    [ "$(printf '%s\n' "$out" | tail -n 1)" = "page-design: ok (1 file)" ] || { printf '%s\n' "$out" | indent; return 1; }
+  done
+}
+if [ -f "$PAGE_DESIGN" ]; then
+  check "the sample reports in English and Japanese pass the verify of page-design" samples_verified
+else
+  printf 'skip  %s (needs the design-formats plugin next to this one)\n' "the sample reports in English and Japanese pass the verify of page-design"
+fi
+
+# probe_at <width> <mode> <fragment> <html> <json>: opens the sample at that width in the probe's mode
+probe_at() {
+  "$real_browser" --headless --disable-gpu --no-first-run --hide-scrollbars --user-data-dir="$T/probe-profile" \
+    --window-size="$1,900" --virtual-time-budget=20000 --dump-dom "file://$4?probe=$2$3" 2>/dev/null | python3 -c 'import html, re, sys
+found = re.findall(r"<pre id=\"probe\"[^>]*>(.*?)</pre>", sys.stdin.read(), re.S)
+print(html.unescape(found[-1]) if found else "{}")' > "$5"
+  rm -rf "$T/probe-profile"
+}
+
+# probed <json>...: runs the Python read from stdin on the probe results, which it reads as J in the
+# order given, and prints each problem it appends to P under the check. The width ends each file name.
+probed() {
+  python3 -c '
+import json, re, sys
+J, P = [json.load(open(f)) for f in sys.argv[1:]], []
+for f, L in zip(sys.argv[1:], J):
+    want = int(re.search(r"-(\d+)\.json$", f).group(1))
+    if L.get("width") != want:
+        P.append("the page was laid out %s px wide, not %s px" % (L.get("width"), want))
+def rgb(c):
+    m = re.match(r"rgba?\(([^)]+)\)", c or "")
+    return tuple(round(float(x)) for x in re.split(r"[\s,/]+", m.group(1).strip())[:3]) if m else None
+def hue(c):
+    r, g, b = [x / 255 for x in c]
+    hi, lo = max(r, g, b), min(r, g, b)
+    if hi == lo:
+        return None
+    d = hi - lo
+    h = ((g - b) / d) % 6 if hi == r else ((b - r) / d + 2 if hi == g else (r - g) / d + 4)
+    return h * 60
+if not P:
+    exec(sys.stdin.read())
+for p in dict.fromkeys(P):
+    print("      " + p)
+sys.exit(1 if P else 0)
+' "$@"
+}
+
+probe_checks=(
+  "at 1400px the candidates sit in a list beside a details section named by its focusable heading"
+  "at 1400px the list keeps a width of 320 to 380px and the details take the rest"
+  "the page opens on the first candidate, and only the shown candidate is marked current"
+  "each candidate in the list is one button named by the candidate, ending with a chevron"
+  "the details show the summary, the fields, the description, the scores by axis, and the risks of the candidate"
+  "the scores in the details match the candidate's rows in each axis table"
+  "at 1400px the list and the details scroll apart, with the details title kept on top"
+  "below 860px the candidates show the list or the details, with a way back and links to the previous and next candidates"
+  "below 860px the details never sit under the list"
+  "the address keeps the shown candidate as #item-<key> and opens it on load"
+  "going back from the details returns to the list with focus on the candidate's button"
+  "Open full page shows the candidate at the full width as #item-<key>/full, with a way back"
+  "a contents link shows its section"
+  "the facts under the cover title give the counts, the research date, and the author, with no band of numbers"
+  "the facts leave out the author row when no name was given"
+  "the facts labels have their own background with readable contrast on the cover and in print"
+  "the research date appears once, in the facts"
+  "the candidate cards are a list in auto-fill columns of at least 260px, and the top three picks an ordered list"
+  "bar values are right aligned numbers, with the unit in the chart heading"
+  "every table has scoped headers, a name, and a 2px line under the header row"
+  "row lines have a contrast of 3 to 1 in light and dark, and only tables of six or more columns are striped"
+  "on screen a long table keeps its column headers on top inside its box, and print shows it whole"
+  "a table that scrolls sideways is a focusable region with a ring, a shadow on the hidden side, and the name column kept in view"
+  "at 390px the page does not scroll sideways"
+  "tables take the width of their content, and long bar names wrap instead of being cut"
+  "the reason for the comparison is a plain paragraph, and a warning is a caution block with an icon and a title naming the risk"
+  "a caution title states the risk as an h3, and a caution present at load has no alert role"
+  "each severity label has its own icon before the word"
+  "good, warning, and critical colors stand apart from the accent, type tags use no status color, and S is not blue"
+  "the cover title is 20 to 24px"
+  "pressing a chart opens it larger in a dialog, and closing it returns focus to the chart"
+  "the language switch changes every word of the frame and leaves the report's text as written"
+)
+if [ -z "$real_browser" ]; then
+  for name in "${probe_checks[@]}"; do printf 'skip  %s (needs a Chromium-based browser)\n' "$name"; done
+else
+  S="$T/sample"
+  sample en "$S/probe.html" --probe "$HERE/sample-probe.js"
+  sample en "$S/probe-no-author.html" --probe "$HERE/sample-probe.js" --variant no-author
+  probe_at 1400 wide "" "$S/probe.html" "$S/wide-1400.json"
+  probe_at 390 narrow "" "$S/probe.html" "$S/narrow-390.json"
+  probe_at 860 narrow "" "$S/probe.html" "$S/narrow-860.json"
+  probe_at 1400 load "#item-brisk" "$S/probe.html" "$S/load-1400.json"
+  probe_at 1400 full "#item-brisk/full" "$S/probe.html" "$S/full-1400.json"
+  probe_at 1400 contents "" "$S/probe.html" "$S/contents-1400.json"
+  probe_at 1400 facts "" "$S/probe-no-author.html" "$S/facts-1400.json"
+  W="$S/wide-1400.json"
+
+  split_beside() { probed "$W" <<'PY'
+s = J[0].get("split")
+if not s:
+    P.append("the candidates have no list and details")
+else:
+    if s["detailTag"] != "SECTION" or s["labelledby"] != "detail-title":
+        P.append("the details are a %s named by %r" % (s["detailTag"], s["labelledby"]))
+    t = s["title"]
+    if not t or t["tag"] != "H2" or t["tabindex"] != "-1" or not t["inDetail"]:
+        P.append("the details title is %r" % (t,))
+    if s["modal"]:
+        P.append("the details open in a dialog")
+    if not (s["listShown"] and s["detailShown"]):
+        P.append("the list shows %s and the details %s" % (s["listShown"], s["detailShown"]))
+    elif s["detailLeft"] < s["listRight"] - 1:
+        P.append("the details start at %d px, left of the end of the list at %d px" % (s["detailLeft"], s["listRight"]))
+PY
+  }
+  check "at 1400px the candidates sit in a list beside a details section named by its focusable heading" split_beside
+
+  split_widths() { probed "$W" <<'PY'
+s = J[0].get("split")
+if not s:
+    P.append("the candidates have no list and details")
+else:
+    if not 320 <= s["listWidth"] <= 380:
+        P.append("the list is %d px wide" % s["listWidth"])
+    rest = s["splitWidth"] - s["listWidth"] - s["gap"]
+    if abs(s["detailWidth"] - rest) > 2:
+        P.append("the details are %d px wide, and the rest of the row %d px" % (s["detailWidth"], rest))
+PY
+  }
+  check "at 1400px the list keeps a width of 320 to 380px and the details take the rest" split_widths
+
+  opens_first() { probed "$W" <<'PY'
+L = J[0]
+names = L["cards"]["names"]
+if L.get("firstTitle") != names[0]:
+    P.append("the page opens on %r, not %r" % (L.get("firstTitle"), names[0]))
+if L.get("current") != names[:1]:
+    P.append("on load the candidates marked current are %s" % L.get("current"))
+marks = L.get("marks") or []
+if len(marks) != len(names):
+    P.append("the list holds %d candidates, not %d" % (len(marks), len(names)))
+else:
+    if any(m == marks[0] for m in marks[1:]):
+        P.append("the shown candidate looks the same as another in the list")
+    if any(m != marks[1] for m in marks[2:]):
+        P.append("the candidates not shown do not look alike")
+for s in L.get("scores", []):
+    if s["current"] != [s["name"]]:
+        P.append("after pressing %s the candidates marked current are %s" % (s["name"], s["current"]))
+PY
+  }
+  check "the page opens on the first candidate, and only the shown candidate is marked current" opens_first
+
+  entry_buttons() { probed "$W" <<'PY'
+e = J[0].get("entries") or []
+if [x["name"] for x in e] != J[0]["cards"]["names"]:
+    P.append("the list names %s" % [x["name"] for x in e])
+for x in e:
+    if x["buttons"] != 1:
+        P.append("%r holds %d buttons" % (x["name"], x["buttons"]))
+    if not x["chevron"]:
+        P.append("%r does not end with a chevron hidden from screen readers" % x["name"])
+PY
+  }
+  check "each candidate in the list is one button named by the candidate, ending with a chevron" entry_buttons
+
+  detail_parts() { probed "$W" <<'PY'
+p = J[0].get("parts")
+order = ["title", "summary", "fields", "description", "scores", "risks"]
+if not p:
+    P.append("the details show nothing of the first candidate")
+else:
+    missing = [k for k in order if p[k] < 0]
+    if missing:
+        P.append("the details do not show the %s" % ", ".join(missing))
+    elif [p[k] for k in order] != sorted(p[k] for k in order):
+        P.append("the details show them in the order %s" % sorted(order, key=lambda k: p[k]))
+PY
+  }
+  check "the details show the summary, the fields, the description, the scores by axis, and the risks of the candidate" detail_parts
+
+  detail_scores() { probed "$W" <<'PY'
+sc = J[0].get("scores") or []
+if len(sc) != len(J[0]["cards"]["names"]):
+    P.append("the list has %d candidates to press" % len(sc))
+for s in sc:
+    if s["title"] != s["name"]:
+        P.append("pressing %r shows %r" % (s["name"], s["title"]))
+    if not s["want"] or s["got"] != s["want"]:
+        P.append("for %r the details show %s, and the axis tables %s" % (s["name"], s["got"], s["want"]))
+PY
+  }
+  check "the scores in the details match the candidate's rows in each axis table" detail_scores
+
+  split_scroll() { probed "$W" <<'PY'
+sc = J[0].get("scroll")
+if not sc or not sc["list"] or not sc["detail"]:
+    P.append("the candidates have no list and details")
+else:
+    for side in ("list", "detail"):
+        v = sc[side]
+        if v["position"] != "sticky" or v["y"] not in ("auto", "scroll") or v["x"] not in ("hidden", "clip") or v["max"] == "none":
+            P.append("the %s is %s with overflow %s across and %s down, at most %s high" % (side, v["position"], v["x"], v["y"], v["max"]))
+    if not sc["titleSticky"]:
+        P.append("the details title does not stay on top")
+PY
+  }
+  check "at 1400px the list and the details scroll apart, with the details title kept on top" split_scroll
+
+  narrow_panes() { probed "$S/narrow-390.json" "$S/narrow-860.json" <<'PY'
+for L in J:
+    w, n = L["width"], L.get("narrow") or {}
+    if not L.get("hasSplit"):
+        P.append("at %d px the candidates have no list and details" % w)
+        continue
+    if n["start"] != {"list": True, "detail": False}:
+        P.append("at %d px on load the list shows %s and the details %s" % (w, n["start"]["list"], n["start"]["detail"]))
+    o = n["open"]
+    if o["list"] or not o["detail"]:
+        P.append("at %d px after pressing a candidate the list shows %s and the details %s" % (w, o["list"], o["detail"]))
+    if not o["focus"]:
+        P.append("at %d px opening the details does not move focus to their title" % w)
+    b = o["back"]
+    if not b or not b["shown"] or not b["first"]:
+        P.append("at %d px the details do not start with a way back to the list" % w)
+    if o["prev"] or not o["next"]:
+        P.append("at %d px the first candidate shows a previous link %s and a next link %s" % (w, o["prev"], o["next"]))
+    x = n["next"]
+    if x["title"] != L["cards"]["names"][1] or not x["focus"] or not x["prev"] or not x["next"]:
+        P.append("at %d px the next link shows %r, focus on its title %s, previous %s, next %s" % (w, x["title"], x["focus"], x["prev"], x["next"]))
+PY
+  }
+  check "below 860px the candidates show the list or the details, with a way back and links to the previous and next candidates" narrow_panes
+
+  never_stacked() { probed "$S/narrow-390.json" "$S/narrow-860.json" <<'PY'
+for L in J:
+    if not L.get("hasSplit"):
+        P.append("at %d px the candidates have no list and details" % L["width"])
+    elif L["narrow"]["together"]:
+        P.append("at %d px the list and the details show together" % L["width"])
+PY
+  }
+  check "below 860px the details never sit under the list" never_stacked
+
+  address_kept() { probed "$W" "$S/load-1400.json" <<'PY'
+L, O = J
+keys = dict(zip(L["cards"]["names"], L["cards"]["keys"]))
+if not L.get("scores"):
+    P.append("the list has no candidates to press")
+for s in L.get("scores", []):
+    if s["hash"] != "#item-%s" % keys.get(s["name"]):
+        P.append("pressing %s leaves the address at %r" % (s["name"], s["hash"]))
+o = O.get("load") or {}
+if o.get("title") != "Brisk" or o.get("current") != ["Brisk"] or not o.get("detailShown"):
+    P.append("the address #item-brisk opens %r with %s marked current" % (o.get("title"), o.get("current")))
+PY
+  }
+  check "the address keeps the shown candidate as #item-<key> and opens it on load" address_kept
+
+  back_focus() { probed "$S/narrow-390.json" "$S/narrow-860.json" <<'PY'
+for L in J:
+    b = (L.get("narrow") or {}).get("back") or {}
+    if not L.get("hasSplit") or not b.get("list") or b.get("detail"):
+        P.append("at %d px going back does not show the list alone" % L["width"])
+    elif b.get("focus") != b.get("shownName"):
+        P.append("at %d px going back from %r puts focus on %r" % (L["width"], b.get("shownName"), b.get("focus")))
+PY
+  }
+  check "going back from the details returns to the list with focus on the candidate's button" back_focus
+
+  full_page() { probed "$W" "$S/full-1400.json" <<'PY'
+L, O = J
+f = L.get("full")
+key = L["cards"]["keys"][0]
+if not f:
+    P.append("the details have no Open full page button")
+else:
+    if f["hash"] != "#item-%s/full" % key or f["listShown"] or abs(f["detailWidth"] - f["mainWidth"]) > 2 or not f["back"]:
+        P.append("Open full page leaves the address at %r, the list shown %s, the details %d px of %d px, a way back %s"
+                 % (f["hash"], f["listShown"], f["detailWidth"], f["mainWidth"], f["back"]))
+    a = f["after"]
+    if a["hash"] != "#item-%s" % key or not a["listShown"] or not a["detailShown"]:
+        P.append("going back from the full page leaves the address at %r with the list shown %s" % (a["hash"], a["listShown"]))
+o = O.get("load") or {}
+if o.get("title") != "Brisk" or o.get("listShown") or abs(o.get("detailWidth", 0) - o.get("mainWidth", 0)) > 2:
+    P.append("the address #item-brisk/full opens %r, the list shown %s, the details %s px of %s px"
+             % (o.get("title"), o.get("listShown"), o.get("detailWidth"), o.get("mainWidth")))
+PY
+  }
+  check "Open full page shows the candidate at the full width as #item-<key>/full, with a way back" full_page
+
+  contents_link() { probed "$S/contents-1400.json" <<'PY'
+c = J[0].get("contents")
+if not c or not c["link"]:
+    P.append("the contents have no link to the second axis")
+elif not (c["top"] >= 0 and c["bottom"] <= c["height"] and c["onTop"]):
+    P.append("after the link the heading sits from %d to %d px in a %d px window, on top %s" % (c["top"], c["bottom"], c["height"], c["onTop"]))
+PY
+  }
+  check "a contents link shows its section" contents_link
+
+  facts_rows() { probed "$W" <<'PY'
+f = J[0].get("facts")
+if not f:
+    P.append("the cover has no table of facts")
+else:
+    if not f["afterTitle"] or not f["caption"]:
+        P.append("the facts come after the title %s and have a caption %s" % (f["afterTitle"], f["caption"]))
+    values = [r["value"] for r in f["rows"]]
+    if values != ["3", "2", "6", "2026-11-10", "Dana Kim"]:
+        P.append("the facts give %s" % values)
+    if any(r["scope"] != "row" or not r["label"] for r in f["rows"]):
+        P.append("a fact has no header for its row")
+    if not any(r["time"] == "2026-11-10" for r in f["rows"]):
+        P.append("the research date is not in a time element")
+    if f["band"]:
+        P.append("the cover still has a band of numbers")
+PY
+  }
+  check "the facts under the cover title give the counts, the research date, and the author, with no band of numbers" facts_rows
+
+  facts_no_author() { probed "$S/facts-1400.json" <<'PY'
+f = J[0].get("facts")
+if not f:
+    P.append("the cover has no table of facts")
+elif [r["value"] for r in f["rows"] if r["shown"]] != ["3", "2", "6", "2026-11-10"]:
+    P.append("without a name the facts show %s" % [(r["label"], r["value"]) for r in f["rows"] if r["shown"]])
+PY
+  }
+  check "the facts leave out the author row when no name was given" facts_no_author
+
+  facts_contrast() { probed "$W" <<'PY'
+for m in ("light", "dark", "print"):
+    c = (J[0].get("factsColor") or {}).get(m)
+    if not c:
+        P.append("in %s the cover has no table of facts" % m)
+    elif c["label"] < 4.5 or not c["own"] or not c["token"]:
+        P.append("in %s the labels have a contrast of %.2f, their own ground %s, the --label color %s" % (m, c["label"], c["own"], c["token"]))
+PY
+  }
+  check "the facts labels have their own background with readable contrast on the cover and in print" facts_contrast
+
+  date_once() { probed "$W" <<'PY'
+L = J[0]
+f = L.get("facts") or {"rows": []}
+if L.get("dateCount") != 1 or not any(r["time"] == "2026-11-10" for r in f["rows"]):
+    P.append("the research date appears %s times, and in the facts %s" % (L.get("dateCount"), any(r["time"] for r in f["rows"])))
+PY
+  }
+  check "the research date appears once, in the facts" date_once
+
+  cards_grid() { probed "$W" <<'PY'
+L = J[0]
+g, rules = L.get("grid"), L.get("gridRules") or []
+if not g or g["tag"] != "UL" or any(t != "LI" for t in g["items"]):
+    P.append("the candidate cards are %s" % ((g["tag"], g["items"]) if g else None))
+if not rules or any(r["columns"].replace(" ", "") != "repeat(auto-fill,minmax(260px,1fr))" for r in rules):
+    P.append("the cards take the columns %s" % [r["columns"] for r in rules])
+if g:
+    tracks = [float(t[:-2]) for t in g["columns"].split()]
+    want = int((g["width"] + g["gap"]) // (260 + g["gap"]))
+    if len(tracks) != want or min(tracks) < 259.5:
+        P.append("a %d px row holds %d columns of %s" % (g["width"], len(tracks), g["columns"]))
+p = L.get("picks")
+if not p or p["tag"] != "OL" or any(t != "LI" for t in p["items"]):
+    P.append("the top three picks are %s" % (p,))
+PY
+  }
+  check "the candidate cards are a list in auto-fill columns of at least 260px, and the top three picks an ordered list" cards_grid
+
+  bar_values() {
+    probed "$W" <<'PY' || return 1
+b = J[0].get("bars")
+if not b:
+    P.append("the sample has no bar chart")
+else:
+    for v in b["values"]:
+        if not re.fullmatch(r"-?[0-9]+(\.[0-9]+)?", v["text"]):
+            P.append("the bar value %r is not a number alone" % v["text"])
+        if v["align"] not in ("right", "end"):
+            P.append("the bar value %r is aligned %s" % (v["text"], v["align"]))
+    if max(v["right"] for v in b["values"]) - min(v["right"] for v in b["values"]) > 1:
+        P.append("the bar values end at %s" % [v["right"] for v in b["values"]])
+PY
+    python3 - "$(guide_html "Bar chart")" <<'PY'
+import re, sys
+block, problems = sys.argv[1], []
+values = re.findall(r'<span class="value">([^<]*)</span>', block)
+if not values or any(not re.fullmatch(r"-?[0-9]+(\.[0-9]+)?", v) for v in values):
+    problems.append("the bar chart of report-structure.md gives the values %s" % values)
+if not re.search(r"<h4>[^<]*\([^)<]+\)</h4>", block):
+    problems.append("the bar chart of report-structure.md gives no unit in its heading")
+print("\n".join("      " + p for p in problems))
+sys.exit(1 if problems else 0)
+PY
+  }
+  check "bar values are right aligned numbers, with the unit in the chart heading" bar_values
+
+  table_heads() {
+    probed "$W" <<'PY' || return 1
+for t in J[0].get("tables", []):
+    if not t["name"]:
+        P.append("a table of %d columns has no name" % t["cols"])
+    if any(s != "col" for s in t["scopes"]) or not all(t["rowHeads"]):
+        P.append("the %r table has column headers %s and row headers %s" % (t["name"], t["scopes"], t["rowHeads"]))
+    if t["headLine"] != "2px":
+        P.append("the %r table has a line of %s under its header row" % (t["name"], t["headLine"]))
+PY
+    python3 - "$STRUCTURE" <<'PY'
+import re, sys
+guide = open(sys.argv[1], encoding="utf-8").read()
+part = re.search(r"(?ms)^## Components\n(.*?)(?=^## )", guide)
+problems = []
+for table in re.findall(r"(?s)<table\b.*?</table>", "".join(re.findall(r"(?ms)^```html\n(.*?)^```", part.group(1)))):
+    head = re.search(r"(?s)<thead>(.*?)</thead>", table)
+    first = re.findall(r"(?s)<tbody>.*?</tbody>", table)
+    rows = re.findall(r"<tr\b[^>]*>\s*(<t[hd]\b[^>]*>)", first[0]) if first else []
+    if "<caption>" not in table or not head or re.search(r'<th(?![^>]*scope="col")', head.group(1)) or not rows or any(not r.startswith('<th scope="row"') for r in rows):
+        problems.append("the example table %s... of report-structure.md lacks a caption or scoped headers" % table[:60])
+print("\n".join("      " + p for p in problems))
+sys.exit(1 if problems else 0)
+PY
+  }
+  check "every table has scoped headers, a name, and a 2px line under the header row" table_heads
+
+  row_lines() { probed "$W" <<'PY'
+for m in ("light", "dark"):
+    for t in (J[0].get("lines") or {}).get(m, []):
+        if t["rows"] > 1 and t["minLine"] < 3:
+            P.append("in %s the row lines of %r have a contrast of %.2f" % (m, t["name"], t["minLine"]))
+        if t["rows"] > 1 and t["striped"] != (t["cols"] >= 6 or t["scrolls"]):
+            P.append("in %s the %r table of %d columns is striped %s" % (m, t["name"], t["cols"], t["striped"]))
+PY
+  }
+  check "row lines have a contrast of 3 to 1 in light and dark, and only tables of six or more columns are striped" row_lines
+
+  long_table() { probed "$W" <<'PY'
+l, p = J[0].get("long"), J[0].get("longPrint")
+if not l or not p:
+    P.append("the sample has no long table")
+else:
+    if not l["boxHeight"] < l["tableHeight"] or l["scrolled"] <= 0 or abs(l["headGap"]) > 1:
+        P.append("on screen the box is %d px for a %d px table, scrolls %d px, and the header sits %d px under its top"
+                 % (l["boxHeight"], l["tableHeight"], l["scrolled"], l["headGap"]))
+    if p["scrollHeight"] > p["boxHeight"] + 1 or p["boxHeight"] < p["tableHeight"] - 1:
+        P.append("in print the box is %d px for a %d px table" % (p["boxHeight"], p["tableHeight"]))
+PY
+  }
+  check "on screen a long table keeps its column headers on top inside its box, and print shows it whole" long_table
+
+  scroll_region() { probed "$S/narrow-390.json" <<'PY'
+r = J[0].get("region")
+if not r:
+    P.append("the sample has no table of seven columns")
+else:
+    if r["role"] != "region" or r["tabindex"] != "0" or not r["caption"] or r["label"] != r["caption"]:
+        P.append("the box of %r has role %s, tabindex %s, and the name %r" % (r["caption"], r["role"], r["tabindex"], r["label"]))
+    if not r["scrolls"]:
+        P.append("the table of %r does not scroll sideways at 390 px" % r["caption"])
+    g = r["ring"]
+    if not g["focused"] or (g["outline"] == "none" or g["width"] < 2) and g["shadow"] in ("none", r["start"]["shadow"]):
+        P.append("the focused box shows no ring")
+    if r["start"] == r["end"] or "none" == r["start"]["shadow"] == r["start"]["image"] or "none" == r["end"]["shadow"] == r["end"]["image"]:
+        P.append("the box shows no shadow on its hidden side")
+    s = r["sticky"]
+    if not s or s["position"] != "sticky" or abs(s["gap"]) > 1:
+        P.append("the name column is %s and %s px from the box edge when scrolled" % (s and s["position"], s and round(s["gap"])))
+PY
+  }
+  check "a table that scrolls sideways is a focusable region with a ring, a shadow on the hidden side, and the name column kept in view" scroll_region
+
+  no_sideways() { probed "$S/narrow-390.json" <<'PY'
+if J[0].get("hscroll") is not False:
+    P.append("the page scrolls sideways at 390 px")
+PY
+  }
+  check "at 390px the page does not scroll sideways" no_sideways
+
+  content_width() { probed "$W" <<'PY'
+c, b = J[0].get("contentWidth"), J[0].get("bars")
+if not c or c["table"] >= c["wrap"] - 1:
+    P.append("the candidates table takes %s px of %s px" % (c and c["table"], c and c["wrap"]))
+if not b:
+    P.append("the sample has no bar chart")
+else:
+    for l in b["labels"]:
+        if l["cut"]:
+            P.append("the bar name %r is cut" % l["text"][:40])
+    if max(l["lines"] for l in b["labels"]) < 2:
+        P.append("the long bar name does not wrap")
+PY
+  }
+  check "tables take the width of their content, and long bar names wrap instead of being cut" content_width
+
+  caution_block() {
+    probed "$W" <<'PY' || return 1
+c = J[0].get("caution") or []
+if len(c) != 1 or not c[0]["icon"] or not c[0]["h3"]:
+    P.append("the risks hold the cautions %s" % c)
+PY
+    python3 - "$STRUCTURE" <<'PY'
+import re, sys
+guide, problems = open(sys.argv[1], encoding="utf-8").read(), []
+if 'class="callout' in guide:
+    problems.append("report-structure.md still shows a callout")
+if not re.search(r'<div class="caution"><h3>[^<]+</h3>', guide):
+    problems.append("report-structure.md shows no caution block with a title")
+print("\n".join("      " + p for p in problems))
+sys.exit(1 if problems else 0)
+PY
+  }
+  check "the reason for the comparison is a plain paragraph, and a warning is a caution block with an icon and a title naming the risk" caution_block
+
+  caution_title() {
+    probed "$W" <<'PY' || return 1
+c = J[0].get("caution") or []
+if [x["h3"] for x in c] != ["Brisk keeps the built site on its own servers"] or any(x["role"] == "alert" for x in c):
+    P.append("the cautions have the titles %s and the roles %s" % ([x["h3"] for x in c], [x["role"] for x in c]))
+PY
+    refused generic-caution Risk
+  }
+  check "a caution title states the risk as an h3, and a caution present at load has no alert role" caution_title
+
+  severity_icons() { probed "$W" <<'PY'
+r = J[0].get("risks") or []
+if [x["level"] for x in r] != ["critical", "high", "medium", "low"]:
+    P.append("the risks are %s" % [x["level"] for x in r])
+if any(not x["icon"] for x in r):
+    P.append("the labels %s have no icon before the word" % [x["text"] for x in r if not x["icon"]])
+elif len(set(x["svg"] for x in r)) != len(r):
+    P.append("two severities share an icon")
+PY
+  }
+  check "each severity label has its own icon before the word" severity_icons
+
+  status_colors() { probed "$W" <<'PY'
+for m, c in (J[0].get("colors") or {}).items():
+    status = [rgb(s) for s in c["status"]]
+    if None in status:
+        P.append("in %s the template has no %s" % (m, [n for n, s in zip(["--good", "--good-soft", "--warn", "--warn-soft", "--critical", "--critical-soft"], status) if s is None]))
+        continue
+    accent = {rgb(c["accent"]), rgb(c["accentSoft"])}
+    if accent & set(status):
+        P.append("in %s a status color is the accent" % m)
+    if len({status[0], status[2], status[4]}) != 3:
+        P.append("in %s good, warning, and critical share a color" % m)
+    for n, t in enumerate(c["tags"], 1):
+        if {rgb(t["color"]), rgb(t["bg"])} & set(status):
+            P.append("in %s the type tag t%d uses a status color" % (m, n))
+    s = rgb(c["s"]["bg"])
+    if s in accent or (hue(s) is not None and 190 <= hue(s) <= 260):
+        P.append("in %s the S score is %s" % (m, c["s"]["bg"]))
+if not J[0].get("colors"):
+    P.append("the probe read no colors")
+PY
+  }
+  check "good, warning, and critical colors stand apart from the accent, type tags use no status color, and S is not blue" status_colors
+
+  title_size() { probed "$W" "$S/narrow-390.json" <<'PY'
+for L in J:
+    if not 20 <= L.get("titleSize", 0) <= 24:
+        P.append("at %d px the cover title is %s px" % (L["width"], L.get("titleSize")))
+PY
+  }
+  check "the cover title is 20 to 24px" title_size
+
+  chart_zoom() { probed "$W" <<'PY'
+z = J[0].get("zoom")
+if not z or not z["open"] or not z["modal"] or not z["holds"]:
+    P.append("pressing the chart opens %s" % (z and {k: z[k] for k in ("open", "modal", "holds")}))
+else:
+    c = z["close"]
+    if not c or not c["icon"] or not c["label"] or c["text"]:
+        P.append("the close button is %s" % (c,))
+    if not z["closed"] or not z["back"]:
+        P.append("closing leaves the dialog open %s and focus on the chart %s" % (not z["closed"], z["back"]))
+PY
+  }
+  check "pressing a chart opens it larger in a dialog, and closing it returns focus to the chart" chart_zoom
+
+  language_frame() { probed "$W" <<'PY'
+g = J[0].get("lang") or {}
+missing = [k for k, v in (g.get("japanese") or {}).items() if not v]
+if not g.get("japanese") or missing:
+    P.append("in Japanese the frame still shows %s" % {k: g["ja"].get(k) for k in missing} if missing else "the probe read no switch")
+if g.get("before") != g.get("after"):
+    P.append("switching changed the report's text from %s to %s" % (g.get("before"), g.get("after")))
+k = g.get("keys")
+if not k or not k["en"] or k["en"] != k["ja"]:
+    P.append("the dictionaries of the frame differ: %s" % (k and sorted(set(k["en"]) ^ set(k["ja"]))))
+PY
+  }
+  check "the language switch changes every word of the frame and leaves the report's text as written" language_frame
+fi
+
+# The PDF prints every candidate card in the order of the cards, and none of the list and details.
+sample_pdf() {
+  mkdir -p "$T/sample-pdf"
+  sample en "$T/sample-pdf/report.html" || return 1
+  COMPARE_REPORT_BROWSER="$real_browser" to_pdf "$T/sample-pdf/report.html" >/dev/null 2>&1 || { echo "      to-pdf failed"; return 1; }
+  # -raw keeps the order the page drew the text in and leaves out the spaces, so both sides are compared without them.
+  "$pdftotext_cmd" -raw "$T/sample-pdf/report.pdf" - | python3 -c 'import sys
+bare = lambda s: "".join(s.split())
+text = bare(sys.stdin.read())
+summaries = ["A fast generator written in Go.", "A generator with a paid hosted preview.", "A hosted generator with a short guide."]
+problems = ["the PDF shows %r %d times" % (s, text.count(bare(s))) for s in summaries if text.count(bare(s)) != 1]
+at = [text.find(bare(s)) for s in summaries]
+if not problems and at != sorted(at):
+    problems.append("the PDF shows the cards out of order")
+problems += ["the PDF shows %r" % w for w in ("Back to candidates", "Open full page", "Scores by axis") if bare(w) in text]
+print("\n".join("      " + p for p in problems))
+sys.exit(1 if problems else 0)'
+}
+if [ -z "$real_browser" ] || [ -z "$pdftotext_cmd" ]; then
+  printf 'skip  %s (needs a Chromium-based browser and pdftotext)\n' "the PDF shows every candidate card in order and no list or details"
+else
+  check "the PDF shows every candidate card in order and no list or details" sample_pdf
+fi
+
 printf '\n%d passed, %d failed (%d ran)\n' "$PASS" "$FAIL" "$((PASS + FAIL))"
 [ "$FAIL" = 0 ]
