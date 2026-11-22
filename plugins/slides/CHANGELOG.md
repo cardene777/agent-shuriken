@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The `slide-builder` test no longer spells out the names of the maintainer's private decks. It still checks that no file holds a home path, a local Codex path, an issue reference, or the name of the private configuration repository
+
 ## [0.1.0] - 2026-11-22
 
 - The `slide-builder` skill writes the Markdown outline (`slides-outline.md`) of an explanatory deck of ten or more slides, with each slide's takeaway, explanation, and figure described in words for a non-engineer audience, and `examples/slides-outline.md` shows a complete ten-slide outline
