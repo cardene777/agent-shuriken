@@ -57,9 +57,9 @@ These plugins touch credentials, accounts, and files. Every change must keep the
 
 ## Language
 
-- Write code, comments, script output, commits, and pull requests in English.
+- Write code, comments, script output, commits, issues, and pull requests in English. Issues include the sections the ikkan workflow adds to an issue.
 - Every README and doc page has a Japanese counterpart named `<name>.ja.md` with the same headings, tables, and code blocks. Update both in the same pull request.
-- The records under `.ikkan/` are written by the ikkan workflow in Japanese. `scripts/check.sh` does not read them for English, and they are not part of any plugin.
+- New records under `.ikkan/` are written in English by the ikkan workflow, and older ones are in Japanese. `scripts/check.sh` does not read them for English, and they are not part of any plugin.
 - `SKILL.md` tells the agent to talk to the user in the language the user writes in.
 - HTML pages default to English and offer an English / 日本語 switch in the header. Keep all UI strings in one dictionary per page.
 - Text that users copy back into the chat, and any format a script parses, must not depend on the UI language.
@@ -95,6 +95,7 @@ Do not run steps that delete or change real data while testing.
   | 🚚 | `migration` |
   | ⏪ | `revert` |
 
+- Title an issue in English like a commit subject, in the same form. The pull request takes the issue's title, and the squashed commit takes the pull request's.
 - One topic per pull request. The description has a summary of what changed and why, and a testing section listing the commands you ran and their results.
 - Do not include personal data in files, commits, or pull requests: local paths such as `/Users/<name>`, email addresses, account names, or real service lists.
 - Do not add CI workflows.
