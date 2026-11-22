@@ -87,7 +87,7 @@ Check the report, fix every line it prints, and run it again until it prints `ok
 D=<folder>; python3 "$D/scripts/check-report.py" <path of report.html>
 ```
 
-When the `page-design` skill is installed, also run its `verify` as a shell command, `python3 <the file it names for verify> verify <path of report.html>`, and fix the text you wrote until it prints `ok`. Tell the user about any line it names in this skill's template.
+When the `page-design` skill is installed, run its `verify` on the finished page with the file it names for `verify`, `python3 <that file> verify <path of report.html>`, and fix your text until it prints `ok`. Tell the user about any line it names in this skill's template.
 
 Then read the report once as the user would, and confirm:
 

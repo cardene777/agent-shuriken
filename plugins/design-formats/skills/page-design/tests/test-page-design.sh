@@ -620,6 +620,48 @@ refused() {
 # accepted <file>: verify exits 0.
 accepted() { run verify "$1" > "$1.out" 2>&1 || { echo "      $(basename "$1") was refused"; sed 's/^/        /' "$1.out"; return 1; }; }
 
+# Strings in a page's script, as a report keeps an agent's notes in JSON: a long one, one with
+# escapes, a short one, one that builds markup, and long prose. Each page adds one string to the
+# good page.
+mkdir -p "$T/html"
+LONG_PROSE='"The loop is the busiest code in the repository and the place most releases touch. " * 4'
+FACTS='"the loop runs 64 steps, 12 callers use it, 3 tests cover it, 2 releases changed it"'
+with_string() { # <name> <python expression of the string's source text, quotes included>
+  breaks "$1" "text.replace(\"</script>\", \"const NOTE = \" + ($2) + \";\\n</script>\", 1)"
+}
+with_string script-long "'\"' + $LONG_PROSE + $FACTS + '\"'"
+with_string script-escaped "'\"the loop runs 64 steps,\\\\n12 callers use it,\\\\n3 tests cover it, and \\\\\"values\\\\\" stays one list\"'"
+with_string script-short "'\"' + $FACTS + '\"'"
+with_string script-markup "'\"' + '<tr><td>64 steps</td><td>12 callers</td><td>3 tests</td></tr>' * 8 + '\"'"
+with_string script-prose "'\"' + $LONG_PROSE + '\"'"
+check "verify refuses a long script string that joins facts in one line" "refused '$T/html/script-long.html' facts-in-one-line"
+check "verify refuses a script string with escapes that joins facts in one line" "refused '$T/html/script-escaped.html' facts-in-one-line"
+check "verify still refuses a short script string that joins facts in one line" "refused '$T/html/script-short.html' facts-in-one-line"
+check "verify skips a long script string that builds markup" "accepted '$T/html/script-markup.html'"
+check "verify accepts a long script string of prose" "accepted '$T/html/script-prose.html'"
+
+# The docs say that verify reads strings in a script of any length, with their escapes read.
+# The Japanese words are written as escapes.
+script_docs() {
+  python3 - "$PLUGIN" <<'PYEOF'
+import sys
+root = sys.argv[1]
+unreleased = open(root + "/CHANGELOG.md", encoding="utf-8").read().split("## [Unreleased]")[1].split("\n## [")[0]
+texts = {"CHANGELOG.md (Unreleased)": unreleased,
+         "docs/how-it-works.md": open(root + "/docs/how-it-works.md", encoding="utf-8").read(),
+         "docs/how-it-works.ja.md": open(root + "/docs/how-it-works.ja.md", encoding="utf-8").read()}
+want = {"CHANGELOG.md (Unreleased)": ["of any length", "escapes"],
+        "docs/how-it-works.md": ["of any length", "escapes"],
+        "docs/how-it-works.ja.md": ["\u9577\u3055\u306b\u3088\u3089\u305a", "\u30a8\u30b9\u30b1\u30fc\u30d7"]}
+problems = ["%s does not say %r" % (name, [w for w in words if w not in texts[name]])
+            for name, words in want.items() if any(w not in texts[name] for w in words)]
+for p in problems:
+    print("      " + p)
+sys.exit(1 if problems else 0)
+PYEOF
+}
+check "the docs say verify reads script strings of any length" script_docs
+
 verify_facts_table() {
   local name
   # The facts of a page are a table whose label cells are row headers.
