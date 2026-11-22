@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Checkout sample</title>
+<style>
+  body { margin: 0; padding: 40px; font: 20px/1.4 system-ui, sans-serif; color: #111827; }
+  iframe { display: block; border: 1px solid #d1d5db; margin-top: 16px; }
+</style>
+</head>
+<body>
+<h1>Checkout</h1>
+<!-- Like a payment form: an iframe from the payment host that holds no field comes first, and the one
+     holding the fields arrives a second later, nested in another iframe from the same host. -->
+<iframe src="/frames/pay-form-loader.html" title="Loading" width="600" height="60"></iframe>
+<div id="late"></div>
+<script>
+  setTimeout(() => {
+    const frame = document.createElement("iframe");
+    frame.src = "/frames/pay-form-shell.html";
+    frame.title = "Payment";
+    frame.width = "640";
+    frame.height = "320";
+    document.getElementById("late").append(frame);
+  }, 1000);
+</script>
+</body>
+</html>
