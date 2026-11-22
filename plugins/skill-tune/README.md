@@ -8,6 +8,7 @@ A `SKILL.md` grows as a skill gains steps, and the agent reads all of it every t
 Much of it often says again what the skill's scripts already print or what its headings already show, but cutting by feel can drop the one sentence the agent needed.
 This plugin has your agent write `claude plugin eval` cases into the plugin, measure the skill before any change, make only the cuts you agree to, and measure again.
 A script runs every eval on a private copy of the plugin, scores each case without the graders that only show the skill ran, and lists each case as kept, higher, or lower.
+Measuring needs Claude Code, which comes with `claude plugin eval`, and every run is a paid model run: in the comparison below a run cost about 0.44 USD on average. The agent shows the estimate for your cases before anything is spent.
 
 ```
 Read the skill ──> Agree on cases and cuts ──> Write cases ──> Estimate ──> Baseline ──> Shorten ──> Compare

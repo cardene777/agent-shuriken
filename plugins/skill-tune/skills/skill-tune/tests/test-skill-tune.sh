@@ -262,5 +262,17 @@ skill_size() {
 }
 check "the SKILL.md stays within its size limits" "skill_size"
 
+# A reader learns that measuring needs Claude Code and paid runs before the steps and the diagram.
+readme_cost_first() {
+  local f cost fence
+  for f in README.md README.ja.md; do
+    cost="$(grep -n 'Claude Code' "$SKILL_DIR/../../$f" | grep -F 'USD' | head -1 | cut -d: -f1)"
+    fence="$(grep -n '^```' "$SKILL_DIR/../../$f" | head -1 | cut -d: -f1)"
+    [ -n "$cost" ] && [ -n "$fence" ] && [ "$cost" -lt "$fence" ] \
+      || { echo "      $f does not say before its first diagram that measuring needs Claude Code and costs USD per run"; return 1; }
+  done
+}
+check "the READMEs say before the steps what measuring needs and costs" "readme_cost_first"
+
 printf '\n%d passed, %d failed (%d ran)\n' "$PASS" "$FAIL" "$((PASS + FAIL))"
 [ "$FAIL" = 0 ]
