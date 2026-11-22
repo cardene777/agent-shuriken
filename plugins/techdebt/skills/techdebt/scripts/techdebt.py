@@ -52,6 +52,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE = os.path.join(os.path.dirname(HERE), "templates", "base.html")
 
 LONG_FUNCTION = 60
+# The most lines a function's head may take before its body opens, for parameter lists over lines.
+HEAD_LINES = 40
 LARGE_FILE = 500
 DUP_WINDOW = 8
 DUP_MIN_CHARS = 160
@@ -369,46 +371,182 @@ def python_functions(text):
     return out
 
 
-def code_only(lines):
+RUST_CHAR = re.compile(r"'(?:\\(?:x[0-9A-Fa-f]{2}|u\{[0-9A-Fa-f]{1,6}\}|.)|[^\\'])'")
+RUST_RAW = re.compile(r"b?r(#*)\"")
+SWIFT_QUOTE = re.compile(r"(#*)(\"\"\"|\")")
+CPP_RAW = re.compile(r"(?:u8|u|U|L)?R\"([^()\\\s]{0,16})\(")
+PHP_HEREDOC = re.compile(r"<<<[ \t]*([\"']?)([A-Za-z_]\w*)\1")
+# A `/` starts a JavaScript regular expression after one of these characters or words, or at the
+# start of a line; elsewhere it divides.
+REGEX_AFTER = set("(,=:[!&|?{};+-*%~^")
+REGEX_WORDS = re.compile(r"(?:^|[^\w$])(?:return|typeof|case|in|of|delete|void|throw|new|yield|await)\s*$")
+
+
+def string_mode(end, multi, esc=True, interp=False, double=False):
+    """A string being read: the text that ends it, whether it may run over lines, whether a
+    backslash escapes the next character, whether `${` starts code inside it, and whether a
+    doubled quote stands for one quote (C# verbatim strings)."""
+    return {"end": end, "multi": multi, "esc": esc, "interp": interp, "double": double}
+
+
+def string_at(line, i, lang, buf):
+    """When a string, character literal, or regular expression starts at line[i]: (characters to
+    skip, mode of the string to read next, or None when the whole of it was skipped). Else None.
+
+    `buf` holds the code read so far on the line, to tell a regular expression from a division."""
+    ch = line[i]
+    word_before = i > 0 and (line[i - 1].isalnum() or line[i - 1] == "_")
+    if lang == "js":
+        if ch == "`":
+            return 1, string_mode("`", True, interp=True)
+        if ch == "/":
+            before = "".join(buf).rstrip()
+            if before and before[-1] not in REGEX_AFTER and not REGEX_WORDS.search(before):
+                return None
+            j, in_class = i + 1, False
+            while j < len(line):
+                c = line[j]
+                if c == "\\":
+                    j += 2
+                    continue
+                if c == "[":
+                    in_class = True
+                elif c == "]":
+                    in_class = False
+                elif c == "/" and not in_class:
+                    return j + 1 - i, None
+                j += 1
+            return None
+    elif lang == "go":
+        if ch == "`":
+            return 1, string_mode("`", True, esc=False)
+    elif lang == "rust":
+        if ch == "'":
+            m = RUST_CHAR.match(line, i)
+            return (m.end() - i, None) if m else None  # without a closing quote it is a lifetime
+        if ch in "br" and not word_before:
+            m = RUST_RAW.match(line, i)
+            if m:
+                return m.end() - i, string_mode('"' + m.group(1), True, esc=False)
+            if line.startswith('b"', i):
+                return 2, string_mode('"', True)
+        if ch == '"':
+            return 1, string_mode('"', True)
+    elif lang == "swift":
+        m = SWIFT_QUOTE.match(line, i) if ch in '#"' else None
+        if m:
+            hashes, quote = m.group(1), m.group(2)
+            return m.end() - i, string_mode(quote + hashes, quote == '"""', esc=not hashes)
+        if ch == "'":
+            return None
+    elif lang == "java":  # also Kotlin, Scala, C#, and Dart
+        if line.startswith('"""', i) or line.startswith("'''", i):
+            return 3, string_mode(line[i:i + 3], True, interp=True)
+        for opener in ('@"', '@$"', '$@"'):
+            if line.startswith(opener, i):
+                return len(opener), string_mode('"', True, esc=False, double=True)
+    elif lang == "c":
+        m = CPP_RAW.match(line, i) if ch in "uULR" and not word_before else None
+        if m:
+            return m.end() - i, string_mode(")" + m.group(1) + '"', True, esc=False)
+    elif lang == "php":
+        m = PHP_HEREDOC.match(line, i) if ch == "<" else None
+        if m:
+            return len(line) - i, {"heredoc": m.group(2), "multi": True}
+        if ch in "\"'":
+            return 1, string_mode(ch, True)
+    if ch in "\"'`":
+        return 1, string_mode(ch, False)
+    return None
+
+
+def code_only(lines, lang=None):
     """Each line with string literals and comments blanked, so braces inside them are not counted.
 
-    Strings are tracked within a line; block comments are tracked across lines."""
+    Block comments, and the strings a language lets run over several lines, are followed across
+    lines: template literals in JavaScript and TypeScript, raw strings in Go, Rust, and C++, every
+    string in Rust and PHP, triple-quoted strings in Swift, Java, Kotlin, Scala, C#, and Dart, C#
+    verbatim strings, and PHP heredocs. Other strings end with their line. A `${...}` inside a
+    template literal or a triple-quoted string is code, and may hold strings of its own. A Rust
+    lifetime (`'a`) is code, and PHP outside `<?php ... ?>` and after `#` is blanked."""
     out = []
+    # The innermost thing being read is last: code (a `${...}` keeps the depth of its own braces)
+    # or a string. The first entry is the code of the file.
+    stack = [{"code": True, "depth": 0}]
     in_block = False
+    # A PHP file that opens with HTML starts outside PHP; one without any `<?` is all PHP.
+    first = next((l for l in lines if l.strip()), "")
+    php_html = lang == "php" and not first.lstrip().startswith("<?") and any("<?" in l for l in lines)
     for line in lines:
         buf = []
         i = 0
-        q = None
+        top = stack[-1]
+        if "heredoc" in top:
+            m = re.match(r"\s*" + re.escape(top["heredoc"]) + r"(?!\w)", line)
+            if not m:
+                out.append("")
+                continue
+            stack.pop()
+            i = m.end()
         while i < len(line):
+            top = stack[-1]
             if in_block:
                 end = line.find("*/", i)
                 if end < 0:
-                    i = len(line)
                     break
                 in_block = False
                 i = end + 2
                 continue
+            if php_html:
+                start = line.find("<?", i)
+                if start < 0:
+                    break
+                php_html = False
+                i = start + (5 if line.startswith("<?php", start) else 3 if line.startswith("<?=", start) else 2)
+                continue
             ch = line[i]
-            if q:
-                if ch == "\\":
+            if not top.get("code"):
+                if top["esc"] and ch == "\\":
                     i += 2
-                    continue
-                if ch == q:
-                    q = None
-                i += 1
+                elif top["double"] and line.startswith('""', i):
+                    i += 2
+                elif top["interp"] and line.startswith("${", i):
+                    stack.append({"code": True, "depth": 0})
+                    i += 2
+                elif line.startswith(top["end"], i):
+                    stack.pop()
+                    i += len(top["end"])
+                else:
+                    i += 1
                 continue
-            if ch in "\"'`":
-                q = ch
-                i += 1
-                continue
-            if line.startswith("//", i):
+            if line.startswith("//", i) or (lang == "php" and ch == "#" and not line.startswith("#[", i)):
                 break
             if line.startswith("/*", i):
                 in_block = True
                 i += 2
                 continue
+            if lang == "php" and line.startswith("?>", i):
+                php_html = True
+                i += 2
+                continue
+            if len(stack) > 1 and ch in "{}":
+                if ch == "}" and top["depth"] == 0:
+                    stack.pop()  # the end of a `${...}`
+                    i += 1
+                    continue
+                top["depth"] += 1 if ch == "{" else -1
+            else:
+                found = string_at(line, i, lang, buf)
+                if found:
+                    skip, mode = found
+                    if mode:
+                        stack.append(mode)
+                    i += skip
+                    continue
             buf.append(ch)
             i += 1
+        while not stack[-1].get("code") and not stack[-1]["multi"]:
+            stack.pop()
         out.append("".join(buf))
     return out
 
@@ -426,32 +564,69 @@ def header_name(line, lang):
     return None if not name or name in CONTROL else name
 
 
+def body_end(codes, i):
+    """The index of the line that closes the body of the function whose head starts on line i.
+
+    Until the body opens, braces between parentheses or brackets belong to the parameters (types
+    such as `{ a: string }` or Go's `map[string]struct{}`, and defaults), and a pair of braces
+    followed by another `{` on the line where it closes is a type before the body (a return type
+    such as `{ b: number }` or Go's `interface{}`). Neither is the body. After the `=>` of an arrow
+    function, braces open the body even inside parentheses, as in `=> items.map((x) => {`.
+    Returns None when no body opens: an arrow function whose expression ends on the line of its
+    `=>`, or a `;` or three lines after the head without a body, once the parameters have closed."""
+    depth = paren = 0
+    arrow = False
+    for j in range(i, min(len(codes), i + HEAD_LINES)):
+        line = codes[j]
+        after_arrow = ""
+        for k, ch in enumerate(line):
+            if depth == 0 and paren <= 0 and not arrow and line.startswith("=>", k):
+                arrow = True
+                after_arrow = line[k + 2:]
+            if depth == 0 and ch in "([":
+                paren += 1
+            elif depth == 0 and ch in ")]":
+                paren -= 1
+            elif ch == "{" and (paren <= 0 or arrow):
+                depth += 1
+            elif ch == "}" and (paren <= 0 or arrow) and depth > 0:
+                depth -= 1
+                if depth == 0 and "{" not in line[k + 1:]:
+                    return j
+        if depth == 0 and paren <= 0 and (after_arrow.strip() or ";" in line or j >= i + 3):
+            return None
+        if depth > 0:
+            return body_close(codes, j + 1, depth)
+    return None
+
+
+def body_close(codes, j, depth):
+    """The index of the line where `depth` open braces close, reading from line j, or None.
+
+    As in body_end, braces that close before another `{` on the same line were a type over
+    several lines, and the body is the pair that opens after them."""
+    for j in range(j, len(codes)):
+        line = codes[j]
+        for k, ch in enumerate(line):
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0 and "{" not in line[k + 1:]:
+                    return j
+    return None
+
+
 def brace_functions(lines, lang):
-    """(name, first line, last line, complexity) for each function, found by matching braces."""
-    codes = code_only(lines)
+    """(name, first line, last line, complexity) for each function, found by matching braces
+    outside strings and comments (code_only), from the body that body_end finds."""
+    codes = code_only(lines, lang)
     out = []
-    n = len(lines)
-    for i in range(n):
+    for i in range(len(lines)):
         name = header_name(codes[i], lang)
         if not name:
             continue
-        depth = 0
-        opened = False
-        end = None
-        j = i
-        while j < n and end is None:
-            for ch in codes[j]:
-                if ch == "{":
-                    depth += 1
-                    opened = True
-                elif ch == "}":
-                    depth -= 1
-                    if opened and depth <= 0:
-                        end = j
-                        break
-            if not opened and (";" in codes[j] or j >= i + 3):
-                break
-            j += 1
+        end = body_end(codes, i)
         if end is not None and end > i:
             body = "\n".join(codes[i:end + 1])
             out.append((name, i + 1, end + 1, 1 + len(COMPLEXITY.findall(body))))
