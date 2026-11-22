@@ -11,9 +11,10 @@ The agent of a following skill writes the page or the document; the script in `s
 |---|---|
 | `SKILL.md` | The contents the skill provides, how to write a page or a document with them, and how to run `verify` |
 | `agents/openai.yaml` | How Codex shows and starts the skill |
-| `musubi.json` | The contents the skill provides through musubi: `structure` and the four pattern files at version 1.0.0, and `look`, `report`, `sheet`, `document`, `choice`, and `verify` at version 2.0.0 |
+| `musubi.json` | The contents the skill provides through musubi: `structure`, `theme`, and the four pattern files at version 1.0.0, and `look`, `report`, `sheet`, `document`, `choice`, and `verify` at version 2.1.0 |
 | `formats/structure.md` | The order of an explanation |
 | `formats/look.md` | The look rules, ending with the table of rules `verify` checks |
+| `formats/theme.md` | The user's theme file: where it lives, its keys, their types, and each template's defaults |
 | `formats/patterns/details.md` | Where the details of a picked item appear, with the rules and their sources |
 | `formats/patterns/lists-and-tables.md` | How a list or a table shows its rows, with the rules and their sources |
 | `formats/patterns/input-and-confirmation.md` | How a page takes and confirms a choice or an input, with the rules and their sources |
@@ -23,7 +24,7 @@ The agent of a following skill writes the page or the document; the script in `s
 | `templates/sheet.html` | The approval sheet type |
 | `templates/document.html` | The explainer type |
 | `templates/choice.html` | The choice page type |
-| `scripts/page-design.py` | `verify`, the check of a page or a document |
+| `scripts/page-design.py` | `verify`, the check of a page or a document, and `theme`, which writes the user's theme file into a page |
 | `tests/test-page-design.sh` | Tests of `verify`, the formats, the templates, the declaration, and the plugin |
 | `tests/test-followers.sh` | Tests that the report skills of this repository follow page-design, run from a checkout of the repository |
 
@@ -69,6 +70,8 @@ The header holds the English and Japanese buttons (`data-lang`) and the light an
 The page starts in English and in the theme of the operating system, and keeps the chosen language and theme in the browser's local storage, under `page-design-lang` and `page-design-theme`.
 The approval sheet and the choice page build the text copied back to the chat in `copyText()`, from fixed English words and item keys only, so a script reads it the same way in either language.
 When the browser refuses to copy, the page selects the text and says to copy it with the keyboard.
+The colors, the fonts, the text size and line height, the page width, and the three corner sizes are tokens on `:root`, and the dark colors are tokens in both dark blocks.
+`page-design.py theme <page>` replaces those tokens with the values of the user's theme file, `.design-theme.json` at the root of the repository or else `~/.design-theme.json`, and `formats/theme.md` lists the keys.
 
 The report and the explainer hold their figures as still dragon blocks, `<pre class="dragon" data-still>`, one block per language inside `<div data-figure-lang="en">` or `<div data-figure-lang="ja">`.
 A rule in the style hides the blocks of the language the page does not show, so switching the language needs no drawing.
@@ -114,8 +117,9 @@ It prints only file names, line numbers, rule names, and fixes, never the text o
 It runs no other program and connects to nothing.
 To draw the figures, the agent runs `npx -y @cardenelabs/dragon@<version> check` and `embed`, which fetch the `@cardenelabs/dragon` package from the npm registry into npm's cache the first time; nothing is installed globally, and the page's text is sent nowhere.
 Before `dragon embed`, a template loads dragon from jsDelivr through its entry line; after it, the page loads nothing from other sites.
+`theme` reads the page and the theme file, writes only the page, runs no other program, and connects to nothing.
 
 ## What it keeps
 
-`verify` keeps nothing.
+`verify` and `theme` keep nothing, and `theme` never writes the theme file.
 A page made from a template keeps the chosen language and theme in the browser's local storage, on the machine where it is opened.

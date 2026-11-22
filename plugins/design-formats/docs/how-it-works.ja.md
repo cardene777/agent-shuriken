@@ -11,9 +11,10 @@
 |---|---|
 | `SKILL.md` | スキルが出す中身と、それで頁とドキュメントを書く手順と、`verify`の回し方 |
 | `agents/openai.yaml` | Codexがスキルを見せて起動する形 |
-| `musubi.json` | musubiで出す中身です。`structure`と4つの規則のfileをバージョン1.0.0で、`look`、`report`、`sheet`、`document`、`choice`、`verify`をバージョン2.0.0で出します |
+| `musubi.json` | musubiで出す中身です。`structure`と`theme`と4つの規則のfileをバージョン1.0.0で、`look`、`report`、`sheet`、`document`、`choice`、`verify`をバージョン2.1.0で出します |
 | `formats/structure.md` | 説明の構造 |
 | `formats/look.md` | 見た目の決まり。最後に`verify`が確かめる決まりの表を持ちます |
+| `formats/theme.md` | 利用者の意匠のfileの置き場と、鍵と型と、雛形ごとの既定の値 |
 | `formats/patterns/details.md` | 選んだ物の詳細を出す場所の規則と出所 |
 | `formats/patterns/lists-and-tables.md` | 一覧と表の行の見せ方の規則と出所 |
 | `formats/patterns/input-and-confirmation.md` | 選択と入力の受け取り方と確かめ方の規則と出所 |
@@ -23,7 +24,7 @@
 | `templates/sheet.html` | 承認の頁の型 |
 | `templates/document.html` | 説明の頁の型 |
 | `templates/choice.html` | 案を選ぶ頁の型 |
-| `scripts/page-design.py` | 頁とドキュメントを確かめる`verify` |
+| `scripts/page-design.py` | 頁とドキュメントを確かめる`verify`と、利用者の意匠のfileを頁に書く`theme` |
 | `tests/test-page-design.sh` | `verify`、書式、雛形、宣言、pluginのテスト |
 | `tests/test-followers.sh` | このリポジトリのレポートを書くスキルが`page-design`に従うかのテスト。リポジトリを取り出した写しから回します |
 
@@ -69,6 +70,8 @@ design-formatsが入っていない時、`musubi check`は警告を出してこ�
 頁は英語とOSの明暗で始まり、選んだ言語と明暗をブラウザのlocal storageの`page-design-lang`と`page-design-theme`に残します。
 承認の頁と案を選ぶ頁は、チャットに貼り返す文を`copyText()`で、決まった英語の語と項目のkeyだけから作ります。どちらの言語でも、scriptが同じ形で読めます。
 ブラウザがコピーを断った時は、頁が文を選び、キーボードでコピーするよう案内します。
+色と書体と文字の大きさと行の高さと頁の幅と3つの角の丸みは`:root`の型で持ち、暗い色は2つの暗い色の塊の型で持ちます。
+`page-design.py theme <page>`は、repoの根の`.design-theme.json`か、無ければ`~/.design-theme.json`の値で、これらの型を書き換えます。鍵の一覧は`formats/theme.md`が持ちます。
 
 レポートと説明の頁は、図を止めて置くdragonの塊`<pre class="dragon" data-still>`で持ち、言語ごとに1つの塊を`<div data-figure-lang="en">`か`<div data-figure-lang="ja">`の中に置きます。
 styleの規則が頁の言語でない方の塊を隠すので、言語を切り替えても描き直しません。
@@ -114,8 +117,9 @@ fileを渡さない時、fileを読めない時、HTMLでもMarkdownでもない
 ほかのプログラムを動かさず、どこにも繋ぎません。
 図を描く時は、エージェントが`npx -y @cardenelabs/dragon@<version> check`と`embed`を動かします。最初の1回に、npmの置き場から`@cardenelabs/dragon`をnpmのキャッシュへ取りに行きます。PC全体には何も入れず、頁の文はどこにも送りません。
 `dragon embed`の前の雛形は、dragonを読む行でjsDelivrから読みます。`dragon embed`の後の頁は、ほかのサイトから何も読みません。
+`theme`は頁と意匠のfileを読み、頁だけを書きます。ほかのプログラムを動かさず、どこにも繋ぎません。
 
 ## 何を保存するか
 
-`verify`は何も保存しません。
+`verify`と`theme`は何も保存しません。`theme`は意匠のfileを書き換えません。
 雛形で作った頁は、開いたPCのブラウザのlocal storageに、選んだ言語と明暗を残します。
