@@ -52,6 +52,7 @@ A repository can keep its own skills in `.shared/skills`, and running `agent-sha
 Running the command again places what is new and removes only what it placed before, and it never sends anything over the network.
 `agent-shared hooks --agent <name>` prints the hooks `deploy` places for one agent and writes nothing, so a guard can compare an agent's hook file with it.
 `agent-shared placed --source <folder>` prints, as JSON, the skills, rules, and hooks one folder placed in each agent and writes nothing, so an app can list what it deployed.
+`agent-shared off --source <folder> --agent <name> <item>` leaves one rule or hook out of one agent at every later deploy, and `agent-shared on` with the same arguments places it again; the choice is kept in `off.json` beside the record, never in the source folder.
 [agent-shared](docs/agent-shared.md) explains every place it writes and every refusal.
 
 ## Plugins

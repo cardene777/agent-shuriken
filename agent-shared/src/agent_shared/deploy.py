@@ -13,12 +13,18 @@ What agent-shared placed is told apart from what the user wrote by hand in three
 
 `<id>` is the first 12 hex digits of the SHA-256 of the source folder's real path, so each source
 removes only what it placed itself.
+
+The switch list (`off.json`, beside the record) names the items that are not placed in one agent: a
+source folder, an agent, and an item of that source. The item is a rule file (`rules/<name>.md`), a file
+that hook commands run (`hooks/...`), or a whole hook command that runs no file. Every command, every
+run, reads it, so an item stays out of that agent whichever tool deploys.
 """
 
 import hashlib
 import json
 import os
 import queue
+import re
 import shutil
 import subprocess
 import tempfile
@@ -33,6 +39,11 @@ RULE = "<!-- agent-shared rule {} -->"
 MARK_LINE_START = "<!-- agent-shared "
 TABLE_VERSION = 1
 RECORD_VERSION = 1
+OFF_VERSION = 1
+ROOT_PLACEHOLDER = "${CLAUDE_PLUGIN_ROOT}"
+# What may come right before or after a file's path inside a command, so `hooks/a.sh` is not found in
+# `hooks/a.sh.orig` or in `other/hooks/a.sh`.
+PATH_CHARACTER = r"[\w./-]"
 CODEX_TIMEOUT = 30
 RULE_FORMS = ("link", "block")
 TRUST_KINDS = ("codex-app-server",)
@@ -133,7 +144,7 @@ class Source:
                 for hook in hooks:
                     if not isinstance(hook, dict) or not isinstance(hook.get("command"), str):
                         raise Usage("a hook of `hooks.{}` in {} has no command string".format(event, shown(path)))
-                    hook = dict(hook, command=hook["command"].replace("${CLAUDE_PLUGIN_ROOT}", self.path))
+                    hook = dict(hook, command=hook["command"].replace(ROOT_PLACEHOLDER, self.path))
                     tools = hook.pop("tools", None)
                     if tools is not None:
                         if not isinstance(tools, list) or not tools or not all(isinstance(t, str) for t in tools):
@@ -238,12 +249,89 @@ def codex_plugin_skills(warnings):
     return found
 
 
+def state_folder():
+    """The folder of the record and the switch list: `AGENT_SHARED_STATE`, or ~/.local/share/agent-shared."""
+    folder = os.environ.get("AGENT_SHARED_STATE") or os.path.join(home(), ".local", "share", "agent-shared")
+    return os.path.abspath(os.path.expanduser(folder))
+
+
+def write_private(folder, path, data, prefix):
+    """Replaces the JSON file in one step, readable only by the user, in a folder only the user can open."""
+    os.makedirs(folder, exist_ok=True)
+    os.chmod(folder, 0o700)
+    text = json.dumps(data, ensure_ascii=False, indent=2) + "\n"
+    handle, temporary = tempfile.mkstemp(dir=folder, prefix=prefix)
+    try:
+        with os.fdopen(handle, "w", encoding="utf-8") as out:
+            out.write(text)
+        os.chmod(temporary, 0o600)
+        os.replace(temporary, path)
+    except BaseException:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+        raise
+
+
+def runs_file(command, source, item):
+    """Whether the hook command, with the source folder filled in, runs the file `item` of the source."""
+    place = re.escape(os.path.join(source.path, item))
+    return re.search("(?<!{0}){1}(?!{0})".format(PATH_CHARACTER, place), command) is not None
+
+
+def is_command(command, source, item):
+    """Whether `item` is the whole hook command, as declared with `${CLAUDE_PLUGIN_ROOT}` or filled in."""
+    return item.replace(ROOT_PLACEHOLDER, source.path) == command
+
+
+class OffList:
+    """The switch list: the items one agent does not get from a source, kept in `off.json`."""
+
+    def __init__(self):
+        self.folder = state_folder()
+        self.path = os.path.join(self.folder, "off.json")
+        self.entries = []
+        if os.path.exists(self.path):
+            data = read_json(self.path, "the switch list")
+            entries = data.get("off") if isinstance(data, dict) and data.get("version") == OFF_VERSION else None
+            if not isinstance(entries, list) or not all(
+                    isinstance(entry, dict) and all(isinstance(entry.get(key), str) for key in ("source", "agent", "item"))
+                    for entry in entries):
+                raise Usage("the switch list {} is not of version {} with an `off` list of source, agent, and item; "
+                            "fix it or move it away".format(shown(self.path), OFF_VERSION))
+            self.entries = entries
+        self.ids = [source_id(entry["source"]) for entry in self.entries]
+
+    def items(self, source, agent_name):
+        """The items of the source switched off for the agent, in name order."""
+        return sorted({entry["item"] for entry, sid in zip(self.entries, self.ids)
+                       if sid == source.id and entry["agent"] == agent_name})
+
+    def rule_off(self, source, agent_name, name):
+        return "rules/" + name in self.items(source, agent_name)
+
+    def hook_off(self, source, agent_name, command):
+        return any(is_command(command, source, item) or runs_file(command, source, item)
+                   for item in self.items(source, agent_name))
+
+    def switch(self, source, agent_name, item, on):
+        """Takes the item out of the list (on) or adds it once (off). Returns whether the list changed."""
+        here = [i for i, (entry, sid) in enumerate(zip(self.entries, self.ids))
+                if sid == source.id and entry["agent"] == agent_name and entry["item"] == item]
+        if on and here:
+            self.entries = [entry for i, entry in enumerate(self.entries) if i not in here]
+        elif not on and not here:
+            self.entries.append({"source": source.path, "agent": agent_name, "item": item})
+        else:
+            return False
+        write_private(self.folder, self.path, {"version": OFF_VERSION, "off": self.entries}, ".off-")
+        return True
+
+
 class Record:
     """What agent-shared placed, per source: each link and the target it was given."""
 
     def __init__(self):
-        folder = os.environ.get("AGENT_SHARED_STATE") or os.path.join(home(), ".local", "share", "agent-shared")
-        self.folder = os.path.abspath(os.path.expanduser(folder))
+        self.folder = state_folder()
         self.path = os.path.join(self.folder, "placed.json")
         self.sources = {}
         if os.path.exists(self.path):
@@ -269,19 +357,7 @@ class Record:
                 self.sources[source.id] = {"path": source.path, "links": dict(sorted(links.items()))}
             else:
                 self.sources.pop(source.id, None)
-        os.makedirs(self.folder, exist_ok=True)
-        os.chmod(self.folder, 0o700)
-        text = json.dumps({"version": RECORD_VERSION, "sources": self.sources}, ensure_ascii=False, indent=2) + "\n"
-        handle, temporary = tempfile.mkstemp(dir=self.folder, prefix=".placed-")
-        try:
-            with os.fdopen(handle, "w", encoding="utf-8") as out:
-                out.write(text)
-            os.chmod(temporary, 0o600)
-            os.replace(temporary, self.path)
-        except BaseException:
-            if os.path.exists(temporary):
-                os.unlink(temporary)
-            raise
+        write_private(self.folder, self.path, {"version": RECORD_VERSION, "sources": self.sources}, ".placed-")
 
 
 def find_repo(argument):
@@ -546,12 +622,15 @@ def agent_places(row):
             expand(row["hooks"]["file"]) if "hooks" in row else None)
 
 
-def agent_hook_groups(declared, agent_name):
+def agent_hook_groups(declared, agent_name, off):
     """The groups deploy adds to one agent's hook file, by event, and the (event, command) pairs they carry.
-    Each declared hook goes in its own copy of its group, with the source's mark on a last line of its command."""
+    Each declared hook goes in its own copy of its group, with the source's mark on a last line of its command.
+    A hook the switch list turns off for the agent is left out."""
     groups, commands = {}, set()
     for source, event, bare, hook, tools in declared:
         if tools is not None and agent_name not in tools:
+            continue
+        if off.hook_off(source, agent_name, hook["command"]):
             continue
         commands.add((event, hook["command"]))
         marked = dict(hook, command=hook["command"] + "\n" + MARK + source.id)
@@ -568,11 +647,12 @@ def hooks(agent_name, extra_sources):
     agent_names = [row["name"] for row in table]
     if agent_name not in agent_names:
         raise Usage("the agent {} is not in the agent table (agents: {})".format(agent_name, ", ".join(agent_names)))
+    off = OffList()
     row = next(row for row in table if row["name"] == agent_name)
     groups = {}
     if "hooks" in row:
         declared = [(source,) + hook for source in sources for hook in source.hooks(agent_names)]
-        groups, _commands = agent_hook_groups(declared, agent_name)
+        groups, _commands = agent_hook_groups(declared, agent_name, off)
     print(json.dumps({"hooks": groups}, ensure_ascii=False, indent=2))
     return 0
 
@@ -628,6 +708,7 @@ def placed(source_path):
     source = existing_source(source_path)
     table = agent_table()
     links = Record().links({source.id})
+    off = OffList()
     refusals, agents = [], {}
     for row in table:
         skills_dir, rules_at, hook_file = agent_places(row)
@@ -637,9 +718,45 @@ def placed(source_path):
             rules = linked_names(links, place) if form == "link" else block_rule_names(place, source.id, refusals)
         agents[row["name"]] = {"skills": linked_names(links, skills_dir), "rules": rules,
                                "hooks": marked_hooks(hook_file, source.id, refusals) if hook_file else []}
+        # Only an agent the list names items for gets the key, so the shape stays as before without a list.
+        left_out = off.items(source, row["name"])
+        if left_out:
+            agents[row["name"]]["left_out"] = left_out
     if refusals:
         raise Usage("; ".join(dict.fromkeys(refusals)))
     print(json.dumps({"source": source.path, "agents": agents}, ensure_ascii=False, indent=2))
+    return 0
+
+
+def switch(source_path, agent_name, item, on):
+    """Turns one item of a source off or on for one agent in the switch list. Places nothing; the next
+    deploy honors the list. Returns 0."""
+    off = OffList()
+    if on:
+        source = Source(expand(source_path))
+        changed = off.switch(source, agent_name, item, on=True)
+        print("switched on {} for {} from {}{}".format(item, agent_name, shown(source.path),
+                                                     "" if changed else " (it was not switched off)"))
+        return 0
+    source = existing_source(source_path)
+    agent_names = [row["name"] for row in agent_table()]
+    if agent_name not in agent_names:
+        raise Usage("the agent {} is not in the agent table (agents: {})".format(agent_name, ", ".join(agent_names)))
+    parts = item.split("/")
+    inside = not os.path.isabs(item) and ".." not in parts
+    commands = [hook["command"] for _event, _bare, hook, _tools in source.hooks(agent_names)]
+    if not inside and not any(is_command(command, source, item) for command in commands):
+        raise Usage("{} names a place outside the source folder {}".format(item, shown(source.path)))
+    known = (
+        (len(parts) == 2 and parts[0] == "rules" and parts[1] in source.rules())
+        or (inside and os.path.isfile(os.path.join(source.path, item))
+            and any(runs_file(command, source, item) for command in commands))
+        or any(is_command(command, source, item) for command in commands))
+    if not known:
+        raise Usage("the source {} has no rule, hook file, or hook command {}".format(shown(source.path), item))
+    changed = off.switch(source, agent_name, item, on=False)
+    print("switched off {} for {} from {}{}; the next deploy leaves it out".format(
+        item, agent_name, shown(source.path), "" if changed else " (it was already off)"))
     return 0
 
 
@@ -654,6 +771,7 @@ def deploy(extra_sources, repo_argument):
     table = agent_table()
     agent_names = [row["name"] for row in table]
     record = Record()
+    off = OffList()
     run = sources + ([repo] if repo else [])
     run_ids = {source.id for source in run}
     refusals, warnings, notes = [], [], []
@@ -687,15 +805,17 @@ def deploy(extra_sources, repo_argument):
                 wanted[os.path.join(skills_dir, name)] = (path, source)
         if rules_at:
             place, form = rules_at
+            kept = {name: (path, source) for name, (path, source) in rules.items()
+                    if not off.rule_off(source, row["name"], name)}
             if form == "link":
-                for name, (path, source) in rules.items():
+                for name, (path, source) in kept.items():
                     wanted[os.path.join(place, name)] = (path, source)
             else:
-                blocks[place] = {source.id: sorted((name, path) for name, (path, owner) in rules.items() if owner is source)
+                blocks[place] = {source.id: sorted((name, path) for name, (path, owner) in kept.items() if owner is source)
                                  for source in sources}
         if hook_file:
             entry = hook_files.setdefault(hook_file, {"trust": row["hooks"].get("trust"), "groups": {}, "commands": set()})
-            groups, commands = agent_hook_groups(declared, row["name"])
+            groups, commands = agent_hook_groups(declared, row["name"], off)
             entry["commands"] |= commands
             for event, added in groups.items():
                 entry["groups"].setdefault(event, []).extend(added)

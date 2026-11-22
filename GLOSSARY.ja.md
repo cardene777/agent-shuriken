@@ -7,6 +7,7 @@
 | `agent-shared` | `agent-shared/`に在る命令。1つ以上の置き場のスキルと決まりとhookを、agentの表の全てのagentに置く |
 | 置き場 | `.shared`の形を持つフォルダ。`skills/<name>/SKILL.md`、`rules/*.md`、`hooks.json`と、任意の`agents.json`を持つ |
 | `~/.shared` | そのコンピューターの全てのagentに向けた、本人のスキルと決まりとhookを持つ置き場 |
+| 切った物の一覧 | 記録の隣の`off.json`。`deploy`が1つのagentに置かない、置き場の決まりとhook。`agent-shared off`と`agent-shared on`だけが書く |
 | repoの`.shared` | repoの根に在る置き場。そのスキルは、そのrepoの`.claude/skills`と`.agents/skills`へ繋がれる |
 | agentの表 | 各agentの名前と、スキルと決まりとhookの置き場を挙げる行。命令の既定の`agents.json`と、`~/.shared/agents.json`の行から成る |
 | plugin | `plugins/`の下のフォルダで、agentのpluginの命令で入れる。pluginは`agent-shared`と別の物である |
