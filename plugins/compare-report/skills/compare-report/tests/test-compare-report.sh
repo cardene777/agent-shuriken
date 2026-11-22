@@ -159,7 +159,7 @@ check "the unfilled template names {{AUTHOR}}" 'printf "%s\n" "$out" | grep -qF 
 check_report >/dev/null 2>&1; rc=$?
 check "check-report.py without a file exits 2" '[ "$rc" = 2 ]'
 
-# --- the author line on the cover
+# --- the author row of the facts on the cover
 # fill_template <file> <author>: the real template with every placeholder filled
 fill_template() {
   python3 - "$TEMPLATE" "$T/$1" "$2" <<'PY'
@@ -168,15 +168,15 @@ src, dst, author = sys.argv[1:]
 values = {
     "LANG": "en", "TITLE": "Static site generators", "EYEBROW": "Comparison report",
     "SUBTITLE": "Hugo and Eleventy for a documentation site", "DATE": "2026-11-14",
-    "STATS": "<div><dt>Candidates</dt><dd>2</dd></div>",
-    "CONTENTS_HEADING": "Contents", "TOC": '<li><a href="#summary">Summary</a></li>',
+    "CANDIDATE_COUNT": "2", "AXIS_COUNT": "1", "SOURCE_COUNT": "1",
+    "TOC": '<li><a href="#summary">Summary</a></li>',
     "SUMMARY": "<h2>Summary</h2><p>Pick Hugo for large sites.</p>",
-    "CANDIDATES": "<h2>Candidates</h2><p>Hugo and Eleventy.</p>",
+    "CANDIDATES": '<h2>Candidates</h2><ul class="cards"><li class="card"><h3>Hugo</h3></li><li class="card"><h3>Eleventy</h3></li></ul>',
     "AXES": '<section id="axis-speed" class="chapter axis"><h2>Build speed</h2><p>Hugo builds fastest.</p></section>',
     "RISKS": "<h2>Risks</h2><p>Eleventy has one maintainer.</p>",
     "RANKING": "<h2>Ranking</h2><ol><li>Hugo</li><li>Eleventy</li></ol>",
     "SOURCES": '<h2>Sources</h2><ol><li><a href="https://example.org/benchmark">Benchmark</a></li></ol>',
-    "FOOTER": "2026-11-14", "AUTHOR": author,
+    "FOOTER": "This report reflects public information on the research date.", "AUTHOR": author,
 }
 text = open(src, encoding="utf-8").read()
 text = re.sub(r"\{\{([A-Z_]+)\}\}", lambda m: values[m.group(1)], text)
@@ -184,19 +184,19 @@ open(dst, "w", encoding="utf-8").write(text)
 PY
 }
 
-cover="$(sed -n '/<section class="cover">/,/<\/section>/p' "$TEMPLATE")"
-check "the template has the author line under the date and hides it when empty" \
-  'printf "%s\n" "$cover" | grep -A1 -F "{{DATE}}" | tail -n 1 | grep -qF "<p class=\"cover-author\">{{AUTHOR}}</p>" && grep -qE "cover-author:empty[^{]*\{[^}]*display: *none" "$TEMPLATE"'
+facts="$(sed -n '/<table class="facts">/,/<\/table>/p' "$TEMPLATE")"
+check "the template has the author row last in the facts and hides it when empty" \
+  'printf "%s\n" "$facts" | grep "<tr" | tail -n 1 | grep -qF "<tr class=\"author-row\"><th scope=\"row\" data-t=\"factAuthor\">Author</th><td>{{AUTHOR}}</td></tr>" && grep -qE "tr\.author-row:has\(td:empty\)[^{]*\{[^}]*display: *none" "$TEMPLATE"'
 
-fill_template with-author.html "Prepared by Jane Doe" && out="$(check_report "$T/with-author.html")"; rc=$?
+fill_template with-author.html "Jane Doe" && out="$(check_report "$T/with-author.html")"; rc=$?
 check "the filled template with an author prints ok" \
-  '[ "$rc" = 0 ] && [ "$out" = ok ] && grep -qF "<p class=\"cover-author\">Prepared by Jane Doe</p>" "$T/with-author.html"'
+  '[ "$rc" = 0 ] && [ "$out" = ok ] && grep -qF "data-t=\"factAuthor\">Author</th><td>Jane Doe</td>" "$T/with-author.html"'
 fill_template no-author.html "" && out="$(check_report "$T/no-author.html")"; rc=$?
 check "the filled template with an empty author prints ok" \
-  '[ "$rc" = 0 ] && [ "$out" = ok ] && grep -qF "<p class=\"cover-author\"></p>" "$T/no-author.html"'
+  '[ "$rc" = 0 ] && [ "$out" = ok ] && grep -qF "data-t=\"factAuthor\">Author</th><td></td>" "$T/no-author.html"'
 fill_template blank-author.html "   " && out="$(check_report "$T/blank-author.html")"; rc=$?
-check "a blank author line is reported" \
-  '[ "$rc" = 1 ] && printf "%s\n" "$out" | grep -qF "the author line on the cover holds only spaces"'
+check "a blank author row is reported" \
+  '[ "$rc" = 1 ] && printf "%s\n" "$out" | grep -qF "the author row of the facts holds only spaces"'
 
 skill="$HERE/../SKILL.md"
 check "SKILL.md asks for the author with the candidates and never reads git config or the system" \
@@ -352,8 +352,8 @@ body = {i: f"<h2>{t}</h2>" + para * n for i, t, n in sections}
 toc = "".join(f'<li><a href="#{i}">{t}</a></li>' for i, t, n in sections) + extra
 axes = "".join(f'<section id="{i}" class="chapter axis">{body[i]}</section>' for i, t, n in sections if i.startswith("axis-"))
 values = {"LANG": "en", "TITLE": "Static site generators", "EYEBROW": "Comparison report", "SUBTITLE": "Four generators",
-          "DATE": "2026-11-14", "AUTHOR": "", "STATS": "<div><dt>Candidates</dt><dd>4</dd></div>",
-          "CONTENTS_HEADING": "Contents", "TOC": toc, "AXES": axes, "FOOTER": "2026-11-14",
+          "DATE": "2026-11-14", "AUTHOR": "", "CANDIDATE_COUNT": "4", "AXIS_COUNT": "4", "SOURCE_COUNT": "0",
+          "TOC": toc, "AXES": axes, "FOOTER": "This report reflects public information on the research date.",
           "SUMMARY": body["summary"], "CANDIDATES": body["candidates"], "RISKS": body["risks"],
           "RANKING": body["ranking"], "SOURCES": body["sources"]}
 text = open(src, encoding="utf-8").read()
@@ -483,16 +483,19 @@ def score(letter):
 def card(n):
     words = ["Quarry", "Lumen", "Brisk", "Cobble", "Slate", "Tern"][n]
     text = "A static site generator released under the MIT license. " * (1 + n % 3)
-    return ('<div class="card"><h3>%s <span class="tag t%d">Open source</span></h3><p>%s</p>'
-            '<p class="pros">The fastest build on its own benchmark [1].</p>'
-            '<p class="cons">Its build time comes only from its own benchmark.</p></div>') % (words, 1 + n % 5, text)
+    return ('<li class="card"><h3>%s</h3><p class="summary">A fast generator written in Go.</p><dl>'
+            '<dt data-t="fieldType">Type</dt><dd><span class="tag t%d">Open source</span></dd>'
+            '<dt data-t="fieldUsers">Used by</dt><dd>Documentation teams</dd>'
+            '<dt data-t="fieldStrength">Strength</dt><dd>The fastest build on its own benchmark [1].</dd>'
+            '<dt data-t="fieldWeakness">Weakness</dt><dd>Its build time comes only from its own benchmark.</dd></dl>'
+            '<p>%s</p></li>') % (words, 1 + n % 5, text)
 
 candidates = table(
     [("short", "Candidate"), ("short", "Type"), ("short", "License"), ("", "Pricing model"), ("num", "Releases in 12 months")],
     [["Quarry", "Static site generator", "MIT [10]", "Free and open source with no paid plan, and no hosted service of its own, so the team hosts the built site on its current web server [8]", "14 [2]"],
      ["Lumen", "Static site generator", "Apache-2.0 [12]", "Free generator and a paid hosted preview service that builds every pull request and keeps each preview online for thirty days [3]", "6 [9]"],
      ["Brisk", "Static site generator", "MIT [11]", "Free generator and a hosted plan whose price the hosting page does not publish, so the cost of hosting there is not known [7]", "2 [6]"]])
-grids = "".join('<div class="cards">%s</div>' % "".join(card(i) for i in range(n)) for n in range(2, 7))
+grids = "".join('<ul class="cards">%s</ul>' % "".join(card(i) for i in range(n)) for n in range(2, 7))
 maintenance = table(
     [("short", "Candidate"), ("num", "Releases in 12 months"), ("center", "Score"), ("rationale", "Rationale")],
     [["Quarry", "14", score("A"), "14 releases in the last 12 months [2], more than twice Lumen's count. A, not S, because the notes hold no figure on how fast bugs are fixed."],
@@ -501,7 +504,7 @@ maintenance = table(
 bars = ('<div class="bars"><h4>Releases in the last 12 months</h4>'
         '<div class="bar"><span class="label">Quarry</span><span class="track"><span class="fill" style="width: 100%"></span></span><span class="value">14</span></div>'
         '<div class="bar"><span class="label">Lumen</span><span class="track"><span class="fill" style="width: 43%"></span></span><span class="value">6</span></div>'
-        '<div class="bar muted"><span class="label">Brisk</span><span class="track"><span class="fill" style="width: 0%"></span></span><span class="value">Not disclosed</span></div></div>')
+        '<div class="bar"><span class="label">Brisk</span><span class="track"><span class="fill" style="width: 14%"></span></span><span class="value">2</span></div></div>')
 risks = table(
     [("short", "Candidate"), ("", "Risk"), ("short", "Severity"), ("", "Mitigation"), ("rationale", "Rationale")],
     [["Brisk", "Slow release pace", '<span class="risk high">High</span>', "Check the release page again before adopting it, and keep a way to move the docs to Quarry if the project stops.", "2 releases in the last 12 months [6] against 14 for Quarry [2]."],
@@ -516,17 +519,17 @@ scorecard = table(
 values = {
     "LANG": "en", "TITLE": "Static site generators for the product docs", "EYEBROW": "Comparison report",
     "SUBTITLE": "Quarry, Lumen, and Brisk compared on five axes, to choose the generator for the product docs.",
-    "STATS": "<div><dt>Candidates</dt><dd>3</dd></div><div><dt>Axes</dt><dd>5</dd></div><div><dt>Sources</dt><dd>16</dd></div>",
-    "DATE": "2026-11-10", "AUTHOR": "Prepared by Dana Kim", "CONTENTS_HEADING": "Contents",
+    "CANDIDATE_COUNT": "3", "AXIS_COUNT": "5", "SOURCE_COUNT": "16",
+    "DATE": "2026-11-10", "AUTHOR": "Dana Kim",
     "TOC": "".join('<li><a href="#%s">%s</a></li>' % p for p in [("summary", "Summary"), ("candidates", "Candidates"),
            ("axis-maintenance", "Maintenance"), ("risks", "Risks"), ("ranking", "Ranking"), ("sources", "Sources")]),
-    "SUMMARY": '<h2>Summary</h2><div class="callout"><strong>Background</strong><p>The product docs need a static site generator.</p></div>',
+    "SUMMARY": '<h2>Summary</h2><p>The product docs need a static site generator.</p>',
     "CANDIDATES": "<h2>Candidates</h2>" + candidates + grids,
     "AXES": '<section id="axis-maintenance" class="chapter axis"><h2>Maintenance</h2>' + maintenance + bars + "</section>",
     "RISKS": "<h2>Risks</h2>" + risks,
     "RANKING": "<h2>Ranking</h2>" + scorecard,
     "SOURCES": '<h2>Sources</h2><ol class="sources"><li><a href="https://quarry.example.org/benchmarks">Quarry benchmarks</a> <span class="accessed">read 2026-11-10</span></li></ol>',
-    "FOOTER": "This report reflects public information on 2026-11-10.",
+    "FOOTER": "This report reflects public information on the research date.",
 }
 measure = r"""<script>
 (function () {
@@ -556,7 +559,7 @@ measure = r"""<script>
     lines: Math.max(...[...table.querySelectorAll("tbody tr")].map((tr) => lines(tr.children[i]))),
   }));
   const main = document.querySelector("main"), cover = document.querySelector(".cover");
-  const stats = cover.querySelector(".stats"), date = cover.querySelector(".cover-foot p");
+  const facts = cover.querySelector(".facts"), title = cover.querySelector("h1");
   const layout = {
     width: innerWidth, scrollWidth: document.documentElement.scrollWidth,
     cells: [...document.querySelectorAll("td.num, td.center")].map((td) => ({ text: td.textContent.trim(), lines: lines(td) })),
@@ -568,8 +571,8 @@ measure = r"""<script>
     }),
     tables: { candidates: columns(document.querySelector("#candidates table")), risks: columns(document.querySelector("#risks table")) },
     main: { width: box(main).width, left: inner(main).left, right: inner(main).right },
-    cover: { eyebrow: box(cover.querySelector(".eyebrow")).left, title: { left: box(cover.querySelector("h1")).left, right: box(cover.querySelector("h1")).right },
-      date: box(date).left, gap: box(date).top - box(stats).bottom },
+    cover: { eyebrow: box(cover.querySelector(".eyebrow")).left, title: { left: box(title).left, right: box(title).right, bottom: box(title).bottom },
+      facts: facts ? { left: box(facts).left, top: box(facts).top } : null },
     bars: [...document.querySelectorAll(".bars")].map((chart) => ({ left: inner(chart).left,
       rows: [...chart.querySelectorAll(".bar")].map((bar) => { const label = bar.querySelector(".label"), text = textBox(label);
         return { name: label.textContent.trim(), column: box(label).width, text: text.width, textLeft: text.left, track: box(bar.querySelector(".track")).left }; }) })),
@@ -614,10 +617,9 @@ PY
 
 layout_checks=(
   "at 1400px, scores and Not scored stay on one line in their table cells"
-  "at 1400px, two to six candidate cards fill every row with no lone card beside an empty cell"
   "at 390px, the candidate cards stack in one column and the page does not scroll sideways"
   "at 1400px, the short columns of the candidates and risks tables stay on one line and every text column is wider than each short column"
-  "at 1400px, the body is 1200px wide and the cover lines up with it, with the title across the body width and the date close under the numbers"
+  "at 1400px, the body is 1200px wide and the cover lines up with it, with the title across the body width and the facts under it"
   "at 1400px, the bar chart names sit on the left in a column as wide as the longest name"
 )
 if [ -z "$real_browser" ]; then
@@ -633,18 +635,6 @@ if not any(c[\"text\"] == \"Not scored\" for c in L[\"cells\"]):
 for c in L[\"cells\"]:
     if c[\"lines\"] != 1:
         P.append(\"%r takes %d lines\" % (c[\"text\"], c[\"lines\"]))
-"'
-
-  check "at 1400px, two to six candidate cards fill every row with no lone card beside an empty cell" 'laid_out "$T/layout-1400.json" 1400 "
-if [g[\"count\"] for g in L[\"cards\"]] != [2, 3, 4, 5, 6]:
-    P.append(\"the grids hold %s cards\" % [g[\"count\"] for g in L[\"cards\"]])
-for g in L[\"cards\"]:
-    shape = [r[\"cards\"] for r in g[\"rows\"]]
-    for r in g[\"rows\"]:
-        if abs(r[\"left\"] - g[\"left\"]) > 1 or abs(r[\"right\"] - g[\"right\"]) > 1 or max(r[\"widths\"]) - min(r[\"widths\"]) > 1:
-            P.append(\"with %d cards the rows hold %s, and a row of %d leaves part of the grid empty\" % (g[\"count\"], shape, r[\"cards\"]))
-    if g[\"count\"] > 1 and 1 in shape:
-        P.append(\"with %d cards the rows hold %s, so one card sits alone\" % (g[\"count\"], shape))
 "'
 
   check "at 390px, the candidate cards stack in one column and the page does not scroll sideways" 'laid_out "$T/layout-390.json" 390 "
@@ -668,17 +658,20 @@ for name, cols in L[\"tables\"].items():
             P.append(\"the %s table: the text column %r (%d px) is not wider than %s\" % (name, t[\"name\"], t[\"width\"], wider))
 "'
 
-  check "at 1400px, the body is 1200px wide and the cover lines up with it, with the title across the body width and the date close under the numbers" 'laid_out "$T/layout-1400.json" 1400 "
+  check "at 1400px, the body is 1200px wide and the cover lines up with it, with the title across the body width and the facts under it" 'laid_out "$T/layout-1400.json" 1400 "
 m, c = L[\"main\"], L[\"cover\"]
 if abs(m[\"width\"] - 1200) > 1:
     P.append(\"the body is %d px wide\" % m[\"width\"])
-for name, left in ((\"label above the title\", c[\"eyebrow\"]), (\"title\", c[\"title\"][\"left\"]), (\"date\", c[\"date\"])):
-    if abs(left - m[\"left\"]) > 1:
-        P.append(\"the cover %s starts at %d px and the body at %d px\" % (name, left, m[\"left\"]))
+if not c[\"facts\"]:
+    P.append(\"the cover has no table of facts\")
+else:
+    for name, left in ((\"label above the title\", c[\"eyebrow\"]), (\"title\", c[\"title\"][\"left\"]), (\"facts\", c[\"facts\"][\"left\"])):
+        if abs(left - m[\"left\"]) > 1:
+            P.append(\"the cover %s starts at %d px and the body at %d px\" % (name, left, m[\"left\"]))
+    if c[\"facts\"][\"top\"] < c[\"title\"][\"bottom\"]:
+        P.append(\"the facts start at %d px, above the end of the title at %d px\" % (c[\"facts\"][\"top\"], c[\"title\"][\"bottom\"]))
 if abs(c[\"title\"][\"right\"] - m[\"right\"]) > 1:
     P.append(\"the cover title ends at %d px and the body at %d px\" % (c[\"title\"][\"right\"], m[\"right\"]))
-if c[\"gap\"] > 40:
-    P.append(\"the date sits %d px under the numbers\" % c[\"gap\"])
 "'
 
   check "at 1400px, the bar chart names sit on the left in a column as wide as the longest name" 'laid_out "$T/layout-1400.json" 1400 "
@@ -823,10 +816,10 @@ part = re.search(r"(?ms)^## Components\n(.*?)(?=^## )", guide).group(1)
 blocks = {name.strip(): re.findall(r"(?ms)^```html\n(.*?)^```", body)
           for name, body in re.findall(r"(?ms)^### ([^\n]+)\n(.*?)(?=^### |\Z)", part)}
 place = {
-    "summary": ["Callout", "Top three picks"],
+    "summary": ["Top three picks"],
     "candidates": ["Candidate cards"],
     "axis": ["Comparison table", "Scores", "Bar chart"],
-    "risks": ["Risk labels"],
+    "risks": ["Risk labels", "Caution"],
     "ranking": ["Recommendation"],
     "sources": ["Sources"],
 }
@@ -842,10 +835,11 @@ toc = [("summary", "Summary"), ("candidates", "Candidates"), ("axis-cost", "Cost
 values = {
     "LANG": "en", "TITLE": "Static site generators", "EYEBROW": "Comparison report",
     "SUBTITLE": "Three generators compared for a documentation site", "DATE": "2026-11-14", "AUTHOR": "",
-    "STATS": "<div><dt>Candidates</dt><dd>3</dd></div><div><dt>Axes</dt><dd>5</dd></div><div><dt>Sources</dt><dd>12</dd></div>",
-    "CONTENTS_HEADING": "Contents", "TOC": "".join('<li><a href="#%s">%s</a></li>' % pair for pair in toc),
+    "CANDIDATE_COUNT": str(len(re.findall(r'<li class="card"', body["candidates"]))), "AXIS_COUNT": "1",
+    "SOURCE_COUNT": str(len(re.findall(r"<li>", body["sources"]))),
+    "TOC": "".join('<li><a href="#%s">%s</a></li>' % pair for pair in toc),
     "AXES": '<section id="axis-cost" class="chapter axis"><h2>Cost</h2>' + body["axis"] + "</section>",
-    "FOOTER": "This report reflects public information on 2026-11-14.",
+    "FOOTER": "This report reflects public information on the research date.",
 }
 for section, title in toc:
     if section in body and section != "axis":
@@ -953,13 +947,13 @@ def example(name):
     blocks = re.findall(r"(?ms)^```html\n(.*?)^```", part.group(1)) if part else []
     return blocks[0] if blocks else ""
 comparison = example("Comparison table")
-if not re.search(r'<th class="short">Candidate</th>', comparison) or not re.search(r'<tr><td class="short">', comparison):
+if not re.search(r'<th scope="col" class="short">Candidate</th>', comparison) or not re.search(r'<tr[^>]*><th scope="row" class="short">', comparison):
     problems.append("the comparison table example does not mark the candidate column short")
 recommendation = example("Recommendation")
-if not re.search(r'<th class="short">Recommendation</th><th class="short">Candidate</th>', recommendation):
+if not re.search(r'<th scope="col" class="short">Recommendation</th><th scope="col" class="short">Candidate</th>', recommendation):
     problems.append("the recommendation example does not mark its first two columns short")
 risks = "".join(re.findall(r"(?ms)^```html\n(.*?)^```", re.search(r"(?ms)^### Risk labels\n(.*?)(?=^### |^## )", guide).group(1)))
-if not re.search(r'<th class="short">Severity</th>', risks):
+if not re.search(r'<th scope="col" class="short"[^>]*>Severity</th>', risks):
     problems.append("the risk labels show no risks table whose severity column is short")
 print("\n".join("      " + p for p in problems))
 sys.exit(1 if problems else 0)
@@ -1085,7 +1079,7 @@ described() {
 import re, sys
 root, problems = sys.argv[1], []
 en = ["candidate list", "facts table", "dragon", "language switch"]
-ja = ["候補の一覧", "事実の表", "dragon", "言語の切り替え"]
+ja = ["\u5019\u88dc\u306e\u4e00\u89a7", "\u4e8b\u5b9f\u306e\u8868", "dragon", "\u8a00\u8a9e\u306e\u5207\u308a\u66ff\u3048"]
 for name, words in (("README.md", en), ("docs/how-it-works.md", en), ("README.ja.md", ja), ("docs/how-it-works.ja.md", ja)):
     text = open("%s/%s" % (root, name), encoding="utf-8").read()
     problems += ["%s does not name %s" % (name, w.encode("unicode_escape").decode()) for w in words if w not in text]

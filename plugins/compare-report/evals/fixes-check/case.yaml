@@ -35,4 +35,4 @@ graders:
   - name: build-table-has-rationale
     type: regex
     target: {source: file, path: reports/ssg-2026-11-10/report.html}
-    pattern: 'id="axis-build"[^>]*>(?:(?!</section>)[\s\S])*<th class="rationale"'
+    pattern: 'id="axis-build"[^>]*>(?:(?!</section>)[\s\S])*<th\b[^>]*\bclass="rationale"'

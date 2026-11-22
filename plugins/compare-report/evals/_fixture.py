@@ -64,14 +64,28 @@ def score(letter):
     return '<span class="score %s">%s</span>' % (letter, letter.upper())
 
 
+def candidate_key(name):
+    return name.lower()
+
+
 def axis(section_id, title, column, rows, rationale=True):
-    head = "<tr><th>Candidate</th><th class=\"num\">%s</th><th class=\"center\">Score</th>%s</tr>" % (
-        column, '<th class="rationale">Rationale</th>' if rationale else "")
-    body = "".join("<tr><td>%s</td><td class=\"num\">%s</td><td class=\"center\">%s</td>%s</tr>" % (
-        name, value, score(letter), "<td class=\"rationale\">%s</td>" % why if rationale else "")
+    head = ('<tr><th scope="col">Candidate</th><th scope="col" class="num">%s</th><th scope="col" class="center">Score</th>%s</tr>'
+            % (column, '<th scope="col" class="rationale">Rationale</th>' if rationale else ""))
+    body = "".join('<tr data-candidate="%s"><th scope="row">%s</th><td class="num">%s</td><td class="center">%s</td>%s</tr>' % (
+        candidate_key(name), name, value, score(letter), '<td class="rationale">%s</td>' % why if rationale else "")
         for name, value, letter, why in rows)
     return ('<section id="%s" class="chapter axis"><h2>%s</h2>'
-            '<table><thead>%s</thead><tbody>%s</tbody></table></section>') % (section_id, title, head, body)
+            '<div class="table-wrap"><table><caption>%s by candidate</caption><thead>%s</thead><tbody>%s</tbody></table></div></section>'
+            ) % (section_id, title, title, head, body)
+
+
+def card(name):
+    return ('<li class="card" data-candidate="%s"><h3>%s</h3><p class="summary">A static site generator.</p><dl>'
+            '<dt data-t="fieldType">Type</dt><dd><span class="tag t1">Generator</span></dd>'
+            '<dt data-t="fieldUsers">Used by</dt><dd>Documentation teams</dd>'
+            '<dt data-t="fieldStrength">Strength</dt><dd>See the axes below</dd>'
+            '<dt data-t="fieldWeakness">Weakness</dt><dd>See the risks below</dd></dl>'
+            '<p>A static site generator compared for the product docs.</p></li>') % (candidate_key(name), name)
 
 
 def report(broken=False):
@@ -84,37 +98,40 @@ def report(broken=False):
         "TITLE": "Static site generators for the product docs",
         "EYEBROW": "Comparison report",
         "SUBTITLE": "Quarry, Lumen, and Brisk compared on build speed and maintenance for the product docs.",
-        "STATS": "<div><dt>Candidates</dt><dd>3</dd></div><div><dt>Axes</dt><dd>2</dd></div><div><dt>Sources</dt><dd>6</dd></div>",
+        "CANDIDATE_COUNT": "3",
+        "AXIS_COUNT": "2",
+        "SOURCE_COUNT": "6",
         "DATE": "2026-11-10",
         "AUTHOR": "",
-        "CONTENTS_HEADING": "Contents",
         "TOC": "".join('<li><a href="#%s">%s</a></li>' % pair for pair in (
             ("summary", "Summary"), ("candidates", "Candidates"), ("axis-build", "Build speed"),
             ("axis-maintenance", "Maintenance"), ("risks", "Risks"), ("ranking", "Ranking"), ("sources", "Sources"))),
         "SUMMARY": "<h2>Summary</h2><p>Quarry builds fastest and is released most often, so it is the first choice.</p>",
-        "CANDIDATES": "<h2>Candidates</h2>" + "".join(
-            '<div class="card"><h3>%s</h3><p>A static site generator.</p></div>' % c[0] for c in CANDIDATES),
+        "CANDIDATES": '<h2>Candidates</h2><ul class="cards">' + "".join(card(c[0]) for c in CANDIDATES) + "</ul>",
         "AXES": axis("axis-build", "Build speed", "Build time", build, rationale=not broken)
                 + axis("axis-maintenance", "Maintenance", "Releases", upkeep),
-        "RISKS": ('<h2>Risks</h2><table><thead><tr><th>Candidate</th><th>Risk</th><th>Severity</th>'
-                  '<th class="rationale">Rationale</th></tr></thead><tbody>'
-                  '<tr><td>Brisk</td><td>Few releases</td><td><span class="risk medium">Medium</span></td>'
-                  '<td class="rationale">2 releases in the last 12 months</td></tr></tbody></table>'),
-        "RANKING": ('<h2>Ranking</h2><table><thead><tr><th>Candidate</th><th>Build speed</th><th>Maintenance</th>'
-                    '<th class="rationale">Rationale</th></tr></thead><tbody>'
-                    + "".join("<tr><td>%s</td><td>%s</td><td>%s</td><td class=\"rationale\">Scores on both axes</td></tr>"
-                              % (n, score(s), score(m)) for n, _, s, _, m, _ in CANDIDATES)
-                    + "</tbody></table><table><thead><tr><th>Recommendation</th><th>Candidate</th>"
-                      "<th>When it is the right pick</th></tr></thead><tbody>"
-                      "<tr><td>First choice</td><td>Quarry</td><td>For most docs sites</td></tr>"
-                      "<tr><td>Alternative</td><td>Lumen</td><td>When hosted previews matter</td></tr>"
-                      "<tr><td>Fallback</td><td>Brisk</td><td>When the other two cannot be used</td></tr>"
-                      "</tbody></table>"),
-        "SOURCES": "<h2>Sources</h2><ol>" + "".join(
-            '<li><a href="%s/benchmarks">%s benchmark</a>, read 2026-11-10</li>'
-            '<li><a href="%s/changelog">%s releases</a>, read 2026-11-10</li>' % (host, n, host, n)
+        "RISKS": ('<h2>Risks</h2><div class="table-wrap"><table><caption>Risks by candidate</caption><thead><tr>'
+                  '<th scope="col">Candidate</th><th scope="col">Risk</th><th scope="col">Severity</th>'
+                  '<th scope="col" class="rationale">Rationale</th></tr></thead><tbody>'
+                  '<tr data-candidate="brisk"><th scope="row">Brisk</th><td>Few releases</td><td><span class="risk medium">Medium</span></td>'
+                  '<td class="rationale">2 releases in the last 12 months</td></tr></tbody></table></div>'),
+        "RANKING": ('<h2>Ranking</h2><div class="table-wrap"><table><caption>Scores on every axis</caption><thead><tr>'
+                    '<th scope="col">Candidate</th><th scope="col">Build speed</th><th scope="col">Maintenance</th>'
+                    '<th scope="col" class="rationale">Rationale</th></tr></thead><tbody>'
+                    + "".join('<tr data-candidate="%s"><th scope="row">%s</th><td>%s</td><td>%s</td><td class="rationale">Scores on both axes</td></tr>'
+                              % (candidate_key(n), n, score(s), score(m)) for n, _, s, _, m, _ in CANDIDATES)
+                    + '</tbody></table></div><div class="table-wrap"><table><caption>Recommendation</caption><thead><tr>'
+                      '<th scope="col">Recommendation</th><th scope="col">Candidate</th>'
+                      '<th scope="col">When it is the right pick</th></tr></thead><tbody>'
+                      '<tr><th scope="row">First choice</th><td>Quarry</td><td>For most docs sites</td></tr>'
+                      '<tr><th scope="row">Alternative</th><td>Lumen</td><td>When hosted previews matter</td></tr>'
+                      '<tr><th scope="row">Fallback</th><td>Brisk</td><td>When the other two cannot be used</td></tr>'
+                      "</tbody></table></div>"),
+        "SOURCES": '<h2>Sources</h2><ol class="sources">' + "".join(
+            '<li><a href="%s/benchmarks">%s benchmark</a> <span class="accessed">read 2026-11-10</span></li>'
+            '<li><a href="%s/changelog">%s releases</a> <span class="accessed">read 2026-11-10</span></li>' % (host, n, host, n)
             for n, _, _, _, _, host in CANDIDATES) + "</ol>",
-        "FOOTER": "2026-11-10. This report reflects public information on that date.",
+        "FOOTER": "This report reflects public information on the research date.",
     }
     if broken:
         del values["FOOTER"]

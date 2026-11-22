@@ -15,7 +15,7 @@
   const txt = (el) => (el ? el.textContent.replace(/\s+/g, " ").trim() : "");
   const own = (el) => { const c = el.cloneNode(true); c.querySelectorAll("svg, [aria-hidden='true']").forEach((x) => x.remove()); return txt(c); };
   const named = (el) => (el ? el.getAttribute("aria-label") || own(el) : "");
-  const japanese = (s) => /[぀-ヿ㐀-鿿]/.test(s || "");
+  const japanese = (s) => /[\u3040-\u30ff\u3400-\u9fff]/.test(s || "");
   const rgb = (c) => { const m = /rgba?\(([^)]+)\)/.exec(c || ""); if (!m) return null; const p = m[1].split(/[\s,/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
   const lum = (c) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
   const blend = (top, base) => ({ r: top.r * top.a + base.r * (1 - top.a), g: top.g * top.a + base.g * (1 - top.a), b: top.b * top.a + base.b * (1 - top.a), a: 1 });
@@ -348,20 +348,21 @@
     out.region = null;
     if (sc) {
       const w = sc.parentElement, lab = w.getAttribute("aria-labelledby"), th = $(":scope > tbody > tr > th", sc);
-      w.scrollLeft = 0;
-      await tick(60);
+      // A browser run with --dump-dom draws no frames, so it never fires the scroll event that a reader's
+      // scrolling fires; the probe fires it after each scroll, as the next frame would.
+      const scrollTo = async (left) => { w.scrollLeft = left; w.dispatchEvent(new Event("scroll")); await tick(60); };
+      await scrollTo(0);
       const start = { shadow: css(w, "box-shadow"), image: css(w, "background-image") };
       w.focus();
       await tick(30);
       const ring = { outline: css(w, "outline-style"), width: parseFloat(css(w, "outline-width")) || 0, shadow: css(w, "box-shadow"), focused: document.activeElement === w };
       w.blur();
-      w.scrollLeft = w.scrollWidth;
-      await tick(60);
+      await scrollTo(w.scrollWidth);
       const end = { shadow: css(w, "box-shadow"), image: css(w, "background-image") };
       out.region = { role: w.getAttribute("role"), tabindex: w.getAttribute("tabindex"), labelledby: lab, label: lab && document.getElementById(lab) ? txt(document.getElementById(lab)) : "",
         caption: txt($(":scope > caption", sc)), scrolls: w.scrollWidth > w.clientWidth + 1, start: start, end: end, ring: ring,
         sticky: th ? { position: css(th, "position"), gap: box(th).left - box(w).left - (parseFloat(css(w, "border-left-width")) || 0) } : null };
-      w.scrollLeft = 0;
+      await scrollTo(0);
     }
   }
 
