@@ -1,7 +1,7 @@
 {
   "name": "slides",
   "displayName": "Slides",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Write and check the outline of a deck of ten or more slides, and design a short presentation as HTML that you edit in the browser and export as PowerPoint, PDF, and HTML",
   "author": {
     "name": "cardene777",
