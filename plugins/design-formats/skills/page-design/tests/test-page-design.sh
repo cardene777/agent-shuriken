@@ -861,6 +861,247 @@ changelogs() {
 }
 check "the changelogs name page-design" changelogs
 
+# The theme file. Every run gets a throwaway HOME and a throwaway repository, so the user's own
+# ~/.design-theme.json is never read.
+THEME_DOC="$SKILL_DIR/formats/theme.md"
+
+# theme_in <repository> <home> <args>...: runs page-design.py theme from inside the repository.
+theme_in() { (cd "$1" && HOME="$2" python3 "$SCRIPT" theme "${@:3}"); }
+
+# theme_place <name>: makes $T/theme-<name>/repo (a git repository) and $T/theme-<name>/home.
+theme_place() {
+  mkdir -p "$T/theme-$1/home" "$T/theme-$1/repo"
+  git -C "$T/theme-$1/repo" init -q
+}
+
+# defaults_of <file>: prints theme --defaults of a page as JSON, from a place with no theme file.
+defaults_of() {
+  theme_place defaults
+  theme_in "$T/theme-defaults/repo" "$T/theme-defaults/home" --defaults "$1"
+}
+
+# json_get <json> <key>...: prints the value at the keys, or nothing.
+json_get() {
+  python3 -c 'import json, sys
+v = json.loads(sys.argv[1])
+for k in sys.argv[2:]:
+    v = v.get(k) if isinstance(v, dict) else None
+print("" if v is None else v)' "$@"
+}
+
+theme_defaults() {
+  local t out
+  for t in "${TYPES[@]}"; do
+    out="$(defaults_of "$SKILL_DIR/templates/$t.html" 2>&1)" || { echo "      $t: $out" | head -3; return 1; }
+    python3 - "$t" "$out" <<'PYEOF' || return 1
+import json, sys
+name, data = sys.argv[1], json.loads(sys.argv[2])
+want = {"font": {"sans", "mono", "size", "line-height"}, "space": {"page-width", "radius-small", "radius", "radius-large"}}
+colors = {"bg", "surface", "ink", "sub", "line", "accent", "accent-ink", "accent-soft", "label"}
+problems = []
+if set(data) != {"light", "dark", "font", "space"}:
+    problems.append("top keys %s" % sorted(data))
+for group, keys in want.items():
+    if set(data.get(group, {})) != keys:
+        problems.append("%s keys %s" % (group, sorted(data.get(group, {}))))
+for side in ("light", "dark"):
+    if not colors <= set(data.get(side, {})):
+        problems.append("%s lacks %s" % (side, sorted(colors - set(data.get(side, {})))))
+if problems:
+    print("      %s: %s" % (name, "; ".join(problems)))
+    sys.exit(1)
+PYEOF
+  done
+  out="$(defaults_of "$SKILL_DIR/templates/report.html")"
+  [ "$(json_get "$out" light accent)" = "#2a5bd7" ] && [ "$(json_get "$out" dark accent)" = "#7d9cff" ] \
+    && [ "$(json_get "$out" font size)" = 15 ] && [ "$(json_get "$out" font line-height)" = 1.7 ] \
+    && [ "$(json_get "$out" space page-width)" = 1200 ] && [ "$(json_get "$out" space radius-small)" = 8 ] \
+    && [ "$(json_get "$out" space radius)" = 10 ] && [ "$(json_get "$out" space radius-large)" = 12 ] \
+    || { echo "      the report defaults differ from the report template: $out" | cut -c1-300; return 1; }
+  out="$(defaults_of "$SKILL_DIR/templates/document.html")"
+  [ "$(json_get "$out" font size)" = 16 ] && [ "$(json_get "$out" font line-height)" = 1.8 ] \
+    && [ "$(json_get "$out" space page-width)" = 820 ] || { echo "      the document defaults differ from the document template"; return 1; }
+  out="$(defaults_of "$SKILL_DIR/templates/choice.html")"
+  [ "$(json_get "$out" space page-width)" = 1240 ] || { echo "      the choice page width is not 1240"; return 1; }
+}
+check "theme --defaults prints every key of a template with its value" theme_defaults
+
+theme_format() {
+  local t
+  [ -f "$THEME_DOC" ] || { echo "      missing formats/theme.md"; return 1; }
+  for t in "${TYPES[@]}"; do
+    defaults_of "$SKILL_DIR/templates/$t.html" > "$T/theme-defaults-$t.json" 2>/dev/null || return 1
+  done
+  python3 - "$THEME_DOC" "$T" <<'PYEOF'
+import json, os, re, sys
+doc, tmp = sys.argv[1], sys.argv[2]
+rows = {}
+for line in open(doc, encoding="utf-8"):
+    cells = [c.strip() for c in line.strip().strip("|").split("|")]
+    if len(cells) == 6 and cells[0].startswith("`"):
+        rows[cells[0].strip("`")] = cells[1:]
+problems = []
+for i, t in enumerate(("report", "sheet", "document", "choice")):
+    data = json.load(open(os.path.join(tmp, "theme-defaults-%s.json" % t), encoding="utf-8"))
+    for group, values in data.items():
+        for key, value in values.items():
+            row = rows.get("%s.%s" % (group, key))
+            if row is None:
+                problems.append("no row for %s.%s" % (group, key))
+            elif row[1 + i].strip("`") != str(value):
+                problems.append("%s.%s in %s is %s, the table says %s" % (group, key, t, value, row[1 + i]))
+if problems:
+    print("      " + "; ".join(sorted(set(problems))[:5]))
+    sys.exit(1)
+PYEOF
+}
+check "the theme format lists every key, its type, and the defaults theme --defaults prints" theme_format
+
+# theme_page_in <place> <type>: copies a template into the place as page.html.
+theme_page_in() { cp "$SKILL_DIR/templates/$2.html" "$T/theme-$1/repo/page.html"; }
+
+theme_home_applied() {
+  local out
+  theme_place home
+  theme_page_in home report
+  printf '%s\n' '{"light": {"accent": "#112233"}, "dark": {"accent": "#445566"}, "font": {"size": 17}, "space": {"radius": 4}}' \
+    > "$T/theme-home/home/.design-theme.json"
+  theme_in "$T/theme-home/repo" "$T/theme-home/home" page.html > "$T/theme-home.out" 2>&1 || { sed 's/^/      /' "$T/theme-home.out"; return 1; }
+  out="$(defaults_of "$T/theme-home/repo/page.html")"
+  [ "$(json_get "$out" light accent)" = "#112233" ] && [ "$(json_get "$out" dark accent)" = "#445566" ] \
+    && [ "$(json_get "$out" font size)" = 17 ] && [ "$(json_get "$out" space radius)" = 4 ] || { echo "      not applied: $out" | cut -c1-300; return 1; }
+  # The dark colors live in two blocks: the system dark mode and the dark choice.
+  [ "$(grep -c -- '--accent: #445566' "$T/theme-home/repo/page.html")" = 2 ] || { echo "      the dark accent is not in both dark blocks"; return 1; }
+}
+check "theme applies the home theme to a page" theme_home_applied
+
+theme_repo_wins() {
+  local out
+  theme_place wins
+  theme_page_in wins report
+  printf '%s\n' '{"light": {"accent": "#112233"}}' > "$T/theme-wins/home/.design-theme.json"
+  printf '%s\n' '{"light": {"accent": "#998877"}}' > "$T/theme-wins/repo/.design-theme.json"
+  mkdir -p "$T/theme-wins/repo/sub"
+  mv "$T/theme-wins/repo/page.html" "$T/theme-wins/repo/sub/page.html"
+  theme_in "$T/theme-wins/repo/sub" "$T/theme-wins/home" page.html > /dev/null 2>&1 || return 1
+  out="$(defaults_of "$T/theme-wins/repo/sub/page.html")"
+  [ "$(json_get "$out" light accent)" = "#998877" ] || { echo "      light accent is $(json_get "$out" light accent)"; return 1; }
+}
+check "a repository theme wins over the home theme" theme_repo_wins
+
+theme_keeps_others() {
+  local before after
+  theme_place keep
+  theme_page_in keep sheet
+  before="$(defaults_of "$T/theme-keep/repo/page.html")"
+  printf '%s\n' '{"light": {"accent": "#112233"}}' > "$T/theme-keep/home/.design-theme.json"
+  theme_in "$T/theme-keep/repo" "$T/theme-keep/home" page.html > /dev/null 2>&1 || return 1
+  after="$(defaults_of "$T/theme-keep/repo/page.html")"
+  python3 - "$before" "$after" <<'PYEOF'
+import json, sys
+before, after = json.loads(sys.argv[1]), json.loads(sys.argv[2])
+before["light"]["accent"] = "#112233"
+if before != after:
+    changed = [(g, k) for g in before for k in before[g] if before[g][k] != after.get(g, {}).get(k)]
+    print("      changed besides light.accent: %s" % changed[:5])
+    sys.exit(1)
+PYEOF
+}
+check "keys a theme leaves out keep the page's values" theme_keeps_others
+
+theme_without_file() {
+  theme_place none
+  theme_page_in none choice
+  theme_in "$T/theme-none/repo" "$T/theme-none/home" page.html > "$T/theme-none.out" 2>&1 || return 1
+  cmp -s "$SKILL_DIR/templates/choice.html" "$T/theme-none/repo/page.html" || { echo "      the page changed"; return 1; }
+}
+check "theme leaves a page unchanged without a theme file" theme_without_file
+
+theme_refuses() {
+  local bad name rc
+  theme_place bad
+  for bad in '{"light": {"acent": "#ffffff"}}|light.acent' '{"light": {"accent": "blue;}"}}|light.accent' \
+    '{"space": {"radius": "big"}}|space.radius' '{"colour": {}}|colour'; do
+    name="${bad##*|}"
+    theme_page_in bad document
+    printf '%s\n' "${bad%|*}" > "$T/theme-bad/home/.design-theme.json"
+    theme_in "$T/theme-bad/repo" "$T/theme-bad/home" page.html > "$T/theme-bad.out" 2>&1
+    rc=$?
+    [ "$rc" = 2 ] && grep -qF -- "$name" "$T/theme-bad.out" || { echo "      $name: exit $rc, $(head -1 "$T/theme-bad.out")"; return 1; }
+    cmp -s "$SKILL_DIR/templates/document.html" "$T/theme-bad/repo/page.html" || { echo "      $name: the page changed"; return 1; }
+  done
+}
+check "theme refuses a theme file with an unknown key or a bad value" theme_refuses
+
+templates_take_tokens() {
+  python3 - "$SKILL_DIR/templates" <<'PYEOF'
+import os, re, sys
+folder = sys.argv[1]
+want = {"report": ("15px", "1.7", "1200px"), "sheet": ("15px", "1.7", "1200px"),
+        "document": ("16px", "1.8", "820px"), "choice": ("15px", "1.7", "1240px")}
+problems = []
+for name, (size, height, width) in want.items():
+    text = open(os.path.join(folder, name + ".html"), encoding="utf-8").read()
+    root = re.search(r":root\s*\{([^}]*)\}", text)
+    block = root.group(1) if root else ""
+    tokens = dict(re.findall(r"--([a-z-]+):\s*([^;]+);", block))
+    expect = {"text-size": size, "line-height": height, "page-width": width,
+              "radius-small": "8px", "radius": "10px", "radius-large": "12px"}
+    for key, value in expect.items():
+        if tokens.get(key, "").strip() != value:
+            problems.append("%s --%s is %r" % (name, key, tokens.get(key)))
+    if "font: var(--text-size)/var(--line-height) var(--sans)" not in text:
+        problems.append("%s body font does not use the tokens" % name)
+    if re.search(r"border-radius:\s*(8|10|12)px", text):
+        problems.append("%s keeps a radius of 8, 10, or 12px" % name)
+    if re.search(r"max-width:\s*%s" % re.escape(width), text):
+        problems.append("%s keeps the page width %s" % (name, width))
+if problems:
+    print("      " + "; ".join(problems[:6]))
+    sys.exit(1)
+PYEOF
+}
+check "the templates take text size, page width, and corners from tokens with today's values" templates_take_tokens
+
+themed_verify() {
+  local t
+  theme_place verify
+  printf '%s\n' '{"light": {"bg": "#fafaf7", "surface": "#ffffff", "ink": "#111111", "sub": "#444444", "line": "#dddddd", "accent": "#0b6e4f", "accent-ink": "#ffffff", "accent-soft": "#e3f2ec", "bar": "#eeeeee", "label": "#f2f2f2"}, "dark": {"bg": "#101312", "surface": "#181c1a", "ink": "#eeeeee", "sub": "#b0b8b4", "line": "#2c3330", "accent": "#5fd0a5", "accent-ink": "#0b1410", "accent-soft": "#1b3a2f", "bar": "#232a27", "label": "#1f2523"}, "font": {"sans": "\"Inter\", sans-serif", "mono": "\"JetBrains Mono\", monospace", "size": 16, "line-height": 1.75}, "space": {"page-width": 1100, "radius-small": 4, "radius": 6, "radius-large": 8}}' \
+    > "$T/theme-verify/home/.design-theme.json"
+  for t in "${TYPES[@]}"; do
+    theme_page_in verify "$t"
+    theme_in "$T/theme-verify/repo" "$T/theme-verify/home" page.html > /dev/null 2>&1 || { echo "      theme failed on $t"; return 1; }
+    run verify --source "$T/theme-verify/repo/page.html" > "$T/theme-verify-$t.out" 2>&1 || { echo "      $t:"; sed 's/^/      /' "$T/theme-verify-$t.out" | head -3; return 1; }
+  done
+}
+check "a themed page passes verify" themed_verify
+
+theme_provided() {
+  python3 - "$DECLARATION" <<'PYEOF'
+import json, sys
+provides = json.load(open(sys.argv[1], encoding="utf-8")).get("provides", {})
+entry = provides.get("theme", {})
+if entry.get("file") != "formats/theme.md" or not entry.get("version"):
+    print("      musubi.json provides theme as %s" % json.dumps(entry))
+    sys.exit(1)
+PYEOF
+}
+check "page-design provides the theme format in musubi.json" theme_provided
+
+skill_theme() {
+  has "$SKILL" 'theme <page>' '`.design-theme.json` at the root of the repository' '`~/.design-theme.json`'
+}
+check "the SKILL.md says to apply the user's theme to a page" skill_theme
+
+readme_theme() {
+  local f
+  for f in "$PLUGIN/README.md" "$PLUGIN/README.ja.md"; do
+    has "$f" '~/.design-theme.json' '.design-theme.json' '"light"' '"dark"' '"accent-soft"' '"line-height"' \
+      '"page-width"' '"radius-large"' || return 1
+  done
+}
+check "the READMEs show where to place a theme and a full example" readme_theme
+
 repo_checks() { bash "$REPO/scripts/check.sh" > "$T/check.out" 2>&1 || { tail -5 "$T/check.out" | sed 's/^/      /'; return 1; }; }
 check "the repository checks pass" repo_checks
 
