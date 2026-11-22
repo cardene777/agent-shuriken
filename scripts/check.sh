@@ -43,6 +43,8 @@ JA_ALLOWED=(
   plugins/docs-publish/evals/_japanese.json
   plugins/excalidraw-diagram/skills/excalidraw-diagram/tests/test-excalidraw-diagram.sh
   plugins/techdebt/skills/techdebt/templates/base.html
+  plugins/screen-video/skills/screen-video/scripts/lib/flow.mjs
+  plugins/screen-video/skills/screen-video/templates/storyboard.html
   plugins/techdebt/skills/techdebt/tests/test-techdebt.sh
   plugins/japanese-speaking/README.md
   plugins/japanese-speaking/skills/japanese-speaking/SKILL.md

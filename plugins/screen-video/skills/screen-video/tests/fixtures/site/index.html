@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sample Shop</title>
+<style>
+  body { margin: 0; font: 20px/1.5 system-ui, sans-serif; background: #f7f7f5; color: #1d2733; }
+  header { height: 72px; display: flex; align-items: center; padding: 0 40px; background: #1d2733; color: #fff; font-weight: 700; }
+  main { padding: 40px; }
+  label { display: block; margin-bottom: 8px; }
+  input { font: inherit; padding: 8px 12px; width: 360px; }
+  button { font: inherit; padding: 10px 20px; margin-top: 16px; border-radius: 8px; border: 1px solid #1d2733; background: #fff; cursor: pointer; }
+  #created, #paid { margin-top: 16px; font-weight: 700; }
+  /* Two lines of the same size and length at fixed places, one masked by the flow and one not. */
+  .private, .public { position: absolute; left: 1200px; margin: 0; font: 600 34px/1 monospace; }
+  .private { top: 200px; }
+  .public { top: 320px; }
+</style>
+</head>
+<body>
+<header>Sample Shop</header>
+<main>
+  <label for="name">Project name</label>
+  <input id="name" type="text">
+  <div><button id="create" type="button">Create project</button></div>
+  <p id="created" hidden>Project created</p>
+  <div><button id="pay" type="button">Pay now</button></div>
+  <p id="paid" hidden>Paid</p>
+  <p><a href="/settings.html">Settings</a></p>
+</main>
+<p class="private">jane.doe@example.com</p>
+<p class="public">open.box@example.org</p>
+<script>
+  document.getElementById("create").addEventListener("click", () => {
+    setTimeout(() => { document.getElementById("created").hidden = false; }, 300);
+  });
+  document.getElementById("pay").addEventListener("click", async () => {
+    await fetch("/api/pay", { method: "POST" });
+    document.getElementById("paid").hidden = false;
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}} - storyboard</title>
+<style>
+  :root {
+    --bg: #f6f6f3; --surface: #ffffff; --text: #1d2733; --muted: #5b6673; --line: #dfe2e6;
+    --ok: #1f7a53; --ok-bg: #e5f4ec; --missing: #b42318; --missing-bg: #fdeceb; --skipped: #8a6100; --skipped-bg: #fff5d6;
+    --mark: #9a3412; --mark-bg: #ffedd5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12161b; --surface: #1b2129; --text: #e7ebef; --muted: #a2adb9; --line: #2d3540;
+      --ok: #6fd3a3; --ok-bg: #163126; --missing: #ff8a80; --missing-bg: #3a1a18; --skipped: #f0c35c; --skipped-bg: #33290f;
+      --mark: #fdba74; --mark-bg: #3b2414;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif; }
+  header { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 16px; padding: 14px 24px; background: var(--surface); border-bottom: 1px solid var(--line); }
+  header h1 { margin: 0; font-size: 20px; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .lang { display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+  .lang button { border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 14px; padding: 6px 14px; cursor: pointer; }
+  .lang button[aria-pressed="true"] { background: var(--text); color: var(--surface); }
+  main { max-width: 1280px; margin: 0 auto; padding: 24px 16px 64px; }
+  .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .summary div { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; }
+  .summary dt { font-size: 13px; color: var(--muted); }
+  .summary dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+  .notice { background: var(--mark-bg); color: var(--mark); border-radius: 12px; padding: 12px 16px; margin-bottom: 24px; }
+  .notice ul { margin: 6px 0 0; padding-left: 20px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px; }
+  @media (max-width: 420px) { .cards { grid-template-columns: 1fr; } }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
+  .card figure { margin: 0; aspect-ratio: 16 / 9; background: var(--bg); border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: center; }
+  .card figure img { width: 100%; height: 100%; object-fit: contain; display: block; cursor: zoom-in; }
+  .card figure span { color: var(--muted); font-size: 14px; padding: 16px; text-align: center; }
+  .card .body { padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 6px; }
+  .top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .no { font-weight: 700; }
+  .badge { font-size: 12px; font-weight: 600; border-radius: 999px; padding: 2px 10px; }
+  .card[data-status="ok"] .state { background: var(--ok-bg); color: var(--ok); }
+  .card[data-status="missing"] .state { background: var(--missing-bg); color: var(--missing); }
+  .card[data-status="skipped"] .state { background: var(--skipped-bg); color: var(--skipped); }
+  .effect { background: var(--mark-bg); color: var(--mark); }
+  .action { color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
+  .caption { font-size: 17px; font-weight: 600; overflow-wrap: anywhere; }
+  .caption.none { color: var(--muted); font-weight: 400; font-size: 14px; }
+  .why { font-size: 14px; color: var(--muted); overflow-wrap: anywhere; }
+  dialog { border: 0; padding: 0; background: transparent; max-width: 96vw; }
+  dialog::backdrop { background: rgba(0, 0, 0, .75); }
+  dialog img { max-width: 96vw; max-height: 92vh; display: block; border-radius: 8px; }
+  footer { color: var(--muted); font-size: 13px; margin-top: 32px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>{{TITLE}}</h1>
+  <div class="lang" role="group" aria-label="Language">
+    <button type="button" data-lang="en" aria-pressed="true">English</button>
+    <button type="button" data-lang="ja" aria-pressed="false">日本語</button>
+  </div>
+</header>
+<main>
+  {{SUMMARY}}
+  {{NOTICE}}
+  <section class="cards">
+    {{CARDS}}
+  </section>
+  <footer><span data-i18n="generated">Rehearsed without recording at</span> {{GENERATED}}</footer>
+</main>
+<dialog id="zoom"><img alt=""></dialog>
+<script>
+  const STRINGS = {
+    en: {
+      purpose: "What it is for", audience: "Who watches it", length: "Length", outputs: "Videos", start: "Starts at",
+      ok: "Rehearsed", missing: "Failed", skipped: "Not rehearsed", sends: "Sends something", pays: "Pays",
+      noCaption: "No caption", noFrame: "No picture: this step was not rehearsed",
+      marked: "These steps send something or pay each time the video is recorded. The rehearsal stopped before the first one.",
+      generated: "Rehearsed without recording at", step: "Step",
+    },
+    ja: {
+      purpose: "目的", audience: "見る人", length: "長さ", outputs: "作る動画", start: "始まりの頁",
+      ok: "通した", missing: "失敗", skipped: "通していない", sends: "送信する", pays: "支払う",
+      noCaption: "字幕なし", noFrame: "画なし。この操作は通していない",
+      marked: "次の操作は、撮るたびに送信か支払いが起きる。通しは最初の1つの手前で止めた。",
+      generated: "録画せずに通した日時", step: "操作",
+    },
+  };
+  function setLanguage(lang) {
+    document.documentElement.lang = lang;
+    document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = STRINGS[lang][el.dataset.i18n]; });
+    document.querySelectorAll(".lang button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
+    try { localStorage.setItem("screen-video-lang", lang); } catch (e) { /* storage may be blocked */ }
+  }
+  document.querySelectorAll(".lang button").forEach((b) => b.addEventListener("click", () => setLanguage(b.dataset.lang)));
+  try { const saved = localStorage.getItem("screen-video-lang"); if (saved && STRINGS[saved]) setLanguage(saved); } catch (e) { /* storage may be blocked */ }
+  const zoom = document.getElementById("zoom");
+  document.querySelectorAll(".card img").forEach((img) => img.addEventListener("click", () => { zoom.querySelector("img").src = img.src; zoom.showModal(); }));
+  zoom.addEventListener("click", () => zoom.close());
+</script>
+</body>
+</html>
