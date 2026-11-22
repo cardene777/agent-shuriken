@@ -399,7 +399,7 @@ notices_name_source_and_license() {
 }
 
 check "the plugin holds one skill of its name" holds_one_skill
-check "no file names the author's PC, products, or other repositories" no_local_names
+check "no file names a local folder or another repository" no_local_names
 check "the SKILL.md names no agent or its tool" no_agent_names
 check "the plugin ships no official document or page image" ships_no_official_document
 check "the manifest lists official files with fingerprints" manifest_has_fingerprints
