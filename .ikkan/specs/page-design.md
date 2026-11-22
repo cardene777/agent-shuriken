@@ -57,3 +57,12 @@
 | 従う側のスキルと`page-design`が、新しい規則の検査を足した`page-design`のテストを含めて自分のテストを通す | `bash plugins/design-formats/skills/page-design/tests/test-followers.sh`の検査`"the followers and page-design keep passing their own tests"`が通る | #312 |
 | 変えたpluginが`CHANGELOG.md`の`## [Unreleased]`に変更を書く | `bash plugins/design-formats/skills/page-design/tests/test-followers.sh`の検査`"the changed plugins note the change under Unreleased"`が通る | #312 |
 | repoの検査が通る | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"the repository checks pass"`が通る | #312 |
+| 300文字を超えるスクリプトの文字列が数を持つ3つ以上の項目をカンマで繋ぐ時、`verify`がその行を`facts-in-one-line`で名指して終わり方1を返す | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"verify refuses a long script string that joins facts in one line"`が通る | #296 |
+| 数を持つ項目を繋ぐスクリプトの文字列が`\n`や`\"`のエスケープを含む時、`verify`がエスケープを解いた文でその行を名指す | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"verify refuses a script string with escapes that joins facts in one line"`が通る | #296 |
+| 300文字以下のスクリプトの文字列が数を持つ項目を繋ぐ時、`verify`が今どおりその行を名指す | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"verify still refuses a short script string that joins facts in one line"`が通る | #296 |
+| 長いスクリプトの文字列でも、印か式を組み立てる文字列を`verify`は検査しない | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"verify skips a long script string that builds markup"`が通る | #296 |
+| 数を持つ項目を繋がない長いスクリプトの文字列を、`verify`が通す | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"verify accepts a long script string of prose"`が通る | #296 |
+| design-formatsの仕組みの説明の英語と日本語と変更履歴が、`verify`がスクリプトの文字列を長さによらず、エスケープを解いて読むことを書く | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"the docs say verify reads script strings of any length"`が通る | #296 |
+| 300文字を超え、数を持つ3つ以上の項目を繋いだ注記を`explain`に渡した後、`report.html`に回した`verify`がその注記の行を`facts-in-one-line`で名指す | `bash plugins/techdebt/skills/techdebt/tests/test-techdebt.sh`の検査`"verify on report.html names a long note that joins facts in one line"`が通る | #296 |
+| 300文字以下の同じ形の注記を、`report.html`に回した`verify`が今どおり名指す | `bash plugins/techdebt/skills/techdebt/tests/test-techdebt.sh`の検査`"verify on report.html names a short note that joins facts in one line"`が通る | #296 |
+| 数を繋がない注記だけを持つ`report.html`を、`verify`が通す | `bash plugins/techdebt/skills/techdebt/tests/test-techdebt.sh`の検査`"verify on report.html accepts notes that join no facts"`が通る | #296 |

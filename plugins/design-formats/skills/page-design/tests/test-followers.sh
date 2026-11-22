@@ -316,17 +316,18 @@ releasing_step() {
 }
 check "the releasing pages run musubi check for page-design and its followers" releasing_step
 
-# unreleased <changelog>: the lines between ## [Unreleased] and the next release.
-unreleased() { awk '/^## \[Unreleased\]/{on=1; next} /^## \[/{on=0} on' "$1"; }
+# entries <changelog>: the entries from ## [Unreleased] on. A release moves the entries of
+# Unreleased into its own section, so a plugin released after it followed page-design keeps its line.
+entries() { awk '/^## \[Unreleased\]/{on=1} /^\[Unreleased\]:/{on=0} on' "$1"; }
 
 changelogs() {
   local p bad=0
   for p in design-formats $PLUGINS; do
-    unreleased "$REPO/plugins/$p/CHANGELOG.md" | grep -q 'page-design' || { echo "      plugins/$p/CHANGELOG.md has no Unreleased line on page-design"; bad=1; }
+    entries "$REPO/plugins/$p/CHANGELOG.md" | grep -q 'page-design' || { echo "      plugins/$p/CHANGELOG.md has no entry on page-design"; bad=1; }
   done
   return "$bad"
 }
-check "the changed plugins note the change under Unreleased" changelogs
+check "the changed plugins note the page-design follow in their changelogs" changelogs
 
 own_tests() {
   local t bad=0

@@ -60,7 +60,20 @@ SCRIPT_HEADING = re.compile(r"""\b(\w*(?:title|heading|Title|Heading)\w*)\s*:\s*
 # A heading kept per language, such as title: { en: "...", ja: "..." } in DATA.
 SCRIPT_HEADING_SET = re.compile(r"""\b\w*(?:title|heading|Title|Heading)\w*\s*:\s*\{([^{}]{1,600})\}""")
 QUOTED = re.compile(r"""(["'])((?:(?!\1).){1,200})\1""")
-SCRIPT_STRING = re.compile(r"""(["'`])((?:(?!\1)[^\\\n]){12,300})\1""")
+# A string in a script, of any length from 12 characters, with its escapes, on one line of the source.
+SCRIPT_STRING = re.compile(r"""(["'`])((?:\\.|(?!\1)[^\\\n]){12,})\1""")
+STRING_ESCAPE = re.compile(r"\\(u\{[0-9A-Fa-f]{1,6}\}|u[0-9A-Fa-f]{4}|x[0-9A-Fa-f]{2}|.)")
+ESCAPED_CHARS = {"n": "\n", "r": "\r", "t": "\t"}
+
+
+def unescape(text):
+    """The text of a script string with its escapes read, as `\\n`, `\\"`, and `\\u3001`."""
+    def one(match):
+        code = match.group(1) or ""
+        if code[0] in "ux" and len(code) > 1:
+            return chr(int(code[1:].strip("{}"), 16))
+        return ESCAPED_CHARS.get(code, code)
+    return STRING_ESCAPE.sub(one, text)
 CODE_MARKS = re.compile(r"[<>{}()=;$\[\]]")
 # A Japanese full stop with more text after it on the same line. A full stop right before a closing
 # bracket or quote ends a quoted sentence inside a longer one, so it does not end the line.
@@ -285,9 +298,10 @@ class Page(HTMLParser):
                     self.problem(line_at(text, match.start(), line), "facts-not-table")
             for match in SCRIPT_STRING.finditer(text):
                 # Only strings that read as prose; markup and code built in strings are skipped.
-                if CODE_MARKS.search(match.group(2)):
+                words = unescape(match.group(2))
+                if CODE_MARKS.search(words):
                     continue
-                if facts_in_one_line(match.group(2)):
+                if facts_in_one_line(words):
                     self.problem(line_at(text, match.start(), line), "facts-in-one-line")
         scripts = "\n".join(text for _, text in self.scripts)
         if self.has_html and not self.lang_ok:
