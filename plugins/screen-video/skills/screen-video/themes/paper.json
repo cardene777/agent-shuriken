@@ -1,0 +1,7 @@
+{
+  "background": ["#f5f1e8", "#e4ddcf"],
+  "window": { "radius": 12, "shadow": 0.3, "border": "#1c1917", "borderOpacity": 0.12 },
+  "caption": { "color": "#1c1917", "band": "#ffffff", "opacity": 0.96, "radius": 12, "weight": 500 },
+  "card": { "background": "#fbfaf7", "color": "#1c1917", "muted": "#78716c", "accent": "#c2410c" },
+  "accent": "#c2410c"
+}

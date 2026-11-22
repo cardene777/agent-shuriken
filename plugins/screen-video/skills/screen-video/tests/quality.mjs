@@ -136,7 +136,8 @@ export async function qualityChecks({ check, SHOP_OUT, FFMPEG }) {
   const INSTALLS = join(Q, "installs.log");
   mkdirSync(BIN, { recursive: true });
   writeFileSync(INSTALLS, "");
-  const python = spawnSync("/bin/sh", ["-c", "command -v python3"], { encoding: "utf8", env: { PATH: "/usr/bin:/bin" } }).stdout.trim() || "/usr/bin/python3";
+  // The user's python3 rather than /usr/bin's, which is 3.9 on macOS and too old for VOICEVOX CORE
+  const python = spawnSync("/bin/sh", ["-c", "command -v python3"], { encoding: "utf8", env: { PATH: process.env.PATH ?? "/usr/bin:/bin" } }).stdout.trim() || "/usr/bin/python3";
   const tools = {
     npm: `#!/bin/sh
 echo "npm $*" >> "${INSTALLS}"

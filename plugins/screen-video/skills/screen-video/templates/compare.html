@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}} - before and after</title>
+<style>
+  :root {
+    --bg: #f6f6f3; --surface: #ffffff; --text: #1d2733; --muted: #5b6673; --line: #dfe2e6;
+    --before: #8a6100; --before-bg: #fff5d6; --after: #1f7a53; --after-bg: #e5f4ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12161b; --surface: #1b2129; --text: #e7ebef; --muted: #a2adb9; --line: #2d3540;
+      --before: #f0c35c; --before-bg: #33290f; --after: #6fd3a3; --after-bg: #163126;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif; }
+  header { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 16px; padding: 14px 24px; background: var(--surface); border-bottom: 1px solid var(--line); }
+  header h1 { margin: 0; font-size: 20px; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .lang { display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+  .lang button { border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 14px; padding: 6px 14px; cursor: pointer; }
+  .lang button[aria-pressed="true"] { background: var(--text); color: var(--surface); }
+  main { max-width: 1440px; margin: 0 auto; padding: 24px 16px 64px; display: flex; flex-direction: column; gap: 20px; }
+  .lead { margin: 0; color: var(--muted); }
+  nav { display: flex; flex-wrap: wrap; gap: 8px; }
+  nav a { color: var(--text); text-decoration: none; border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: 14px; background: var(--surface); }
+  section { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 20px 20px; scroll-margin-top: 80px; }
+  section h2 { margin: 0; font-size: 19px; }
+  section p { margin: 4px 0 14px; color: var(--muted); overflow-wrap: anywhere; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px) { .pair { grid-template-columns: 1fr; } }
+  figure { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+  figcaption { align-self: flex-start; font-size: 13px; font-weight: 600; border-radius: 999px; padding: 2px 12px; }
+  .before figcaption { background: var(--before-bg); color: var(--before); }
+  .after figcaption { background: var(--after-bg); color: var(--after); }
+  video { width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 10px; display: block; }
+  .at { font-size: 13px; color: var(--muted); }
+  footer { color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>{{TITLE}}</h1>
+  <div class="lang" role="group" aria-label="Language">
+    <button type="button" data-lang="en" aria-pressed="true">English</button>
+    <button type="button" data-lang="ja" aria-pressed="false">日本語</button>
+  </div>
+</header>
+<main>
+  <p class="lead" data-i18n="lead">Each point shows the plain video and the new one at the moment the point can be seen. Play both and judge which is better.</p>
+  <nav>{{NAV}}</nav>
+  {{SECTIONS}}
+  <footer><span data-i18n="generated">Made at</span> {{GENERATED}}</footer>
+</main>
+<script>
+  const STRINGS = {
+    en: {
+      lead: "Each point shows the plain video and the new one at the moment the point can be seen. Play both and judge which is better.",
+      generated: "Made at", before: "Before", after: "After", from: "from", missing: "This flow has no such moment, so both videos start at the beginning.",
+      zoom: "Zoom and pan", zoomText: "The view closes in on each action and goes back, easing in and out.",
+      pointer: "Pointer", pointerText: "The pointer moves on a gentle curve and slows down near what it clicks.",
+      press: "Press", pressText: "A ring shows where the click lands, and the button sinks in for a moment.",
+      transition: "Page change", transitionText: "One page dissolves into the next instead of cutting.",
+      frame: "Frame", frameText: "The screen sits in a window with rounded corners and a shadow, on the theme's background.",
+      cards: "Title and chapters", cardsText: "A title card opens the video and a card names each chapter.",
+      end: "End card", endText: "The video ends on a card with its closing words, its address, and the credits.",
+      captions: "Captions", captionsText: "Captions fade in and out in the theme's look, below the screen, so they never cover it.",
+      narration: "Narration", narrationText: "Each caption is read aloud.",
+      music: "Music", musicText: "Quiet music plays under the video and goes quieter while the voice speaks.",
+      sounds: "Clicks and typing", soundsText: "Presses and keys make a sound at the moment they happen.",
+      sync: "Caption and voice", syncText: "Each caption stays until its voice has ended.",
+      settled: "Waiting for the page", settledText: "A wait goes on once the page stops changing, so answers of any length are shown whole.",
+      fastforward: "Fast-forward", fastforwardText: "Long waits play fast with a mark instead of being cut.",
+      length: "Length", lengthText: "The video fits the length planned for it.",
+      reading: "Time to read", readingText: "Long captions stay long enough to read.",
+    },
+    ja: {
+      lead: "点ごとに、素の動画と新しい動画を、その点が見える時点から並べている。両方を再生し、どちらが良いかを判断する。",
+      generated: "作った日時", before: "前", after: "後", from: "から", missing: "この流れにはこの場面が無いため、両方とも最初から始まる。",
+      zoom: "寄りとパン", zoomText: "操作のたびに画面が寄って戻り、動き始めと止まり際がゆっくりになる。",
+      pointer: "ポインター", pointerText: "ポインターがゆるい弧を描いて動き、押す所の手前で遅くなる。",
+      press: "押した所", pressText: "押した所に輪が出て、ボタンが一瞬沈む。",
+      transition: "画面の切り替え", transitionText: "画面が切り替わる時に、ぱっと変わらず溶けるように移る。",
+      frame: "枠", frameText: "画面が角の丸い窓に影付きで収まり、テーマの背景の上に置かれる。",
+      cards: "題と章", cardsText: "最初に題のカードが出て、章ごとに章の名前のカードが出る。",
+      end: "終わりのカード", endText: "最後に、締めの言葉と案内先とクレジットのカードで終わる。",
+      captions: "字幕", captionsText: "字幕がテーマの見た目で画面の下に出入りし、画面に被らない。",
+      narration: "ナレーション", narrationText: "字幕ごとに声で読み上げる。",
+      music: "音楽", musicText: "静かな音楽が流れ、声の間は小さくなる。",
+      sounds: "押す音と打つ音", soundsText: "押した時と文字を打った時に、その瞬間に音が鳴る。",
+      sync: "字幕と声", syncText: "字幕は声が終わるまで消えない。",
+      settled: "画面の待ち", settledText: "画面の変化が止まってから次へ進むため、長さが毎回違う答えも最後まで映る。",
+      fastforward: "早送り", fastforwardText: "長い待ちを切らずに、印を付けて早送りする。",
+      length: "長さ", lengthText: "動画が予定の長さに収まる。",
+      reading: "読む間", readingText: "長い字幕も読み切れるだけの間を取る。",
+    },
+  };
+  function setLanguage(lang) {
+    document.documentElement.lang = lang;
+    document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = STRINGS[lang][el.dataset.i18n]; });
+    document.querySelectorAll(".lang button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
+    try { localStorage.setItem("screen-video-lang", lang); } catch (e) { /* storage may be blocked */ }
+  }
+  document.querySelectorAll(".lang button").forEach((b) => b.addEventListener("click", () => setLanguage(b.dataset.lang)));
+  try { const saved = localStorage.getItem("screen-video-lang"); if (saved && STRINGS[saved]) setLanguage(saved); } catch (e) { /* storage may be blocked */ }
+  // Playing one video of a pair plays the other from its own start, so both are seen together
+  document.querySelectorAll(".pair").forEach((pair) => {
+    const videos = [...pair.querySelectorAll("video")];
+    videos.forEach((video) => video.addEventListener("play", () => {
+      videos.filter((other) => other !== video && other.paused).forEach((other) => other.play().catch(() => undefined));
+    }));
+  });
+</script>
+</body>
+</html>

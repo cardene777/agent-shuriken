@@ -6,10 +6,12 @@
  * |---|---|---|
  * | `doctor [--json]` | Says which ffmpeg and Playwright it uses and where the data folder is | none |
  * | `inspect <flow> [--path <path>]` | Opens a page of the flow's site and lists its headings, buttons, links, and fields | `inspect.png` in the data folder |
- * | `check <flow>` | Checks a flow file and lists the steps that send something or pay | none |
+ * | `check <flow>` | Checks a flow file, names its theme, and lists the steps that send something or pay | none |
  * | `rehearse <flow> [--out <dir>]` | Runs the flow without recording, up to the first step that sends something or pays, and writes the storyboard | `storyboard.html`, `frames/`, `rehearsal.json` |
- * | `record <flow> [--out <dir>] [--confirm-effects]` | Records the flow and makes the videos | `raw.mp4`, `captioned.mp4`, `edited.mp4`, `vertical.mp4`, `edited.gif`, `timeline.json`, `captions.srt`, `edit.json` |
- * | `remake <flow> [--out <dir>]` | Makes the captioned and edited videos again from `raw.mp4` and `timeline.json`, without recording | the same as `record`, except `raw.mp4` and `timeline.json` |
+ * | `voices <flow> [--out <dir>]` | Makes the flow's narration, installing the local voice engine the first time | `voice/`, `voice.json`, `credits.txt` |
+ * | `record <flow> [--out <dir>] [--confirm-effects]` | Makes the narration, records the flow, and makes the videos | `raw.mp4`, `captioned.mp4`, `edited.mp4`, `vertical.mp4`, `edited.gif`, `timeline.json`, `captions.srt`, `edited.srt`, `edit.json`, `voice/`, `voice.json`, `credits.txt` |
+ * | `remake <flow> [--out <dir>]` | Makes the narration and the videos again from `raw.mp4` and `timeline.json` in the flow's current look, without recording | the same as `record`, except `raw.mp4` and `timeline.json` |
+ * | `compare <flow> [--out <dir>] [--before <dir>]` | Shows the plain video and the edited one side by side for each point the edit improves | `compare/compare.html`, `compare/plain.mp4` |
  * | `login <flow> [--until <text in the address>]` | Opens a browser to log in by hand and saves the login for the flow's `login.session` | `sessions/<project>--<session>.json` in the data folder |
  * | `scenes <recording> [--out <dir>]` | Finds the scene changes and still stretches in a recording the user made | `scenes/`, `scenes.json`, `freezes.json` |
  * | `render <recording> [--out <dir>]` | Makes the captioned and edited videos from `captions.json` the agent wrote | `captioned.mp4`, `edited.mp4`, `captions.srt` |
@@ -20,17 +22,22 @@ import { chmodSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, 
 import { tmpdir } from "node:os";
 import { basename, extname, join, resolve } from "node:path";
 
-import { captionImages, FRAMES } from "./lib/captions.mjs";
-import { cutsForFreezes, cutsForWaits, mapCues, segmentsWithout, toEdited, verticalKeys, zoomedBox, zoomKeys } from "./lib/edit.mjs";
-import { envLookup, loadFlow, markedSteps, readLogin } from "./lib/flow.mjs";
-import { burn, burnVertical, detectFreezes, detectScenes, durationOf, HEIGHT, normalize, toGif, toSrt, WIDTH } from "./lib/media.mjs";
+import { captionImages } from "./lib/captions.mjs";
+import { writeCompare } from "./lib/compare.mjs";
+import { captionCues, cutsForFreezes, mapCues, planEdit, segmentsWithout, VERTICAL_CROP } from "./lib/edit.mjs";
+import { envLookup, languageOf, loadFlow, markedSteps, readLogin } from "./lib/flow.mjs";
+import { LAYOUTS, openDrawer } from "./lib/look.mjs";
+import { burn, detectFreezes, detectScenes, durationOf, HEIGHT, normalize, renderEdited, renderOver, stillFrame, toGif, toSrt, WIDTH } from "./lib/media.mjs";
 import { startRecording } from "./lib/recorder.mjs";
 import { runFlow, StepError } from "./lib/runner.mjs";
 import { dataDir, ensureDir, ffmpegChoice, nodeDir, playwright, playwrightVersion, projectName, projectRoot, sessionFile } from "./lib/runtime.mjs";
+import { mixSound } from "./lib/sound.mjs";
 import { writeStoryboard } from "./lib/storyboard.mjs";
+import { loadTheme } from "./lib/theme.mjs";
+import { makeVoices } from "./lib/voice.mjs";
 
 /** Files a run may remove when it empties its folder. Anything else stops the run. */
-const ARTIFACT = /\.(mp4|webm|mov|gif|json|srt|png|html|txt)$/iu;
+const ARTIFACT = /\.(mp4|webm|mov|gif|json|srt|png|html|txt|wav)$/iu;
 
 class Refusal extends Error {}
 const refuse = (message) => {
@@ -43,7 +50,7 @@ function parse(argv) {
   const options = { command, args: [], flags: new Set() };
   for (let i = 0; i < rest.length; i++) {
     const arg = rest[i];
-    if (arg === "--out" || arg === "--until" || arg === "--path") options[arg.slice(2)] = rest[++i];
+    if (arg === "--out" || arg === "--until" || arg === "--path" || arg === "--before") options[arg.slice(2)] = rest[++i];
     else if (arg.startsWith("--")) options.flags.add(arg.slice(2));
     else options.args.push(arg);
   }
@@ -76,7 +83,13 @@ function openFlow(file) {
     refuse(problems.map((p) => (p.step === 0 ? `flow: ${p.message}` : `step ${p.step}: ${p.message}`)).join("\n"));
   }
   const root = projectRoot(file);
-  return { flow, root, defaultOut: join(dataDir(), projectName(root), flow.name) };
+  let theme;
+  try {
+    theme = loadTheme(flow.theme ?? "default", root);
+  } catch (error) {
+    refuse(`flow: ${error instanceof Error ? error.message : error}`);
+  }
+  return { flow, root, theme, defaultOut: join(dataDir(), projectName(root), flow.name) };
 }
 
 function verbOf(kind) {
@@ -104,8 +117,9 @@ function doctor(json) {
 }
 
 function check(file) {
-  const { flow } = openFlow(file);
+  const { flow, theme } = openFlow(file);
   say(`${flow.name}: ${flow.steps.length} steps, videos ${flow.outputs.join(", ")}`);
+  say(`theme: ${theme.name} (${theme.source})`);
   const marked = markedSteps(flow);
   if (marked.length === 0) say("No step sends anything or pays.");
   else say(`Steps that send something or pay each time the video is recorded:\n${listMarked(marked)}`);
@@ -153,13 +167,13 @@ async function inspect(file, path) {
 }
 
 async function rehearse(file, out) {
-  const { flow, root, defaultOut } = openFlow(file);
+  const { flow, root, theme, defaultOut } = openFlow(file);
   const dir = out ?? join(defaultOut, "rehearsal");
   clearDir(dir, { folders: ["frames"] });
   const framesDir = ensureDir(join(dir, "frames"));
   const login = readLogin(flow, root);
   const env = envLookup(flow, root);
-  const rec = await startRecording({ record: false, credentials: login.credentials, storageState: login.storageState, masks: flow.mask });
+  const rec = await startRecording({ record: false, credentials: login.credentials, storageState: login.storageState, masks: flow.mask, accent: theme.look.accent });
   let results;
   try {
     results = await runFlow({ flow, rec, rehearse: true, framesDir, env });
@@ -176,55 +190,116 @@ async function rehearse(file, out) {
   if (failed !== undefined) refuse(`step ${failed.number}: ${failed.message}`);
 }
 
-/** Captions for the steps that have one: from the step's time to the next caption, or 4 seconds. Each keeps the step's box to avoid. */
-function cuesFromSteps(steps, duration) {
-  const captioned = steps.filter((step) => (step.caption ?? "") !== "");
-  return captioned.map((step, index) => ({
-    start: step.t,
-    end: Number(Math.min(duration, captioned[index + 1]?.t ?? step.t + 4).toFixed(3)),
-    text: step.caption,
-    ...(step.box ? { box: step.box } : {}),
-  }));
+/** The music a flow asks for: `false`, `"made"` (the default), or the project's file. */
+function musicOf(flow, root) {
+  if (flow.music === false) return false;
+  if (flow.music === undefined || flow.music === true) return "made";
+  const file = join(root, flow.music.file);
+  if (!existsSync(file)) refuse(`The music file ${flow.music.file} named by the flow does not exist in the project.`);
+  return { file, volume: flow.music.volume };
 }
 
-/** Makes every video after `raw.mp4` and `timeline.json` from the recording's steps. */
-async function finish(out, timeline, work) {
+const MADE_FILES = ["captioned.mp4", "edited.mp4", "vertical.mp4", "edited.gif", "captions.srt", "edited.srt", "edit.json", "credits.txt"];
+
+/**
+ * Makes every video after `raw.mp4` and `timeline.json`, in the flow's current look: the captioned
+ * video at the recording's own times, the edited video, and the vertical video and GIF when the flow
+ * asks for them, with `edit.json` saying how the edit was laid out.
+ */
+async function finish({ out, timeline, flow, root, theme, voice, work }) {
   const raw = join(out, "raw.mp4");
   const { steps, duration } = timeline;
-  const outputs = timeline.outputs ?? ["16:9"];
-  const cues = cuesFromSteps(steps, duration);
+  const language = languageOf(flow);
+  const outputs = flow.outputs ?? ["16:9"];
+  const look = theme.look;
+  const cues = captionCues(steps, duration, language, voice.clips);
   writeFileSync(join(out, "captions.srt"), toSrt(cues));
-  const images = await captionImages(cues.map((cue) => ({ ...cue, avoid: cue.box ? [cue.box] : [] })), work);
-  burn({ input: raw, output: join(out, "captioned.mp4"), workDir: work, overlays: images });
-  say(`Captioned video: ${join(out, "captioned.mp4")}`);
+  const plan = planEdit({ steps, duration, cues, clips: voice.clips, language, flow, planned: flow.seconds });
+  if (plan.note !== undefined) say(plan.note);
+  const end = plan.cards.find((card) => card.kind === "end");
+  if (end !== undefined && voice.credit !== undefined) end.credit = voice.credit;
+  // Each clip starts where its step's caption starts in the recording
+  const startOf = new Map(steps.map((step) => [step.step, step.from ?? step.t]));
+  const clips = voice.clips.map((clip) => ({ ...clip, start: startOf.get(clip.step) ?? 0 }));
+  writeFileSync(join(out, "voice.json"), `${JSON.stringify({ ...voice, clips }, null, 2)}\n`);
 
-  const segments = segmentsWithout(cutsForWaits(steps), duration);
-  const actions = steps.filter((step) => step.box !== undefined);
-  const zooms = actions.map((step) => ({ at: step.t, end: step.end, box: step.box, caption: step.caption, navigates: step.navigates === true }));
-  const edited = zooms.map((zoom) => ({ t: toEdited(segments, zoom.at), end: toEdited(segments, zoom.end, "back"), box: zoom.box, navigates: zoom.navigates }));
-  const keys = zoomKeys(edited);
-  const editedCues = await captionImages(
-    mapCues(segments, cues).map((cue) => ({ ...cue, avoid: cue.box ? [cue.box, zoomedBox(cue.box)] : [] })),
-    work,
-    { prefix: "edited" },
-  );
-  writeFileSync(join(out, "edit.json"), `${JSON.stringify({ segments, zooms, keys }, null, 2)}\n`);
-  burn({ input: raw, output: join(out, "edited.mp4"), workDir: work, segments, keys, overlays: editedCues });
-  say(`Edited video: ${join(out, "edited.mp4")} (${durationOf(join(out, "edited.mp4")).toFixed(1)}s)`);
+  const music = musicOf(flow, root);
+  const sounds = flow.sounds !== false;
+  const soundFor = (name, length, at) =>
+    mixSound({
+      output: join(work, name),
+      duration: length,
+      voices: plan.voices.map((v) => ({ file: join(out, v.file), at: at(v), duration: v.duration })),
+      presses: sounds ? plan.presses.map(at) : [],
+      typed: sounds ? plan.typed.map(at) : [],
+      music,
+      work,
+    });
+  const editedSound = soundFor("edited.wav", plan.seconds, (event) => event.at);
 
-  if (outputs.includes("9:16")) {
-    const verticalCues = await captionImages(mapCues(segments, cues), work, { prefix: "vertical", frame: FRAMES.vertical });
-    burnVertical({ input: raw, output: join(out, "vertical.mp4"), workDir: work, segments, keys: verticalKeys(edited), overlays: verticalCues });
-    say(`Vertical video: ${join(out, "vertical.mp4")}`);
+  const drawer = await openDrawer(look, work);
+  try {
+    // The captioned video: the recording with captions over it and the sound at the recording's times
+    const over = [];
+    for (const cue of cues) over.push({ ...(await drawer.over(cue.text, cue.box ? [cue.box] : [])), start: cue.start, end: cue.end });
+    const rawSound = soundFor("raw.wav", duration, (event) => event.raw);
+    renderOver({ raw, output: join(out, "captioned.mp4"), captions: over, sound: rawSound, work });
+    say(`Captioned video: ${join(out, "captioned.mp4")}`);
+
+    const stills = plan.dissolves.map((d, i) => ({ file: stillFrame(raw, d.frame, join(work, `still-${i}.png`)), start: d.start, end: d.end }));
+    const draw = async (layout) => {
+      const captions = [];
+      for (const caption of plan.captions) captions.push({ ...(await drawer.caption(caption.text, layout)), start: caption.start, end: caption.end, text: caption.text });
+      const marks = [];
+      for (const part of plan.fast) marks.push({ ...(await drawer.mark(part.speed, layout)), start: part.editedStart, end: part.editedEnd });
+      const cards = [];
+      let chapter = 0;
+      for (const card of plan.cards) cards.push({ ...card, file: await drawer.card(card, layout, card.kind === "chapter" ? ++chapter : 0) });
+      return { frame: await drawer.frame(layout), captions, marks, cards, stills, cropWidth: VERTICAL_CROP };
+    };
+
+    const wide = await draw(LAYOUTS.wide);
+    renderEdited({ raw, output: join(out, "edited.mp4"), plan, layout: LAYOUTS.wide, pictures: wide, sound: editedSound, work });
+    writeFileSync(join(out, "edited.srt"), toSrt(wide.captions));
+    const edit = {
+      theme: { name: theme.name, source: theme.source },
+      frame: LAYOUTS.wide.window,
+      length: plan.length,
+      segments: plan.segments,
+      // Still frames added under the cards, the end card's last
+      freezes: [
+        ...plan.freezes.map(({ at, seconds }) => ({ at, seconds })),
+        ...(plan.endFrames > 0 ? [{ at: Number(((plan.lastFrame + 1) / 30).toFixed(3)), seconds: Number((plan.endFrames / 30).toFixed(3)) }] : []),
+      ],
+      cards: wide.cards.map(({ kind, text, url, note, credit, start, end }) => ({ kind, text, ...(url ? { url } : {}), ...(note ? { note } : {}), ...(credit ? { credit } : {}), start, end })),
+      captions: wide.captions.map(({ start, end, text, box }) => ({ start, end, text, box })),
+      fast: plan.fast.map((part, i) => ({ start: part.editedStart, end: part.editedEnd, speed: part.speed, box: wide.marks[i].box, raw: { start: part.start, end: part.end } })),
+      dissolves: plan.dissolves.map(({ at, start, end }) => ({ at, start, end })),
+      zooms: plan.actions,
+      keys: plan.zoomKeys,
+      steps: steps.map((step) => ({ step: step.step, from: plan.at(step.from ?? step.t), t: plan.at(step.t), end: plan.at(step.end) })),
+      voices: plan.voices.map(({ step, at, duration: length }) => ({ step, at, duration: length })),
+    };
+    writeFileSync(join(out, "edit.json"), `${JSON.stringify(edit, null, 2)}\n`);
+    say(`Edited video: ${join(out, "edited.mp4")} (${durationOf(join(out, "edited.mp4")).toFixed(1)}s)`);
+
+    if (outputs.includes("9:16")) {
+      const tall = await draw(LAYOUTS.tall);
+      renderEdited({ raw, output: join(out, "vertical.mp4"), plan, layout: LAYOUTS.tall, pictures: tall, sound: editedSound, work });
+      say(`Vertical video: ${join(out, "vertical.mp4")}`);
+    }
+  } finally {
+    await drawer.close();
   }
   if (outputs.includes("gif")) {
     toGif(join(out, "edited.mp4"), join(out, "edited.gif"));
     say(`GIF: ${join(out, "edited.gif")}`);
   }
+  if (voice.credit !== undefined) say(`Credit for the voice (in credits.txt and on the end card): ${voice.credit}`);
 }
 
 async function record(file, out, confirmed) {
-  const { flow, root, defaultOut } = openFlow(file);
+  const { flow, root, theme, defaultOut } = openFlow(file);
   const marked = markedSteps(flow);
   if (marked.length > 0 && !confirmed) {
     refuse(
@@ -233,14 +308,15 @@ async function record(file, out, confirmed) {
     );
   }
   const dir = out ?? defaultOut;
-  clearDir(dir, { keep: ["rehearsal"] });
+  clearDir(dir, { keep: ["rehearsal"], folders: ["voice", "compare"] });
   const login = readLogin(flow, root);
   const env = envLookup(flow, root);
   const work = mkdtempSync(join(tmpdir(), "screen-video-"));
   try {
-    const rec = await startRecording({ videoDir: work, credentials: login.credentials, storageState: login.storageState, masks: flow.mask });
+    const voice = await makeVoices(flow, root, dir);
+    const rec = await startRecording({ videoDir: work, credentials: login.credentials, storageState: login.storageState, masks: flow.mask, accent: theme.look.accent });
     try {
-      await runFlow({ flow, rec, env });
+      await runFlow({ flow, rec, env, voices: voice.clips });
     } catch (error) {
       await rec.screenshot(join(dir, "failure.png"));
       await rec.abort();
@@ -254,22 +330,59 @@ async function record(file, out, confirmed) {
     const timeline = { flow: flow.name, width: WIDTH, height: HEIGHT, duration: durationOf(raw), outputs: flow.outputs, steps: rec.steps };
     writeFileSync(join(dir, "timeline.json"), `${JSON.stringify(timeline, null, 2)}\n`);
     say(`Raw video: ${raw} (${timeline.duration.toFixed(1)}s)`);
-    await finish(dir, timeline, work);
+    await finish({ out: dir, timeline, flow, root, theme, voice, work });
   } finally {
     rmSync(work, { recursive: true, force: true });
   }
 }
 
-async function remake(file, out) {
-  const dir = out ?? openFlow(file).defaultOut;
+/** Reads the last recording in `dir` (or the flow's folder), refusing when there is none. */
+function lastRecording(file, out) {
+  const opened = openFlow(file);
+  const dir = out ?? opened.defaultOut;
   const raw = join(dir, "raw.mp4");
   const timelineFile = join(dir, "timeline.json");
   if (!existsSync(raw) || !existsSync(timelineFile)) refuse(`${dir} has no raw.mp4 and timeline.json. Record the flow first.`);
   const timeline = JSON.parse(readFileSync(timelineFile, "utf8"));
-  for (const name of ["captioned.mp4", "edited.mp4", "vertical.mp4", "edited.gif", "captions.srt", "edit.json"]) rmSync(join(dir, name), { force: true });
+  return { ...opened, dir, timeline: { ...timeline, duration: durationOf(raw) } };
+}
+
+async function remake(file, out) {
+  const { flow, root, theme, dir, timeline } = lastRecording(file, out);
+  for (const name of MADE_FILES) rmSync(join(dir, name), { force: true });
+  rmSync(join(dir, "compare"), { recursive: true, force: true });
   const work = mkdtempSync(join(tmpdir(), "screen-video-"));
   try {
-    await finish(dir, { ...timeline, duration: durationOf(raw) }, work);
+    const voice = await makeVoices(flow, root, dir);
+    await finish({ out: dir, timeline, flow, root, theme, voice, work });
+  } finally {
+    rmSync(work, { recursive: true, force: true });
+  }
+}
+
+async function voices(file, out) {
+  const { flow, root, defaultOut } = openFlow(file);
+  const dir = ensureDir(out ?? join(defaultOut, "voices"));
+  const made = await makeVoices(flow, root, dir);
+  if (made.clips.length === 0) say("The flow has no narration (no voice, or no captions to read).");
+  else say(`Voice: ${made.engine} (${made.voice}), ${made.clips.length} lines, ${made.clips.reduce((sum, clip) => sum + clip.duration, 0).toFixed(1)}s (${join(dir, "voice.json")})`);
+  if (made.credit !== undefined) say(`Credit for the voice: ${made.credit}`);
+}
+
+async function compare(file, out, before) {
+  const { flow, dir, timeline } = lastRecording(file, out);
+  const editFile = join(dir, "edit.json");
+  if (!existsSync(editFile) || !existsSync(join(dir, "edited.mp4"))) refuse(`${dir} has no edited.mp4 and edit.json. Record or remake the flow first.`);
+  const edit = JSON.parse(readFileSync(editFile, "utf8"));
+  const voice = existsSync(join(dir, "voice.json")) ? JSON.parse(readFileSync(join(dir, "voice.json"), "utf8")) : { clips: [] };
+  const cues = captionCues(timeline.steps, timeline.duration, languageOf(flow), voice.clips ?? []);
+  const target = join(dir, "compare");
+  rmSync(target, { recursive: true, force: true });
+  ensureDir(target);
+  const work = mkdtempSync(join(tmpdir(), "screen-video-"));
+  try {
+    const page = await writeCompare({ out: dir, before: before === undefined ? undefined : resolve(before), timeline, edit, cues, flow, work, dir: target });
+    say(`Comparison: ${page}`);
   } finally {
     rmSync(work, { recursive: true, force: true });
   }
@@ -357,7 +470,7 @@ async function render(input, out) {
   }
 }
 
-const USAGE = "Usage: screen-video.sh setup | doctor | inspect <flow> | check <flow> | rehearse <flow> | record <flow> [--confirm-effects] | remake <flow> | login <flow> [--until <text>] | scenes <recording> | render <recording> (each takes --out <dir> where it writes files)";
+const USAGE = "Usage: screen-video.sh setup | doctor | inspect <flow> | check <flow> | rehearse <flow> | voices <flow> | record <flow> [--confirm-effects] | remake <flow> | compare <flow> [--before <dir>] | login <flow> [--until <text>] | scenes <recording> | render <recording> (each takes --out <dir> where it writes files)";
 
 const options = parse(process.argv.slice(2));
 try {
@@ -380,6 +493,12 @@ try {
       break;
     case "remake":
       await remake(first, options.out);
+      break;
+    case "voices":
+      await voices(first, options.out);
+      break;
+    case "compare":
+      await compare(first, options.out, options.before);
       break;
     case "login":
       await login(first, options.until);

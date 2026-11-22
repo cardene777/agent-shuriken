@@ -7,9 +7,12 @@
 #   screen-video.sh inspect <flow> [--path <path>]          List the headings, buttons, links, and fields of a page
 #   screen-video.sh check <flow>                            Check a flow file and list the steps that send something or pay
 #   screen-video.sh rehearse <flow> [--out <dir>]           Run the flow without recording and write the storyboard
+#   screen-video.sh voices <flow> [--out <dir>]             Make the flow's narration (installs the local voice engine once)
 #   screen-video.sh record <flow> [--out <dir>] [--confirm-effects]
 #                                                           Record the flow and make the videos
-#   screen-video.sh remake <flow> [--out <dir>]             Make the videos again from the last recording
+#   screen-video.sh remake <flow> [--out <dir>]             Make the videos again from the last recording, in the flow's current look
+#   screen-video.sh compare <flow> [--out <dir>] [--before <dir>]
+#                                                           Show the plain and the edited video side by side for each point
 #   screen-video.sh login <flow> [--until <text>]           Log in by hand once and save the login for the flow
 #   screen-video.sh scenes <recording> [--out <dir>]        Find the scenes of a recording the user made
 #   screen-video.sh render <recording> [--out <dir>]        Caption and edit that recording from captions.json

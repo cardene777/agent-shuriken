@@ -17,3 +17,4 @@ Words this repository uses with one meaning.
 | flow | A JSON file in `.screen-video/flows/` of a project that lists the steps one video of the `screen-video` plugin shows, with their captions |
 | rehearsal | A run of a flow by the `screen-video` plugin that records nothing and stops before the first step that sends something or pays |
 | storyboard | The page a rehearsal writes, `storyboard.html`, with a picture, the action, and the caption of each step |
+| theme | A JSON file of colours, fonts, and corners that sets how the edited videos of the `screen-video` plugin look: bundled in its `themes/`, or a project's own in `.screen-video/themes/` |
