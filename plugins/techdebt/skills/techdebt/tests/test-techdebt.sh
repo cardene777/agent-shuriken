@@ -176,6 +176,99 @@ check "a long Python function is measured exactly" "[ \"\$(q '[(f[\"lines\"],f[\
 check "a long TypeScript function is measured by braces" "[ \"\$(q '[(f[\"lines\"],f[\"exact\"]) for f in d[\"functions\"] if f[\"name\"]==\"longOne\"][0]')\" = '(70, False)' ]"
 check "a long Go function is measured by braces" "[ \"\$(q '[f[\"lines\"] for f in d[\"functions\"] if f[\"name\"]==\"Process\"][0]')\" = 67 ]"
 check "a short function is not listed" "[ \"\$(q 'any(f[\"name\"] in (\"small\",\"a\",\"b\") for f in d[\"functions\"])')\" = False ]"
+
+# Functions measured by braces, read straight from brace_functions(). Each case is one function of a
+# known length (60 filler lines between its head and its tail); the line printed for it holds the
+# case, the length brace_functions() gave the function, and the length it has.
+python3 - "$SCRIPT" > "$T/braces.txt" <<'PY'
+import importlib.util
+import sys
+
+spec = importlib.util.spec_from_file_location("techdebt", sys.argv[1])
+td = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(td)
+FILL = {"js": "  x += %d;", "go": "\tx += %d", "rust": "    x += %d;", "swift": "    x += %d",
+        "java": "    x += %d;", "c": "  x += %d;", "php": "  $x += %d;"}
+
+
+def case(key, lang, head, tail, name="f", before=()):
+    body = head + [FILL[lang] % i for i in range(60)] + tail
+    found = [last - first + 1 for n, first, last, _c in td.brace_functions(list(before) + body, lang) if n == name]
+    print(key, found[0] if found else 0, len(body))
+
+
+case("ts-param", "js", ["function f({ a }: { a: string }) {", "  let x = 0;"], ["  return x;", "}"])
+case("ts-return", "js", ["function f(a: number): { b: number } {", "  let x = a;"], ["  return { b: x };", "}"])
+case("ts-params-lines", "js", ["function f(", "  opts: { a: string; b: number },", "  more: { c: boolean },", "): number {",
+                               "  let x = 0;"], ["  return x;", "}"])
+case("ts-arrow", "js", ["export const f = ({ a }: { a: string }) => {", "  let x = 0;"], ["  return x;", "}"])
+# The shape of skillPage() in musubi's site/build.ts: a template literal over several lines whose
+# ${...} holds a call over several lines and nested template literals.
+case("js-template-expr", "js", [
+    "function f(o) {",
+    "  const list = o.items.length",
+    "    ? `<ul class=\"people\">${o.items",
+    "        .map(",
+    "          (a) =>",
+    "            `<li><a href=\"${a.href}\">${escape(a.name)}</a></li>`,",
+    "        )",
+    "        .join(\"\")}</ul>`",
+    "    : `<p class=\"empty\">${escape(o.empty)}</p>`;",
+    "  const body = `<div class=\"wrap\">",
+    "<div class=\"crumb\">${escape(o.title)}</div>",
+    "${o.description ? `<p class=\"description\">${escape(o.description)}</p>` : \"\"}",
+    "</div>`;",
+    "  let x = 0;"], ["  return body + list + x;", "}"])
+case("js-template-braces", "js", ["function f() {", "  const css = `", "  .a {", "    color: red;", "  }", "  }", "`;",
+                                  "  let x = 0;"], ["  return css + x;", "}"])
+case("go-struct", "go", ["func F(seen map[string]struct{}) int {", "\tx := 0"], ["\treturn x", "}"], "F")
+case("go-interface", "go", ["func F(a int) interface{} {", "\tx := a"], ["\treturn x", "}"], "F")
+case("go-raw", "go", ["func F() string {", "\tq := `", "}", "}", "`", "\tx := 0"], ["\treturn q", "}"], "F")
+case("rust-lifetimes", "rust", ["fn f<'a>(s: &'a str) -> &'a str {", "    let mut x = 0;"], ["    s", "}"])
+case("rust-string", "rust", ["fn f() -> usize {", "    let s = \"", "}", "}", "\";", "    let mut x = 0;"], ["    s.len() + x", "}"])
+case("rust-chars", "rust", ["fn f(c: char) -> bool {", "    let a = '\"';", "    let b = '{';", "    let mut x = 0;"],
+     ["    c == a || c == b", "}"])
+case("swift", "swift", ["func f() -> String {", "    let s = \"\"\"", "    }", "    }", "    \"\"\"", "    var x = 0"],
+     ["    return s", "}"])
+case("java-text-block", "java", ["  String f() {", "    String s = \"\"\"", "      }", "      }", "      \"\"\";", "    int x = 0;"],
+     ["    return s;", "  }"])
+case("kotlin-template", "java", ["  fun f(): String {", "    val s = \"\"\"", "      ${a.map { \"}\" }}", "      }", "      \"\"\"",
+                                 "    var x = 0"], ["    return s", "  }"])
+case("csharp-verbatim", "java", ["  string F() {", "    var s = @\"", "    }", "    }\";", "    var x = 0;"],
+     ["    return s;", "  }"], "F")
+case("dart-triple", "java", ["  String f() {", "    var s = '''", "    }", "    }''';", "    var x = 0;"], ["    return s;", "  }"])
+case("cpp-raw", "c", ["int f() {", "  const char* s = R\"(", "}", "}", ")\";", "  int x = 0;"], ["  return x;", "}"])
+case("php-heredoc", "php", ["function f() {", "  $s = <<<EOT", "}", "}", "EOT;", "  $x = 0;"], ["  return $s;", "}"])
+case("php-string", "php", ["function f() {", "  $s = \"", "}", "}\";", "  $x = 0;"], ["  return $s;", "}"])
+case("php-hash-quote", "php", ["function f() {", "  $x = 0;"], ["  return $x;", "}"],
+     before=["function e() {", "  # don't stop here", "  return 1;", "}"])
+case("js-regex-quote", "js", ["function f(a) {", "  let x = a;"], ["  return x;", "}"],
+     before=["function e(s) {", "  const re = /'/;", "  return re.test(s);", "}"])
+PY
+# Passes when brace_functions() gave the case's function its whole length.
+measured() { awk -v k="$1" '$1 == k && $2 == $3 { found = 1 } END { exit !found }' "$T/braces.txt"; }
+check "braces: a TypeScript function with an object type in its parameters is measured" "measured ts-param"
+check "braces: a TypeScript function with an object return type is measured" "measured ts-return"
+check "braces: a function whose parameters span lines with object types is measured" "measured ts-params-lines"
+check "braces: an arrow function with an object type in its parameters is measured" "measured ts-arrow"
+check "braces: a template literal whose expressions span lines does not end a function early" "measured js-template-expr"
+check "braces: braces inside a multi-line template literal are not counted" "measured js-template-braces"
+check "braces: a Go function with struct{} in its parameters is measured" "measured go-struct"
+check "braces: a Go function returning interface{} is measured" "measured go-interface"
+check "braces: braces inside a Go raw string across lines are not counted" "measured go-raw"
+check "braces: a Rust function with lifetimes in its signature is measured" "measured rust-lifetimes"
+check "braces: braces inside a Rust string across lines are not counted" "measured rust-string"
+check "braces: Rust char literals with a quote or a brace are not strings" "measured rust-chars"
+check "braces: braces inside a Swift multi-line string are not counted" "measured swift"
+check "braces: braces inside a Java text block are not counted" "measured java-text-block"
+check "braces: a Kotlin raw string with a template is read to its end" "measured kotlin-template"
+check "braces: braces inside a C# verbatim string are not counted" "measured csharp-verbatim"
+check "braces: braces inside a Dart triple-quoted string are not counted" "measured dart-triple"
+check "braces: braces inside a C++ raw string are not counted" "measured cpp-raw"
+check "braces: braces inside a PHP heredoc are not counted" "measured php-heredoc"
+check "braces: braces inside a PHP string across lines are not counted" "measured php-string"
+check "braces: a lone quote in a PHP # comment does not hide later functions" "measured php-hash-quote"
+check "braces: a lone quote in a JavaScript regular expression does not hide later functions" "measured js-regex-quote"
 check "a large file is listed" "[ \"\$(q '[f[\"lines\"] for f in d[\"large_files\"]]')\" = '[520]' ]"
 check "a duplicated block is found with its length" "[ \"\$(q '[(x[\"a\"],x[\"b\"],x[\"lines\"]) for x in d[\"duplication\"]]')\" = \"[('src/a.ts', 'src/b.ts', 12)]\" ]"
 check "installed knip ran" "[ \"\$(q '[(t[\"ran\"],len(t[\"findings\"])) for t in d[\"tools\"] if t[\"tool\"]==\"knip\"][0]')\" = '(True, 2)' ]"
@@ -2340,6 +2433,29 @@ else
   done
 fi
 check "the changelog, README, and how-it-works describe the tabs, the link to an open row, and the tool tags" docs_words
+
+# The docs say that braces in parameter and return types and braces in strings over several lines
+# are not counted. The Japanese words are written as escapes.
+brace_docs() {
+  python3 - "$PLUGIN" <<'PYEOF'
+import sys
+root = sys.argv[1]
+unreleased = open(root + "/CHANGELOG.md", encoding="utf-8").read().split("## [Unreleased]")[1].split("\n## [")[0]
+texts = {"CHANGELOG.md (Unreleased)": unreleased,
+         "docs/how-it-works.md": open(root + "/docs/how-it-works.md", encoding="utf-8").read(),
+         "docs/how-it-works.ja.md": open(root + "/docs/how-it-works.ja.md", encoding="utf-8").read()}
+want = {"CHANGELOG.md (Unreleased)": ["parameter and return types", "strings that span lines", "lifetimes"],
+        "docs/how-it-works.md": ["parameter and return types", "strings that span lines"],
+        "docs/how-it-works.ja.md": ["引数と戻り値の型",
+                                    "複数行にまたがる文字列"]}
+problems = ["%s does not say %r" % (name, [w for w in words if w not in texts[name]])
+            for name, words in want.items() if any(w not in texts[name] for w in words)]
+for p in problems:
+    print("      " + p)
+sys.exit(1 if problems else 0)
+PYEOF
+}
+check "the changelog and how-it-works describe braces in types and multi-line strings" brace_docs
 
 printf '\n%d passed, %d failed (%d ran, %d skipped)\n' "$PASS" "$FAIL" "$((PASS + FAIL))" "$SKIP"
 [ "$FAIL" -eq 0 ]
