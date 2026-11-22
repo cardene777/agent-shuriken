@@ -72,13 +72,14 @@ ffmpegは次の順で選び、どれを使うかは`screen-video.sh doctor`が�
 
 | `voice.engine` | 声の作り方 |
 |---|---|
-| `local` | 英語はKokoro、日本語はVOICEVOXで、手元のマシンで作ります |
+| `local` | 英語はKokoro、日本語はAivisSpeechで、手元のマシンで作ります |
 | `kokoro` | kokoro-js 1.2.1とKokoro-82Mのモデル。初めての時にデータのフォルダの`voices/kokoro/`へ入れます |
+| `aivisspeech` | AivisSpeech Engine 1.2.0。初めての時に`voices/aivisspeech/engine/`へ展開し、声のまおの落ち着いた話し方で読みます。まおはエンジンが初めて起動する前に`voices/aivisspeech/home/`のエンジンの利用者データへ取得し、エンジンは初めての起動で言語モデルとAivisHubの既定の声を同じ所へ取得します。読み上げを作る間だけ、Sentryを止めて`127.0.0.1`で動かします |
 | `voicevox` | `voices/voicevox/`のPythonの環境に入れたVOICEVOX CORE 0.16.4と、その声のモデル、ONNX Runtime、辞書。利用者が規約に同意したと流れに書いた後でだけ、初めての時に取得します |
 | `openai`、`elevenlabs`、`azure`、`google` | その会社で作ります。鍵は流れの`envFile`か環境変数から読み、字幕の文をその会社へ送ります |
 
 各行の声は撮る前に作り、どの道具でも同じ大きさに揃えて、`voice/`と`voice.json`に残します。
-VOICEVOXの声は、締めのカードと`credits.txt`に`VOICEVOX:<キャラクター名>`と表記します。
+まおで読み上げた動画には、表記を入れません。VOICEVOXの声は、締めのカードと`credits.txt`に`VOICEVOX:<キャラクター名>`と表記します。
 曲はffmpegで作る静かな和音で、読み上げの間は下がり、終わると戻ります。`music`でプロジェクトの曲のファイルを代わりに指定できます。
 押すたびとキーごとに、`data/sounds/`に同梱したKenneyのUI Audio(CC0)の短い音が鳴ります。出所は[告知](../THIRD_PARTY_NOTICES.md)に載せています。
 

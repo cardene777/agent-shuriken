@@ -94,11 +94,14 @@ GitHub Copilot CLIでは依頼の中に`/screen-video`と書き、Gemini CLIで�
 | Node.js 20.11以降 | 常に |
 | `pnpm`か`npm` | 初めて使う時に1回、Playwrightとffmpegをデータのフォルダへ入れるために使います |
 | libx264を持つffmpeg | 無くても動きます。`PATH`にあれば、同梱の物の代わりに使います |
-| Python 3.10以降 | VOICEVOXで日本語の読み上げを手元で作る時だけ |
+| `bsdtar`か7-Zip(`7zz`) | 日本語の読み上げを手元で作る時だけ、AivisSpeech Engineを展開するために使います。macOSには`bsdtar`があります |
+| Python 3.10以降 | 流れがVOICEVOXを選んだ時だけ |
 
 グローバルにはパッケージを入れません。
 初回は`playwright-core`とそのヘッドレスブラウザと`ffmpeg-static`を取得するため、1分ほど掛かります。
-読み上げる流れを初めて撮る時は、その声をデータのフォルダの`voices/`へ入れます。英語ではkokoro-jsとそのモデル、日本語ではVOICEVOXの規約にあなたが同意した後で、VOICEVOX COREとそのモデルと辞書を入れます。
+読み上げる流れを初めて撮る時は、その声をデータのフォルダの`voices/`へ入れます。英語ではkokoro-jsとそのモデル、日本語ではAivisSpeech Engineとその声のまおを入れます。日本語では、エンジンが初めて起動する時に取得する言語モデルと既定の声を合わせて約1.3GBになります。
+まおで読み上げた動画には、クレジットの表記が要りません。
+流れがVOICEVOXを選んだ時は、あなたが規約に同意した後で入れ、動画の締めのカードにその声を表記します。
 
 ## 読む物と動かす物と送る物
 
@@ -111,7 +114,8 @@ GitHub Copilot CLIでは依頼の中に`/screen-video`と書き、Gemini CLIで�
 - 送信か支払いの印を付けた最初の操作の手前で通しを止め、その操作はあなたが同意した後でだけ撮ります
 - 別のフォルダを指定しない限り、動画は`~/.local/share/screen-video/<project>/<flow>/`に書きます。自分が書いていないファイルを含むフォルダは空にしません
 - 初回に`playwright-core`とそのブラウザと`ffmpeg-static`を1回取得し、読み上げる流れを初めて撮る時に声の道具を1回取得します
-- 読み上げは手元のマシンで作り、ほかには何も送りません。流れが外の声(OpenAI、ElevenLabs、Microsoft Azure、Google Cloud)を選んだ時だけ、字幕の文をその会社へ送ります。その鍵は流れが名指しするenvファイルから読みます
+- 読み上げは手元のマシンで作ります。日本語では、読み上げを作る間だけAivisSpeech Engineを`127.0.0.1`で動かし、Sentryへのエラー報告は止めます。エンジンは版と声の情報をAivisHubへ問い合わせます
+- ほかには何も送りません。流れが外の声(OpenAI、ElevenLabs、Microsoft Azure、Google Cloud)を選んだ時だけ、字幕の文をその会社へ送ります。その鍵は流れが名指しするenvファイルから読みます
 
 ## ライセンス
 

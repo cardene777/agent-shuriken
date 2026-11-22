@@ -2,7 +2,8 @@
 //
 // It serves its own copy of the sample site on 127.0.0.1, with the routes the quality pages call and
 // stand-ins for the cloud voice services, and uses a throwaway project and data folder. Package
-// managers on PATH are stand-ins too, so no voice engine is downloaded. With SCREEN_VIDEO_TTS_FAKE=1 the
+// managers and the unpacker on PATH are stand-ins too, so no voice engine is downloaded, and the
+// AivisSpeech Engine they "install" is a stand-in on 127.0.0.1. With SCREEN_VIDEO_TTS_FAKE=1 the
 // skill makes a 3000 Hz tone for each line instead of a voice, so the checks can find the voice in the
 // sound; SCREEN_VIDEO_TTS_URL sends every cloud voice request to the stand-ins here.
 
@@ -136,6 +137,44 @@ export async function qualityChecks({ check, SHOP_OUT, FFMPEG }) {
   const INSTALLS = join(Q, "installs.log");
   mkdirSync(BIN, { recursive: true });
   writeFileSync(INSTALLS, "");
+  // A stand-in AivisSpeech Engine: it records how it was started, each line it was asked to read, and
+  // when it stopped, and answers each line with a sine
+  const ENGINE_LOG = join(Q, "engine.log");
+  const ENGINE = join(Q, "aivis-engine.mjs");
+  writeFileSync(join(Q, "engine-voice.wav"), sineWav(0.8, 440));
+  writeFileSync(ENGINE_LOG, "");
+  writeFileSync(
+    ENGINE,
+    `import { appendFileSync, readFileSync } from "node:fs";
+import { createServer } from "node:http";
+const args = process.argv.slice(2);
+const option = (name) => args[args.indexOf(name) + 1];
+const log = (line) => appendFileSync(${JSON.stringify(ENGINE_LOG)}, line + "\\n");
+log("start " + process.pid + " " + args.join(" ") + " home=" + process.env.HOME + " data=" + process.env.XDG_DATA_HOME);
+process.on("SIGTERM", () => { log("stop " + process.pid); process.exit(0); });
+const styles = [{ name: "ノーマル", id: 101 }, { name: "おちつき", id: 104 }];
+const json = (res, value) => { res.setHeader("content-type", "application/json"); res.end(JSON.stringify(value)); };
+// The engine takes a moment to answer after it starts
+setTimeout(() => createServer((req, res) => {
+  const url = new URL(req.url, "http://127.0.0.1");
+  if (url.pathname === "/version") return json(res, "1.2.0");
+  if (url.pathname === "/speakers") return json(res, [{ name: "まお", speaker_uuid: "mao", styles }]);
+  if (req.method === "POST" && url.pathname === "/audio_query") {
+    log("query " + url.searchParams.get("speaker") + " " + url.searchParams.get("text"));
+    return json(res, { text: url.searchParams.get("text") });
+  }
+  if (req.method === "POST" && url.pathname === "/synthesis") {
+    log("synthesis " + url.searchParams.get("speaker"));
+    req.resume();
+    req.on("end", () => { res.setHeader("content-type", "audio/wav"); res.end(readFileSync(${JSON.stringify(join(Q, "engine-voice.wav"))})); });
+    return;
+  }
+  res.statusCode = 404;
+  res.end();
+}).listen(Number(option("--port")), option("--host")), 300);
+`,
+  );
+  const engineLog = () => readFileSync(ENGINE_LOG, "utf8").split("\n").filter((line) => line !== "");
   // The user's python3 rather than /usr/bin's, which is 3.9 on macOS and too old for VOICEVOX CORE
   const python = spawnSync("/bin/sh", ["-c", "command -v python3"], { encoding: "utf8", env: { PATH: process.env.PATH ?? "/usr/bin:/bin" } }).stdout.trim() || "/usr/bin/python3";
   const tools = {
@@ -174,6 +213,18 @@ for arg in "$@"; do
   prev="$arg"
 done
 if [ -n "$out" ]; then mkdir -p "$(dirname "$out")"; printf '#!/bin/sh\\nexit 0\\n' > "$out"; chmod +x "$out"; fi
+exit 0
+`,
+    // Unpacks any archive into a folder holding a run program that starts the stand-in engine
+    bsdtar: `#!/bin/sh
+echo "bsdtar $*" >> "${INSTALLS}"
+dir=""
+for arg in "$@"; do
+  if [ "$prev" = "-C" ]; then dir="$arg"; fi
+  prev="$arg"
+done
+mkdir -p "$dir/stand-in"
+printf '#!/bin/sh\\nexec "%s" "%s" "$@"\\n' "${process.execPath}" "${ENGINE}" > "$dir/stand-in/run"
 exit 0
 `,
   };
@@ -409,8 +460,11 @@ exit 0
   const voiceSteps = (captions) => [{ do: "open", url: "/quality/start.html", caption: captions[0] }, { do: "hold", seconds: 1, caption: captions[1] }];
   const V_NONE = flow("voice-none", { steps: voiceSteps(["Open the page", "Look at it"]) });
   const V_EN = flow("voice-en", { language: "en", voice: { engine: "local" }, steps: voiceSteps(["Open the page", "Look at it"]) });
+  const JA_CAPTIONS = ["頁を開く", "中身を見る"];
+  const V_JA = flow("voice-ja", { language: "ja", voice: { engine: "local" }, steps: voiceSteps(JA_CAPTIONS) });
   // VOICEVOX asks the user to agree to its terms before its models are downloaded; the flow keeps the answer
-  const V_JA = flow("voice-ja", { language: "ja", voice: { engine: "local", terms: "agreed" }, steps: voiceSteps(["頁を開く", "中身を見る"]) });
+  const V_VV = flow("voice-vv", { language: "ja", voice: { engine: "voicevox", terms: "agreed" }, steps: voiceSteps(JA_CAPTIONS) });
+  const V_VV_ASK = flow("voice-vv-ask", { language: "ja", voice: { engine: "voicevox" }, steps: voiceSteps(JA_CAPTIONS) });
   const CLOUD_CAPTIONS = ["Open the page for the cloud", "Look at the cloud page"];
   const V_CLOUD = Object.fromEntries(
     Object.keys(KEYS).map((engine) => [engine, flow(`voice-${engine}`, { language: "en", voice: { engine, envFile: ".env.voice" }, steps: voiceSteps(CLOUD_CAPTIONS) })]),
@@ -454,20 +508,31 @@ exit 0
     const again = await run(["voices", V_EN, "--out", join(Q, "voices-en-again")], { env: fresh });
     if (again.status !== 0) return `the second English voices exited ${again.status}: ${last(again)}`;
     if (installs().filter((line) => line.includes("kokoro-js@")).length !== 1) return "kokoro-js was installed again";
-    voiceRuns.ja = await run(["voices", V_JA, "--out", join(Q, "voices-ja")], { env: fresh });
+    if (installs().some((line) => /aivis/i.test(line))) return "an English flow installed AivisSpeech";
+    // The Japanese voice is made by the stand-in engine rather than as a tone
+    voiceRuns.ja = await run(["voices", V_JA, "--out", join(Q, "voices-ja")], { env: { ...fresh, SCREEN_VIDEO_TTS_FAKE: "" } });
     if (voiceRuns.ja.status !== 0) return `voices of a Japanese flow exited ${voiceRuns.ja.status}: ${last(voiceRuns.ja)}`;
-    const venv = installs().find((line) => line.startsWith("venv "));
-    if (venv === undefined || !venv.includes(join(FRESH, "voices"))) return `VOICEVOX CORE got no environment in the data folder (${venv ?? "none"})`;
-    if (!installs().some((line) => line.startsWith("pip ") && /voicevox[_-]core/i.test(line))) return "VOICEVOX CORE was not installed with pip";
+    const home = join(FRESH, "voices", "aivisspeech");
+    const engine = installs().filter((line) => line.startsWith("curl ") && /AivisSpeech-Engine-\S+-1\.2\.0\.7z\.001/.test(line));
+    if (engine.length !== 1 || !engine[0].includes(home)) return `the AivisSpeech Engine archive was not downloaded once into ${home} (${engine[0] ?? "none"})`;
+    if (!installs().some((line) => line.startsWith("bsdtar ") && line.includes(join(home, "engine")))) return "the AivisSpeech Engine archive was not unpacked into engine/";
+    const model = join(home, "home", ".local", "share", "AivisSpeech-Engine", "Models", "a59cb814-0083-4369-8542-f51a29e72af7.aivmx");
+    if (!existsSync(model)) return "the まお voice model is not in the engine's Models folder";
+    if (readdirSync(home).some((name) => name.endsWith(".7z.001"))) return "the engine archive was kept after unpacking";
+    const count = installs().length;
+    const jaAgain = await run(["voices", V_JA, "--out", join(Q, "voices-ja-again")], { env: fresh });
+    if (jaAgain.status !== 0) return `the second Japanese voices exited ${jaAgain.status}: ${last(jaAgain)}`;
+    if (installs().length !== count) return `the second Japanese flow installed again: ${installs()[count]}`;
     return true;
   });
 
-  await check("local voices use Kokoro for English and VOICEVOX for Japanese", async () => {
+  await check("local voices use Kokoro for English and AivisSpeech's まお for Japanese", async () => {
     if (voiceRuns.en?.status !== 0 || voiceRuns.ja?.status !== 0) return "the voices runs failed";
     const en = readJson(join(Q, "voices-en", "voice.json"));
     const ja = readJson(join(Q, "voices-ja", "voice.json"));
     if (en.engine !== "kokoro") return `the English flow used ${en.engine}`;
-    if (ja.engine !== "voicevox") return `the Japanese flow used ${ja.engine}`;
+    if (ja.engine !== "aivisspeech") return `the Japanese flow used ${ja.engine}`;
+    if (ja.voice !== "まお/おちつき") return `the Japanese flow used the voice ${ja.voice}`;
     for (const [name, made] of [["English", en], ["Japanese", ja]]) {
       if (!Array.isArray(made.clips) || made.clips.length !== 2) return `the ${name} flow made ${made.clips?.length ?? 0} clips for 2 captions`;
       for (const clip of made.clips) {
@@ -475,6 +540,40 @@ exit 0
         if (!(clip.duration > 0.2)) return `a clip lasts ${clip.duration}s`;
       }
     }
+    return true;
+  });
+
+  await check("AivisSpeech runs on 127.0.0.1 with Sentry off, keeps its data in the data folder, stops, and asks no credit", async () => {
+    if (voiceRuns.ja?.status !== 0) return "the Japanese voices run failed";
+    const log = engineLog();
+    const starts = log.filter((line) => line.startsWith("start "));
+    if (starts.length !== 1) return `the engine was started ${starts.length} times`;
+    const start = starts[0];
+    if (!/ --host 127\.0\.0\.1 /.test(start)) return `the engine was not told to listen on 127.0.0.1: ${start}`;
+    if (!/ --disable_sentry( |$)/.test(start)) return `the engine was started without --disable_sentry: ${start}`;
+    const home = join(FRESH, "voices", "aivisspeech", "home");
+    if (!start.includes(` home=${home} `) || !start.includes(` data=${join(home, ".local", "share")}`)) return `the engine's user data is outside the data folder: ${start}`;
+    const queries = log.filter((line) => line.startsWith("query "));
+    if (!JA_CAPTIONS.every((text) => queries.some((line) => line === `query 104 ${text}`))) return `the captions were not read in the おちつき style: ${queries.join(" / ")}`;
+    if (log.filter((line) => line === "synthesis 104").length !== JA_CAPTIONS.length) return "each caption was not made into a voice";
+    const pid = start.split(" ")[1];
+    if (!log.includes(`stop ${pid}`)) return "the engine was not stopped after the lines were made";
+    const ja = readJson(join(Q, "voices-ja", "voice.json"));
+    if (ja.credit !== undefined) return `voice.json credits ${ja.credit}`;
+    if (existsSync(join(Q, "voices-ja", "credits.txt"))) return "credits.txt was written for AivisSpeech";
+    return true;
+  });
+
+  await check("VOICEVOX waits for its terms to be agreed and credits its voice", async () => {
+    const ask = await run(["voices", V_VV_ASK, "--out", join(Q, "voices-vv-ask")], { env: fresh });
+    if (ask.status === 0 || !/terms/.test(ask.all)) return `voices with VOICEVOX and no agreed terms exited ${ask.status}: ${last(ask)}`;
+    const vv = await run(["voices", V_VV, "--out", join(Q, "voices-vv")], { env: fresh });
+    if (vv.status !== 0) return `voices with VOICEVOX exited ${vv.status}: ${last(vv)}`;
+    const venv = installs().find((line) => line.startsWith("venv "));
+    if (venv === undefined || !venv.includes(join(FRESH, "voices"))) return `VOICEVOX CORE got no environment in the data folder (${venv ?? "none"})`;
+    if (!installs().some((line) => line.startsWith("pip ") && /voicevox[_-]core/i.test(line))) return "VOICEVOX CORE was not installed with pip";
+    if (readJson(join(Q, "voices-vv", "voice.json")).engine !== "voicevox") return "voice.json does not name voicevox";
+    if (!/^VOICEVOX:冥鳴ひまり$/m.test(readText(join(Q, "voices-vv", "credits.txt")))) return "credits.txt does not credit VOICEVOX:冥鳴ひまり";
     return true;
   });
 
@@ -769,7 +868,10 @@ exit 0
   copyRecording(FULL_OUT, JA_OUT);
   copyRecording(FULL_OUT, SONG_OUT);
   copyRecording(FULL_OUT, FIT_OUT);
-  const ja = await run(["remake", flow("quality-ja", { ...FULL_BODY, language: "ja", voice: { engine: "local", terms: "agreed" }, sounds: false }), "--out", JA_OUT]);
+  const VV_OUT = join(Q, "full-vv");
+  copyRecording(FULL_OUT, VV_OUT);
+  const ja = await run(["remake", flow("quality-ja", { ...FULL_BODY, language: "ja", voice: { engine: "local" }, sounds: false }), "--out", JA_OUT]);
+  const vv = await run(["remake", flow("quality-vv", { ...FULL_BODY, language: "ja", outputs: ["16:9"], voice: { engine: "voicevox", terms: "agreed" }, sounds: false }), "--out", VV_OUT]);
   const { voice: _voice, ...withoutVoice } = FULL_BODY;
   const song = await run(["remake", flow("quality-song", { ...withoutVoice, music: { file: "assets/song.wav" } }), "--out", SONG_OUT]);
   const natural = full.status === 0 ? duration(join(FULL_OUT, "edited.mp4")) : 30;
@@ -777,13 +879,24 @@ exit 0
   const fit = await run(["remake", flow("quality-fit", { ...FULL_BODY, theme: "brand", seconds: planned }), "--out", FIT_OUT]);
 
   await check("VOICEVOX voices are credited on the end card and in credits.txt", async () => {
+    if (vv.status !== 0) return `remake with VOICEVOX exited ${vv.status}: ${last(vv)}`;
+    const voice = readJson(join(VV_OUT, "voice.json"));
+    if (voice.engine !== "voicevox") return `the VOICEVOX remake used ${voice.engine}`;
+    const credits = readText(join(VV_OUT, "credits.txt"));
+    if (!/VOICEVOX:\S+/.test(credits)) return "credits.txt does not credit the VOICEVOX voice";
+    const end = (readJson(join(VV_OUT, "edit.json")).cards ?? []).find((card) => card.kind === "end");
+    if (end === undefined || !/VOICEVOX:\S+/.test(JSON.stringify(end))) return "the end card does not credit the VOICEVOX voice";
+    return true;
+  });
+
+  await check("a Japanese video narrated by AivisSpeech carries no credit", async () => {
     if (ja.status !== 0) return `remake in Japanese exited ${ja.status}: ${last(ja)}`;
     const voice = readJson(join(JA_OUT, "voice.json"));
-    if (voice.engine !== "voicevox") return `the Japanese remake used ${voice.engine}`;
-    const credits = readText(join(JA_OUT, "credits.txt"));
-    if (!/VOICEVOX:\S+/.test(credits)) return "credits.txt does not credit the VOICEVOX voice";
+    if (voice.engine !== "aivisspeech") return `the Japanese remake used ${voice.engine}`;
+    if (existsSync(join(JA_OUT, "credits.txt"))) return "credits.txt was written";
     const end = (readJson(join(JA_OUT, "edit.json")).cards ?? []).find((card) => card.kind === "end");
-    if (end === undefined || !/VOICEVOX:\S+/.test(JSON.stringify(end))) return "the end card does not credit the VOICEVOX voice";
+    if (end === undefined) return "the Japanese remake has no end card";
+    if (end.credit !== undefined) return `the end card credits ${end.credit}`;
     return true;
   });
 

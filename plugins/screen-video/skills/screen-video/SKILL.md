@@ -48,7 +48,8 @@ Then ask how the video looks and sounds, in one question with these choices.
 | Music | Quiet music made for the video (recommended), the user's own music file, or none |
 | Cards | A title card, a card for each chapter, and an end card with closing words and an address |
 
-A Japanese video narrated on this machine uses VOICEVOX: before writing the flow, show the user the terms of VOICEVOX and of its voice, and that each video names the voice as `VOICEVOX:<character>` on its end card and in `credits.txt`, and ask whether the user agrees.
+A Japanese video narrated on this machine uses AivisSpeech's Mao and carries no credit.
+Choose `voicevox` only when the user asks for VOICEVOX: before writing the flow, show the user the terms of VOICEVOX and of its voice, and that each video names the voice as `VOICEVOX:<character>` on its end card and in `credits.txt`, and ask whether the user agrees.
 A cloud voice needs its key in an env file the user writes; name the file in `voice.envFile` and never read it yourself.
 From the answers, propose the steps as a numbered list, each with what it does, its caption, and where a chapter starts, keeping the video within the length the user chose.
 Each captioned step lasts as long as its caption takes to read and to hear, about 15 characters a second in English and 8 in Japanese, so plan about one step per 4 seconds and put the planned length in `seconds`.
@@ -150,7 +151,7 @@ Read the pictures, write `captions.json` next to them as `[{"start": 0.0, "end":
 | Videos | `<data folder>/<project>/<flow name>/`, with the rehearsal in `rehearsal/` inside it |
 | Saved logins | `<data folder>/sessions/`, readable only by the user |
 | Playwright and ffmpeg | `<data folder>/node/`. An ffmpeg on `PATH` with libx264 is used first |
-| The local voice engines | `<data folder>/voices/`: `kokoro/` for English, `voicevox/` for Japanese |
+| The local voice engines | `<data folder>/voices/`: `kokoro/` for English, `aivisspeech/` for Japanese, and `voicevox/` when a flow chooses VOICEVOX |
 | Themes | Bundled in `themes/` next to this `SKILL.md`; the project's own in `.screen-video/themes/` |
 
 The data folder is `$SCREEN_VIDEO_HOME`, or `$XDG_DATA_HOME/screen-video`, or `~/.local/share/screen-video`.

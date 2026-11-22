@@ -4,24 +4,29 @@
  *
  * | Engine | Where the voice is made | What is installed, once, into `<data>/voices/` |
  * |---|---|---|
- * | `local` | Kokoro for English, VOICEVOX for Japanese | as below |
+ * | `local` | Kokoro for English, AivisSpeech for Japanese | as below |
  * | `kokoro` | On this machine, with kokoro-js | `kokoro/`: kokoro-js through npm, and its model on first use |
+ * | `aivisspeech` | On this machine, with AivisSpeech Engine | `aivisspeech/`: the engine's build for this machine, the まお voice model, and, on the engine's first start, its language model and the voices AivisHub names as its defaults |
  * | `voicevox` | On this machine, with VOICEVOX CORE | `voicevox/`: a Python virtual environment, VOICEVOX CORE through pip, and its downloader, models, and dictionary |
  * | `openai`, `elevenlabs`, `azure`, `google` | At that company. Each line's text is sent to it | nothing |
  *
  * Keys for the cloud voices are read from the env file the flow's `voice.envFile` names, or from the
- * environment, and are never printed or written. VOICEVOX's models come with terms of use the user
- * must agree to first (the flow says so with `voice.terms: "agreed"`), and each video made with a
- * VOICEVOX voice names the voice, as `VOICEVOX:<character>`, on its end card and in `credits.txt`.
+ * environment, and are never printed or written. AivisSpeech Engine runs only while the lines are made,
+ * listening on 127.0.0.1 with its error reports to Sentry turned off, and its default voice まお is
+ * under ACML 1.0, which leaves the credit optional, so its videos carry none. VOICEVOX's models come
+ * with terms of use the user must agree to first (the flow says so with `voice.terms: "agreed"`), and
+ * each video made with a VOICEVOX voice names the voice, as `VOICEVOX:<character>`, on its end card
+ * and in `credits.txt`.
  *
  * With `SCREEN_VIDEO_TTS_FAKE=1` no voice is made: each line becomes a quiet 3000 Hz tone as long as
  * the line would take to read, for tests. `SCREEN_VIDEO_TTS_URL` sends every cloud request to one
  * address instead of the companies', also for tests.
  */
-import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { spawn, spawnSync } from "node:child_process";
+import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { join } from "node:path";
+import { createServer } from "node:net";
+import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { languageOf, parseEnvFile } from "./flow.mjs";
@@ -29,6 +34,11 @@ import { dataDir, ensureDir, ffmpegPath, SKILL_DIR } from "./runtime.mjs";
 
 const KOKORO_PACKAGE = "kokoro-js@1.2.1";
 const KOKORO_MODEL = "onnx-community/Kokoro-82M-v1.0-ONNX";
+const AIVIS_VERSION = "1.2.0";
+const AIVIS_RELEASES = `https://github.com/Aivis-Project/AivisSpeech-Engine/releases/download/${AIVIS_VERSION}`;
+const AIVIS_MODELS = "https://api.aivis-project.com/v1/aivm-models";
+/** The calm AivisSpeech narrator used when the flow names none: まお (Mao), an official voice under ACML 1.0, in its おちつき (calm) style. */
+const AIVIS_DEFAULT = { model: "a59cb814-0083-4369-8542-f51a29e72af7", voice: "まお/おちつき" };
 const VOICEVOX_VERSION = "0.16.4";
 const VOICEVOX_RELEASES = `https://github.com/VOICEVOX/voicevox_core/releases/download/${VOICEVOX_VERSION}`;
 /** The calm VOICEVOX narrator used when the flow names none: 冥鳴ひまり (Meimei Himari), normal style, in model 1. */
@@ -52,11 +62,11 @@ export function narrationLines(flow) {
     .filter((line) => line.text !== "");
 }
 
-/** The engine that makes the flow's voice: `local` becomes `voicevox` for Japanese and `kokoro` otherwise. */
+/** The engine that makes the flow's voice: `local` becomes `aivisspeech` for Japanese and `kokoro` otherwise. */
 export function engineOf(flow) {
   const engine = flow.voice?.engine;
   if (engine !== "local") return engine;
-  return languageOf(flow) === "ja" ? "voicevox" : "kokoro";
+  return languageOf(flow) === "ja" ? "aivisspeech" : "kokoro";
 }
 
 function run(command, args, { input, cwd, what }) {
@@ -84,6 +94,90 @@ function installKokoro() {
   say(`installing ${KOKORO_PACKAGE} into ${home} (first narrated English flow only)`);
   run("npm", ["install", "--prefix", home, "--no-audit", "--no-fund", "--loglevel", "error", KOKORO_PACKAGE], { what: "Installing kokoro-js" });
   return home;
+}
+
+function aivisHome() {
+  return join(dataDir(), "voices", "aivisspeech");
+}
+
+/** The name AivisSpeech Engine gives its build for this machine. */
+function aivisBuild() {
+  const builds = { "darwin-arm64": "macOS-arm64", "darwin-x64": "macOS-x64", "linux-x64": "Linux-x64", "linux-arm64": "Linux-arm64" };
+  const build = builds[`${process.platform}-${process.arch}`];
+  if (build === undefined) throw new Error(`AivisSpeech Engine has no build for ${process.platform} ${process.arch}. Choose a cloud voice for Japanese narration.`);
+  return build;
+}
+
+/** Unpacks a 7-Zip archive into `dir` with the first tool on this machine that reads it. */
+function unpack7z(archive, dir) {
+  const tools = [
+    ["bsdtar", ["-xf", archive, "-C", dir]],
+    ["7zz", ["x", "-y", `-o${dir}`, archive]],
+    ["7z", ["x", "-y", `-o${dir}`, archive]],
+    ["7za", ["x", "-y", `-o${dir}`, archive]],
+    ["tar", ["-xf", archive, "-C", dir]],
+  ];
+  const failed = [];
+  for (const [command, args] of tools) {
+    rmSync(dir, { recursive: true, force: true });
+    mkdirSync(dir, { recursive: true });
+    const result = spawnSync(command, args, { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+    if (result.error?.code === "ENOENT") continue;
+    if (result.error === undefined && result.status === 0) return;
+    failed.push(command);
+  }
+  rmSync(dir, { recursive: true, force: true });
+  const why = failed.length > 0 ? `${failed.join(", ")} could not unpack it` : "no tool here unpacks it";
+  throw new Error(`AivisSpeech Engine comes as a 7-Zip archive, and ${why}. Install bsdtar (libarchive) or 7-Zip (7zz), or choose a cloud voice for Japanese narration.`);
+}
+
+/** The engine's `run` program, which the archive keeps in its one folder. */
+function aivisProgram(engineDir) {
+  if (!existsSync(engineDir)) return undefined;
+  for (const name of readdirSync(engineDir)) {
+    const program = join(engineDir, name, "run");
+    if (existsSync(program)) return program;
+  }
+  return undefined;
+}
+
+/**
+ * Installs AivisSpeech Engine the first time: its build for this machine, unpacked into `engine/`,
+ * and the まお voice model into the engine's user data under `home/`, so the engine's first start
+ * finds a voice and fetches no other.
+ */
+function installAivis() {
+  const home = ensureDir(aivisHome());
+  const engineDir = join(home, "engine");
+  const engineMark = join(home, `.engine-${AIVIS_VERSION}`);
+  if (!existsSync(engineMark) || aivisProgram(engineDir) === undefined) {
+    const asset = `AivisSpeech-Engine-${aivisBuild()}-${AIVIS_VERSION}.7z.001`;
+    const archive = join(home, asset);
+    say(`downloading AivisSpeech Engine ${AIVIS_VERSION} (about 200MB) into ${home} (first narrated Japanese flow only)`);
+    try {
+      run("curl", ["-fL", "--silent", "--show-error", "-o", archive, `${AIVIS_RELEASES}/${asset}`], { what: "Downloading AivisSpeech Engine" });
+      unpack7z(archive, engineDir);
+    } finally {
+      rmSync(archive, { force: true });
+    }
+    const program = aivisProgram(engineDir);
+    if (program === undefined) throw new Error("the AivisSpeech Engine archive holds no run program");
+    chmodSync(program, 0o755);
+    writeFileSync(engineMark, "");
+  }
+  const userHome = join(home, "home");
+  const model = join(ensureDir(join(userHome, ".local", "share", "AivisSpeech-Engine", "Models")), `${AIVIS_DEFAULT.model}.aivmx`);
+  if (!existsSync(model)) {
+    say(`downloading the AivisSpeech voice ${AIVIS_DEFAULT.voice.split("/")[0]} (about 260MB)`);
+    const part = `${model}.part`;
+    try {
+      run("curl", ["-fL", "--silent", "--show-error", "-o", part, `${AIVIS_MODELS}/${AIVIS_DEFAULT.model}/download?model_type=AIVMX`], { what: "Downloading the AivisSpeech voice" });
+      renameSync(part, model);
+    } finally {
+      rmSync(part, { force: true });
+    }
+  }
+  return { program: aivisProgram(engineDir), userHome };
 }
 
 function voicevoxHome() {
@@ -236,6 +330,107 @@ async function kokoroClips(lines, files, voiceName) {
   }
 }
 
+function freePort() {
+  return new Promise((resolve, reject) => {
+    const server = createServer();
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      const { port } = server.address();
+      server.close(() => resolve(port));
+    });
+  });
+}
+
+async function stopAivis(child) {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+  const gone = new Promise((resolve) => child.once("exit", resolve));
+  child.kill("SIGTERM");
+  const hard = setTimeout(() => child.kill("SIGKILL"), 5000);
+  await gone;
+  clearTimeout(hard);
+}
+
+/**
+ * Starts AivisSpeech Engine on a free port of 127.0.0.1 with Sentry off and its user data under
+ * `userHome`, and waits until it answers. Its first start downloads its language model.
+ */
+async function startAivis({ program, userHome }) {
+  const port = await freePort();
+  const data = join(userHome, ".local", "share");
+  const first = !existsSync(join(data, "AivisSpeech-Engine", "BertModelCaches"));
+  say(first ? "starting AivisSpeech Engine; its first start downloads its language model and the voices AivisHub names as its defaults (about 900MB)" : "starting AivisSpeech Engine");
+  const child = spawn(program, ["--host", "127.0.0.1", "--port", String(port), "--disable_sentry", "--output_log_utf8"], {
+    cwd: dirname(program),
+    env: { ...process.env, HOME: userHome, XDG_DATA_HOME: data },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let log = "";
+  const keep = (chunk) => (log = `${log}${chunk}`.slice(-4000));
+  child.stdout.on("data", keep);
+  child.stderr.on("data", keep);
+  let stopped;
+  child.on("exit", (code, signal) => (stopped = signal ?? `exit ${code}`));
+  child.on("error", (error) => (stopped = error.message));
+  const base = `http://127.0.0.1:${port}`;
+  const until = Date.now() + 20 * 60 * 1000;
+  for (;;) {
+    if (stopped !== undefined) {
+      const tail = log.trim().split("\n").slice(-3).join(" / ");
+      throw new Error(`AivisSpeech Engine stopped while starting (${stopped})${tail ? `: ${tail}` : ""}`);
+    }
+    const ready = await fetch(`${base}/version`, { signal: AbortSignal.timeout(2000) }).then(
+      (response) => response.ok,
+      () => false,
+    );
+    if (ready) return { base, child };
+    if (Date.now() > until) {
+      await stopAivis(child);
+      throw new Error("AivisSpeech Engine did not answer within 20 minutes of starting");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+}
+
+async function aivisPost(base, path, body) {
+  const init = body === undefined ? {} : { headers: { "content-type": "application/json" }, body: JSON.stringify(body) };
+  const response = await fetch(`${base}${path}`, { method: "POST", ...init, signal: AbortSignal.timeout(10 * 60 * 1000) });
+  if (!response.ok) {
+    const detail = (await response.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 200);
+    throw new Error(`AivisSpeech Engine answered ${response.status} to ${path.split("?")[0]}${detail ? `: ${detail}` : ""}`);
+  }
+  return response;
+}
+
+/** The style ID for `wanted`, written as `speaker/style` or as `speaker` for its first style, among the installed voices. */
+async function aivisStyle(base, wanted) {
+  const [speakerName, styleName] = wanted.split("/");
+  const speakers = await (await fetch(`${base}/speakers`, { signal: AbortSignal.timeout(60000) })).json();
+  const speaker = speakers.find((one) => one.name === speakerName);
+  if (speaker === undefined) throw new Error(`AivisSpeech has no voice named ${speakerName}. Installed: ${speakers.map((one) => one.name).join(", ")}`);
+  const style = styleName === undefined ? speaker.styles[0] : speaker.styles.find((one) => one.name === styleName);
+  if (style === undefined) throw new Error(`the AivisSpeech voice ${speakerName} has no style ${styleName}. Its styles: ${speaker.styles.map((one) => one.name).join(", ")}`);
+  return { id: style.id, name: `${speaker.name}/${style.name}` };
+}
+
+/** Reads each line with AivisSpeech and returns the voice used, as `speaker/style`. */
+async function aivisClips(lines, files, wanted) {
+  const install = installAivis();
+  if (fake()) return wanted ?? AIVIS_DEFAULT.voice;
+  const engine = await startAivis(install);
+  try {
+    const style = await aivisStyle(engine.base, wanted ?? AIVIS_DEFAULT.voice);
+    for (const [index, line] of lines.entries()) {
+      say(`reading line ${index + 1} of ${lines.length} with AivisSpeech ${style.name}`);
+      const query = await (await aivisPost(engine.base, `/audio_query?speaker=${style.id}&text=${encodeURIComponent(line.text)}`)).json();
+      const sound = await (await aivisPost(engine.base, `/synthesis?speaker=${style.id}`, query)).arrayBuffer();
+      writeFileSync(files[index].made, Buffer.from(sound));
+    }
+    return style.name;
+  } finally {
+    await stopAivis(engine.child);
+  }
+}
+
 function voicevoxClips(lines, files, agreed) {
   const { home, python } = installVoicevox(agreed);
   if (fake()) return;
@@ -356,6 +551,8 @@ export async function makeVoices(flow, root, outDir) {
   if (engine === "kokoro") {
     voiceName ??= language === "ja" ? "jf_alpha" : "af_heart";
     await kokoroClips(lines, files, voiceName);
+  } else if (engine === "aivisspeech") {
+    voiceName = await aivisClips(lines, files, voiceName);
   } else if (engine === "voicevox") {
     voiceName = VOICEVOX_DEFAULT.character;
     credit = `VOICEVOX:${VOICEVOX_DEFAULT.character}`;

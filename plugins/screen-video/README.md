@@ -94,11 +94,14 @@ When you already have a recording, the agent can find its scenes, write the capt
 | Node.js 20.11 or later | Always |
 | `pnpm` or `npm` | Once, to install Playwright and ffmpeg into the data folder on first use |
 | ffmpeg with libx264 | Optional. When one is on `PATH`, it is used instead of the bundled one |
-| Python 3.10 or later | Only for Japanese narration made on your machine with VOICEVOX |
+| `bsdtar` or 7-Zip (`7zz`) | Only for Japanese narration made on your machine, to unpack AivisSpeech Engine. macOS has `bsdtar` |
+| Python 3.10 or later | Only when a flow chooses VOICEVOX |
 
 No global package is installed.
 The first run downloads `playwright-core`, its headless browser, and `ffmpeg-static`, which takes about a minute.
-The first narrated flow installs its voice into `voices/` of the data folder: kokoro-js and its model for English, or VOICEVOX CORE with its model and dictionary for Japanese, after you agree to the VOICEVOX terms.
+The first narrated flow installs its voice into `voices/` of the data folder: kokoro-js and its model for English, or AivisSpeech Engine with its voice Mao for Japanese, about 1.3GB with the language model and default voices the engine fetches on its first start.
+A video narrated by Mao carries no credit.
+VOICEVOX stays available when a flow chooses it: it is installed after you agree to its terms, and each video names its voice on the end card.
 
 ## What it reads, runs, and sends
 
@@ -111,7 +114,8 @@ In short:
 - It stops a rehearsal before the first step marked as sending something or paying, and records those steps only after you agree
 - It writes videos to `~/.local/share/screen-video/<project>/<flow>/` unless you name another folder, and never empties a folder that holds files it did not write
 - It downloads `playwright-core`, its browser, and `ffmpeg-static` once on first use, and the voice engine once for the first narrated flow
-- It makes the narration on your machine and sends nothing else anywhere, unless your flow chooses a cloud voice (OpenAI, ElevenLabs, Microsoft Azure, or Google Cloud), which sends each caption's text to that company with the key read from the env file your flow names
+- It makes the narration on your machine. For Japanese, it runs AivisSpeech Engine on 127.0.0.1 only while the lines are made, with its error reports to Sentry turned off; the engine asks AivisHub about its version and voices
+- It sends nothing else anywhere, unless your flow chooses a cloud voice (OpenAI, ElevenLabs, Microsoft Azure, or Google Cloud), which sends each caption's text to that company with the key read from the env file your flow names
 
 ## License
 

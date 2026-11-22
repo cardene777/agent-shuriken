@@ -5,6 +5,7 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- Japanese narration made on the user's machine uses AivisSpeech Engine 1.2.0 with its voice Mao in the calm style, and the videos carry no credit. The first narrated Japanese flow installs the engine and Mao into `voices/aivisspeech/` of the data folder; the engine runs on 127.0.0.1 with its error reports to Sentry turned off, only while the lines are made. `voice.engine: "aivisspeech"` chooses it outright, and `voice.voice` picks another installed voice as `speaker/style`. VOICEVOX stays available as `voice.engine: "voicevox"`, with its terms and credit as before
 - A target with `frame` is looked for in every iframe whose address holds that text, nested ones too, until one of them holds it within the step's `timeout`. Before, a step failed at once while a payment form was still loading, or looked in another iframe from the same host that held no field
 
 ## [0.1.0] - 2026-11-22

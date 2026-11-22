@@ -18,8 +18,8 @@ import { sessionFile } from "./runtime.mjs";
 
 export const ACTIONS = ["open", "click", "fill", "select", "key", "wait", "hold"];
 export const OUTPUTS = ["16:9", "9:16", "gif"];
-/** Voice engines: `local` picks Kokoro for English and VOICEVOX for Japanese; the others are cloud services. */
-export const ENGINES = ["local", "kokoro", "voicevox", "openai", "elevenlabs", "azure", "google"];
+/** Voice engines: `local` picks Kokoro for English and AivisSpeech for Japanese; `kokoro`, `aivisspeech`, and `voicevox` run on this machine, and the others are cloud services. */
+export const ENGINES = ["local", "kokoro", "aivisspeech", "voicevox", "openai", "elevenlabs", "azure", "google"];
 export const LANGUAGES = ["en", "ja"];
 const LOCATORS = ["role", "label", "placeholder", "text", "testId", "css"];
 const EFFECTS = ["sends", "pays"];
