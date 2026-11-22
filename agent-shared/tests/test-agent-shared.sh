@@ -717,6 +717,242 @@ placed_needs_source() {
   grep -q "$T/no-such-source" "$T/placed.err" || { why="the refusal does not name the folder: $(tail -1 "$T/placed.err")"; return 1; }
 }
 
+# The fixture's hook file, so the list can name a file the source holds, and a command that runs the
+# same file through a wrapper, beside a command whose file only starts with the same path.
+hook_files() {
+  mkdir -p "$HOME/.shared/hooks/lib"
+  printf '#!/bin/sh\nexit 0\n' > "$HOME/.shared/hooks/guard.sh"
+  printf '#!/bin/sh\nexit 0\n' > "$HOME/.shared/hooks/guard.sh.orig"
+  printf '#!/bin/sh\nexec "$@"\n' > "$HOME/.shared/hooks/lib/wrap.sh"
+  cat > "$HOME/.shared/hooks.json" <<'JSON'
+{"hooks": {
+  "PreToolUse": [
+    {"matcher": "Bash", "hooks": [{"type": "command", "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/guard.sh"}]},
+    {"matcher": "Edit", "hooks": [{"type": "command", "command": "/bin/sh ${CLAUDE_PLUGIN_ROOT}/hooks/lib/wrap.sh bash ${CLAUDE_PLUGIN_ROOT}/hooks/guard.sh"}]},
+    {"matcher": "Read", "hooks": [{"type": "command", "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/guard.sh.orig"}]}
+  ],
+  "Stop": [{"hooks": [{"type": "command", "command": "echo stop"}]}]
+}}
+JSON
+}
+
+# The marked commands of one event in an agent's hook file, one per line, without the mark.
+marked_commands() {
+  python3 - "$1" "$2" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1]))
+for group in data.get("hooks", {}).get(sys.argv[2], []):
+    for hook in group.get("hooks", []):
+        command = hook.get("command", "")
+        if "\n" in command and command.rsplit("\n", 1)[1].startswith("# agent-shared"):
+            print(command.rsplit("\n", 1)[0])
+PY
+}
+
+off_list() { printf '%s\n' "$HOME/.local/share/agent-shared/off.json"; }
+
+off_on_write() {
+  fresh off-write
+  hook_files
+  run off --source "$HOME/.shared" --agent Codex rules/one.md
+  [ "$rc" = 0 ] || { why="off exited $rc: $(tail -1 "$T/out")"; return 1; }
+  run off --source "$HOME/.shared" --agent "Claude Code" hooks/guard.sh
+  [ "$rc" = 0 ] || { why="the second off exited $rc: $(tail -1 "$T/out")"; return 1; }
+  python3 - "$(off_list)" "$HOME" <<'PY' || { why="$(cat "$T/off.why" 2>/dev/null)"; return 1; }
+import json, os, sys
+path, home = sys.argv[1:]
+def fail(reason):
+    open(os.environ["T"] + "/off.why", "w").write(reason)
+    sys.exit(1)
+if not os.path.exists(path):
+    fail("off wrote no off.json beside the record")
+data = json.load(open(path))
+items = sorted((entry.get("agent"), entry.get("item")) for entry in data.get("off", []))
+if items != [("Claude Code", "hooks/guard.sh"), ("Codex", "rules/one.md")]:
+    fail("off.json holds %r" % items)
+if any(os.path.realpath(entry.get("source", "")) != os.path.realpath(os.path.join(home, ".shared")) for entry in data["off"]):
+    fail("an entry of off.json does not name the source folder")
+PY
+  run on --source "$HOME/.shared" --agent Codex rules/one.md
+  [ "$rc" = 0 ] || { why="on exited $rc: $(tail -1 "$T/out")"; return 1; }
+  python3 - "$(off_list)" <<'PY' || { why="on did not take out exactly its one entry"; return 1; }
+import json, sys
+data = json.load(open(sys.argv[1]))
+sys.exit(0 if [(e["agent"], e["item"]) for e in data["off"]] == [("Claude Code", "hooks/guard.sh")] else 1)
+PY
+}
+
+private_off_list() {
+  fresh off-private
+  run off --source "$HOME/.shared" --agent Codex rules/one.md
+  [ "$rc" = 0 ] || { why="off exited $rc: $(tail -1 "$T/out")"; return 1; }
+  [ "$(mode "$HOME/.local/share/agent-shared")" = 0o700 ] || { why="the record folder has mode $(mode "$HOME/.local/share/agent-shared")"; return 1; }
+  [ "$(mode "$(off_list)")" = 0o600 ] || { why="off.json has mode $(mode "$(off_list)")"; return 1; }
+  fresh off-private-moved
+  export AGENT_SHARED_STATE="$T/off-state"
+  run off --source "$HOME/.shared" --agent Codex rules/one.md
+  [ -f "$T/off-state/off.json" ] || { why="AGENT_SHARED_STATE did not move off.json"; return 1; }
+}
+
+off_refuses_unknown() {
+  fresh off-unknown
+  hook_files
+  local args
+  for args in "--agent Codex rules/none.md" "--agent Codex hooks/none.sh" "--agent Codex ../outside.md" "--agent Nobody rules/one.md"; do
+    # shellcheck disable=SC2086
+    run off --source "$HOME/.shared" $args
+    [ "$rc" = 2 ] || { why="off $args exited $rc"; return 1; }
+    [ ! -e "$(off_list)" ] || { why="off $args wrote off.json though it refused"; return 1; }
+  done
+  run off --source "$HOME/.shared" --agent Nobody rules/one.md
+  grep -q 'Nobody' "$T/out" || { why="the refusal does not name the agent: $(tail -1 "$T/out")"; return 1; }
+  run off --source "$HOME/.shared" --agent Codex rules/none.md
+  grep -q 'rules/none.md' "$T/out" || { why="the refusal does not name the item: $(tail -1 "$T/out")"; return 1; }
+}
+
+off_rule_one_agent() {
+  fresh off-rule
+  run off --source "$HOME/.shared" --agent Codex rules/one.md
+  deployed || return 1
+  ! grep -q 'Rule one.' "$HOME/.codex/AGENTS.md" || { why="rule one is in Codex's AGENTS.md though it is off for Codex"; return 1; }
+  grep -q 'Rule two.' "$HOME/.codex/AGENTS.md" || { why="rule two left Codex's AGENTS.md"; return 1; }
+  links_to "$HOME/.claude/rules/one.md" "$HOME/.shared/rules/one.md" || { why="rule one left Claude Code"; return 1; }
+  fresh off-rule-claude
+  run off --source "$HOME/.shared" --agent "Claude Code" rules/one.md
+  deployed || return 1
+  [ ! -L "$HOME/.claude/rules/one.md" ] || { why="rule one is linked into Claude Code though it is off for Claude Code"; return 1; }
+  grep -q 'Rule one.' "$HOME/.codex/AGENTS.md" || { why="rule one left Codex"; return 1; }
+}
+
+off_hook_file() {
+  fresh off-hook
+  hook_files
+  run off --source "$HOME/.shared" --agent Codex hooks/guard.sh
+  deployed || return 1
+  local codex claude
+  codex="$(marked_commands "$HOME/.codex/hooks.json" PreToolUse)"
+  claude="$(marked_commands "$HOME/.claude/settings.json" PreToolUse)"
+  ! printf '%s\n' "$codex" | grep -q 'hooks/guard.sh$' || { why="Codex still runs guard.sh: $codex"; return 1; }
+  printf '%s\n' "$codex" | grep -q 'hooks/guard.sh.orig$' || { why="Codex lost guard.sh.orig, which only starts like the path"; return 1; }
+  [ "$(printf '%s\n' "$claude" | grep -c 'hooks/guard.sh$')" = 2 ] || { why="Claude Code does not keep both commands that run guard.sh: $claude"; return 1; }
+}
+
+off_command() {
+  fresh off-command
+  run off --source "$HOME/.shared" --agent Codex "echo stop"
+  [ "$rc" = 0 ] || { why="off with a command exited $rc: $(tail -1 "$T/out")"; return 1; }
+  deployed || return 1
+  [ -z "$(marked_commands "$HOME/.codex/hooks.json" Stop)" ] || { why="Codex still has the stop hook"; return 1; }
+  marked_commands "$HOME/.claude/settings.json" Stop | grep -q '^echo stop$' || { why="Claude Code lost the stop hook"; return 1; }
+}
+
+off_named_source_only() {
+  fresh off-source
+  hook_files
+  SRC="$T/source-same-path"
+  mkdir -p "$SRC/hooks"
+  printf '#!/bin/sh\nexit 0\n' > "$SRC/hooks/guard.sh"
+  printf '%s\n' '{"hooks": {"Stop": [{"hooks": [{"type": "command", "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/guard.sh"}]}]}}' > "$SRC/hooks.json"
+  run off --source "$HOME/.shared" --agent Codex hooks/guard.sh
+  run deploy --source "$SRC"
+  [ "$rc" = 0 ] || { why="deploy exited $rc: $(tail -1 "$T/out")"; return 1; }
+  marked_commands "$HOME/.codex/hooks.json" Stop | grep -q "^bash $SRC/hooks/guard.sh$" \
+    || { why="the other source's guard.sh left Codex"; return 1; }
+  ! marked_commands "$HOME/.codex/hooks.json" PreToolUse | grep -q "/.shared/hooks/guard.sh$" \
+    || { why="~/.shared's guard.sh is still in Codex"; return 1; }
+}
+
+off_then_on() {
+  fresh off-then-on
+  hook_files
+  deployed || return 1
+  run off --source "$HOME/.shared" --agent "Claude Code" rules/two.md
+  run off --source "$HOME/.shared" --agent "Claude Code" hooks/guard.sh
+  deployed || return 1
+  [ ! -L "$HOME/.claude/rules/two.md" ] || { why="the next deploy left rule two in Claude Code"; return 1; }
+  ! marked_commands "$HOME/.claude/settings.json" PreToolUse | grep -q 'hooks/guard.sh$' || { why="the next deploy left guard.sh in Claude Code"; return 1; }
+  run on --source "$HOME/.shared" --agent "Claude Code" rules/two.md
+  run on --source "$HOME/.shared" --agent "Claude Code" hooks/guard.sh
+  deployed || return 1
+  links_to "$HOME/.claude/rules/two.md" "$HOME/.shared/rules/two.md" || { why="rule two did not come back after on"; return 1; }
+  [ "$(marked_commands "$HOME/.claude/settings.json" PreToolUse | grep -c 'hooks/guard.sh$')" = 2 ] || { why="guard.sh did not come back after on"; return 1; }
+}
+
+hooks_off() {
+  fresh hooks-off
+  hook_files
+  run off --source "$HOME/.shared" --agent Codex hooks/guard.sh
+  hooks_run --agent Codex
+  [ "$rc" = 0 ] || { why="hooks exited $rc: $(tail -1 "$T/hooks.err")"; return 1; }
+  ! grep -q 'hooks/guard.sh\\n' "$T/hooks.out" && ! grep -q 'hooks/guard.sh"' "$T/hooks.out" || { why="hooks printed guard.sh for Codex"; return 1; }
+  grep -q 'guard.sh.orig' "$T/hooks.out" || { why="hooks left out guard.sh.orig"; return 1; }
+  deployed || return 1
+  hooks_run --agent Codex
+  cp "$T/hooks.out" "$T/hooks-codex.json"
+  python3 - "$T/hooks-codex.json" "$HOME/.codex/hooks.json" <<'PY' || { why="the printed hooks differ from what deploy placed in Codex"; return 1; }
+import json, sys
+printed = json.load(open(sys.argv[1]))["hooks"]
+data = json.load(open(sys.argv[2]))["hooks"]
+mark = "# agent-shared 1 source="
+placed = {}
+for event, groups in data.items():
+    kept = [g for g in groups if all(h["command"].rsplit("\n", 1)[-1].startswith(mark) for h in g["hooks"])]
+    if kept:
+        placed[event] = kept
+sys.exit(0 if printed == placed else 1)
+PY
+}
+
+placed_left_out() {
+  fresh placed-off
+  hook_files
+  run off --source "$HOME/.shared" --agent Codex rules/one.md
+  run off --source "$HOME/.shared" --agent Codex hooks/guard.sh
+  deployed || return 1
+  SRC="$HOME/.shared"
+  placed_ok --source "$HOME/.shared" || return 1
+  placed_holds <<'PY'
+agents = out.get("agents") or {}
+codex = agents.get("Codex") or {}
+claude = agents.get("Claude Code") or {}
+if sorted(codex.get("left_out") or []) != ["hooks/guard.sh", "rules/one.md"]:
+    fail("Codex's left_out is %r" % codex.get("left_out"))
+if claude.get("left_out"):
+    fail("Claude Code names %r as left out, though nothing is off for it" % claude.get("left_out"))
+if "one.md" in (codex.get("rules") or []):
+    fail("Codex lists rule one as placed")
+PY
+}
+
+off_unreadable() {
+  fresh off-broken
+  deployed || return 1
+  mkdir -p "$HOME/.local/share/agent-shared"
+  printf '{"off": [\n' > "$(off_list)"
+  snapshot "$HOME" > "$T/before.txt"
+  run deploy
+  [ "$rc" = 2 ] || { why="deploy exited $rc with an unreadable off.json"; return 1; }
+  grep -q 'off.json' "$T/out" || { why="deploy did not name off.json: $(tail -1 "$T/out")"; return 1; }
+  snapshot "$HOME" > "$T/after.txt"
+  cmp -s "$T/before.txt" "$T/after.txt" || { why="deploy wrote $(diff "$T/before.txt" "$T/after.txt" | sed -n 2p)"; return 1; }
+  hooks_run --agent Codex
+  [ "$rc" = 2 ] && grep -q 'off.json' "$T/hooks.err" || { why="hooks exited $rc: $(tail -1 "$T/hooks.err")"; return 1; }
+  placed_run --source "$HOME/.shared"
+  [ "$rc" = 2 ] && grep -q 'off.json' "$T/placed.err" || { why="placed exited $rc: $(tail -1 "$T/placed.err")"; return 1; }
+}
+
+off_documented() {
+  local f
+  for f in README.md README.ja.md; do
+    grep -qF 'off.json' "$ROOT/$f" && grep -qF 'agent-shared off' "$ROOT/$f" && grep -qF 'agent-shared on' "$ROOT/$f" \
+      || { why="$f does not describe off.json with agent-shared off and on"; return 1; }
+  done
+  (cd "$T" && PYTHONPATH="$PKG/src" python3 -m agent_shared --help) > "$T/help.out" 2>&1
+  grep -qF 'off.json' "$T/help.out" || { why="--help does not name off.json"; return 1; }
+  (cd "$T" && PYTHONPATH="$PKG/src" python3 -m agent_shared off --help) > "$T/help.out" 2>&1
+  grep -q 'exit status' "$T/help.out" && grep -qF 'off.json' "$T/help.out" || { why="off --help does not describe off.json and its exits"; return 1; }
+}
+
 check "uv tool install puts agent-shared on PATH without any plugin" uv_installs
 check "deploy links every skill into the Claude Code and shared agent folders" links_skills
 check "deploy places nothing in the deprecated Codex skills folder" no_codex_skills
@@ -750,6 +986,18 @@ check "placed prints empty lists for a source never deployed" placed_never_deplo
 check "placed refuses a hook file it cannot read" placed_bad_hook_file
 check "placed refuses a broken rules block" placed_broken_block
 check "placed refuses a call without an existing source" placed_needs_source
+check "off and on write one entry of off.json beside the record" off_on_write
+check "off.json is kept readable only by the user" private_off_list
+check "off refuses a path the source lacks and an agent the table lacks" off_refuses_unknown
+check "deploy leaves a switched-off rule out of one agent and keeps it in the other" off_rule_one_agent
+check "deploy leaves every command that runs a switched-off hook file out of one agent" off_hook_file
+check "deploy leaves a switched-off command that runs no file out of one agent" off_command
+check "the list leaves out only the named source's item" off_named_source_only
+check "a switched-off item placed before is taken out and comes back after on" off_then_on
+check "hooks leaves out what the list switched off" hooks_off
+check "placed names what the list left out for each agent" placed_left_out
+check "an unreadable off.json refuses deploy, hooks, and placed" off_unreadable
+check "the README and the help describe off.json" off_documented
 
 printf '%d passed, %d failed (%d ran)\n' "$PASS" "$FAIL" "$((PASS + FAIL))"
 [ "$FAIL" -eq 0 ]

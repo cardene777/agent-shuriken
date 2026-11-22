@@ -99,7 +99,7 @@ Claude CodeかCodexに入れたプラグインが、フォルダーのスキル�
 |---|---|
 | 読む物 | 配る元のフォルダー、`~/.claude/plugins/installed_plugins.json`、`~/.claude/settings.json`の`enabledPlugins`、`~/.codex/config.toml`、`~/.codex/plugins/cache`の下のスキルのフォルダー。`placed`は記録とエージェントの表の置き場だけを読む |
 | 書く物 | エージェントの表の置き場。自分が置いた物だけ |
-| 残す物 | `~/.local/share/agent-shared/placed.json`。あなただけが読め、置いたリンクを1つずつ記録する。`AGENT_SHARED_STATE`でフォルダーを変えられる |
+| 残す物 | `~/.local/share/agent-shared/placed.json`。あなただけが読め、置いたリンクを1つずつ記録する。その隣の`off.json`は、`agent-shared off`と`agent-shared on`が書く切った物の一覧。`AGENT_SHARED_STATE`でフォルダーを変えられる |
 | 動かす物 | `codex app-server`。置いたhookにCodexの信頼の印を書くため。`AGENT_SHARED_CODEX_BIN`で別の`codex`のコマンドを指せる |
 | 送る物 | ネットワークには何も送らない |
 
@@ -163,12 +163,45 @@ agent-shared placed --source ~/.shared
 | `skills` | 配る元がそのエージェントへ置き、今も置いた時の先を指すスキルのリンクの名前 |
 | `rules` | ルールのリンクのファイル名か、ルールのファイルの中のその配る元の囲みにあるルールのファイル名 |
 | `hooks` | その配る元の印を持つhook。`event`と、組が持つ時だけの`matcher`と、印の行を除いた`command`を持つ |
+| `left_out` | 切った物の一覧がこの配る元の項目を名指すエージェントにだけ在る。`agent-shared off`に渡した形のままの項目 |
 
 `--source`は1つのフォルダーを名指し、そのフォルダーが置いた物だけを出します。
 プラグインが既に持つスキルはそのエージェントへ置いていないので、出しません。
 あなたが消したか別の先へ向けたリンクと、印の無いhookも出しません。
 1度も配っていないフォルダーには、全てのエージェントを空の配列で出し、終わり方0で終わります。
-`--source`の無い呼び方、在らないフォルダー、JSONでない記録かhookのファイル、崩れたルールの囲みは、何も出さずに終わり方2で終わります。
+`--source`の無い呼び方、在らないフォルダー、JSONでない記録か切った物の一覧かhookのファイル、崩れたルールの囲みは、何も出さずに終わり方2で終わります。
+
+## 1つのエージェントでルールかhookを切る
+
+`agent-shared off`は、配る元の1つのルールかhookを1つのエージェントから外し、`agent-shared on`はまた置きます。
+どちらも何も置きません。
+次の`deploy`が、どの道具から打たれても選んだ状態に従い、前に置いた所からは切った物を外します。
+
+```
+agent-shared off --source ~/.shared --agent Codex rules/writing.md
+agent-shared off --source ~/.shared --agent Codex hooks/guardrails/stop-guard.sh
+agent-shared off --source ~/.shared --agent "Claude Code" "afplay /System/Library/Sounds/Glass.aiff"
+agent-shared on --source ~/.shared --agent Codex rules/writing.md
+```
+
+| 項目 | 名指す物 |
+|---|---|
+| `rules/<名前>.md` | 1つのルールのファイル。リンクで置くエージェントにはリンクを置かず、囲みで置くエージェントには囲みに本文を入れない |
+| 配る元のフォルダーの下のファイル | そのファイルを実行するhookの命令の全て。`/bin/sh hooks/lib/run.sh bash hooks/x.sh`のように包む命令を通す物も含む。パスの頭だけが同じ命令は残す |
+| hookの命令の全体 | 配る元のファイルを実行しないhook。`hooks.json`に書いた形のまま書く |
+
+選んだ状態は、記録の隣の`off.json`に残り、あなただけが読めます。
+
+```json
+{"version": 1, "off": [{"source": "/path/to/.shared", "agent": "Codex", "item": "rules/writing.md"}]}
+```
+
+1件ずつが配る元のフォルダーを名指すので、別の配る元に在る同じパスの物は置いたままです。
+このファイルは`off`と`on`だけで書きます。
+`off`は、表に無いエージェントと、配る元に無い項目か外を指すパスを、何も書かずに終わり方2で断ります。
+`on`は、合う1件を外し、合う物が無ければ何も変えません。
+`deploy`と`hooks`と`placed`は打つたびに一覧を読み、`off.json`を読めない時は何も書かずに終わり方2で終わり、そのファイルを名指します。
+`off.json`が無い時は、どのコマンドも一覧が無かった頃と同じに置いて出します。
 
 ## 断る時
 
@@ -184,4 +217,4 @@ agent-shared placed --source ~/.shared
 | ファイルの中のルールの囲みが崩れている | 印の行を手で外す |
 | ルールが印と同じ形で始まる行を持つ | その行を変える |
 
-終わり方0は配り終えたこと、2はコマンドの引数か配る元のフォルダーか表か記録を使えなかったことを表します。
+終わり方0は配り終えたこと、2はコマンドの引数か配る元のフォルダーか表か記録か切った物の一覧を使えなかったことを表します。

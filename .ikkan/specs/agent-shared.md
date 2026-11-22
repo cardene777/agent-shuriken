@@ -40,3 +40,17 @@
 | `agent-shared deploy`は今どおり技とruleのlinkを置き、Codexのrulesを1つの塊に書く | `bash agent-shared/tests/test-agent-shared.sh`の検査`"deploy writes rules as links for Claude Code and one block for Codex"`が通る | #258 |
 | `agent-shared deploy`は今どおり、pluginが同じ名前の技を持つagentへその技を置かない | `bash agent-shared/tests/test-agent-shared.sh`の検査`"a skill an installed plugin already has is not placed for that agent"`が通る | #258 |
 | `agent-shared hooks`は今どおり、`deploy`が足すhookの組を返す | `bash agent-shared/tests/test-agent-shared.sh`の検査`"hooks prints the groups deploy adds for an agent"`が通る | #258 |
+| `agent-shared off --source DIR --agent NAME PATH`を打った時、記録の置き場(`AGENT_SHARED_STATE`)の`off.json`にその1件が入り、同じ引数の`agent-shared on`でその1件が消え、ほかの件は残る | `bash agent-shared/tests/test-agent-shared.sh`の検査`"off and on write one entry of off.json beside the record"`が通る | #331 |
+| `off.json`は記録と同じく本人だけが読める | `bash agent-shared/tests/test-agent-shared.sh`の検査`"off.json is kept readable only by the user"`が通る | #331 |
+| `agent-shared off`は、置き場に無い場所と、agentの表に無いagentを断り、`off.json`を変えない | `bash agent-shared/tests/test-agent-shared.sh`の検査`"off refuses a path the source lacks and an agent the table lacks"`が通る | #331 |
+| ruleを1つのagentで切って`agent-shared deploy`を打った時、そのagentにruleが無く(Claude Codeでは`rules/`のlinkが無く、Codexでは`AGENTS.md`の囲みにその本文が無い)、もう一方のagentには残る | `bash agent-shared/tests/test-agent-shared.sh`の検査`"deploy leaves a switched-off rule out of one agent and keeps it in the other"`が通る | #331 |
+| hookのfileを1つのagentで切って`agent-shared deploy`を打った時、そのfileの場所を含む命令(包む命令を通す命令も含む)がそのagentのhookの設定から全部消え、もう一方のagentには残る | `bash agent-shared/tests/test-agent-shared.sh`の検査`"deploy leaves every command that runs a switched-off hook file out of one agent"`が通る | #331 |
+| fileを実行しない命令を命令の文字列で切った時、`agent-shared deploy`はその命令をそのagentに置かない | `bash agent-shared/tests/test-agent-shared.sh`の検査`"deploy leaves a switched-off command that runs no file out of one agent"`が通る | #331 |
+| 一覧は名指した置き場の物だけを外し、別の置き場に在る同じ場所の物は外さない | `bash agent-shared/tests/test-agent-shared.sh`の検査`"the list leaves out only the named source's item"`が通る | #331 |
+| 前の`deploy`で置いた物を切ると次の`deploy`がそのagentから外し、`on`に戻すと次の`deploy`が置き直す | `bash agent-shared/tests/test-agent-shared.sh`の検査`"a switched-off item placed before is taken out and comes back after on"`が通る | #331 |
+| `agent-shared hooks --agent NAME`は、一覧がそのagentで切った命令を出さない | `bash agent-shared/tests/test-agent-shared.sh`の検査`"hooks leaves out what the list switched off"`が通る | #331 |
+| `agent-shared placed`は、agentごとに一覧が外したruleとhookを出す | `bash agent-shared/tests/test-agent-shared.sh`の検査`"placed names what the list left out for each agent"`が通る | #331 |
+| `off.json`が読めない時、`deploy`と`hooks`と`placed`は何も書かずに終わり方2で断り、読めないfileの場所を出す | `bash agent-shared/tests/test-agent-shared.sh`の検査`"an unreadable off.json refuses deploy, hooks, and placed"`が通る | #331 |
+| READMEと`--help`が、`off.json`の置き場と形と、読めない時の扱いと、`off`と`on`の打ち方を書く | `bash agent-shared/tests/test-agent-shared.sh`の検査`"the README and the help describe off.json"`が通る | #331 |
+| `off.json`が無い時、`agent-shared deploy`はruleを今と同じに置く | `bash agent-shared/tests/test-agent-shared.sh`の検査`"deploy writes rules as links for Claude Code and one block for Codex"`が通る | #331 |
+| `off.json`が無い時、`agent-shared deploy`はhookを今と同じに置き、ほかの設定を残す | `bash agent-shared/tests/test-agent-shared.sh`の検査`"deploy adds marked hooks and keeps the other settings"`が通る | #331 |
