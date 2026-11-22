@@ -303,11 +303,19 @@ def _hide_long_token(m):
     return "***" if sum(map(len, words)) / len(words) < 4 else s
 
 
+def home_as_tilde(text):
+    """The text with the home folder written as `~`, in both its spelling in HOME and the folder it
+    resolves to, the longer first, since the resolved one can hold the other (/private/var on macOS)."""
+    home = os.path.expanduser("~").rstrip(os.sep)
+    for h in sorted({home, os.path.realpath(home)}, key=len, reverse=True):
+        if len(h) > 1:
+            text = re.sub(re.escape(h) + r"(?![A-Za-z0-9_.-])", "~", text)
+    return text
+
+
 def mask(text):
     """The text with the home folder written as `~` and anything that looks like a secret as ***."""
-    home = os.path.expanduser("~").rstrip(os.sep)
-    if len(home) > 1:
-        text = re.sub(re.escape(home) + r"(?![A-Za-z0-9_.-])", "~", text)
+    text = home_as_tilde(text)
     text = KEY_SHAPES.sub("***", text)
     text = URL_LOGIN.sub(r"\1***@", text)
     text = AUTH_HEADER.sub(lambda m: m.group(1) + " ***", text)
@@ -1290,7 +1298,10 @@ def build_report(sdir):
             notes = json.load(fh)
     with open(TEMPLATE, encoding="utf-8") as fh:
         page = fh.read()
-    payload = json.dumps({"data": data, "notes": notes}, ensure_ascii=False)
+    # The page leaves out the path of the scanned folder and writes the home folder as ~ in all of its
+    # data, so that it can be passed on without the user name. scan.json keeps the path for the commands.
+    shown = {k: v for k, v in data.items() if k != "root"}
+    payload = home_as_tilde(json.dumps({"data": shown, "notes": notes}, ensure_ascii=False))
     payload = payload.replace("</", "<\\/")
     page = page.replace("/*TECHDEBT_DATA*/null", payload).replace("{{TITLE}}", html.escape(data["project"]))
     out = os.path.join(sdir, "report.html")

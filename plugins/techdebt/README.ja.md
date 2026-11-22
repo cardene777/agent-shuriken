@@ -104,6 +104,7 @@ Start here
 - プロジェクトのファイルは一切書き換えません
 - ネットワークにはつなぎません
 - `scan.json`、エージェントの説明、`report.html`を`~/.local/share/techdebt/<project>/`に置き、あなただけが読めるようにします。消すまで残ります
+- `report.html`は調べたフォルダのパスを持たず、ホームフォルダを`~`と書くので、ページを人に渡してもユーザー名は伝わりません
 - TODOなどのコメントの行は200文字まで残します。鍵、トークン、パスワードに見える文字列は`***`に、ホームフォルダは`~`に置き換えます
 - `skills/techdebt/musubi.json`は、`techdebt`が`design-formats`のプラグインにある`page-design`の形式`structure`と`look`、ページの型`report`、`verify`に、`"optional": true`の任意の準拠で従うことをmusubiで宣言します。エージェントは`page-design`が入っている時だけこれらを読み、仕上がった報告のページに`page-design`の`verify`を回します。入っていなければ、スキルのひな形で作ります。ほかのプラグインからはこれ以外を読みません
 
