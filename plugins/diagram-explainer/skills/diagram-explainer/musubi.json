@@ -18,7 +18,7 @@
     },
     "page-design/verify": {
       "version": "^2.0.0",
-      "integrity": "sha256-WxQpttffMZ4aDRHI0+TABWvNzJIM0kEZ6tv5n8ipNQs=",
+      "integrity": "sha256-XmcSkSja6nbIcVt8TVAz+OX9RenbofVaKAy4tPg7m/0=",
       "optional": true
     }
   }

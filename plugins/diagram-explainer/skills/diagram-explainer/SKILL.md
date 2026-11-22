@@ -162,7 +162,7 @@ When it finds no browser, ask the user which Chromium-based browser they use and
 `NG` lines fail and name what to fix; `--` lines only count.
 Fix every `NG` in `content.json` (or the ladder JSON) and build again until `check.py` exits 0.
 
-When the `page-design` skill is installed, run the file it names for `verify` as a shell command, `python3 <that file> verify "$X/<slug>.html"`, fix each line it names in `content.json`, and build and check again until it prints `ok`. Tell the user about any line it names in the frame of this skill's template.
+When the `page-design` skill is installed, run its `verify` on the finished page with the file it names for `verify`, `python3 <that file> verify "$X/<slug>.html"`, fix each line it names in `content.json`, and build and check until it prints `ok`. Tell the user about any line it names in this skill's template frame.
 Japanese documents (by `<html lang>`) get every wording rule; others get the language-independent checks.
 
 ### 6. Reread the text
