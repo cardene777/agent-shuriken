@@ -1,0 +1,32 @@
+# Words that must not appear on a slide. One word per line; from `#` to the end of a line is a note.
+# `audit.mjs` reads this file by default and flags a slide where a word appears.
+# The words differ per deck: pass another list with `--words <path>`, and add the words a deck
+# decided against (see writing-rules.md, "Do not call one thing by different words") to that list.
+#
+# The words come from writing-rules.md. Each was pointed out in a real deck as reading like
+# machine output or making no sense; none was listed by guess. They are Japanese, because the
+# checks of these rules read Japanese text.
+
+# --- Words that leave the reader to fill in what they point at ---
+# "the part that was done" is plain to the writer, and reads as an amount or as a share to the reader
+した分
+た分が
+た分も
+た分は
+置き場所だけ
+作る量
+# Words that point at a place or a time without saying which.
+# A slide is read on its own, so pointing at the previous slide or line does not reach the reader
+その場に
+その場で
+ここで
+ここに
+こちらで
+こちらが
+この時の
+そこで止
+
+# --- Metaphors ---
+分かれ道はここ
+関門
+が居る場所
