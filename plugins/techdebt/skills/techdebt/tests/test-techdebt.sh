@@ -2496,5 +2496,147 @@ PYEOF
 }
 check "the changelog and how-it-works describe braces in types and multi-line strings" brace_docs
 
+# The sample summary and the screenshot in the README come from one scan of the shop repository that
+# tests/sample_repo.py builds with commits dated from today. These checks run its `readme` command,
+# which builds the repository, scans it the way the README was made, and attaches the notes, and then
+# compare the README with that scan. The Japanese words are written as escapes.
+SAMPLE="$HERE/sample_repo.py"
+SAMPLE_OUT="$T/sample"
+SHOP="$SAMPLE_OUT/profile/work/shop"
+SAMPLE_SCAN="$SAMPLE_OUT/scan.txt"
+sample_scanned=0
+if [ -f "$SAMPLE" ] && python3 "$SAMPLE" readme "$SAMPLE_OUT" > "$T/sample-readme.txt" 2>&1; then
+  sample_scanned=1
+fi
+sample_missing() { sed 's/^/      /' "$T/sample-readme.txt" 2>/dev/null; echo "      the sample repository was not built and scanned"; return 1; }
+
+sample_builds() {
+  [ "$sample_scanned" -eq 1 ] || sample_missing || return 1
+  python3 - "$SHOP" "$SAMPLE_SCAN" <<'PYEOF'
+import subprocess, sys, time
+shop, scan = sys.argv[1:3]
+def git(*args):
+    return subprocess.run(["git", "-C", shop] + list(args), capture_output=True, text=True).stdout
+problems = []
+times = [int(t) for t in git("log", "--format=%ct").split()]
+if len(times) < 100:
+    problems.append("the sample has %d commits, fewer than 100" % len(times))
+elif (time.time() - min(times)) / 86400 < 300:
+    problems.append("the oldest commit of the sample is under 300 days old")
+if git("status", "--porcelain").strip():
+    problems.append("the sample has files that are not committed")
+if git("branch", "--show-current").strip() != "main":
+    problems.append("the sample is not on main")
+summary = open(scan, encoding="utf-8").read().splitlines()
+if not summary or not summary[0].startswith("techdebt scan of ~/work/shop (HEAD "):
+    problems.append("the scan starts with %r" % (summary[0] if summary else ""))
+for word in ("Markers:", "Long functions:", "Duplication:"):
+    line = next((l for l in summary if l.startswith(word)), "")
+    if not line or line.split(":", 1)[1].strip().startswith("0"):
+        problems.append("the scan of the sample finds no %s" % word.rstrip(":").lower())
+for p in problems:
+    print("      " + p)
+sys.exit(1 if problems else 0)
+PYEOF
+}
+check "the sample script builds the shop repository with dated commits" sample_builds
+
+readme_matches() {
+  [ "$sample_scanned" -eq 1 ] || sample_missing || return 1
+  python3 "$SAMPLE" compare "$SAMPLE_SCAN" "$PLUGIN/README.md" "$PLUGIN/README.ja.md" > "$T/sample-compare.txt" 2>&1
+  local status=$?
+  sed 's/^/      /' "$T/sample-compare.txt"
+  return "$status"
+}
+check "the README summaries match one scan of the sample repository" readme_matches
+
+# A README whose Hotspots line or whose length of the ranking differs from the scan is refused, and
+# the refusal names the line.
+readme_drift_named() {
+  [ "$sample_scanned" -eq 1 ] || sample_missing || return 1
+  python3 - "$PLUGIN/README.md" "$T/drift" <<'PYEOF' || { echo "      the README has no Hotspots line or no length of the ranking"; return 1; }
+import os, re, sys
+src, out = sys.argv[1:3]
+text = open(src, encoding="utf-8").read()
+if not re.search(r"^Hotspots:.*$", text, re.M) or not re.search(r"goes on to \d+ files", text):
+    sys.exit(1)
+for name, changed in (("line", re.sub(r"^(Hotspots:.*)$", r"\1 and more", text, count=1, flags=re.M)),
+                      ("count", re.sub(r"goes on to \d+ files", "goes on to 99 files", text, count=1))):
+    os.makedirs(os.path.join(out, name), exist_ok=True)
+    open(os.path.join(out, name, "README.md"), "w", encoding="utf-8").write(changed)
+PYEOF
+  local kind want out status
+  for kind in line count; do
+    if [ "$kind" = line ]; then want='README\.md line [0-9]+: .*Hotspots'; else want='README\.md line [0-9]+: .*99'; fi
+    out="$(python3 "$SAMPLE" compare "$SAMPLE_SCAN" "$T/drift/$kind/README.md" 2>&1)"
+    status=$?
+    if [ "$status" -ne 1 ] || ! printf '%s\n' "$out" | grep -Eq "$want"; then
+      echo "      a README with a changed $kind gave exit $status and printed: $out"
+      return 1
+    fi
+  done
+}
+check "the README check names a summary line that differs from the scan" readme_drift_named
+
+# The alt text of the screenshot names the top file of the scan and says that its details are shown
+# beside the list, in English and in Japanese.
+readme_alt() {
+  [ "$sample_scanned" -eq 1 ] || sample_missing || return 1
+  python3 - "$PLUGIN" "$SAMPLE_SCAN" <<'PYEOF'
+import os, re, sys
+root, scan = sys.argv[1:3]
+top = next((l.split()[1] for l in open(scan, encoding="utf-8") if re.match(r"\s*1  \S", l)), None)
+if not top:
+    print("      the scan of the sample ranks no file")
+    sys.exit(1)
+want = {"README.md": [os.path.basename(top), "beside the list"],
+        "README.ja.md": [os.path.basename(top), "\u4e00\u89a7\u306e\u6a2a"]}
+problems = []
+for readme, words in want.items():
+    m = re.search(r"!\[([^\]]*)\]\(assets/screenshot\.png\)", open(os.path.join(root, readme), encoding="utf-8").read())
+    if not m:
+        problems.append("%s shows no assets/screenshot.png" % readme)
+        continue
+    problems += ["the alt text in %s does not say %r" % (readme, w) for w in words if w not in m.group(1)]
+for p in problems:
+    print("      " + p)
+sys.exit(1 if problems else 0)
+PYEOF
+}
+check "the README screenshot alt text describes the list with the top file's details beside it" readme_alt
+
+# The report that `readme` built from the sample with its notes holds neither the name nor the email
+# address of the sample's commits, nor any other email address. The path of the scanned folder is
+# kept only in the `root` field of the data, which the template never writes on the page.
+sample_private() {
+  [ "$sample_scanned" -eq 1 ] || sample_missing || return 1
+  python3 - "$SAMPLE_OUT/state" "$T" "$SHOP" "$HERE/../templates/base.html" <<'PYEOF'
+import glob, json, os, re, subprocess, sys
+state, tmp, shop, template = sys.argv[1:5]
+pages = glob.glob(os.path.join(state, "shop-*", "report.html"))
+if len(pages) != 1:
+    print("      found %d report pages of the sample" % len(pages))
+    sys.exit(1)
+page = open(pages[0], encoding="utf-8").read()
+if "invoice_total" not in page:
+    print("      the report of the sample holds no notes")
+    sys.exit(1)
+root = json.load(open(os.path.join(os.path.dirname(pages[0]), "scan.json"), encoding="utf-8"))["root"]
+rest = page.replace('"root": %s' % json.dumps(root), '"root": ""')
+author = subprocess.run(["git", "-C", shop, "log", "-1", "--format=%an%n%ae"], capture_output=True, text=True).stdout.split("\n")
+problems = ["the report holds the throwaway folder outside the root field (%s)" % w
+            for w in (tmp, os.path.realpath(tmp), "/Users/", "/home/") if w in rest]
+problems += ["the report holds the %s of the commits (%s)" % (what, w)
+             for what, w in (("name", author[0]), ("email address", author[1])) if w and w in page]
+problems += ["the report holds an email address (%s)" % e for e in sorted(set(re.findall(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+", page)))]
+if re.search(r"""\.root\b|\[["']root["']\]""", open(template, encoding="utf-8").read()):
+    problems.append("the template reads the root field of the data")
+for p in problems:
+    print("      " + p)
+sys.exit(1 if problems else 0)
+PYEOF
+}
+check "the sample report shows no local path and holds no name or email address" sample_private
+
 printf '\n%d passed, %d failed (%d ran, %d skipped)\n' "$PASS" "$FAIL" "$((PASS + FAIL))" "$SKIP"
 [ "$FAIL" -eq 0 ]
