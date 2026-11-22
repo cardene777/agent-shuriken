@@ -84,7 +84,13 @@ JA_ALLOWED=(
   plugins/japanese-writing/skills/japanese-writing/tests/test-japanese-writing.sh
   plugins/evm-dev/skills/evm-standards/tests/test-evm-standards.sh
   plugins/digital-dashboard/skills/digital-dashboard/tests/test-digital-dashboard.sh
+  plugins/digital-dashboard/skills/digital-dashboard/scripts/screen_kind.py
+  plugins/digital-dashboard/skills/digital-dashboard/references/numeric-format.md
+  plugins/digital-dashboard/skills/digital-dashboard/references/time-axis.md
+  plugins/digital-dashboard/THIRD_PARTY_NOTICES.md
   plugins/product-deck/skills/product-deck/tests/test-product-deck.sh
+  plugins/product-deck/skills/product-deck/scripts/audit-text.mjs
+  plugins/product-deck/skills/product-deck/references/banned-words.txt
 )
 # Third-party files copied unmodified; they are checked only for valid syntax. Besides these, every
 # file that a skill's upstream-manifest.txt fingerprints counts as a copied file (vendored_files).

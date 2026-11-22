@@ -1,0 +1,34 @@
+{
+  "name": "product-deck",
+  "version": "0.1.0",
+  "description": "Make a product introduction deck: take screenshots of the real product, decide the structure from ten base slides, build the slides with the words kept apart from the layout, check the layout and the wording by machine, and render HTML, PDF, and PowerPoint",
+  "author": {
+    "name": "cardene777",
+    "url": "https://github.com/cardene777"
+  },
+  "homepage": "https://github.com/cardene777/agent-shuriken/tree/main/plugins/product-deck",
+  "repository": "https://github.com/cardene777/agent-shuriken",
+  "license": "MIT",
+  "keywords": [
+    "slides",
+    "deck",
+    "presentation",
+    "product",
+    "playwright"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Product Deck",
+    "shortDescription": "Product decks from screenshots",
+    "longDescription": "Makes a deck that explains one product: what it is, the problem it answers, how it is used, and how it differs. The agent takes screenshots of the real product with Playwright, decides the structure from a base of ten slides, writes the plan and the text for you to approve, and then writes the files that build the slides in your repository, with every word in one data file and none in the layout code. Two scripts check the deck by machine before you look at it: one measures the rendered slides (text size, text leaving its frame, overlaps, screenshots too small or too coarse, text on the bottom margin), and one reads the data (one thing called by different words, core words before their explanation, words from your own list of words to drop). The deck is rendered to HTML, PDF, and PowerPoint. Playwright comes from your project through PLAYWRIGHT_FROM, the word lists from ~/.product-deck/, and the plugin sends nothing anywhere.",
+    "developerName": "cardene777",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": [
+      "Make an introduction deck for this product from screenshots of its screens",
+      "Check the layout and the wording of this deck and fix it until nothing is flagged"
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
+  }
+}

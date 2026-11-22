@@ -1,0 +1,34 @@
+{
+  "name": "digital-dashboard",
+  "version": "0.1.0",
+  "description": "Judge which screens of a design are presentation dashboards, download the official files of the Japanese Digital Agency's dashboard design guidebook with their fingerprints checked, and write the request that applies them to those screens only",
+  "author": {
+    "name": "cardene777",
+    "url": "https://github.com/cardene777"
+  },
+  "homepage": "https://github.com/cardene777/agent-shuriken/tree/main/plugins/digital-dashboard",
+  "repository": "https://github.com/cardene777/agent-shuriken",
+  "license": "MIT",
+  "keywords": [
+    "dashboard",
+    "design",
+    "data-visualization",
+    "guidebook",
+    "power-bi"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Digital Dashboard",
+    "shortDescription": "Dashboards by the guidebook",
+    "longDescription": "Brings the Japanese Digital Agency's practical guidebook for dashboard design into the drawing of dashboard screens. A Python script marks the screens whose specification has a chart and a total as candidates, and the agent keeps those whose main purpose is to read the whole situation and decide the next action. On first use, a second script downloads the guidebook, its manual, worksheets, checklist, Power BI templates, color themes, and map data from digital.go.jp and the Agency's GitHub repository into ~/.local/share/digital-dashboard/, keeps each file only when its SHA-256 matches the list, and downloads nothing on later runs. A third script lists what to attach, from your repository's declaration or from the downloaded files and the skill's rules in English, and the agent writes one request for your drawing tool that applies the guidebook to the dashboard screens only, with the theme's colors in place of the guidebook's palette when you use a theme. The plugin uses only the Python standard library, writes nothing in your project, and sends nothing anywhere.",
+    "developerName": "cardene777",
+    "category": "Design",
+    "capabilities": [],
+    "defaultPrompt": [
+      "Judge which of these screens are dashboards and write the request that applies the guidebook to them",
+      "Draw the dashboard of this specification following the Digital Agency's guidebook"
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
+  }
+}

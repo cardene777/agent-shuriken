@@ -1,0 +1,7 @@
+interface:
+  display_name: "Product Deck"
+  short_description: "Make a product introduction deck from screenshots of the real product, with machine checks of the layout and the wording"
+  default_prompt: "Use $product-deck to make an introduction deck for this product."
+
+policy:
+  allow_implicit_invocation: true

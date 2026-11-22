@@ -11,6 +11,11 @@
       "description": "Find web accounts you no longer use without reading any passwords, then cancel subscriptions and delete the accounts you approve"
     },
     {
+      "name": "chainome-diagram",
+      "source": "./plugins/chainome-diagram",
+      "description": "Design and review animated React and SVG diagrams that explain blockchain mechanics, with one active phase, state changes shown where they happen, and the prose kept apart from the diagram"
+    },
+    {
       "name": "compare-report",
       "source": "./plugins/compare-report",
       "description": "Research the candidates for a choice and write an HTML and PDF comparison report, with a source for every claim and a rationale for every score"
@@ -39,6 +44,11 @@
       "name": "diagram-styles",
       "source": "./plugins/diagram-styles",
       "description": "Figures for articles and technical books, designed from the reader's questions first and drawn in one of thirty-two built-in styles or a style from your own catalog and samples in ~/.styles"
+    },
+    {
+      "name": "digital-dashboard",
+      "source": "./plugins/digital-dashboard",
+      "description": "Judge which screens of a design are presentation dashboards, download the official files of the Japanese Digital Agency's dashboard design guidebook with their fingerprints checked, and write the request that applies them to those screens only"
     },
     {
       "name": "doc-formats",
@@ -94,6 +104,11 @@
       "name": "portman",
       "source": "./plugins/portman",
       "description": "Keep a registry of the localhost ports each project uses, so dev servers never collide: see what holds each port right now, get free ports that avoid common defaults, find collisions, and write a project's ports to .env.local and a Docker Compose override after you approve"
+    },
+    {
+      "name": "product-deck",
+      "source": "./plugins/product-deck",
+      "description": "Make a product introduction deck: take screenshots of the real product, decide the structure from ten base slides, build the slides with the words kept apart from the layout, check the layout and the wording by machine, and render HTML, PDF, and PowerPoint"
     },
     {
       "name": "repo-progress",

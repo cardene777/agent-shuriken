@@ -1,0 +1,7 @@
+interface:
+  display_name: "Digital Dashboard"
+  short_description: "Apply the Digital Agency's dashboard guidebook to the dashboard screens of a design, with the official files downloaded and checked"
+  default_prompt: "Use $digital-dashboard to judge which of these screens are dashboards and write the request that applies the guidebook to them."
+
+policy:
+  allow_implicit_invocation: true

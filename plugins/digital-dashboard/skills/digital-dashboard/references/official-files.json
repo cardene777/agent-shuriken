@@ -1,0 +1,207 @@
+[
+  {
+    "path": "guidebook.pdf",
+    "url": "https://www.digital.go.jp/assets/contents/node/basic_page/field_ref_resources/1948e3cd-736a-4378-9e31-039b08d11106/2a3a0ebc/20260331_resources_dashboard-guidebook_guidebook_02.pdf",
+    "sha256": "d05a0cad2cdb242f00a11767eb8adf91dc29fd2536892b168bc4e94a056d9caa",
+    "title": "Dashboard design guidebook, the edition of 2026-03-31",
+    "attach": "required"
+  },
+  {
+    "path": "guidebook-alt.txt",
+    "url": "https://www.digital.go.jp/assets/contents/node/basic_page/field_ref_resources/1948e3cd-736a-4378-9e31-039b08d11106/e7f7ad2f/20260331_resources_dashboard-guidebook_guidebook_02.txt",
+    "sha256": "c8efee3511ea0ba8b32dcadb6c648bb7cb912ead3f51e97dd79d3e1adddf5b46",
+    "title": "Plain-text alternative of the guidebook",
+    "attach": "on-demand",
+    "when": "When the drawing tool cannot read the guidebook's PDF"
+  },
+  {
+    "path": "manual.pdf",
+    "url": "https://www.digital.go.jp/assets/contents/node/basic_page/field_ref_resources/1948e3cd-736a-4378-9e31-039b08d11106/90233c39/20260331_resources_dashboard-guidebook_manual.pdf",
+    "sha256": "a500b9a730fc352ffef687226ac775fec80c9278900458bca506f32c1255c314",
+    "title": "User manual of the design templates",
+    "attach": "on-demand",
+    "when": "When the steps of the official Power BI templates are needed"
+  },
+  {
+    "path": "worksheet.pptx",
+    "url": "https://www.digital.go.jp/assets/contents/node/basic_page/field_ref_resources/1948e3cd-736a-4378-9e31-039b08d11106/08697ee1/20240531_resources_dashboard-guidebook_worksheet_01.pptx",
+    "sha256": "2472f74b5b2ea03bf303c5704eb4bc614da8845d10bff190851547910d481e57",
+    "title": "Requirements worksheet",
+    "attach": "on-demand",
+    "when": "When the requirements are worked out with the official requirements worksheet"
+  },
+  {
+    "path": "toolkit.pptx",
+    "url": "https://www.digital.go.jp/assets/contents/node/basic_page/field_ref_resources/1948e3cd-736a-4378-9e31-039b08d11106/0cb266c6/20260331_resources_dashboard-guidebook_toolkit_01.pptx",
+    "sha256": "52696719ed67a8b52bca06822b9ad783caa8afd6aa4d8cba14688e9e8bcbfe0a",
+    "title": "Prototyping kit",
+    "attach": "on-demand",
+    "when": "When a prototype is laid out with the official prototyping kit"
+  },
+  {
+    "path": "checklist.xlsx",
+    "url": "https://www.digital.go.jp/assets/contents/node/basic_page/field_ref_resources/1948e3cd-736a-4378-9e31-039b08d11106/1dd17300/20240531_resources_dashboard-guidebook_checklist_01.xlsx",
+    "sha256": "2b75eddd93ec6bfbf0e18f586f282fdd8dd26a30a0cc2787b801da25fedf3dab",
+    "title": "Checklist",
+    "attach": "on-demand",
+    "when": "When the finished dashboard is checked against the official checklist"
+  },
+  {
+    "path": "summary-format.docx",
+    "url": "https://www.digital.go.jp/assets/contents/node/basic_page/field_ref_resources/1948e3cd-736a-4378-9e31-039b08d11106/b5f8520f/20240531_resources_dashboard-guidebook_format_01.docx",
+    "sha256": "3ec58242b4a586d0ca5759a7b502faf83d8cd4a2a3c817204a853120a8af448b",
+    "title": "Summary text format",
+    "attach": "on-demand",
+    "when": "When the dashboard's text summary is written in the official format"
+  },
+  {
+    "path": "templates/Blue_1_0_0.zip",
+    "url": "https://www.digital.go.jp/assets/contents/node/basic_page/field_ref_resources/1948e3cd-736a-4378-9e31-039b08d11106/3ed84891/Blue_1_0_0.zip",
+    "sha256": "0cd3e2f99989aa21a5e66f169732ada524235aa21a1016d619445972102850be",
+    "title": "Power BI design template, Blue",
+    "attach": "on-demand",
+    "when": "When the dashboard is built in Power BI with the official Blue template",
+    "palette": true
+  },
+  {
+    "path": "templates/Cyan_1_0_0.zip",
+    "url": "https://www.digital.go.jp/assets/contents/node/basic_page/field_ref_resources/1948e3cd-736a-4378-9e31-039b08d11106/920c2520/Cyan_1_0_0.zip",
+    "sha256": "3692554dbcfe23db13a71264d374bd9c8046c67176235bacedf60834f3755fbf",
+    "title": "Power BI design template, Cyan",
+    "attach": "on-demand",
+    "when": "When the dashboard is built in Power BI with the official Cyan template",
+    "palette": true
+  },
+  {
+    "path": "templates/Green_1_0_0.zip",
+    "url": "https://www.digital.go.jp/assets/contents/node/basic_page/field_ref_resources/1948e3cd-736a-4378-9e31-039b08d11106/1cb0997f/Green_1_0_0.zip",
+    "sha256": "dce866424933e9924d3cf944124f302fc3572ac6cda808f8ae5eecfc6f78cceb",
+    "title": "Power BI design template, Green",
+    "attach": "on-demand",
+    "when": "When the dashboard is built in Power BI with the official Green template",
+    "palette": true
+  },
+  {
+    "path": "templates/LightBlue_1_0_0.zip",
+    "url": "https://www.digital.go.jp/assets/contents/node/basic_page/field_ref_resources/1948e3cd-736a-4378-9e31-039b08d11106/39c7f4de/LightBlue_1_0_0.zip",
+    "sha256": "86f929f496c9ed97316baaf9e5f8f63a15feb856ef85fadc7969cc864df2dc2e",
+    "title": "Power BI design template, LightBlue",
+    "attach": "on-demand",
+    "when": "When the dashboard is built in Power BI with the official LightBlue template",
+    "palette": true
+  },
+  {
+    "path": "templates/Orange_1_0_0.zip",
+    "url": "https://www.digital.go.jp/assets/contents/node/basic_page/field_ref_resources/1948e3cd-736a-4378-9e31-039b08d11106/d5882f1b/Orange_1_0_0.zip",
+    "sha256": "b6c8af90644968a526860430e711d95e89b8524d26a53ee0ba31c331bb35e554",
+    "title": "Power BI design template, Orange",
+    "attach": "on-demand",
+    "when": "When the dashboard is built in Power BI with the official Orange template",
+    "palette": true
+  },
+  {
+    "path": "templates/Red_1_0_0.zip",
+    "url": "https://www.digital.go.jp/assets/contents/node/basic_page/field_ref_resources/1948e3cd-736a-4378-9e31-039b08d11106/fa45a040/Red_1_0_0.zip",
+    "sha256": "3f22a0ab2cbf86eef54e28ed147dffb0af7dcba26164870c844b1667af7b3930",
+    "title": "Power BI design template, Red",
+    "attach": "on-demand",
+    "when": "When the dashboard is built in Power BI with the official Red template",
+    "palette": true
+  },
+  {
+    "path": "templates/SolidGray_1_0_0.zip",
+    "url": "https://www.digital.go.jp/assets/contents/node/basic_page/field_ref_resources/1948e3cd-736a-4378-9e31-039b08d11106/c45c6b4d/SolidGray_1_0_0.zip",
+    "sha256": "962de790f870d1aab7ea5207d81e95e4e7bca6c31768c1893c39099aeecab539",
+    "title": "Power BI design template, SolidGray",
+    "attach": "on-demand",
+    "when": "When the dashboard is built in Power BI with the official SolidGray template",
+    "palette": true
+  },
+  {
+    "path": "themes/CustomThemeBlueDefault_2026.json",
+    "url": "https://raw.githubusercontent.com/digital-go-jp/policy-dashboard-assets/a520c070a2c1fb57fdccf8e89e44182110b11a4b/powerbi-templates/powerbi-theme-json/CustomThemeBlueDefault_2026.json",
+    "sha256": "41a5341ee3f0ca926b4a27bbbc1601288a6e9f15ad6925245208ea71ca86e515",
+    "title": "Power BI color theme, Blue",
+    "attach": "on-demand",
+    "when": "When the drawing tool reads a Power BI theme for the Blue palette",
+    "palette": true
+  },
+  {
+    "path": "themes/CustomThemeCyanDefault_2026.json",
+    "url": "https://raw.githubusercontent.com/digital-go-jp/policy-dashboard-assets/a520c070a2c1fb57fdccf8e89e44182110b11a4b/powerbi-templates/powerbi-theme-json/CustomThemeCyanDefault_2026.json",
+    "sha256": "5918c0075ad0953014815c648121c883a6b69ce902459e44de93a1c593fd99c2",
+    "title": "Power BI color theme, Cyan",
+    "attach": "on-demand",
+    "when": "When the drawing tool reads a Power BI theme for the Cyan palette",
+    "palette": true
+  },
+  {
+    "path": "themes/CustomThemeGreenDefault_2026.json",
+    "url": "https://raw.githubusercontent.com/digital-go-jp/policy-dashboard-assets/a520c070a2c1fb57fdccf8e89e44182110b11a4b/powerbi-templates/powerbi-theme-json/CustomThemeGreenDefault_2026.json",
+    "sha256": "1bda495fa7b6672a1cf7e4862fc2488add8ff3f7ab0d059b2d0e45d354d129fa",
+    "title": "Power BI color theme, Green",
+    "attach": "on-demand",
+    "when": "When the drawing tool reads a Power BI theme for the Green palette",
+    "palette": true
+  },
+  {
+    "path": "themes/CustomThemeLightBlueDefault_2026.json",
+    "url": "https://raw.githubusercontent.com/digital-go-jp/policy-dashboard-assets/a520c070a2c1fb57fdccf8e89e44182110b11a4b/powerbi-templates/powerbi-theme-json/CustomThemeLightBlueDefault_2026.json",
+    "sha256": "770ffedc1c8bbcb5c70f06ed1827da623b168e1950449421442de653b3ac673f",
+    "title": "Power BI color theme, LightBlue",
+    "attach": "on-demand",
+    "when": "When the drawing tool reads a Power BI theme for the LightBlue palette",
+    "palette": true
+  },
+  {
+    "path": "themes/CustomThemeOrangeDefault_2026.json",
+    "url": "https://raw.githubusercontent.com/digital-go-jp/policy-dashboard-assets/a520c070a2c1fb57fdccf8e89e44182110b11a4b/powerbi-templates/powerbi-theme-json/CustomThemeOrangeDefault_2026.json",
+    "sha256": "99308d0ca3ebc6080b03be51a3e8e6e48c2b1cb97f5a91760ac1a34437b1a698",
+    "title": "Power BI color theme, Orange",
+    "attach": "on-demand",
+    "when": "When the drawing tool reads a Power BI theme for the Orange palette",
+    "palette": true
+  },
+  {
+    "path": "themes/CustomThemeRedDefault_2026.json",
+    "url": "https://raw.githubusercontent.com/digital-go-jp/policy-dashboard-assets/a520c070a2c1fb57fdccf8e89e44182110b11a4b/powerbi-templates/powerbi-theme-json/CustomThemeRedDefault_2026.json",
+    "sha256": "e136332d80b9df994970c8185c647115cca23eeac6cc89b4f67f37379151137b",
+    "title": "Power BI color theme, Red",
+    "attach": "on-demand",
+    "when": "When the drawing tool reads a Power BI theme for the Red palette",
+    "palette": true
+  },
+  {
+    "path": "themes/CustomThemeSolidGrayDefault_2026.json",
+    "url": "https://raw.githubusercontent.com/digital-go-jp/policy-dashboard-assets/a520c070a2c1fb57fdccf8e89e44182110b11a4b/powerbi-templates/powerbi-theme-json/CustomThemeSolidGrayDefault_2026.json",
+    "sha256": "a28d457e8621a524e90bdaebc6f43bd3dc75b5cf77ef3c21a298bf15b2beecb0",
+    "title": "Power BI color theme, SolidGray",
+    "attach": "on-demand",
+    "when": "When the drawing tool reads a Power BI theme for the SolidGray palette",
+    "palette": true
+  },
+  {
+    "path": "map/ja_prefecture_area.json",
+    "url": "https://raw.githubusercontent.com/digital-go-jp/policy-dashboard-assets/a520c070a2c1fb57fdccf8e89e44182110b11a4b/data/map/ja_prefecture_area.json",
+    "sha256": "73ab1287e9c24a3844aecf2c9feb0c0854ae1c8973d0b3d359f752c0617ddf7d",
+    "title": "Prefecture polygons of Japan",
+    "attach": "on-demand",
+    "when": "When the dashboard shows a map of Japan by prefecture"
+  },
+  {
+    "path": "map/ja_municipality_area.json",
+    "url": "https://raw.githubusercontent.com/digital-go-jp/policy-dashboard-assets/a520c070a2c1fb57fdccf8e89e44182110b11a4b/data/map/ja_municipality_area.json",
+    "sha256": "6acf7c111dbe993abfedb754d08628e7c3673e73bf001baa792fe62c64bf18c6",
+    "title": "Municipality polygons of Japan",
+    "attach": "on-demand",
+    "when": "When the dashboard shows a map of Japan by municipality"
+  },
+  {
+    "path": "map/ja_municipality_area_with_pref_boundary.json",
+    "url": "https://raw.githubusercontent.com/digital-go-jp/policy-dashboard-assets/a520c070a2c1fb57fdccf8e89e44182110b11a4b/data/map/ja_municipality_area_with_pref_boundary.json",
+    "sha256": "f97194db137749bbd10e348bb6e5e72f972b553bed1d9bc5cf50583774782386",
+    "title": "Municipality polygons with prefecture boundaries",
+    "attach": "on-demand",
+    "when": "When a map by municipality also needs the prefecture borders"
+  }
+]
