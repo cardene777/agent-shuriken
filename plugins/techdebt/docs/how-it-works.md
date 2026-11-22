@@ -118,7 +118,7 @@ The folder is readable only by you, and the files stay until you delete them.
 |---|---|
 | `scan.json` | Every measure, the ranking, and the scanned folder's path |
 | `notes.json` | The agent's notes |
-| `report.html` | The report, with the data inside the page. It loads nothing from the network |
+| `report.html` | The report, with the data inside the page. It loads nothing from the network. Its data leaves out the path of the scanned folder and writes your home folder as `~`, so the page can be passed on without your user name |
 
 `scan.json` records the version of its format, now 3, which added the deprecated calls. `explain` and `report` refuse a `scan.json` written by another version of the plugin and ask you to run `scan` again, so a report is never built from data it cannot read.
 

@@ -101,6 +101,7 @@ In short:
 - It never changes a file in your project
 - It connects to nothing on the network
 - It keeps `scan.json`, the agent's notes, and `report.html` in `~/.local/share/techdebt/<project>/`, readable only by you, until you delete them
+- `report.html` leaves out the path of the scanned folder and writes your home folder as `~`, so you can pass the page on without your user name
 - It keeps up to 200 characters of each marker line, with text that looks like a key, a token, or a password replaced with `***` and your home folder with `~`
 - `skills/techdebt/musubi.json` declares through musubi that techdebt follows the `structure` and `look` formats, the `report` page type, and `verify` of page-design, in the design-formats plugin, as optional follows with `"optional": true`. The agent reads them only when page-design is installed, runs page-design's verify on the finished report, and otherwise uses the skill's own template. It reads nothing else from other plugins
 
