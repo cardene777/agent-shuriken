@@ -11,7 +11,7 @@ The agent of a following skill writes the page or the document; the script in `s
 |---|---|
 | `SKILL.md` | The contents the skill provides, how to write a page or a document with them, and how to run `verify` |
 | `agents/openai.yaml` | How Codex shows and starts the skill |
-| `musubi.json` | The contents the skill provides through musubi: `structure`, `theme`, and the four pattern files at version 1.0.0, and `look`, `report`, `sheet`, `document`, `choice`, and `verify` at version 2.1.0 |
+| `musubi.json` | The contents the skill provides through musubi: `structure`, `theme`, and the four pattern files at version 1.0.0, and `look`, `report`, `sheet`, `document`, `choice`, and `verify` at version 2.0.0 |
 | `formats/structure.md` | The order of an explanation |
 | `formats/look.md` | The look rules, ending with the table of rules `verify` checks |
 | `formats/theme.md` | The user's theme file: where it lives, its keys, their types, and each template's defaults |

@@ -6,7 +6,7 @@
       "file": "formats/structure.md"
     },
     "look": {
-      "version": "2.1.0",
+      "version": "2.0.0",
       "file": "formats/look.md"
     },
     "theme": {
@@ -30,23 +30,23 @@
       "file": "formats/patterns/states-and-notices.md"
     },
     "report": {
-      "version": "2.1.0",
+      "version": "2.0.0",
       "file": "templates/report.html"
     },
     "sheet": {
-      "version": "2.1.0",
+      "version": "2.0.0",
       "file": "templates/sheet.html"
     },
     "document": {
-      "version": "2.1.0",
+      "version": "2.0.0",
       "file": "templates/document.html"
     },
     "choice": {
-      "version": "2.1.0",
+      "version": "2.0.0",
       "file": "templates/choice.html"
     },
     "verify": {
-      "version": "2.1.0",
+      "version": "2.0.0",
       "file": "scripts/page-design.py"
     }
   },

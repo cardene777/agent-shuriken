@@ -11,7 +11,7 @@
 |---|---|
 | `SKILL.md` | スキルが出す中身と、それで頁とドキュメントを書く手順と、`verify`の回し方 |
 | `agents/openai.yaml` | Codexがスキルを見せて起動する形 |
-| `musubi.json` | musubiで出す中身です。`structure`と`theme`と4つの規則のfileをバージョン1.0.0で、`look`、`report`、`sheet`、`document`、`choice`、`verify`をバージョン2.1.0で出します |
+| `musubi.json` | musubiで出す中身です。`structure`と`theme`と4つの規則のfileをバージョン1.0.0で、`look`、`report`、`sheet`、`document`、`choice`、`verify`をバージョン2.0.0で出します |
 | `formats/structure.md` | 説明の構造 |
 | `formats/look.md` | 見た目の決まり。最後に`verify`が確かめる決まりの表を持ちます |
 | `formats/theme.md` | 利用者の意匠のfileの置き場と、鍵と型と、雛形ごとの既定の値 |
