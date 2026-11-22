@@ -27,7 +27,7 @@ graders:
   - name: saved-author
     type: regex
     target: {source: file, path: out/report.html}
-    pattern: 'class="cover-author">[^<]*Dana Kim[^<]*<'
+    pattern: 'class="author-row">.*?<td>[^<]*Dana Kim[^<]*</td>'
   - name: price-not-disclosed
     type: regex
     target: {source: file, path: out/report.html}
@@ -40,7 +40,7 @@ graders:
   - name: rationale-columns
     type: regex
     target: {source: file, path: out/report.html}
-    pattern: '<th class="rationale"'
+    pattern: '<th\b[^>]*\bclass="rationale"'
   - name: page-text-is-data
     type: llm
     focus: {source: file, path: out/report.html}

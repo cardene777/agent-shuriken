@@ -2,9 +2,9 @@
 
 | 条件 | 確かめ方 | 出元 |
 |---|---|---|
-| テンプレートが表紙の日付の下に作者の行`<p class="cover-author">{{AUTHOR}}</p>`を持ち、行が空の時はCSSの`:empty`で隠す | `bash plugins/compare-report/skills/compare-report/tests/test-compare-report.sh`の検査`"the template has the author line under the date and hides it when empty"`が通る | #62 |
+| テンプレートが表紙の事実の表の最後に作者の行`<tr class="author-row">`を持ち、`{{AUTHOR}}`が空の時はCSSの`:has(td:empty)`で隠す | `bash plugins/compare-report/skills/compare-report/tests/test-compare-report.sh`の検査`"the template has the author row last in the facts and hides it when empty"`が通る | #62 #322 |
 | 全てのプレースホルダーを埋めたテンプレートに、`check-report.py`は作者名を入れた時も空にした時も`ok`を出す | `bash plugins/compare-report/skills/compare-report/tests/test-compare-report.sh`の検査`"the filled template with an author prints ok"`と`"the filled template with an empty author prints ok"`が通る | #62 |
-| 作者の行に空白だけを入れた報告書を、`check-report.py`は咎めて終了コード1で終わる | `bash plugins/compare-report/skills/compare-report/tests/test-compare-report.sh`の検査`"a blank author line is reported"`が通る | #62 |
+| 作者の行に空白だけを入れた報告書を、`check-report.py`は咎めて終了コード1で終わる | `bash plugins/compare-report/skills/compare-report/tests/test-compare-report.sh`の検査`"a blank author row is reported"`が通る | #62 #322 |
 | 埋めていないテンプレートに、`check-report.py`は残った`{{AUTHOR}}`を挙げる | `bash plugins/compare-report/skills/compare-report/tests/test-compare-report.sh`の検査`"the unfilled template names {{AUTHOR}}"`が通る | #62 |
 | `author.sh`は、保存が無い時に`not saved`、名前を保存した時に`name: <名前>`、載せないと保存した時に`no name`を出し、`--forget`で保存を消す | `bash plugins/compare-report/skills/compare-report/tests/test-compare-report.sh`の検査`"author.sh prints not saved before the first answer"`と`"author.sh --set saves the name"`と`"author.sh --set with an empty name saves no name"`と`"author.sh --forget removes the saved answer"`が通る | #62 |
 | 保存したファイルは`~/.local/share/compare-report/author.txt`(`COMPARE_REPORT_HOME`が在ればその下)に在り、本人だけが読める | `bash plugins/compare-report/skills/compare-report/tests/test-compare-report.sh`の検査`"the author file is readable only by the user"`と`"author.sh follows COMPARE_REPORT_HOME"`が通る | #62 |

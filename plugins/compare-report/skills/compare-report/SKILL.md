@@ -56,7 +56,7 @@ When the user asks to forget the name, run `author.sh --forget`.
 
 Follow `references/research-guide.md`.
 In Claude Code, research the candidates in parallel with one subagent per candidate, and wait for all of them before writing.
-In other agents, research them in parallel with sub-agents when the agent has them, and otherwise one after another.
+In other agents, use sub-agents when the agent has them, and otherwise research one after another.
 
 ### 4. Write the report
 
@@ -74,9 +74,10 @@ When the `page-design` skill is installed, follow the `structure` and `look` for
 If the `musubi` command is available, run `musubi check` before reading, and stop if it fails.
 If the `page-design` skill is not installed, go on with the templates of this skill, without the formats of `page-design`.
 
-Fill the template's cover, contents, summary, candidates, one section per axis, risks, ranking, and sources as `references/report-structure.md` describes.
+Fill the template's cover facts, contents, summary, candidates, one section per axis, risks, ranking, and sources as `references/report-structure.md` describes, with each candidate's key on its card and its table rows.
 Every table with a score or a risk label has a rationale column, and the ranking gives a first choice, an alternative, and a fallback with the conditions for each.
 Use only the components in `references/report-structure.md`, and do not add a stylesheet, script, web font, or image from the network.
+When the `page-design` skill is installed, draw the bar charts with dragon and `dragon embed`, as the same guide says.
 
 ### 5. Check and print
 
@@ -86,7 +87,7 @@ Check the report, fix every line it prints, and run it again until it prints `ok
 D=<folder>; python3 "$D/scripts/check-report.py" <path of report.html>
 ```
 
-When the `page-design` skill is installed, run its `verify` on the finished page: run the file it names for `verify` as a shell command, `python3 <that file> verify <path of report.html>`, fix each line it names in the text you wrote, and run it again until it prints `ok`. Tell the user about any line it names in the frame of this skill's template.
+When the `page-design` skill is installed, also run its `verify` as a shell command, `python3 <the file it names for verify> verify <path of report.html>`, and fix the text you wrote until it prints `ok`. Tell the user about any line it names in this skill's template.
 
 Then read the report once as the user would, and confirm:
 
@@ -101,14 +102,14 @@ Print it to PDF.
 D=<folder>; bash "$D/scripts/to-pdf.sh" <path of report.html>
 ```
 
-When it says the PDF contents show titles only, the PDF is still written: fix the cause it names, such as a contents link to an id that no section has, and print again, or tell the user the reason.
+When it says the PDF contents show titles only, the PDF is still written; fix the cause it names, such as a contents link to a missing section, and print again, or tell the user why.
 
 Open the HTML for the user with `open` on macOS or `xdg-open` on Linux, give the paths of both files, and ask for feedback.
 When a sandbox asks, as Codex can, approve the commands, because they write outside the project folder and start a browser.
 
 ### 6. Apply feedback
 
-Change the report as the user asks, such as its page breaks or wording, added or removed candidates or axes, or more research.
+Change the report as the user asks, such as its wording, its candidates or axes, or more research.
 After each change, run the check and print the PDF again.
 
 ## Report to the user

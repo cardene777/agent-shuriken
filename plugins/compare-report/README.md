@@ -4,7 +4,7 @@ Have your agent research the options for a choice and write a comparison report 
 
 English · [日本語](README.ja.md)
 
-![The cover, a page with a build-time chart and scored table, and the ranking page of a report comparing four static site generators](assets/screenshot.png)
+![From a report comparing four static site generators, the PDF cover with its facts table, a PDF page with two build-time charts, and the candidate list beside the details of Astro on screen in the dark colors](assets/screenshot.png)
 
 Asked to compare tools, an agent tends to hand out scores without evidence, mix vendor claims with independent measurements, and fill gaps with guesses.
 This plugin gives your agent one way to do it instead.
@@ -45,9 +45,10 @@ In GitHub Copilot CLI, write `/compare-report` in your request, and in Gemini CL
 4. The agent writes the report and checks that every score has a rationale and that the report loads nothing from the network
 5. The agent prints the report to PDF, opens it, and gives you the paths of both files. The PDF contents give the page each section starts on, and every page but the cover shows its page number at the bottom. Ask for any change, and it updates both
 
-The report has a cover, a summary with the top three picks, a card per candidate, a section per axis with tables and charts, the risks, a scorecard with a recommendation, and the numbered sources.
+The report has a cover with a facts table of the counts, the research date, and the author, a summary with the top three picks, a card per candidate, a section per axis with tables and charts, the risks, a scorecard with a recommendation, and the numbered sources.
 It is written in the language you write in.
-Two switches sit at the top right of the cover: English / 日本語 changes the words of the switches, and Light / Dark changes the colors. The report's own text stays in the language it was written in.
+On screen the candidates form a candidate list beside the details of the one you press, which gather its scores and rationale from every axis and its risks. On a phone the list and the details take turns, and the PDF shows the cards in order.
+Two switches sit at the top right of the cover. The language switch, English / 日本語, changes the words of the frame, such as the labels of the facts table and the buttons of the candidate list, and leaves the report's text as written. Light / Dark changes the colors.
 Until you choose, the colors follow your system. The PDF always prints in the light colors, without the switches.
 
 ## Requirements
@@ -57,7 +58,8 @@ Until you choose, the colors follow your system. The PDF always prints in the li
 | Web search in your agent | Always. Claude Code and Codex both have it; in other agents, check that web search is turned on |
 | `python3` | To check the report. The one that ships with macOS works |
 | Chrome, Chromium, Edge, or Brave | To print the PDF. Without one, you get the HTML, which any browser can print |
-| The design-formats plugin | Optional. When its page-design skill is installed, the agent writes the report on its formats and runs its verify on the finished page |
+| The design-formats plugin | Optional. When its page-design skill is installed, the agent writes the report on its formats, draws the bar charts with dragon, and runs its verify on the finished page |
+| Node.js | Optional, with page-design. `npx` fetches dragon to draw the charts. Without it, the report keeps its CSS bar charts |
 | The `musubi` command | Optional. When it is installed, the agent runs `musubi check` before reading the page-design formats |
 
 ## What it reads, runs, and sends
@@ -70,6 +72,7 @@ In short:
 - It writes the report to `~/.local/share/compare-report/<topic>-<date>/`, or to `COMPARE_REPORT_HOME` when it is set, readable only by you
 - It keeps the author's name you gave for the cover, or that you chose none, in `author.txt` in the same folder, readable only by you. It never takes a name from `git config` or your system
 - It prints the PDF with your browser in headless mode and a throwaway profile, which is removed afterwards, so your own browser profile is never used
+- When page-design is installed, it draws the bar charts with `npx -y @cardenelabs/dragon@<version>`, which fetches dragon from the npm registry into npm's cache. `dragon embed` draws them into the report as SVG, so the report still reads no other file
 - The report loads nothing from the network when you open it. Your browser remembers the switches in its local storage under `compare-report-theme` and `compare-report-lang`, and nothing is sent anywhere
 - `skills/compare-report/musubi.json` declares through musubi that compare-report follows the `structure` and `look` formats, the `report` page type, and `verify` of page-design, in the design-formats plugin, as optional follows with `"optional": true`. The agent reads them only when page-design is installed, runs page-design's verify on the finished report, and otherwise uses the skill's own template. It reads nothing else from other plugins
 

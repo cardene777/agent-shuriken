@@ -12,36 +12,41 @@ try { const saved = localStorage.getItem("compare-report-theme"); if (saved === 
 /* The theme of every report. The report loads nothing from the network, so it opens offline and prints the same way every time.
    The components and the markup that uses them are listed in references/report-structure.md.
    Every color is a token. :root holds the light colors, which print always uses; the two blocks after it
-   redefine the tokens on screens only, for a reader whose system is dark and for a reader who chose dark. */
+   redefine the tokens on screens only, for a reader whose system is dark and for a reader who chose dark.
+   --line draws the lines between table rows at 3 to 1 against every row background, and --border the
+   softer edges of boxes. --good, --warn, and --critical are the status colors, kept apart from --accent. */
 :root {
   color-scheme: light;
   --bg: #ffffff;
   --ink: #111827;
   --muted: #4b5563;
   --faint: #6b7280;
-  --line: #e5e7eb;
-  --line-strong: #d1d5db;
+  --line: #7f8796;
+  --border: #e3e6eb;
   --surface: #f6f7f9;
+  --stripe: #f3f5f8;
+  --selected: #e6edfb;
+  --label: #eef1f6;
+  --shadow: rgba(17, 24, 39, 0.28);
+  --backdrop: rgba(10, 14, 20, 0.55);
   --accent: #2f5bd3;
   --accent-ink: #ffffff;
   --accent-soft: #eef2fd;
-  --warn: #b42318;
-  --warn-soft: #fdf0ee;
+  --good: #1f7a3e; --good-soft: #e3f4e8;
+  --warn: #9a5a06; --warn-soft: #fdf0dc;
+  --critical: #b42335; --critical-soft: #fbe7eb;
+  --on-status: #ffffff;
   --cover: #121826;
   --cover-ink: #f3f4f6;
   --cover-sub: #d1d5db;
-  --cover-muted: #9ca3af;
   --cover-eyebrow: #9fb3f5;
   --cover-line: #374151;
-  --s-ink: #1e40af; --s-bg: #dbe6fe;
-  --a-ink: #05603a; --a-bg: #d3f3e4;
-  --b-ink: #3f6212; --b-bg: #e9f7cf;
-  --c-ink: #93370d; --c-bg: #fcefd2;
-  --d-ink: #a11b1b; --d-bg: #fde3e3;
-  --e-ink: #5b34b4; --e-bg: #ede7fb;
-  --critical-ink: #ffffff; --critical-bg: #a11b1b;
+  --cover-label: #1f2937;
+  --t1-ink: #5b34b4; --t1-bg: #ede7fb;
+  --t2-ink: #9d1f6f; --t2-bg: #fbe4f3;
+  --t3-ink: #0b6274; --t3-bg: #dcf2f6;
+  --t4-ink: #3a3f9e; --t4-bg: #e4e6fb;
   --gold: #946210; --silver: #6b7280; --bronze: #a0522d; --place-ink: #ffffff;
-  --bar-muted: #9ca3af;
 }
 @media screen and (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -50,24 +55,27 @@ try { const saved = localStorage.getItem("compare-report-theme"); if (saved === 
     --ink: #e5e8ee;
     --muted: #b3bbc7;
     --faint: #98a2b0;
-    --line: #2a303a;
-    --line-strong: #3b4350;
+    --line: #767f90;
+    --border: #2a303a;
     --surface: #181c24;
+    --stripe: #1a1f27;
+    --selected: #22304d;
+    --label: #232a36;
+    --shadow: rgba(0, 0, 0, 0.6);
     --accent: #86a4ff;
     --accent-ink: #0d1322;
     --accent-soft: #1a2440;
-    --warn: #f28b82;
-    --warn-soft: #351b1b;
+    --good: #5cc285; --good-soft: #1a3324;
+    --warn: #e5a43a; --warn-soft: #3a2c14;
+    --critical: #f07f8f; --critical-soft: #3d1c22;
+    --on-status: #0f1217;
     --cover: #161d2c;
-    --s-ink: #b0c6ff; --s-bg: #1c2a52;
-    --a-ink: #8ae0b6; --a-bg: #0f3726;
-    --b-ink: #c4e48b; --b-bg: #283713;
-    --c-ink: #f5c27f; --c-bg: #402810;
-    --d-ink: #ffa8a8; --d-bg: #47191b;
-    --e-ink: #d0bcff; --e-bg: #30235a;
-    --critical-ink: #ffffff; --critical-bg: #c23434;
+    --cover-label: #232c3d;
+    --t1-ink: #d0bcff; --t1-bg: #30235a;
+    --t2-ink: #f5a8d8; --t2-bg: #46183a;
+    --t3-ink: #8fdcea; --t3-bg: #0f3640;
+    --t4-ink: #b9bff7; --t4-bg: #252a55;
     --gold: #e3ae52; --silver: #aab3bf; --bronze: #e39a70; --place-ink: #111317;
-    --bar-muted: #5d6675;
   }
 }
 @media screen {
@@ -77,24 +85,27 @@ try { const saved = localStorage.getItem("compare-report-theme"); if (saved === 
     --ink: #e5e8ee;
     --muted: #b3bbc7;
     --faint: #98a2b0;
-    --line: #2a303a;
-    --line-strong: #3b4350;
+    --line: #767f90;
+    --border: #2a303a;
     --surface: #181c24;
+    --stripe: #1a1f27;
+    --selected: #22304d;
+    --label: #232a36;
+    --shadow: rgba(0, 0, 0, 0.6);
     --accent: #86a4ff;
     --accent-ink: #0d1322;
     --accent-soft: #1a2440;
-    --warn: #f28b82;
-    --warn-soft: #351b1b;
+    --good: #5cc285; --good-soft: #1a3324;
+    --warn: #e5a43a; --warn-soft: #3a2c14;
+    --critical: #f07f8f; --critical-soft: #3d1c22;
+    --on-status: #0f1217;
     --cover: #161d2c;
-    --s-ink: #b0c6ff; --s-bg: #1c2a52;
-    --a-ink: #8ae0b6; --a-bg: #0f3726;
-    --b-ink: #c4e48b; --b-bg: #283713;
-    --c-ink: #f5c27f; --c-bg: #402810;
-    --d-ink: #ffa8a8; --d-bg: #47191b;
-    --e-ink: #d0bcff; --e-bg: #30235a;
-    --critical-ink: #ffffff; --critical-bg: #c23434;
+    --cover-label: #232c3d;
+    --t1-ink: #d0bcff; --t1-bg: #30235a;
+    --t2-ink: #f5a8d8; --t2-bg: #46183a;
+    --t3-ink: #8fdcea; --t3-bg: #0f3640;
+    --t4-ink: #b9bff7; --t4-bg: #252a55;
     --gold: #e3ae52; --silver: #aab3bf; --bronze: #e39a70; --place-ink: #111317;
-    --bar-muted: #5d6675;
   }
 }
 * { box-sizing: border-box; }
@@ -107,7 +118,8 @@ body {
   font-variant-numeric: tabular-nums;
 }
 a { color: var(--accent); }
-a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 
 /* The language and light/dark switches, side by side at the top right of the cover, on the right edge of the
    body's column. The script shows them, and print hides them. */
@@ -120,56 +132,52 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
 .seg button:focus-visible { outline: 2px solid var(--cover-ink); outline-offset: -2px; box-shadow: inset 0 0 0 4px var(--cover); }
 
-/* Cover. Its side padding puts the text in the same 1200px column as the body, so the title runs as wide as the
-   body and starts at the body's left edge. On screen the cover is as tall as its text, with the date right under
-   the numbers; print stretches it to the whole first page and pushes the date to the bottom. */
+/* Cover. Its side padding puts the text in the same 1200px column as the body. The facts sit under the title
+   as a table of labels and values; print stretches the cover to the whole first page and pushes them to the bottom. */
 .cover {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  gap: 32px;
   padding: 72px max(40px, calc((100% - 1200px) / 2 + 40px)) 48px;
   background: var(--cover);
   color: var(--cover-ink);
 }
-.cover .eyebrow { margin: 0 0 20px; color: var(--cover-eyebrow); font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
-.cover h1 { margin: 0; font-size: 44px; line-height: 1.25; font-weight: 700; }
-.cover hr { width: 72px; height: 4px; margin: 32px 0; border: 0; background: var(--accent); }
-.cover .subtitle { margin: 0; max-width: 75ch; color: var(--cover-sub); font-size: 18px; }
-.cover .stats { display: flex; flex-wrap: wrap; gap: 0; margin: 40px 0 0; }
-.cover .stats div { min-width: 140px; padding: 4px 28px 4px 0; margin-right: 28px; border-right: 1px solid var(--cover-line); }
-.cover .stats div:last-child { border-right: 0; }
-.cover .stats dt { color: var(--cover-muted); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
-.cover .stats dd { margin: 4px 0 0; font-size: 28px; font-weight: 700; }
-.cover .cover-foot { margin: 28px 0 0; color: var(--cover-muted); font-size: 13px; }
-.cover .cover-foot p { margin: 0; }
-.cover .cover-foot .cover-author { margin-top: 6px; color: var(--cover-sub); font-size: 14px; }
-.cover .cover-foot .cover-author:empty { display: none; }
+.cover .eyebrow { margin: 0 0 16px; color: var(--cover-eyebrow); font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
+.cover h1 { margin: 0; font-size: 24px; line-height: 1.35; font-weight: 700; }
+.cover hr { width: 72px; height: 4px; margin: 24px 0; border: 0; background: var(--accent); }
+.cover .subtitle { margin: 0; max-width: 75ch; color: var(--cover-sub); font-size: 16px; }
+.facts { border-collapse: collapse; font-size: 14px; }
+.cover .facts th, .cover .facts td { padding: 6px 14px; border: 0; border-bottom: 1px solid var(--cover-line); text-align: left; vertical-align: top; }
+.cover .facts th { background: var(--cover-label); color: var(--cover-sub); font-weight: 600; white-space: nowrap; }
+.cover .facts td { color: var(--cover-ink); }
+.cover .facts tr:first-child > * { border-top: 1px solid var(--cover-line); }
+.facts tr.author-row:has(td:empty) { display: none; }
 
 /* Body, in a column of at most 1200px like the report page of page-design */
 main { max-width: 1200px; margin: 0 auto; padding: 56px 40px 72px; counter-reset: chapter; }
 h2, h3 { line-height: 1.35; }
 .toc h2 { margin: 0 0 16px; font-size: 22px; }
 .toc ol { margin: 0; padding: 0; list-style: none; counter-reset: toc; }
-.toc li { display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px dashed var(--line); counter-increment: toc; }
+.toc li { display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px dashed var(--border); counter-increment: toc; }
 .toc li::before { content: counter(toc) "."; min-width: 24px; color: var(--faint); font-weight: 600; }
 .toc a { color: var(--ink); text-decoration: none; }
-.chapter { margin-top: 56px; counter-increment: chapter; }
+.chapter { margin-top: 56px; counter-increment: chapter; scroll-margin-top: 16px; }
 .chapter > h2 { display: flex; gap: 12px; align-items: baseline; margin: 0 0 20px; padding-bottom: 10px; border-bottom: 2px solid var(--ink); font-size: 24px; }
 .chapter > h2::before { content: counter(chapter, decimal-leading-zero); color: var(--accent); font-size: 16px; font-weight: 700; }
 .chapter h3 { margin: 28px 0 10px; font-size: 18px; }
-.lead { margin: 0 0 20px; color: var(--muted); font-size: 16px; }
 .note { margin: 8px 0 0; color: var(--faint); font-size: 12.5px; }
 
-/* Boxes */
-.callout { margin: 16px 0; padding: 14px 18px; border-left: 4px solid var(--accent); border-radius: 0 10px 10px 0; background: var(--accent-soft); }
-.callout.warn { border-left-color: var(--warn); background: var(--warn-soft); }
-.callout > :first-child { margin-top: 0; }
-.callout > :last-child { margin-bottom: 0; }
-.callout strong { display: block; margin-bottom: 4px; }
+/* A warning, in its own block after what it belongs to, with an icon and a title that names the risk */
+.caution { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 4px 10px; margin: 16px 0; padding: 14px 18px; border-radius: 10px; background: var(--warn-soft); color: var(--ink); }
+.caution > svg { grid-row: 1 / span 2; margin-top: 3px; color: var(--warn); }
+.caution > :not(svg) { grid-column: 2; }
+.caution h3 { margin: 0; color: var(--warn); font-size: 16px; }
+.caution p { margin: 0; }
 
-/* Top three picks */
-.picks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 20px 0; }
-.pick { position: relative; padding: 18px 18px 16px; border: 1px solid var(--line); border-top: 4px solid var(--silver); border-radius: 12px; }
+/* Top three picks, an ordered list */
+.picks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 20px 0; padding: 0; list-style: none; }
+.pick { position: relative; padding: 18px 18px 16px; border: 1px solid var(--border); border-top: 4px solid var(--silver); border-radius: 12px; }
 .pick.gold { border-top-color: var(--gold); }
 .pick.silver { border-top-color: var(--silver); }
 .pick.bronze { border-top-color: var(--bronze); }
@@ -181,91 +189,167 @@ h2, h3 { line-height: 1.35; }
 .findings { margin: 12px 0 0; padding-left: 20px; }
 .findings li { margin: 6px 0; }
 
-/* Candidate cards. Every row is full: on wide screens three to a row in a grid of six columns, with a last row of
-   two where three would leave one card alone (the last two cards when the count is two over a multiple of three,
-   and the last four when it is one over), and two to a row on narrower screens, where a last odd card takes the
-   whole row. Phones and print stack them. */
-.cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 20px 0; }
-.card:last-child:nth-child(odd) { grid-column: 1 / -1; }
-@media (min-width: 961px) {
-  .cards { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-  .card, .card:last-child:nth-child(odd) { grid-column: span 2; }
-  .card:nth-last-child(2):nth-child(3n + 1), .card:last-child:nth-child(3n + 2),
-  .card:nth-last-child(4):nth-child(3n + 1), .card:nth-last-child(4):nth-child(3n + 1) ~ .card { grid-column: span 3; }
-  .card:first-child:last-child { grid-column: 1 / -1; }
-}
-.card { padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px; }
-.card h3 { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; justify-content: space-between; margin: 0 0 6px; font-size: 17px; }
-.card p { margin: 0; color: var(--muted); font-size: 14px; }
-.card .pros, .card .cons { margin: 8px 0 0; font-size: 13.5px; }
-.card .pros::before { content: "+ "; color: var(--a-ink); font-weight: 700; }
-.card .cons::before { content: "\2212  "; color: var(--d-ink); font-weight: 700; }
+/* Candidate cards, a list in columns of at least 260px. Each card holds the name, a summary line, the
+   type, users, strength, and weakness, and the description, in that order. On screen the script shows
+   them as the list and the details; print keeps the cards. */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin: 20px 0; padding: 0; list-style: none; }
+.card { padding: 16px 18px; border: 1px solid var(--border); border-radius: 12px; }
+.card h3 { margin: 0 0 4px; font-size: 17px; }
+.card .summary { margin: 0 0 10px; font-size: 14px; font-weight: 600; }
+.card dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 0 0 10px; font-size: 13.5px; }
+.card dt { color: var(--muted); font-weight: 600; }
+.card dd { margin: 0; }
+.card > p:last-child { margin: 0; color: var(--muted); font-size: 14px; }
 .tag { display: inline-block; padding: 2px 10px; border-radius: 999px; background: var(--surface); color: var(--muted); font-size: 12px; font-weight: 600; white-space: nowrap; }
-.tag.t1 { background: var(--s-bg); color: var(--s-ink); }
-.tag.t2 { background: var(--a-bg); color: var(--a-ink); }
-.tag.t3 { background: var(--c-bg); color: var(--c-ink); }
-.tag.t4 { background: var(--e-bg); color: var(--e-ink); }
+.tag.t1 { background: var(--t1-bg); color: var(--t1-ink); }
+.tag.t2 { background: var(--t2-bg); color: var(--t2-ink); }
+.tag.t3 { background: var(--t3-bg); color: var(--t3-ink); }
+.tag.t4 { background: var(--t4-bg); color: var(--t4-ink); }
 .tag.t5 { background: var(--surface); color: var(--muted); }
 
-/* Tables */
+/* The candidates on screen: the list on the left and the pressed candidate's details beside it, each
+   scrolling on its own. Below 860px they take turns, and the full view gives the details the whole width. */
+.split { display: grid; grid-template-columns: minmax(320px, 360px) minmax(0, 1fr); gap: 16px; align-items: start; margin: 20px 0 0; }
+.list { min-width: 0; }
+.entries { margin: 0; padding: 0; list-style: none; border: 1px solid var(--border); border-radius: 12px; }
+.entry { padding: 10px 14px 12px; border-bottom: 1px solid var(--line); cursor: pointer; transition: background-color 0.15s; }
+.entry:first-child { border-radius: 11px 11px 0 0; }
+.entry:last-child { border-bottom: 0; border-radius: 0 0 11px 11px; }
+.entry:hover { background: var(--stripe); }
+.entry.current { background: var(--selected); box-shadow: inset 3px 0 0 var(--accent); }
+.entry button { display: flex; width: 100%; min-height: 28px; align-items: center; justify-content: space-between; gap: 8px; margin: 0; padding: 0; border: 0; background: none; color: var(--ink); font: inherit; font-size: 16px; font-weight: 700; text-align: left; cursor: pointer; }
+.entry button svg { flex: none; color: var(--faint); }
+.entry p { margin: 2px 0 0; color: var(--muted); font-size: 13.5px; }
+.detail { min-width: 0; padding: 0 20px 18px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); }
+.detail-head { position: sticky; top: 0; z-index: 4; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 16px 0 10px; border-bottom: 1px solid var(--border); background: var(--bg); }
+.detail h2 { margin: 0; font-size: 20px; }
+.detail h2:focus { outline: none; }
+.detail h2:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.detail .summary { margin: 12px 0 0; font-weight: 600; }
+.detail h3 { margin: 20px 0 0; font-size: 16px; }
+.detail .table-wrap { margin: 8px 0 0; }
+.kv { width: 100%; margin: 12px 0 0; border-collapse: collapse; font-size: 14px; }
+.kv th, .kv td { padding: 8px 12px 8px 0; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.kv th { width: 9em; color: var(--muted); font-weight: 600; white-space: nowrap; }
+.detail-text { margin: 12px 0 0; color: var(--muted); }
+.icon { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--muted); cursor: pointer; transition: border-color 0.15s, color 0.15s; }
+.icon:hover { border-color: var(--accent); color: var(--ink); }
+.back { display: none; align-items: center; justify-self: start; gap: 6px; min-height: 40px; margin: 12px 0 0; padding: 6px 12px 6px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; }
+.step { display: none; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin: 20px 0 0; }
+.step a { display: grid; gap: 2px; min-height: 44px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; color: var(--ink); text-decoration: none; }
+.step a[rel="next"] { grid-column: 2; text-align: right; }
+.step .k { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-size: 13px; }
+.step a[rel="next"] .k { justify-content: flex-end; }
+.split.solo { grid-template-columns: minmax(0, 1fr); }
+.split.solo .list, .split.solo .open-full { display: none; }
+.split.solo .back { display: inline-flex; }
+.split.solo .step { display: grid; }
+@media screen {
+  #candidates.has-split > .cards { display: none; }
+}
+@media screen and (min-width: 861px) {
+  .split .list, .split .detail { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-x: hidden; overflow-y: auto; }
+  .split .list { padding: 2px; }
+}
+@media (max-width: 860px) {
+  .split { grid-template-columns: minmax(0, 1fr); }
+  .split[data-view="list"] .detail { display: none; }
+  .split[data-view="detail"] .list { display: none; }
+  .detail { padding: 0 16px 16px; }
+  .back { display: inline-flex; }
+  .step { display: grid; }
+  .open-full { display: none; }
+}
+
+/* Tables. Column headers are th scope="col" over a 2px line, the name of each row is th scope="row", and a
+   1px --line separates the rows. The script stripes tables of six or more columns and tables that scroll
+   sideways, turns a box that scrolls into a named region that takes the focus, shades the side where
+   columns are hidden, and keeps the name column in view. On screen a long table scrolls inside its box with
+   its headers on top; print shows every table whole. */
 .table-wrap { margin: 16px 0; overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-th, td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
-th { background: var(--surface); color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: 0.03em; white-space: nowrap; }
+.table-wrap:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.table-wrap.more-end { box-shadow: 12px 0 10px -10px var(--shadow); }
+.table-wrap.more-start { box-shadow: -12px 0 10px -10px var(--shadow); }
+.table-wrap.more-start.more-end { box-shadow: 12px 0 10px -10px var(--shadow), -12px 0 10px -10px var(--shadow); }
+table { width: auto; max-width: 100%; border-collapse: collapse; font-size: 13.5px; }
+caption { padding: 0 0 6px; color: var(--muted); font-size: 13px; font-weight: 600; text-align: left; }
+th, td { padding: 8px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+thead th { border-bottom: 2px solid var(--line); background: var(--surface); color: var(--muted); font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+tbody th { font-weight: 600; }
+td { overflow-wrap: break-word; }
+table.striped tbody tr:nth-child(even) > * { background: var(--stripe); }
 /* Numbers, scores, and columns of a few words (short) stay on one line and only as wide as they need, so the
    columns of sentences, the rationale among them, share the rest of the width by the length of their text. */
-td.num, th.num { text-align: right; }
-td.center, th.center { text-align: center; }
-td.num, th.num, td.center, th.center, td.short, th.short { width: 1%; white-space: nowrap; }
+td.num, th.num { text-align: right; white-space: nowrap; }
+td.center, th.center { text-align: center; white-space: nowrap; }
+td.short, th.short { white-space: nowrap; }
 th.rationale { white-space: normal; }
+td.rationale { color: var(--muted); }
+.table-wrap.scrolls tr > :first-child { position: sticky; left: 0; z-index: 1; background: var(--bg); box-shadow: inset -1px 0 0 var(--line); }
+.table-wrap.scrolls table.striped tbody tr:nth-child(even) > :first-child { background: var(--stripe); }
+.table-wrap.scrolls thead tr > :first-child { z-index: 3; background: var(--surface); }
 /* On a narrow screen a column of sentences keeps at least 11em, and the table scrolls sideways inside its box
    instead of squeezing the sentences to a few characters a line. Print leaves this out, so a table never grows
    past the page. */
 @media screen {
+  .table-wrap { max-height: min(75vh, 640px); overflow-y: auto; }
+  .table-wrap thead th { position: sticky; top: 0; z-index: 2; }
   td:not(.short):not(.num):not(.center) { min-width: 11em; }
 }
-td.rationale { color: var(--muted); }
-tbody tr:last-child td { border-bottom: 1px solid var(--line-strong); }
 
-/* Scores and risk labels */
+/* Scores and severity labels. A score of S is the good color, D the critical one; the severity labels carry
+   an icon before the word, so they never rest on color alone. */
 .score { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; font-size: 14px; font-weight: 800; }
-.score.s { background: var(--s-bg); color: var(--s-ink); }
-.score.a { background: var(--a-bg); color: var(--a-ink); }
-.score.b { background: var(--b-bg); color: var(--b-ink); }
-.score.c { background: var(--c-bg); color: var(--c-ink); }
-.score.d { background: var(--d-bg); color: var(--d-ink); }
-.risk { display: inline-block; padding: 2px 10px; border-radius: 6px; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
-.risk.critical { background: var(--critical-bg); color: var(--critical-ink); }
-.risk.high { background: var(--d-bg); color: var(--d-ink); }
-.risk.medium { background: var(--c-bg); color: var(--c-ink); }
-.risk.low { background: var(--a-bg); color: var(--a-ink); }
+.score.s { background: var(--good); color: var(--on-status); }
+.score.a { background: var(--good-soft); color: var(--good); }
+.score.b { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px var(--border); }
+.score.c { background: var(--warn-soft); color: var(--warn); }
+.score.d { background: var(--critical-soft); color: var(--critical); }
+.risk { display: inline-flex; align-items: center; gap: 5px; padding: 2px 10px 2px 7px; border-radius: 6px; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+.risk svg { flex: none; }
+.risk.critical { background: var(--critical); color: var(--on-status); }
+.risk.high { background: var(--critical-soft); color: var(--critical); }
+.risk.medium { background: var(--warn-soft); color: var(--warn); }
+.risk.low { background: var(--surface); color: var(--muted); box-shadow: inset 0 0 0 1px var(--border); }
 .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 8px 0 0; color: var(--faint); font-size: 12.5px; }
-.legend span { display: inline-flex; gap: 6px; align-items: center; }
+.legend > span { display: inline-flex; gap: 6px; align-items: center; }
 .legend .score { width: 20px; height: 20px; font-size: 12px; border-radius: 5px; }
 
 /* Bar charts. The rows share the chart's three columns: the names on the left in a column as wide as the longest
-   name (up to 40% of the chart), the bars in the rest, and the values. */
-.bars { display: grid; grid-template-columns: fit-content(40%) minmax(0, 1fr) max-content; gap: 8px 12px; align-items: center; margin: 16px 0; padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px; font-size: 13px; }
+   name (up to 40% of the chart), wrapping when longer, the bars in the rest, and the values as numbers on the
+   right, with the unit in the heading. A chart and a dragon figure open larger when pressed. */
+.bars { display: grid; grid-template-columns: fit-content(40%) minmax(0, 1fr) max-content; gap: 8px 12px; align-items: center; margin: 16px 0; padding: 16px 18px; border: 1px solid var(--border); border-radius: 12px; font-size: 13px; }
 .bars h4 { grid-column: 1 / -1; margin: 0 0 4px; font-size: 14px; }
-.bar { grid-column: 1 / -1; display: grid; grid-template-columns: 150px 1fr 110px; grid-template-columns: subgrid; gap: 12px; align-items: center; }
-.bar .label { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; gap: 12px; align-items: center; }
+.bar .label { color: var(--muted); overflow-wrap: anywhere; }
 .bar .track { display: block; height: 14px; border-radius: 7px; background: var(--surface); overflow: hidden; }
 .bar .fill { display: block; height: 100%; min-width: 4px; border-radius: 7px; background: var(--accent); }
-.bar.muted .fill { min-width: 0; background: var(--bar-muted); }
-.bar .value { font-weight: 700; white-space: nowrap; }
+.bar .value { font-weight: 700; text-align: right; white-space: nowrap; }
+.figure { margin: 16px 0; padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); --dragon-figure-background: var(--surface); }
+.figure svg { display: block; width: 100%; height: auto; }
+.figure pre { margin: 0; white-space: pre-wrap; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--muted); }
+.zoomable { cursor: zoom-in; transition: border-color 0.15s; }
+.zoomable:hover, .zoomable:focus-visible { border-color: var(--accent); outline: none; box-shadow: 0 0 0 1px var(--accent); }
+dialog.zoom { width: min(1080px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 0; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); color: var(--ink); }
+dialog.zoom::backdrop { background: var(--backdrop); }
+.dialog-head { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.dialog-head h2 { margin: 0; font-size: 17px; }
+.dialog-head .icon { margin-left: auto; }
+.dialog-body { padding: 16px; --dragon-figure-background: var(--bg); }
+.dialog-body .bars, .dialog-body .figure { margin: 0; border: 0; padding: 0; background: none; font-size: 15px; --dragon-figure-background: var(--bg); }
 
 /* Sources */
 .sources { columns: 2; column-gap: 32px; margin: 0; padding-left: 22px; font-size: 12.5px; }
 .sources li { margin: 0 0 8px; break-inside: avoid; overflow-wrap: anywhere; }
 .sources .accessed { color: var(--faint); }
-.report-foot { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--faint); font-size: 12.5px; }
+.report-foot { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--border); color: var(--faint); font-size: 12.5px; }
 
 @media (max-width: 720px) {
   .controls { top: 12px; right: 12px; }
   .cover { padding: 64px 16px 32px; }
-  .cover h1 { font-size: 32px; }
+  .cover h1 { font-size: 22px; }
   main { padding: 40px 16px 56px; }
-  .picks, .cards { grid-template-columns: 1fr; }
+  .picks { grid-template-columns: 1fr; }
   .sources { columns: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -282,12 +366,14 @@ tbody tr:last-child td { border-bottom: 1px solid var(--line-strong); }
 @media print {
   body { font-size: 10.5pt; }
   .controls { display: none; }
+  .split, dialog.zoom { display: none; }
   .cover { min-height: 297mm; padding: 34mm 22mm 20mm; }
   main { max-width: none; padding: 0; }
   .chapter { margin-top: 28px; }
   .page-break { break-after: page; }
-  .no-break, .picks, .pick, .card, .callout, .bars, .legend, tr { break-inside: avoid; }
-  h2, h3, h4, .lead { break-after: avoid; }
+  .table-wrap { max-height: none; overflow: visible; box-shadow: none; }
+  .no-break, .picks, .pick, .card, .caution, .bars, .figure, .legend, tr { break-inside: avoid; }
+  h2, h3, h4, .chapter > h2 + p, caption, thead { break-after: avoid; }
   a { color: inherit; text-decoration: none; }
   .sources a { color: var(--accent); }
 }
@@ -310,18 +396,23 @@ tbody tr:last-child td { border-bottom: 1px solid var(--line-strong); }
     <h1>{{TITLE}}</h1>
     <hr>
     <p class="subtitle">{{SUBTITLE}}</p>
-    <dl class="stats">{{STATS}}</dl>
   </div>
-  <div class="cover-foot">
-    <p>{{DATE}}</p>
-    <p class="cover-author">{{AUTHOR}}</p>
-  </div>
+  <table class="facts">
+    <caption class="sr-only" data-t="factsCaption">About this report</caption>
+    <tbody>
+      <tr><th scope="row" data-t="factCandidates">Candidates</th><td>{{CANDIDATE_COUNT}}</td></tr>
+      <tr><th scope="row" data-t="factAxes">Axes</th><td>{{AXIS_COUNT}}</td></tr>
+      <tr><th scope="row" data-t="factSources">Sources</th><td>{{SOURCE_COUNT}}</td></tr>
+      <tr><th scope="row" data-t="factResearched">Researched</th><td><time datetime="{{DATE}}">{{DATE}}</time></td></tr>
+      <tr class="author-row"><th scope="row" data-t="factAuthor">Author</th><td>{{AUTHOR}}</td></tr>
+    </tbody>
+  </table>
 </section>
 <div class="page-break"></div>
 
 <main>
 <nav class="toc no-break">
-  <h2>{{CONTENTS_HEADING}}</h2>
+  <h2 data-t="contents">Contents</h2>
   <ol>{{TOC}}</ol>
 </nav>
 
@@ -335,16 +426,48 @@ tbody tr:last-child td { border-bottom: 1px solid var(--line-strong); }
 <footer class="report-foot">{{FOOTER}}</footer>
 </main>
 
+<dialog class="zoom" id="zoom" aria-label="Show larger">
+  <div class="dialog-head"><h2 id="zoom-title"></h2><button type="button" class="icon" data-close data-t-label="close" aria-label="Close"></button></div>
+  <div class="dialog-body" id="zoom-body"></div>
+</dialog>
+
 <script>
-// The language and light/dark switches. TEXT holds the frame's own words, the only words the language
-// switch changes: the report's text stays in the language it was written in. The language starts from the
-// report's own and the colors from the system, until the reader chooses; this browser remembers the choice.
+// The frame of the report: the language and light/dark switches, the candidate list and details, the tables,
+// and the enlarged charts. TEXT holds the frame's own words, the only words the language switch changes: the
+// report's text stays in the language it was written in. The language starts from the report's own and the
+// colors from the system, until the reader chooses; this browser remembers the choice.
 const TEXT = {
-  en: { settings: "Page settings", language: "Language", theme: "Theme", light: "Light", dark: "Dark" },
-  ja: { settings: "ページの設定", language: "言語", theme: "画面の色", light: "明るい", dark: "暗い" },
+  en: {
+    settings: "Page settings", language: "Language", theme: "Theme", light: "Light", dark: "Dark",
+    factsCaption: "About this report", factCandidates: "Candidates", factAxes: "Axes", factSources: "Sources",
+    factResearched: "Researched", factAuthor: "Author", contents: "Contents",
+    listLabel: "Candidates", back: "Back to candidates", openFull: "Open full page", stepLabel: "Other candidates",
+    prev: "Previous", next: "Next", detailScores: "Scores by axis", detailRisks: "Risks", noRisks: "No risk was found for this candidate",
+    colAxis: "Axis", colScore: "Score", colRationale: "Rationale",
+    scoreS: "Outstanding", scoreA: "Strong", scoreB: "Good", scoreC: "Adequate", scoreD: "Weak",
+    fieldType: "Type", fieldUsers: "Used by", fieldStrength: "Strength", fieldWeakness: "Weakness",
+    enlarge: "Show larger", close: "Close",
+  },
+  ja: {
+    settings: "ページの設定", language: "言語", theme: "画面の色", light: "明るい", dark: "暗い",
+    factsCaption: "この報告について", factCandidates: "候補の数", factAxes: "軸の数", factSources: "出典の数",
+    factResearched: "調べた日", factAuthor: "作成者", contents: "目次",
+    listLabel: "候補", back: "候補の一覧へ戻る", openFull: "全体で開く", stepLabel: "ほかの候補",
+    prev: "前の候補", next: "次の候補", detailScores: "軸ごとの評価", detailRisks: "リスク", noRisks: "この候補に見つかったリスクは無い",
+    colAxis: "軸", colScore: "評価", colRationale: "根拠",
+    scoreS: "とても良い", scoreA: "良い", scoreB: "まずまず", scoreC: "足りる", scoreD: "弱い",
+    fieldType: "種類", fieldUsers: "使っている人", fieldStrength: "強み", fieldWeakness: "弱み",
+    enlarge: "大きく見る", close: "閉じる",
+  },
 };
 const controls = document.getElementById("controls");
 const darkSystem = window.matchMedia("(prefers-color-scheme: dark)");
+const NARROW = window.matchMedia("(max-width: 860px)");
+const ownLang = document.documentElement.lang.toLowerCase().startsWith("ja") ? "ja" : "en";
+let lang = ownLang;
+const t = (key) => TEXT[lang][key] || TEXT.en[key] || "";
+const $ = (selector, root) => (root || document).querySelector(selector);
+const $$ = (selector, root) => Array.from((root || document).querySelectorAll(selector));
 
 function remember(key, value) {
   try { localStorage.setItem(key, value); } catch (e) {}
@@ -354,17 +477,51 @@ function recalled(key, allowed) {
   try { const value = localStorage.getItem(key); return allowed.includes(value) ? value : null; } catch (e) { return null; }
 }
 
-function showLanguage(lang) {
-  const words = TEXT[lang];
+// el(tag, attributes, children...): an element built without parsing the report's text as markup.
+function el(tag, attrs, ...kids) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) if (v !== null && v !== undefined) node.setAttribute(k, v);
+  for (const kid of kids.flat()) if (kid !== null && kid !== undefined) node.append(kid);
+  return node;
+}
+
+// Each icon is drawn in the color of the text around it and hidden from screen readers, which read the word beside it.
+const ICONS = {
+  left: '<path d="M10 3.5 5.5 8l4.5 4.5"/>',
+  right: '<path d="M6 3.5 10.5 8 6 12.5"/>',
+  expand: '<path d="M9.5 2.5h4v4M13.5 2.5 9 7M6.5 13.5h-4v-4M2.5 13.5 7 9"/>',
+  close: '<path d="M4 4l8 8M12 4l-8 8"/>',
+  critical: '<circle cx="8" cy="8" r="6.2"/><path d="M5.8 5.8l4.4 4.4M10.2 5.8l-4.4 4.4"/>',
+  high: '<path d="M8 2 14.4 13.2H1.6z"/><path d="M8 6.4v3.2M8 11.4v.2"/>',
+  medium: '<circle cx="8" cy="8" r="6.2"/><path d="M8 4.8v3.8M8 10.9v.2"/>',
+  low: '<circle cx="8" cy="8" r="6.2"/><path d="M8 7.3v3.9M8 5v.2"/>',
+};
+function icon(name, size) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  const px = String(size || 16);
+  for (const [k, v] of Object.entries({ viewBox: "0 0 16 16", width: px, height: px, fill: "none", stroke: "currentColor",
+    "stroke-width": "1.6", "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true", focusable: "false" })) svg.setAttribute(k, v);
+  svg.innerHTML = ICONS[name];
+  return svg;
+}
+const word = (key) => el("span", { "data-t": key }, t(key));
+
+function showLanguage(next) {
+  lang = next;
   controls.lang = lang;
-  controls.setAttribute("aria-label", words.settings);
-  controls.querySelectorAll("[data-t]").forEach((el) => { el.textContent = words[el.dataset.t]; });
-  controls.querySelectorAll("[data-t-label]").forEach((el) => { el.setAttribute("aria-label", words[el.dataset.tLabel]); });
-  controls.querySelectorAll("[data-lang]").forEach((b) => { b.setAttribute("aria-pressed", String(b.dataset.lang === lang)); });
+  controls.setAttribute("aria-label", t("settings"));
+  for (const node of $$("[data-t]")) if (TEXT.en[node.dataset.t] !== undefined) node.textContent = t(node.dataset.t);
+  for (const node of $$("[data-t-label]")) node.setAttribute("aria-label", t(node.dataset.tLabel));
+  // A frame word in another language than the report says so, for screen readers.
+  for (const node of $$("[data-t], [data-t-label]")) {
+    if (controls.contains(node)) continue;
+    if (lang === ownLang) node.removeAttribute("lang"); else node.lang = lang;
+  }
+  for (const b of $$("[data-lang]", controls)) b.setAttribute("aria-pressed", String(b.dataset.lang === lang));
 }
 
 function showTheme(mode) {
-  controls.querySelectorAll("[data-theme-choice]").forEach((b) => { b.setAttribute("aria-pressed", String(b.dataset.themeChoice === mode)); });
+  for (const b of $$("[data-theme-choice]", controls)) b.setAttribute("aria-pressed", String(b.dataset.themeChoice === mode));
 }
 
 function setTheme(mode) {
@@ -373,8 +530,8 @@ function setTheme(mode) {
 }
 
 controls.addEventListener("click", (e) => {
-  const lang = e.target.closest("[data-lang]");
-  if (lang) { showLanguage(lang.dataset.lang); remember("compare-report-lang", lang.dataset.lang); return; }
+  const choice = e.target.closest("[data-lang]");
+  if (choice) { showLanguage(choice.dataset.lang); remember("compare-report-lang", choice.dataset.lang); return; }
   const theme = e.target.closest("[data-theme-choice]");
   if (theme) { setTheme(theme.dataset.themeChoice); remember("compare-report-theme", theme.dataset.themeChoice); }
 });
@@ -384,7 +541,305 @@ if (darkSystem.addEventListener) {
   darkSystem.addEventListener("change", () => { if (!document.documentElement.dataset.theme) showTheme(darkSystem.matches ? "dark" : "light"); });
 }
 
-showLanguage(recalled("compare-report-lang", ["en", "ja"]) || (document.documentElement.lang.toLowerCase().startsWith("ja") ? "ja" : "en"));
+// --- Severity labels and cautions get their icons, so a state never rests on color alone.
+for (const label of $$(".risk")) {
+  const level = ["critical", "high", "medium", "low"].find((c) => label.classList.contains(c));
+  if (level && !(label.firstElementChild && label.firstElementChild.tagName.toLowerCase() === "svg")) label.prepend(icon(level, 14));
+}
+for (const caution of $$(".caution")) {
+  if (!$(":scope > svg", caution)) caution.prepend(icon("high", 18));
+}
+
+// --- Tables. A box that scrolls becomes a named region that takes the focus; the side where columns are
+// hidden is shaded, wide tables and tables that scroll sideways are striped, and the name column stays in view.
+let tableNames = 0;
+function edges(wrap) {
+  const hidden = wrap.scrollWidth - wrap.clientWidth;
+  wrap.classList.toggle("more-start", hidden > 1 && wrap.scrollLeft > 1);
+  wrap.classList.toggle("more-end", hidden > 1 && hidden - wrap.scrollLeft > 1);
+}
+function fitTable(wrap) {
+  const table = $(":scope > table", wrap);
+  if (!table) return;
+  const caption = $(":scope > caption", table);
+  if (caption && !caption.id) caption.id = "table-name-" + (++tableNames);
+  const name = caption ? caption.id : table.getAttribute("aria-labelledby");
+  const across = wrap.scrollWidth > wrap.clientWidth + 1;
+  const down = wrap.scrollHeight > wrap.clientHeight + 1;
+  if ((across || down) && name) {
+    wrap.setAttribute("role", "region");
+    wrap.setAttribute("tabindex", "0");
+    wrap.setAttribute("aria-labelledby", name);
+  } else {
+    wrap.removeAttribute("role");
+    wrap.removeAttribute("tabindex");
+    wrap.removeAttribute("aria-labelledby");
+  }
+  wrap.classList.toggle("scrolls", across);
+  table.classList.toggle("striped", $$(":scope > thead > tr:first-child > th", table).length >= 6 || across);
+  edges(wrap);
+  if (!wrap.dataset.watched) {
+    wrap.dataset.watched = "1";
+    wrap.addEventListener("scroll", () => edges(wrap), { passive: true });
+  }
+}
+const fitTables = (root) => $$(".table-wrap", root).forEach(fitTable);
+
+// --- Charts and figures open larger in a dialog, and closing it returns the focus to the chart.
+const zoom = document.getElementById("zoom");
+const zoomBody = document.getElementById("zoom-body");
+const zoomTitle = document.getElementById("zoom-title");
+const zoomClose = $("[data-close]", zoom);
+zoomClose.append(icon("close", 18));
+let zoomFrom = null;
+let figureNames = 0;
+function enlarge(figure) {
+  zoomFrom = figure;
+  const copy = figure.cloneNode(true);
+  for (const a of ["tabindex", "role", "aria-label", "aria-describedby", "data-t-label", "lang", "id"]) copy.removeAttribute(a);
+  copy.classList.remove("zoomable");
+  for (const node of $$("[id]", copy)) node.removeAttribute("id");
+  const heading = $("h4, figcaption", figure);
+  zoomTitle.textContent = "";
+  zoom.setAttribute("aria-label", heading ? heading.textContent.trim() : t("enlarge"));
+  zoomBody.replaceChildren(copy);
+  zoom.showModal();
+}
+zoomClose.addEventListener("click", () => zoom.close());
+zoom.addEventListener("click", (e) => { if (e.target === zoom) zoom.close(); });
+zoom.addEventListener("close", () => {
+  const now = document.activeElement;
+  const lost = !now || now === document.body || now === document.documentElement || zoom.contains(now);
+  if (lost && zoomFrom && document.contains(zoomFrom)) zoomFrom.focus();
+  zoomFrom = null;
+  zoomBody.replaceChildren();
+});
+for (const figure of $$("main .bars, main .figure")) {
+  const heading = $("h4, figcaption", figure);
+  if (heading && !heading.id) heading.id = "figure-name-" + (++figureNames);
+  figure.classList.add("zoomable");
+  figure.setAttribute("tabindex", "0");
+  figure.setAttribute("role", "button");
+  figure.setAttribute("data-t-label", "enlarge");
+  figure.setAttribute("aria-label", t("enlarge"));
+  if (heading) figure.setAttribute("aria-describedby", heading.id);
+  figure.addEventListener("click", () => enlarge(figure));
+  figure.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); enlarge(figure); } });
+}
+
+// --- The candidates on screen: the list beside the pressed candidate's details, which gather the card, the
+// candidate's row in every axis table, and its risks. Print keeps the cards and leaves the list out.
+const candidates = document.getElementById("candidates");
+const cards = $$(":scope > .cards > .card[data-candidate]", candidates);
+const keys = cards.map((card) => card.dataset.candidate);
+const nameOf = (i) => ($("h3", cards[i]) ? $("h3", cards[i]).textContent.trim() : keys[i]);
+const hashOf = (i) => "#item-" + encodeURIComponent(keys[i]);
+let pick = 0, view = "list", solo = false, fromList = false, fullPushed = false;
+let split = null, entries = [];
+
+function scoreRows(key) {
+  const rows = [];
+  for (const section of $$("main section.axis")) {
+    const row = $("tbody tr[data-candidate='" + CSS.escape(key) + "']", section);
+    if (!row) continue;
+    const heading = $(":scope > h2", section);
+    const score = $("td.center", row), why = $("td.rationale", row);
+    rows.push(el("tr", null,
+      el("th", { scope: "row", class: "short" }, el("a", { href: "#" + section.id }, heading ? heading.textContent.trim() : section.id)),
+      el("td", { class: "center" }, score ? Array.from(score.childNodes, (n) => n.cloneNode(true)) : null),
+      el("td", { class: "rationale" }, why ? Array.from(why.childNodes, (n) => n.cloneNode(true)) : null)));
+  }
+  return rows;
+}
+
+function riskTable(key) {
+  const source = $("#risks table");
+  const rows = source ? $$("tbody tr[data-candidate='" + CSS.escape(key) + "']", source) : [];
+  if (!rows.length) return el("p", { class: "detail-text", "data-t": "noRisks" }, t("noRisks"));
+  const heads = $$("thead th", source).slice(1).map((th) => {
+    const copy = th.cloneNode(true);
+    copy.setAttribute("scope", "col");
+    copy.removeAttribute("aria-sort");
+    return copy;
+  });
+  const body = rows.map((row) => el("tr", null, Array.from(row.children).slice(1).map((cell, n) => {
+    const copy = el(n === 0 ? "th" : "td", { class: cell.getAttribute("class") }, Array.from(cell.childNodes, (c) => c.cloneNode(true)));
+    if (n === 0) copy.setAttribute("scope", "row");
+    return copy;
+  })));
+  return el("div", { class: "table-wrap" }, el("table", { "aria-labelledby": "detail-risks" },
+    el("thead", null, el("tr", null, heads)), el("tbody", null, body)));
+}
+
+function detail(i) {
+  const card = cards[i], key = keys[i];
+  const summary = $(":scope > .summary", card);
+  const text = $$(":scope > p", card).filter((p) => !p.classList.contains("summary"));
+  const fields = $$(":scope > dl > dt", card).map((dt) => el("tr", null,
+    el("th", { scope: "row", "data-t": dt.dataset.t || null }, dt.textContent.trim()),
+    el("td", null, dt.nextElementSibling ? Array.from(dt.nextElementSibling.childNodes, (n) => n.cloneNode(true)) : null)));
+  const scores = scoreRows(key);
+  const link = (j, rel) => el("a", { rel, href: hashOf(j) },
+    el("span", { class: "k" }, rel === "prev" ? icon("left", 14) : null, word(rel), rel === "next" ? icon("right", 14) : null),
+    el("span", null, nameOf(j)));
+  return [
+    el("button", { type: "button", class: "back" }, icon("left"), word("back")),
+    el("div", { class: "detail-head" },
+      el("h2", { id: "detail-title", tabindex: "-1" }, nameOf(i)),
+      el("button", { type: "button", class: "icon open-full", "data-t-label": "openFull", "aria-label": t("openFull") }, icon("expand", 18))),
+    summary ? el("p", { class: "summary" }, Array.from(summary.childNodes, (n) => n.cloneNode(true))) : null,
+    fields.length ? el("table", { class: "facts kv", "aria-labelledby": "detail-title" }, el("tbody", null, fields)) : null,
+    text.map((p) => el("p", { class: "detail-text" }, Array.from(p.childNodes, (n) => n.cloneNode(true)))),
+    scores.length ? [
+      el("h3", { id: "detail-scores", "data-t": "detailScores" }, t("detailScores")),
+      el("div", { class: "table-wrap" }, el("table", { "aria-labelledby": "detail-scores" },
+        el("thead", null, el("tr", null,
+          el("th", { scope: "col", class: "short", "data-t": "colAxis" }, t("colAxis")),
+          el("th", { scope: "col", class: "center", "data-t": "colScore" }, t("colScore")),
+          el("th", { scope: "col", class: "rationale", "data-t": "colRationale" }, t("colRationale")))),
+        el("tbody", null, scores)))] : null,
+    el("h3", { id: "detail-risks", "data-t": "detailRisks" }, t("detailRisks")),
+    riskTable(key),
+    cards.length > 1 ? el("nav", { class: "step", "aria-label": t("stepLabel"), "data-t-label": "stepLabel" },
+      i > 0 ? link(i - 1, "prev") : null, i < cards.length - 1 ? link(i + 1, "next") : null) : null,
+  ].flat().filter(Boolean);
+}
+
+function render() {
+  split.dataset.view = view;
+  split.classList.toggle("solo", solo);
+  entries.forEach((li, i) => {
+    const on = i === pick, b = $("button", li);
+    li.classList.toggle("current", on);
+    if (on) b.setAttribute("aria-current", "true"); else b.removeAttribute("aria-current");
+  });
+  // The details keep their element, so the region and the focus around it stay, and only their content changes.
+  const pane = $(":scope > .detail", split);
+  pane.replaceChildren(...detail(pick));
+  pane.scrollTop = 0;
+  if (lang !== ownLang) for (const node of $$("[data-t], [data-t-label]", pane)) node.lang = lang;
+  fitTables(pane);
+}
+
+function focusOn(node) {
+  if (node) node.focus({ preventScroll: true });
+}
+
+// A pressed candidate: beside the list on a wide screen, or in place of the list below 860px, where the
+// browser's Back returns to the list.
+function choose(i) {
+  pick = i;
+  if (NARROW.matches) {
+    view = "detail";
+    solo = false;
+    fromList = true;
+    render();
+    try { history.pushState(null, "", hashOf(i)); } catch (e) {}
+    split.scrollIntoView({ block: "start" });
+    focusOn($("#detail-title"));
+  } else {
+    render();
+    try { history.replaceState(null, "", hashOf(i) + (solo ? "/full" : "")); } catch (e) {}
+  }
+}
+
+// The previous and next candidates replace the shown one in the history, so Back still leads to the list.
+function step(i) {
+  pick = i;
+  view = "detail";
+  render();
+  try { history.replaceState(null, "", hashOf(i) + (solo ? "/full" : "")); } catch (e) {}
+  focusOn($("#detail-title"));
+}
+
+function openFull() {
+  solo = true;
+  view = "detail";
+  fullPushed = true;
+  render();
+  try { history.pushState(null, "", hashOf(pick) + "/full"); } catch (e) {}
+  split.scrollIntoView({ block: "start" });
+  focusOn($("#detail-title"));
+}
+
+// The way back: from the full view to the list and details, or below 860px from the details to the list,
+// with the focus on the candidate that was shown.
+function back() {
+  if (solo) {
+    solo = false;
+    render();
+    focusOn($(".open-full", split));
+    if (fullPushed) { fullPushed = false; history.back(); }
+    else { try { history.replaceState(null, "", hashOf(pick)); } catch (e) {} }
+    return;
+  }
+  view = "list";
+  render();
+  focusOn($("button", entries[pick]));
+  if (fromList) { fromList = false; history.back(); }
+  else { try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {} }
+}
+
+// The address keeps the shown candidate as #item-<key>, and #item-<key>/full for the full view.
+function fromHash() {
+  const m = /^#item-([^/]+)(\/full)?$/.exec(location.hash);
+  if (!m) return null;
+  let key = m[1];
+  try { key = decodeURIComponent(key); } catch (e) {}
+  const i = keys.indexOf(key);
+  return i < 0 ? null : { pick: i, solo: !!m[2] };
+}
+function applyHash(first) {
+  const s = fromHash();
+  const next = s ? { pick: s.pick, view: "detail", solo: s.solo } : { pick, view: "list", solo: false };
+  const changed = next.pick !== pick || next.view !== view || next.solo !== solo;
+  const wasDetail = view === "detail";
+  pick = next.pick; view = next.view; solo = next.solo;
+  if (!s) { fromList = false; fullPushed = false; }
+  if (!changed && !first) return;
+  render();
+  if (first) { if (s) candidates.scrollIntoView({ block: "start" }); return; }
+  if (view === "detail" && (NARROW.matches || solo)) focusOn($("#detail-title"));
+  else if (wasDetail && view === "list" && (!location.hash || location.hash === "#candidates")) focusOn($("button", entries[pick]));
+}
+
+if (cards.length) {
+  entries = cards.map((card, i) => {
+    const summary = $(":scope > .summary", card);
+    return el("li", { class: "entry", "data-candidate": keys[i] },
+      el("button", { type: "button", "aria-describedby": summary ? "entry-summary-" + i : null }, el("span", null, nameOf(i)), icon("right")),
+      summary ? el("p", { id: "entry-summary-" + i }, summary.textContent.trim()) : null);
+  });
+  const list = el("ul", { class: "entries", "aria-label": t("listLabel"), "data-t-label": "listLabel" }, entries);
+  list.addEventListener("click", (e) => {
+    const li = e.target.closest(".entry");
+    if (li) choose(entries.indexOf(li));
+  });
+  split = el("div", { class: "split", "data-view": "list" }, el("div", { class: "list" }, list),
+    el("section", { class: "detail", "aria-labelledby": "detail-title" }));
+  split.addEventListener("click", (e) => {
+    if (e.target.closest(".back")) back();
+    else if (e.target.closest(".open-full")) openFull();
+    else {
+      const a = e.target.closest(".step a");
+      if (a) { e.preventDefault(); step(keys.indexOf(decodeURIComponent(a.getAttribute("href").slice(6)))); }
+    }
+  });
+  $(":scope > .cards", candidates).after(split);
+  candidates.classList.add("has-split");
+  applyHash(true);
+  window.addEventListener("popstate", () => applyHash(false));
+  window.addEventListener("hashchange", () => applyHash(false));
+}
+
+fitTables(document);
+let fitting = 0;
+window.addEventListener("resize", () => {
+  cancelAnimationFrame(fitting);
+  fitting = requestAnimationFrame(() => fitTables(document));
+});
+
+showLanguage(recalled("compare-report-lang", ["en", "ja"]) || ownLang);
 showTheme(document.documentElement.dataset.theme || (darkSystem.matches ? "dark" : "light"));
 controls.hidden = false;
 </script>
