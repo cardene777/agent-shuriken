@@ -602,8 +602,11 @@ exit 0
     if (before < 650) return `the button is ${before}px wide before the press`;
     if (sunk > before * 0.98) return `the button stays ${sunk}px wide when pressed (${before}px before)`;
     const centre = { x: press.box.x + press.box.width / 2, y: press.box.y + press.box.height / 2 };
-    const ringAt = pixel(raw, press.t + 0.15, centre.x + 30, centre.y);
-    const plainAt = pixel(raw, press.t - 0.4, centre.x + 30, centre.y);
+    // On the blue just below the label and left of the pointer: on the white label the see-through ring
+    // darkens the letters as much as it lightens the blue between them, so their average hardly moves
+    const spot = { x: centre.x - 30, y: centre.y + 24 };
+    const ringAt = pixel(raw, press.t + 0.15, spot.x, spot.y);
+    const plainAt = pixel(raw, press.t - 0.4, spot.x, spot.y);
     if (Math.abs(luma(ringAt) - luma(plainAt)) < 12 && Math.abs(ringAt[1] - plainAt[1]) < 20) return "no ring shows where the button was pressed";
     return true;
   });
