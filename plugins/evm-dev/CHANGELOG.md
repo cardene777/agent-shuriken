@@ -5,6 +5,13 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-22
+
+### Changed
+
+- `evm-standards` reads no article index unless the user names one, and gives no articles then. The user names it in one line of `~/.evm-dev/article-index`, as a URL or a path to a file, and `EVM_DEV_INDEX_URL` wins when both are set. The index keeps the line form of an llms.txt list from any site; a link is printed only when it is https and, for an index read from an http or https URL, on the same host as the index. An index named by a URL is kept for one day as one copy per URL, and an index named by a path is read in place
+- The README says before the skill list, and in its table of what the plugin needs, that `contract-deploy` signs deploys to production chains only with a Ledger or Trezor hardware wallet
+
 ## [0.6.0] - 2026-11-22
 
 ### Added
@@ -23,8 +30,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ### Added
 
-- `evm-standards` finds standards by what they let contracts, wallets, and dApps do with `evm-standards.sh find`, from a new `can` field on every item and the maintainer's bitsumi articles
-- `evm-standards` gives the title and link of the maintainer's bitsumi article on each standard it names with `evm-standards.sh article`. It reads the article index https://cardene.dev/llms.txt with a plain request that carries no word of the question, and keeps it in `~/.local/share/evm-dev/` for one day
+- `evm-standards` finds standards by what they let contracts, wallets, and dApps do with `evm-standards.sh find`, from a new `can` field on every item and the articles of a fixed index
+- `evm-standards` gives the title and link of the article on each standard it names with `evm-standards.sh article`. It reads a fixed article index with a plain request that carries no word of the question, and keeps it in `~/.local/share/evm-dev/` for one day
 
 ### Changed
 
@@ -96,7 +103,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - Starts when you ask about the status of an ERC or EIP, or when you call it, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
 - The plugin has `claude plugin eval` cases under `evals/` that measure the skill, run by hand
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/evm-dev--v0.6.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/evm-dev--v0.7.0...HEAD
+[0.7.0]: https://github.com/cardene777/agent-shuriken/releases/tag/evm-dev--v0.7.0
 [0.6.0]: https://github.com/cardene777/agent-shuriken/releases/tag/evm-dev--v0.6.0
 [0.5.0]: https://github.com/cardene777/agent-shuriken/releases/tag/evm-dev--v0.5.0
 [0.4.0]: https://github.com/cardene777/agent-shuriken/releases/tag/evm-dev--v0.4.0

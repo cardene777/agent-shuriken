@@ -7,10 +7,11 @@ ERCが確定したか、EIPがEthereumのメインネットで動いているか
 エージェントの知識は学習の時点で止まりますが、規格と道具はその後も動きます。
 EIPがネットワークの更新で入り、L2が状態を証明する仕組みを替え、広く呼ばれている「ERC」が実はどこにも取り込まれておらず、ライブラリが読み込むファイルの名前を変え、フレームワークがスクリプトの呼ぶ関数を非推奨にし、取引の中継や自動実行のサービスが終わり、決済の規格の改版が延期されます。
 このプラグインは、そのどれについても、公式の文書で確かめた日と、もとにした文書の名前を持つ項目を持ちます。
+`contract-deploy`は、本番のチェーンへの配布にはLedgerかTrezorのハードウェアウォレットでだけ署名させ、テストのチェーンへの配布には暗号化したキーストアを使います。
 
 | スキル | すること |
 |---|---|
-| `evm-standards` | ERCが確定したか、EIPが動いているか、コントラクトとウォレットで何ができるようになるかを、ERCとEIPの41の項目から答えます。できることから規格を探し、答えに出す規格にメンテナーのbitsumiの記事が在ればリンクを添えます |
+| `evm-standards` | ERCが確定したか、EIPが動いているか、コントラクトとウォレットで何ができるようになるかを、ERCとEIPの41の項目から答えます。できることから規格を探し、あなたが記事の一覧を名指した時は、答えに出す規格の記事のリンクを添えます |
 | `ethereum-knowledge` | L2のネットワークとロールアップの枠組みの仕組みと今の状態、EthereumのL1の今後の作り替え、コンセンサスだけを変えるEIPが動いているかを、51の項目から答えます。ERCと、コントラクトとウォレットでできることを変えるEIPは`evm-standards`に任せます |
 | `solidity-code` | FoundryとHardhatのプロジェクトで、プロジェクトが使うsolcとOpenZeppelinとforge-stdとFoundryとHardhatの版に合わせてコントラクトを書き、古い書き方を探してからビルドとテストを回します |
 | `contract-tests` | FoundryかHardhatのプロジェクトで、コントラクトごとに確かめる点を挙げてから、単体とfuzzとinvariantのテストを書きます。kiwaが入っていればkiwaに書かせます。どのテストも触れていない点を名指し、テストを回します |
@@ -125,17 +126,25 @@ Status: live, checked 2026-11-11, source: the EIP-7951 document and EIP-7607 (th
 
 ### できることから規格を探す
 
-1. エージェントが、したいことを表す語を英語とあなたの言語で並べ、項目とメンテナーのbitsumiの記事から探します
+1. エージェントが、したいことを表す語を英語とあなたの言語で並べ、項目と、名指した記事の一覧から探します
 2. エージェントが、当たった規格を、項目か公式の文書で確かめた状態を添えて答えます
-3. 答えに出す規格にbitsumiの記事が在る時は、エージェントがその題とリンクを添えます
+3. 記事の一覧を名指した時は、答えに出す規格の記事が在れば、エージェントがその題とリンクを添えます
 
 探した結果は次のように出ます。
+記事の一覧を名指していない時は、記事の行を出しません。
 
 ```text
 item eip-7951-secp256r1-precompile live 2026-11-11 3 Contracts can cheaply verify P-256 (secp256r1) signatures, such as passkey, WebAuthn, Secure Enclave, and Android Keystore signatures, with P256VERIFY at 0x100.
 items: 1 matched
-article EIP7951 https://cardene.dev/articles/a55db75ffbc68801d968 3 secp256r1プリコンパイルでApple Secure EnclaveやPasskeyをEthereumに繋ぐ仕組みを理解しよう！ | EIP7951は、0x100番地にP256VERIFYプリコンパイルを追加します。
-articles: 1 matched of 642 in https://cardene.dev/llms.txt, read 2026-11-17
+articles: no article index is named
+```
+
+記事を添えさせるには、一覧のURLかfileのpathを`~/.evm-dev/article-index`に書くか、`EVM_DEV_INDEX_URL`に書きます。
+両方在る時は`EVM_DEV_INDEX_URL`を使います。
+一覧はllms.txtの箇条書きの形で1行に1つの記事を書き、題は`[ERC<番号>]`か`[EIP<番号>]`で始めます。
+
+```text
+- [\[EIP7951\] パスキーの署名を確かめる](https://example.com/articles/eip-7951.md): コントラクトがP-256の署名を確かめる仕組みです。
 ```
 
 ### L2とL1の今後を確かめる
@@ -437,7 +446,8 @@ financial-standards: 2 problems; fill in or add each section named above
 | Node.jsとプロジェクトの`@openzeppelin/upgrades-core` | 無くても動きます。両方が在る時は、`release-check`がOpenZeppelinの更新の検査も回します |
 | kiwaのプラグイン | 無くても動きます。スキルが入っている時は、`contract-tests`がkiwaにテストを書かせます |
 | エージェントのWebへの接続 | 古い項目を確かめ直す時。無い時は、項目から答えて確かめられなかったと伝えます |
-| `cardene.dev`への接続 | bitsumiの記事のリンクを添える時。無い時は、`evm-standards`は項目だけから探し、記事の一覧を読めなかったと伝えます |
+| LedgerかTrezorのハードウェアウォレット | `contract-deploy`で本番のチェーンへ配る時の署名に使います。テストのチェーンには暗号化したキーストアを使います |
+| 記事の一覧の置き場への接続 | `~/.evm-dev/article-index`か`EVM_DEV_INDEX_URL`がURLを名指す時だけ要ります。無い時は、`evm-standards`は項目だけから探し、記事の一覧を読めなかったと伝えます |
 | `musubi`のコマンド | 無くても動きます。入っている時は、設計のスキルが`design-doc`の書式を読む前と、`release-check`が`page-design`の書式を読む前に、エージェントが`musubi check`を回します |
 
 ## 読む物と動かす物と送る物
@@ -448,7 +458,7 @@ financial-standards: 2 problems; fill in or add each section named above
 - プラグインに同梱した項目を読みます
 - `evm-standards`は`evm-standards.sh list`を動かし、項目を読んで1件1行で出します
 - `ethereum-knowledge`は`ethereum-knowledge.sh list`を動かし、自分の項目を読んで1件1行で出します
-- `evm-standards`は`find`と`article`で`standards.py`を動かし、項目と、bitsumiの記事の一覧のhttps://cardene.dev/llms.txtを読みます。一覧は決まったアドレスへの素の要求で取るため、質問の語は送りません。一覧は`~/.local/share/evm-dev/`(`EVM_DEV_HOME`で替えられます)に、あなただけが読める形で1日の間残し、出すのは記事の題と説明と`https://cardene.dev/articles/`のリンクだけです
+- `evm-standards`は`find`と`article`で`standards.py`を動かし、項目と、`~/.evm-dev/article-index`か`EVM_DEV_INDEX_URL`で名指した記事の一覧を読みます。URLで名指した一覧はそのアドレスへの素の要求で取るため、質問の語は送りません。取った一覧は`~/.local/share/evm-dev/`(`EVM_DEV_HOME`で替えられます)に、あなただけが読める形でURLごとに1日の間残します。pathで名指した一覧はその場で読みます。出すのは記事の題と説明とhttpsのリンクだけで、URLの一覧からはそのURLと同じhostのリンクだけを出します
 - `solidity-code`は`solidity-code.py`を動かし、プロジェクトの設定のファイルとライブラリの`package.json`から版を読み、探す時はプロジェクトのソースのファイルを読みます。`.env`のファイルと依存とビルドの出力は読まず、行の中身を出しません
 - `solidity-code`は頼まれたコントラクトだけを書き、プロジェクトのビルドとテストを動かします
 - `contract-tests`は`contract-tests.py`を動かし、プロジェクトの設定のファイルとコントラクトとテストを読みます。出すのは種類と名前と`file:line`だけで、コントラクトとテストの中身は出しません。書くのはテストのファイルだけで、コントラクトは変えず、`.env`のファイルと依存とビルドの出力は読みません
@@ -463,7 +473,7 @@ financial-standards: 2 problems; fill in or add each section named above
 - `dapp-architecture`は`dapp-architecture.py`を動かし、項目と、書いた設計書を読みます。設計書を確かめる時は節の名前だけを出します。書くのは設計書だけで、`.env`のファイルと鍵は読みません
 - `financial-standards`は`financial-standards.py`を動かし、項目と、書いた設計書を読みます。設計書を確かめる時は節の名前だけを出します。書くのは設計書だけで、`.env`のファイルと鍵は読みません
 - 古い項目を確かめ直す時は、規格の番号か名前、ネットワークか枠組みの名前、または道具かサービスの名前と版だけでWebを検索し、公式の文書を開きます
-- 項目を書き換えず、記事の一覧の写しのほかは何も残しません
+- 項目を書き換えず、URLで名指した記事の一覧の写しのほかは何も残しません
 
 ## ライセンス
 
