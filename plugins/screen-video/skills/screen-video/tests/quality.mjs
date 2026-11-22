@@ -481,6 +481,56 @@ exit 0
     return true;
   });
 
+  await check("long titles and captions wrap into even lines, keeping Japanese phrases whole", async () => {
+    process.env.SCREEN_VIDEO_NODE_DIR = NODE_DIR;
+    const { captionPage, cardPage, LAYOUTS } = await import(join(SKILL, "scripts", "lib", "look.mjs"));
+    const { loadTheme } = await import(join(SKILL, "scripts", "lib", "theme.mjs"));
+    const { playwright } = await import(join(SKILL, "scripts", "lib", "runtime.mjs"));
+    const { look } = loadTheme("default", PROJECT);
+    const browser = await playwright().chromium.launch();
+    try {
+      const tab = await browser.newPage({ viewport: { width: 1920, height: 1920 } });
+      // The width of each line the element's text is drawn in, and the page's language
+      const drawn = async (html, selector) => {
+        await tab.setContent(html, { waitUntil: "load" });
+        const widths = await tab.locator(selector).evaluate((element) => {
+          const text = element.firstChild;
+          const range = document.createRange();
+          const rows = [];
+          for (let i = 0; i < text.length; i++) {
+            range.setStart(text, i);
+            range.setEnd(text, i + 1);
+            const r = range.getBoundingClientRect();
+            if (r.width === 0) continue;
+            const row = rows.at(-1);
+            if (row === undefined || r.top > row.top + r.height / 2) rows.push({ top: r.top, left: r.left, right: r.right });
+            else {
+              row.left = Math.min(row.left, r.left);
+              row.right = Math.max(row.right, r.right);
+            }
+          }
+          return rows.map((row) => Math.round(row.right - row.left));
+        });
+        return { widths, lang: await tab.evaluate(() => document.documentElement.lang) };
+      };
+      const even = ({ widths }) => widths.length === 2 && Math.min(...widths) >= 0.5 * Math.max(...widths);
+      const title = "図書館で本を探し、借りる手続きをWebで済ませる";
+      const card = await drawn(cardPage({ kind: "title", text: title }, look, LAYOUTS.wide, 0, "ja"), "h1");
+      if (!even(card)) return `the title card draws "${title}" in lines ${card.widths.join("px, ")}px wide`;
+      if (card.lang !== "ja") return `the card page's lang is "${card.lang}"`;
+      const text = "図書館の係Botが本を取り置き、受け取りの日を送る";
+      const tall = LAYOUTS.tall.captions;
+      const caption = await drawn(captionPage(text, look, tall.maxWidth, tall.scale, "ja"), "p");
+      if (!even(caption)) return `the vertical caption "${text}" is drawn in lines ${caption.widths.join("px, ")}px wide`;
+      if (caption.lang !== "ja") return `the caption page's lang is "${caption.lang}"`;
+      const short = await drawn(cardPage({ kind: "chapter", text: "本を探す" }, look, LAYOUTS.wide, 1, "ja"), "h1");
+      if (short.widths.length !== 1) return `a short chapter title is drawn in ${short.widths.length} lines`;
+      return true;
+    } finally {
+      await browser.close();
+    }
+  });
+
   await check("check refuses a missing or broken theme", async () => {
     const missing = flow("theme-missing", { theme: "nope", steps: [{ do: "open", url: "/" }] });
     const broken = flow("theme-broken", { theme: "broken", steps: [{ do: "open", url: "/" }] });
