@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-22
+
 ### Added
 
 - A new `ethereum-knowledge` skill answers how L2 networks and rollup frameworks work and stand, what is planned for Ethereum L1, and whether EIPs that change only consensus are live, from 51 dated items with their sources. `ethereum-knowledge.sh check` names an item with a missing field, an unknown status, an impossible date, or an ERC name, and `list` marks the items past the days for their status. Questions on ERCs and on EIPs that change what contracts and wallets can do stay with `evm-standards`, whose description now names `ethereum-knowledge` for the rest
@@ -94,7 +96,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - Starts when you ask about the status of an ERC or EIP, or when you call it, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
 - The plugin has `claude plugin eval` cases under `evals/` that measure the skill, run by hand
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/evm-dev--v0.5.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/evm-dev--v0.6.0...HEAD
+[0.6.0]: https://github.com/cardene777/agent-shuriken/releases/tag/evm-dev--v0.6.0
 [0.5.0]: https://github.com/cardene777/agent-shuriken/releases/tag/evm-dev--v0.5.0
 [0.4.0]: https://github.com/cardene777/agent-shuriken/releases/tag/evm-dev--v0.4.0
 [0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/evm-dev--v0.3.0
