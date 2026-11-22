@@ -43,13 +43,17 @@ async function waitUntil(page, until, timeout) {
     case "url":
       return page.waitForURL((url) => url.toString().includes(value), { timeout });
     case "visible":
-    case "hidden":
-      return locate(page, value).waitFor({ state: kind, timeout });
+      return (await locate(page, value, timeout)).waitFor({ state: "visible", timeout });
+    case "hidden": {
+      // A target whose iframe is already gone is hidden
+      const locator = await locate(page, value, 0).catch(() => undefined);
+      return locator?.waitFor({ state: "hidden", timeout });
+    }
     case "settled":
       // The page has had no change (other than the drawn pointer) for `value` seconds
       return page.waitForFunction((ms) => performance.now() - (window.__svLastChange ?? 0) >= ms, value * 1000, { polling: 100, timeout });
     case "enabled": {
-      const locator = locate(page, value);
+      const locator = await locate(page, value, timeout);
       await locator.waitFor({ state: "visible", timeout });
       const until = Date.now() + timeout;
       while (!(await locator.isEnabled())) {
@@ -97,16 +101,16 @@ export async function runFlow({ flow, rec, rehearse = false, framesDir, env, voi
           await rec.open(new URL(step.url, flow.url).toString(), caption, kept);
           break;
         case "click":
-          await rec.click(locate(page, step.target), caption, { timeout, ready, ...kept });
+          await rec.click(await locate(page, step.target, timeout), caption, { timeout, ready, ...kept });
           break;
         case "fill": {
           const secret = step.env !== undefined;
           const text = secret ? env(step.env) : step.text;
-          await rec.fill(locate(page, step.target), text, caption, { clear: step.clear === true, timeout, ready, secret, ...kept });
+          await rec.fill(await locate(page, step.target, timeout), text, caption, { clear: step.clear === true, timeout, ready, secret, ...kept });
           break;
         }
         case "select":
-          await rec.select(locate(page, step.target), step.value, caption, { timeout, ready, ...kept });
+          await rec.select(await locate(page, step.target, timeout), step.value, caption, { timeout, ready, ...kept });
           break;
         case "key":
           await rec.key(step.key, caption, kept);

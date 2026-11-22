@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- A target with `frame` is looked for in every iframe whose address holds that text, nested ones too, until one of them holds it within the step's `timeout`. Before, a step failed at once while a payment form was still loading, or looked in another iframe from the same host that held no field
+
 ## [0.1.0] - 2026-11-22
 
 - The `screen-video` skill plans a video of a web app with the user (what it is for, who watches it, how long it is, which videos to make, what is private, and which steps send something or pay), writes it as a flow file in `.screen-video/flows/` of the project, rehearses it into a storyboard of pictures, and records it only after the user has seen the storyboard

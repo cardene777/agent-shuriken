@@ -6,7 +6,7 @@
  * | `loadFlow` | Reads a flow file and returns the flow and its problems, each with the step it is about |
  * | `markedSteps` | The steps marked as sending something or paying, with their notes |
  * | `describeTarget` | A short text naming a target, such as `button "Save"` |
- * | `locate` | The Playwright locator for a target, inside an iframe when the target names one |
+ * | `locate` | The Playwright locator for a target, inside the iframe that holds it when the target names one |
  * | `readLogin` | The login values and saved session a flow names. The values are never printed |
  * | `languageOf` | The language the flow is narrated and paced in: its `language`, or Japanese when a caption is written in Japanese |
  * | `parseEnvFile` | The `KEY=value` lines of an env file, for logins and the keys of cloud voices |
@@ -224,13 +224,27 @@ export function describeStep(step) {
   }
 }
 
-export function locate(page, target) {
-  let scope = page;
-  if (target.frame !== undefined) {
-    const frame = page.frames().find((f) => f !== page.mainFrame() && f.url().includes(target.frame));
-    if (frame === undefined) throw new Error(`no frame whose address holds "${target.frame}"`);
-    scope = frame;
+/**
+ * The locator for a target. A target in the page is returned at once, and Playwright waits for it
+ * when it is used. A target that names `frame` is looked for in every iframe whose address holds that
+ * text, nested ones too, until one of them holds it or `timeout` milliseconds pass: a payment form
+ * loads after the page, and its host often adds several iframes of which only one holds the field.
+ */
+export async function locate(page, target, timeout) {
+  if (target.frame === undefined) return locateIn(page, target);
+  const until = Date.now() + timeout;
+  for (;;) {
+    for (const frame of page.frames()) {
+      if (frame === page.mainFrame() || !frame.url().includes(target.frame)) continue;
+      const locator = locateIn(frame, target);
+      if ((await locator.count().catch(() => 0)) > 0) return locator;
+    }
+    if (Date.now() >= until) throw new Error(`no frame whose address holds "${target.frame}" shows ${describeTarget(target)} within ${Math.round(timeout / 1000)}s`);
+    await page.waitForTimeout(250);
   }
+}
+
+function locateIn(scope, target) {
   const exact = target.exact !== false;
   let locator;
   if (target.role !== undefined) locator = scope.getByRole(target.role, target.name === undefined ? {} : { name: target.name, exact });

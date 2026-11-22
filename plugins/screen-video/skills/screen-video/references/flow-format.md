@@ -86,7 +86,7 @@ A target names one thing on the page with exactly one of these, in this order of
 
 Names match exactly unless the target has `"exact": false`.
 `nth` picks one of several matches, counting from 0.
-`frame` looks inside the iframe whose address holds that text, such as a payment form.
+`frame` looks inside every iframe whose address holds that text, nested ones too, such as a payment form, and the step waits within its `timeout` until one of them holds the target.
 Name targets the way `inspect` lists them, by role and name before CSS, so the flow keeps working when the layout or styles change.
 
 ## Waiting

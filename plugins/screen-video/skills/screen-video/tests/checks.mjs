@@ -243,6 +243,25 @@ const MISSING = flow("missing", {
   ],
 });
 
+// The payment form's fields are in an iframe that arrives a second late, nested in another, after an
+// iframe from the same address that holds no field
+const IN_FRAME = { frame: "pay-form" };
+const FRAMES = flow("frames", {
+  steps: [
+    { do: "open", url: "/frames/index.html", caption: "Open the checkout" },
+    { do: "fill", target: { label: "Card name", ...IN_FRAME }, text: "Tour Demo", timeout: 10, caption: "Type the name on the card" },
+    { do: "wait", until: { visible: { role: "button", name: "Pay", ...IN_FRAME } }, timeout: 10 },
+    { do: "click", target: { role: "button", name: "Pay", ...IN_FRAME }, caption: "Pay" },
+    { do: "wait", until: { visible: { text: "Paid", ...IN_FRAME } }, timeout: 10 },
+  ],
+});
+const FRAME_MISSING = flow("frame-missing", {
+  steps: [
+    { do: "open", url: "/frames/index.html", caption: "Open the checkout" },
+    { do: "click", target: { role: "button", name: "Pay", frame: "no-such-frame" }, timeout: 2, caption: "Pay" },
+  ],
+});
+
 const UNKNOWN = flow("unknown", { steps: [{ do: "open", url: "/" }, { do: "teleport", to: "/settings.html" }] });
 const NO_TARGET = flow("no-target", { steps: [{ do: "open", url: "/" }, { do: "click", caption: "Press something" }] });
 const SECRET = flow("secret", {
@@ -357,6 +376,23 @@ await check("rehearse names a target it cannot find", async () => {
   if (r.status !== 1) return `rehearse exited ${r.status}`;
   if (!/step 3\b/.test(r.stderr) || !r.stderr.includes("Start the tour")) return "rehearse did not name step 3 and its target";
   if (!/data-step="3"[^>]*data-status="missing"/.test(readText(join(out, "storyboard.html")))) return "the storyboard does not mark step 3 as missing";
+  return true;
+});
+
+await check("targets in a late iframe are found in the iframe that holds them", async () => {
+  const out = join(T, "rehearse-frames");
+  const r = await run(["rehearse", FRAMES, "--out", out]);
+  if (r.status !== 0) return `rehearse exited ${r.status}: ${r.all.trim().split("\n").at(-1)}`;
+  const html = readText(join(out, "storyboard.html"));
+  for (let step = 1; step <= 5; step++) {
+    if (!new RegExp(`data-step="${step}"[^>]*data-status="ok"`).test(html)) return `the storyboard does not mark step ${step} as ok`;
+  }
+  const missing = join(T, "rehearse-frame-missing");
+  const started = Date.now();
+  const m = await run(["rehearse", FRAME_MISSING, "--out", missing]);
+  if (m.status !== 1) return `rehearse with a frame that never appears exited ${m.status}`;
+  if (!m.stderr.includes("no-such-frame")) return "rehearse did not name the frame it looked for";
+  if (Date.now() - started < 2000) return "rehearse gave up on the frame before its timeout";
   return true;
 });
 

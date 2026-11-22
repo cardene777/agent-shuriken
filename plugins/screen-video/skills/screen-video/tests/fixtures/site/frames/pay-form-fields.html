@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Card</title>
+<style>
+  body { margin: 0; padding: 16px; font: 18px/1.4 system-ui, sans-serif; }
+  input { display: block; width: 320px; height: 40px; font: inherit; margin: 6px 0 16px; }
+  button { height: 44px; padding: 0 20px; font: inherit; }
+</style>
+</head>
+<body>
+<label for="name">Card name</label>
+<input id="name" type="text" autocomplete="off">
+<button id="pay" type="button">Pay</button>
+<p id="paid" hidden>Paid</p>
+<script>
+  document.getElementById("pay").addEventListener("click", () => { document.getElementById("paid").hidden = false; });
+</script>
+</body>
+</html>
