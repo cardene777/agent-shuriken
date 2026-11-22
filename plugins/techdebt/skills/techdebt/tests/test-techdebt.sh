@@ -341,6 +341,42 @@ check "notes are saved and shown in the report" "[ $? -eq 0 ] && grep -q 'Split 
 run scan "$R" > /dev/null 2>&1
 check "notes for files still ranked survive a new scan" "grep -q 'Every release touches it' \"$STATE/notes.json\""
 
+# The report keeps no path of the scanned folder, so that it can be passed on without the user name,
+# and writes a home folder path that a note holds with ~. scan.json keeps the absolute path, because
+# the commands read it. The copy under the home folder is compared with both spellings of HOME,
+# because the temporary folder of macOS is reached through a symbolic link.
+U="$HOME/work/proj"
+mkdir -p "$HOME/work"
+cp -R "$R" "$U"
+run scan "$U" > /dev/null 2>&1
+printf '{"src/core.py": {"what": "Reads %s/.env at start", "why": "Every release touches it", "action": "Split big() by step"}}' "$U" > "$T/home-note.json"
+run explain --notes "$T/home-note.json" "$U" > /dev/null 2>&1
+UH="$(ls "$TECHDEBT_HOME"/proj-*/report.html 2>/dev/null | head -1)"
+home_real="$(cd "$HOME" && pwd -P)"
+check "the report of a folder under the home folder holds no absolute path of the home folder" \
+  "[ -s \"$UH\" ] && ! grep -qF -- \"$HOME\" \"$UH\" && ! grep -qF -- \"$home_real\" \"$UH\""
+check "a home folder path in a note is written as ~ in the report" "[ -s \"$UH\" ] && grep -qF '~/work/proj/.env' \"$UH\""
+
+report_data_ok() {
+  python3 - "$H" "$R" <<'PYEOF'
+import json, os, sys
+page, repo = sys.argv[1:3]
+text = open(page, encoding="utf-8").read()
+start = text.find("const PAYLOAD = ")
+if start < 0:
+    print("      the report has no PAYLOAD")
+    sys.exit(1)
+payload, _ = json.JSONDecoder().raw_decode(text, start + len("const PAYLOAD = "))
+problems = ["the data of the report has a root field"] if "root" in payload.get("data", {}) else []
+problems += ["the report holds the path of the scanned folder (%s)" % p for p in sorted({repo, os.path.realpath(repo)}) if p in text]
+for p in problems:
+    print("      " + p)
+sys.exit(1 if problems else 0)
+PYEOF
+}
+check "the report data has no root field and no absolute path of a folder outside the home folder" report_data_ok
+check "scan.json keeps the absolute path of the scanned folder in root" "[ \"\$(q 'd[\"root\"]')\" = \"\$(cd \"$R\" && pwd -P)\" ]"
+
 # A folder inside the repository, a shorter window, and a folder outside git.
 run scan "$R/src" > /dev/null 2>&1
 SUB="$(ls -d "$TECHDEBT_HOME"/src-*)/scan.json"
@@ -2495,6 +2531,28 @@ sys.exit(1 if problems else 0)
 PYEOF
 }
 check "the changelog and how-it-works describe braces in types and multi-line strings" brace_docs
+
+# The docs say that the report leaves out the path of the scanned folder. The Japanese words are
+# written as escapes.
+root_docs() {
+  python3 - "$PLUGIN" <<'PYEOF'
+import sys
+root = sys.argv[1]
+def read(name):
+    return open(root + "/" + name, encoding="utf-8").read()
+unreleased = read("CHANGELOG.md").split("## [Unreleased]")[1].split("\n## [")[0]
+english = "leaves out the path of the scanned folder"
+japanese = "\u8abf\u3079\u305f\u30d5\u30a9\u30eb\u30c0\u306e\u30d1\u30b9\u3092\u6301\u305f\u305a"
+texts = {"CHANGELOG.md (Unreleased)": (unreleased, english), "README.md": (read("README.md"), english),
+         "docs/how-it-works.md": (read("docs/how-it-works.md"), english),
+         "README.ja.md": (read("README.ja.md"), japanese), "docs/how-it-works.ja.md": (read("docs/how-it-works.ja.md"), japanese)}
+problems = ["%s does not say %r" % (name, word) for name, (text, word) in texts.items() if word not in text]
+for p in problems:
+    print("      " + p)
+sys.exit(1 if problems else 0)
+PYEOF
+}
+check "the changelog, README, and how-it-works say the report keeps no path of the scanned folder" root_docs
 
 # The sample summary and the screenshot in the README come from one scan of the shop repository that
 # tests/sample_repo.py builds with commits dated from today. These checks run its `readme` command,
