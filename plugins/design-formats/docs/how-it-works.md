@@ -47,10 +47,10 @@ Ten skills in this repository follow page-design, each as an optional follow wit
 | Skill | Plugin | What it follows |
 |---|---|---|
 | `techdebt` | techdebt | `structure`, `look`, `report`, `verify` |
-| `compare-report` | compare-report | `structure`, `look`, `report`, `verify` |
+| `compare-report` | compare-report | `structure`, `look`, `report`, `verify`, `theme` |
 | `machine-cleanup` | machine-cleanup | `structure`, `look`, `sheet`, `verify` |
 | `account-cleanup` | account-cleanup | `structure`, `look`, `sheet`, `verify` |
-| `diagram-explainer` | diagram-explainer | `structure`, `look`, `document`, `verify` |
+| `diagram-explainer` | diagram-explainer | `structure`, `look`, `document`, `verify`, `theme` |
 | `repo-progress` | repo-progress | `structure` |
 | `secure-dotfile` | secure-dotfile | `structure` |
 | `init-project` | init-project | `structure` |

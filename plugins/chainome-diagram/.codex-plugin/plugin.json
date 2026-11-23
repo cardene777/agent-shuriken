@@ -1,6 +1,6 @@
 {
   "name": "chainome-diagram",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Design and review animated React and SVG diagrams that explain blockchain mechanics, with one active phase, state changes shown where they happen, and the prose kept apart from the diagram",
   "author": {
     "name": "cardene777",

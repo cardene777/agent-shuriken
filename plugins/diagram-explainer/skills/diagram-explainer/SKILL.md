@@ -7,11 +7,9 @@ description: Writes an explainer of a system, a piece of research, or a setup as
 
 Write an explainer as one HTML file that opens without a network connection and can be handed to anyone.
 Talk to the user in the language they write in, and write the document in that language: set `lang` to `ja` for Japanese and to `en` otherwise.
-Where it says to ask the user, use AskUserQuestion in Claude Code, and ask in the chat with numbered options in other agents.
+Where it says to ask the user, ask in the chat with numbered options.
 
-All files are next to this `SKILL.md`.
-Below, the absolute path of that folder is written as `D`.
-When you run a command, put `D=<folder that contains this SKILL.md>` at the start of the same shell command.
+All files are next to this `SKILL.md`, and the commands below set `D` to the absolute path of that folder at the start of the same shell command.
 `references/` holds the shapes of the content JSON, `examples/` a complete sample in English and Japanese, and `scripts/` the commands below.
 
 ## Rules
@@ -26,7 +24,7 @@ When you run a command, put `D=<folder that contains this SKILL.md>` at the star
 
 ### 1. Research
 
-For a standard, an API, or a protocol, read the primary sources before writing: the official specification, its bindings (for example REST), and its schemas.
+For a standard, an API, or a protocol, read the primary sources before writing: the official specification, its bindings, and its schemas.
 When the specification has been replaced by a newer one, read the newer one too and explain the version the reader will meet in practice.
 Check operation names, endpoints, states, and required conditions in the original text, not in search summaries.
 Keep the findings as `sources` and `claims` in `claims.json` (see `references/research-plan.md`), and separate facts from design decisions.
@@ -125,7 +123,7 @@ For `html` figures:
 For Japanese documents, also write a term table: one line per word to avoid, `word -> replacement`, and `allow: phrase` for phrases that may keep the word (for example a glossary row that shows the original term in parentheses).
 When you align a name between the text and a figure, add the old name to the table so it cannot come back.
 For readers who are not engineers, also pass `references/words-plain.txt`.
-A term table can be used for English documents as well.
+English documents can use a term table too.
 
 ### 4. Build the document
 
@@ -147,6 +145,9 @@ rm "$X/body.html"
 When a script refuses the content or an unfinished document, it names the block, field, or slot; fix the content and build again.
 To change any text, edit `content.json` and rebuild; never edit the finished HTML by hand.
 
+With `page-design` installed, apply the user's colors and fonts with the file it names for `verify`: `python3 <that file> theme --keys light,dark,font.sans,font.mono "$X/<slug>.html"`.
+It reads `.design-theme.json` at the root of the repository, else `~/.design-theme.json`.
+
 ### 5. Check
 
 ```bash
@@ -155,7 +156,7 @@ python3 "$D/scripts/check.py" "$X/<slug>.html" --live --words "$X/words.txt"
 ```
 
 Leave out `--words` when there is no term table, and repeat it to pass several tables.
-`--live` opens the document in a Chromium-based browser already on the machine with a throwaway profile, and checks at several widths that the page height stays still while loading and nothing overflows sideways.
+`--live` opens the document in a Chromium-based browser on the machine with a throwaway profile, and checks at several widths that the height stays still while loading and nothing overflows sideways.
 When it finds no browser, ask the user which Chromium-based browser they use and set `DIAGRAM_EXPLAINER_BROWSER`, or run `check.py` without `--live` and say that the layout was not measured.
 `check.py --help` lists the other options.
 
@@ -172,14 +173,14 @@ Follow the rereading steps in `references/prose-check.md`: numbers and units, wh
 Look at the counted lists too, such as names that appear only in figures (one thing called by two names).
 
 Look at every section yourself, at a desktop width and a phone width, before showing it.
-Opening `<slug>.html#<section id>` (for example `#a-s2`) shows that section, also on another page.
+Opening `<slug>.html#<section id>` shows that section, also on another page.
 A chart or step ladder that fits its frame fills it; a wider one keeps its text size, scrolls sideways, and fades the edge where it continues, with a line under it saying so.
 
 ### 7. Hand it over
 
 Give the user the path of the finished HTML file.
 It opens in any browser, and its Save PDF button prints either the current page or all pages, with every `details` block open.
-Its header band switches the interface language and light or dark colors, and its `?` button explains how to read the page; the document's own text keeps its language.
+Its header band switches the interface language and light or dark colors, and its `?` button explains how to read the page.
 When the user wants a PDF file, print it:
 
 ```bash

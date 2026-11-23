@@ -3,7 +3,7 @@
 [English](how-it-works.md) · 日本語
 
 この頁は、Diagram Stylesが読む物、動かす物、書く物、渡す物と、2つのスキルの全てのfileと、scriptが確かめる画風の一覧を説明します。
-図を設計して描くのはagentです。`skills/article-diagram-styles/scripts/`のscriptは記録と一覧を確かめるだけです。
+図を設計して描くのはagentです。`skills/article-diagram-styles/scripts/`のscriptは記録と一覧を確かめるだけで、`skills/tech-book-figure/scripts/book_style.py`は本のスキルに何から描くかを伝えるだけです。
 
 ## スキルのfile
 
@@ -11,13 +11,13 @@
 |---|---|
 | `article-diagram-styles/SKILL.md` | 読者の疑問から記事の図を設計し、構図を選び、画風を当て、描き、確かめる手順 |
 | `article-diagram-styles/agents/openai.yaml` | Codexでの見せ方と始め方 |
-| `article-diagram-styles/musubi.json` | 渡す中身の`style4`、`figure-request`、`style-catalog`。`style4`は版1.0.0、`figure-request`と`style-catalog`は版1.2.0 |
+| `article-diagram-styles/musubi.json` | 渡す中身の`style4`、`figure-request`、`style-catalog`。`style4`は版1.1.0、`figure-request`と`style-catalog`は版1.2.0 |
 | `article-diagram-styles/references/content-first.md` | 内容の要約と、完成図を確かめた記録の形 |
 | `article-diagram-styles/references/deterministic-technical-diagrams.md` | 図の文字と接続の記録と確かめ方 |
 | `article-diagram-styles/references/style-families.md` | 8つの組に分けた32の既定の画風と、画風の選び方 |
 | `article-diagram-styles/references/structures.md` | 4つの組に分けた16の既定の構図と、構図の選び方と比べ方 |
 | `article-diagram-styles/references/pen-technical.md`、`handdraft.md`、`newsprint.md` | 3つの既定の画風の詳しい仕様 |
-| `article-diagram-styles/references/style4.md` | style4の決まり。`style4`として渡す |
+| `article-diagram-styles/references/style4.md` | style4の決まり。それだけで描ける文で見た目を書き、`style4`として渡す |
 | `article-diagram-styles/references/figure-request.md` | 図を頼む形。`figure-request`として渡す |
 | `article-diagram-styles/references/style-catalog.md` | 一覧の形。`style-catalog`として渡す |
 | `article-diagram-styles/scripts/diagram_sample_catalog.py` | 既定の画風と既定の構図と一覧を確かめ、使える画風と構図を並べ、1つの画風を自分の見本と一緒に出すか、1つの構図を出す |
@@ -31,10 +31,11 @@
 | `article-diagram-styles/data/built-in-structures.json` | 16の既定の構図。どれも文で定義し、画像を持たない |
 | `article-diagram-styles/data/fonts/KaiseiDecol-Bold.ttf`、`OFL.txt` | 書体Kaisei Decol Boldとその利用許諾 |
 | `article-diagram-styles/tests/` | script、頁、pluginの検査。仕込みの画像は一時のフォルダーに描く |
-| `tech-book-figure/SKILL.md` | 本の図を設計し、style4で描く手順 |
+| `tech-book-figure/SKILL.md` | 本の図を設計し、文で書いた決まりか自分の見本で、自分のテーマを当ててstyle4で描く手順 |
 | `tech-book-figure/agents/openai.yaml` | Codexでの見せ方と始め方 |
 | `tech-book-figure/musubi.json` | `article-diagram-styles/style4`への従いと、その範囲と指紋 |
-| `tech-book-figure/tests/` | 本のスキルの手順とmusubiの従いの検査 |
+| `tech-book-figure/scripts/book_style.py` | 文で書いたstyle4の決まりと自分のstyle4の見本のどちらで描くかを伝え、自分のテーマファイルを読んで確かめる |
+| `tech-book-figure/tests/` | 一時のフォルダーで動かす本のscriptと、本のスキルの手順とmusubiの従いの検査 |
 
 `skills/`の下には画像のfileを置きません。
 
@@ -42,7 +43,7 @@
 
 このpluginは32の既定の画風をそれぞれ文で定義して持つので、`~/.styles/`が無くても`article-diagram-styles`は描きます。
 自分の一覧は、既定の画風の横に画風を足し、同じ名前の既定の画風を置き換え、`status`を`retired`にした既定の画風を使わない物にします。
-`tech-book-figure`は今もstyle4の見本が要ります。一覧も`~/.styles/`に置きます。
+`~/.styles/`が無くても`tech-book-figure`は文で書いたstyle4の決まりで描きます。一覧が在り見本が2枚以上ある時は、その見本を参照に足します。
 スキルとscriptは、一覧`style-catalog.json`と見本の画像を`~/.styles/`から読みます。
 `diagram_sample_catalog.py`と、確かめた記録と見た目の約束と図の仕様と台帳を確かめるscriptは、`--styles <dir>`を渡した時だけ別のフォルダーを読みます。
 一覧は任意で`structures`も持てます。画風と同じ決まりで、構図を足し、置き換え、止めます。
@@ -71,7 +72,16 @@
 
 確かめで断った一覧は使いません。その代わりに既定の画風へ切り替えることもしません。
 
-`tech-book-figure`はstyle4の見本を`~/.styles/diagram-style-samples/style4/`から読み、2点より少ない時は描く前に止まります。
+`tech-book-figure`の`book_style.py`は、style4の見本を`~/.styles/diagram-style-samples/style4/`から読み、一覧がその見本に記録した配置も読みます。
+
+| `~/.styles/`の状態 | 出す物 | スキル |
+|---|---|---|
+| `style-catalog.json`が無い | `style4: written`と`missing: ~/.styles/style-catalog.json` | 文で書いたstyle4の決まりで描き、足りなかった物を伝えます |
+| 一覧が在り、`diagram-style-samples/style4/`の画像が2枚より少ない | `style4: written`と見つけた画像の数 | 同じです |
+| 一覧が在り、画像が2枚以上ある | `style4: samples`と、画像ごとに絶対pathと記録した配置を書いた`sample:`の行 | 2枚以上を選び、見た目の参照として画像生成へ渡します |
+
+画像生成が参照の画像を受けられない時は、文で書いたstyle4の決まりだけで描きます。
+見本のSHA-256は確かめません。確かめるのは`diagram_sample_catalog.py --validate`です。
 
 ## 構図
 
@@ -109,7 +119,44 @@
 | 別の確かめ役を立てられない | 記事の抜粋と疑問と2つの画像だけを読む別の段で確かめ、確かめが独立でなかったと伝えます |
 
 スキルは、画像生成の代わりにHTMLやSVGで完成図を描くことも、別のagentや道具に描かせることもしません。
-`tech-book-figure`は、画像生成がstyle4の見本を参照の画像として受けられない時も止まります。
+`tech-book-figure`は、文で書いたstyle4の決まりの見た目を毎回の描く指示に文で入れるので、見本が無くても描きます。
+
+## テーマファイル
+
+`book_style.py`を本の本文のフォルダーから動かすと、次の2つの場所のうち先にテーマファイルを持つ方を読みます。
+
+| 順 | 場所 | 使い道 |
+|---|---|---|
+| 1 | 命令を動かしたgitのrepositoryの根の`.design-theme.json` | 1冊の本の見た目 |
+| 2 | `~/.design-theme.json` | 自分が作る物全ての見た目 |
+
+repositoryの下のフォルダーに置いた`.design-theme.json`は読まず、家のfileをrepositoryのfileに混ぜません。
+これはdesign-formatsのpluginのpage-designのスキルが読むテーマファイルで、鍵も値も同じです。
+pluginは自分のフォルダーの外を読まないので、このpluginは自分のscriptで確かめます。
+
+| 鍵 | style4で置き換える物 |
+|---|---|
+| `light.bg` | 白い地 |
+| `light.ink` | 線と文字の黒 |
+| `light.sub` | 斜線と点線と補助の文字の灰色 |
+| `light.accent` | 青緑の差し色。橙は2つ目の差し色として残ります |
+| `light.accent-soft` | 差し色の薄い塗り |
+| `font.sans` | 手書きの文字。その書体の見た目で描きます |
+
+ほかの鍵は確かめますが使わず、fileが持つ物をscriptが名指します。
+`dark.*`は、印刷する図の地が1つなので使いません。
+ほかの`light`の色は頁の部品なので使いません。
+`font.mono`と`font.size`と`font.line-height`は、図の文字を印刷の頁に合わせて決めるので使いません。
+`space.*`は、図が頁の幅も角も持たないので使いません。
+
+| 場合 | 標準出力 | 標準エラー | 終了 |
+|---|---|---|---|
+| テーマファイルが無い | `theme: none`と、style4が自分の色と手書きの文字を保つこと | 何も出しません | 0 |
+| テーマファイルが在る | fileを書いた`theme:`と、図が使う鍵ごとに置き換える物を書いた`theme <key>:`の行と、使わない鍵 | 何も出しません | 0 |
+| JSONでないfile、挙げない鍵、種類の違う値、範囲の外の値を持つfile | style4の行だけ | fileを断ってスキルが描く前に止まることと、`light.acent`のような鍵の1つずつ | 1 |
+
+終了1の時、スキルは描く前に止まって鍵を1つずつ見せ、fileを直すか外すと描きます。
+`article-diagram-styles`はテーマファイルを読みません。
 
 ## スキルがarticle-diagram-stylesに従う形
 
@@ -126,13 +173,13 @@
 
 スキルは、図、内容の要約、図の仕様、描く指示、確かめた記録を、名指したフォルダだけに書きます。図の依頼が名指したフォルダーにも書きます。
 scriptは何も書かず、標準出力と標準エラーに出すだけです。
-`~/.styles/`の下には何も書きません。そこのfileは利用者が持ちます。
+`~/.styles/`の下にもテーマファイルにも何も書きません。そこのfileは利用者が持ちます。
 
 ## 動かす物と繋ぐ先
 
 scriptはPythonの標準ライブラリだけを使い、ほかの命令を動かさず、どこにも繋ぎません。
 画像生成はagent自身の物です。指示と画像の扱いは、そのagentに渡すほかの画像と同じです。
-記事と本と一覧の文はデータとして扱い、指示として読みません。
+記事と本と一覧とテーマファイルの文はデータとして扱い、指示として読みません。
 
 ## 残す物
 

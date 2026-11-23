@@ -1102,6 +1102,35 @@ readme_theme() {
 }
 check "the READMEs show where to place a theme and a full example" readme_theme
 
+theme_guarded_dark() {
+  local page="$T/theme-guard/repo/page.html"
+  theme_place guard
+  sed -e 's/:root:not(\[data-theme="light"\]) {/:root:not([data-theme="light"]):not([data-paper]) {/' \
+    -e 's/:root\[data-theme="dark"\] {/:root[data-theme="dark"]:not([data-paper]) {/' "$SKILL_DIR/templates/report.html" > "$page"
+  [ "$(grep -c ':not(\[data-paper\]) {' "$page")" = 2 ] || { echo "      the fixture did not guard both dark blocks"; return 1; }
+  printf '%s\n' '{"dark": {"accent": "#445566"}}' > "$T/theme-guard/home/.design-theme.json"
+  theme_in "$T/theme-guard/repo" "$T/theme-guard/home" page.html > /dev/null 2>&1 || return 1
+  [ "$(grep -c -- '--accent: #445566' "$page")" = 2 ] || { echo "      the dark accent is in $(grep -c -- '--accent: #445566' "$page") of the 2 guarded dark blocks"; return 1; }
+}
+check "theme writes the dark colors into dark blocks that carry extra :not guards" theme_guarded_dark
+
+theme_keys() {
+  local out rc
+  theme_place keys
+  theme_page_in keys report
+  printf '%s\n' '{"light": {"accent": "#112233"}, "font": {"mono": "monospace", "size": 18}, "space": {"radius": 4}}' > "$T/theme-keys/home/.design-theme.json"
+  theme_in "$T/theme-keys/repo" "$T/theme-keys/home" --keys light,font.mono page.html > "$T/theme-keys.out" 2>&1 || { sed 's/^/      /' "$T/theme-keys.out"; return 1; }
+  out="$(defaults_of "$T/theme-keys/repo/page.html")"
+  [ "$(json_get "$out" light accent)" = "#112233" ] && [ "$(json_get "$out" font mono)" = monospace ] \
+    && [ "$(json_get "$out" font size)" = 15 ] && [ "$(json_get "$out" space radius)" = 10 ] || { echo "      --keys light,font.mono gave: $out" | cut -c1-300; return 1; }
+  theme_page_in keys report
+  theme_in "$T/theme-keys/repo" "$T/theme-keys/home" --keys light,colour page.html > "$T/theme-keys.out" 2>&1
+  rc=$?
+  [ "$rc" = 2 ] && grep -qF colour "$T/theme-keys.out" && cmp -s "$SKILL_DIR/templates/report.html" "$T/theme-keys/repo/page.html" \
+    || { echo "      an unknown key in --keys: exit $rc, $(head -1 "$T/theme-keys.out")"; return 1; }
+}
+check "theme --keys applies only the named keys and refuses a key it does not know" theme_keys
+
 repo_checks() { bash "$REPO/scripts/check.sh" > "$T/check.out" 2>&1 || { tail -5 "$T/check.out" | sed 's/^/      /'; return 1; }; }
 check "the repository checks pass" repo_checks
 

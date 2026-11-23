@@ -3,7 +3,7 @@
   "follows": {
     "page-design/structure": {
       "version": "^1.0.0",
-      "integrity": "sha256-PEt0EPdzoXG44PATCozHYNqMZg2jHMVhhTlCcc3fFng=",
+      "integrity": "sha256-3kv7vXqM+l7DX2pwTN5qZl1otGAHutPSsNXEqrAVNXw=",
       "optional": true
     }
   }

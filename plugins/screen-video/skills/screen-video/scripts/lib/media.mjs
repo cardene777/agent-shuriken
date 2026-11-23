@@ -182,7 +182,9 @@ export function renderEdited({ raw, output, plan, layout, pictures, sound, work 
   const w = layout.window;
   const wide = layout.width > layout.height;
   const corners = wide ? zoomCorners(plan.zoomKeys) : sideCorners(plan.sideKeys, pictures.cropWidth);
-  lines.push(`[${current}]perspective=${corners}:interpolation=linear:eval=frame,scale=${w.width}:${w.height}:flags=bicubic,pad=${layout.width}:${layout.height}:${w.x}:${w.y}:color=black[shown]`);
+  // In 9:16 the window is scaled to another shape, and ffmpeg then marks the pixels as wide so the old
+  // shape is kept; setsar=1 makes them square again, or players show the video stretched to 5:4
+  lines.push(`[${current}]perspective=${corners}:interpolation=linear:eval=frame,scale=${w.width}:${w.height}:flags=bicubic,setsar=1,pad=${layout.width}:${layout.height}:${w.x}:${w.y}:color=black[shown]`);
   lines.push("[shown][1:v]overlay=0:0[framed]");
   current = layer(lines, inputs, "framed", pictures.captions.map((c) => ({ ...c, x: c.box.x, y: c.box.y, fadeIn: 0.25, fadeOut: 0.25 })), "caption");
   current = layer(lines, inputs, current, pictures.marks.map((m) => ({ ...m, x: m.box.x, y: m.box.y, fadeIn: 0.2, fadeOut: 0.2 })), "mark");

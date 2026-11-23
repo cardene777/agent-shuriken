@@ -56,7 +56,7 @@
 | `templates/starter-doc.html` | 資料の枠。見出し帯、事実の表、目次、切り替えと、`build.py`が`assets/`の中身を入れる目印を持ちます |
 | `assets/` | どの資料にも写すスタイルとスクリプト。画面の配置と明るい色と暗い色、グラフ、段の並び、印刷の形、切り替えのスクリプトです |
 | `assets/ui.json` | 英語と日本語の画面の文字。ここにだけ書きます。`render.py`と`ladder.py`がページを書く時に読み、`build.py`がページへ写し、切り替えがそれを読みます |
-| `musubi.json` | musubiでの`page-design/structure`、`page-design/look`、`page-design/document`、`page-design/verify`への任意の準拠。それぞれにバージョンの範囲`^1.0.0`と、最後に確かめた時のコンテンツのフィンガープリントと、`"optional": true`を持つ |
+| `musubi.json` | musubiでの`page-design/structure`、`page-design/look`、`page-design/document`、`page-design/verify`、`page-design/theme`への任意の準拠。それぞれにバージョンの範囲 (`structure`と`theme`は`^1.0.0`、ほかは`^2.0.0`) と、最後に確かめた時のコンテンツのフィンガープリントと、`"optional": true`を持つ |
 
 資料の見出し帯には、2つの切り替えが並びます。言語の切り替え (English / 日本語) は、目次のボタン、前と次のボタン、「PDFで保存」のメニュー、使い方、グラフの単位のような画面の文字だけを変えます。もう1つは明るい色と暗い色の切り替えです。
 資料の本文は書いた言語のままで、印刷はいつも明るい色です。
@@ -64,6 +64,7 @@
 
 - `design-formats`のプラグインの`page-design`のスキルが入っていれば、エージェントはその形式`structure`と`look`、ページの型`document`を読みます。`musubi.json`はこれらに任意の準拠で従います。`scripts/check.py`が通った後、仕上がった`<名前>.html`に`page-design`の`verify`を回し、名指された行を`content.json`で直し、`ok`が出るまで組み直して確かめます。ほかのプラグインからはこれ以外を読みません
 - `musubi`のコマンドが入っていれば、エージェントはこれらを読む前に`musubi check`を回し、失敗したら止まります。`design-formats`が入っていない時、`musubi check`は警告を出してこれらの準拠を飛ばします。従うコンテンツが変わると、フィンガープリントを確かめ直すまで`musubi check`は`diagram-explainer`を拒否します
+- 組んだ後、エージェントは仕上がった`<名前>.html`に`page-design`の`theme --keys light,dark,font.sans,font.mono`を回します。repoの根の`.design-theme.json`か、無ければ`~/.design-theme.json`の色と書体を頁に書き、どちらも無ければ頁を変えません。`assets/doc.css`は基の色を意匠のfileの鍵 (`bg`、`surface`、`ink`、`sub`、`line`、`label`と強調の色) の名前で持ち、ほかの濃淡を`color-mix()`でそこから混ぜるので、濃淡も意匠の色に付いて変わります
 - `page-design`が無ければ、`templates/starter-doc.html`と`assets/`だけで資料を組みます。プラグインのどこも`design-formats`を求めません
 
 ## あなたが見る前に確かめる物

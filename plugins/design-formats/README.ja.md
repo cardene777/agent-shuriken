@@ -94,6 +94,7 @@ page-design: 1 problem; fix each line named above and run verify again
 
 鍵ごとの型と雛形ごとの既定の値は`formats/theme.md`が持ち、`page-design.py theme --defaults <page>`は頁の値をJSONで出します。
 意匠のfileが無ければ、頁は雛形の見た目のままです。
+自分の大きさを持つ頁を作るスキルは一部の鍵だけを取ります。色と書体だけなら`page-design.py theme --keys light,dark,font.sans,font.mono <page>`です。
 知らない鍵か正しくない値を持つ意匠のfileは、鍵を名指して断り、頁を変えません。
 
 ## このスキルに従うスキル
@@ -104,10 +105,10 @@ page-design: 1 problem; fix each line named above and run verify again
 | スキル | plugin | 従う中身 |
 |---|---|---|
 | `techdebt` | techdebt | `structure`、`look`、`report`、`verify` |
-| `compare-report` | compare-report | `structure`、`look`、`report`、`verify` |
+| `compare-report` | compare-report | `structure`、`look`、`report`、`verify`、`theme` |
 | `machine-cleanup` | machine-cleanup | `structure`、`look`、`sheet`、`verify` |
 | `account-cleanup` | account-cleanup | `structure`、`look`、`sheet`、`verify` |
-| `diagram-explainer` | diagram-explainer | `structure`、`look`、`document`、`verify` |
+| `diagram-explainer` | diagram-explainer | `structure`、`look`、`document`、`verify`、`theme` |
 | `repo-progress` | repo-progress | `structure` |
 | `secure-dotfile` | secure-dotfile | `structure` |
 | `init-project` | init-project | `structure` |

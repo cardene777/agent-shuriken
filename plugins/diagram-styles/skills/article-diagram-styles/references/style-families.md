@@ -37,7 +37,7 @@ For every other style, its `line`, `fill`, `background`, and `lettering` are the
 | Hand-drafted technical sketch | [Hand-drafted](handdraft.md) | The user's samples of `handdraft`, when the catalog registers any |
 | Pen technical illustration | [Pen technical](pen-technical.md) | The user's samples of `pen-technical`, when the catalog registers any |
 | Newsprint | [Newsprint](newsprint.md) | The user's samples of `newsprint`, when the catalog registers any |
-| style4, for book figures | [style4](style4.md) | The images in `~/.styles/diagram-style-samples/style4/` |
+| style4, for book figures | [style4](style4.md) | The images in `~/.styles/diagram-style-samples/style4/`, when the catalog and two or more images are there |
 
 ## Applying the specification
 

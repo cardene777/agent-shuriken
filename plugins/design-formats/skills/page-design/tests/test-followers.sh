@@ -62,13 +62,15 @@ for line in followers.splitlines():
         continue
     follows = json.load(open(path, encoding="utf-8")).get("follows", {})
     want = ["page-design/structure"] if kind == "chat" else ["page-design/structure", "page-design/look", "page-design/" + kind, "page-design/verify"]
-    mine = sorted(ref for ref in follows if ref.startswith("page-design/"))
+    # A skill that writes pages may also follow the theme format, to apply the user's theme file.
+    extra = [] if kind == "chat" else [ref for ref in ("page-design/theme",) if ref in follows]
+    mine = sorted(ref for ref in follows if ref.startswith("page-design/") and ref not in extra)
     if mine != sorted(want):
         problems.append("%s follows %s, not %s" % (skill, ", ".join(mine) or "nothing of page-design", ", ".join(want)))
-    for ref in want:
+    for ref in want + extra:
         follow = follows.get(ref, {})
-        # structure is still at 1.0.0; the look, the page types, and verify moved to 2.0.0 with the pattern rules.
-        version = "^1.0.0" if ref == "page-design/structure" else "^2.0.0"
+        # structure and theme are at 1.0.0; the look, the page types, and verify moved to 2.0.0 with the pattern rules.
+        version = "^1.0.0" if ref in ("page-design/structure", "page-design/theme") else "^2.0.0"
         if follow and not (follow.get("version") == version and follow.get("optional") is True
                            and re.fullmatch(r"sha256-[A-Za-z0-9+/]{43}=", str(follow.get("integrity", "")))):
             problems.append("%s follows %s without %s, a fingerprint, and optional true" % (skill, ref, version))

@@ -27,7 +27,7 @@ STYLE = """<style>
 .toc li { align-items: baseline; }
 .toc li a { flex: 0 1 auto; }
 .toc .toc-leader { flex: 1 1 24px; min-width: 24px; border-bottom: 1.5px dotted #9ca3af; }
-.toc .toc-page { flex: none; min-width: 24px; color: var(--muted, #4b5563); text-align: right; font-variant-numeric: tabular-nums; }
+.toc .toc-page { flex: none; min-width: 24px; color: var(--sub, #4b5563); text-align: right; font-variant-numeric: tabular-nums; }
 </style>
 """
 

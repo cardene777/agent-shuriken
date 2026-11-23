@@ -67,7 +67,7 @@ The agent writes the report into the template of the skill. Paths in the table a
 | File | What it holds |
 |---|---|
 | `templates/base.html` | The report page, with its styles, its light and dark colors, and the script of the switches and the candidate list inside |
-| `musubi.json` | The optional follows of `page-design/structure`, `page-design/look`, `page-design/report`, and `page-design/verify` through musubi: for each, the version range `^1.0.0`, the fingerprint of the content at the last check, and `"optional": true` |
+| `musubi.json` | The optional follows of `page-design/structure`, `page-design/look`, `page-design/report`, `page-design/verify`, and `page-design/theme` through musubi: for each, its version range (`^1.0.0` or `^2.0.0`), the fingerprint of the content at the last check, and `"optional": true` |
 
 The report has two switches at the top right of its cover.
 The language switch, English / 日本語, changes the words of the frame: the labels of the facts table, the contents heading, the buttons of the candidate list and its details, the score legend, the labels of the candidate cards, and the controls of the charts.
@@ -82,6 +82,7 @@ On a narrower screen, the list and the details take turns, and a back button ret
 The PDF shows the candidate cards in order.
 
 - When the page-design skill of the design-formats plugin is installed, the agent reads its `structure` and `look` formats and its `report` page type, which `musubi.json` follows as optional follows. After `scripts/check-report.py` passes, it runs page-design's `verify` on the report and fixes each line it names in the text it wrote until it prints `ok`. It reads nothing else from other plugins
+- After creating `report.html`, the agent runs page-design's `theme --keys light,dark,font.sans,font.mono` on it. It writes the colors and fonts of `.design-theme.json` at the root of the repository, or else of `~/.design-theme.json`, into the report, and leaves the report as it is without either. `templates/base.html` names its base colors after the keys of the theme file (`bg`, `surface`, `ink`, `sub`, `line`, `label`, and the accent colors) and mixes the other shades (`--faint`, `--rule` for the row lines, `--stripe`, and `--selected`) from them with `color-mix()`, so they follow a theme's colors. The cover, the status colors, the type tags, and the text size, widths, and corners keep their own values
 - When the `musubi` command is installed, the agent runs `musubi check` before reading them and stops if it fails; the check skips the follows with a warning when design-formats is not installed. When a followed content changes, `musubi check` refuses compare-report until its fingerprint is checked again
 - When page-design is installed, the agent also draws each bar chart with dragon, the figure tool page-design uses, as a still block in the report. It checks each block with `dragon check`, then runs `dragon embed`, which draws every block into the report as SVG. When Node.js is missing or `dragon embed` fails, the report keeps the CSS bar charts of the template
 - Without page-design, the report is written in `templates/base.html` alone. Nothing in the plugin requires design-formats
