@@ -4,15 +4,14 @@
 
 # agent-shuriken
 
-**スキルとルールとhookを1つのフォルダーに置いて全てのコーディングエージェントへ配るコマンドと、足して使える慎重なプラグイン集。**
+**Claude Code、Codex、ほかのコーディングエージェントで使える、慎重なプラグイン集。**
 
-`agent-shared`は、あなたが`~/.shared`に置いたスキルとルールとhookを、Claude Code、Codex、`SKILL.md`を読むほかのエージェントへ配り、どのエージェントも同じファイルを読むようにします。
 どのプラグインでも、面倒な作業はエージェントが進め、取り消せない操作はすべてあなたが決めます。
 同じプラグインを、Claude Code、Codex、GitHub Copilot CLIにインストールでき、そのスキルはGemini CLIや`SKILL.md`を読むほかのエージェントでも動きます。
+自分のスキルとルールとhookを全てのエージェントへ配る`agent-shared`は、非公開のリポジトリ[cardene777/agent-shared](https://github.com/cardene777/agent-shared)にあります。
 
 [English](README.md) · 日本語
 
-[agent-shared](#agent-shared) ·
 [プラグイン](#プラグイン) ·
 [インストール](#インストール) ·
 [ドキュメント](#ドキュメント) ·
@@ -20,40 +19,6 @@
 [変更履歴](CHANGELOG.md)
 
 </div>
-
-## agent-shared
-
-自分のスキルとルールとhookを1つのフォルダーに置くと、`agent-shared`が全てのエージェントへ配ります。
-[uv](https://docs.astral.sh/uv/)でコマンドをインストールし、配ります。
-
-```
-uv tool install "git+https://github.com/cardene777/agent-shuriken#subdirectory=agent-shared"
-agent-shared deploy
-```
-
-フォルダー`~/.shared`は、どのエージェントにも同じ形で置きます。
-
-```
-~/.shared/
-  skills/<name>/SKILL.md   スキルごとに1つのフォルダー
-  rules/*.md               全てのエージェントが読む指示
-  hooks.json               hook。Claude Codeの設定のhooksと同じ形で書く
-  agents.json              エージェントを足すか、置き場を変える行 (無くてもよい)
-```
-
-| エージェント | スキル | ルール | hook |
-|---|---|---|---|
-| Claude Code | `~/.claude/skills` | `~/.claude/rules` | `~/.claude/settings.json` |
-| Codex | `~/.agents/skills` | `~/.codex/AGENTS.md`の中の1つの囲み | `~/.codex/hooks.json`。Codexの信頼の印も書く |
-
-GitHub Copilot CLIとGemini CLIも、`~/.agents/skills`のスキルを読みます。
-スキルとルールは`~/.shared`の1つの実体を指すリンクなので、直すと全てのエージェントに一度に届きます。
-リポジトリは自分のスキルを`.shared/skills`に置けて、その中で`agent-shared deploy`を打つと、そのリポジトリの`.claude/skills`と`.agents/skills`にリンクを置きます。
-もう一度打つと新しい物を置き、前に自分が置いた物だけを外します。ネットワークには何も送りません。
-`agent-shared hooks --agent <名前>`は、`deploy`が1つのエージェントへ置くhookを何も書かずに出すので、見張りはエージェントのhookの置き場とこの出力を比べられます。
-`agent-shared placed --source <フォルダー>`は、1つのフォルダーが各エージェントへ置いたスキルとルールとhookを何も書かずにJSONで出すので、アプリは配った物を一覧にできます。
-`agent-shared off --source <フォルダー> --agent <名前> <項目>`は、1つのルールかhookを、それ以降に配るたびに1つのエージェントから外します。同じ引数の`agent-shared on`で、また置きます。選んだ状態は記録の隣の`off.json`に残り、配る元のフォルダーには書きません。
-置き場と断る場合の全ては[agent-shared](docs/agent-shared.ja.md)にあります。
 
 ## プラグイン
 
@@ -64,7 +29,7 @@ GitHub Copilot CLIとGemini CLIも、`~/.agents/skills`のスキルを読みま�
 | [compare-report](plugins/compare-report) | 選ぶ時の候補を調べ、すべての主張に出典を、すべての点数に判定の根拠を付けた比較のレポートをHTMLとPDFで作ります | Claude Codeでは`/compare-report:compare-report`を実行し、Codexでは`$`を入力して**Compare Report**を選びます。比較を言葉で頼んでも始まります | [0.6.0](plugins/compare-report/CHANGELOG.md) |
 | [convey](plugins/convey) | 人に伝える文を、結論を先に置き、読み手に要らないことを入れずに書きます。Slack、Discord、メール、GitHubのcommentに合わせて、長さ、書式、秘密に当たる値を確かめてから写します | Claude Codeでは`/convey:convey`を実行し、Codexでは`$`を入力して**Convey**を選びます。文で共有したい、報告したい、告知したいと頼んでも始まります | [0.2.0](plugins/convey/CHANGELOG.md) |
 | [design-formats](plugins/design-formats) | ドキュメントとレポートの説明の構造と見た目を持ちます。説明の並び、見た目の決まり、出所の付いた4つの画面の型の規則、4つのHTMLの頁の雛形、コロンを持つ見出しや表に無い付帯の情報や言語と明暗の切り替えの欠けを名指すscriptを持ちます | Claude Codeでは`/design-formats:page-design`を実行し、Codexでは`$`を入力して**Page Design**を選びます。頁を書くスキルが名前で開きます | [0.2.0](plugins/design-formats/CHANGELOG.md) |
-| [diagram-composer](plugins/diagram-composer) | スライドの図の部分を、見立てを1つに決め、線ごとに意味を持たせ、ラベルを線から離して設計します。スライドを描く前にscriptが配置を確かめます | Claude Codeでは`/diagram-composer:diagram-composer`を実行し、Codexでは`$`を入力して**Diagram Composer**を選びます。スライドの図を言葉で頼んでも始まります | [0.1.0](plugins/diagram-composer/CHANGELOG.md) |
+| [diagram-composer](plugins/diagram-composer) | スライドの図の部分を、見立てを1つに決め、線ごとに意味を持たせ、ラベルを線から離して設計します。スライドを描く前にscriptが配置を確かめます | Claude Codeでは`/diagram-composer:diagram-composer`を実行し、Codexでは`$`を入力して**Diagram Composer**を選びます。スライドの図を言葉で頼んでも始まります | [0.1.1](plugins/diagram-composer/CHANGELOG.md) |
 | [diagram-explainer](plugins/diagram-explainer) | すべての節に図を描いた説明資料を、JSONから組んで確かめ、1つのHTMLファイルにします | Claude Codeでは`/diagram-explainer:diagram-explainer`を実行し、Codexでは`$`を入力して**Diagram Explainer**を選びます。説明資料を言葉で頼んでも始まります | [0.3.0](plugins/diagram-explainer/CHANGELOG.md) |
 | [diagram-styles](plugins/diagram-styles) | 記事と技術書の図を作ります。図ごとに読者の疑問から設計し、32の既定の画風か`~/.styles/`に置いた自分の一覧の画風で、agentの画像生成で描き、文字と接続を確かめます | Claude Codeでは`/diagram-styles:article-diagram-styles`か`/diagram-styles:tech-book-figure`を実行し、Codexでは`$`を入力して**Article Diagram Styles**か**Tech Book Figure**を選びます。記事を書くスキルが名前で開きます | [0.4.0](plugins/diagram-styles/CHANGELOG.md) |
 | [digital-dashboard](plugins/digital-dashboard) | 設計の中でどの画面がダッシュボードかを判定し、デジタル庁のダッシュボードデザインのガイドブックの公式資料を指紋で確かめて取り、その画面にだけ当てる頼みの文を書きます | Claude Codeでは`/digital-dashboard:digital-dashboard`を実行し、Codexでは`$`を入力して**Digital Dashboard**を選びます。ダッシュボードを頼んでも始まります | [0.1.1](plugins/digital-dashboard/CHANGELOG.md) |
@@ -131,7 +96,6 @@ gemini skills install https://github.com/cardene777/agent-shuriken.git --path pl
 
 | ページ | 内容 |
 |---|---|
-| [agent-shared](docs/agent-shared.ja.md) | `~/.shared`の自分のスキルとルールとhookを全てのエージェントへ配る方法 |
 | [はじめに](docs/getting-started.ja.md) | Claude Code、Codex、GitHub Copilot CLI、Gemini CLI、ほかのエージェントでのプラグインのインストール、起動、アップデート、削除 |
 | [安全性](docs/safety.ja.md) | あなたのアカウントやファイルに触れる時に、どのプラグインも守る約束 |
 | [プラグインの作り方](docs/creating-a-plugin.ja.md) | このリポジトリに新しいプラグインを追加する方法 |

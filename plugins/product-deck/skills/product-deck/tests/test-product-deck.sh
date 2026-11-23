@@ -378,11 +378,30 @@ skill_applies_theme() {
 }
 
 # The pages that describe the plugin say both changes, in English and in Japanese.
+# changelog_mentions <changelog> <text>...: the entry lines under ## [Unreleased] or any release name
+# every text. Link definitions and the header are not entry lines.
+changelog_mentions() {
+  local entries text
+  entries="$(awk '/^## \[/ { on = 1 } on' "$1" | grep '^- ')"
+  shift
+  for text in "$@"; do [[ "$entries" == *"$text"* ]] || return 1; done
+}
+
+# A release moves the entries out of ## [Unreleased] into its version's section, so the check counts
+# both, and still fails when no section names the text. Tried on throwaway changelogs.
+changelog_counts_any_release() {
+  printf '# Changelog\n\n## [Unreleased]\n\n- built-in rules and .design-theme.json\n\n## [0.1.0] - 2026-11-22\n\n- first release\n' > "$T/log-unreleased.md"
+  printf '# Changelog\n\n## [Unreleased]\n\n## [0.3.0] - 2026-11-24\n\n- a later change\n\n## [0.2.0] - 2026-11-23\n\n- built-in rules and .design-theme.json\n\n[0.2.0]: https://example.com\n' > "$T/log-released.md"
+  printf '# Changelog\n\n## [Unreleased]\n\n## [0.2.0] - 2026-11-23\n\n- a later change\n\n[built-in rules]: .design-theme.json\n' > "$T/log-none.md"
+  changelog_mentions "$T/log-unreleased.md" 'built-in rules' '.design-theme.json' || { why="a line under ## [Unreleased] is not counted"; return 1; }
+  changelog_mentions "$T/log-released.md" 'built-in rules' '.design-theme.json' || { why="a line under an older release is not counted"; return 1; }
+  ! changelog_mentions "$T/log-none.md" 'built-in rules' '.design-theme.json' || { why="a changelog whose sections do not name the text is counted"; return 1; }
+}
+
 docs_describe_changes() {
-  local unreleased f
-  unreleased="$(sed -n '/^## \[Unreleased\]/,/^## \[[0-9]/p' "$PLUGIN_DIR/CHANGELOG.md")"
-  [[ "$unreleased" == *"built-in rules"* && "$unreleased" == *".design-theme.json"* ]] \
-    || { why="CHANGELOG.md (Unreleased) does not name the built-in rules and .design-theme.json"; return 1; }
+  local f
+  changelog_mentions "$PLUGIN_DIR/CHANGELOG.md" 'built-in rules' '.design-theme.json' \
+    || { why="no section of CHANGELOG.md names the built-in rules and .design-theme.json"; return 1; }
   for f in README.md docs/how-it-works.md; do
     grep -qF 'built-in rules' "$PLUGIN_DIR/$f" && grep -qF '.design-theme.json' "$PLUGIN_DIR/$f" \
       || { why="$f does not name the built-in rules and .design-theme.json"; return 1; }
@@ -413,6 +432,7 @@ check "the theme script reads the home theme file" reads_home_theme
 check "the repository theme file wins over the home one" repo_theme_wins
 check "the theme script refuses unknown keys and bad values" refuses_bad_theme
 check "the SKILL.md applies the theme file to every style" skill_applies_theme
+check "the changelog check counts any release and fails when no section names the text" changelog_counts_any_release
 check "the changelog, README, and how-it-works describe the built-in rules and the theme file" docs_describe_changes
 
 printf '\n%d passed, %d failed (%d ran)\n' "$PASS" "$FAIL" "$((PASS + FAIL))"

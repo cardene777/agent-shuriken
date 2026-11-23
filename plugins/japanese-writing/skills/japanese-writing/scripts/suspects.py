@@ -79,12 +79,12 @@ def load_metaphor_words(path: Path) -> dict[str, list[re.Pattern[str]]]:
         with path.open(encoding="utf-8", newline="") as handle:
             rows = (line for line in handle if line.strip() and not line.startswith("#"))
             reader = csv.DictReader(rows, delimiter="\t")
-            if reader.fieldnames != ["種類", "正規表現", "よく指している操作"]:
-                raise ValueError("列名が違う")
+            if reader.fieldnames != ["種類", "正規表現", "よく指している操作", "English"]:
+                raise ValueError("列名が違う (種類、正規表現、よく指している操作、English の 4 列)")
             for no, row in enumerate(reader, start=2):
                 kind = row.get("種類", "")
                 source = row.get("正規表現", "")
-                if kind not in patterns or not source or not row.get("よく指している操作", ""):
+                if kind not in patterns or not source or not row.get("よく指している操作", "") or not row.get("English", ""):
                     raise ValueError(f"{no} 行目を読めない")
                 try:
                     patterns[kind].append(re.compile(source))

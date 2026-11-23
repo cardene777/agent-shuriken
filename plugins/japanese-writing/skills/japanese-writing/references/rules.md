@@ -82,6 +82,29 @@ note、ブログ、エッセイのような記事には当てず、上流の`ref
 | `references/metaphor-words.tsv` | `scripts/suspects.py`が読む比喩の語の一覧。人が読むのは語を足す時だけ |
 | `scripts/suspects.py` | 上流の`lint.py`が数えない形を行ごとに指す時 (§5) |
 
+参照の英語版を次の表に挙げる。
+スキルは読まず、英語で読む人が使う。
+隣の日本語の参照と同じ見出しと表を持つことを、プラグインのテストが確かめる。
+
+| file | 読む時 |
+|---|---|
+| `references/rules.en.md` | 読まない。`references/rules.md`の英語版 |
+| `references/terminology.en.md` | 読まない。`references/terminology.md`の英語版 |
+| `references/subject-and-verb.en.md` | 読まない。`references/subject-and-verb.md`の英語版 |
+| `references/ai-smell.en.md` | 読まない。`references/ai-smell.md`の英語版 |
+| `references/explaining.en.md` | 読まない。`references/explaining.md`の英語版 |
+| `references/asking.en.md` | 読まない。`references/asking.md`の英語版 |
+| `references/natural-explanation.en.md` | 読まない。`references/natural-explanation.md`の英語版 |
+| `references/sentence-forms.en.md` | 読まない。`references/sentence-forms.md`の英語版 |
+| `references/connecting.en.md` | 読まない。`references/connecting.md`の英語版 |
+| `references/diagnose.en.md` | 読まない。`references/diagnose.md`の英語版 |
+| `references/manual-checklist.en.md` | 読まない。`references/manual-checklist.md`の英語版 |
+| `references/doctypes/guide.en.md` | 読まない。`references/doctypes/guide.md`の英語版 |
+| `references/doctypes/memo.en.md` | 読まない。`references/doctypes/memo.md`の英語版 |
+| `references/doctypes/minutes.en.md` | 読まない。`references/doctypes/minutes.md`の英語版 |
+| `references/doctypes/report.en.md` | 読まない。`references/doctypes/report.md`の英語版 |
+| `references/doctypes/slide.en.md` | 読まない。`references/doctypes/slide.md`の英語版 |
+
 説明の型は、要点を先に置く、一度に渡す情報を絞る、読み手が知っている語で書く、型に載せる、抽象の直後に具体例、図と文の対応の6つ。
 スライド構成では、上流の`references/doctypes/slide.md`に加えて`references/explaining.md`のスライドを扱う時だけ読む節を読む。
 

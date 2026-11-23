@@ -14,7 +14,8 @@ The agent writes the script; the script in `skills/japanese-speaking/scripts/` o
 | `references/formats.md` | How each of the five formats is laid out |
 | `references/review.md` | The instructions given to the fresh reader, and the form of its answer |
 | `references/patterns.tsv` | The patterns `check` reports: name, regular expression, exception, and how to fix it |
-| `references/common-katakana.txt` | Common loanwords in katakana that `check --source` does not treat as names |
+| `references/<name>.en.md` | The same rules in English, one beside each Markdown reference with the same headings, for people who read English; the skill reads only the Japanese files |
+| `references/common-katakana.txt` | Common loanwords in katakana that `check --source` does not treat as names, each with its English meaning |
 | `scripts/speaking.py` | The `check` and `patterns` commands |
 | `tests/test-japanese-speaking.sh` | Tests of `check` on the fixtures in `tests/fixtures/`, and of the order of steps in `SKILL.md` |
 

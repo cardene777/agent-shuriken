@@ -58,6 +58,9 @@ JA_ALLOWED=(
   plugins/japanese-speaking/skills/japanese-speaking/references/speaking.md
   plugins/japanese-speaking/skills/japanese-speaking/references/formats.md
   plugins/japanese-speaking/skills/japanese-speaking/references/review.md
+  plugins/japanese-speaking/skills/japanese-speaking/references/speaking.en.md
+  plugins/japanese-speaking/skills/japanese-speaking/references/formats.en.md
+  plugins/japanese-speaking/skills/japanese-speaking/references/review.en.md
   plugins/japanese-speaking/skills/japanese-speaking/references/patterns.tsv
   plugins/japanese-speaking/skills/japanese-speaking/references/common-katakana.txt
   plugins/japanese-speaking/skills/japanese-speaking/scripts/speaking.py
@@ -88,6 +91,22 @@ JA_ALLOWED=(
   plugins/japanese-writing/skills/japanese-writing/references/terminology.md
   plugins/japanese-writing/skills/japanese-writing/references/connecting.md
   plugins/japanese-writing/skills/japanese-writing/references/metaphor-words.tsv
+  plugins/japanese-writing/skills/japanese-writing/references/rules.en.md
+  plugins/japanese-writing/skills/japanese-writing/references/terminology.en.md
+  plugins/japanese-writing/skills/japanese-writing/references/subject-and-verb.en.md
+  plugins/japanese-writing/skills/japanese-writing/references/ai-smell.en.md
+  plugins/japanese-writing/skills/japanese-writing/references/explaining.en.md
+  plugins/japanese-writing/skills/japanese-writing/references/asking.en.md
+  plugins/japanese-writing/skills/japanese-writing/references/natural-explanation.en.md
+  plugins/japanese-writing/skills/japanese-writing/references/sentence-forms.en.md
+  plugins/japanese-writing/skills/japanese-writing/references/connecting.en.md
+  plugins/japanese-writing/skills/japanese-writing/references/diagnose.en.md
+  plugins/japanese-writing/skills/japanese-writing/references/manual-checklist.en.md
+  plugins/japanese-writing/skills/japanese-writing/references/doctypes/guide.en.md
+  plugins/japanese-writing/skills/japanese-writing/references/doctypes/memo.en.md
+  plugins/japanese-writing/skills/japanese-writing/references/doctypes/minutes.en.md
+  plugins/japanese-writing/skills/japanese-writing/references/doctypes/report.en.md
+  plugins/japanese-writing/skills/japanese-writing/references/doctypes/slide.en.md
   plugins/japanese-writing/THIRD_PARTY_NOTICES.md
   plugins/japanese-writing/skills/japanese-writing/scripts/suspects.py
   plugins/japanese-writing/skills/japanese-writing/tests/test-japanese-writing.sh
@@ -490,6 +509,28 @@ check_no_build_output() {
   return 0
 }
 
+# agent-shared lives in a repository of its own, and both README pages name it.
+check_readme_names_agent_shared() {
+  local page bad=0
+  for page in README.md README.ja.md; do
+    grep -qF 'github.com/cardene777/agent-shared' "$page" \
+      || { echo "$page does not name github.com/cardene777/agent-shared"; bad=1; }
+  done
+  return "$bad"
+}
+
+# No copy of agent-shared is left here: no agent-shared/ folder, no docs/agent-shared page, and no
+# file that names the old install command, which installed agent-shared from this repository.
+# The records under .ikkan/ quote the command when they describe this check, so they are skipped.
+check_no_agent_shared_copy() {
+  local bad=0
+  all_files | grep -E '^agent-shared/|^docs/agent-shared(\.ja)?\.md$' && bad=1
+  own_text_files | grep -vxF scripts/check.sh | grep -vE '^\.ikkan/' | while IFS= read -r f; do
+    grep -nF 'agent-shuriken#subdirectory=agent-shared' "$f" | sed "s|^|$f:|"
+  done | grep . && bad=1
+  return "$bad"
+}
+
 # Every bundled data file is credited in its plugin's THIRD_PARTY_NOTICES.md.
 check_notices() {
   local f plugin rel bad=0
@@ -570,6 +611,8 @@ run "no email addresses" check_no_email
 run "English outside the Japanese pages" check_english
 run "Japanese headings have no commas or colons" check_japanese_headings
 run "no build output tracked" check_no_build_output
+run "README names the agent-shared repository" check_readme_names_agent_shared
+run "no agent-shared copy is left" check_no_agent_shared_copy
 run "bundled data is credited" check_notices
 run "script dependencies are named in AGENTS.md" check_script_dependencies
 run "AGENTS.md asks for issues and new .ikkan records in English" check_agents_english
