@@ -1127,7 +1127,11 @@ for f, L in zip(sys.argv[1:], J):
         P.append("the page was laid out %s px wide, not %s px" % (L.get("width"), want))
 def rgb(c):
     m = re.match(r"rgba?\(([^)]+)\)", c or "")
-    return tuple(round(float(x)) for x in re.split(r"[\s,/]+", m.group(1).strip())[:3]) if m else None
+    if m:
+        return tuple(round(float(x)) for x in re.split(r"[\s,/]+", m.group(1).strip())[:3])
+    # The browser gives a color-mix() result as color(srgb r g b), with channels from 0 to 1.
+    m = re.match(r"color\(srgb\s+([^)]+)\)", c or "")
+    return tuple(round(float(x) * 255) for x in re.split(r"[\s/]+", m.group(1).strip())[:3]) if m else None
 def hue(c):
     r, g, b = [x / 255 for x in c]
     hi, lo = max(r, g, b), min(r, g, b)
@@ -1714,6 +1718,345 @@ if [ -z "$real_browser" ] || [ -z "$pdftotext_cmd" ]; then
 else
   check "the PDF shows every candidate card in order and no list or details" sample_pdf
 fi
+
+# --- the user's theme file, applied with the theme command of page-design
+# The template names its base colors after the keys of the page-design theme file, mixes its other
+# shades from them, and takes a theme's colors and fonts through
+# `page-design.py theme --keys light,dark,font.sans,font.mono`.
+THEME_KEYS="light,dark,font.sans,font.mono"
+TH="$T/theme"
+mkdir -p "$TH"
+# The example theme of page-design's formats/theme.md, with every key.
+THEME_JSON='{"light": {"bg": "#fafaf7", "surface": "#ffffff", "ink": "#111111", "sub": "#444444", "line": "#dddddd", "accent": "#0b6e4f", "accent-ink": "#ffffff", "accent-soft": "#e3f2ec", "bar": "#eeeeee", "label": "#f2f2f2"},
+ "dark": {"bg": "#101312", "surface": "#181c1a", "ink": "#eeeeee", "sub": "#b0b8b4", "line": "#2c3330", "accent": "#5fd0a5", "accent-ink": "#0b1410", "accent-soft": "#1b3a2f", "bar": "#232a27", "label": "#1f2523"},
+ "font": {"sans": "\"Inter\", sans-serif", "mono": "\"JetBrains Mono\", monospace", "size": 16, "line-height": 1.75},
+ "space": {"page-width": 1100, "radius-small": 4, "radius": 6, "radius-large": 8}}'
+TODAY_SANS='system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Noto Sans CJK JP", "Yu Gothic", Meiryo, sans-serif'
+TODAY_MONO='ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
+
+# theme_blocks <page>: prints the tokens of the light block and the two dark blocks as JSON.
+theme_blocks() {
+  python3 - "$1" <<'PYEOF'
+import json, re, sys
+text = open(sys.argv[1], encoding="utf-8").read()
+def tokens(pattern):
+    m = re.search(pattern + r"\s*\{([^}]*)\}", text)
+    return dict((k, v.strip()) for k, v in re.findall(r"--([a-z][a-z0-9-]*)\s*:\s*([^;}]+)", m.group(1))) if m else None
+print(json.dumps({
+    "light": tokens(r":root"),
+    "system": tokens(r':root:not\(\[data-theme="light"\]\)(?::not\([^)]*\))*'),
+    "chosen": tokens(r':root\[data-theme="dark"\](?::not\([^)]*\))*'),
+}))
+PYEOF
+}
+
+# theme_place <name> <page>: makes $TH/<name>/repo, a git repository holding the page as page.html,
+# and $TH/<name>/home, an empty home folder.
+theme_place() {
+  mkdir -p "$TH/$1/home" "$TH/$1/repo"
+  git -C "$TH/$1/repo" init -q
+  cp "$2" "$TH/$1/repo/page.html"
+}
+theme_run() { local place="$1"; shift; (cd "$TH/$place/repo" && HOME="$TH/$place/home" python3 "$PAGE_DESIGN" theme "$@" page.html); }
+
+# A new report as new-report.sh makes it, the English sample report, and the sample with the probe.
+COMPARE_REPORT_HOME="$TH/reports" bash "$SCRIPTS/new-report.sh" theme-check > "$TH/new.out" 2>&1
+NEW_REPORT="$(tail -n 1 "$TH/new.out")"
+sample en "$TH/sample.html" > /dev/null 2>&1 || true
+sample en "$TH/probe.html" --probe "$HERE/sample-probe.js" > /dev/null 2>&1 || true
+
+# mix_eval: the Python that evaluates a token made of var() and color-mix() in srgb, read by the checks below.
+MIX_EVAL='
+import re
+def hex_rgb(value):
+    m = re.fullmatch(r"#([0-9a-f]{3}|[0-9a-f]{6})", value.strip().lower())
+    if not m:
+        return None
+    h = m.group(1)
+    if len(h) == 3:
+        h = "".join(c * 2 for c in h)
+    return [int(h[i:i + 2], 16) for i in (0, 2, 4)]
+def split_top(text):
+    parts, depth, cur = [], 0, ""
+    for c in text:
+        depth += (c == "(") - (c == ")")
+        if c == "," and depth == 0:
+            parts.append(cur.strip())
+            cur = ""
+        else:
+            cur += c
+    parts.append(cur.strip())
+    return parts
+class NotMix(Exception):
+    pass
+def evaluate(value, tokens, depth=0):
+    value = value.strip()
+    if depth > 12:
+        raise NotMix("references loop")
+    color = hex_rgb(value)
+    if color is not None:
+        return color
+    m = re.fullmatch(r"var\(--([a-z0-9-]+)\)", value)
+    if m:
+        if m.group(1) not in tokens:
+            raise NotMix("--%s is not defined" % m.group(1))
+        return evaluate(tokens[m.group(1)], tokens, depth + 1)
+    m = re.fullmatch(r"color-mix\((.*)\)", value, re.S)
+    if not m:
+        raise NotMix("%r is neither a hex color, var(), nor color-mix()" % value)
+    parts = split_top(m.group(1))
+    if len(parts) != 3 or parts[0] != "in srgb":
+        raise NotMix("%r does not mix two colors in srgb" % value)
+    colors, weights = [], []
+    for part in parts[1:]:
+        w = re.search(r"\s(\d+(?:\.\d+)?)%$", part)
+        colors.append(evaluate(part[:w.start()] if w else part, tokens, depth + 1))
+        weights.append(float(w.group(1)) if w else None)
+    if weights == [None, None]:
+        weights = [50.0, 50.0]
+    elif weights[1] is None:
+        weights[1] = 100 - weights[0]
+    elif weights[0] is None:
+        weights[0] = 100 - weights[1]
+    return [(colors[0][i] * weights[0] + colors[1][i] * weights[1]) / (weights[0] + weights[1]) for i in range(3)]
+def scheme(blocks, side):
+    tokens = dict(blocks.get("light") or {})
+    if side != "light":
+        tokens.update(blocks.get(side) or {})
+    return tokens
+'
+
+theme_base_names() {
+  python3 - "$(theme_blocks "$TEMPLATE")" <<'PYEOF'
+import json, sys
+blocks = json.loads(sys.argv[1])
+today = {"light": {"surface": "#f6f7f9", "sub": "#4b5563", "line": "#e3e6eb"},
+         "system": {"surface": "#181c24", "sub": "#b3bbc7", "line": "#2a303a"},
+         "chosen": {"surface": "#181c24", "sub": "#b3bbc7", "line": "#2a303a"}}
+problems = []
+for side, want in today.items():
+    got = blocks.get(side) or {}
+    for name, value in want.items():
+        if got.get(name, "").lower() != value:
+            problems.append("the %s block defines --%s as %r, not %s" % (side, name, got.get(name), value))
+print("\n".join("      " + p for p in problems))
+sys.exit(1 if problems else 0)
+PYEOF
+}
+check "the template names its base colors after the page-design keys with today's values" theme_base_names
+
+theme_old_names() {
+  local found
+  found="$(grep -n -E -e '--(muted|border)([^a-z0-9-]|$)' "$TEMPLATE" "$SCRIPTS/toc-pages.py" | sed -e "s|$HERE/\.\./||g")"
+  [ -z "$found" ] || { printf '%s\n' "$found" | head -5 | sed 's/^/      /'; return 1; }
+}
+check "the template and toc-pages.py read no color by the old names muted and border" theme_old_names
+
+theme_shades() {
+  python3 -c "$MIX_EVAL"'
+import json, re, sys
+blocks = json.loads(sys.argv[1])
+style = re.search(r"<style>(.*?)</style>", open(sys.argv[2], encoding="utf-8").read(), re.S).group(1)
+today = {"light": {"faint": "#6b7280", "rule": "#7f8796", "stripe": "#f3f5f8", "selected": "#e6edfb"},
+         "dark": {"faint": "#98a2b0", "rule": "#767f90", "stripe": "#1a1f27", "selected": "#22304d"}}
+problems = []
+for side, base in (("light", "light"), ("system", "dark"), ("chosen", "dark")):
+    tokens = scheme(blocks, side)
+    for name, want in today[base].items():
+        value = tokens.get(name, "")
+        if not value.startswith("color-mix("):
+            problems.append("%s --%s is %r, not a color-mix of the base tokens" % (side, name, value))
+            continue
+        try:
+            got = [round(c) for c in evaluate(value, tokens)]
+        except NotMix as err:
+            problems.append("%s --%s: %s" % (side, name, err))
+            continue
+        exp = hex_rgb(want)
+        if max(abs(got[i] - exp[i]) for i in range(3)) > 2:
+            problems.append("%s --%s mixes to %s, today %s" % (side, name, "#%02x%02x%02x" % tuple(got), want))
+# The row lines of the tables and of the candidate list.
+for selector in ("th, td", "thead th", ".kv th, .kv td", ".entry"):
+    rule = re.search(r"(?m)^%s \{([^}]*)\}" % re.escape(selector), style)
+    if not rule or not re.search(r"border-bottom:[^;]*var\(--rule\)", rule.group(1)):
+        problems.append("%s draws its row line without --rule" % selector)
+print("\n".join("      " + p for p in problems[:6]))
+sys.exit(1 if problems else 0)
+' "$(theme_blocks "$TEMPLATE")" "$TEMPLATE"
+}
+check "the derived shades mix the base colors and stay within 2 of today's values" theme_shades
+
+theme_fonts() {
+  python3 - "$TEMPLATE" "$TODAY_SANS" "$TODAY_MONO" <<'PYEOF'
+import re, sys
+style = re.search(r"<style>(.*?)</style>", open(sys.argv[1], encoding="utf-8").read(), re.S).group(1)
+light = dict((k, v.strip()) for k, v in re.findall(r"--([a-z][a-z0-9-]*)\s*:\s*([^;}]+)", re.search(r":root \{(.*?)\}", style, re.S).group(1)))
+problems = []
+for name, want in (("sans", sys.argv[2]), ("mono", sys.argv[3])):
+    if light.get(name) != want:
+        problems.append("--%s is %r, not today's font list" % (name, light.get(name)))
+body = re.search(r"(?m)^body \{([^}]*)\}", style)
+if not body or not re.search(r"font:[^;]*var\(--sans\)", body.group(1)):
+    problems.append("the body text does not read --sans")
+pre = re.search(r"(?m)^\.figure pre \{([^}]*)\}", style)
+if not pre or not re.search(r"font:[^;]*var\(--mono\)", pre.group(1)):
+    problems.append("the figure text does not read --mono")
+print("\n".join("      " + p for p in problems))
+sys.exit(1 if problems else 0)
+PYEOF
+}
+check "the report text reads --sans and --mono with today's font lists" theme_fonts
+
+theme_applied() {
+  [ -f "$NEW_REPORT" ] || { sed 's/^/      /' "$TH/new.out"; return 1; }
+  theme_place applied "$NEW_REPORT"
+  printf '%s\n' "$THEME_JSON" > "$TH/applied/repo/.design-theme.json"
+  theme_run applied --keys "$THEME_KEYS" > "$TH/applied.out" 2>&1 || { sed 's/^/      /' "$TH/applied.out"; return 1; }
+  python3 - "$(theme_blocks "$TH/applied/repo/page.html")" "$THEME_JSON" <<'PYEOF'
+import json, sys
+blocks, theme = json.loads(sys.argv[1]), json.loads(sys.argv[2])
+keys = ("bg", "surface", "ink", "sub", "line", "accent", "accent-ink", "accent-soft", "label")
+problems = []
+for side, group in (("light", "light"), ("system", "dark"), ("chosen", "dark")):
+    got = blocks.get(side) or {}
+    problems += ["the %s block has --%s %r, not the theme's %s" % (side, k, got.get(k), theme[group][k]) for k in keys if got.get(k) != theme[group][k]]
+for name in ("sans", "mono"):
+    if (blocks.get("light") or {}).get(name) != theme["font"][name]:
+        problems.append("--%s is %r, not the theme's %s" % (name, (blocks.get("light") or {}).get(name), theme["font"][name]))
+print("\n".join("      " + p for p in problems[:6]))
+sys.exit(1 if problems else 0)
+PYEOF
+}
+check "page-design theme writes a theme's colors and fonts into a new report" theme_applied
+
+theme_no_file() {
+  [ -f "$NEW_REPORT" ] || return 1
+  theme_place none "$NEW_REPORT"
+  theme_run none --keys "$THEME_KEYS" > "$TH/none.out" 2>&1 || { sed 's/^/      /' "$TH/none.out"; return 1; }
+  cmp -s "$NEW_REPORT" "$TH/none/repo/page.html" || { echo "      the report changed without a theme file"; return 1; }
+}
+check "without a theme file a new report stays as made" theme_no_file
+
+theme_checked() {
+  [ -f "$TH/sample.html" ] || { echo "      the sample report was not built"; return 1; }
+  theme_place checked "$TH/sample.html"
+  printf '%s\n' "$THEME_JSON" > "$TH/checked/home/.design-theme.json"
+  theme_run checked --keys "$THEME_KEYS" > "$TH/checked.out" 2>&1 || { sed 's/^/      /' "$TH/checked.out"; return 1; }
+  python3 - "$(theme_blocks "$TH/checked/repo/page.html")" <<'PYEOF' || return 1
+import json, sys
+light = json.loads(sys.argv[1]).get("light") or {}
+missing = [k for k, v in (("sub", "#444444"), ("line", "#dddddd"), ("sans", '"Inter", sans-serif')) if light.get(k) != v]
+if missing:
+    print("      the theme did not reach --" + ", --".join(missing))
+sys.exit(1 if missing else 0)
+PYEOF
+  check_report "$TH/checked/repo/page.html" > "$TH/checked-report.out" 2>&1 || { indent < "$TH/checked-report.out" | head -5; return 1; }
+  python3 "$PAGE_DESIGN" verify "$TH/checked/repo/page.html" > "$TH/checked-verify.out" 2>&1 || { indent < "$TH/checked-verify.out" | head -5; return 1; }
+}
+if [ -f "$PAGE_DESIGN" ]; then
+  check "a themed report passes check-report and page-design verify" theme_checked
+else
+  printf 'skip  %s (needs the design-formats plugin next to this one)\n' "a themed report passes check-report and page-design verify"
+fi
+
+theme_painted() {
+  [ -f "$TH/probe.html" ] || { echo "      the sample report with the probe was not built"; return 1; }
+  theme_place painted "$TH/probe.html"
+  printf '%s\n' "$THEME_JSON" > "$TH/painted/home/.design-theme.json"
+  theme_run painted --keys "$THEME_KEYS" > "$TH/painted.out" 2>&1 || { sed 's/^/      /' "$TH/painted.out"; return 1; }
+  probe_at 1400 wide "" "$TH/painted/repo/page.html" "$TH/painted-1400.json"
+  python3 -c "$MIX_EVAL"'
+import json, re, sys
+paint, blocks, theme = json.load(open(sys.argv[1])).get("paint") or {}, json.loads(sys.argv[2]), json.loads(sys.argv[3])
+def rgb(c):
+    m = re.match(r"rgba?\(([^)]+)\)", c or "")
+    if m:
+        return [float(x) for x in re.split(r"[\s,/]+", m.group(1).strip())[:3]]
+    m = re.match(r"color\(srgb\s+([^)]+)\)", c or "")
+    return [float(x) * 255 for x in re.split(r"[\s/]+", m.group(1).strip())[:3]] if m else None
+problems = []
+for mode, side, group in (("light", "light", "light"), ("dark", "chosen", "dark")):
+    p = paint.get(mode)
+    if not p:
+        problems.append("the probe recorded nothing painted in %s" % mode)
+        continue
+    tokens = scheme(blocks, side)
+    try:
+        rule = evaluate(tokens["rule"], tokens) if "rule" in tokens else None
+    except NotMix as err:
+        rule = None
+        problems.append("%s --rule: %s" % (mode, err))
+    want = {"background": hex_rgb(theme[group]["bg"]), "text": hex_rgb(theme[group]["ink"]), "row line": rule}
+    for what, key in (("background", "bg"), ("text", "ink"), ("row line", "line")):
+        got = rgb(p.get(key))
+        if want[what] is None:
+            problems.append("in %s the template defines no --rule for the row line" % mode)
+        elif got is None or max(abs(got[i] - want[what][i]) for i in range(3)) > 2:
+            problems.append("in %s the %s is %s, not %s from the theme" % (mode, what, p.get(key), "#%02x%02x%02x" % tuple(round(c) for c in want[what])))
+print("\n".join("      " + p for p in dict.fromkeys(problems)))
+sys.exit(1 if problems else 0)
+' "$TH/painted-1400.json" "$(theme_blocks "$TH/painted/repo/page.html")" "$THEME_JSON"
+}
+if [ -z "$real_browser" ] || [ ! -f "$PAGE_DESIGN" ]; then
+  printf 'skip  %s (needs a Chromium-based browser and the design-formats plugin)\n' "in a browser a themed report draws its background, text, and row lines from the theme in light and dark"
+else
+  check "in a browser a themed report draws its background, text, and row lines from the theme in light and dark" theme_painted
+fi
+
+theme_skill_step() {
+  python3 - "$SKILL" <<'PYEOF'
+import sys
+text = open(sys.argv[1], encoding="utf-8").read()
+problems = ["SKILL.md lacks %s" % w for w in ("theme --keys light,dark,font.sans,font.mono", "`.design-theme.json`", "`~/.design-theme.json`") if w not in text]
+step, checking = text.find("theme --keys"), text.find("check-report.py")
+if not problems and not 0 <= step < checking:
+    problems.append("SKILL.md applies the theme after it checks the report")
+print("\n".join("      " + p for p in problems))
+sys.exit(1 if problems else 0)
+PYEOF
+}
+check "the SKILL.md says to apply the user's theme with page-design before the checks" theme_skill_step
+
+theme_follows() {
+  python3 - "$HERE/../musubi.json" <<'PYEOF'
+import json, sys
+entry = json.load(open(sys.argv[1], encoding="utf-8")).get("follows", {}).get("page-design/theme", {})
+ok = entry.get("version") == "^1.0.0" and entry.get("optional") is True and str(entry.get("integrity", "")).startswith("sha256-")
+if not ok:
+    print("      page-design/theme is followed as %s" % json.dumps(entry))
+sys.exit(0 if ok else 1)
+PYEOF
+}
+check "musubi.json follows page-design/theme as optional" theme_follows
+
+# The Japanese words are escaped, so that this file stays in English for the repository checks.
+theme_readmes() {
+  python3 - "$PLUGIN" <<'PYEOF'
+import sys
+root = sys.argv[1]
+common = ("~/.design-theme.json", ".design-theme.json", "design-formats")
+problems = []
+for name, words in (("README.md", common + ("colors and fonts",)), ("README.ja.md", common + ("\u8272\u3068\u66f8\u4f53",))):
+    text = open("%s/%s" % (root, name), encoding="utf-8").read()
+    problems += ["%s does not name %s" % (name, w.encode("unicode_escape").decode()) for w in words if w not in text]
+print("\n".join("      " + p for p in problems))
+sys.exit(1 if problems else 0)
+PYEOF
+}
+check "the READMEs say where to place a theme file and what it changes" theme_readmes
+
+theme_changelog() {
+  awk '/^## \[Unreleased\]/ { on = 1; next } /^## \[/ { on = 0 } on' "$PLUGIN/CHANGELOG.md" | grep -qF '.design-theme.json'
+}
+check "the changelog names the theme file under Unreleased" theme_changelog
+
+# The repository checks, last because they take the longest.
+repo_checks() {
+  local repo
+  repo="$(git -C "$PLUGIN" rev-parse --show-toplevel 2>/dev/null)" || return 1
+  bash "$repo/scripts/check.sh" > "$T/repo-check.out" 2>&1 || { tail -5 "$T/repo-check.out" | sed 's/^/      /'; return 1; }
+}
+check "the repository checks pass" repo_checks
 
 printf '\n%d passed, %d failed (%d ran)\n' "$PASS" "$FAIL" "$((PASS + FAIL))"
 [ "$FAIL" = 0 ]
