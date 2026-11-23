@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-23
+
 - The references read in English: each Markdown file under `references/` has an English version beside it named `<name>.en.md`, with the same headings, and the skill keeps reading the Japanese files
 - Each word in `references/common-katakana.txt` carries its English meaning after a tab, and `speaking.py check --source` refuses a word line without one with exit 2
 
@@ -17,5 +19,6 @@ First public release.
 - `speaking.py check` prints script-level notes that never fail the check: the median and spread of utterance length, the share of short replies, backchannels, sentences ending in the particles ne and yo, the same ending three times in a row, and long sentences
 - After the check, a reader that has not seen the conversation listens for lines that still sound read, and the agent fixes them
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/japanese-speaking--v0.1.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/japanese-speaking--v0.2.0...HEAD
+[0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/japanese-speaking--v0.2.0
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/japanese-speaking--v0.1.0

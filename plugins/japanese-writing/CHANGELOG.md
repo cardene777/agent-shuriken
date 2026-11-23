@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-23
+
 - The references read in English: every Markdown file under `references/`, the upstream copies included, has an English version beside it named `<name>.en.md`, with the same headings and tables, and a check fails when the two differ. The skill keeps reading the Japanese files and explains each fix in the language the user writes in
 - `references/metaphor-words.tsv` has a fourth column, `English`, that glosses each pattern, and `suspects.py` refuses a list without it
 - `musubi.json` declares `references/connecting.md` as the content `connecting`, version 1.0.0, so that other skills such as convey follow it through musubi and are checked again when it changes
@@ -25,5 +27,6 @@ First public release.
 - Runs the scripts through `uv`, which downloads `sudachipy` and its dictionary on first use, and checks the same points by eye when `uv` is missing. The optional `semantic.py`, which downloads a 1 GB model, is left out
 - Starts when you ask to write Japanese or make it natural, or when you call it, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/japanese-writing--v0.2.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/japanese-writing--v0.3.0...HEAD
+[0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/japanese-writing--v0.3.0
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/japanese-writing--v0.2.0

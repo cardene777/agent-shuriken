@@ -1,6 +1,6 @@
 {
   "name": "japanese-writing",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Write and fix Japanese text so that it reads naturally and adds nothing the original does not say, with the steps and scripts of coji/natural-japanese and rules for repository Markdown, metaphor verbs, explanations, and questions",
   "author": {
     "name": "cardene777",
