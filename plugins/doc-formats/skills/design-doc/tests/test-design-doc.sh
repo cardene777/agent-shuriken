@@ -25,6 +25,14 @@ ng() { FAIL=$((FAIL + 1)); printf 'FAIL  %s\n' "$1"; }
 skip() { SKIP=$((SKIP + 1)); printf 'skip  %s (%s)\n' "$1" "$2"; }
 check() { if eval "$2"; then ok "$1"; else ng "$1"; fi; }
 
+# changelog_entries <changelog>: the entries from ## [Unreleased] down to the link definitions. A
+# release moves a line from Unreleased into its version's section, where it stays, so a check that
+# looks for a line reads every section.
+changelog_entries() { awk '/^## \[Unreleased\]/ { on = 1 } on && /^\[[^]]+\]: / { exit } on' "$1"; }
+
+# newest_release <changelog>: the version of the newest release section, or 0.1.0 before the first.
+newest_release() { awk -F'[][]' '/^## \[[0-9]+\.[0-9]+\.[0-9]+\] - / { print $2; found = 1; exit } END { if (!found) print "0.1.0" }' "$1"; }
+
 run() { python3 "$SCRIPT" "$@"; }
 
 # The sections of a skill that follows the format. Their order is not alphabetical, and one name
@@ -89,17 +97,17 @@ plugin_files() {
     skills/design-doc/agents/openai.yaml; do
     [ -f "$PLUGIN/$f" ] || { echo "      missing $f"; return 1; }
   done
-  python3 - "$PLUGIN" <<'PYEOF'
+  python3 - "$PLUGIN" "$(newest_release "$PLUGIN/CHANGELOG.md")" <<'PYEOF'
 import json, sys
-root = sys.argv[1]
+root, version = sys.argv[1], sys.argv[2]
 for path in (".claude-plugin/plugin.json", ".codex-plugin/plugin.json"):
     manifest = json.load(open("%s/%s" % (root, path), encoding="utf-8"))
-    if manifest.get("name") != "doc-formats" or manifest.get("version") != "0.1.0":
+    if manifest.get("name") != "doc-formats" or manifest.get("version") != version:
         print("      %s is %s %s" % (path, manifest.get("name"), manifest.get("version")))
         sys.exit(1)
 PYEOF
 }
-check "doc-formats holds the files of a plugin at version 0.1.0" plugin_files
+check "doc-formats holds the files of a plugin at the version of its newest release" plugin_files
 
 listed() {
   local page
@@ -363,17 +371,28 @@ releasing_step() {
 }
 check "the releasing pages run musubi check before doc-formats or evm-dev is released" releasing_step
 
-# unreleased <changelog>: the lines between ## [Unreleased] and the next release.
-unreleased() { awk '/^## \[Unreleased\]/{on=1; next} /^## \[/{on=0} on' "$1"; }
-
 # A new plugin's changelog opens with its first release; the changes to evm-dev and the new plugin
-# in the repository wait under Unreleased.
+# in the repository sit under Unreleased, or under a release once one moves them.
 changelogs() {
   awk '/^## \[0\.1\.0\]/{on=1; next} /^## \[/{on=0} on' "$PLUGIN/CHANGELOG.md" | grep -q 'design-doc' || return 1
-  unreleased "$REPO/plugins/evm-dev/CHANGELOG.md" | grep -q 'design-doc' || return 1
-  unreleased "$REPO/CHANGELOG.md" | grep -q 'doc-formats'
+  changelog_entries "$REPO/plugins/evm-dev/CHANGELOG.md" | grep -q 'design-doc' || return 1
+  changelog_entries "$REPO/CHANGELOG.md" | grep -q 'doc-formats'
 }
 check "the changelogs name the shared design format" changelogs
+
+# The changelog reading counts a line that only a released section holds, and finds nothing when no
+# section names the text (a link definition does not count). It also takes the newest
+# release as the version, and 0.1.0 before the first release.
+changelog_reading() {
+  printf '# Changelog\n\n## [Unreleased]\n\n## [0.3.0] - 2026-11-30\n\n- a later change\n\n## [0.2.0] - 2026-11-23\n\n- ships the needle\n\n[Unreleased]: compare/v0.3.0...HEAD\n[0.3.0]: tag/v0.3.0\n' > "$T/log-released.md"
+  printf '# Changelog\n\n## [Unreleased]\n\n- something else\n\n## [0.2.0] - 2026-11-23\n\n- another change\n\n[needle]: tag/needle\n' > "$T/log-none.md"
+  changelog_entries "$T/log-released.md" | grep -qF 'ships the needle' || { echo "      a line only the 0.2.0 section holds was not read"; return 1; }
+  if changelog_entries "$T/log-none.md" | grep -qF 'needle'; then echo "      a changelog that names the text only in a link definition was read as naming it"; return 1; fi
+  [ "$(newest_release "$T/log-released.md")" = 0.3.0 ] || { echo "      the newest release of a changelog with 0.3.0 and 0.2.0 was not 0.3.0"; return 1; }
+  printf '# Changelog\n\n## [Unreleased]\n\n- first entries\n' > "$T/log-unreleased.md"
+  [ "$(newest_release "$T/log-unreleased.md")" = 0.1.0 ] || { echo "      a changelog with no release did not give 0.1.0"; return 1; }
+}
+check "design-doc changelog reading counts any release and fails when no section names the text" changelog_reading
 
 printf '%d passed, %d failed (%d ran, %d skipped)\n' "$PASS" "$FAIL" "$((PASS + FAIL))" "$SKIP"
 [ "$FAIL" -eq 0 ]

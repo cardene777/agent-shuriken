@@ -15,6 +15,11 @@ trap 'rm -rf "$T"' EXIT
 ok() { PASS=$((PASS + 1)); printf 'ok    %s\n' "$1"; }
 ng() { FAIL=$((FAIL + 1)); printf 'FAIL  %s\n' "$1"; }
 check() { if eval "$2"; then ok "$1"; else ng "$1"; fi; }
+
+# changelog_entries <changelog>: the entries from ## [Unreleased] down to the link definitions. A
+# release moves a line from Unreleased into its version's section, where it stays, so a check that
+# looks for a line reads every section.
+changelog_entries() { awk '/^## \[Unreleased\]/ { on = 1 } on && /^\[[^]]+\]: / { exit } on' "$1"; }
 mode() { python3 -c 'import os, sys; print(format(os.stat(sys.argv[1]).st_mode & 0o777, "o"))' "$1"; }
 
 # A real Chromium-based browser and pdftotext, for the checks that print a report for real.
@@ -1073,9 +1078,10 @@ dragon_docs() {
 check "the docs draw charts with dragon when page-design is installed and keep the CSS bar chart otherwise" dragon_docs
 
 # The English and Japanese pages name the same four things, the Japanese words escaped so that this
-# file stays in English, and the changelog names the list and dragon under Unreleased.
+# file stays in English, and the changelog names the list and dragon under Unreleased or a release.
 described() {
-  python3 - "$PLUGIN" <<'PY'
+  changelog_entries "$PLUGIN/CHANGELOG.md" > "$T/described-entries.md"
+  python3 - "$PLUGIN" "$T/described-entries.md" <<'PY'
 import re, sys
 root, problems = sys.argv[1], []
 en = ["candidate list", "facts table", "dragon", "language switch"]
@@ -1083,9 +1089,8 @@ ja = ["\u5019\u88dc\u306e\u4e00\u89a7", "\u4e8b\u5b9f\u306e\u8868", "dragon", "\
 for name, words in (("README.md", en), ("docs/how-it-works.md", en), ("README.ja.md", ja), ("docs/how-it-works.ja.md", ja)):
     text = open("%s/%s" % (root, name), encoding="utf-8").read()
     problems += ["%s does not name %s" % (name, w.encode("unicode_escape").decode()) for w in words if w not in text]
-log = open(root + "/CHANGELOG.md", encoding="utf-8").read()
-unreleased = re.search(r"(?ms)^## \[Unreleased\]\n(.*?)(?=^## |\Z)", log)
-problems += ["CHANGELOG.md does not name %r under Unreleased" % w for w in ("candidate list", "dragon") if not unreleased or w not in unreleased.group(1)]
+entries = open(sys.argv[2], encoding="utf-8").read()
+problems += ["CHANGELOG.md does not name %r under Unreleased or a release" % w for w in ("candidate list", "dragon") if w not in entries]
 print("\n".join("      " + p for p in problems))
 sys.exit(1 if problems else 0)
 PY
@@ -2046,9 +2051,19 @@ PYEOF
 check "the READMEs say where to place a theme file and what it changes" theme_readmes
 
 theme_changelog() {
-  awk '/^## \[Unreleased\]/ { on = 1; next } /^## \[/ { on = 0 } on' "$PLUGIN/CHANGELOG.md" | grep -qF '.design-theme.json'
+  changelog_entries "$PLUGIN/CHANGELOG.md" | grep -qF '.design-theme.json'
 }
-check "the changelog names the theme file under Unreleased" theme_changelog
+check "the changelog names the theme file under Unreleased or a release" theme_changelog
+
+# The changelog reading counts a line that only a released section holds, and finds nothing when no
+# section names the text (a link definition does not count).
+changelog_reading() {
+  printf '# Changelog\n\n## [Unreleased]\n\n## [0.3.0] - 2026-11-30\n\n- a later change\n\n## [0.2.0] - 2026-11-23\n\n- ships the needle\n\n[Unreleased]: compare/v0.3.0...HEAD\n[0.3.0]: tag/v0.3.0\n' > "$T/log-released.md"
+  printf '# Changelog\n\n## [Unreleased]\n\n- something else\n\n## [0.2.0] - 2026-11-23\n\n- another change\n\n[needle]: tag/needle\n' > "$T/log-none.md"
+  changelog_entries "$T/log-released.md" | grep -qF 'ships the needle' || { echo "      a line only the 0.2.0 section holds was not read"; return 1; }
+  if changelog_entries "$T/log-none.md" | grep -qF 'needle'; then echo "      a changelog that names the text only in a link definition was read as naming it"; return 1; fi
+}
+check "compare-report changelog reading counts any release and fails when no section names the text" changelog_reading
 
 # The repository checks, last because they take the longest.
 repo_checks() {

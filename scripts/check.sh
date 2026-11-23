@@ -42,6 +42,7 @@ JA_ALLOWED=(
   plugins/diagram-explainer/skills/diagram-explainer/examples/content.sample.ja.json
   plugins/diagram-explainer/skills/diagram-explainer/examples/ladders/checkout-ja.json
   plugins/diagram-explainer/skills/diagram-explainer/tests/test-render.sh
+  plugins/diagram-explainer/skills/diagram-explainer/tests/fixtures/motion-page.html
   plugins/diagram-explainer/evals/japanese-document/case.yaml
   plugins/diagram-styles/skills/article-diagram-styles/tests/test-article-diagram-styles.sh
   plugins/docs-publish/evals/_japanese.json

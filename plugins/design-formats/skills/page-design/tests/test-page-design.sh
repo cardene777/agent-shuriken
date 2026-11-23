@@ -26,6 +26,14 @@ ng() { FAIL=$((FAIL + 1)); printf 'FAIL  %s\n' "$1"; }
 skip() { SKIP=$((SKIP + 1)); printf 'skip  %s (%s)\n' "$1" "$2"; }
 check() { if eval "$2"; then ok "$1"; else ng "$1"; fi; }
 
+# changelog_entries <changelog>: the entries from ## [Unreleased] down to the link definitions. A
+# release moves a line from Unreleased into its version's section, where it stays, so a check that
+# looks for a line reads every section.
+changelog_entries() { awk '/^## \[Unreleased\]/ { on = 1 } on && /^\[[^]]+\]: / { exit } on' "$1"; }
+
+# newest_release <changelog>: the version of the newest release section, or 0.1.0 before the first.
+newest_release() { awk -F'[][]' '/^## \[[0-9]+\.[0-9]+\.[0-9]+\] - / { print $2; found = 1; exit } END { if (!found) print "0.1.0" }' "$1"; }
+
 run() { [ -f "$SCRIPT" ] || return 3; python3 "$SCRIPT" "$@"; }
 
 # has <file> <text>...: every text appears in the file.
@@ -45,17 +53,17 @@ plugin_files() {
     skills/page-design/agents/openai.yaml; do
     [ -f "$PLUGIN/$f" ] || { echo "      missing $f"; return 1; }
   done
-  python3 - "$PLUGIN" <<'PYEOF'
+  python3 - "$PLUGIN" "$(newest_release "$PLUGIN/CHANGELOG.md")" <<'PYEOF'
 import json, sys
-root = sys.argv[1]
+root, version = sys.argv[1], sys.argv[2]
 for path in (".claude-plugin/plugin.json", ".codex-plugin/plugin.json"):
     manifest = json.load(open("%s/%s" % (root, path), encoding="utf-8"))
-    if manifest.get("name") != "design-formats" or manifest.get("version") != "0.1.0":
+    if manifest.get("name") != "design-formats" or manifest.get("version") != version:
         print("      %s is %s %s" % (path, manifest.get("name"), manifest.get("version")))
         sys.exit(1)
 PYEOF
 }
-check "design-formats holds the files of a plugin at version 0.1.0" plugin_files
+check "design-formats holds the files of a plugin at the version of its newest release" plugin_files
 
 listed() {
   local page
@@ -643,14 +651,15 @@ check "verify accepts a long script string of prose" "accepted '$T/html/script-p
 # The docs say that verify reads strings in a script of any length, with their escapes read.
 # The Japanese words are written as escapes.
 script_docs() {
-  python3 - "$PLUGIN" <<'PYEOF'
+  changelog_entries "$PLUGIN/CHANGELOG.md" > "$T/script-docs-entries.md"
+  python3 - "$PLUGIN" "$T/script-docs-entries.md" <<'PYEOF'
 import sys
 root = sys.argv[1]
-unreleased = open(root + "/CHANGELOG.md", encoding="utf-8").read().split("## [Unreleased]")[1].split("\n## [")[0]
-texts = {"CHANGELOG.md (Unreleased)": unreleased,
+entries = open(sys.argv[2], encoding="utf-8").read()
+texts = {"CHANGELOG.md (Unreleased and releases)": entries,
          "docs/how-it-works.md": open(root + "/docs/how-it-works.md", encoding="utf-8").read(),
          "docs/how-it-works.ja.md": open(root + "/docs/how-it-works.ja.md", encoding="utf-8").read()}
-want = {"CHANGELOG.md (Unreleased)": ["of any length", "escapes"],
+want = {"CHANGELOG.md (Unreleased and releases)": ["of any length", "escapes"],
         "docs/how-it-works.md": ["of any length", "escapes"],
         "docs/how-it-works.ja.md": ["\u9577\u3055\u306b\u3088\u3089\u305a", "\u30a8\u30b9\u30b1\u30fc\u30d7"]}
 problems = ["%s does not say %r" % (name, [w for w in words if w not in texts[name]])
@@ -851,15 +860,26 @@ else
   skip "musubi check accepts page-design" "the musubi command is not on PATH"
 fi
 
-# unreleased <changelog>: the lines between ## [Unreleased] and the next release.
-unreleased() { awk '/^## \[Unreleased\]/{on=1; next} /^## \[/{on=0} on' "$1"; }
-
 changelogs() {
   [ -f "$PLUGIN/CHANGELOG.md" ] || return 1
   awk '/^## \[0\.1\.0\]/{on=1; next} /^## \[/{on=0} on' "$PLUGIN/CHANGELOG.md" | grep -q 'page-design' || return 1
-  unreleased "$REPO/CHANGELOG.md" | grep -q 'design-formats'
+  changelog_entries "$REPO/CHANGELOG.md" | grep -q 'design-formats'
 }
 check "the changelogs name page-design" changelogs
+
+# The changelog reading counts a line that only a released section holds, and finds nothing when no
+# section names the text (a link definition does not count). It also takes the newest
+# release as the version, and 0.1.0 before the first release.
+changelog_reading() {
+  printf '# Changelog\n\n## [Unreleased]\n\n## [0.3.0] - 2026-11-30\n\n- a later change\n\n## [0.2.0] - 2026-11-23\n\n- ships the needle\n\n[Unreleased]: compare/v0.3.0...HEAD\n[0.3.0]: tag/v0.3.0\n' > "$T/log-released.md"
+  printf '# Changelog\n\n## [Unreleased]\n\n- something else\n\n## [0.2.0] - 2026-11-23\n\n- another change\n\n[needle]: tag/needle\n' > "$T/log-none.md"
+  changelog_entries "$T/log-released.md" | grep -qF 'ships the needle' || { echo "      a line only the 0.2.0 section holds was not read"; return 1; }
+  if changelog_entries "$T/log-none.md" | grep -qF 'needle'; then echo "      a changelog that names the text only in a link definition was read as naming it"; return 1; fi
+  [ "$(newest_release "$T/log-released.md")" = 0.3.0 ] || { echo "      the newest release of a changelog with 0.3.0 and 0.2.0 was not 0.3.0"; return 1; }
+  printf '# Changelog\n\n## [Unreleased]\n\n- first entries\n' > "$T/log-unreleased.md"
+  [ "$(newest_release "$T/log-unreleased.md")" = 0.1.0 ] || { echo "      a changelog with no release did not give 0.1.0"; return 1; }
+}
+check "page-design changelog reading counts any release and fails when no section names the text" changelog_reading
 
 # The theme file. Every run gets a throwaway HOME and a throwaway repository, so the user's own
 # ~/.design-theme.json is never read.
