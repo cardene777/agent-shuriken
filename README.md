@@ -8,7 +8,7 @@
 
 Each plugin hands a tedious chore to your agent and keeps you in charge of every irreversible step.
 The same plugin installs in Claude Code, Codex, and GitHub Copilot CLI, and its skill works in Gemini CLI and other agents that read `SKILL.md`.
-`agent-shared`, the command that places your own skills, rules, and hooks in every agent, lives in its own private repository, [cardene777/agent-shared](https://github.com/cardene777/agent-shared).
+`agent-shared`, the command that places your own skills, rules, and hooks in every agent, lives in its own repository, [cardene777/agent-shared](https://github.com/cardene777/agent-shared).
 
 English · [日本語](README.ja.md)
 
