@@ -59,6 +59,31 @@ GitHub Copilot CLIでは依頼の中に`/compare-report`と書き、Gemini CLI�
 表紙の右上には2つの切り替えがあります。言語の切り替え(English / 日本語)は、事実の表の見出しや候補の一覧のボタンのような枠の言葉を変え、レポートの本文は書いた言語のまま残します。明るい / 暗いは色を変えます。
 選ぶまでは、色はシステムの設定に従います。PDFは切り替えを除き、いつも明るい色で印刷します。
 
+## 自分の色と書体
+
+design-formatsのプラグインが入っていれば、レポートはpage-designの形式の意匠のfileから色と書体を取ります。
+エージェントは次の2つのうち先に在るfileを読みます。
+
+| 順 | file | 使い道 |
+|---|---|---|
+| 1 | repoの根の`.design-theme.json` | 1つのプロジェクトの見た目 |
+| 2 | `~/.design-theme.json` | 自分が作る全てのレポートの見た目 |
+
+当てるのは色と書体 (`light`と`dark`、`font.sans`と`font.mono`) だけで、文字の大きさと幅と角の丸みはレポートのままです。
+線と縞と副の文字の薄い色と濃い色は意匠の色から混ぜて作るので、どの背景にも馴染み、PDFは意匠の明るい色で印刷します。
+表紙と状態の色と種類の札は、自分の色のままです。
+
+```json
+{
+  "light": { "bg": "#fafaf7", "surface": "#ffffff", "ink": "#111111", "sub": "#444444", "line": "#dddddd", "accent": "#0b6e4f", "accent-ink": "#ffffff", "accent-soft": "#e3f2ec", "label": "#f2f2f2" },
+  "dark": { "bg": "#101312", "surface": "#181c1a", "ink": "#eeeeee", "sub": "#b0b8b4", "line": "#2c3330", "accent": "#5fd0a5", "accent-ink": "#0b1410", "accent-soft": "#1b3a2f", "label": "#1f2523" },
+  "font": { "sans": "\"Inter\", sans-serif", "mono": "\"JetBrains Mono\", monospace" }
+}
+```
+
+鍵と型はpage-designの`formats/theme.md`が持ちます。
+design-formatsか意匠のfileが無ければ、レポートは自分の色と書体のままです。
+
 ## 必要な物
 
 | ツール | 必要な時 |
@@ -66,7 +91,7 @@ GitHub Copilot CLIでは依頼の中に`/compare-report`と書き、Gemini CLI�
 | エージェントのWeb検索 | 常に。Claude CodeにもCodexにもあります。ほかのエージェントでは、Web検索が使える状態かを確かめてください |
 | `python3` | レポートを確かめる時。macOSに最初から入っている物で動きます |
 | Chrome、Chromium、Edge、Braveのどれか | PDFにする時。無い時はHTMLを渡すので、どのブラウザーからでも印刷できます |
-| `design-formats`のプラグイン | 任意です。`page-design`のスキルが入っていれば、エージェントはその形式に沿ってレポートを書き、棒グラフをdragonで描き、仕上がったページにその`verify`を回します |
+| `design-formats`のプラグイン | 任意です。`page-design`のスキルが入っていれば、エージェントはその形式に沿ってレポートを書き、意匠のfileを当て、棒グラフをdragonで描き、仕上がったページにその`verify`を回します |
 | Node.js | 任意です。`page-design`と一緒に使います。`npx`がグラフを描くdragonを取ってきます。無い時は、レポートはCSSの棒グラフのままです |
 | `musubi`のコマンド | 任意です。入っていれば、エージェントは`page-design`の形式を読む前に`musubi check`を回します |
 

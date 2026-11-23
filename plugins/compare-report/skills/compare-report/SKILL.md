@@ -6,8 +6,8 @@ description: Researches the candidates for a choice, such as libraries, tools, s
 # Compare report
 
 Research the candidates for a topic and write a comparison report as HTML and PDF.
-Talk to the user in the language they write in, and write the report in that language.
-Where it says to ask the user, use AskUserQuestion in Claude Code, and ask in the chat with numbered options in other agents.
+Talk to the user in their language, and write the report in it.
+Where it says to ask the user, use the agent's question tool, or ask in the chat with numbered options.
 
 Below, `D` is the absolute path of the folder that contains this `SKILL.md`, and each step names the file it uses there.
 When you run a command, put `D=<folder that contains this SKILL.md>` at the start of the same shell command.
@@ -55,8 +55,7 @@ When the user asks to forget the name, run `author.sh --forget`.
 ### 3. Research
 
 Follow `references/research-guide.md`.
-In Claude Code, research the candidates in parallel with one subagent per candidate, and wait for all of them before writing.
-In other agents, use sub-agents when the agent has them, and otherwise research one after another.
+Research the candidates in parallel with one sub-agent per candidate when the agent has sub-agents, and wait for all of them before writing; otherwise research them one after another.
 
 ### 4. Write the report
 
@@ -72,6 +71,7 @@ The topic slug uses lowercase letters, digits, and hyphens, such as `static-site
 
 When the `page-design` skill is installed, follow the `structure` and `look` formats and the `report` page type of the `page-design` skill: open the `page-design` skill by name and read the files it names for `structure`, `look`, `report`, and `verify`.
 If the `musubi` command is available, run `musubi check` before reading, and stop if it fails.
+Then apply the user's colors and fonts: `python3 <the file page-design names for verify> theme --keys light,dark,font.sans,font.mono <path of report.html>`, which reads `.design-theme.json` at the repository root, else `~/.design-theme.json`.
 If the `page-design` skill is not installed, go on with the templates of this skill, without the formats of `page-design`.
 
 Fill the template's cover facts, contents, summary, candidates, one section per axis, risks, ranking, and sources as `references/report-structure.md` describes, with each candidate's key on its card and its table rows.
@@ -105,11 +105,11 @@ D=<folder>; bash "$D/scripts/to-pdf.sh" <path of report.html>
 When it says the PDF contents show titles only, the PDF is still written; fix the cause it names, such as a contents link to a missing section, and print again, or tell the user why.
 
 Open the HTML for the user with `open` on macOS or `xdg-open` on Linux, give the paths of both files, and ask for feedback.
-When a sandbox asks, as Codex can, approve the commands, because they write outside the project folder and start a browser.
+When a sandbox asks, approve the commands; they write outside the project folder and start a browser.
 
 ### 6. Apply feedback
 
-Change the report as the user asks, such as its wording, its candidates or axes, or more research.
+Change the report as the user asks.
 After each change, run the check and print the PDF again.
 
 ## Report to the user
