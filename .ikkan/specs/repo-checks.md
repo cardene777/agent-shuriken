@@ -19,4 +19,5 @@
 | The motion-diagram plugin still passes validation after its release | `bash plugins/motion-diagram/skills/motion-diagram/tests/test-motion-diagram.sh` check `"claude plugin validate"` passes | #458 |
 | The page-design test still finds design-formats in the root changelog after the release moves the line into `0.21.0` | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh` check `"the changelogs name page-design"` passes | #462 |
 | The design-doc test still finds doc-formats in the root changelog after the release moves the line into `0.21.0` | `bash plugins/doc-formats/skills/design-doc/tests/test-design-doc.sh` check `"the changelogs name the shared design format"` passes | #462 |
-| Every plugin's version still matches the newest section of its changelog | `bash scripts/check.sh` check `"versions match the changelogs"` passes | #462 |
+| Every plugin's version still matches the newest section of its changelog | `bash scripts/check.sh` check `"versions match the changelogs"` passes | #462 #465 |
+| Every page keeps its Japanese counterpart with the same headings after the guide changes | `bash scripts/check.sh` check `"pages have Japanese counterparts"` passes | #465 |
