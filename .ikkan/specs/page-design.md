@@ -2,7 +2,7 @@
 
 | 条件 | 確かめ方 | 出元 |
 |---|---|---|
-| `design-formats`がpluginの一式 (2つの`plugin.json`を版`0.1.0`で、英語と日本語のREADME、`CHANGELOG.md`、`LICENSE`、`assets/icon.svg`、英語と日本語の`docs/how-it-works.md`、`skills/page-design/SKILL.md`、`agents/openai.yaml`) を持つ | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"design-formats holds the files of a plugin at version 0.1.0"`が通る | #265 |
+| `design-formats`がpluginの一式 (2つの`plugin.json`を`CHANGELOG.md`の最新の版で、英語と日本語のREADME、`CHANGELOG.md`、`LICENSE`、`assets/icon.svg`、英語と日本語の`docs/how-it-works.md`、`skills/page-design/SKILL.md`、`agents/openai.yaml`) を持つ | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"design-formats holds the files of a plugin at the version of its newest release"`が通る | #265 #460 |
 | marketplaceと、repoの英語と日本語のREADMEと`docs/publishing.md`が`design-formats`を載せる | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"the marketplace and the repository pages list design-formats"`が通る | #265 |
 | `musubi.json`が中身`structure`と`look` (`formats/<名前>.md`)、頁の型`report`と`sheet`と`document`と`choice` (`templates/<名前>.html`)、`verify` (`scripts/page-design.py`) を版`1.0.0`で出し、名指したfileが全て在る | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"page-design provides structure, look, four page types, and verify in musubi.json"`が通る | #265 |
 | `formats/structure.md`は、結論を先に書くこと、全体像を先に置いて詳細を段階的に出すこと、用語の説明を1か所に置いて各所から繋ぐこと、手順に生成物の実例を添えること、どうするかだけを書くことを返す | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"the structure format holds the order of an explanation"`が通る | #265 |
@@ -14,7 +14,7 @@
 | `verify`は頁の文を出力しない | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"verify prints rule names and line numbers, never the page's text"`が通る | #265 |
 | `SKILL.md`は、従うスキルがこのスキルを名前で開き、2つの書式を読み、頁の型の雛形を写し、`verify`を回す手順を返し、Claude Code以外のエージェントでの読み方も書く | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"the skill tells a following skill how to read the formats and run verify"`が通る | #265 |
 | `musubi check`が`page-design`を通す | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"musubi check accepts page-design"`が通る | #265 #270 #277 |
-| `design-formats`の`CHANGELOG.md`が版`0.1.0`の節で、repoの`CHANGELOG.md`が`## [Unreleased]`の下で`page-design`を名指す | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"the changelogs name page-design"`が通る | #265 |
+| `design-formats`の`CHANGELOG.md`が版`0.1.0`の節で、repoの`CHANGELOG.md`が`## [Unreleased]`か版の節で`page-design`を名指す | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"the changelogs name page-design"`が通る | #265 #460 |
 | repoの検査`scripts/check.sh`が、新しいplugin`design-formats`を含めて通る | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"the repository checks pass"`が通る | #265 |
 | `formats/look.md`の図の節は、量の比べに横棒、割合にドーナツ、分かれ道の無い手順に手順の帯、分かれ道のある手順に流れ図、部品のつながりに構成図、やり取りの順に時系列図、時間につれた変わり方に折れ線を使うことと、図を`<pre class="dragon" data-still>`の塊で書いて`dragon embed`で埋めることを返す | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"the look format maps each kind of information to a still dragon figure"`が通る | #270 |
 | レポートの雛形は、時間帯ごとの売り上げの横棒と種類ごとの売り上げの割合のドーナツを、英語と日本語の止めて置くdragonの塊で1つずつ持ち、`html[lang]`の言葉の塊だけを見せ、図の値は一覧の行の値と重ならない | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"the report template holds a still bar chart and a still donut in both languages"`が通る | #270 |

@@ -681,6 +681,16 @@ unreleased_line() { printf '%s\n' "$unreleased" | grep '^- ' | grep -i -- "$1" |
 check "the changelog has a line for each change of #237" \
   'unreleased_line "order of the plan" "scaffold" && unreleased_line "heading" "check" && unreleased_line "cannot be asked" "docs/"'
 
+# The changelog reading counts a line that only a released section holds, and finds nothing when no
+# section names the text (a link definition does not count).
+changelog_reading() {
+  printf '# Changelog\n\n## [Unreleased]\n\n## [0.3.0] - 2026-11-30\n\n- a later change\n\n## [0.2.0] - 2026-11-23\n\n- ships the needle\n\n[Unreleased]: compare/v0.3.0...HEAD\n[0.3.0]: tag/v0.3.0\n' > "$T/log-released.md"
+  printf '# Changelog\n\n## [Unreleased]\n\n- something else\n\n## [0.2.0] - 2026-11-23\n\n- another change\n\n[needle]: tag/needle\n' > "$T/log-none.md"
+  changelog_entries "$T/log-released.md" | grep -qF 'ships the needle' || { echo "      a line only the 0.2.0 section holds was not read"; return 1; }
+  if changelog_entries "$T/log-none.md" | grep -qF 'needle'; then echo "      a changelog that names the text only in a link definition was read as naming it"; return 1; fi
+}
+check "docs-publish changelog reading counts any release and fails when no section names the text" changelog_reading
+
 # descriptions: every place that says what the plugin does, one text per line.
 descriptions() {
   sed -n 's/^description: //p' "$SKILL"

@@ -50,4 +50,4 @@
 | `scan.json`は、走査したフォルダの絶対pathを`root`の欄に持ったままになる | `bash plugins/techdebt/skills/techdebt/tests/test-techdebt.sh`の検査`"scan.json keeps the absolute path of the scanned folder in root"`が通る | #372 |
 | `explain`で付けた注記は、今どおり報告のページに出る | `bash plugins/techdebt/skills/techdebt/tests/test-techdebt.sh`の検査`"notes are saved and shown in the report"`が通る | #372 |
 | 走査の要約は、今どおり走査したフォルダを`~`で始まる形で書く | `bash plugins/techdebt/skills/techdebt/tests/test-techdebt.sh`の検査`"the README summaries match one scan of the sample repository"`が通る | #372 |
-| `CHANGELOG.md`の`## [Unreleased]`と、READMEと`docs/how-it-works.md`の英語と日本語が、`report.html`は走査したフォルダのpathを持たず、ホームフォルダのpathを`~`で書くと説明する | `bash plugins/techdebt/skills/techdebt/tests/test-techdebt.sh`の検査`"the changelog, README, and how-it-works say the report keeps no path of the scanned folder"`が通る | #372 |
+| `CHANGELOG.md`の`## [Unreleased]`か版の節と、READMEと`docs/how-it-works.md`の英語と日本語が、`report.html`は走査したフォルダのpathを持たず、ホームフォルダのpathを`~`で書くと説明する | `bash plugins/techdebt/skills/techdebt/tests/test-techdebt.sh`の検査`"the changelog, README, and how-it-works say the report keeps no path of the scanned folder"`が通る | #372 #460 |

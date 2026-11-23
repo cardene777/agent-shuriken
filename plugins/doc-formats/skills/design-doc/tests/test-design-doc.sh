@@ -99,7 +99,7 @@ for path in (".claude-plugin/plugin.json", ".codex-plugin/plugin.json"):
         sys.exit(1)
 PYEOF
 }
-check "doc-formats holds the files of a plugin at version 0.1.0" plugin_files
+check "doc-formats holds the files of a plugin at the version of its newest release" plugin_files
 
 listed() {
   local page
@@ -374,6 +374,20 @@ changelogs() {
   unreleased "$REPO/CHANGELOG.md" | grep -q 'doc-formats'
 }
 check "the changelogs name the shared design format" changelogs
+
+# The changelog reading counts a line that only a released section holds, and finds nothing when no
+# section names the text (a link definition does not count). It also takes the newest
+# release as the version, and 0.1.0 before the first release.
+changelog_reading() {
+  printf '# Changelog\n\n## [Unreleased]\n\n## [0.3.0] - 2026-11-30\n\n- a later change\n\n## [0.2.0] - 2026-11-23\n\n- ships the needle\n\n[Unreleased]: compare/v0.3.0...HEAD\n[0.3.0]: tag/v0.3.0\n' > "$T/log-released.md"
+  printf '# Changelog\n\n## [Unreleased]\n\n- something else\n\n## [0.2.0] - 2026-11-23\n\n- another change\n\n[needle]: tag/needle\n' > "$T/log-none.md"
+  changelog_entries "$T/log-released.md" | grep -qF 'ships the needle' || { echo "      a line only the 0.2.0 section holds was not read"; return 1; }
+  if changelog_entries "$T/log-none.md" | grep -qF 'needle'; then echo "      a changelog that names the text only in a link definition was read as naming it"; return 1; fi
+  [ "$(newest_release "$T/log-released.md")" = 0.3.0 ] || { echo "      the newest release of a changelog with 0.3.0 and 0.2.0 was not 0.3.0"; return 1; }
+  printf '# Changelog\n\n## [Unreleased]\n\n- first entries\n' > "$T/log-unreleased.md"
+  [ "$(newest_release "$T/log-unreleased.md")" = 0.1.0 ] || { echo "      a changelog with no release did not give 0.1.0"; return 1; }
+}
+check "design-doc changelog reading counts any release and fails when no section names the text" changelog_reading
 
 printf '%d passed, %d failed (%d ran, %d skipped)\n' "$PASS" "$FAIL" "$((PASS + FAIL))" "$SKIP"
 [ "$FAIL" -eq 0 ]
