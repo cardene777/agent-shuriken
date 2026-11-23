@@ -12,9 +12,12 @@ const TEMPLATE = join(import.meta.dirname, "..", "..", "templates", "storyboard.
 
 /** The English labels the page shows first. The page's script holds both languages. */
 const EN = {
-  purpose: "What it is for", audience: "Who watches it", length: "Length", outputs: "Videos", start: "Starts at",
+  purpose: "What it is for", audience: "Who watches it", length: "Length", outputs: "Videos", start: "Starts at", app: "App",
   ok: "Rehearsed", missing: "Failed", skipped: "Not rehearsed", sends: "Sends something", pays: "Pays", step: "Step",
 };
+
+/** Where an app flow's app runs, by its platform. */
+const SYSTEMS = { mac: "macOS", ios: "iOS Simulator", android: "Android emulator" };
 
 const escape = (text) => String(text).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
@@ -24,7 +27,7 @@ function summary(flow) {
     ["audience", flow.audience],
     ["length", flow.length],
     ["outputs", (flow.outputs ?? ["16:9"]).join(", ")],
-    ["start", new URL(flow.url).origin],
+    flow.app === undefined ? ["start", new URL(flow.url).origin] : ["app", `${flow.app.id} (${SYSTEMS[flow.app.platform]})`],
   ].filter(([, value]) => value !== undefined && value !== "");
   return `<dl class="summary">${rows.map(([key, value]) => `<div><dt data-i18n="${key}">${EN[key]}</dt><dd>${escape(value)}</dd></div>`).join("")}</dl>`;
 }

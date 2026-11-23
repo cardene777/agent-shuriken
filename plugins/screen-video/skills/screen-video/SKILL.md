@@ -1,11 +1,11 @@
 ---
 name: screen-video
-description: Plans a screen video of a web app with the user, writes the flow as a file in the project, rehearses it into a storyboard of pictures, and records it in a browser into a raw video, a captioned video, and an edited video that zooms on each action, sets the screen in a themed frame with title, chapter, and end cards, reads the captions aloud, plays quiet music and click sounds, and fits a planned length, with a vertical video and a GIF in the same look. It also captions a recording the user made. Use when the user asks for a demo video, a product walkthrough, a screen recording of a web app, a video for a README or social media, or a GIF of a flow.
+description: Plans a screen video of a web app, a macOS app, or an app on the iOS Simulator or the Android emulator with the user, writes the flow as a file in the project, rehearses it into a storyboard of pictures, and records it into a raw video, a captioned video, and an edited video that zooms on each action, sets the screen in a themed frame with title, chapter, and end cards, reads the captions aloud, plays quiet music and click sounds, and fits a planned length, with a vertical video and a GIF in the same look. It also captions a recording the user made. Use when the user asks for a demo video, a product walkthrough, a screen recording of a web app or a desktop or phone app, a video for a README or social media, or a GIF of a flow.
 ---
 
 # Screen video
 
-This skill makes videos of a web app: it plans what the video shows with the user, writes that as a flow file, rehearses the flow into a storyboard of pictures, and records it only after the user has seen the storyboard.
+This skill makes videos of a web app, a macOS app, or a phone app on the iOS Simulator or the Android emulator: it plans what the video shows with the user, writes that as a flow file, rehearses the flow into a storyboard of pictures, and records it only after the user has seen the storyboard.
 Each recording gives a raw video, a captioned video, and an edited video, and, when the flow asks, a 9:16 video and a GIF in the same look.
 The edited video eases in on each action, moves the pointer on a curve and shows each press, dissolves between pages, sets the screen in a frame on the theme's background with title, chapter, and end cards, shows the captions below the screen and reads them aloud, plays quiet music and click and key sounds, plays long waits fast, and fits the length the user planned.
 
@@ -104,13 +104,34 @@ Tell the user it was removed, and that recording again needs the login again.
 S=<folder>/scripts; "$S/screen-video.sh" logout .screen-video/flows/<name>.json
 ```
 
+### An app instead of a web page
+
+An app flow is planned, rehearsed, and recorded the same way as a browser flow, on a macOS app's window, on the iOS Simulator, or on the Android emulator.
+Its flow has `app` in place of `url`, its first step is `open`, which brings the app up, and [the flow format](references/flow-format.md#app-flows) lists the targets and steps it takes.
+Each system needs tools installed once, and `setup` lists them with their sizes without installing anything.
+
+```bash
+S=<folder>/scripts; "$S/screen-video.sh" setup ios
+```
+
+Before running `setup mac`, `setup ios`, or `setup android` with `--yes`, tell the user what it installs and its size, and ask.
+`setup mac` builds this skill's own tool, and macOS then needs Screen Recording and Accessibility turned on for the app this agent runs in, such as Terminal.
+`setup mac --yes` and `record` open the settings page of each one that is off; tell the user to turn it on and to reopen that app.
+`setup ios` and `setup android` create the simulator `screen-video-ios` and the emulator `screen-video-android`, which only this skill uses, so the user's own simulators, emulators, and phones never get a command.
+For a phone app built in the project, set `app.install` to the `.app` or `.apk` build, which is installed before each run.
+
+`inspect` on an app flow opens the app and lists the parts on its screen by role, name, and testId, with the size of the coordinates a `point` target and a `swipe` use.
+The recording places the app in the middle of the 1920x1080 screen on the theme's background.
+The edit draws the pointer and each press on a macOS window and zooms in on each part pressed; on a phone it draws a touch mark at each tap and along each swipe, never zooms in, and fills the height of the 9:16 video.
+`mask` blurs a part by its target, by its text, or by a fixed `rect`, and the capture taken before the blur is deleted at once.
+
 ## 3. Rehearse and show the storyboard
 
 ```bash
 S=<folder>/scripts; "$S/screen-video.sh" rehearse .screen-video/flows/<name>.json
 ```
 
-The rehearsal runs the flow in a headless browser without recording, saves a picture of each step with its target outlined, and writes `storyboard.html`, which shows each picture with its action, its caption, and whether it ran, in English or Japanese.
+The rehearsal runs the flow in a headless browser, or on the app, without recording, saves a picture of each step with its target outlined, and writes `storyboard.html`, which shows each picture with its action, its caption, and whether it ran, in English or Japanese.
 It stops before the first step marked as sending something or paying, so nothing is sent while the flow is being written.
 When a step fails, the storyboard shows the page at that moment and the message names the step and its target; fix the flow and rehearse again.
 
@@ -188,6 +209,7 @@ Read the pictures, write `captions.json` next to them as `[{"start": 0.0, "end":
 | Videos | `<data folder>/<project>/<flow name>/`, with the rehearsal in `rehearsal/` inside it, and a part's own recording in `part/` |
 | Saved logins | `<data folder>/sessions/`, readable only by the user, until `logout` or, with `login.forget`, the end of `record` |
 | Playwright and ffmpeg | `<data folder>/node/`. An ffmpeg on `PATH` with libx264 is used first |
+| What app flows use | `<data folder>/apps/`: `mac/` for this skill's macOS tool and `idb/` for idb, which drives the iOS Simulator, installed by `setup mac` and `setup ios` |
 | The local voice engines | `<data folder>/voices/`: `kokoro/` for English, `aivisspeech/` for Japanese, and `voicevox/` when a flow chooses VOICEVOX |
 | Themes | Bundled in `themes/` next to this `SKILL.md`; the project's own in `.screen-video/themes/` |
 

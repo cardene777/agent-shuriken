@@ -3,6 +3,7 @@
 #
 # Usage:
 #   screen-video.sh setup                                   Install Playwright, its headless browser, and ffmpeg into the data folder
+#   screen-video.sh setup mac|ios|android [--yes]           List what recording that system's apps needs, with sizes; install it with --yes
 #   screen-video.sh doctor [--json]                         Say which ffmpeg and Playwright are used
 #   screen-video.sh inspect <flow> [--path <path>]          List the headings, buttons, links, and fields of a page
 #   screen-video.sh check <flow>                            Check a flow file and list the steps that send something or pay
@@ -59,6 +60,16 @@ finish_runtime() {
   echo "screen-video: installing the headless browser if it is missing" >&2
   node "$NODE_DIR/node_modules/playwright-core/cli.js" install chromium-headless-shell >&2 || exit 1
 }
+
+if [ "${1:-}" = "setup" ] && [ -n "${2:-}" ]; then
+  # setup mac|ios|android lists what it installs and changes nothing; with --yes, the runtime comes first
+  case " $* " in
+    *" --yes "*) if ! installed; then install_runtime; finish_runtime; fi ;;
+    *) installed || export SCREEN_VIDEO_RUNTIME_MISSING=1 ;;
+  esac
+  export SCREEN_VIDEO_HOME="$DATA_DIR" SCREEN_VIDEO_NODE_DIR="$NODE_DIR"
+  exec node "$HERE/screen_video.mjs" "$@"
+fi
 
 if [ "${1:-}" = "setup" ]; then
   if ! installed; then install_runtime; fi

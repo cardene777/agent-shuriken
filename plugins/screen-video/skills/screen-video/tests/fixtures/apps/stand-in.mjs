@@ -8,12 +8,13 @@
 // as one line, `<tool> <arguments>`. state.json keeps what the commands changed: the presses so far
 // (each with its time), booted simulators, running emulators, created devices, installed packages,
 // and a recording asked to stop. A recording is drawn with ffmpeg when it stops, from the moment it
-// began: the screen's colour, each part drawn as its `look` says (`button`, a black box; `detail`, a
-// moving pattern) while it is on the screen. A part with `after: n` shows from the n-th press, and one
+// began: the screen's colour, each part drawn as its `look` says (`button`, a black box; `detail`,
+// fine gray stripes that drift, which a blur leaves flat and which hold none of the colours the
+// checks look for) while it is on the screen. A part with `after: n` shows from the n-th press, and one
 // with `before: n` until it.
 
 import { spawnSync } from "node:child_process";
-import { appendFileSync, chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 const [scenarioFile, tool, ...rest] = process.argv.slice(2);
@@ -34,10 +35,13 @@ function state() {
     ? JSON.parse(readFileSync(STATE, "utf8"))
     : { presses: [], booted: [], running: [], avds: [], devices: [], runtimes: [], installed: [], stop: false };
 }
+/** Changes the state. It is written whole and then moved into place, as a recording reads it while a press writes it. */
 function change(fn) {
   const s = state();
   fn(s);
-  writeFileSync(STATE, JSON.stringify(s));
+  const written = `${STATE}.${process.pid}`;
+  writeFileSync(written, JSON.stringify(s));
+  renameSync(written, STATE);
   return s;
 }
 const out = (text) => process.stdout.write(text.endsWith("\n") ? text : `${text}\n`);
@@ -158,7 +162,7 @@ function draw(system, file, started) {
     const next = `p${n++}`;
     if (part.look === "button") lines.push(`[${current}]drawbox=x=${x}:y=${y}:w=${w}:h=${h}:color=black:t=fill:enable='${enable}'[${next}]`);
     else {
-      inputs.push("-f", "lavfi", "-i", `testsrc2=s=${w}x${h}:r=30:d=${seconds.toFixed(3)}`);
+      inputs.push("-f", "lavfi", "-i", `nullsrc=s=${w}x${h}:r=30:d=${seconds.toFixed(3)},geq=lum='128+70*sin(1.3*X+0.7*Y+6*T)':cb=128:cr=128`);
       const index = inputs.filter((a) => a === "-i").length - 1;
       lines.push(`[${current}][${index}:v]overlay=${x}:${y}:enable='${enable}'[${next}]`);
     }
@@ -322,6 +326,8 @@ function adb() {
     if (command === "devices") out(`List of devices attached\n${androidDevices().map((d) => `${d.serial}\tdevice`).join("\n")}\n`);
     return undefined;
   }
+  // wait-for-device waits for an emulator that is still starting
+  for (let i = 0; command === "wait-for-device" && i < 100 && !androidDevices().some((d) => d.serial === serial); i++) spawnSync("sleep", ["0.1"]);
   const device = androidDevices().find((d) => d.serial === serial);
   if (device === undefined) fail(`adb: device '${serial ?? ""}' not found`);
   const pkg = scenario().android.package;

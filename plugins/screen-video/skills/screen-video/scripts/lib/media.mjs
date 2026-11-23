@@ -14,12 +14,16 @@
  * | `toSrt` | Captions as the text of an SRT file |
  * | `detectScenes` | Pictures and times of the scene changes |
  * | `detectFreezes` | Stretches where the picture stays still |
+ * | `composeApp` | Places an app's recording on the 1920x1080 screen, blurring its masked areas, for `raw.mp4` |
+ * | `pictureApp` | A picture of an app with its masked areas blurred and a target outlined, for the storyboard |
+ * | `drawPresses` | Lays the pointer and press rings (macOS) or touch marks (phones) over an app's recording |
+ * | `joinSegments` | Joins the parts of a recording made one after another, keeping the gaps between them |
  *
  * Captions and cards are drawn as pictures and laid over with `overlay`, because many ffmpeg builds
  * cannot draw text (`drawtext`, `libass`).
  */
 import { spawnSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { ffmpegPath, filterScriptArgs } from "./runtime.mjs";
@@ -279,4 +283,137 @@ export function detectFreezes(input, { seconds = 3 } = {}) {
   const ends = [...text.matchAll(/freeze_end:\s*([0-9.]+)/g)].map((m) => Number(m[1]));
   const total = durationOf(input);
   return starts.map((start, index) => ({ start: Number(start.toFixed(3)), end: Number((ends[index] ?? total).toFixed(3)) }));
+}
+
+/** A colour of a theme (`#rgb` or `#rrggbb`) as ffmpeg takes it. */
+export function ffmpegColor(color) {
+  const hex = color.replace(/^#/, "");
+  return `0x${hex.length === 3 ? [...hex].map((c) => c + c).join("") : hex}`;
+}
+
+/**
+ * Filter lines that blur each of `areas` (`{ x, y, width, height }`, and `from` and `to` in seconds
+ * when the area is blurred only then) of the stream `from`. The area is shrunk to a sixteenth and
+ * stretched back, which leaves no readable detail at any size. Returns the label of the result.
+ */
+function blurAreas(lines, from, areas) {
+  let current = from;
+  areas.forEach((area, i) => {
+    const small = `${Math.max(2, Math.round(area.width / 16))}:${Math.max(2, Math.round(area.height / 16))}`;
+    const when = area.from === undefined ? "" : `:enable='between(t,${num(area.from)},${num(area.to)})'`;
+    lines.push(`[${current}]split[keep${i}][cut${i}]`);
+    lines.push(`[cut${i}]crop=${area.width}:${area.height}:${area.x}:${area.y},scale=${small}:flags=area,scale=${area.width}:${area.height}:flags=bilinear[blur${i}]`);
+    lines.push(`[keep${i}][blur${i}]overlay=${area.x}:${area.y}${when}[blurred${i}]`);
+    current = `blurred${i}`;
+  });
+  return current;
+}
+
+/**
+ * Writes `raw.mp4` of an app: `input` (the window or the phone's screen as recorded) scaled to
+ * `screen` (`{ x, y, width, height }` on the 1920x1080 screen) over `background`, at 30 frames a
+ * second, with each of `masks` (areas of the scaled recording) blurred while it shows.
+ */
+export function composeApp({ input, output, screen, background, masks = [], work }) {
+  const lines = [`[0:v]fps=${FPS},scale=${screen.width}:${screen.height}:flags=bicubic,setsar=1,format=yuv420p[app]`];
+  const blurred = blurAreas(lines, "app", masks);
+  lines.push(`color=c=${background}:s=${WIDTH}x${HEIGHT}:r=${FPS}[base]`);
+  lines.push(`[base][${blurred}]overlay=${screen.x}:${screen.y}:shortest=1,setsar=1,format=yuv420p[video]`);
+  const graph = graphFile(work, "app");
+  writeFileSync(graph, lines.join(";\n"));
+  ffmpeg(["-i", input, ...filterScriptArgs(graph), "-map", "[video]", "-an", "-r", String(FPS), ...ENCODE, output]);
+}
+
+/** Writes a picture of an app with each of `masks` blurred and an orange line around `outline`, in the picture's pixels. */
+export function pictureApp({ input, output, masks = [], outline, work }) {
+  const lines = ["[0:v]format=rgb24[shot]"];
+  let current = blurAreas(lines, "shot", masks);
+  if (outline !== undefined) {
+    lines.push(`[${current}]drawbox=x=${outline.x - 6}:y=${outline.y - 6}:w=${outline.width + 12}:h=${outline.height + 12}:color=0xe8590c:t=4[outlined]`);
+    current = "outlined";
+  }
+  const graph = graphFile(work, "picture");
+  writeFileSync(graph, lines.join(";\n"));
+  ffmpeg(["-i", input, ...filterScriptArgs(graph), "-map", `[${current}]`, "-frames:v", "1", output]);
+}
+
+/** A position along `points` (`{ t, x, y }`, in time order) at the filter's time `t`, straight between each two, as an expression. */
+function along(points, key) {
+  const first = points[0];
+  const last = points.at(-1);
+  const terms = [`lt(t,${num(first.t)})*${num(first[key])}`];
+  for (let i = 0; i + 1 < points.length; i++) {
+    const a = points[i];
+    const b = points[i + 1];
+    if (b.t <= a.t) continue;
+    terms.push(`gte(t,${num(a.t)})*lt(t,${num(b.t)})*(${num(a[key])}+${num(b[key] - a[key])}*(t-${num(a.t)})/${num(b.t - a.t)})`);
+  }
+  terms.push(`gte(t,${num(last.t)})*${num(last[key])}`);
+  return terms.join("+");
+}
+
+/**
+ * Writes `output`: `input` with the presses of an app drawn over it. `pictures` holds the drawn
+ * `arrow`, the frames of a press `ring` and a `touch` mark (`{ pattern, size }`, 30 a second), and
+ * the `touch` mark's `still`. `pointer` lists where the arrow is (`{ t, x, y }`, its picture's top left, as the browser's pointer is placed),
+ * `rings` and `touches` the presses (`{ t, x, y }`, their middles), and `swipes` the swipes
+ * (`{ t, seconds, from, to }`).
+ */
+export function drawPresses({ input, output, pictures, pointer = [], rings = [], touches = [], swipes = [], work }) {
+  const inputs = ["-i", input];
+  const lines = ["[0:v]format=yuv420p[p0]"];
+  let n = 0;
+  const add = (args) => {
+    inputs.push(...args);
+    return inputs.filter((arg) => arg === "-i").length - 1;
+  };
+  const over = (index, prepare, place) => {
+    lines.push(`[${index}:v]format=rgba,${prepare}[m${n}]`);
+    lines.push(`[p${n}][m${n}]overlay=${place}:eof_action=pass[p${n + 1}]`);
+    n++;
+  };
+  for (const [marks, picture] of [
+    [rings, pictures.ring],
+    [touches, pictures.touch],
+  ]) {
+    for (const mark of marks) {
+      const index = add(["-framerate", String(FPS), "-i", picture.pattern]);
+      const half = picture.size / 2;
+      over(index, `setpts=PTS-STARTPTS+${num(mark.t)}/TB`, `${Math.round(mark.x - half)}:${Math.round(mark.y - half)}`);
+    }
+  }
+  for (const swipe of swipes) {
+    const half = pictures.touch.size / 2;
+    const index = add(["-loop", "1", "-framerate", String(FPS), "-t", num(swipe.seconds + 0.25), "-i", pictures.touch.still]);
+    const u = `clip((t-${num(swipe.t)})/${num(swipe.seconds)},0,1)`;
+    const x = `${num(swipe.from.x - half)}+${num(swipe.to.x - swipe.from.x)}*${u}`;
+    const y = `${num(swipe.from.y - half)}+${num(swipe.to.y - swipe.from.y)}*${u}`;
+    over(index, `setpts=PTS-STARTPTS+${num(swipe.t)}/TB`, `x='${x}':y='${y}':eval=frame`);
+  }
+  if (pointer.length > 0) {
+    const index = add(["-loop", "1", "-framerate", String(FPS), "-t", num(durationOf(input)), "-i", pictures.arrow]);
+    over(index, "null", `x='${along(pointer, "x")}':y='${along(pointer, "y")}':eval=frame`);
+  }
+  lines.push(`[p${n}]format=yuv420p[video]`);
+  const graph = graphFile(work, "presses");
+  writeFileSync(graph, lines.join(";\n"));
+  ffmpeg([...inputs, ...filterScriptArgs(graph), "-map", "[video]", "-an", "-r", String(FPS), "-c:v", "libx264", "-preset", "veryfast", "-crf", "16", "-pix_fmt", "yuv420p", output]);
+}
+
+/**
+ * Writes `output` from recordings made one after another (`{ file, at }`, `at` the seconds from the
+ * first one's start), holding each one's first frame over the gap before it, so times stay true.
+ */
+export function joinSegments(parts, output) {
+  if (parts.length === 1) {
+    renameSync(parts[0].file, output);
+    return;
+  }
+  const inputs = parts.flatMap((part) => ["-i", part.file]);
+  const lines = parts.map((part, i) => {
+    const before = i === 0 ? 0 : Math.max(0, part.at - (parts[i - 1].at + durationOf(parts[i - 1].file)));
+    return `[${i}:v]fps=${FPS},setpts=PTS-STARTPTS${before > 0 ? `,tpad=start_duration=${num(before)}:start_mode=clone` : ""},setsar=1[s${i}]`;
+  });
+  lines.push(`${parts.map((_, i) => `[s${i}]`).join("")}concat=n=${parts.length}:v=1:a=0[video]`);
+  ffmpeg([...inputs, "-filter_complex", lines.join(";"), "-map", "[video]", "-an", ...ENCODE, output]);
 }

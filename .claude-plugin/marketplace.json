@@ -123,7 +123,7 @@
     {
       "name": "screen-video",
       "source": "./plugins/screen-video",
-      "description": "Plan a screen video of a web app with your agent, check it as a storyboard of pictures, and record it in a browser into narrated videos with quiet music, a themed frame, title and chapter cards, and a zoom on each action, as 16:9, 9:16, and GIF, blurring private values and stopping before steps that send something or pay"
+      "description": "Plan a screen video of a web app, a macOS app, or an app on the iOS Simulator or the Android emulator with your agent, check it as a storyboard of pictures, and record it into narrated videos with quiet music, a themed frame, title and chapter cards, and a zoom on each action, as 16:9, 9:16, and GIF, blurring private values and stopping before steps that send something or pay"
     },
     {
       "name": "secure-dotfile",

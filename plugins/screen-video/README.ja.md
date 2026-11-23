@@ -1,6 +1,6 @@
 # Screen Video
 
-Webアプリの動画をエージェントと一緒に計画し、操作ごとの画を並べた台本で確かめてから、字幕付き、編集済み、縦長、GIFの動画に撮ります。動画は読み上げと曲付きで、選んだ見た目に仕上げます。
+Webアプリ、macOSのアプリ、電話のアプリの動画をエージェントと一緒に計画し、操作ごとの画を並べた台本で確かめてから、字幕付き、編集済み、縦長、GIFの動画に撮ります。動画は読み上げと曲付きで、選んだ見た目に仕上げます。
 
 [English](README.md) · 日本語
 
@@ -63,6 +63,38 @@ GitHub Copilot CLIでは依頼の中に`/screen-video`と書き、Gemini CLIで�
 ボタンと入力欄は、スクリーンリーダーが読み上げる名前で指すため、画面の配置が変わっても流れはそのまま動きます。
 全ての項目は[流れの書式](skills/screen-video/references/flow-format.md)にあります。
 
+## macOSのアプリとiOS SimulatorとAndroidエミュレーター
+
+流れに`url`の代わりに`app`を書くと、ウェブの頁ではなくアプリを撮ります。計画、通し、録画の進め方は同じです。
+
+```json
+{
+  "version": 1,
+  "name": "notes-ios",
+  "app": { "platform": "ios", "id": "com.example.notes", "install": "build/Notes.app" },
+  "mask": [{ "rect": [0, 0, 390, 50] }],
+  "steps": [
+    { "do": "open", "caption": "Open Notes" },
+    { "do": "click", "target": { "role": "button", "name": "New note" }, "caption": "Start a note" },
+    { "do": "swipe", "from": [195, 600], "to": [195, 300], "caption": "Scroll down" }
+  ]
+}
+```
+
+部品はウェブの頁と同じく役割と名前で指し、名前の無い部品はアプリの座標の`point`で指します。
+`swipe`は電話の画面を指でなぞり、`mask`は部品と文に加えて決まった範囲の`rect`もぼかせます。
+アプリはテーマの背景の上で動画の中央に置きます。編集では、macOSの窓にはポインターと押した所の輪を描き、電話には触れた所の印を描きます。縦の動画では電話が高さいっぱいに収まります。
+
+道具はシステムごとに1回入れます。エージェントは入れる物と大きさを先に見せ、あなたが同意した後でだけ入れます。
+
+| 命令 | 入れる物 |
+|---|---|
+| `setup mac` | このプラグインのmacOS用の道具。XcodeのSwiftのコンパイラ`swiftc`で組み立て、約1MBです。その後、エージェントを動かすアプリ(Terminalなど)に「画面収録」と「アクセシビリティ」を許可します。設定の頁はエージェントが開きます |
+| `setup ios` | Pythonの仮想環境に入れるidbと、Homebrewから入れるidb_companionで約70MB。XcodeにiOSのランタイムが無ければ約8GBのランタイム。そしてシミュレーター`screen-video-ios` |
+| `setup android` | Android SDKのplatform-tools、emulator、Android 35のシステムイメージで約4.4GB。そしてエミュレーター`screen-video-android` |
+
+電話の流れは`screen-video-ios`か`screen-video-android`の上でだけ動くため、あなたのシミュレーター、エミュレーター、電話には命令を送りません。
+
 ## 作る動画
 
 | ファイル | 中身 |
@@ -96,6 +128,9 @@ GitHub Copilot CLIでは依頼の中に`/screen-video`と書き、Gemini CLIで�
 | libx264を持つffmpeg | 無くても動きます。`PATH`にあれば、同梱の物の代わりに使います |
 | `bsdtar`か7-Zip(`7zz`) | 日本語の読み上げを手元で作る時だけ、AivisSpeech Engineを展開するために使います。macOSには`bsdtar`があります |
 | Python 3.10以降 | 流れがVOICEVOXを選んだ時だけ |
+| macOS 14以降とXcodeのコマンドラインツール | macOSのアプリの流れだけ |
+| XcodeとPython 3とHomebrew | iOS Simulatorの流れだけ |
+| Android SDKのコマンドラインツールとJava | Androidエミュレーターの流れだけ。Android Studioが両方を入れます |
 
 グローバルにはパッケージを入れません。
 初回は`playwright-core`とそのヘッドレスブラウザと`ffmpeg-static`を取得するため、1分ほど掛かります。初めての`login`は、窓を出すために普通のChromium (約150MB) も取得します。
@@ -110,7 +145,9 @@ GitHub Copilot CLIでは依頼の中に`/screen-video`と書き、Gemini CLIで�
 
 - 流れが名指しする頁だけを手元のマシンのブラウザで開きます。頁の文は見せる材料として扱い、指示としては従いません
 - ログインの値は流れが名指しするenvファイルから読み、表示もファイルへの書き出しもしません。手でしたログインは`~/.local/share/screen-video/sessions/`に保存し、あなただけが読めるようにします。`logout`を打つまで、流れに`login.forget`がある時は録画が終わるまで残します
-- 流れの`mask`に挙げた値を、全てのコマでぼかします
+- 流れの`mask`に挙げた値を、全てのコマでぼかします。アプリでは、ぼかす前に撮った動画をすぐに消します
+- アプリの流れでは、流れが名指しするアプリだけを押して入力します。macOSのアプリの窓か、専用のシミュレーター`screen-video-ios`かエミュレーター`screen-video-android`の上だけで、ほかの端末には触れません
+- `setup mac`、`setup ios`、`setup android`は、あなたが同意するまで何も変えません。同意した後で、idbをPyPIから、idb_companionをHomebrewから、iOSのランタイムをXcode経由で、Androidの部品を`sdkmanager`経由で取得します
 - 送信か支払いの印を付けた最初の操作の手前で通しを止め、その操作はあなたが同意した後でだけ撮ります
 - 別のフォルダを指定しない限り、動画は`~/.local/share/screen-video/<project>/<flow>/`に書きます。自分が書いていないファイルを含むフォルダは空にしません
 - 初回に`playwright-core`とそのブラウザと`ffmpeg-static`を1回取得し、読み上げる流れを初めて撮る時に声の道具を1回取得します
