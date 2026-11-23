@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-11-23
+
 - A part added with `addsTo` is joined from 0.05 seconds before its first step, as a recording's own edit starts. Before, the joined video showed the blank page of the browser starting for a few seconds where the part began, with the caption of the step before still on screen
 
 ## [0.3.0] - 2026-11-23
@@ -36,7 +38,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - A rehearsal stops before the first step marked with `effect`, and `record` runs marked steps only with `--confirm-effects`. A run stops, naming them, instead of emptying a folder that holds files it did not write
 - `scenes` and `render` caption and edit a recording the user made, from pictures of its scene changes and the captions the agent writes
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/screen-video--v0.3.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/screen-video--v0.3.1...HEAD
+[0.3.1]: https://github.com/cardene777/agent-shuriken/releases/tag/screen-video--v0.3.1
 [0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/screen-video--v0.3.0
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/screen-video--v0.2.0
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/screen-video--v0.1.0
