@@ -2990,45 +2990,77 @@ import json, re, sys
 blocks = json.loads(sys.argv[1])
 today = {"light": {"panel-2": "#fafafb", "line-2": "#d2d2d8", "ink-2": "#3c3c44", "ink-3": "#6e6e78", "ink-faint": "#6b6b75", "rule": "#8a8a95", "track": "#f1f1f4"},
          "dark": {"panel-2": "#20252c", "line-2": "#414955", "ink-2": "#c9ced6", "ink-3": "#a3abb7", "ink-faint": "#98a1ae", "rule": "#666e7b", "track": "#262c35"}}
-def rgb(value):
-    value = value.strip().lower()
-    m = re.fullmatch(r"#([0-9a-f]{3}|[0-9a-f]{6})", value)
+def hex_rgb(value):
+    m = re.fullmatch(r"#([0-9a-f]{3}|[0-9a-f]{6})", value.strip().lower())
     if not m:
         return None
     h = m.group(1)
     if len(h) == 3:
         h = "".join(c * 2 for c in h)
     return [int(h[i:i + 2], 16) for i in (0, 2, 4)]
-MIX = re.compile(r"color-mix\(\s*in\s+srgb\s*,\s*var\(--([a-z0-9-]+)\)\s*(\d+(?:\.\d+)?)%\s*,\s*var\(--([a-z0-9-]+)\)\s*(?:(\d+(?:\.\d+)?)%)?\s*\)$")
-def resolve(tokens, name, depth=0):
-    value = tokens.get(name, "")
-    if depth > 8:
-        return None
+def split_top(text):
+    parts, depth, cur = [], 0, ""
+    for c in text:
+        if c == "(":
+            depth += 1
+        elif c == ")":
+            depth -= 1
+        if c == "," and depth == 0:
+            parts.append(cur.strip())
+            cur = ""
+        else:
+            cur += c
+    parts.append(cur.strip())
+    return parts
+class NotMix(Exception):
+    pass
+# evaluate: the color of a value made only of var() references and color-mix() in srgb.
+def evaluate(value, tokens, depth=0):
+    value = value.strip()
+    if depth > 12:
+        raise NotMix("references loop")
     m = re.fullmatch(r"var\(--([a-z0-9-]+)\)", value)
     if m:
-        return resolve(tokens, m.group(1), depth + 1)
-    return rgb(value)
+        ref = tokens.get(m.group(1))
+        if ref is None:
+            raise NotMix("--%s is not defined" % m.group(1))
+        color = hex_rgb(ref)
+        return color if color is not None else evaluate(ref, tokens, depth + 1)
+    m = re.fullmatch(r"color-mix\((.*)\)", value, re.S)
+    if not m:
+        raise NotMix("%r is neither var() nor color-mix()" % value)
+    parts = split_top(m.group(1))
+    if len(parts) != 3 or parts[0] != "in srgb":
+        raise NotMix("%r does not mix two colors in srgb" % value)
+    colors, weights = [], []
+    for part in parts[1:]:
+        w = re.search(r"\s(\d+(?:\.\d+)?)%$", part)
+        colors.append(evaluate(part[:w.start()] if w else part, tokens, depth + 1))
+        weights.append(float(w.group(1)) if w else None)
+    if weights[0] is None and weights[1] is None:
+        weights = [50.0, 50.0]
+    elif weights[1] is None:
+        weights[1] = 100 - weights[0]
+    elif weights[0] is None:
+        weights[0] = 100 - weights[1]
+    total = weights[0] + weights[1]
+    return [(colors[0][i] * weights[0] + colors[1][i] * weights[1]) / total for i in range(3)]
 problems = []
 for side, base in (("light", "light"), ("system", "dark"), ("chosen", "dark")):
     tokens = dict(blocks.get("light") or {})
     if side != "light":
         tokens.update(blocks.get(side) or {})
     for name, want in today[base].items():
-        own = (blocks.get(side) or {}).get(name) if side != "light" else tokens.get(name)
-        value = own if own is not None else tokens.get(name, "")
-        m = MIX.match(value)
-        if not m:
-            problems.append("%s --%s is %r, not a color-mix of two tokens" % (side, name, value))
+        value = tokens.get(name, "")
+        if not value.startswith("color-mix("):
+            problems.append("%s --%s is %r, not a color-mix of the base tokens" % (side, name, value))
             continue
-        a, b = resolve(tokens, m.group(1)), resolve(tokens, m.group(3))
-        p = float(m.group(2)) / 100
-        if m.group(4):
-            p = p / (p + float(m.group(4)) / 100)
-        if a is None or b is None:
-            problems.append("%s --%s mixes a token that is not a color" % (side, name))
+        try:
+            got = [round(c) for c in evaluate(value, tokens)]
+        except NotMix as err:
+            problems.append("%s --%s: %s" % (side, name, err))
             continue
-        got = [round(a[i] * p + b[i] * (1 - p)) for i in range(3)]
-        exp = rgb(want)
+        exp = hex_rgb(want)
         if max(abs(got[i] - exp[i]) for i in range(3)) > 2:
             problems.append("%s --%s mixes to %s, today %s" % (side, name, "#%02x%02x%02x" % tuple(got), want))
 print("; ".join(problems[:4]))
