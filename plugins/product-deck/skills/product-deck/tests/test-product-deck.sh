@@ -50,13 +50,19 @@ holds_one_skill() {
   grep -qx "name: $NAME" "$SKILL" || { why="SKILL.md does not say name: $NAME"; return 1; }
 }
 
-# Prints file:line for every line under the folders given that names the author's PC, products, or
-# other repositories. The words are built from parts so that this file does not hold them.
-names_of_this_pc() {
-  python3 - "$@" <<'PY'
+# The shapes no file of a public plugin may hold, one regular expression per line: a home folder on
+# macOS or Linux where a path starts (a throwaway HOME such as $T/case/home/ is not one), the
+# configuration folder of a local agent, and an issue reference. They are general shapes only, so
+# this file names no product, company, or person.
+SHAPES='(?<![A-Za-z0-9_.-])/(?:Users|home)/[A-Za-z0-9._-]+
+~/[.](?:claude|codex)/
+\b(?:GH|Issue) #[0-9]+'
+
+# Prints file:line for every line under the folders given that holds one of SHAPES.
+private_shapes_in() {
+  SHAPES="$SHAPES" python3 - "$@" <<'PY'
 import os, re, sys
-pattern = re.compile("/Us" "ers/|~/[.]co" "dex/|~/[.]cl" "aude/|\\b(?:G" "H|Iss" "ue) #\\d+|agent-con" "figs"
-                     "|(?i:jf" "et|kagi" "ban)|\\bO" "WS\\b")
+pattern = re.compile("|".join(os.environ["SHAPES"].splitlines()))
 images = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico")
 for top in sys.argv[1:]:
     for folder, _, files in os.walk(top):
@@ -74,11 +80,8 @@ PY
 no_local_names() {
   need "$SKILL" || return 1
   local hits
-  # The scan catches a planted line, so an empty result means the words are absent.
-  mkdir -p "$T/control"
-  printf 'see %s and %s\n' "G""H #12" "~/.co""dex/config" > "$T/control/planted.md"
-  [ "$(names_of_this_pc "$T/control" | grep -c .)" = 1 ] || { why="the scan misses a planted line"; return 1; }
-  hits="$(names_of_this_pc "$PLUGIN_DIR")"
+  # The scan catches planted lines (scan_lists_general_shapes), so an empty result means the shapes are absent.
+  hits="$(private_shapes_in "$PLUGIN_DIR")"
   [ -z "$hits" ] || { why="found at: $(printf '%s ' $hits)"; return 1; }
 }
 
@@ -110,8 +113,9 @@ if len(lines) != 3 or any(c in found[0] for c in "\"$`"):
 rest = re.sub(r"\\[bdsw]|\[[^]]*\]|\b(?:Users|home|claude|codex|GH|Issue)\b", "", found[0])
 if re.search(r"[A-Za-z]", rest):
     sys.exit("SHAPES holds a word other than the general shapes: %r" % rest)
-if source.count("re.compile(") != 1 or 're.compile("|".join(os.environ["SHAPES"].splitlines()))' not in source:
-    sys.exit("the scan compiles a pattern other than SHAPES")
+compiled = re.findall(r"^\s*\w+ = re[.]compile[(](.*)[)]$", source, re.M)
+if compiled != ['"|".join(os.environ["SHAPES"].splitlines())']:
+    sys.exit("the scan compiles a pattern other than SHAPES: %r" % compiled)
 PY
 )" || { why="$said"; return 1; }
   mkdir -p "$T/shapes"

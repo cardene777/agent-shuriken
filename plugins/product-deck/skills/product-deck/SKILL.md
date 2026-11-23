@@ -149,6 +149,22 @@ A slide's style is chosen by its `kind`. Slides of one `kind` are built by one f
 
 **Write no words in the layout code**, including words with numbers such as "all three"; every word on a slide goes in `deck-data.mjs`.
 
+**Take the look from the user's theme file when there is one.** Run this in the user's repository before writing `deck-styles.mjs` and `deck-base-css.mjs`:
+
+```bash
+node "$S/theme.mjs"
+```
+
+It reads `.design-theme.json` at the root of the repository, or else `~/.design-theme.json`: the theme file the page-design skill of design-formats also reads, so the user's pages and decks look the same.
+
+| What it prints | What to do |
+|---|---|
+| A `:root { ... }` block | Put the block at the top of `deck-base-css.mjs`, and write `deck-styles.mjs` so that every style takes its colors, type, and corners from the theme through those variables (`var(--accent)`, `var(--ink)`, `var(--sans)`, `var(--radius)`); the styles then differ only in layout |
+| Nothing, saying there is no theme file | There is no theme: pick one main color for the deck, with neutrals only, as `references/deck-structure.md` asks |
+| Exit 2, naming each key it refused | Show the user the keys, and go on without the theme only when the user says so |
+
+The theme's text size and page width are not used: slides are 1920x1080, and their text stays at 22px or more.
+
 ### 6. Render
 
 There are four renderers, and each takes `PLAYWRIGHT_FROM`:
@@ -183,15 +199,16 @@ There are three checks. `build-decks.mjs` runs the first two inside; call them d
 node "$S/audit-text.mjs" <deck>/build/deck-data.mjs --terms <deck>/build/writing-terms.txt
 ```
 
+It always runs its built-in rules: one thing called by different words, a core word before its explanation, and a person doing a thing's action (Japanese only).
 It reads two word lists, and the plugin ships neither:
 
-| List | Default place | What it holds |
-|---|---|---|
-| The words to drop | `~/.product-deck/prose-words.txt`, or `--prose-words <path>` | The user's own words to drop from any deck, by kind (wordy phrases, words the reader does not know, the maker's notes, bare English words) |
-| The deck's terms | `~/.product-deck/writing-terms.txt`, or `--terms <path>` | The words this deck decided on, the core words and the slides that explain them, and the phrases it keeps |
+| List | Default place | What it holds | When it is missing |
+|---|---|---|---|
+| The words to drop | `~/.product-deck/prose-words.txt`, or `--prose-words <path>` | The user's own words to drop from any deck, by kind (wordy phrases, words the reader does not know, the maker's notes, bare English words); each kind adds a check | The built-in rules run alone, and the script says that no word list was found. A path passed with `--prose-words` that does not exist stops it with exit 2 |
+| The deck's terms | `~/.product-deck/writing-terms.txt`, or `--terms <path>` | The words this deck decided on, the core words and the slides that explain them, and the phrases it keeps | No check runs; it exits 2 naming the place it looked |
 
 Write the deck's terms yourself in `<deck>/build/writing-terms.txt`, from the decisions of `plan.md` and `content.md`.
-When the list of words to drop is missing, the script runs no check and exits 2 naming the place it looked: ask the user in the chat where their list is, or whether to start one in `~/.product-deck/prose-words.txt`.
+The list of words to drop is the user's own, and the check runs without it; when the user keeps one elsewhere, pass it with `--prose-words <path>`.
 `docs/how-it-works.md` of the plugin shows how to write both lists.
 Passives and katakana words are listed, not flagged: look at them and decide.
 
@@ -348,6 +365,7 @@ Each was met once and fixed; none is a guess.
 - [ ] The headings and explanations were read aloud in one go against each section of `references/writing-rules.md`
 - [ ] The user approved the structure
 - [ ] Every word on the slides is in `build/deck-data.mjs`, and the layout code holds no words
+- [ ] `theme.mjs` was run, and with a theme every style takes the theme's colors, type, and corners
 - [ ] `node build/build-deck.mjs` printed `flagged 0 slides`
 - [ ] `node build/build-decks.mjs` printed `flagged 0 slides` for both the layout and the wording
 - [ ] `node build/measure-shot-glyph.mjs` reported no cutout under 22px
@@ -371,6 +389,7 @@ Each was met once and fixed; none is a guess.
 | `scripts/capture.mjs` | Takes a screenshot of one page |
 | `scripts/audit.mjs` | Checks the rendered slides. Run until nothing is flagged |
 | `scripts/audit-text.mjs` | Checks the wording from the data, before rendering |
+| `scripts/theme.mjs` | Reads the user's theme file and prints the CSS variables a deck takes from it |
 | `scripts/shoot.mjs` | Renders each slide of a style at full size |
 | `scripts/render.mjs` | Renders the slides of a deck HTML to 1920x1080 PNG files |
 | `scripts/glyph-fit.mjs` | Measures whether icons fit their containers |
