@@ -67,6 +67,7 @@ Pick a figure for every section.
 | HTML figure | `html` block with a `caption` | Parts and how they connect, flows, layers, ownership, anything spatial |
 | Chart | `chart` block (`timeband`, `capbar`, `bars`, `period`) | Times of day, amounts against a limit, comparing numbers, periods on a year axis |
 | Step ladder | `html` block holding a ladder slot | Steps that each carry four or more items (number, action, what is called, the gate, who acts, where the result goes) |
+| Moving picture | `motion` block naming a page that `motion-diagram render` wrote | A mechanism whose shape is easiest to follow in motion: things come in, pass checks that drop some, and reach a person or an end |
 
 A section without a figure states why in `nofigure` (for example a section that is only a glossary or only a list of sources).
 Do not use `nofigure` to save the work of drawing.
@@ -119,6 +120,12 @@ For `html` figures:
 - `<script>`, attributes starting with `on`, and anything that loads from outside (`<link>`, `<iframe>`, ...) are refused by `render.py`
 - The `css` of a block applies only inside that block
 - Put the legend of line styles right under the figure, never inside a `details` block
+
+For `motion` figures:
+
+- Use one only when the `motion-diagram` skill is installed. Have it write the page with `motion-diagram render`, put the page next to the content JSON, and name it in `page` with a `caption`. Without that skill, draw the section as an HTML figure
+- `render.py` reads only that page file, refuses a page that `motion-diagram render` did not write, and carries the page byte for byte in a frame of the figure, so the finished document stays one file that loads nothing
+- In the document the picture runs once when its section is first shown, shows its finished picture until then, takes the light or dark of the document, and prints finished
 
 For Japanese documents, also write a term table: one line per word to avoid, `word -> replacement`, and `allow: phrase` for phrases that may keep the word (for example a glossary row that shows the original term in parentheses).
 When you align a name between the text and a figure, add the old name to the table so it cannot come back.

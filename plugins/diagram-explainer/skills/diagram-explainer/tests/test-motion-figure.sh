@@ -56,10 +56,10 @@ import json, sys
 out, lang, first, second = sys.argv[1:5]
 ja = lang == "ja"
 def section(key, page, n):
-    blocks = [{"type": "paragraph", "text": "仕組みを示す。" if ja else "The flow of a pull request."}]
+    blocks = [{"type": "paragraph", "text": "\u4ed5\u7d44\u307f\u3092\u793a\u3059\u3002" if ja else "The flow of a pull request."}]
     if page:
         blocks.append({"type": "motion", "id": key + "-flow", "page": page,
-                       "caption": ("図" if ja else "Figure ") + "1 " + ("変更の流れ" if ja else "Pull requests reach main")})
+                       "caption": ("\u56f3" if ja else "Figure ") + "1 " + ("\u5909\u66f4\u306e\u6d41\u308c" if ja else "Pull requests reach main")})
         return {"id": key + "-s1", "title": "Flow %d" % n, "blocks": blocks}
     return {"id": key + "-s1", "title": "Flow %d" % n, "nofigure": "text only", "blocks": blocks}
 doc = {"title": "Pull requests", "lead": "How a pull request reaches main.", "lang": lang,
