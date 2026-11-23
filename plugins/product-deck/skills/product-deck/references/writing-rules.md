@@ -26,7 +26,7 @@ A rule without a check is passed over: five forms this file already forbade rema
 | Do not leave one letter on the last line | `last line of a wrapped explanation is too short` | `audit.mjs` |
 | Do not write the slide text into the layout code | Seen on the editing screen (as items that match no value) | Editing screen |
 | Open up loan words | Listed only (the words of the field are not shortened) | `audit-text.mjs` |
-| Words to drop from the text | One check per kind of `prose-words.txt` | `audit-text.mjs` with `~/.product-deck/prose-words.txt` |
+| Words to drop from the text | One check per kind of `prose-words.txt`, when the user keeps one | `audit-text.mjs` with `~/.product-deck/prose-words.txt` |
 
 The last row has no section in this file: the words and their kinds live in the user's `prose-words.txt` (wordy phrases, words the reader does not know, the maker's notes, bare English words, and whatever kinds the list adds).
 Writing them here too would put the same content in two places.

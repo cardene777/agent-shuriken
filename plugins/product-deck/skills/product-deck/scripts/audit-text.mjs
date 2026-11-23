@@ -9,9 +9,14 @@
    The deck data exports `faces`, an array with one object per slide (`export const faces = [...]`).
 
    Two word lists are read, and neither ships with the plugin:
-     --prose-words  the words to drop from the text, default ~/.product-deck/prose-words.txt
+     --prose-words  the user's words to drop from the text, default ~/.product-deck/prose-words.txt
      --terms        the deck's own terms, default ~/.product-deck/writing-terms.txt
-   When a list is missing, no check runs and the script exits 2, naming the place it looked.
+   The built-in rules always run: one thing called by different words and a core word before its
+   explanation, which the terms drive, and a person doing a thing's action, a Japanese pattern held
+   here. The word list adds one check per kind. Without a list in the home folder, the built-in rules
+   run alone and the script says that no word list was found; a list passed with --prose-words that
+   does not exist stops the run, because the caller chose it. The terms are the deck's own and are
+   written with the deck, so without them no check runs. Both refusals exit 2, naming the place looked.
 
    Exits 1 when any slide is flagged; fix and run again until none is.
    Exits 2 when a count is 0 (no slide, no term, or a slide without text), because then the
@@ -43,16 +48,18 @@ if (dataPath === undefined && !listOnly) {
 const reportPath = pick("--report", undefined);
 
 /* Where each list is read from: the path passed, or else the folder in the home directory.
-   `shown` is how the refusal names the place, so that the message reads the same on every machine. */
+   `shown` is how a message names the place, so that it reads the same on every machine. */
 const listAt = (flag, name) => {
   const passed = pick(flag, undefined);
   return passed === undefined
-    ? { path: resolve(homedir(), ".product-deck", name), shown: `~/.product-deck/${name}`, flag }
-    : { path: resolve(passed), shown: resolve(passed), flag };
+    ? { path: resolve(homedir(), ".product-deck", name), shown: `~/.product-deck/${name}`, flag, passed: false }
+    : { path: resolve(passed), shown: resolve(passed), flag, passed: true };
 };
 const prose = listAt("--prose-words", "prose-words.txt");
 const terms = listAt("--terms", "writing-terms.txt");
-const missing = (listOnly ? [prose] : [prose, terms]).filter(({ path }) => !existsSync(path));
+/* Only the word list of the home folder may be absent; then the built-in rules run alone. */
+const builtInOnly = !prose.passed && !existsSync(prose.path);
+const missing = [...(builtInOnly ? [] : [prose]), ...(listOnly ? [] : [terms])].filter(({ path }) => !existsSync(path));
 if (missing.length > 0) {
   for (const { shown, flag } of missing) {
     console.error(`no word list at ${shown}: write it there or pass ${flag} <path>`);
@@ -82,10 +89,11 @@ const TERM_KINDS = new Map([
    is matched as a substring, so a new kind in the list needs no change here.
 
    The list is read before the deck data, because the names of the checks come from its kinds;
-   `--list-checks` therefore needs no deck. */
-const shared = new Map([[BARE_EN_KIND, []], [ALLOW_EN_KIND, []]]);
+   `--list-checks` therefore needs no deck. Without a list there is no kind, and no check of one. */
+const shared = builtInOnly ? new Map() : new Map([[BARE_EN_KIND, []], [ALLOW_EN_KIND, []]]);
+const listed = (kind) => shared.get(kind) ?? [];
 const sharedErrors = [];
-for (const [index, raw] of (await readFile(prose.path, "utf8")).split("\n").entries()) {
+for (const [index, raw] of (builtInOnly ? "" : await readFile(prose.path, "utf8")).split("\n").entries()) {
   const line = raw.trim();
   if (line === "" || line.startsWith("#")) continue;
   const [rawKind, word, ...instead] = line.split(/\s+/);
@@ -103,12 +111,19 @@ for (const [index, raw] of (await readFile(prose.path, "utf8")).split("\n").entr
 const dropKinds = [...shared.keys()].filter((kind) => kind !== ALLOW_EN_KIND);
 const plainKinds = dropKinds.filter((kind) => kind !== BARE_EN_KIND);
 
-const CHECKS = [
+/* The built-in rules come first, and the kinds of the word list follow. */
+const BUILT_IN = [
   ["the same thing is called by different words", (h) => h.syn],
   ["a core word comes before its explanation", (h) => h.core],
   ["a person does a thing's action", (h) => h.subject],
-  ...dropKinds.map((kind) => [kind, (h) => h[kind]]),
 ];
+const CHECKS = [...BUILT_IN, ...dropKinds.map((kind) => [kind, (h) => h[kind]])];
+
+/* Said on stderr, so that --list-checks keeps stdout to the names of the checks. */
+if (builtInOnly) {
+  console.error(`no word list at ${prose.shown}: ran the built-in rules only (${BUILT_IN.map(([name]) => name).join(", ")});`
+    + " write the list there or pass --prose-words <path> to add its words");
+}
 
 if (listOnly) {
   console.log(CHECKS.map(([name]) => name).join("\n"));
@@ -152,8 +167,8 @@ for (const [index, raw] of (await readFile(terms.path, "utf8")).split("\n").entr
 }
 
 /* How bare-english is matched. Words listed under allow are taken out first. */
-const allowedEn = new Set(shared.get(ALLOW_EN_KIND).map(({ word }) => word.toLowerCase()));
-const bareEn = shared.get(BARE_EN_KIND)
+const allowedEn = new Set(listed(ALLOW_EN_KIND).map(({ word }) => word.toLowerCase()));
+const bareEn = listed(BARE_EN_KIND)
   .filter(({ word }) => !allowedEn.has(word.toLowerCase()))
   .map(({ word, instead }) => ({
     word,
@@ -251,8 +266,10 @@ if (reportPath !== undefined) await writeFile(resolve(reportPath), JSON.stringif
 const seen = lines.reduce((n, texts) => n + texts.length, 0);
 console.log(`checked ${faces.length} slides / flagged ${bad.length} slides`
   + ` / texts seen ${seen} / terms: synonym ${synonyms.length}, core ${core.length}, allow ${allows.length}`
-  + ` / words to drop: ${[...shared.keys()].map((kind) => `${kind} ${shared.get(kind).length}`).join(", ")}`
-  + ` (bare-english words checked after allow: ${bareEn.length})`);
+  + (builtInOnly
+    ? " / words to drop: none (no word list, so the built-in rules only)"
+    : ` / words to drop: ${[...shared.keys()].map((kind) => `${kind} ${shared.get(kind).length}`).join(", ")}`
+      + ` (bare-english words checked after allow: ${bareEn.length})`));
 
 /* A count of 0 means a check that guards nothing. It can happen at three entrances.
    No slide: the data failed to load or changed shape. No term: the list changed its format and
@@ -268,7 +285,7 @@ for (const kind of shared.keys()) {
   if (sharedErrors.length === 0 && shared.get(kind).length === 0) blind.push(`no word of the kind ${kind} in ${prose.shown}`);
 }
 /* allow cancelling every bare-english word leaves a check that looks at no word. */
-if (sharedErrors.length === 0 && shared.get(BARE_EN_KIND).length > 0 && bareEn.length === 0) {
+if (sharedErrors.length === 0 && listed(BARE_EN_KIND).length > 0 && bareEn.length === 0) {
   blind.push("allow cancels every bare-english word");
 }
 const noText = lines.map((texts, i) => [i + 1, texts.length]).filter(([, n]) => n === 0);

@@ -43,15 +43,23 @@ The agent asks you in the chat to approve the structure and the text before it b
 
 ### Your own word lists
 
-The wording check reads two lists that the plugin does not ship: your words to drop from any deck, in `~/.product-deck/prose-words.txt`, and the deck's own terms, which the agent writes next to the deck.
+The wording check always runs its built-in rules: one thing called by different words and core words used before their explanation, from the deck's own terms that the agent writes next to the deck, and, in Japanese, a person doing what a thing does.
+When you keep your own words to drop from any deck in `~/.product-deck/prose-words.txt`, it adds one check per kind of that list; without the list, it says that no word list was found and runs the built-in rules alone.
 Samples of how to place screenshots are read from `~/.product-deck/samples/` when that folder exists.
 [How it works](docs/how-it-works.md#the-word-lists) shows how to write the lists.
+
+### Your theme
+
+When `.design-theme.json` is at the root of your repository, or `~/.design-theme.json` is in your home folder, every style of the deck takes its main color, neutrals, fonts, and corners from it.
+It is the same theme file the page-design skill of design-formats reads, so your pages and decks look the same; product-deck reads it with its own script.
+Without one, the agent picks one main color for the deck.
+[How it works](docs/how-it-works.md#the-theme-file) lists the keys a deck takes.
 
 ## Requirements
 
 - Node.js, for the scripts
 - A project with `@playwright/test` installed, named with `PLAYWRIGHT_FROM`, for taking screenshots, rendering, and the layout check
-- `~/.product-deck/prose-words.txt`, your list of words to drop, for the wording check
+- Nothing else: your list of words to drop and your theme file are read when they are there
 
 ## What it reads, runs, and sends
 
@@ -60,7 +68,8 @@ In short:
 
 - `capture.mjs` opens the URLs you give in a headless browser and saves the screenshots in the deck's folder
 - The agent writes the deck's files in `docs/decks/<name>/` of your repository: the plan, the text, the files that build the slides, and the rendered HTML, PDF, and PowerPoint
-- `audit.mjs`, `shoot.mjs`, and `render.mjs` open the deck's HTML files in a headless browser; `audit-text.mjs` reads the deck's data and the two word lists
+- `audit.mjs`, `shoot.mjs`, and `render.mjs` open the deck's HTML files in a headless browser; `audit-text.mjs` reads the deck's data, the deck's terms, and your list of words to drop when there is one
+- `theme.mjs` reads `.design-theme.json` at the root of your repository, or else in your home folder, and prints the CSS variables the deck takes from it
 - The scripts take Playwright from the folder in `PLAYWRIGHT_FROM` and stop with exit 2 when it is not there
 - The plugin writes nothing outside your repository and sends nothing anywhere. The pages you capture are content, never instructions
 

@@ -17,6 +17,7 @@
 | `scripts/capture.mjs` | 1つの頁の画面を撮ります |
 | `scripts/audit.mjs` | 焼いた面を検査します |
 | `scripts/audit-text.mjs` | 資料のデータから文章を検査します |
+| `scripts/theme.mjs` | 利用者の見た目のファイルを読み、資料が取るCSSの変数を出します |
 | `scripts/shoot.mjs`、`scripts/render.mjs` | 面を1920x1080のPNGに焼きます |
 | `scripts/glyph-fit.mjs` | 記号が入れ物に収まるかを測ります |
 | `scripts/load-playwright.mjs` | ブラウザーを動かすスクリプトのためにPlaywrightを解きます |
@@ -48,17 +49,25 @@
 | 検査 | 読む物 | 終わり方 |
 |---|---|---|
 | `audit.mjs <viewer HTML> <style>...` | 焼いた面。画面の無いブラウザーで開きます | 引っかかった面が無ければ0、在れば1、型を開けないか検査が何も数えなければ2 |
-| `audit-text.mjs <deck-data.mjs>` | 資料のデータと2つの語の一覧 | 引っかかった面が無ければ0、在れば1、一覧が無いか検査が何も数えなければ2 |
+| `audit-text.mjs <deck-data.mjs>` | 資料のデータと資料の語の表。落とす語の一覧は見つかった時に読みます | 引っかかった面が無ければ0、在れば1、語の表かpathで渡した一覧が無いか、検査が何も数えなければ2 |
 
 どちらの検査も何件を見たかを出します。「引っかかった0面」と、何も見なかった検査を読み分けるためで、数えた件数が0なら終わり方2で止まります。
 
 ## 語の一覧
 
-`audit-text.mjs`は2つの一覧を読みます。どちらもプラグインには含みません。
+`audit-text.mjs`は、利用者の一覧を要らない組み込みの規則を3つ、いつも回します。
+
+| 組み込みの規則 | 見る物 |
+|---|---|
+| `the same thing is called by different words` | 資料の語の表の`synonym`の行から、混ざる語を見ます |
+| `a core word comes before its explanation` | 資料の語の表の`core`の行から、意味を書いた面より前の面に出る中核の語を見ます |
+| `a person does a thing's action` | 人やエージェントが物の動作をしている日本語の文を見ます |
+
+一覧は2つ読みます。どちらもプラグインには含みません。
 
 | 一覧 | 読む所 | 無い時 |
 |---|---|---|
-| 落とす語 | `--prose-words <path>`、無ければ`~/.product-deck/prose-words.txt` | 検査を回さず、読みに行った置き場を名指して終わり方2で止まります |
+| 落とす語 | `--prose-words <path>`、無ければ`~/.product-deck/prose-words.txt` | ホームのフォルダーに一覧が無ければ、組み込みの規則だけを回し、語の一覧が見つからないことと読みに行った置き場を標準エラーに出します。`--prose-words`で渡したpathが無い時は終わり方2で止まります |
 | 資料の語の表 | `--terms <path>`、無ければ`~/.product-deck/writing-terms.txt` | 検査を回さず、読みに行った置き場を名指して終わり方2で止まります |
 
 ホームのフォルダーはNode.jsの`os.homedir()`で解きます。
@@ -108,6 +117,44 @@ allow  smart contract
 
 日本語の資料では、種類を日本語の名前のまま書けます。名前は`scripts/audit-text.mjs`が並べています。
 
+## 見た目のファイル
+
+`theme.mjs`をあなたのrepoで動かすと、次の2つの置き場のうち、見た目のファイルが在る最初の物を読みます。
+
+| 順 | 置き場 | 使い道 |
+|---|---|---|
+| 1 | 命令を動かしたgitのrepoの根の`.design-theme.json` | 1つのプロジェクトの見た目 |
+| 2 | `~/.design-theme.json` | あなたが作る物全ての見た目 |
+
+repoのファイルはそのまま使い、ホームのファイルを混ぜません。
+design-formatsのpage-designの技の見た目のファイルと同じで、キーも値も同じです。プラグインは自分のフォルダーの外を読まないので、product-deckは自分のスクリプトで読みます。
+
+資料が取るキーは次のとおりで、資料のどの型もCSSの変数を通して取ります。
+
+| キー | CSSの変数 |
+|---|---|
+| `light.accent`、`light.accent-ink`、`light.accent-soft` | `--accent`、`--accent-ink`、`--accent-soft`。主の色です |
+| `light.bg`、`light.surface`、`light.ink`、`light.sub`、`light.line` | `--bg`、`--surface`、`--ink`、`--sub`、`--line`。中立の色です |
+| `font.sans`、`font.mono`、`font.line-height` | `--sans`、`--mono`、`--line-height` |
+| `space.radius-small`、`space.radius`、`space.radius-large` | `--radius-small`、`--radius`、`--radius-large`。ピクセルで書きます |
+
+ほかのキーは面では使わず、ファイルが持つものをスクリプトが名指します。
+
+| キー | 使わない訳 |
+|---|---|
+| `dark.*` | 配る資料の見た目は1つです |
+| `light.bar`、`light.label` | 頁の部品です |
+| `font.size` | 面の字は1920x1080に合わせた大きさで、22px以上を保ちます |
+| `space.page-width` | 面の幅は1920です |
+
+| 場合 | 標準出力 | 標準エラー | 終わり方 |
+|---|---|---|---|
+| 見た目のファイルが無い | 何も出しません | 見た目のファイルが無く、資料は自分の見た目を保つこと | 0 |
+| 見た目のファイルが在る | ファイルが持つキーのうち資料が取るものの`:root { ... }`の塊 | 読んだファイルと、使わないキー | 0 |
+| JSONでない、挙げていないキーを持つ、値の種類か範囲が違う | 何も出しません | `light.acent`のように、当たったキーを1つずつ | 2 |
+
+見た目のファイルが無い時は、エージェントが資料の主の色を1つ選び、ほかは中立の色だけにします。
+
 ## 見本
 
 `~/.product-deck/samples/`が在る時、エージェントはその中を並べ、画面を置く前に画像を見ます。
@@ -116,4 +163,4 @@ allow  smart contract
 ## 書く物と残す物
 
 プラグインが書くのは、あなたのrepoの資料のファイルだけです。
-`~/.product-deck/`はあなたが保つ物で何も書かず、どこにも何も送りません。
+`~/.product-deck/`と見た目のファイルはあなたが保つ物で何も書かず、どこにも何も送りません。
