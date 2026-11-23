@@ -94,6 +94,7 @@ page-design: 1 problem; fix each line named above and run verify again
 
 鍵ごとの型と雛形ごとの既定の値は`formats/theme.md`が持ち、`page-design.py theme --defaults <page>`は頁の値をJSONで出します。
 意匠のfileが無ければ、頁は雛形の見た目のままです。
+自分の大きさを持つ頁を作るスキルは一部の鍵だけを取ります。色と書体だけなら`page-design.py theme --keys light,dark,font.sans,font.mono <page>`です。
 知らない鍵か正しくない値を持つ意匠のfileは、鍵を名指して断り、頁を変えません。
 
 ## このスキルに従うスキル
