@@ -1,13 +1,13 @@
 ---
 name: chainome-diagram
-description: Use when designing or implementing Chainome-style educational animated diagrams for blockchain concepts, especially React and SVG scene diagrams animated with GSAP or Motion, where visual clarity, state transitions, a prose panel kept apart from the diagram, and protocol correctness matter.
+description: Use when designing or implementing educational animated diagrams that explain blockchain mechanics, especially React and SVG scene diagrams animated with GSAP or Motion, where visual clarity, state transitions, a prose panel kept apart from the diagram, and protocol correctness matter. Takes its colors, fonts, and corners from the user's theme file when one is placed.
 ---
 
-# Chainome Diagram
+# Blockchain Diagram
 
 ## Overview
 
-Use this skill for Chainome animated diagrams that explain blockchain mechanics with moving diagram elements, not video and not generic slideshow controls.
+Use this skill for animated diagrams that explain blockchain mechanics with moving diagram elements, not video and not generic slideshow controls.
 The diagram must make the mechanism legible from visual structure, state, paths, and motion, while the prose explanation stays in a clearly separated region.
 
 Talk to the user in the language they write in.
@@ -46,6 +46,44 @@ A typed local scene model is acceptable for high-fidelity prototypes.
 - Use React Flow or XYFlow for editable node graphs, dependency maps, and graph-like diagrams. Do not force it onto bespoke instructional scenes when custom SVG motion is clearer.
 - Use Canvas or WebGL only when the scene is dense or needs particle or field rendering; keep text and accessibility in HTML or SVG where possible.
 
+## The user's look
+
+The diagram takes its colors, fonts, text size, and corners from the user's theme file when one is placed, and keeps the project's own look otherwise.
+Before drawing, run `python3 <this skill's folder>/scripts/diagram-theme.py` as a shell command, with the user's project as the current folder.
+The script reads the first of these two files that exists, and does not merge them.
+
+| Order | File | Use |
+|---|---|---|
+| 1 | `.design-theme.json` at the root of the repository | The look of one project |
+| 2 | `~/.design-theme.json` | The look of everything the user makes |
+
+- When neither file exists, it prints `{}`. Keep the project's own look: take colors, fonts, and corners from the project's existing styles, and add no palette of your own.
+- When a file exists, it prints the keys the file sets that apply to a diagram, as JSON grouped in `light`, `dark`, `font`, and `space`. Write them as CSS custom properties on the diagram's root element, put the `dark` values under the project's dark mode selector when the project has one, and draw the SVG and the explanation panel with `var(...)`. A number is in pixels; write it with `px`, except `line-height`. A key the file leaves out keeps the project's value.
+- When it refuses the file (exit 2), it names each wrong key. Tell the user the keys and ask in the chat whether to fix the file first or to draw with the project's own look for now.
+
+Each printed key sets one part of the diagram.
+
+| Key | Part of the diagram |
+|---|---|
+| `bg` | The background of the diagram area |
+| `surface` | Actor cards, node fills, and the explanation panel |
+| `ink` | Labels, values, and the text of the explanation panel |
+| `sub` | Secondary labels and the labels of inactive nodes |
+| `line` | Resting paths, borders, and the outline of a contract boundary |
+| `accent` | The active path, the moving token, and the outline of the active node |
+| `accent-ink` | Text on an `accent` fill |
+| `accent-soft` | The highlight behind the active phase and node |
+| `label` | The fill of transient state badges and short annotations |
+| `sans` | Labels and the explanation panel |
+| `mono` | Function names, calldata, and storage keys such as `balanceOf` |
+| `size` | The text size of the explanation panel; diagram labels scale from it and stay at 12 px or larger |
+| `line-height` | The line height of the explanation panel |
+| `radius-small` | Badges and tokens |
+| `radius` | Actor cards and nodes |
+| `radius-large` | Containers such as a contract boundary, and the explanation panel |
+
+`light.bar`, `dark.bar`, and `space.page-width` belong to pages made by other skills, so the script accepts them and does not print them.
+
 ## Protocol correctness
 
 For an ERC-20 transfer:
@@ -64,14 +102,15 @@ If the diagram simplifies a protocol detail, say so in the explanation panel.
 
 ## Implementation checklist
 
-1. Define the scene model first, then render it.
-2. Keep diagram text short: labels, values, and state badges only.
-3. Separate step prose and detailed tables from the diagram.
-4. Animate the cause-and-effect path with a moving token or highlight; avoid static arrows when motion is the explanatory device.
-5. Make state changes visible where they happen, then show the consolidated state in one nearby table.
-6. Run a critical self-review before calling the work complete.
-7. Run the project's lint, type check, and build commands, such as `pnpm lint`, `pnpm typecheck`, and `pnpm build`.
-8. Use Playwright screenshots and DOM checks for the active phase count, the active token count, overflow, and the mobile layout.
+1. Run `scripts/diagram-theme.py` and apply what it prints, as "The user's look" says.
+2. Define the scene model first, then render it.
+3. Keep diagram text short: labels, values, and state badges only.
+4. Separate step prose and detailed tables from the diagram.
+5. Animate the cause-and-effect path with a moving token or highlight; avoid static arrows when motion is the explanatory device.
+6. Make state changes visible where they happen, then show the consolidated state in one nearby table.
+7. Run a critical self-review before calling the work complete.
+8. Run the project's lint, type check, and build commands, such as `pnpm lint`, `pnpm typecheck`, and `pnpm build`.
+9. Use Playwright screenshots and DOM checks for the active phase count, the active token count, overflow, and the mobile layout.
 
 ## Review loop
 
@@ -85,6 +124,7 @@ After each meaningful diagram change:
    - **State clarity**: current state, transient deltas, and final state are visually distinct; no inline arithmetic clutter.
    - **Focus**: only the current phase is dominant; inactive paths and nodes are quiet.
    - **Composition**: spacing, alignment, hierarchy, and text scale look intentional on desktop and mobile.
+   - **Theme**: when the script printed a theme, the parts in the key table use its values and no other colors, fonts, or corners.
    - **Mobile framing**: the current operation and the current state change must be visible in the initial mobile viewport; do not rely on the user scrolling sideways to find the active part of the diagram.
    - **Cognitive load**: no extra boxes, decorative labels, or duplicated explanations that compete with the main flow.
 3. If any gate fails, make a concrete fix and run the review again.

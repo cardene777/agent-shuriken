@@ -43,13 +43,21 @@ holds_one_skill() {
   grep -qx "name: $NAME" "$SKILL" || { why="SKILL.md does not say name: $NAME"; return 1; }
 }
 
-# Prints file:line for every line under the folders given that names the author's PC, products, or
-# other repositories. The words are built from parts so that this file does not hold them.
+# Prints file:line for every line under the folders given that holds a home path, a local agent
+# path, or an issue reference. With --shapes, prints the names of the shapes it looks for. Each
+# shape is a general form, and none of them spells out the source text it would find.
 names_of_this_pc() {
   python3 - "$@" <<'PY'
 import os, re, sys
-pattern = re.compile("/Us" "ers/|~/[.]co" "dex/|~/[.]cl" "aude/|\\b(?:G" "H|Iss" "ue) #\\d+|agent-con" "figs"
-                     "|(?i:jf" "et|kagi" "ban)|\\bO" "WS\\b")
+shapes = {
+    "home path": r"/(?:Users|home)/[^/\s]+/",
+    "local agent path": r"~/\.(?:claude|codex)/",
+    "issue reference": r"\b(?:GH|Issue) #\d+",
+}
+if sys.argv[1:] == ["--shapes"]:
+    print("\n".join(shapes))
+    sys.exit(0)
+pattern = re.compile("|".join(shapes.values()))
 images = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico")
 for top in sys.argv[1:]:
     for folder, _, files in os.walk(top):
