@@ -10,5 +10,4 @@
 - 日本語を含んでよい file は、`*.ja.md` と `.ikkan/` の下と、`scripts/check.sh` の `JA_ALLOWED` に並ぶ file だけ (根拠 `scripts/check.sh`)
 - repo 全体の確かめは `bash scripts/check.sh` で、終了 1 は落ちた検査を名指す (根拠 `AGENTS.md` の Verifying a change)
 - plugin ごとのテストは `plugins/<plugin>/skills/<skill>/tests/` の bash の script で、`scripts/check.sh` からは回らない (根拠 `plugins/convey/skills/convey/tests/test-convey.sh`)
-- `agent-shared` は Python 3.11 以上の標準ライブラリだけで書き、`uv tool install` で入れる。自分は hook を持たず、利用者が `~/.shared/hooks.json` に書いた hook を配る。テストは `agent-shared/tests/test-agent-shared.sh` で、`scripts/check.sh` からは回らない (根拠 `agent-shared/pyproject.toml`、`AGENTS.md`)
 - `claude plugin eval` の case は `plugins/<plugin>/evals/` に置き、手で回し、結果は commit しない (根拠 `AGENTS.md`)

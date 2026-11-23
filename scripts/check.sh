@@ -486,6 +486,28 @@ check_no_build_output() {
   return 0
 }
 
+# agent-shared lives in a repository of its own, and both README pages name it.
+check_readme_names_agent_shared() {
+  local page bad=0
+  for page in README.md README.ja.md; do
+    grep -qF 'github.com/cardene777/agent-shared' "$page" \
+      || { echo "$page does not name github.com/cardene777/agent-shared"; bad=1; }
+  done
+  return "$bad"
+}
+
+# No copy of agent-shared is left here: no agent-shared/ folder, no docs/agent-shared page, and no
+# file that names the old install command, which installed agent-shared from this repository.
+# The records under .ikkan/ quote the command when they describe this check, so they are skipped.
+check_no_agent_shared_copy() {
+  local bad=0
+  all_files | grep -E '^agent-shared/|^docs/agent-shared(\.ja)?\.md$' && bad=1
+  own_text_files | grep -vxF scripts/check.sh | grep -vE '^\.ikkan/' | while IFS= read -r f; do
+    grep -nF 'agent-shuriken#subdirectory=agent-shared' "$f" | sed "s|^|$f:|"
+  done | grep . && bad=1
+  return "$bad"
+}
+
 # Every bundled data file is credited in its plugin's THIRD_PARTY_NOTICES.md.
 check_notices() {
   local f plugin rel bad=0
@@ -566,6 +588,8 @@ run "no email addresses" check_no_email
 run "English outside the Japanese pages" check_english
 run "Japanese headings have no commas or colons" check_japanese_headings
 run "no build output tracked" check_no_build_output
+run "README names the agent-shared repository" check_readme_names_agent_shared
+run "no agent-shared copy is left" check_no_agent_shared_copy
 run "bundled data is credited" check_notices
 run "script dependencies are named in AGENTS.md" check_script_dependencies
 run "AGENTS.md asks for issues and new .ikkan records in English" check_agents_english

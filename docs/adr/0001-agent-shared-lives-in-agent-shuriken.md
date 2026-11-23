@@ -28,3 +28,10 @@ One public command that works from a terminal without any app, with one implemen
 ## Date
 
 2026-11-19
+
+## Revisited
+
+On 2026-11-23 the command moved to a repository of its own, [cardene777/agent-shared](https://github.com/cardene777/agent-shared), kept private, with the commits that made it, as issue #394 decided.
+The command is a tool and the plugins are content it can deploy, so they grow as different things: the plugins never used the command, and while the command shared this repository's history it had no version of its own.
+A repository of its own lets ikkan-studio pin the command to a tag, starting at `v0.1.0`.
+This option was not among the ones compared above.
