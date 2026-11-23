@@ -1291,32 +1291,34 @@ changelog_line() {
 }
 check "the changelog has a line under Unreleased or the released version" changelog_line
 
-# names_in_changelog <changelog> <version> <text>: a line under ## [Unreleased] or ## [<version>]
-# names the text.
-names_in_changelog() { { unreleased "$1"; released "$1" "$2"; } | grep '^- ' | grep -qF -- "$3"; }
+# names_in_changelog <changelog> <version> <text>: an entry line under ## [Unreleased] or any release
+# names the text. The version is kept in the call for the checks that read the current section.
+names_in_changelog() { awk '/^## \[/ { on = 1 } on' "$1" | grep '^- ' | grep -qF -- "$3"; }
 
 # changelog_names <text>: a line of the plugin's changelog names the text. A release moves the line
-# from ## [Unreleased] into the section of the version both plugin.json files carry and leaves
-# ## [Unreleased] empty, so either place counts. Both shapes are tried on throwaway changelogs
-# before the plugin's own changelog is read.
+# from ## [Unreleased] into its version's section, where it stays through later releases, so a line
+# under ## [Unreleased] or any release counts. These shapes, and a changelog whose sections do not
+# name the text, are tried on throwaway changelogs before the plugin's own changelog is read.
 changelog_names() {
   local version text="$1"
   printf '# Changelog\n\n## [Unreleased]\n\n- ships %s\n\n## [0.2.0] - 2026-11-21\n\n- ships an older set of styles\n' "$text" > "$T/changelog-before"
   printf '# Changelog\n\n## [Unreleased]\n\n## [0.3.0] - 2026-11-22\n\n- ships %s\n\n## [0.2.0] - 2026-11-21\n\n- ships an older set of styles\n' "$text" > "$T/changelog-after"
   names_in_changelog "$T/changelog-before" 0.2.0 "$text" || { echo "      a line under ## [Unreleased] is not counted"; return 1; }
   names_in_changelog "$T/changelog-after" 0.3.0 "$text" || { echo "      a line under the released version is not counted"; return 1; }
-  ! names_in_changelog "$T/changelog-after" 0.4.0 "$text" || { echo "      a line under another version is counted"; return 1; }
+  names_in_changelog "$T/changelog-after" 0.4.0 "$text" || { echo "      a line under an older release is not counted"; return 1; }
+  printf '# Changelog\n\n## [Unreleased]\n\n## [0.3.0] - 2026-11-22\n\n- ships an older set of styles\n\n[%s]: https://example.com\n' "$text" > "$T/changelog-none"
+  ! names_in_changelog "$T/changelog-none" 0.3.0 "$text" || { echo "      a changelog whose sections do not name the text is counted"; return 1; }
   [ -f "$PLUGIN/CHANGELOG.md" ] || { echo "      missing plugins/diagram-styles/CHANGELOG.md"; return 1; }
   version="$(jq -r .version "$PLUGIN/.claude-plugin/plugin.json")"
   names_in_changelog "$PLUGIN/CHANGELOG.md" "$version" "$text" ||
-    { echo "      no line under ## [Unreleased] or ## [$version] names the $text"; return 1; }
+    { echo "      no section of the changelog names the $text"; return 1; }
 }
 
 changelog_thirty_two() { changelog_names "thirty-two built-in styles"; }
-check "the changelog names the thirty-two built-in styles under Unreleased or the released version" changelog_thirty_two
+check "the changelog names the thirty-two built-in styles under Unreleased or any release" changelog_thirty_two
 
 changelog_structures() { changelog_names "sixteen built-in structures"; }
-check "the changelog names the built-in structures under Unreleased or the released version" changelog_structures
+check "the changelog names the built-in structures under Unreleased or any release" changelog_structures
 
 releasing_pages() {
   has "$REPO/docs/releasing.md" 'musubi check plugins/diagram-styles/skills' &&
