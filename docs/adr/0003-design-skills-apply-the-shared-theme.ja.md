@@ -1,13 +1,13 @@
-# 0003. 頁を書くスキルはdesign-formatsの共通のthemeの命令で意匠を当てる
+# 0003. HTMLの頁を書くスキルはdesign-formatsの共通のthemeの命令で意匠を当てる
 
 ## 決めたこと
 
-page-design以外のスキルも、利用者が自分の色と書体で見たい頁を書くようになった後、利用者の意匠のfileを読んで頁に書く処理をどこに置くか。
+page-design以外のスキルも、利用者が自分の色と書体で見たい頁を書くようになった後、利用者の意匠のfileを読んでHTMLの頁に書く処理をどこに置くか。
 
 ## 選んだ案
 
-`design-formats`のpluginの`page-design.py`の`theme`の命令だけが意匠のfileを読む。
-頁を書くスキルは、自分の雛形の基の色を意匠のfileの鍵 (`bg`、`surface`、`ink`、`sub`、`line`、`label`と強調の色) の名前で持ち、ほかの濃淡をそこから`color-mix()`で混ぜ、手順で仕上がった頁に取る鍵を名指した`theme --keys`を回す。
+意匠のfileをHTMLの頁に書くのは、`design-formats`のpluginの`page-design.py`の`theme`の命令だけにする。
+HTMLの頁を書くスキルは、自分の雛形の基の色を意匠のfileの鍵 (`bg`、`surface`、`ink`、`sub`、`line`、`label`と強調の色) の名前で持ち、ほかの濃淡をそこから`color-mix()`で混ぜ、手順で仕上がった頁に取る鍵を名指した`theme --keys`を回す。
 自分の大きさを持つスキルは、`light`、`dark`、`font.sans`、`font.mono`だけを取る。
 
 ## 却下した案
@@ -22,6 +22,7 @@ page-design以外のスキルも、利用者が自分の色と書体で見たい
 
 - `AGENTS.md`のpluginの決まりは各pluginを自分の中だけで閉じさせるので、`theme`の命令には共通の`verify`と同じく`page-design`のスキルを名前で開いて届く (0002)。
 - `theme`は頁が持つ型だけを書き換えるので、基の型を意匠の鍵の名前で持つ雛形は、対応表なしに意匠を取れる。
+- chainome-diagramは`:root`の型を持つHTMLの頁ではなく利用者のプロジェクトに図のcodeを書くので、自分の`scripts/diagram-theme.py`で意匠のfileを読む (#354)。
 - 課題#359と課題#358の決めたことの表。
 
 ## 決めた日
