@@ -7,6 +7,8 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ## [Unreleased]
 
+- `scripts/check.sh` checks that the root changelog names every plugin, in the `### Plugins` table of the newest repository release or in a line under Unreleased that starts with `The <name> plugin`, and Creating a plugin asks for that line
+
 ## [0.21.0] - 2026-11-24
 
 ### Plugins
