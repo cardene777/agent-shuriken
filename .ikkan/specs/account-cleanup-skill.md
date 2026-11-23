@@ -83,7 +83,7 @@
 | 後片付けの頁は記録を新しい順に出す | `bash plugins/account-cleanup/skills/account-cleanup/tests/test-account-cleanup.sh`の検査`"the follow-up page lists the newest record first"`が通る | #321 |
 | 600px未満では、後片付けの頁は同じデータからサービス名の見出しと値の組の一覧を出す | `bash plugins/account-cleanup/skills/account-cleanup/tests/test-account-cleanup.sh`の検査`"below 600px the follow-up page shows each record as a heading and value pairs"`が通る | #321 |
 | 記録が0件の時、後片付けの頁は表の代わりに文を出す | `bash plugins/account-cleanup/skills/account-cleanup/tests/test-account-cleanup.sh`の検査`"an empty follow-up page shows a sentence instead of a table"`が通る | #321 |
-| `CHANGELOG.md`の`## [Unreleased]`が、変えた振る舞いを書く | `bash plugins/account-cleanup/skills/account-cleanup/tests/test-account-cleanup.sh`の検査`"the changelog names the new sheet behavior under Unreleased"`が通る | #321 |
+| `CHANGELOG.md`の`## [Unreleased]`かリリースの節が、変えた振る舞いを書く | `bash plugins/account-cleanup/skills/account-cleanup/tests/test-account-cleanup.sh`の検査`"the changelog names the new sheet behavior"`が通る | #321 #467 |
 | コピーする文は1行目が`account-cleanup selection`で、消すにした行の鍵を1行ずつ持ち、メモをタブの後に置き、画面の言語で変わらない | `bash plugins/account-cleanup/skills/account-cleanup/tests/test-account-cleanup.sh`の検査`"the copied text keeps its fixed first line and one key per line in either language"`が通る | #321 |
 | シートは外から何も読み込まない | `bash plugins/account-cleanup/skills/account-cleanup/tests/test-account-cleanup.sh`の検査`"the sheet loads nothing from the network"`が通る | #321 |
 | 描いた候補のシートの全ての状態が、page-designの`verify`を英語と日本語で通る | `bash plugins/account-cleanup/skills/account-cleanup/tests/test-account-cleanup.sh`の検査`"every drawn state of the sheet passes page-design verify"`が通る | #321 |
