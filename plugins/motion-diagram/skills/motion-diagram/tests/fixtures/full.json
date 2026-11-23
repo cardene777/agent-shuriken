@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "lang": "en",
+  "title": "Ideas come in every day, and only the useful ones reach a person",
+  "parts": [
+    {"id": "forum", "kind": "source", "name": "Forum", "count": 60, "details": "New posts are read every morning."},
+    {"id": "papers", "kind": "source", "name": "Papers", "count": 25, "details": "New papers in the chosen fields are read."},
+    {"id": "blogs", "kind": "source", "name": "Blogs", "count": 15, "details": "New articles come from feeds."},
+    {"id": "rules", "kind": "check", "name": "Rules filter", "keep": 30, "details": "Fixed rules drop what is off topic and keep the reason.", "example": "Kept: an article on order routing"},
+    {"id": "model", "kind": "check", "name": "Model reads", "keep": 6, "details": "A model reads the full text and writes why it helps."},
+    {"id": "dropped", "kind": "bin", "name": "Dropped", "details": "Dropped items stay with their reason."},
+    {"id": "team", "kind": "source", "name": "Team notes", "count": 2, "details": "Notes from the team skip the filters."},
+    {"id": "drafts", "kind": "box", "name": "Drafts", "details": "A short draft waits for a person."},
+    {"id": "person", "kind": "person", "name": "Person picks", "keep": 2, "details": "A person keeps or rejects each draft."},
+    {"id": "issue", "kind": "end", "name": "Issue", "details": "Only picked drafts become issues."},
+    {"id": "payments", "kind": "outside", "name": "Payments", "details": "Nothing collected here changes a payment."}
+  ],
+  "lines": [
+    {"from": "forum", "to": "rules"},
+    {"from": "papers", "to": "rules"},
+    {"from": "blogs", "to": "rules"},
+    {"from": "rules", "to": "model"},
+    {"from": "rules", "to": "dropped", "drop": true},
+    {"from": "model", "to": "drafts"},
+    {"from": "model", "to": "dropped", "drop": true},
+    {"from": "team", "to": "drafts"},
+    {"from": "drafts", "to": "person"},
+    {"from": "person", "to": "issue"},
+    {"from": "person", "to": "rules", "back": true, "label": "Picks teach the next run"}
+  ],
+  "boundaries": [
+    {"name": "Never reaches payments", "parts": ["payments"]}
+  ]
+}

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Motion Diagram"
+  short_description: "Show how a mechanism works as one moving picture, as a page, a video, a GIF, or an image"
+  default_prompt: "Use $motion-diagram to show how a request moves through this service as a moving picture."
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,24 @@
+{
+  "en": {
+    "replay": "Run again",
+    "hint": "Press a part to see what it does",
+    "example": "Example",
+    "language": "Language",
+    "theme": "Light or dark",
+    "light": "Light",
+    "dark": "Dark",
+    "langEn": "English",
+    "langJa": "日本語"
+  },
+  "ja": {
+    "replay": "もう一度流す",
+    "hint": "部品を押すと中身が出る",
+    "example": "例",
+    "language": "言語",
+    "theme": "明るい表示か暗い表示",
+    "light": "明るい表示",
+    "dark": "暗い表示",
+    "langEn": "English",
+    "langJa": "日本語"
+  }
+}
