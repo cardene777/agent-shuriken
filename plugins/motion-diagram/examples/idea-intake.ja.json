@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "lang": "ja",
+  "title": "毎日届く案のうち、役に立つ物だけが人に届く",
+  "unit": "件/日",
+  "parts": [
+    {"id": "forum", "kind": "source", "name": "掲示板", "count": 60, "icon": "chat", "details": "毎朝、新しい投稿を読む。"},
+    {"id": "papers", "kind": "source", "name": "論文", "count": 25, "icon": "doc", "details": "決めた分野の新しい論文を読む。"},
+    {"id": "blogs", "kind": "source", "name": "ブログ", "count": 15, "icon": "feed", "details": "登録した記事の配信から届く。"},
+    {"id": "rules", "kind": "check", "name": "決まりで絞る", "keep": 30, "details": "決まった条件で話題の外れた物を落とし、落とした理由を残す。", "example": "残した例: 注文の出し方を比べた記事"},
+    {"id": "model", "kind": "check", "name": "モデルが読む", "keep": 6, "details": "モデルが全文を読み、何に役立つかを書く。"},
+    {"id": "dropped", "kind": "bin", "name": "落とした物", "details": "落とした物は理由と一緒に残る。"},
+    {"id": "team", "kind": "source", "name": "チームのメモ", "count": 2, "details": "チームのメモは絞り込みを通らずに下書きへ進む。"},
+    {"id": "drafts", "kind": "box", "name": "下書き", "details": "短い下書きが人の判断を待つ。"},
+    {"id": "person", "kind": "person", "name": "人が選ぶ", "keep": 2, "details": "人が下書きを1件ずつ残すか断るかを決める。"},
+    {"id": "issue", "kind": "end", "name": "課題", "details": "選ばれた下書きだけが課題になる。"},
+    {"id": "payments", "kind": "outside", "name": "支払い", "details": "ここで集めた物は支払いを変えない。"}
+  ],
+  "lines": [
+    {"from": "forum", "to": "rules"},
+    {"from": "papers", "to": "rules"},
+    {"from": "blogs", "to": "rules"},
+    {"from": "rules", "to": "model"},
+    {"from": "rules", "to": "dropped", "drop": true},
+    {"from": "model", "to": "drafts"},
+    {"from": "model", "to": "dropped", "drop": true},
+    {"from": "team", "to": "drafts"},
+    {"from": "drafts", "to": "person"},
+    {"from": "person", "to": "issue"},
+    {"from": "person", "to": "rules", "back": true, "label": "選んだ結果が次の回を直す"}
+  ],
+  "boundaries": [
+    {"name": "支払いには届かない", "parts": ["payments"]}
+  ]
+}
