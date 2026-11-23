@@ -37,9 +37,9 @@ need() {
   done
 }
 
-# The items of the owner's copy the skill was moved from: the name, the status it had there, and the
-# date that status was confirmed. A question asked before the move finds the same item after it, in
-# the same state.
+# The items of the owner's copy the skill was moved from, and the items added since: the name, the
+# status, and the date that status was confirmed. A question asked before the move finds the same item
+# after it, in the same state. An item added later is listed here with the date it was checked.
 EXPECTED="arbitrum-bold-stylus live 2026-11-11
 aztec live 2026-11-11
 based-rollup-preconfirmation live 2026-11-11
@@ -58,6 +58,7 @@ eip-7716-anti-correlation-penalties specified 2026-11-16
 eip-7732-enshrined-pbs specified 2026-11-16
 eip-7805-focil specified 2026-11-16
 eip-8025-optional-execution-proofs specified 2026-11-11
+eip-8292-pq-attestation-aggregators specified 2026-11-23
 ethereum-economic-zone announced 2026-11-08
 fluent live 2026-11-11
 fuel live 2026-11-11
@@ -65,6 +66,7 @@ herodotus-storage-proofs live 2026-11-11
 intmax-plasma-next stopped 2026-11-11
 l1-fast-confirmation specified 2026-11-16
 l1-hash-away-from-poseidon announced 2026-11-11
+l1-pqai27-proposal announced 2026-11-23
 l1-single-slot-finality specified 2026-11-16
 l2beat-stages live 2026-11-11
 mantle live 2026-11-11
@@ -111,14 +113,13 @@ holds_named_items() {
   grep -qx 'name: ethereum-knowledge' "$SKILL" || { why="SKILL.md does not say name: ethereum-knowledge"; return 1; }
   [ -d "$ITEMS" ] || { why="references/items/ is missing"; return 1; }
   want="$(printf '%s\n' "$EXPECTED" | awk '{print $1 ".md"}' | LC_ALL=C sort)"
-  [ "$(printf '%s\n' "$want" | grep -c .)" -eq 51 ] || { why="the list in this test does not hold 51 names"; return 1; }
   have="$(cd "$ITEMS" && LC_ALL=C ls -A | LC_ALL=C sort)"
   [ "$want" = "$have" ] || {
-    why="references/items/ differs from the 51 names: $(diff <(printf '%s\n' "$want") <(printf '%s\n' "$have") | grep '^[<>]' | tr '\n' ' ')"
+    why="references/items/ differs from the listed names: $(diff <(printf '%s\n' "$want") <(printf '%s\n' "$have") | grep '^[<>]' | tr '\n' ' ')"
     return 1
   }
 }
-check "the skill holds the 51 named items" holds_named_items
+check "the skill holds the named items" holds_named_items
 
 # Every item opens with exactly the three fields, in this order, and the script accepts them all.
 bundled_check() {
@@ -131,17 +132,16 @@ bundled_check() {
     sed -n 2p "$f" | grep -qE '^status: ' && sed -n 3p "$f" | grep -qE '^checked: [0-9]{4}-[0-9]{2}-[0-9]{2}$' \
       && sed -n 4p "$f" | grep -qE '^source: .{10,}' || { why="$(basename "$f") does not open with status, checked, and source"; return 1; }
   done
-  [ "$n" -eq 51 ] || { why="references/items/ holds $n items, not 51"; return 1; }
   bash "$SCRIPT" check > "$T/bundled.out" 2>&1
   status=$?
   [ "$status" -eq 0 ] || { why="check exited $status: $(head -3 "$T/bundled.out" | tr '\n' ' ')"; return 1; }
-  grep -q '(51 items)' "$T/bundled.out" || { why="check did not count 51 items: $(cat "$T/bundled.out")"; return 1; }
+  grep -q "($n items)" "$T/bundled.out" || { why="check did not count the $n items: $(cat "$T/bundled.out")"; return 1; }
 }
 check "check passes on the bundled items" bundled_check
 
 # Japanese text and its punctuation, by code point, so that this file holds none of it.
 items_english() {
-  [ "$(find "$ITEMS" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')" -eq 51 ] || { why="references/items/ does not hold 51 items"; return 1; }
+  [ -n "$(find "$ITEMS" -name '*.md' 2>/dev/null)" ] || { why="references/items/ holds no items"; return 1; }
   why="$(python3 - "$ITEMS" <<'PY'
 import os, re, sys
 japanese = re.compile("[%s-%s%s-%s%s-%s%s-%s]" % tuple(map(chr, (0x3000, 0x30FF, 0x3400, 0x9FFF, 0xF900, 0xFAFF, 0xFF00, 0xFFEF))))
@@ -156,7 +156,7 @@ PY
 }
 check "every item is in English" items_english
 
-# Each item keeps the status and the date of the owner's copy, which come to 2 announced, 9 specified,
+# Each item keeps the status and the date listed above, which come to 3 announced, 10 specified,
 # 37 live, and 3 stopped.
 statuses_kept() {
   local name status checked file got totals
@@ -170,7 +170,7 @@ statuses_kept() {
 $EXPECTED
 EOF
   totals="$(sed -n 's/^status: //p' "$ITEMS"/*.md | LC_ALL=C sort | LC_ALL=C uniq -c | awk '{printf "%s=%s ", $2, $1}')"
-  [ "$totals" = "announced=2 live=37 specified=9 stopped=3 " ] || { why="the statuses add up to $totals"; return 1; }
+  [ "$totals" = "announced=3 live=37 specified=10 stopped=3 " ] || { why="the statuses add up to $totals"; return 1; }
 }
 check "the items keep the statuses of the private copy" statuses_kept
 
@@ -242,7 +242,7 @@ check "list marks the items past the days for their status" stale_marked
 
 no_urls() {
   local f
-  [ "$(find "$ITEMS" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')" -eq 51 ] || { why="references/items/ does not hold 51 items"; return 1; }
+  [ -n "$(find "$ITEMS" -name '*.md' 2>/dev/null)" ] || { why="references/items/ holds no items"; return 1; }
   f="$(grep -rIlE 'https?://|www\.' "$ITEMS" | head -1)"
   [ -z "$f" ] || { why="$(basename "$f") holds a URL"; return 1; }
 }
@@ -449,16 +449,28 @@ unreleased() { awk '/^## \[Unreleased\]/{on=1; next} /^## \[/{on=0} on' "$1"; }
 # released <changelog> <version>: the lines of the ## [<version>] section.
 released() { awk -v v="$2" 'index($0, "## [" v "]") == 1 {on=1; next} /^## \[/{on=0} on' "$1"; }
 
-# A release moves the line from ## [Unreleased] into the section of the version both plugin.json
-# files carry, so the line counts in either place.
+# changelog_entries <changelog> <version>: the entry lines the changelog check reads.
+changelog_entries() { { unreleased "$1"; released "$1" "$2"; } | grep '^- '; }
+
+# A release moves the line from ## [Unreleased] into a release section, and later releases push it
+# further down, so the line counts under Unreleased or any release. A throwaway changelog whose line
+# sits under an older release counts, and one whose sections do not name the skill does not.
 changelog_names() {
   local version
   need "$PLUGIN/CHANGELOG.md" || return 1
   version="$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["version"])' "$PLUGIN/.claude-plugin/plugin.json")"
-  { unreleased "$PLUGIN/CHANGELOG.md"; released "$PLUGIN/CHANGELOG.md" "$version"; } | grep '^- ' | grep -qF 'ethereum-knowledge' \
-    || { why="no line under ## [Unreleased] or ## [$version] names ethereum-knowledge"; return 1; }
+  printf '%s\n' '# Changelog' '' '## [Unreleased]' '' '## [2.0.0] - 2026-01-02' '' '- Something else' '' \
+    '## [1.0.0] - 2026-01-01' '' '- `ethereum-knowledge` arrives' > "$T/older.md"
+  printf '%s\n' '# Changelog' '' '## [Unreleased]' '' '- Something else' '' '## [1.0.0] - 2026-01-01' '' \
+    '- Another thing' > "$T/none.md"
+  changelog_entries "$T/older.md" 2.0.0 | grep -qF 'ethereum-knowledge' \
+    || { why="a line under an older release is not counted"; return 1; }
+  ! changelog_entries "$T/none.md" 2.0.0 | grep -qF 'ethereum-knowledge' \
+    || { why="a changelog whose sections do not name the skill is counted"; return 1; }
+  changelog_entries "$PLUGIN/CHANGELOG.md" "$version" | grep -qF 'ethereum-knowledge' \
+    || { why="no line under ## [Unreleased] or any release names ethereum-knowledge"; return 1; }
 }
-check "the changelog names the new skill" changelog_names
+check "the changelog names the new skill under Unreleased or any release" changelog_names
 
 printf '%d passed, %d failed (%d ran)\n' "$PASS" "$FAIL" "$((PASS + FAIL))"
 [ "$FAIL" -eq 0 ]
