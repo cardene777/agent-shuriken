@@ -5,6 +5,10 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- `audit-text.mjs` runs its built-in rules (one thing called by different words, core words before their explanation, and a person doing a thing's action) when `~/.product-deck/prose-words.txt` is missing, and says that no word list was found instead of stopping; a list in the home folder or passed with `--prose-words` adds its checks as before, and a passed path that does not exist still stops with exit 2
+- The new `theme.mjs` reads `.design-theme.json` at the root of the repository, or else `~/.design-theme.json`, the theme file design-formats also reads, and prints the main color, neutrals, fonts, and corners as CSS variables that every style of the deck takes; without a theme the agent picks one main color as before, and a file with an unknown key or a bad value is refused with exit 2, naming each key
+- The test that scans the plugin for private names looks only for general shapes: a home folder path, a local agent configuration folder, and an issue reference
+
 ## [0.1.0] - 2026-11-22
 
 - The `product-deck` skill makes a product introduction deck: it takes screenshots of the real product first, decides the structure from ten base slides, has the user approve the plan and the text in the chat, and writes the files that build the slides in the user's repository, with every word in one data file and none in the layout code

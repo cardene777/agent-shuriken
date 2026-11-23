@@ -514,16 +514,16 @@ exit 0
         return { widths, lang: await tab.evaluate(() => document.documentElement.lang) };
       };
       const even = ({ widths }) => widths.length === 2 && Math.min(...widths) >= 0.5 * Math.max(...widths);
-      const title = "AIエージェントに旅行を相談し、Stripeで払う";
+      const title = "図書館で本を探し、借りる手続きをWebで済ませる";
       const card = await drawn(cardPage({ kind: "title", text: title }, look, LAYOUTS.wide, 0, "ja"), "h1");
       if (!even(card)) return `the title card draws "${title}" in lines ${card.widths.join("px, ")}px wide`;
       if (card.lang !== "ja") return `the card page's lang is "${card.lang}"`;
-      const text = "旅行会社Agentが枠を押さえ、エスクローへ入金する";
+      const text = "図書館の係Botが本を取り置き、受け取りの日を送る";
       const tall = LAYOUTS.tall.captions;
       const caption = await drawn(captionPage(text, look, tall.maxWidth, tall.scale, "ja"), "p");
       if (!even(caption)) return `the vertical caption "${text}" is drawn in lines ${caption.widths.join("px, ")}px wide`;
       if (caption.lang !== "ja") return `the caption page's lang is "${caption.lang}"`;
-      const short = await drawn(cardPage({ kind: "chapter", text: "相談する" }, look, LAYOUTS.wide, 1, "ja"), "h1");
+      const short = await drawn(cardPage({ kind: "chapter", text: "本を探す" }, look, LAYOUTS.wide, 1, "ja"), "h1");
       if (short.widths.length !== 1) return `a short chapter title is drawn in ${short.widths.length} lines`;
       return true;
     } finally {
