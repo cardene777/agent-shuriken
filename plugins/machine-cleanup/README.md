@@ -50,6 +50,15 @@ The page opens in English and has an English / 日本語 switch in its header.
 Next to it, a Light and Dark switch changes the colors. The colors follow your system setting until you choose, and your browser keeps the choice in its local storage under `machine-cleanup-theme`.
 When the agent stopped waiting for the page, a notice above the tabs says so. Press **Free**, then **Copy** in the window that opens, and paste the selection into the chat.
 
+## Run it on a schedule
+
+Ask the agent to clean up on its own, and it asks which kinds to approve, with each kind's size from the last scan, and whether to run daily or weekly.
+Only three kinds can be approved: `cache` (caches tools rebuild), `build` (build output git ignores, in a project with no commit for 30 days), and `log` (logs older than 30 days).
+`schedule add` registers one job at 03:00, on Sunday when weekly, as a LaunchAgent on macOS, a systemd user timer on Linux, or one crontab line where no systemd user session runs.
+Each run frees only the approved kinds' rows that the scan ranks Recommended, after the same check `apply` runs, and records what it freed.
+`schedule show` and the next scan print the last run, and `schedule remove` takes the job away.
+[How it works](docs/how-it-works.md#the-schedule) lists what each kind frees and leaves.
+
 ## What it finds
 
 | Kind | What it lists | What freeing it does |
@@ -87,6 +96,7 @@ A row inside another row, such as `node_modules` in an unused project or an app'
 | `docker` | Optional. When it is installed and running, its caches and running containers are listed |
 | npm, pnpm, Yarn, Bun, pip, uv, Homebrew, Go, CocoaPods | Optional. When one is installed, its own clean command frees its cache. Without it, the cache folder is deleted |
 | `flatpak` | Optional, on Linux, to list Flatpak apps |
+| `launchctl`, `systemctl`, or `crontab` | Only for a schedule: `launchctl` on macOS, and a systemd user session or `crontab` on Linux and WSL |
 | A web browser | To pick on the page |
 | The design-formats plugin | Optional. When its page-design skill is installed, the agent checks the page's template with its verify |
 | The `musubi` command | Optional. When it is installed, the agent runs `musubi check` before reading the page-design formats |
@@ -100,9 +110,9 @@ In short:
 - It reads the version files in your projects (`.nvmrc`, `.python-version`, `.tool-versions`, `mise.toml`, `rust-toolchain.toml`, and similar), the version managers' settings, and Ollama's model manifests
 - It runs `ps`, `du`, `df`, `lsof`, `git`, `mdls` on macOS, and, when they are installed, `docker`, `flatpak`, `rustup`, `ollama`, and the package managers' clean commands. `git` only reads, and never fetches
 - It serves the page only on `127.0.0.1` with a one-time token and accepts a selection only from that page. It sends nothing over the network
-- It changes only what you picked, after checking it again. It never asks for or uses an administrator password
+- It changes only what you picked, after checking it again, and a schedule frees only the kinds you approved. It never asks for or uses an administrator password
 - It hides values of command-line flags and environment variables whose names suggest a token, secret, password, or API key before a process command reaches the page or a file
-- It keeps the scan, the page session, and what `restore` needs in `~/.local/share/machine-cleanup/`, readable only by you. `finish` removes everything but the restore records
+- It keeps the scan, the page session, what `restore` needs, and a schedule with its copy of the script and the record of its runs in `~/.local/share/machine-cleanup/`, readable only by you. `finish` removes everything but the restore records and the schedule
 - `skills/machine-cleanup/musubi.json` declares through musubi that machine-cleanup follows the `structure` and `look` formats, the `sheet` page type, and `verify` of page-design, in the design-formats plugin, as optional follows with `"optional": true`. The agent reads them only when page-design is installed, runs page-design's verify on the page's template, and otherwise uses the skill's own template. It reads nothing else from other plugins
 
 ## License

@@ -17,9 +17,13 @@ Usage:
   machine_cleanup.py apply --kill ID...
   machine_cleanup.py restore [ID...]          lists what can be restored when no ID is given
   machine_cleanup.py finish                   removes the scan and the page session
+  machine_cleanup.py schedule add --kinds cache,build,log [--every daily|weekly] [--at HH:MM]
+  machine_cleanup.py schedule show | schedule remove
+  machine_cleanup.py scheduled-run            what the scheduled job runs
 
-Exit codes: 0 on success, 1 when a selection or a restore is refused, 2 for bad input or a missing
-scan, 3 when an item could not be freed, 4 when serve waited without receiving a selection.
+Exit codes: 0 on success, 1 when a selection or a restore is refused, 2 for bad input, a missing
+scan, or a system that cannot run a schedule, 3 when an item could not be freed or a schedule could
+not be registered, 4 when serve waited without receiving a selection.
 """
 import argparse
 import datetime
@@ -32,6 +36,7 @@ import plistlib
 import pwd
 import re
 import secrets
+import shlex
 import shutil
 import signal
 import socket
@@ -45,6 +50,16 @@ FORMAT_VERSION = 1  # restore.json
 # tool versions, and models, 5 one row for each path, the rows that hold a row, and keys for the names
 # the script makes
 SCAN_VERSION = 5
+SCHEDULE_VERSION = 1  # schedule.json
+RUNS_VERSION = 1  # each line of schedule-runs.jsonl
+# The kinds a schedule can free: caches tools rebuild, build output git ignores, and old logs.
+SCHEDULE_KINDS = ("cache", "build", "log")
+SCHEDULE_LABEL = "machine-cleanup.schedule"
+SCHEDULE_UNIT = "machine-cleanup"
+CRON_MARK = "# machine-cleanup schedule"
+# A schedule never frees these cache rows: a stopped container can hold data, and an image built on
+# this computer may not be fetched again.
+SCHEDULE_NEVER = {"docker-images", "docker-stopped-containers"}
 MIB = 1024 * 1024
 LARGE_FILE = 500 * MIB
 DUPLICATE_MIN = 10 * MIB
@@ -866,6 +881,11 @@ def scan_home(ctx, roots, procs, cwds, deadline, skipped, found):
         path, depth, repo, repo_depth = stack.pop()
         try:
             entries = list(os.scandir(path))
+        except PermissionError:
+            # macOS protects Desktop, Documents, and Downloads from a program it has not allowed,
+            # such as a scheduled run.
+            skipped.append({"path": path, "reason": "no permission to read"})
+            continue
         except OSError:
             continue
         if repo is None and any(e.name == ".git" for e in entries):
@@ -1526,6 +1546,9 @@ def scan_login_items(ctx):
             except Exception:
                 continue
             label = info.get("Label") or n[:-6]
+            # The schedule is removed with schedule remove, which also deletes schedule.json.
+            if label == SCHEDULE_LABEL:
+                continue
             program = info.get("Program") or (info.get("ProgramArguments") or [""])[0]
             st = stat_or_none(p)
             items.append({
@@ -1661,6 +1684,8 @@ def measure(ctx):
 def cmd_scan(ctx, args):
     lowest_priority()
     ensure_state(ctx)
+    if os.path.exists(schedule_paths(ctx)["json"]):
+        copy_script(ctx)
     started = time.time()
     deadline = started + max(0.0, args.time_limit)
     skipped = []
@@ -1853,6 +1878,9 @@ def print_summary(ctx, result):
     if result["skipped"]:
         print("Not measured: %d places (%s)." % (len(result["skipped"]), ", ".join(sorted({s["reason"] for s in result["skipped"]}))))
     print("Scan saved to %s" % tilde(ctx, os.path.join(ctx.state, "scan.json")))
+    last = last_run_line(ctx)
+    if last:
+        print(last)
 
 
 def load_scan(ctx):
@@ -2485,6 +2513,366 @@ def cmd_finish(ctx, args):
     return 0
 
 
+# --- schedule -------------------------------------------------------------------------------
+
+def schedule_paths(ctx):
+    config = os.environ.get("XDG_CONFIG_HOME") or ctx.h(".config")
+    return {
+        "json": os.path.join(ctx.state, "schedule.json"),
+        "copy": os.path.join(ctx.state, "machine_cleanup.py"),
+        "runs": os.path.join(ctx.state, "schedule-runs.jsonl"),
+        "plist": ctx.h("Library", "LaunchAgents", SCHEDULE_LABEL + ".plist"),
+        "service": os.path.join(config, "systemd", "user", SCHEDULE_UNIT + ".service"),
+        "timer": os.path.join(config, "systemd", "user", SCHEDULE_UNIT + ".timer"),
+    }
+
+
+def load_schedule(ctx):
+    """Returns the schedule, or None when there is none. A schedule of another version is reported
+    and treated as none, so a run never guesses at kinds it cannot read."""
+    data = read_json(schedule_paths(ctx)["json"])
+    if not data:
+        return None
+    if data.get("version") != SCHEDULE_VERSION:
+        print("The schedule was written by another version of machine-cleanup. Run schedule remove, then schedule add.",
+              file=sys.stderr)
+        return None
+    return data
+
+
+def copy_script(ctx):
+    """Copies this script into the state folder, where the scheduled job runs it, so a plugin update
+    that removes the old version's folder does not stop the schedule."""
+    dest = schedule_paths(ctx)["copy"]
+    src = os.path.realpath(os.path.abspath(__file__))
+    if os.path.realpath(dest) == src:
+        return
+    tmp = dest + ".tmp"
+    shutil.copyfile(src, tmp)
+    os.chmod(tmp, 0o700)
+    os.replace(tmp, dest)
+
+
+def systemd_user(ctx):
+    """True when a systemd user session answers, the one systemd timers run in."""
+    return bool(shutil.which("systemctl")) and run(["systemctl", "--user", "show-environment"], timeout=20)[0] == 0
+
+
+def schedule_mechanism(ctx):
+    if ctx.mac:
+        return "launchd"
+    if systemd_user(ctx):
+        return "systemd"
+    if shutil.which("crontab"):
+        return "cron"
+    return None
+
+
+def parse_at(text):
+    m = re.match(r"^([01]?[0-9]|2[0-3]):([0-5][0-9])$", text or "")
+    return (int(m.group(1)), int(m.group(2))) if m else None
+
+
+def read_crontab():
+    """Returns (lines, None), or (None, why) when the table cannot be read. Writing a table that
+    could not be read would drop the user's own lines, so the callers stop on None."""
+    rc, stdout, stderr = run(["crontab", "-l"], timeout=20)
+    if rc == 0:
+        return stdout.splitlines(), None
+    if "no crontab" in stderr.lower():
+        return [], None
+    return None, stderr.strip() or "crontab -l exited %d" % rc
+
+
+def write_crontab(lines):
+    try:
+        p = subprocess.run(["crontab", "-"], input="".join(l + "\n" for l in lines), stdout=subprocess.PIPE,
+                           stderr=subprocess.PIPE, universal_newlines=True, timeout=20)
+        return p.returncode, p.stderr.strip()
+    except (OSError, subprocess.TimeoutExpired) as e:
+        return 1, str(e)
+
+
+def unit_quote(text):
+    # systemd reads %, backslashes, and double quotes inside a quoted word as specifiers and escapes.
+    return '"%s"' % text.replace("\\", "\\\\").replace('"', '\\"').replace("%", "%%")
+
+
+def add_launchd(ctx, python, script, every, hour, minute):
+    path = schedule_paths(ctx)["plist"]
+    when = {"Hour": hour, "Minute": minute}
+    if every == "weekly":
+        when["Weekday"] = 0
+    # launchd starts a calendar job missed while the Mac slept once it wakes.
+    job = {"Label": SCHEDULE_LABEL, "ProgramArguments": [python, script, "scheduled-run"], "StartCalendarInterval": when,
+           "EnvironmentVariables": {"MACHINE_CLEANUP_HOME": ctx.state}, "ProcessType": "Background",
+           "LowPriorityIO": True, "Nice": 19, "RunAtLoad": False}
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path + ".tmp", "wb") as f:
+        plistlib.dump(job, f)
+    os.replace(path + ".tmp", path)
+    rc, _, err = run(["launchctl", "bootstrap", "gui/%d" % ctx.uid, path], timeout=30)
+    return rc, err.strip()
+
+
+def add_systemd(ctx, python, script, every, hour, minute):
+    p = schedule_paths(ctx)
+    os.makedirs(os.path.dirname(p["timer"]), exist_ok=True)
+    when = ("Sun " if every == "weekly" else "") + "*-*-* %02d:%02d:00" % (hour, minute)
+    service = ("[Unit]\nDescription=machine-cleanup scheduled run\n\n[Service]\nType=oneshot\n"
+               "Environment=%s\nExecStart=%s %s scheduled-run\nNice=19\nIOSchedulingClass=idle\n"
+               % (unit_quote("MACHINE_CLEANUP_HOME=" + ctx.state), unit_quote(python), unit_quote(script)))
+    # Persistent=true runs a run missed while the computer was off or asleep when it is next on.
+    timer = ("[Unit]\nDescription=machine-cleanup schedule\n\n[Timer]\nOnCalendar=%s\nPersistent=true\n\n"
+             "[Install]\nWantedBy=timers.target\n" % when)
+    for path, text in ((p["service"], service), (p["timer"], timer)):
+        with open(path + ".tmp", "w", encoding="utf-8") as f:
+            f.write(text)
+        os.replace(path + ".tmp", path)
+    rc, _, err = run(["systemctl", "--user", "daemon-reload"], timeout=30)
+    if rc == 0:
+        rc, _, err = run(["systemctl", "--user", "enable", "--now", SCHEDULE_UNIT + ".timer"], timeout=30)
+    return rc, err.strip()
+
+
+def add_cron(ctx, python, script, every, hour, minute):
+    lines, why = read_crontab()
+    if lines is None:
+        return 1, why
+    lines = [l for l in lines if not l.rstrip().endswith(CRON_MARK)]
+    # cron turns an unescaped % into a new line.
+    command = " ".join(shlex.quote(w).replace("%", "\\%") for w in ("MACHINE_CLEANUP_HOME=" + ctx.state, python, script))
+    lines.append("%d %d * * %s %s scheduled-run > /dev/null 2>&1 %s" % (minute, hour, "0" if every == "weekly" else "*",
+                                                                     command, CRON_MARK))
+    return write_crontab(lines)
+
+
+def remove_entries(ctx):
+    """Unregisters every entry a schedule may have left, whichever system registered it. Returns
+    (what was removed, why the crontab could not be read or written, or None)."""
+    p = schedule_paths(ctx)
+    removed, why = [], None
+    if os.path.exists(p["plist"]):
+        run(["launchctl", "bootout", "gui/%d/%s" % (ctx.uid, SCHEDULE_LABEL)], timeout=30)
+        os.remove(p["plist"])
+        removed.append("the LaunchAgent")
+    if os.path.exists(p["timer"]) or os.path.exists(p["service"]):
+        if shutil.which("systemctl"):
+            run(["systemctl", "--user", "disable", "--now", SCHEDULE_UNIT + ".timer"], timeout=30)
+        for n in ("timer", "service"):
+            if os.path.exists(p[n]):
+                os.remove(p[n])
+        if shutil.which("systemctl"):
+            run(["systemctl", "--user", "daemon-reload"], timeout=30)
+        removed.append("the systemd timer")
+    if not ctx.mac and shutil.which("crontab"):
+        lines, why = read_crontab()
+        if lines is not None and any(l.rstrip().endswith(CRON_MARK) for l in lines):
+            rc, err = write_crontab([l for l in lines if not l.rstrip().endswith(CRON_MARK)])
+            if rc == 0:
+                removed.append("the crontab line")
+            else:
+                why = err or "crontab - exited %d" % rc
+    return removed, why
+
+
+def describe_schedule(data):
+    when = ("weekly on Sunday" if data["every"] == "weekly" else "daily") + " at " + data["at"]
+    return "Schedule     %s, kinds %s, through %s" % (when, ", ".join(data["kinds"]), data["mechanism"])
+
+
+def last_run_line(ctx):
+    """The line that says what the last scheduled run did, or None before the first run."""
+    try:
+        with open(schedule_paths(ctx)["runs"], encoding="utf-8") as f:
+            lines = f.read().splitlines()
+    except OSError:
+        return None
+    for text in reversed(lines):
+        try:
+            r = json.loads(text)
+        except ValueError:
+            continue
+        if not isinstance(r, dict) or r.get("version") != RUNS_VERSION:
+            continue
+        if r.get("error"):
+            return "Last scheduled run %s failed: %s" % (r.get("started_at"), r["error"])
+        freed = r.get("freed") or []
+        return "Last scheduled run %s: freed %d items (%s), skipped %d, free disk %s -> %s" % (
+            r.get("started_at"), len(freed), human(sum(f.get("size") or 0 for f in freed)), len(r.get("skipped") or []),
+            human(r.get("disk_free_before")), human(r.get("disk_free_after")))
+    return None
+
+
+def schedule_add(ctx, args):
+    kinds = [k.strip() for k in args.kinds.split(",") if k.strip()]
+    bad = [k for k in kinds if k not in SCHEDULE_KINDS]
+    if not kinds or bad:
+        print("--kinds takes one or more of %s, separated by commas%s. A schedule never frees anything else."
+              % (", ".join(SCHEDULE_KINDS), (", not " + ", ".join(bad)) if bad else ""), file=sys.stderr)
+        return 2
+    at = parse_at(args.at)
+    if at is None:
+        print("--at takes a time from 00:00 to 23:59, not %s." % args.at, file=sys.stderr)
+        return 2
+    mechanism = schedule_mechanism(ctx)
+    if mechanism is None:
+        print("This system runs neither a systemd user session nor cron, so a schedule would never run. "
+              "Turn on one of them (on WSL, systemd=true under [boot] in /etc/wsl.conf), then add the schedule again.",
+              file=sys.stderr)
+        return 2
+    kinds = [k for k in SCHEDULE_KINDS if k in kinds]
+    ensure_state(ctx)
+    _, why = remove_entries(ctx)
+    if why:
+        print("Could not read the crontab, so nothing was changed: %s" % why, file=sys.stderr)
+        return 3
+    copy_script(ctx)
+    p = schedule_paths(ctx)
+    add = {"launchd": add_launchd, "systemd": add_systemd, "cron": add_cron}[mechanism]
+    rc, err = add(ctx, sys.executable, p["copy"], args.every, at[0], at[1])
+    if rc != 0:
+        remove_entries(ctx)
+        for n in ("copy", "json"):
+            if os.path.exists(p[n]):
+                os.remove(p[n])
+        print("Could not register the schedule with %s: %s" % (mechanism, err or "exit %d" % rc), file=sys.stderr)
+        return 3
+    data = {"version": SCHEDULE_VERSION, "kinds": kinds, "every": args.every, "at": "%02d:%02d" % at,
+            "mechanism": mechanism, "python": sys.executable, "script": p["copy"], "added_at": iso(time.time())}
+    write_private(p["json"], json.dumps(data, indent=1))
+    print(describe_schedule(data))
+    print("Each run frees only these kinds when the scan ranks them Recommended, and records what it freed in %s."
+          % tilde(ctx, p["runs"]))
+    return 0
+
+
+def schedule_remove(ctx, args):
+    removed, why = remove_entries(ctx)
+    p = schedule_paths(ctx)
+    for n in ("json", "copy"):
+        if os.path.exists(p[n]):
+            os.remove(p[n])
+    if why:
+        print("Removed the schedule's files, but not its crontab line: %s" % why, file=sys.stderr)
+        return 3
+    print(("Removed %s." % " and ".join(removed)) if removed else "No schedule was registered.")
+    if os.path.exists(p["runs"]):
+        print("The record of past runs stays in %s." % tilde(ctx, p["runs"]))
+    return 0
+
+
+def schedule_show(ctx, args):
+    data = load_schedule(ctx)
+    print(describe_schedule(data) if data else "No schedule. schedule add registers one.")
+    print(last_run_line(ctx) or "No scheduled run yet.")
+    return 0
+
+
+def cmd_schedule(ctx, args):
+    return {"add": schedule_add, "remove": schedule_remove, "show": schedule_show}[args.action](ctx, args)
+
+
+def scheduled_scan(ctx, kinds, deadline, skipped):
+    """Scans only for the approved kinds, the way scan finds and ranks them."""
+    procs = read_procs()
+    cwds = working_dirs(ctx)
+    items = []
+    if "cache" in kinds:
+        running_ids = set()
+        if ctx.mac:
+            for app in running_apps(procs):
+                bid, _ = app_info(app)
+                if bid:
+                    running_ids.add(bid)
+        items += scan_caches(ctx, procs, deadline, skipped)
+        items += scan_app_caches(ctx, procs, running_ids, deadline, skipped)
+        items += [it for it in scan_docker(ctx, deadline, skipped) if it["kind"] not in SCHEDULE_NEVER]
+    if "build" in kinds:
+        items += [it for it in scan_home(ctx, [ctx.home], procs, cwds, deadline, skipped, {}) if it["category"] == "build"]
+    if "log" in kinds:
+        items += [it for it in scan_trash_logs_installers(ctx, deadline, skipped) if it["category"] == "log"]
+    seen, unique = set(), []
+    for it in items:
+        if it["id"] not in seen:
+            seen.add(it["id"])
+            unique.append(it)
+    unique = one_row_per_path(unique)
+    last_commits = {}
+    for it in unique:
+        it["level"], it["reason"] = rank(ctx, it, last_commits)
+    return unique, procs, cwds
+
+
+def cmd_scheduled_run(ctx, args):
+    data = load_schedule(ctx)
+    if data is None:
+        print("No schedule found. schedule add registers one.", file=sys.stderr)
+        return 2
+    lowest_priority()
+    record = {"version": RUNS_VERSION, "started_at": iso(time.time()), "kinds": data["kinds"],
+              "freed": [], "skipped": [], "failed": []}
+    try:
+        rc = scheduled_free(ctx, data["kinds"], record)
+    except Exception as e:  # the record says the run failed, instead of the run ending without a trace
+        record["error"] = "%s: %s" % (type(e).__name__, e)
+        print("The scheduled run failed: %s" % record["error"], file=sys.stderr)
+        rc = 3
+    record["finished_at"] = iso(time.time())
+    ensure_state(ctx)
+    fd = os.open(schedule_paths(ctx)["runs"], os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+    with os.fdopen(fd, "a", encoding="utf-8") as f:
+        f.write(json.dumps(record) + "\n")
+    return rc
+
+
+def scheduled_free(ctx, kinds, record):
+    skipped = []
+    items, procs, cwds = scheduled_scan(ctx, kinds, time.time() + DEFAULT_TIME_LIMIT, skipped)
+    by_id = {it["id"]: it for it in items}
+    before = measure(ctx)
+    records, failed, docker_done, done = [], False, False, set()
+
+    def note(key, it, why):
+        record[key].append({"id": it["id"], "name": it["name"], "path": it.get("path"), "why": why})
+        line("skipped" if key == "skipped" else "failed", it["id"], it["name"], why)
+    for it in sorted(items, key=lambda x: len(x.get("within") or [])):
+        # Only rows ranked Recommended are freed: build output of a project used in the last 30 days
+        # is ranked Check first and stays.
+        if it["category"] not in kinds or it["level"] != "recommended":
+            continue
+        if it["locked"]:
+            note("skipped", it, "in use: " + it["locked"])
+            continue
+        holder = next((by_id[w] for w in it.get("within") or [] if w in done), None)
+        if holder is not None:
+            continue
+        lock = disk_lock_now(ctx, it, procs, cwds)
+        why = ("in use: " + lock) if lock else changed(ctx, it)
+        if why:
+            note("skipped", it, why)
+            continue
+        status, text = free_disk_item(ctx, it, records, procs)
+        if status == "done":
+            done.add(it["id"])
+            docker_done = docker_done or it["kind"].startswith("docker-")
+            record["freed"].append({"id": it["id"], "name": it["name"], "kind": it["kind"], "path": it.get("path"),
+                                    "size": it.get("size")})
+            line("done", it["id"], it["name"], text)
+        elif status == "failed":
+            failed = True
+            note("failed", it, text)
+        else:
+            note("skipped", it, text)
+    save_records(ctx, records)
+    after = measure(ctx)
+    report(ctx, before, after, docker_done)
+    record["disk_free_before"] = before.get("disk_free")
+    record["disk_free_after"] = after.get("disk_free")
+    record["not_measured"] = [{"path": s["path"], "reason": s["reason"]} for s in skipped]
+    return 3 if failed else 0
+
+
 # --- main -----------------------------------------------------------------------------------
 
 def main(argv=None, platform=None):
@@ -2506,6 +2894,15 @@ def main(argv=None, platform=None):
     r = sub.add_parser("restore")
     r.add_argument("ids", nargs="*")
     sub.add_parser("finish")
+    c = sub.add_parser("schedule")
+    cs = c.add_subparsers(dest="action")
+    ca = cs.add_parser("add")
+    ca.add_argument("--kinds", required=True, help="one or more of cache, build, log, separated by commas")
+    ca.add_argument("--every", choices=("daily", "weekly"), default="weekly")
+    ca.add_argument("--at", default="03:00", help="the time of day, HH:MM")
+    cs.add_parser("remove")
+    cs.add_parser("show")
+    sub.add_parser("scheduled-run")
     args = parser.parse_args(argv)
     if args.cmd is None:
         parser.print_help()
@@ -2513,8 +2910,12 @@ def main(argv=None, platform=None):
     if args.cmd == "apply" and args.select is None and args.kill is None:
         print("apply needs --select TEXT or --kill ID...", file=sys.stderr)
         return 2
+    if args.cmd == "schedule" and args.action is None:
+        print("schedule needs add, show, or remove", file=sys.stderr)
+        return 2
     ctx = Ctx(platform)
-    return {"scan": cmd_scan, "serve": cmd_serve, "apply": cmd_apply, "restore": cmd_restore, "finish": cmd_finish}[args.cmd](ctx, args)
+    return {"scan": cmd_scan, "serve": cmd_serve, "apply": cmd_apply, "restore": cmd_restore, "finish": cmd_finish,
+            "schedule": cmd_schedule, "scheduled-run": cmd_scheduled_run}[args.cmd](ctx, args)
 
 
 if __name__ == "__main__":

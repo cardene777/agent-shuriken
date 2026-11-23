@@ -274,6 +274,42 @@ When it ran a Docker prune and Docker Desktop's disk image exists, it adds that 
 | systemd user services | Runs `systemctl --user enable --now` |
 | Files, apps, work folders, and app leftovers moved to the Trash | Moves them back while they are still in the Trash and nothing is in their old place |
 
+## The schedule
+
+`schedule add` registers one job that runs `scheduled-run` daily or weekly, at 03:00 unless `--at HH:MM` gives another time, and on Sunday when weekly.
+Each run scans only for the kinds the user approved, and frees the rows the scan ranks Recommended through the check right before acting that `apply` runs.
+It skips a row that is in use or changed after its scan, as `apply` does.
+Only the three kinds below can be approved, and the user picks them when registering.
+
+| Kind | What a run frees | What a run leaves |
+|---|---|---|
+| `cache` | Caches tools rebuild, with the tool's own clean command when it has one, caches of apps that are not running, and the Docker build cache | Caches whose tool or app is running, Docker images, and stopped containers |
+| `build` | Build output git ignores, in a project with no commit for 30 days | Build output of a project with a commit in the last 30 days, or of a project a running program works in |
+| `log` | Log files older than 30 days | Newer log files |
+
+A run leaves Docker images and stopped containers, because a stopped container can hold data and an image built on this computer may not be fetched again.
+
+| System | How it is registered | A run missed while the computer slept |
+|---|---|---|
+| macOS | A LaunchAgent, `~/Library/LaunchAgents/machine-cleanup.schedule.plist`, loaded with `launchctl bootstrap` | Runs when the Mac wakes |
+| Linux and WSL with a systemd user session | `machine-cleanup.service` and `machine-cleanup.timer` in `~/.config/systemd/user/`, enabled with `systemctl --user` | Runs at the next start, because the timer has `Persistent=true` |
+| Linux and WSL without one, with `crontab` | One crontab line ending in `# machine-cleanup schedule`, next to the user's own lines | Skipped |
+
+On a system that runs neither, `schedule add` refuses with exit 2 and registers nothing.
+On WSL, `systemd=true` under `[boot]` in `/etc/wsl.conf` turns systemd on.
+
+The job runs a copy of the script in the state folder, so a plugin update that removes the old version's folder does not stop it.
+While a schedule exists, each `scan` copies the current script over the copy.
+
+Each run appends what it freed, what it skipped and why, and the free disk before and after to `schedule-runs.jsonl`.
+`schedule show` and the next `scan` print the last run.
+
+On macOS, a run reads the folders macOS protects, such as Desktop, Documents, and Downloads, only after Python is allowed in System Settings > Privacy & Security > Files and Folders.
+Until then, the run records those folders as not measured.
+
+`schedule remove` unloads the job and deletes the LaunchAgent, the systemd units, or the crontab line, with `schedule.json` and the copy of the script.
+The record of past runs stays.
+
 ## What it keeps
 
 Everything lives in `~/.local/share/machine-cleanup/` (or `MACHINE_CLEANUP_HOME`), in a folder only you can read, with files only you can read.
@@ -286,6 +322,9 @@ Everything lives in `~/.local/share/machine-cleanup/` (or `MACHINE_CLEANUP_HOME`
 | `survivors.json` | Processes that survived the last `apply` | The next `apply`, or `finish` |
 | `restore.json` | What `restore` can put back | `restore`, once an item is back |
 | `disabled/` | Login item files that were stopped | `restore` |
+| `schedule.json` | The approved kinds, how often and when the schedule runs, and the system that runs it | `schedule remove` |
+| `machine_cleanup.py` | The copy of the script the scheduled job runs | `schedule remove` |
+| `schedule-runs.jsonl` | What each scheduled run freed and skipped, and the free disk before and after | Nothing; it stays until you delete it |
 
 Process commands are kept only after the values of flags and variables whose names contain token, secret, password, passwd, api-key, apikey, or auth are replaced with `***`.
 
@@ -295,7 +334,7 @@ Process commands are kept only after the values of flags and variables whose nam
 - Follows a symbolic link, enters a sync folder or a Windows drive, or changes anything outside the home folder except app bundles
 - Asks for or uses an administrator password, or touches other users' processes
 - Sends anything over the network, or serves the page anywhere but `127.0.0.1`
-- Changes operating system settings, or installs anything that runs in the background
+- Changes operating system settings, or installs anything that runs in the background, except the one scheduled job that `schedule add` registers when you ask for it
 
 ## Environment variables
 
@@ -311,6 +350,6 @@ Process commands are kept only after the values of flags and variables whose nam
 |---|---|
 | 0 | Done |
 | 1 | `apply` or `restore` refused, and nothing changed |
-| 2 | Bad input, or no scan yet |
-| 3 | `apply` could not free an item |
+| 2 | Bad input, no scan yet, or a system that runs neither systemd nor cron for `schedule add` |
+| 3 | `apply` or a scheduled run could not free an item, or `schedule add` could not register the job |
 | 4 | `serve` waited without receiving a selection |
