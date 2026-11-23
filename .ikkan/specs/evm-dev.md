@@ -1,6 +1,6 @@
 # evm-dev
 
-| 条件 | 確かめ方 | 出元 |
+| Criterion | How to check | Origin |
 |---|---|---|
 | `evm-standards.sh check`は、同梱の全ての項目が`status`と`checked`と`source`の3つの欄を持ち、`status`が`announced`、`specified`、`live`、`stopped`のどれかで、`checked`が実在する日付の時に0で終わる | `bash plugins/evm-dev/skills/evm-standards/tests/test-evm-standards.sh`の検査`"check passes on the bundled items"`が通る | #199 |
 | `evm-standards.sh check`は、欄が欠けた項目、知らない`status`の項目、実在しない日付の項目を名指して1で終わる | `bash plugins/evm-dev/skills/evm-standards/tests/test-evm-standards.sh`の検査`"check names an item with a missing field, an unknown status, or an impossible date"`が通る | #199 |
@@ -195,3 +195,6 @@
 | evm-devの`README.md`、`README.ja.md`、`docs/how-it-works.md`、`docs/how-it-works.ja.md`は、`~/.evm-dev/article-index`と`EVM_DEV_INDEX_URL`で一覧を名指すこと、一覧の行の形、どのリンクを出すか、URLの一覧の写しを`~/.local/share/evm-dev/`にどれだけ保存するかを書く | `bash plugins/evm-dev/skills/evm-standards/tests/test-evm-standards.sh`の検査`"the README and how-it-works describe the article index"`が通る | #353 |
 | evm-devの`README.md`と`README.ja.md`は、技の表より前に、`contract-deploy`が本番のチェーンへの配布にLedgerかTrezorを使うことを書く | `bash plugins/evm-dev/skills/contract-deploy/tests/test-contract-deploy.sh`の検査`"the README says before the skill list what production deploys need"`が通る | #353 |
 | evm-devの2つの`plugin.json`は`CHANGELOG.md`の最も新しい版と同じ版を持つ | `bash scripts/check.sh`の検査`"versions match the changelogs"`が通る | #353 |
+| Every evm-standards item, the new one included, passes the item check | `bash plugins/evm-dev/skills/evm-standards/tests/test-evm-standards.sh` check `"check passes on the bundled items"` passes | #383 |
+| Every item says what the standard lets contracts and wallets do | `bash plugins/evm-dev/skills/evm-standards/tests/test-evm-standards.sh` check `"every item says what the standard lets contracts and wallets do"` passes | #383 |
+| No item holds a URL | `bash plugins/evm-dev/skills/evm-standards/tests/test-evm-standards.sh` check `"no item holds a URL"` passes | #383 |

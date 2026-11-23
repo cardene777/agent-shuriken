@@ -5,6 +5,10 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+### Added
+
+- `evm-standards` holds an item for EIP-8288, the frame mode that aggregates post-quantum signatures into one recursive STARK per block: what contracts read through the frame introspection of EIP-8141, its `Draft` status, and that no network upgrade names it. The item on EIP-8141 points to it
+
 ## [0.7.0] - 2026-11-22
 
 ### Changed
