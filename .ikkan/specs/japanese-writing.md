@@ -1,6 +1,6 @@
 # japanese-writing
 
-| 条件 | 確かめ方 | 出元 |
+| Criterion | How to check | Origin |
 |---|---|---|
 | 上流から写したfileは、`upstream-manifest.txt`の指紋と全て一致する | `bash plugins/japanese-writing/skills/japanese-writing/tests/test-japanese-writing.sh`の検査`"the upstream files match their fingerprints"`が通る | #163 |
 | 上流から写したfileを1 byteでも書き換えると、指紋の検査が落ちる | `bash plugins/japanese-writing/skills/japanese-writing/tests/test-japanese-writing.sh`の検査`"a changed upstream file fails the fingerprint check"`が通る | #163 |

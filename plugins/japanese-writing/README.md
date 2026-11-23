@@ -70,6 +70,7 @@ L5 [比喩の動詞] 立ち: `config.json` は二つの置き場の隣に立ち�
 ## Rules this plugin adds
 
 `references/rules.md` holds them, in Japanese, and the agent reads it before the upstream steps.
+Every Markdown reference, the upstream copies included, has an English version beside it named `<name>.en.md`, with the same headings and tables, so you can read the rules in English; the agent reads only the Japanese files and explains each fix in the language you write in.
 
 | Rule | Where |
 |---|---|

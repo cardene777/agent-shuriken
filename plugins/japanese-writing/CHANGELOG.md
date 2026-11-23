@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The references read in English: every Markdown file under `references/`, the upstream copies included, has an English version beside it named `<name>.en.md`, with the same headings and tables, and a check fails when the two differ. The skill keeps reading the Japanese files and explains each fix in the language the user writes in
+- `references/metaphor-words.tsv` has a fourth column, `English`, that glosses each pattern, and `suspects.py` refuses a list without it
 - `musubi.json` declares `references/connecting.md` as the content `connecting`, version 1.0.0, so that other skills such as convey follow it through musubi and are checked again when it changes
 
 ## [0.2.0] - 2026-11-16
