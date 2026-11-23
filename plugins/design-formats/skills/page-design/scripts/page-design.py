@@ -548,8 +548,9 @@ def theme_main(args):
     if len(pages) != 1 or not re.search(r"\.html?$", pages[0], re.I):
         print("usage: page-design.py theme [--keys <key>,...] [--defaults] <page.html>", file=sys.stderr)
         return 2
-    if keys is not None and key_problems(keys):
-        for line in key_problems(keys):
+    problems = key_problems(keys) if keys is not None else []
+    if problems:
+        for line in problems:
             print("page-design: %s" % line, file=sys.stderr)
         print("page-design: %s left as it is" % pages[0], file=sys.stderr)
         return 2
