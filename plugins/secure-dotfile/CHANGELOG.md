@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-24
+
 - The chat report follows the `structure` format of page-design in the design-formats plugin through musubi, as an optional follow declared in `skills/secure-dotfile/musubi.json`: the result first, what was moved and skipped with the reasons, values not measured written as not measured, and the user's steps last. When the `musubi` command is installed, the agent runs `musubi check` before reading the format. Without design-formats, the skill reports in its own order
 
 ## [0.7.1] - 2026-11-16
@@ -59,7 +61,8 @@ First public release.
 - Moves a secret in the chezmoi source file instead of the file chezmoi generates
 - Starts when you mention a secret in your shell configuration, or when you call it, in Claude Code and in Codex
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/secure-dotfile--v0.7.1...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/secure-dotfile--v0.8.0...HEAD
+[0.8.0]: https://github.com/cardene777/agent-shuriken/releases/tag/secure-dotfile--v0.8.0
 [0.7.1]: https://github.com/cardene777/agent-shuriken/releases/tag/secure-dotfile--v0.7.1
 [0.7.0]: https://github.com/cardene777/agent-shuriken/releases/tag/secure-dotfile--v0.7.0
 [0.6.0]: https://github.com/cardene777/agent-shuriken/releases/tag/secure-dotfile--v0.6.0

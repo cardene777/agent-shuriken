@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-24
+
 - The candidate sheet has Delete and Keep buttons instead of OK and Keep, with a check mark on the pressed one, and pressing "Copy items to delete" first shows every account it will delete with a warning that deleting cannot be undone. A sheet of 50 accounts or fewer is one list with a category filter, and only a longer one keeps a tab per category, without an All tab. Choices and memos stay in the browser per round until the sheet of the next round is opened, and the sheet says at the top right whether they are saved
 - On a narrow screen the candidate sheet shows the list or the details of one account, with a back button and previous and next buttons, and the address names the open account. The pager shows the range of accounts on the page, and at most five page numbers on a phone
 - The deletion effort has five levels without colors, and each status chip has an icon before its text
@@ -50,7 +52,8 @@ First public release.
 - Bundles the JustDeleteMe deletion directory
 - The pages offer an English / 日本語 switch
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/account-cleanup--v0.3.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/account-cleanup--v0.4.0...HEAD
+[0.4.0]: https://github.com/cardene777/agent-shuriken/releases/tag/account-cleanup--v0.4.0
 [0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/account-cleanup--v0.3.0
 [0.2.1]: https://github.com/cardene777/agent-shuriken/releases/tag/account-cleanup--v0.2.1
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/account-cleanup--v0.2.0

@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-24
+
 - The chat report follows the `structure` format of page-design in the design-formats plugin through musubi, as an optional follow declared in `skills/repo-progress/musubi.json`: the result first, what was done and skipped with the reasons, values not measured written as not measured, and the user's steps last. When the `musubi` command is installed, the agent runs `musubi check` before reading the format. Without design-formats, the skill reports in its own order
 
 ## [0.1.2] - 2026-11-16
@@ -28,7 +30,8 @@ First public release.
 - Never changes a repository, a branch, a worktree, or an issue
 - Starts when you ask what you were working on or which repositories have stalled, or when you call it, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/repo-progress--v0.1.2...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/repo-progress--v0.2.0...HEAD
+[0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/repo-progress--v0.2.0
 [0.1.2]: https://github.com/cardene777/agent-shuriken/releases/tag/repo-progress--v0.1.2
 [0.1.1]: https://github.com/cardene777/agent-shuriken/releases/tag/repo-progress--v0.1.1
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/repo-progress--v0.1.0
