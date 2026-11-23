@@ -259,7 +259,8 @@ export async function partsChecks({ check }) {
       const changed = Object.keys(baseBefore).filter((file) => after[file] !== baseBefore[file]);
       if (changed.length > 0 || Object.keys(after).length !== Object.keys(baseBefore).length) return `the other flow's folder changed: ${changed.join(", ") || "files were added or removed"}`;
       const joined = readJson(join(dir, "timeline.json"));
-      const captions = joined.steps.map((step) => step.caption ?? "-").join(" | ");
+      // A step without a caption is recorded with an empty one
+      const captions = joined.steps.map((step) => step.caption || "-").join(" | ");
       if (captions !== "Open the counter | Press once | Open the outside dashboard | - | - | Press twice") return `the joined steps are ${captions}`;
       if (joined.steps.map((step) => step.step).join(",") !== "1,2,3,4,5,6") return `the joined steps are numbered ${joined.steps.map((step) => step.step).join(",")}`;
       const times = joined.steps.map((step) => step.t);
