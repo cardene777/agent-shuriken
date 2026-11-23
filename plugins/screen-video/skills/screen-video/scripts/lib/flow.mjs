@@ -133,6 +133,17 @@ export function validate(flow) {
         top("login.session must be lowercase letters, digits, and hyphens");
       }
       if (login.start !== undefined && !isText(login.start)) top("login.start must be the page where the login begins");
+      if (login.forget !== undefined && typeof login.forget !== "boolean") top("login.forget must be true or false");
+      if (login.forget === true && login.session === undefined) top("login.forget needs login.session, the saved login it removes when record ends");
+    }
+  }
+  if (flow.addsTo !== undefined) {
+    const adds = flow.addsTo;
+    if (!isObject(adds)) top("addsTo must be an object naming the flow the part is added to and the step it comes after");
+    else {
+      if (!(typeof adds.flow === "string" && /^[a-z0-9][a-z0-9-]*$/.test(adds.flow))) top("addsTo.flow must be the name of the flow the part is added to");
+      else if (adds.flow === flow.name) top("addsTo.flow must name another flow");
+      if (adds.after !== undefined && !(Number.isInteger(adds.after) && adds.after >= 1)) top("addsTo.after must be a step number of 1 or more");
     }
   }
   if (flow.title !== undefined && !isText(flow.title)) top("title must be text");

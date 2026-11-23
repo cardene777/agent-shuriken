@@ -39,6 +39,9 @@ Ask what the video is for, who will watch it, and how long it should be, in one 
 | How long | 15 seconds, 30 seconds, 1 minute, 2 minutes or longer |
 
 Then ask, in one more question, which videos to make (16:9, 9:16, GIF; several may be chosen), where the flow starts, whether it needs a login, which values on the screen are private, and which steps send something or pay.
+Then ask where the result of the video's main action can be checked, in one question whose choices may be combined: the app's own admin or history pages, the dashboard of an outside service the app uses (such as payments, email, or a CRM), or nowhere.
+Plan the chosen screens as the last chapter, after the steps that send or pay, so the video shows that the action worked.
+A video that stops at the action leaves the viewer to trust that it worked.
 Then ask how the video looks and sounds, in one question with these choices.
 
 | Question | Choices |
@@ -80,6 +83,25 @@ When the site needs a login made by hand, such as with two-factor authentication
 
 ```bash
 S=<folder>/scripts; "$S/screen-video.sh" login .screen-video/flows/<name>.json --until /dashboard
+```
+
+### Show an outside service
+
+To show the dashboard of an outside service, add `open` steps with its full address, such as `https://dashboard.example.com/payments`, and mask what is private on it: the account name, other customers, and their email addresses.
+Such a dashboard needs the user's own login, so set `login.session` and `login.forget: true`, and have the user log in in the window `login --start` opens at the service's login page.
+Never type into the service's login page yourself, and never ask for its password.
+
+```bash
+S=<folder>/scripts; "$S/screen-video.sh" login .screen-video/flows/<name>.json --start https://dashboard.example.com/login --until /payments
+```
+
+`login` keeps the logins already saved for the flow, so the app and the service can each be logged in to once.
+A saved login to an outside service lets anyone with the file into that account, so `record` removes it when it ends, also when a step fails, because the flow says `login.forget: true`.
+Tell the user it was removed, and that recording again needs the login again.
+`logout` removes a saved login at any time.
+
+```bash
+S=<folder>/scripts; "$S/screen-video.sh" logout .screen-video/flows/<name>.json
 ```
 
 ## 3. Rehearse and show the storyboard
@@ -132,6 +154,21 @@ To show the user what the edit changed, run `compare`, which writes a page with 
 S=<folder>/scripts; "$S/screen-video.sh" compare .screen-video/flows/<name>.json
 ```
 
+## Add a part left out
+
+When a recorded video misses a part, record only that part and join it in, instead of recording the whole flow again and repeating its steps that send or pay.
+Write the part as a flow of its own with `addsTo`, naming the recorded flow and the step the part comes after; without `after`, it goes at the end.
+
+```json
+{ "version": 1, "name": "<name>-check", "url": "https://dashboard.example.com", "addsTo": { "flow": "<name>", "after": 12 }, "steps": [] }
+```
+
+Rehearse it and show the storyboard as for any flow, then record it.
+`record` refuses before opening anything when the other flow has no recording or has fewer steps than `after`.
+It records only the part's steps, into `part/` of the part's folder, and writes the joined videos into the part's folder: the other flow's steps up to `after`, the part, then the rest.
+The joined videos take the title, look, narration, music, cards, and outputs of the other flow, whose folder and videos stay as they were.
+`remake` of the part joins the two recordings again, for example after a caption changed.
+
 ## A recording the user made
 
 When the user already has a recording, find its scenes, read the pictures, write the captions, and make the videos.
@@ -148,8 +185,8 @@ Read the pictures, write `captions.json` next to them as `[{"start": 0.0, "end":
 | What | Where |
 |---|---|
 | Flows | `.screen-video/flows/` in the project, so they are kept with the code |
-| Videos | `<data folder>/<project>/<flow name>/`, with the rehearsal in `rehearsal/` inside it |
-| Saved logins | `<data folder>/sessions/`, readable only by the user |
+| Videos | `<data folder>/<project>/<flow name>/`, with the rehearsal in `rehearsal/` inside it, and a part's own recording in `part/` |
+| Saved logins | `<data folder>/sessions/`, readable only by the user, until `logout` or, with `login.forget`, the end of `record` |
 | Playwright and ffmpeg | `<data folder>/node/`. An ffmpeg on `PATH` with libx264 is used first |
 | The local voice engines | `<data folder>/voices/`: `kokoro/` for English, `aivisspeech/` for Japanese, and `voicevox/` when a flow chooses VOICEVOX |
 | Themes | Bundled in `themes/` next to this `SKILL.md`; the project's own in `.screen-video/themes/` |

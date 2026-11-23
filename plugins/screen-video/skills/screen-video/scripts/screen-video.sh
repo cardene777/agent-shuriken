@@ -13,7 +13,9 @@
 #   screen-video.sh remake <flow> [--out <dir>]             Make the videos again from the last recording, in the flow's current look
 #   screen-video.sh compare <flow> [--out <dir>] [--before <dir>]
 #                                                           Show the plain and the edited video side by side for each point
-#   screen-video.sh login <flow> [--until <text>]           Log in by hand once and save the login for the flow
+#   screen-video.sh login <flow> [--until <text>] [--start <address>]
+#                                                           Log in by hand once and save the login for the flow, keeping earlier ones
+#   screen-video.sh logout <flow>                           Remove the flow's saved login
 #   screen-video.sh scenes <recording> [--out <dir>]        Find the scenes of a recording the user made
 #   screen-video.sh render <recording> [--out <dir>]        Caption and edit that recording from captions.json
 #
