@@ -378,14 +378,12 @@ skill_applies_theme() {
 }
 
 # The pages that describe the plugin say both changes, in English and in Japanese.
-# changelog_entries <changelog>: the entry lines under ## [Unreleased].
-changelog_entries() { sed -n '/^## \[Unreleased\]/,/^## \[[0-9]/p' "$1" | grep '^- '; }
-
-# changelog_mentions <changelog> <text>...: one section of the changelog names every text.
+# changelog_mentions <changelog> <text>...: the entry lines under ## [Unreleased] or any release name
+# every text. Link definitions and the header are not entry lines.
 changelog_mentions() {
-  local file="$1" entries text
+  local entries text
+  entries="$(awk '/^## \[/ { on = 1 } on' "$1" | grep '^- ')"
   shift
-  entries="$(changelog_entries "$file")"
   for text in "$@"; do [[ "$entries" == *"$text"* ]] || return 1; done
 }
 

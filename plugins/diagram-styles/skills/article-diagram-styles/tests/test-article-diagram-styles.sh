@@ -1291,9 +1291,9 @@ changelog_line() {
 }
 check "the changelog has a line under Unreleased or the released version" changelog_line
 
-# names_in_changelog <changelog> <version> <text>: a line under ## [Unreleased] or ## [<version>]
-# names the text.
-names_in_changelog() { { unreleased "$1"; released "$1" "$2"; } | grep '^- ' | grep -qF -- "$3"; }
+# names_in_changelog <changelog> <version> <text>: an entry line under ## [Unreleased] or any release
+# names the text. The version is kept in the call for the checks that read the current section.
+names_in_changelog() { awk '/^## \[/ { on = 1 } on' "$1" | grep '^- ' | grep -qF -- "$3"; }
 
 # changelog_names <text>: a line of the plugin's changelog names the text. A release moves the line
 # from ## [Unreleased] into its version's section, where it stays through later releases, so a line
