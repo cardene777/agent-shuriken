@@ -670,6 +670,140 @@ registry_errors_short() {
 }
 check "registry errors print the registry path with ~, not the home folder" registry_errors_short
 
+# A registry, lock file, or project file that cannot be written. Each case has its own throwaway HOME with
+# the registry in its default place, so ~ stands for that HOME. These cases need a user other than root,
+# since permission bits do not stop root from writing.
+# home_pm <home> <args...>: run portman with HOME=<home> and no PORTMAN_HOME; sets rc and err (standard error).
+home_pm() {
+  local home="$1"
+  shift
+  err="$(unset PORTMAN_HOME; HOME="$home" pm "$@" 2>&1 >/dev/null)"
+  rc=$?
+}
+# refused_cleanly <home> <path with ~> <label>: the last run exited 2 and named the path with ~,
+# without the home folder's path or a traceback. A failure prints the last line of standard error.
+refused_cleanly() {
+  local last
+  [ "$rc" = 2 ] && printf '%s\n' "$err" | grep -qF -- "$2" && ! printf '%s\n' "$err" | grep -qF -- "$1" \
+    && ! printf '%s\n' "$err" | grep -q 'Traceback' && return 0
+  last="$(printf '%s\n' "$err" | tail -n 1)"
+  printf '      %s: exit %s, %s\n' "$3" "$rc" "${last//$1/<HOME>}"
+  return 1
+}
+
+unwritable_folder() {
+  local home="$T/home-nofolder" result=0
+  mkdir -p "$home/.local/share"
+  chmod 500 "$home/.local/share"
+  home_pm "$home" add shop web 21301
+  chmod 700 "$home/.local/share"
+  refused_cleanly "$home" "~/.local/share/portman" "registry folder" || result=1
+  [ ! -e "$home/.local/share/portman" ] || { echo "      the registry folder was created"; result=1; }
+  return "$result"
+}
+check "add refuses without a traceback when the registry folder cannot be created" unwritable_folder
+
+unwritable_lock() {
+  local home="$T/home-nolock" dir proj token result=0
+  dir="$home/.local/share/portman"
+  proj="$home/proj"
+  mkdir -p "$proj"
+  (unset PORTMAN_HOME; HOME="$home" pm add shop web 21302 --dir "$proj" >/dev/null) || return 1
+  token="$(unset PORTMAN_HOME; HOME="$home" pm apply --dir "$proj" | sed -nE 's/.*--confirm ([0-9a-f]{12})$/\1/p')"
+  [ -n "$token" ] || { echo "      the apply preview printed no token"; return 1; }
+  cp "$dir/registry.json" "$T/nolock.before"
+  chmod 400 "$dir/registry.lock"
+  home_pm "$home" add shop api 21303
+  refused_cleanly "$home" "~/.local/share/portman/registry.lock" "add" || result=1
+  home_pm "$home" remove --confirm shop/web=21302
+  refused_cleanly "$home" "~/.local/share/portman/registry.lock" "remove --confirm" || result=1
+  home_pm "$home" apply --dir "$proj" --confirm "$token"
+  refused_cleanly "$home" "~/.local/share/portman/registry.lock" "apply --confirm" || result=1
+  chmod 600 "$dir/registry.lock"
+  same "$dir/registry.json" "$T/nolock.before" || { echo "      the registry changed"; result=1; }
+  [ ! -e "$proj/.env.local" ] || { echo "      apply --confirm wrote .env.local"; result=1; }
+  return "$result"
+}
+check "every command that writes the registry refuses without a traceback when the lock file cannot be opened" unwritable_lock
+
+unusable_portman_home() {
+  local home="$T/home-pmhome" result=0
+  mkdir -p "$home"
+  : > "$home/state-file"
+  err="$(HOME="$home" PORTMAN_HOME="$home/state-file" pm add shop web 21304 2>&1 >/dev/null)"
+  rc=$?
+  refused_cleanly "$home" "~/state-file" "PORTMAN_HOME is a file" || result=1
+  printf '%s\n' "$err" | grep -q 'PORTMAN_HOME' || { echo "      the refusal for a file does not name PORTMAN_HOME"; result=1; }
+  # As root, portman could change the mode of /, so this case runs only for another user.
+  if [ "$(id -u)" = 0 ]; then
+    echo "      run the tests as a user other than root"
+    return 1
+  fi
+  err="$(HOME="$home" PORTMAN_HOME=/ pm add shop web 21304 2>&1 >/dev/null)"
+  rc=$?
+  [ "$rc" = 2 ] && ! printf '%s\n' "$err" | grep -q 'Traceback' && printf '%s\n' "$err" | grep -q 'PORTMAN_HOME' \
+    || { printf '      PORTMAN_HOME=/: exit %s, %s\n' "$rc" "$(printf '%s\n' "$err" | tail -n 1)"; result=1; }
+  return "$result"
+}
+check "add refuses without a traceback when PORTMAN_HOME is not a folder you can write" unusable_portman_home
+
+unwritable_project_file() {
+  local home="$T/home-noproject" proj token result=0
+  proj="$home/proj"
+  mkdir -p "$proj" "$home/elsewhere"
+  (unset PORTMAN_HOME; HOME="$home" pm add shop web 21305 --dir "$proj" >/dev/null) || return 1
+  token="$(unset PORTMAN_HOME; HOME="$home" pm apply --dir "$proj" | sed -nE 's/.*--confirm ([0-9a-f]{12})$/\1/p')"
+  chmod 500 "$proj"
+  home_pm "$home" apply --dir "$proj" --confirm "${token:-none}"
+  chmod 700 "$proj"
+  refused_cleanly "$home" "~/proj/.env.local" "the project folder cannot be written" || result=1
+  # .env.local points into a folder that can be written, so it is written before the Compose override fails.
+  ln -s "$home/elsewhere/.env.local" "$proj/.env.local"
+  printf 'services:\n  web:\n    image: nginx\n    ports:\n      - "3000:3000"\n' > "$proj/compose.yaml"
+  token="$(unset PORTMAN_HOME; HOME="$home" pm apply --dir "$proj" | sed -nE 's/.*--confirm ([0-9a-f]{12})$/\1/p')"
+  chmod 500 "$proj"
+  home_pm "$home" apply --dir "$proj" --confirm "${token:-none}"
+  chmod 700 "$proj"
+  refused_cleanly "$home" "~/proj/compose.override.yaml" "the Compose override cannot be written" || result=1
+  printf '%s\n' "$err" | grep -qF "~/elsewhere/.env.local" \
+    || { echo "      the refusal does not name the .env.local it wrote"; result=1; }
+  grep -q '^PORT_WEB=21305$' "$home/elsewhere/.env.local" || { echo "      .env.local was not written"; result=1; }
+  return "$result"
+}
+check "apply --confirm refuses without a traceback when a project file cannot be written" unwritable_project_file
+
+# What can be written today still is: a folder of yours that lost its write bit, and a registry file with mode 400.
+lost_write_bit() {
+  local home="$T/home-writebit" dir result=0
+  dir="$home/.local/share/portman"
+  mkdir -p "$dir"
+  chmod 500 "$dir"
+  home_pm "$home" add shop web 21306
+  chmod 700 "$dir"
+  [ "$rc" = 0 ] && grep -q '"port": 21306' "$dir/registry.json" || { echo "      folder with mode 500: exit $rc"; result=1; }
+  chmod 400 "$dir/registry.json"
+  home_pm "$home" add shop api 21307
+  [ "$rc" = 0 ] && grep -q '"port": 21307' "$dir/registry.json" || { echo "      registry with mode 400: exit $rc"; result=1; }
+  return "$result"
+}
+check "add still writes when the registry folder or file has lost its write bit" lost_write_bit
+
+exit_2_documented() {
+  python3 -c 'import ast, re, sys
+doc = ast.get_docstring(ast.parse(open(sys.argv[1], encoding="utf-8").read()))
+codes = " ".join(doc.split("Exit codes:", 1)[-1].split())
+two = re.search(r"\b2 for (.*?)\b3 when", codes)
+sys.exit(0 if two and "written" in two.group(1) else 1)' "$SCRIPT" || return 1
+  grep -qE "^\| 2 \| .*written" "$HERE/../../../docs/how-it-works.md" || return 1
+  grep -qE "^\| 2 \| .*書け" "$HERE/../../../docs/how-it-works.ja.md"
+}
+check "the exit code 2 lists a registry or project file that cannot be written" exit_2_documented
+
+changelog_unwritable() {
+  awk '/^## \[/ { on = 1 } on' "$HERE/../../../CHANGELOG.md" | grep '^- ' | grep -q 'cannot be written'
+}
+check "the changelog names the refusal for files that cannot be written" changelog_unwritable
+
 exit_141_documented() {
   python3 -c 'import ast, sys
 doc = ast.get_docstring(ast.parse(open(sys.argv[1], encoding="utf-8").read()))
