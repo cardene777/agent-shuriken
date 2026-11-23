@@ -21,6 +21,7 @@ A group of proposals that put per-account validation and gas payment into the pr
 RIP-7560 was created on 2023-09-01, ERC-7562 on 2023-09-01, EIP-7701 on 2024-05-01, and EIP-8141 on 2026-01-29.
 The Hegotá meta (EIP-8081, status `Draft`) lists EIP-8141 as `Scheduled for Inclusion`.
 The L1 proposal has moved from EIP-7701 to EIP-8141.
+EIP-8288 adds a frame mode to EIP-8141 that aggregates post-quantum signatures into one proof per block (the `eip-8288-pq-signature-aggregation` item).
 
 ## Not yet shipped
 

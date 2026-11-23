@@ -5,8 +5,14 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+### Added
+
+- `evm-standards` holds an item for EIP-8288, the frame mode that aggregates post-quantum signatures into one recursive STARK per block: what contracts read through the frame introspection of EIP-8141, its `Draft` status, and that no network upgrade names it. The item on EIP-8141 points to it
+- `ethereum-knowledge` holds two items on the post-quantum work on L1: EIP-8292, the opt-in aggregator role that proves many post-quantum attestation signatures in one proof and leaves the execution layer unchanged, and pqai27, the proposal of 2026-11-11 to reach post-quantum security in 2027, with what it asks of Hegotá, quick slots, and FOCIL and the thread that argues to keep shipping finished features in parallel
+
 ### Fixed
 
+- The `ethereum-knowledge` test finds its changelog line under any release, so it no longer fails after a later release moves the line down
 - `release-check.py layout` compares the slot each ERC-7201 namespace sits at, as the contract or a base assigns it to `<pointer>.slot` in inline assembly, a number or a constant, and names a changed one with a `slot` line instead of printing `compatible`. A constant written as an expression is compared by its expression, and a namespace whose slot no build sets, or sets to two values, is `not-compared`
 - `contract-tests.py uncovered` counts an access point only when a test expects the error its guard raises: `OwnableUnauthorizedAccount` for `onlyOwner`, `AccessControlUnauthorizedAccount` for `onlyRole`, `AccessManagedUnauthorized` for `restricted`, and the custom error or revert string of the project's own guard. A bare `vm.expectRevert()`, a bare revert check in a Hardhat test, or another error no longer counts; when the guard's error cannot be read, the test must name some error
 - The release-check skill says where to simulate the upgrade script: without `--broadcast` against the chain the proxy lives on, or, when no reachable chain has it, on `anvil` after deploying the deployed version from the worktree with its own deploy script

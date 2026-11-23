@@ -10,8 +10,8 @@ This plugin ships dated items on all of them, each with the date it was checked 
 
 | Skill | What it does |
 |---|---|
-| `evm-standards` | Answers whether an ERC is final or an EIP is live, and what it lets contracts and wallets do, from 41 items on ERCs and EIPs. It also finds standards by what they do, and links the article on each standard it names from an article index you name |
-| `ethereum-knowledge` | Answers how L2 networks and rollup frameworks work and stand, what is planned for Ethereum L1, and whether EIPs that change only consensus are live, from 51 items. It leaves ERCs and the EIPs that change what contracts and wallets can do to `evm-standards` |
+| `evm-standards` | Answers whether an ERC is final or an EIP is live, and what it lets contracts and wallets do, from 42 items on ERCs and EIPs. It also finds standards by what they do, and links the article on each standard it names from an article index you name |
+| `ethereum-knowledge` | Answers how L2 networks and rollup frameworks work and stand, what is planned for Ethereum L1, and whether EIPs that change only consensus are live, from 53 items. It leaves ERCs and the EIPs that change what contracts and wallets can do to `evm-standards` |
 | `solidity-code` | Writes and changes contracts in Foundry and Hardhat projects for the solc, OpenZeppelin, forge-std, Foundry, and Hardhat versions the project uses, then scans the code for outdated patterns and builds and tests it |
 | `contract-tests` | Writes unit, fuzz, and invariant tests for a project's contracts in Foundry or Hardhat, or has kiwa write them when it is installed, from a list of what each contract needs tested, then names what no test covers and runs the tests |
 | `contract-deploy` | Writes Foundry and Hardhat Ignition deploy scripts that never touch keys, names every place a project handles a key unsafely, hands you the command to sign with a hardware wallet on production chains and an encrypted keystore on test chains, then records each chain's deployed addresses and checks them |
