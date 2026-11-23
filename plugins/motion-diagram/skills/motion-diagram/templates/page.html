@@ -374,7 +374,9 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--s
   md.querySelectorAll('[data-count-for]').forEach(e => { countEls[e.dataset.countFor] = e; });
   const ease = x => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
   function anchor(id) { return box(partEl(id)); }
-  function restPos(r) { const b = anchor(r.at); return { x: b.x - 12 + (r.slot % 6) * 6, y: b.t - 2 - (r.slot % 6) * 3 }; }
+  /* Cards that stop at a part stack inside its top-right corner, clear of its icon, name, and count,
+     and of the lines that start or end at its edges. */
+  function restPos(r) { const b = anchor(r.at); return { x: b.r - 15, y: b.t + 12 + (r.slot % 6) * 4 }; }
   function setCounts(t, done) {
     Object.keys(countEls).forEach(id => {
       const final = D.finals[id];
@@ -481,6 +483,23 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--s
     await pause(400);
     return running || frames !== f || els.map(e => e.style.transform + e.style.opacity).join('|') !== before;
   }
+  /* The resting cards that cover their part's icon, name, or count, or the start of a line back. */
+  function covered() {
+    const s = stage.getBoundingClientRect(), hits = [];
+    const rel = r => ({ l: r.left - s.left, t: r.top - s.top, r: r.right - s.left, b: r.bottom - s.top });
+    const meet = (a, b) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
+    const row = stage.dataset.flow === 'row';
+    const starts = D.backs.map(l => { const a = box(partEl(l.from)); return row ? { x: a.x, y: a.t } : { x: a.l, y: a.y }; });
+    plan.cards.forEach((c, i) => {
+      if (c.end !== 'rest' || !els[i]) return;
+      const card = rel(els[i].getBoundingClientRect());
+      partEl(c.rest.at).querySelectorAll('.md-icon, .md-name, .md-count').forEach(e => {
+        if (meet(card, rel(e.getBoundingClientRect()))) hits.push(c.rest.at + ' ' + e.className);
+      });
+      starts.forEach(p => { if (meet(card, { l: p.x - 4, t: p.y - 4, r: p.x + 4, b: p.y + 4 })) hits.push(c.rest.at + ' line back'); });
+    });
+    return [...new Set(hits)];
+  }
   async function probe() {
     run();
     await ended();
@@ -493,7 +512,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--s
     const last = snapshot();
     const out = {
       runs, cards: last.cards, counts: last.counts, moving: await still(), firstRun,
-      before: lines, pressed, flow: stage.dataset.flow,
+      before: lines, pressed, flow: stage.dataset.flow, covered: covered(),
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1
     };
     document.getElementById('md-probe').textContent = JSON.stringify(out);

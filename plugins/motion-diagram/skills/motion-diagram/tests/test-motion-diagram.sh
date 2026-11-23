@@ -255,6 +255,27 @@ PY
   python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if d["flow"] == "row" and not d["overflow"] else 1)' "$WORK/at728.json" || { why="at 728 px the flow is not left to right"; return 1; }
 }
 
+# The end sends a line back too, so the cards that stop there sit where a line back starts.
+resting_cards_cover_nothing() {
+  variant "$WORK/endback.json" 's["lines"].append({"from": "issue", "to": "rules", "back": True, "label": "Issues teach"})'
+  python3 "$TOOL" render "$WORK/endback.json" --out "$WORK/endback.html" > /dev/null 2>&1 || { why="the spec with a line back from the end was not rendered"; return 1; }
+  local width
+  for width in 1000 390; do
+    python3 "$BROWSER" dump "file://$WORK/endback.html#probe" --size "${width}x900" > "$WORK/endback-$width.dom" 2> /dev/null || { why="no browser"; return 1; }
+    python3 - "$WORK/endback-$width.dom" <<'PY' > "$WORK/endback-$width.out" || { why="at $width px: $(cat "$WORK/endback-$width.out")"; return 1; }
+import html, json, re, sys
+m = re.search(r'<pre[^>]*id="md-probe"[^>]*>(.*?)</pre>', open(sys.argv[1]).read(), re.S)
+if not m:
+    print("the page reported nothing"); sys.exit(1)
+hits = json.loads(html.unescape(m.group(1))).get("covered")
+if hits is None:
+    print("the page did not report covered cards"); sys.exit(1)
+if hits:
+    print("resting cards cover " + ", ".join(hits)); sys.exit(1)
+PY
+  done
+}
+
 # --- 4. theme and interface words -------------------------------------------------------------
 
 the_page_takes_the_theme_keys() {
@@ -369,6 +390,7 @@ check "replay runs again and reduced motion shows the end" replay_runs_again_and
 check "a pressed part shows its details and example" a_pressed_part_shows_its_details_and_example
 check "the page shows no prose before a part is pressed" the_page_shows_no_prose_before_a_part_is_pressed
 check "the picture runs left to right when wide and top to bottom on a phone" the_picture_turns_on_a_phone
+check "resting cards cover no line back and no part text" resting_cards_cover_nothing
 check "the page takes the theme keys and has light and dark colors" the_page_takes_the_theme_keys
 check "interface words come from one dictionary in both languages" interface_words_come_from_one_dictionary
 check "export writes mp4, gif, and png" export_writes_mp4_gif_and_png
