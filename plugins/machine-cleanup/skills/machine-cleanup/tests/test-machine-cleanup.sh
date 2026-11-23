@@ -2421,6 +2421,225 @@ check "while Ollama is not running, apply deletes the manifest and only the blob
 check "apply leaves unpicked projects, leftovers, tool versions, and models alone" \
   '[ -n "$(cat_at project "$IDLE2")" ] && leftover_named com.gonevendor.app2 && [ -n "$(tool_at "$H/.pyenv/versions/3.9.18")" ] && [ -n "$(model_at "$HF_OTHER")" ] && [ -d "$IDLE2/.git" ] && [ -f "$LIB/Application Support/com.gonevendor.app2/data" ] && [ -d "$H/.pyenv/versions/3.9.18" ] && [ -d "$HF_OTHER" ] && [ -d "$LMS_OLD" ]'
 
+# --- the schedule ---------------------------------------------------------------------------
+# The schedule's checks use their own throwaway HOMEs, state folders, and stand-in outputs, so the
+# runs and the registrations change nothing the checks above measured. launchctl, systemctl, and
+# crontab are stand-ins: they record their calls, and crontab keeps its table in $MOCK/crontab.
+SH="$T/sched-home"
+SS="$T/sched-state"
+SM="$T/sched-mock"
+mkdir -p "$SH" "$SM"
+cp "$MOCK/ps" "$MOCK/docker-df" "$MOCK/docker-ps" "$MOCK/docker-stats" "$MOCK/mdls" "$SM/"
+: > "$SM/calls.log"
+: > "$SM/du.sizes"
+printf '%s\n/dev/disk3s1 500000000 480000000 20000000 96%% 1 1 1%% /\n' "$DF_HEAD" > "$SM/df"
+ssize() { printf '%s\t%s\n' "$1" "$2" >> "$SM/du.sizes"; }
+# same_file <a> <b>: the two files have the same bytes (cmp is not on the tests' PATH).
+same_file() { "$PY" -c 'import filecmp, sys; sys.exit(0 if filecmp.cmp(sys.argv[1], sys.argv[2], shallow=False) else 1)' "$1" "$2" 2>/dev/null; }
+# sched / slinux / swsl / sref <platform> ...: run the script with one of the schedule's HOMEs.
+sched() { HOME="$SH" MACHINE_CLEANUP_HOME="$SS" MOCK="$SM" mc_as "$@"; }
+LH="$T/sched-linux-home"; LS="$T/sched-linux-state"
+slinux() { HOME="$LH" MACHINE_CLEANUP_HOME="$LS" MOCK="$SM" mc_as "$@"; }
+WH="$T/sched-wsl-home"; WS="$T/sched-wsl-state"
+swsl() { HOME="$WH" MACHINE_CLEANUP_HOME="$WS" MOCK="$SM" mc_as "$@"; }
+RH="$T/sched-refuse-home"; RS="$T/sched-refuse-state"
+sref() { HOME="$RH" MACHINE_CLEANUP_HOME="$RS" MOCK="$SM" mc_as "$@"; }
+mkdir -p "$LH" "$WH" "$RH"
+# systemctl fails while $MOCK/no-systemd exists, as it does without a systemd user session.
+stub systemctl "$LOG"'
+[ -f "$MOCK/no-systemd" ] && exit 1
+case "$*" in *list-unit-files*) cat "$MOCK/systemctl" 2>/dev/null;; esac
+exit 0'
+stub crontab "$LOG"'
+case "$1" in
+  -l) [ -f "$MOCK/crontab" ] || { echo "no crontab for this user" >&2; exit 1; }; cat "$MOCK/crontab";;
+  -) cat > "$MOCK/crontab";;
+esac'
+# du measures the path named in $MOCK/grow at its listed size once, then at 400 MB, so that item
+# grows between a scheduled run's scan and the check right before acting.
+stub du "$LOG"'
+"$PY" -c "import os; print(os.nice(0))" >> "$MOCK/du.nice"
+grow="$(cat "$MOCK/grow" 2>/dev/null)"
+for p in "$@"; do case "$p" in -*) continue;; esac
+  if [ -n "$grow" ] && [ "$p" = "$grow" ]; then
+    if [ -f "$MOCK/grow.seen" ]; then printf "409600\t%s\n" "$p"; continue; fi
+    touch "$MOCK/grow.seen"
+  fi
+  kb="$(awk -F "\t" -v p="$p" "\$1 == p { print \$2 }" "$MOCK/du.sizes" 2>/dev/null | tail -1)"
+  if [ -n "$kb" ]; then printf "%s\t%s\n" "$kb" "$p"; else "$REAL_DU" -sk "$p"; fi
+done'
+
+# Caches, build output, logs, the Trash, and an installer in the schedule's HOME. old's last commit
+# is 40 days old and fresh's is new; busy is old, but a running program works in it.
+for d in .cargo/registry/cache .npm/_cacache Library/Caches/pip; do fill "$SH/$d"; ssize "$SH/$d" 81920; done
+S_OLD="$SH/projects/old"; S_FRESH="$SH/projects/fresh"; S_BUSY="$SH/projects/busy"
+for p in "$S_OLD" "$S_FRESH" "$S_BUSY"; do
+  gitrepo "$p"
+  printf 'node_modules/\n' > "$p/.gitignore"
+  fill "$p/node_modules/pkg"; ssize "$p/node_modules" 102400
+  git -C "$p" add .gitignore
+done
+GIT_AUTHOR_DATE="$OLD_COMMIT" GIT_COMMITTER_DATE="$OLD_COMMIT" git -C "$S_OLD" commit -qm init
+GIT_AUTHOR_DATE="$OLD_COMMIT" GIT_COMMITTER_DATE="$OLD_COMMIT" git -C "$S_BUSY" commit -qm init
+git -C "$S_FRESH" commit -qm init
+mkdir -p "$S_BUSY/src"
+printf 'p4242\nfcwd\nn%s\n' "$S_BUSY/src" > "$SM/lsof"
+mkdir -p "$SH/Library/Logs/Tool" "$SH/.Trash" "$SH/Downloads"
+printf 'old' > "$SH/Library/Logs/Tool/old.log"; printf 'new' > "$SH/Library/Logs/Tool/new.log"
+printf 'note' > "$SH/.Trash/old-note.txt"
+printf 'dmg' > "$SH/Downloads/Setup-1.0.dmg"
+old "$SH/Library/Logs/Tool/old.log" "$SH/Downloads/Setup-1.0.dmg"
+
+# macOS: a daily schedule at 04:30, then the same kinds weekly at the default time.
+SPLIST="$SH/Library/LaunchAgents/machine-cleanup.schedule.plist"
+sched darwin schedule add --kinds cache,build,log --every daily --at 04:30 > "$T/sched-daily.out" 2>&1; rc_daily=$?
+daily_cal="$("$PY" -c 'import json, plistlib, sys; print(json.dumps(plistlib.load(open(sys.argv[1], "rb"))["StartCalendarInterval"], sort_keys=True))' "$SPLIST" 2>/dev/null)"
+: > "$SM/calls.log"
+sched darwin schedule add --kinds cache,build,log --every weekly > "$T/sched-add.out" 2>&1; rc_add=$?
+launchd_ok() {
+  [ "$rc_daily" = 0 ] && [ "$rc_add" = 0 ] && [ "$daily_cal" = '{"Hour": 4, "Minute": 30}' ] \
+    && same_file "$SCRIPT" "$SS/machine_cleanup.py" \
+    && grep -qx "launchctl bootstrap gui/$UID_NOW $SPLIST" "$SM/calls.log" \
+    && jq -e '.version == 1 and .kinds == ["cache", "build", "log"] and .every == "weekly" and .at == "03:00" and .mechanism == "launchd"' "$SS/schedule.json" > /dev/null \
+    && "$PY" - "$SPLIST" "$SS" <<'PY'
+import os, plistlib, sys
+p = plistlib.load(open(sys.argv[1], "rb"))
+state = sys.argv[2]
+args = p["ProgramArguments"]
+assert args[1:] == [os.path.join(state, "machine_cleanup.py"), "scheduled-run"], args
+assert os.access(args[0], os.X_OK), args[0]
+assert p["StartCalendarInterval"] == {"Hour": 3, "Minute": 0, "Weekday": 0}, p["StartCalendarInterval"]
+assert p["EnvironmentVariables"]["MACHINE_CLEANUP_HOME"] == state, p["EnvironmentVariables"]
+PY
+}
+check "schedule add registers a LaunchAgent on macOS that runs the copied script" 'launchd_ok'
+
+# Linux with a systemd user session.
+UNITS="$LH/.config/systemd/user"
+: > "$SM/calls.log"
+slinux linux schedule add --kinds cache,log --every daily > "$T/sched-systemd.out" 2>&1; rc_systemd=$?
+systemd_ok() {
+  [ "$rc_systemd" = 0 ] && same_file "$SCRIPT" "$LS/machine_cleanup.py" \
+    && grep -qx 'OnCalendar=\*-\*-\* 03:00:00' "$UNITS/machine-cleanup.timer" \
+    && grep -qx 'Persistent=true' "$UNITS/machine-cleanup.timer" \
+    && grep -qF "\"$LS/machine_cleanup.py\" scheduled-run" "$UNITS/machine-cleanup.service" \
+    && grep -qxF "Environment=\"MACHINE_CLEANUP_HOME=$LS\"" "$UNITS/machine-cleanup.service" \
+    && grep -qx "systemctl --user enable --now machine-cleanup.timer" "$SM/calls.log" \
+    && jq -e '.mechanism == "systemd" and .every == "daily" and .kinds == ["cache", "log"]' "$LS/schedule.json" > /dev/null
+}
+check "schedule add registers a systemd user timer that catches up missed runs on Linux" 'systemd_ok'
+
+# WSL without a systemd user session: one crontab line, added twice, next to the user's own line.
+touch "$SM/no-systemd"
+printf '0 9 * * 1 /usr/local/bin/backup\n' > "$SM/crontab"
+swsl wsl schedule add --kinds build --every weekly --at 05:15 > "$T/sched-cron1.out" 2>&1; rc_cron1=$?
+swsl wsl schedule add --kinds build,log --every weekly --at 05:15 > "$T/sched-cron2.out" 2>&1; rc_cron2=$?
+cron_ok() {
+  [ "$rc_cron1" = 0 ] && [ "$rc_cron2" = 0 ] && grep -qx '0 9 \* \* 1 /usr/local/bin/backup' "$SM/crontab" \
+    && [ "$(grep -c '# machine-cleanup schedule$' "$SM/crontab")" = 1 ] \
+    && grep -qE "^15 5 \* \* 0 .*$WS/machine_cleanup\.py'? scheduled-run .*# machine-cleanup schedule$" "$SM/crontab" \
+    && [ ! -e "$WH/.config/systemd" ] \
+    && jq -e '.mechanism == "cron" and .kinds == ["build", "log"]' "$WS/schedule.json" > /dev/null
+}
+check "schedule add falls back to one marked crontab line without systemd" 'cron_ok'
+
+# Kinds other than the three, other intervals and times, and a system with neither systemd nor cron
+# are refused before anything is written.
+# refused <reason> <platform> <args>...: schedule add ends with 2 and names the reason.
+refused() {
+  local want="$1" rc
+  shift
+  sref "$1" schedule add "${@:2}" > "$T/sched-refused.out" 2>&1; rc=$?
+  { [ "$rc" = 2 ] && grep -q -- "$want" "$T/sched-refused.out"; } \
+    || { echo "  schedule add ${*:2} on $1 exited $rc: $(head -c 300 "$T/sched-refused.out")"; return 1; }
+}
+KINDS_ONLY="takes one or more of cache, build, log"
+NEITHER="neither a systemd user session nor cron"
+mv "$BIN/crontab" "$T/crontab.off"
+: > "$SM/calls.log"
+refuse_ok=false
+refused "$KINDS_ONLY" darwin --kinds cache,trash --every weekly && refused "$KINDS_ONLY" darwin --kinds installer \
+  && refused "argument --every" darwin --kinds cache --every monthly && refused "--at takes" darwin --kinds cache --at 25:00 \
+  && refused "$KINDS_ONLY" darwin --kinds "" && refused "$NEITHER" linux --kinds cache && refused "$NEITHER" wsl --kinds cache \
+  && [ ! -e "$RS" ] && [ ! -e "$RH/Library/LaunchAgents" ] && [ ! -e "$RH/.config/systemd" ] \
+  && ! grep -qE '^(launchctl |systemctl --user (enable|daemon-reload)|crontab -$)' "$SM/calls.log" && refuse_ok=true
+mv "$T/crontab.off" "$BIN/crontab"
+check "schedule add refuses other kinds, other intervals, and a system with neither systemd nor cron" '$refuse_ok'
+
+# Removing the cron and the systemd schedules now; the macOS one is removed after its runs below.
+remove_cron_ok=false
+swsl wsl schedule remove > "$T/sched-rm-cron.out" 2>&1 \
+  && grep -qx '0 9 \* \* 1 /usr/local/bin/backup' "$SM/crontab" && ! grep -q 'machine-cleanup' "$SM/crontab" \
+  && [ ! -e "$WS/schedule.json" ] && [ ! -e "$WS/machine_cleanup.py" ] && remove_cron_ok=true
+rm -f "$SM/no-systemd"
+: > "$SM/calls.log"
+remove_systemd_ok=false
+slinux linux schedule remove > "$T/sched-rm-systemd.out" 2>&1 \
+  && [ ! -e "$UNITS/machine-cleanup.timer" ] && [ ! -e "$UNITS/machine-cleanup.service" ] \
+  && grep -qx "systemctl --user disable --now machine-cleanup.timer" "$SM/calls.log" \
+  && [ ! -e "$LS/schedule.json" ] && [ ! -e "$LS/machine_cleanup.py" ] && remove_systemd_ok=true
+
+# The first scheduled run approves caches and logs, and pip's cache grows between its scan and the
+# check right before acting. The second approves build output too, and df says 10 GB free before
+# freeing and 30 GB after.
+printf '%s\n' "$SH/Library/Caches/pip" > "$SM/grow"
+sched darwin schedule add --kinds cache,log > /dev/null 2>&1
+: > "$SM/calls.log"
+sched darwin scheduled-run > "$T/sched-run1.out" 2>&1; rc_run1=$?
+cp "$SM/calls.log" "$T/sched-run1.calls"
+kept_build1=false
+[ -d "$S_OLD/node_modules" ] && kept_build1=true
+sched darwin schedule add --kinds cache,build,log > /dev/null 2>&1
+printf '%s\n/dev/disk3s1 500000000 490000000 10000000 98%% 1 1 1%% /\n' "$DF_HEAD" > "$SM/df.first"
+printf '%s\n/dev/disk3s1 500000000 470000000 30000000 94%% 1 1 1%% /\n' "$DF_HEAD" > "$SM/df"
+: > "$SM/calls.log"
+sched darwin scheduled-run > "$T/sched-run2.out" 2>&1; rc_run2=$?
+cp "$SM/calls.log" "$T/sched-run2.calls"
+check "a scheduled run frees only the approved kinds it ranks recommended" \
+  '[ "$rc_run1" = 0 ] && [ "$rc_run2" = 0 ] && [ ! -e "$SH/.cargo/registry/cache" ] && grep -qx "npm cache clean --force" "$T/sched-run1.calls" && grep -qx "docker builder prune -a -f" "$T/sched-run1.calls" && [ ! -e "$SH/Library/Logs/Tool/old.log" ] && [ -e "$SH/Library/Logs/Tool/new.log" ] && [ ! -e "$S_OLD/node_modules" ]'
+check "a scheduled run leaves other kinds, recent build output, locked items, and changed items alone" \
+  '$kept_build1 && [ -e "$SH/.Trash/old-note.txt" ] && [ -e "$SH/Downloads/Setup-1.0.dmg" ] && [ -d "$S_FRESH/node_modules" ] && [ -d "$S_BUSY/node_modules" ] && grep -qE "^skipped +d-[0-9a-f]{8}  pip cache  changed after the scan" "$T/sched-run1.out" && ! grep -q "^pip cache purge" "$T/sched-run1.calls" && ! grep -qE "^docker (image|container) prune" "$T/sched-run1.calls" "$T/sched-run2.calls"'
+
+# An older copy of the script in the state folder, then a scan with the schedule in place.
+[ -f "$SS/machine_cleanup.py" ] && printf '# an older copy\n' > "$SS/machine_cleanup.py"
+sched darwin schedule show > "$T/sched-show.out" 2>&1
+sched darwin scan --sample 0 --apps-dir "$SH/Applications" > "$T/sched-scan.out" 2>&1
+LAST_RUN='^Last scheduled run .*: freed [1-9][0-9]* items .*free disk 10\.2 GB -> 30\.7 GB$'
+record_ok() {
+  [ -f "$SS/schedule-runs.jsonl" ] && [ "$(wc -l < "$SS/schedule-runs.jsonl" | tr -d ' ')" = 2 ] \
+    && jq -se --arg p "$S_OLD/node_modules" '.[0].version == 1 and (.[0].freed | length) > 0 and (.[1].freed | map(.path) | index($p)) != null' "$SS/schedule-runs.jsonl" > /dev/null \
+    && grep -qE '^Schedule +weekly on Sunday at 03:00, kinds cache, build, log' "$T/sched-show.out" \
+    && grep -qE "$LAST_RUN" "$T/sched-show.out" && grep -qE "$LAST_RUN" "$T/sched-scan.out"
+}
+check "a scheduled run records what it freed, and show and the next scan print it" 'record_ok'
+check "scan refreshes the copied script while a schedule exists" \
+  'same_file "$SCRIPT" "$SS/machine_cleanup.py" && [ ! -e "$MACHINE_CLEANUP_HOME/machine_cleanup.py" ] && [ -s "$SS/scan.json" ] && ! jq -e "[.items[] | select(.category == \"login-item\" and .name == \"machine-cleanup.schedule\")] | length > 0" "$SS/scan.json" > /dev/null'
+
+: > "$SM/calls.log"
+remove_launchd_ok=false
+sched darwin schedule remove > "$T/sched-rm-launchd.out" 2>&1 \
+  && [ ! -e "$SPLIST" ] && grep -qx "launchctl bootout gui/$UID_NOW/machine-cleanup.schedule" "$SM/calls.log" \
+  && [ ! -e "$SS/schedule.json" ] && [ ! -e "$SS/machine_cleanup.py" ] && [ -s "$SS/schedule-runs.jsonl" ] && remove_launchd_ok=true
+check "schedule remove leaves no launchd, systemd, or cron entry behind" \
+  '$remove_cron_ok && $remove_systemd_ok && $remove_launchd_ok'
+
+# section <file> <heading>: the lines under the heading, up to the next heading of the same level.
+section() { LC_ALL=C awk -v h="$2" '$0 == h { on = 1; next } on && /^## / { exit } on' "$1"; }
+schedule_docs_ok() {
+  local s="$SKILL_DIR/SKILL.md" en="$PLUGIN_DIR/docs/how-it-works.md" ja="$PLUGIN_DIR/docs/how-it-works.ja.md" f
+  { grep -q 'machine_cleanup.py" schedule add --kinds' "$s" && grep -q 'schedule remove' "$s" && grep -q 'schedule show' "$s" \
+    && grep -q 'never choose the kinds' "$s" && grep -q 'size from the last scan' "$s" && grep -q 'daily' "$s" && grep -q 'weekly' "$s"; } \
+    || { echo "  SKILL.md does not describe the schedule"; return 1; }
+  docs_rows "$en" "## The schedule" '`cache`' '`build`' '`log`' || return 1
+  docs_rows "$ja" "## 予約した片付け" '`cache`' '`build`' '`log`' || return 1
+  for f in "$en" "$ja" "$PLUGIN_DIR/README.md" "$PLUGIN_DIR/README.ja.md"; do
+    { grep -q 'schedule add' "$f" && grep -q 'schedule remove' "$f"; } || { echo "  $f does not say how to add and remove the schedule"; return 1; }
+  done
+  { section "$en" "## What it never does" | grep -q 'schedule add' && section "$ja" "## しないこと" | grep -q 'schedule add'; } \
+    || { echo "  a What it never does section does not name the schedule"; return 1; }
+}
+check "the SKILL.md and the docs describe the schedule and the approved kinds" 'schedule_docs_ok'
+
 # --- boundaries -----------------------------------------------------------------------------
 check "every path the tests touch is under the throwaway HOME" \
   '[ -s "$T/scan.out" ] && has "[.items[] | (.path // empty), ((.detail.support // [])[])] | length > 0" && has "[.items[] | (.path // empty), ((.detail.support // [])[])] | all(startswith(\"$H/\"))"'
