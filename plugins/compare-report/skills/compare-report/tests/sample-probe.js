@@ -16,7 +16,15 @@
   const own = (el) => { const c = el.cloneNode(true); c.querySelectorAll("svg, [aria-hidden='true']").forEach((x) => x.remove()); return txt(c); };
   const named = (el) => (el ? el.getAttribute("aria-label") || own(el) : "");
   const japanese = (s) => /[\u3040-\u30ff\u3400-\u9fff]/.test(s || "");
-  const rgb = (c) => { const m = /rgba?\(([^)]+)\)/.exec(c || ""); if (!m) return null; const p = m[1].split(/[\s,/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
+  // A computed color, as rgb() or as color(srgb r g b), the form the browser gives a color-mix() result, with channels from 0 to 1.
+  const rgb = (c) => {
+    const m = /rgba?\(([^)]+)\)/.exec(c || "");
+    if (m) { const p = m[1].split(/[\s,/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; }
+    const s = /color\(srgb\s+([^)]+)\)/.exec(c || "");
+    if (!s) return null;
+    const q = s[1].split(/[\s/]+/).filter(Boolean).map(Number);
+    return { r: q[0] * 255, g: q[1] * 255, b: q[2] * 255, a: q.length > 3 ? q[3] : 1 };
+  };
   const lum = (c) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
   const blend = (top, base) => ({ r: top.r * top.a + base.r * (1 - top.a), g: top.g * top.a + base.g * (1 - top.a), b: top.b * top.a + base.b * (1 - top.a), a: 1 });
   const ground = (el) => {
@@ -213,6 +221,8 @@
     };
     out.factsColor = {};
     out.colors = {};
+    // What the page paints in each theme: the page background, the text, and the line under the first row of a table.
+    out.paint = {};
     for (const m of ["light", "dark"]) {
       await theme(m);
       out.lines[m] = reportTables().map((t) => {
@@ -230,6 +240,10 @@
       out.colors[m] = { accent: token("--accent"), accentSoft: token("--accent-soft"),
         status: ["--good", "--good-soft", "--warn", "--warn-soft", "--critical", "--critical-soft"].map(token),
         tags: ["t1", "t2", "t3", "t4", "t5"].map((t) => sample("tag " + t)), s: sample("score s") };
+      const lined = reportTables().find((t) => $$(":scope > tbody > tr", t).length > 1);
+      const firstRow = lined ? $(":scope > tbody > tr", lined) : null;
+      const lineCell = firstRow ? firstRow.children[1] || firstRow.firstElementChild : null;
+      out.paint[m] = { bg: css(document.body, "background-color"), ink: css(document.body, "color"), line: lineCell ? css(lineCell, "border-bottom-color") : "" };
     }
     await theme("light");
 
