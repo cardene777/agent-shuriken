@@ -19,7 +19,7 @@ the reader)         takeaway, relations)   ~/.styles/)        generation       p
 | スキル | 作る物 |
 |---|---|
 | `article-diagram-styles` | 記事の説明図。内容の要約、既定か一覧から選んだ構図と画風、完成したPNGと本文幅の版、確かめた記録を作ります |
-| `tech-book-figure` | 技術書の図。固定のstyle4で描き、図番号、キャプション、代わりの説明、白黒印刷での読みやすさを確かめます |
+| `tech-book-figure` | 技術書の図。固定のstyle4を文で書いた決まりで描き、図番号、キャプション、代わりの説明、白黒印刷での読みやすさを確かめます。style4の見本とテーマファイルは、置いた時に足します |
 
 ## インストール
 
@@ -88,12 +88,13 @@ python3 <plugin folder>/skills/article-diagram-styles/scripts/diagram_sample_cat
 自分の一覧`~/.styles/style-catalog.json`は、既定の画風の横に画風を足し、自分の定義と見本で同じ名前の既定の画風を置き換え、`status`を`retired`にした既定の画風を使わない物にします。
 選んだ画風の見本を登録すると、スキルはその見本を画風の参照として画像生成へ渡します。
 同じ一覧に任意で置く`structures`は、同じ決まりで構図を足し、置き換え、止めます。
-`tech-book-figure`は今もstyle4の見本が要ります。一覧と一緒に`~/.styles/`に置きます。
+`~/.styles/`が無くても`tech-book-figure`は文で書いたstyle4の決まりで描きます。
+一覧が在り、`diagram-style-samples/style4/`に画像が2枚以上ある時は、その画像も見た目の参照として画像生成へ渡します。
 
 ```text
 ~/.styles/
   style-catalog.json                 The catalog, version 2
-  diagram-style-samples/style4/      At least two style4 samples, for tech-book-figure
+  diagram-style-samples/style4/      Two or more style4 samples, which tech-book-figure adds as references
   style-catalog/<family>/<profile>/  Your samples sorted by family and finish profile
 ```
 
@@ -104,8 +105,38 @@ python3 <plugin folder>/skills/article-diagram-styles/scripts/diagram_sample_cat
 python3 <plugin folder>/skills/article-diagram-styles/scripts/diagram_sample_catalog.py --validate
 ```
 
-`~/.styles/style-catalog.json`が無い時は、確かめは既定の画風だけで通り、`tech-book-figure`は描く前に止まって一覧と見本をそこへ置くよう伝えます。
+`~/.styles/style-catalog.json`が無い時は、確かめは既定の画風だけで通り、`tech-book-figure`は文で書いたstyle4の決まりで描いて、足りなかった物を伝えます。
 版1の一覧は断り、変換しません。その代わりに既定の画風で描くこともしません。
+
+## 本の図のテーマファイル
+
+`tech-book-figure`は色と書体をテーマファイルから取り、本の図をほかの頁と揃えます。
+script`book_style.py`を本の本文のフォルダーから動かすと、次の2つのうち先に在るfileを読みます。
+
+| 順 | file | 使い道 |
+|---|---|---|
+| 1 | gitのrepositoryの根の`.design-theme.json` | 1冊の本の見た目 |
+| 2 | `~/.design-theme.json` | 自分が作る物全ての見た目 |
+
+これは[design-formats](../design-formats/README.ja.md)のpluginのpage-designのスキルが読むテーマファイルで、鍵も値も同じです。
+pluginは自分のフォルダーの外を読まないので、このpluginは自分のscriptで読みます。
+図が使う鍵は6つで、書かなかった鍵はstyle4の見た目のまま残ります。
+
+| 鍵 | style4で置き換える物 |
+|---|---|
+| `light.bg` | 白い地 |
+| `light.ink` | 線と文字の黒 |
+| `light.sub` | 斜線と点線と補助の文字の灰色 |
+| `light.accent` | 青緑の差し色。橙は2つ目の差し色として残ります |
+| `light.accent-soft` | 差し色の薄い塗り |
+| `font.sans` | 手書きの文字。その書体の見た目で描きます |
+
+`dark`や`space`のようなほかの鍵は確かめますが、使いません。
+印刷する図は地が1つで、頁の幅も角も持たないためです。
+形が挙げない鍵、種類か範囲の違う値、JSONでない文を持つテーマファイルは、鍵を1つずつ名指して断ります。
+その時スキルは描く前に止まり、fileを直すか外すまで描きません。
+テーマファイルが無い時は、style4の色と手書きの文字で描きます。
+`article-diagram-styles`はテーマファイルを読みません。
 
 ## 使い方
 
@@ -123,7 +154,7 @@ GitHub Copilot CLIでは依頼の中に`/article-diagram-styles`か`/tech-book-f
 
 | 中身 | file | 持つ物 |
 |---|---|---|
-| `style4` | `references/style4.md` | style4の決まり。固定する物、見本の選び方、描いた後の比べ方 |
+| `style4` | `references/style4.md` | style4の決まり。それだけで描ける文で書いた見た目、見本を置いた時の選び方、描いた後の比べ方 |
 | `figure-request` | `references/figure-request.md` | ほかのスキルが図を頼む時の形。図ごとに構図を任意で名指せます |
 | `style-catalog` | `references/style-catalog.md` | `style-catalog.json`の版2と見本のフォルダーの形と、一覧が既定の画風と構図を足し、置き換え、止める形 |
 
@@ -135,7 +166,8 @@ GitHub Copilot CLIでは依頼の中に`/article-diagram-styles`か`/tech-book-f
 |---|---|
 | 画像生成を持つagent | 完成図を描く時。無い時は設計を保存して止まります |
 | Python 3 | scriptを動かす時。標準ライブラリだけを使います |
-| `~/.styles/`の見本の画像と`style-catalog.json` | `tech-book-figure`と自分の画風に要ります。`article-diagram-styles`は無くても既定の画風で描きます |
+| `~/.styles/`の見本の画像と`style-catalog.json` | 任意。自分の画風と、`tech-book-figure`が参照に足すstyle4の見本に使います。どちらのスキルも無くても描きます |
+| テーマファイル`.design-theme.json`か`~/.design-theme.json` | 任意。`tech-book-figure`の色と書体に使います |
 | musubiの命令 | 任意。入れてあれば、`tech-book-figure`がstyle4の決まりを読む前に`musubi check`を回します |
 
 ## 読む物と動かす物と渡す物
@@ -144,10 +176,11 @@ GitHub Copilot CLIでは依頼の中に`/article-diagram-styles`か`/tech-book-f
 要点は次のとおりです。
 
 - スキルとscriptは、既定の画風と構図をスキルのフォルダーから、一覧と見本の画像を`~/.styles/`か`--styles <dir>`で渡したフォルダーから読み、そこへは書きません
+- `tech-book-figure`の`book_style.py`は、`~/.styles/`のstyle4の見本と一覧と、動かしたrepositoryの根の`.design-theme.json`か、無ければ`~/.design-theme.json`のテーマファイルを読み、どちらにも書きません
 - 名指した記事か本の本文を読み、図、内容の要約、図の仕様、描く指示、確かめた記録を名指したフォルダだけに書きます
-- 描く時は、描く指示と見本の画像を、スキルを動かしている道具の画像生成へ渡します。道具は、渡した画像をほかの画像と同じように扱います。選んだ画風の見本が無い時は、描く指示だけを渡します。scriptはどこにも繋ぎません
+- 描く時は、描く指示と見本の画像を、スキルを動かしている道具の画像生成へ渡します。道具は、渡した画像をほかの画像と同じように扱います。選んだ画風の見本が無い時は、描く指示だけを渡します。テーマファイルを読んだ時は、その値を描く指示に入れます。scriptはどこにも繋ぎません
 - scriptはほかの命令を動かさず、何も残しません
-- 記事の本文と見本の一覧の文はデータとして扱い、指示として読みません
+- 記事の本文、見本の一覧、テーマファイルの文はデータとして扱い、指示として読みません
 
 ## ライセンス
 
