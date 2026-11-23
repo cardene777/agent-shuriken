@@ -1,6 +1,7 @@
 # The flow format
 
 A flow is a JSON file in `.screen-video/flows/` of the project that says what one video shows, step by step.
+It records a web app in a browser, or, with `app` in place of `url`, a macOS app's window, an app on the iOS Simulator, or an app on the Android emulator ([app flows](#app-flows)).
 `screen-video.sh check <flow>` checks it and names each problem with its step number.
 
 ```json
@@ -36,7 +37,8 @@ A flow is a JSON file in `.screen-video/flows/` of the project that says what on
 |---|---|---|
 | `version` | Yes | `1` |
 | `name` | Yes | Lowercase letters, digits, and hyphens. The videos go to a folder of this name |
-| `url` | Yes | The address the flow starts from, with `http://` or `https://`. Step addresses are read against it |
+| `url` | Yes, or `app` | The address the flow starts from, with `http://` or `https://`. Step addresses are read against it |
+| `app` | Yes, or `url` | The app the flow records instead of a web page, described in [app flows](#app-flows) |
 | `title`, `purpose`, `audience`, `length` | No | What the user answered when planning. The storyboard shows them, and `title` opens the edited video on a title card |
 | `outputs` | No | Some of `16:9`, `9:16`, and `gif`. Without it, only the 16:9 videos are made |
 | `seconds` | No | The planned length of the edited video. Cards get shorter and waits play faster until it fits; `record` and `remake` say by how much it is longer or shorter when it cannot fit within a tenth |
@@ -46,7 +48,7 @@ A flow is a JSON file in `.screen-video/flows/` of the project that says what on
 | `music` | No | `true` (the default) for quiet music made by ffmpeg, `false` for none, or `{"file": "<path in the project>", "volume": 0.35}` for a music file of the user's |
 | `sounds` | No | `true` (the default) for a sound at each click and key, `false` for none |
 | `end` | No | The end card: `{"title", "url", "note"}`, each optional. Without it, the video ends without one |
-| `mask` | No | What to blur in every frame: `{"css": "<selector>"}` for elements, `{"text": "<text>"}` for any element or field holding that text |
+| `mask` | No | What to blur in every frame: `{"css": "<selector>"}` for elements, `{"text": "<text>"}` for any element or field holding that text. An app flow takes `text`, `{"target": <target>}`, and `{"rect": [x, y, width, height]}` |
 | `login` | No | How to sign in, described below |
 | `addsTo` | No | Makes the flow a part added to a recorded flow, described below |
 | `steps` | Yes | One or more steps, in order |
@@ -64,6 +66,7 @@ Each step has `do` and may have `caption`, `say`, `chapter`, `timeout` (seconds)
 | `key` | `key` | Presses a key, such as `Enter` or `Escape` |
 | `wait` | `until` | Waits until the page shows something, described below. The edited video plays a long wait fast, with a mark, instead of cutting it |
 | `hold` | `seconds` | Keeps the screen still, so a caption can be read |
+| `swipe` | `from`, `to`, and `seconds` | Drags a finger from one point to another on a phone app, each `[x, y]` in the app's own coordinates, over `seconds` (0.5 by default, up to 5) |
 
 A caption is the text shown from the step's start until just before the next caption or chapter.
 The recording stays on each captioned step until the caption can be read and its voice has ended, so a long caption makes a longer step.
@@ -89,6 +92,7 @@ Names match exactly unless the target has `"exact": false`.
 `nth` picks one of several matches, counting from 0.
 `frame` looks inside every iframe whose address holds that text, nested ones too, such as a payment form, and the step waits within its `timeout` until one of them holds the target.
 Name targets the way `inspect` lists them, by role and name before CSS, so the flow keeps working when the layout or styles change.
+An app flow names its targets by `role`, `label`, `text`, or `testId`, or by `point`, described in [app flows](#app-flows).
 
 ## Waiting
 
@@ -184,3 +188,54 @@ The part is joined from 0.05 seconds before its first step, as a recording's own
 The joined videos take `title`, `theme`, `voice`, `music`, `sounds`, `end`, `outputs`, and `language` from the other flow, and add the two `seconds`.
 The part has its own `url`, `login`, and `mask`, and its narration is paced with the other flow's voice.
 `record` refuses before opening anything when the other flow has no recording or fewer steps than `after`, and `remake` of the part joins the two recordings again.
+
+## App flows
+
+An app flow records an app instead of a web page: it has `app` in place of `url`, and its first step is `open`, which brings the app up.
+
+```json
+{
+  "version": 1,
+  "name": "notes-android",
+  "app": { "platform": "android", "id": "com.example.notes", "install": "build/notes.apk" },
+  "outputs": ["16:9", "9:16"],
+  "mask": [{ "target": { "testId": "account" } }, { "rect": [0, 0, 1080, 80] }],
+  "steps": [
+    { "do": "open", "caption": "Open Notes" },
+    { "do": "click", "target": { "role": "button", "name": "New note" }, "caption": "Start a note" },
+    { "do": "fill", "target": { "label": "Title" }, "text": "Groceries", "caption": "Name it" },
+    { "do": "swipe", "from": [540, 1800], "to": [540, 700], "caption": "Scroll down" },
+    { "do": "wait", "until": { "text": "Saved" } }
+  ]
+}
+```
+
+| Field of `app` | What it holds |
+|---|---|
+| `platform` | `mac` for a macOS app's window, `ios` for an app on the iOS Simulator, `android` for an app on the Android emulator |
+| `id` | The bundle id (macOS, iOS) or package name (Android), such as `com.example.notes` |
+| `install` | For `ios` and `android`, a path inside the project to the build installed before each run: a `.app` built for the simulator, or an `.apk`. Without it, the app must already be on the device. A macOS app is opened as it is installed |
+
+Each system needs tools that `setup mac`, `setup ios`, and `setup android` install once; without `--yes` they only list what they would install and its size.
+A phone flow runs only on the simulator `screen-video-ios` and the emulator `screen-video-android`, which those commands create, and never sends anything to another simulator, emulator, or phone.
+A macOS flow needs Screen Recording and Accessibility turned on for the app the agent runs in.
+
+An app's parts are found through the system's accessibility tree, so targets are the same on the three systems.
+
+| Target | Finds |
+|---|---|
+| `role` with `name` | A part by its role (`button`, `textbox`, `text`, `heading`, `checkbox`, `switch`, `link`, `img`, and others) and the name a screen reader reads |
+| `label` | A part by that name, such as a field by its label |
+| `text` | A part whose name or value is this text |
+| `testId` | A part by its accessibility identifier (macOS, iOS) or resource id (Android) |
+| `point` | `[x, y]` in the app's own coordinates, when the part has no name: points of the window on macOS, points of the screen on iOS, pixels on Android. `inspect` says the size of these coordinates |
+
+`nth` and `"exact": false` work as for a web page; `css`, `placeholder`, and `frame` are only for web pages.
+An app flow has no `select` step (open the choices and press one with two `click` steps), waits on `text`, `visible`, `hidden`, and `enabled` only, and takes no `login`: sign in with the flow's own steps, typing secrets with `env`.
+`key` takes `Enter`, `Escape`, `Backspace`, `Tab`, `Space`, and the arrow keys on every system, `Back` and `Home` on Android, and modifiers on macOS, such as `Meta+A`.
+`swipe` is for phones only.
+
+The recording places the app's window or screen in the middle of the 1920x1080 screen, as large as it fits, on the theme's background.
+The edited video draws the pointer and a ring at each press on macOS, as for a web page, and zooms in on each part pressed; on a phone it draws a touch mark where the finger came down and along each swipe, and never zooms in.
+In the 9:16 video a phone fills the height.
+A `mask` blurs a part found by its `target`, any part holding its `text`, or a fixed `rect` of the app's coordinates, in every video and in the storyboard; the capture taken before the blur is deleted at once.

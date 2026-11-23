@@ -28,6 +28,10 @@ import { playwright } from "./runtime.mjs";
  * page last changed (for waits until the page settles). Changes to what this draws are not counted.
  * Not drawn inside iframes.
  */
+/** The pointer's arrow, 30 pixels square with its tip at (5, 3), as SVG. The edit of an app draws the same arrow. */
+export const POINTER_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30"><path d="M5 3 L5 24 L10.6 18.6 L14.4 27 L18 25.4 L14.3 17.3 L22 17.3 Z" fill="#102A43" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+
 function installCursor(accent) {
   if (window.top !== window) return;
   const own = (node) => node !== null && node.nodeType === 1 && typeof node.id === "string" && node.id.startsWith("__sv_");
@@ -48,8 +52,7 @@ function installCursor(accent) {
     if (document.getElementById("__sv_cursor") !== null) return;
     const cursor = document.createElement("div");
     cursor.id = "__sv_cursor";
-    cursor.innerHTML =
-      '<svg width="30" height="30" viewBox="0 0 30 30"><path d="M5 3 L5 24 L10.6 18.6 L14.4 27 L18 25.4 L14.3 17.3 L22 17.3 Z" fill="#102A43" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+    cursor.innerHTML = accent.pointer;
     Object.assign(cursor.style, { position: "fixed", left: "0", top: "0", zIndex: "2147483647", pointerEvents: "none", transform: "translate(960px,540px)" });
     const ring = document.createElement("div");
     ring.id = "__sv_ring";
@@ -177,7 +180,7 @@ export async function startRecording({ record = true, videoDir, credentials, sto
     deviceScaleFactor: 1,
   });
   const [r, g, b] = [1, 3, 5].map((i) => parseInt((accent.length === 4 ? `#${[...accent.slice(1)].map((c) => c + c).join("")}` : accent).slice(i, i + 2), 16));
-  await context.addInitScript(installCursor, { fill: `rgba(${r},${g},${b},0.36)`, line: `rgba(${r},${g},${b},0.95)` });
+  await context.addInitScript(installCursor, { fill: `rgba(${r},${g},${b},0.36)`, line: `rgba(${r},${g},${b},0.95)`, pointer: POINTER_SVG });
   if (masks.length > 0) await context.addInitScript(installMasks, masks);
   const page = await context.newPage();
   const video = record ? join(videoDir, "recording.webm") : undefined;

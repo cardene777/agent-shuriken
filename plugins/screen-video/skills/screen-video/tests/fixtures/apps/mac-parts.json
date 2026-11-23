@@ -1,0 +1,12 @@
+[
+  { "role": "AXWindow", "subrole": "AXStandardWindow", "title": "Notes", "description": null, "value": null, "identifier": null, "enabled": true, "frame": [0, 0, 800, 500] },
+  { "role": "AXStaticText", "subrole": null, "title": null, "description": null, "value": "Notes", "identifier": null, "enabled": true, "frame": [20, 12, 120, 24] },
+  { "role": "AXButton", "subrole": null, "title": "New note", "description": null, "value": null, "identifier": "new_note", "enabled": true, "frame": [20, 48, 120, 32] },
+  { "role": "AXTextField", "subrole": null, "title": null, "description": "Title", "value": "Groceries", "identifier": "title", "enabled": true, "frame": [20, 96, 320, 28] },
+  { "role": "AXButton", "subrole": null, "title": "Save", "description": null, "value": null, "identifier": "save", "enabled": true, "frame": [352, 96, 80, 28] },
+  { "role": "AXButton", "subrole": null, "title": "Share", "description": null, "value": null, "identifier": "share_top", "enabled": true, "frame": [20, 140, 80, 28] },
+  { "role": "AXStaticText", "subrole": null, "title": null, "description": null, "value": "Milk, eggs, bread", "identifier": "body", "enabled": true, "frame": [20, 180, 400, 20] },
+  { "role": "AXButton", "subrole": null, "title": "Share", "description": null, "value": null, "identifier": "share_bottom", "enabled": true, "frame": [20, 420, 80, 28] },
+  { "role": "AXCheckBox", "subrole": "AXSwitch", "title": null, "description": "Sync", "value": 1, "identifier": "sync", "enabled": true, "frame": [700, 12, 48, 24] },
+  { "role": "AXButton", "subrole": null, "title": "Hidden", "description": null, "value": null, "identifier": "hidden", "enabled": true, "frame": [0, 0, 0, 0] }
+]

@@ -9,6 +9,9 @@
  * A recording stays on each step long enough to read its caption and hear its voice before the next
  * step begins (`dwellOf`), and leaves 0.6 seconds of quiet after a click or the last key, so each
  * caption's voice starts on its own.
+ *
+ * An app's recorder (`app-recorder.mjs`) finds targets and waits with its own `locate` and
+ * `waitUntil`, and runs `swipe` steps; a browser's recorder leaves them to the page.
  */
 import { join } from "node:path";
 
@@ -73,6 +76,8 @@ async function waitUntil(page, until, timeout) {
  */
 export async function runFlow({ flow, rec, rehearse = false, framesDir, env, voices = [] }) {
   const { page } = rec;
+  const find = rec.locate ?? ((target, timeout) => locate(page, target, timeout));
+  const until = rec.waitUntil ?? ((condition, timeout) => waitUntil(page, condition, timeout));
   const results = [];
   const language = languageOf(flow);
   const voiceOf = new Map(voices.map((clip) => [clip.step, clip.duration]));
@@ -98,28 +103,31 @@ export async function runFlow({ flow, rec, rehearse = false, framesDir, env, voi
     try {
       switch (step.do) {
         case "open":
-          await rec.open(new URL(step.url, flow.url).toString(), caption, kept);
+          await rec.open(step.url === undefined ? undefined : new URL(step.url, flow.url).toString(), caption, kept);
           break;
         case "click":
-          await rec.click(await locate(page, step.target, timeout), caption, { timeout, ready, ...kept });
+          await rec.click(await find(step.target, timeout), caption, { timeout, ready, ...kept });
           break;
         case "fill": {
           const secret = step.env !== undefined;
           const text = secret ? env(step.env) : step.text;
-          await rec.fill(await locate(page, step.target, timeout), text, caption, { clear: step.clear === true, timeout, ready, secret, ...kept });
+          await rec.fill(await find(step.target, timeout), text, caption, { clear: step.clear === true, timeout, ready, secret, ...kept });
           break;
         }
         case "select":
-          await rec.select(await locate(page, step.target, timeout), step.value, caption, { timeout, ready, ...kept });
+          await rec.select(await find(step.target, timeout), step.value, caption, { timeout, ready, ...kept });
           break;
         case "key":
           await rec.key(step.key, caption, kept);
           break;
         case "wait":
-          await rec.waitFor(caption, () => waitUntil(page, step.until, timeout), kept);
+          await rec.waitFor(caption, () => until(step.until, timeout), kept);
           break;
         case "hold":
           await rec.hold(step.seconds, caption, kept);
+          break;
+        case "swipe":
+          await rec.swipe(step.from, step.to, step.seconds ?? 0.5, caption, kept);
           break;
       }
       const entry = rec.steps.at(-1);

@@ -1,6 +1,6 @@
 # Screen Video
 
-Plan a video of your web app with your agent, check it as a storyboard of pictures, and record it into captioned, edited, vertical, and GIF videos, narrated, with music, in a look you choose.
+Plan a video of your web app, macOS app, or phone app with your agent, check it as a storyboard of pictures, and record it into captioned, edited, vertical, and GIF videos, narrated, with music, in a look you choose.
 
 English · [日本語](README.ja.md)
 
@@ -62,6 +62,38 @@ A flow looks like this.
 Buttons and fields are named the way a screen reader names them, so the flow keeps working when the layout changes.
 [The flow format](skills/screen-video/references/flow-format.md) lists every field.
 
+## Apps on macOS, the iOS Simulator, and the Android emulator
+
+A flow with `app` in place of `url` records an app instead of a web page, planned, rehearsed, and recorded the same way.
+
+```json
+{
+  "version": 1,
+  "name": "notes-ios",
+  "app": { "platform": "ios", "id": "com.example.notes", "install": "build/Notes.app" },
+  "mask": [{ "rect": [0, 0, 390, 50] }],
+  "steps": [
+    { "do": "open", "caption": "Open Notes" },
+    { "do": "click", "target": { "role": "button", "name": "New note" }, "caption": "Start a note" },
+    { "do": "swipe", "from": [195, 600], "to": [195, 300], "caption": "Scroll down" }
+  ]
+}
+```
+
+Parts are named by their role and name, as on a web page, and a part without a name by a `point` of the app's own coordinates.
+`swipe` drags a finger on a phone, and a `mask` can blur a fixed `rect` as well as a part or a text.
+The app sits in the middle of the video on the theme's background; the edit draws the pointer and each press on a macOS window, and a touch mark at each tap on a phone, which fills the height of the vertical video.
+
+Each system needs tools installed once, which the agent lists with their sizes and installs only after you agree.
+
+| Command | What it installs |
+|---|---|
+| `setup mac` | This plugin's macOS tool, built from its Swift source with Xcode's `swiftc`, about 1 MB. Then you turn on Screen Recording and Accessibility for the app the agent runs in, such as Terminal; the settings page opens for you |
+| `setup ios` | idb in a Python virtual environment and idb_companion from Homebrew, about 70 MB, the iOS Simulator runtime when Xcode has none, about 8 GB, and the simulator `screen-video-ios` |
+| `setup android` | The Android SDK's platform-tools, emulator, and an Android 35 system image, about 4.4 GB, and the emulator `screen-video-android` |
+
+A phone flow runs only on `screen-video-ios` or `screen-video-android`, so your own simulators, emulators, and phones never get a command.
+
 ## The videos
 
 | File | What it is |
@@ -96,6 +128,9 @@ When you already have a recording, the agent can find its scenes, write the capt
 | ffmpeg with libx264 | Optional. When one is on `PATH`, it is used instead of the bundled one |
 | `bsdtar` or 7-Zip (`7zz`) | Only for Japanese narration made on your machine, to unpack AivisSpeech Engine. macOS has `bsdtar` |
 | Python 3.10 or later | Only when a flow chooses VOICEVOX |
+| macOS 14 or later with Xcode's command line tools | Only for a macOS app flow |
+| Xcode, Python 3, and Homebrew | Only for an iOS Simulator flow |
+| The Android SDK's command-line tools and Java | Only for an Android emulator flow. Android Studio installs both |
 
 No global package is installed.
 The first run downloads `playwright-core`, its headless browser, and `ffmpeg-static`, which takes about a minute. The first `login` also downloads the full Chromium, about 150MB, to show its window.
@@ -110,7 +145,9 @@ In short:
 
 - It opens only the pages your flow names, in a browser on your machine, and treats the text on them as material to show, never as instructions
 - It reads login values from the env file your flow names and never prints or writes them. A login you make by hand is saved in `~/.local/share/screen-video/sessions/`, readable only by you, until you run `logout`, or until the recording ends when the flow says `login.forget`
-- It blurs the values your flow lists in `mask` in every frame
+- It blurs the values your flow lists in `mask` in every frame. For an app, it deletes the capture taken before the blur at once
+- For an app flow, it presses and types into the app the flow names, on the window of a macOS app or on its own simulator `screen-video-ios` or emulator `screen-video-android`, and never on another device
+- `setup mac`, `setup ios`, and `setup android` change nothing until you agree; then they download idb from PyPI, idb_companion from Homebrew, the iOS runtime through Xcode, and the Android packages through `sdkmanager`
 - It stops a rehearsal before the first step marked as sending something or paying, and records those steps only after you agree
 - It writes videos to `~/.local/share/screen-video/<project>/<flow>/` unless you name another folder, and never empties a folder that holds files it did not write
 - It downloads `playwright-core`, its browser, and `ffmpeg-static` once on first use, and the voice engine once for the first narrated flow

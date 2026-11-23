@@ -35,8 +35,13 @@ writeFileSync(join(PROJECT, ".env.test"), `SV_TEST_USER=${USER}\nSV_TEST_PASS=${
 
 let passed = 0;
 let failed = 0;
+// `--only <regular expression>` runs only the checks whose names match it, for a round on one change;
+// the others are neither run nor printed
+const onlyAt = process.argv.indexOf("--only");
+const ONLY = onlyAt < 0 ? undefined : new RegExp(process.argv[onlyAt + 1] ?? "");
 
 async function check(name, fn) {
+  if (ONLY !== undefined && !ONLY.test(name)) return;
   let reason;
   try {
     const result = await fn();
@@ -672,6 +677,10 @@ await qualityChecks({ check, SHOP_OUT, FFMPEG });
 // Logging in to an outside service and parts added later, on two sites of their own (parts.mjs)
 const { partsChecks } = await import(join(HERE, "parts.mjs"));
 await partsChecks({ check });
+
+// Recording macOS apps, the iOS Simulator, and the Android emulator, through stand-ins of their tools (apps.mjs)
+const { appsChecks } = await import(join(HERE, "apps.mjs"));
+await appsChecks({ check, FFMPEG });
 
 server.close();
 rmSync(T, { recursive: true, force: true });

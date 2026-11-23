@@ -4,8 +4,9 @@
  *
  * | Command | What it does | Files written |
  * |---|---|---|
+ * | `setup mac\|ios\|android [--yes]` | Lists what recording that system's app flows needs, with the size of each; with `--yes`, installs it (`app-setup.mjs`) | with `--yes`, `apps/` in the data folder |
  * | `doctor [--json]` | Says which ffmpeg and Playwright it uses and where the data folder is | none |
- * | `inspect <flow> [--path <path>]` | Opens a page of the flow's site and lists its headings, buttons, links, and fields | `inspect.png` in the data folder |
+ * | `inspect <flow> [--path <path>]` | Opens a page of the flow's site and lists its headings, buttons, links, and fields; for an app flow, opens the app and lists the parts on its screen | `inspect.png` in the data folder |
  * | `check <flow>` | Checks a flow file, names its theme, and lists the steps that send something or pay | none |
  * | `rehearse <flow> [--out <dir>]` | Runs the flow without recording, up to the first step that sends something or pays, and writes the storyboard | `storyboard.html`, `frames/`, `rehearsal.json` |
  * | `voices <flow> [--out <dir>]` | Makes the flow's narration, installing the local voice engine the first time | `voice/`, `voice.json`, `credits.txt` |
@@ -18,18 +19,26 @@
  * | `render <recording> [--out <dir>]` | Makes the captioned and edited videos from `captions.json` the agent wrote | `captioned.mp4`, `edited.mp4`, `captions.srt` |
  *
  * Login values are read from the env file a flow names and are never printed or written.
+ *
+ * An app flow (`app`) runs on a macOS app's window, the iOS Simulator, or the Android emulator
+ * through `app-recorder.mjs` instead of a browser. Its recording is placed on the 1920x1080 screen with
+ * its masked parts blurred (`composeApp`), and the edit draws its presses over it (`drawPresses`):
+ * the pointer and the press ring on macOS, a touch mark on a phone.
  */
 import { chmodSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, extname, join, resolve } from "node:path";
 
+import { startAppRecording } from "./lib/app-recorder.mjs";
+import { setup } from "./lib/app-setup.mjs";
 import { captionImages } from "./lib/captions.mjs";
 import { writeCompare } from "./lib/compare.mjs";
+import { openDriver } from "./lib/devices.mjs";
 import { captionCues, cutsForFreezes, mapCues, planEdit, segmentsWithout, VERTICAL_CROP } from "./lib/edit.mjs";
 import { envLookup, languageOf, loadFlow, markedSteps, readLogin } from "./lib/flow.mjs";
 import { joinedFlow, joinTimelines } from "./lib/join.mjs";
-import { LAYOUTS, openDrawer } from "./lib/look.mjs";
-import { burn, detectFreezes, detectScenes, durationOf, HEIGHT, joinRecordings, normalize, renderEdited, renderOver, stillFrame, toGif, toSrt, WIDTH } from "./lib/media.mjs";
+import { LAYOUTS, openDrawer, phoneLayout } from "./lib/look.mjs";
+import { burn, composeApp, detectFreezes, detectScenes, drawPresses, durationOf, ffmpegColor, HEIGHT, joinRecordings, normalize, renderEdited, renderOver, stillFrame, toGif, toSrt, WIDTH } from "./lib/media.mjs";
 import { startRecording } from "./lib/recorder.mjs";
 import { runFlow, StepError } from "./lib/runner.mjs";
 import { dataDir, ensureDir, ffmpegChoice, nodeDir, playwright, playwrightVersion, projectName, projectRoot, sessionFile } from "./lib/runtime.mjs";
@@ -94,6 +103,11 @@ function openFlow(file) {
   return { flow, root, theme, defaultOut: join(dataDir(), projectName(root), flow.name) };
 }
 
+/** Where an app flow's app runs, by its platform. */
+const SYSTEMS = { mac: "macOS", ios: "the iOS Simulator (screen-video-ios)", android: "the Android emulator (screen-video-android)" };
+
+const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
+
 function verbOf(kind) {
   return kind === "pays" ? "pays" : "sends something";
 }
@@ -122,14 +136,34 @@ function check(file) {
   const { flow, theme } = openFlow(file);
   say(`${flow.name}: ${flow.steps.length} steps, videos ${flow.outputs.join(", ")}`);
   say(`theme: ${theme.name} (${theme.source})`);
+  if (flow.app !== undefined) say(`app: ${flow.app.id} on ${SYSTEMS[flow.app.platform]}${flow.app.install === undefined ? "" : `, installing ${flow.app.install}`}`);
   if (flow.addsTo !== undefined) say(`A part: it adds to ${flow.addsTo.flow} after ${flow.addsTo.after === undefined ? "its last step" : `step ${flow.addsTo.after}`}`);
   const marked = markedSteps(flow);
   if (marked.length === 0) say("No step sends anything or pays.");
   else say(`Steps that send something or pay each time the video is recorded:\n${listMarked(marked)}`);
 }
 
+/** Opens an app flow's app and lists the parts on its screen, each with the target that finds it; values are not shown. */
+async function inspectApp(flow, root) {
+  const driver = openDriver(flow.app.platform);
+  await driver.start(flow.app, root);
+  await driver.open(flow.app);
+  await sleep(1500);
+  const parts = driver.parts().filter((part) => part.role !== "application" && part.role !== "window");
+  const shot = join(ensureDir(join(dataDir(), projectName(root))), "inspect.png");
+  driver.screenshot(shot);
+  say(`app: ${flow.app.id} on ${SYSTEMS[flow.app.platform]}, ${driver.size.width}x${driver.size.height} (the coordinates a point target and a swipe use)`);
+  say(`parts (values are not shown):${parts.length === 0 ? " none" : ""}`);
+  for (const part of parts.slice(0, 200)) {
+    const name = part.name === "" ? "" : ` "${part.name.slice(0, 80)}"`;
+    say(`  ${part.role}${name}${part.id === "" ? "" : ` testId ${part.id}`} at [${part.frame.map((v) => Math.round(v)).join(", ")}]${part.enabled === false ? " (disabled)" : ""}`);
+  }
+  say(`picture: ${shot}`);
+}
+
 async function inspect(file, path) {
   const { flow, root } = openFlow(file);
+  if (flow.app !== undefined) return inspectApp(flow, root);
   const login = readLogin(flow, root);
   const { chromium } = playwright();
   const browser = await chromium.launch();
@@ -171,19 +205,31 @@ async function inspect(file, path) {
 
 async function rehearse(file, out) {
   const { flow, root, theme, defaultOut } = openFlow(file);
+  // An app flow's system is checked before the last rehearsal is cleared
+  const driver = flow.app === undefined ? undefined : openDriver(flow.app.platform);
   const dir = out ?? join(defaultOut, "rehearsal");
   clearDir(dir, { folders: ["frames"] });
   const framesDir = ensureDir(join(dir, "frames"));
-  const login = readLogin(flow, root);
   const env = envLookup(flow, root);
-  const rec = await startRecording({ record: false, credentials: login.credentials, storageState: login.storageState, masks: flow.mask, accent: theme.look.accent });
+  const work = mkdtempSync(join(tmpdir(), "screen-video-"));
   let results;
+  let steps;
   try {
-    results = await runFlow({ flow, rec, rehearse: true, framesDir, env });
+    let rec;
+    if (driver === undefined) {
+      const login = readLogin(flow, root);
+      rec = await startRecording({ record: false, credentials: login.credentials, storageState: login.storageState, masks: flow.mask, accent: theme.look.accent });
+    } else rec = await startAppRecording({ flow, root, driver, record: false, work });
+    try {
+      results = await runFlow({ flow, rec, rehearse: true, framesDir, env });
+    } finally {
+      await rec.abort();
+    }
+    steps = rec.steps;
   } finally {
-    await rec.abort();
+    rmSync(work, { recursive: true, force: true });
   }
-  writeFileSync(join(dir, "rehearsal.json"), `${JSON.stringify({ flow: flow.name, results, steps: rec.steps.map(({ kind, url, caption }) => ({ kind, url, caption })) }, null, 2)}\n`);
+  writeFileSync(join(dir, "rehearsal.json"), `${JSON.stringify({ flow: flow.name, results, steps: steps.map(({ kind, url, caption }) => ({ kind, url, caption })) }, null, 2)}\n`);
   const storyboard = join(dir, "storyboard.html");
   writeStoryboard({ flow, results, file: storyboard });
   say(`Storyboard: ${storyboard}`);
@@ -210,7 +256,7 @@ const MADE_FILES = ["captioned.mp4", "edited.mp4", "vertical.mp4", "edited.gif",
  * asks for them, with `edit.json` saying how the edit was laid out.
  */
 async function finish({ out, timeline, flow, root, theme, voice, work }) {
-  const raw = join(out, "raw.mp4");
+  let raw = join(out, "raw.mp4");
   const { steps, duration } = timeline;
   const language = languageOf(flow);
   const outputs = flow.outputs ?? ["16:9"];
@@ -242,6 +288,11 @@ async function finish({ out, timeline, flow, root, theme, voice, work }) {
 
   const drawer = await openDrawer(look, work, language);
   try {
+    // An app's recording shows no pointer or touch: the presses are drawn over it first
+    if (timeline.app !== undefined) raw = await drawAppPresses({ raw, timeline, drawer, work });
+    // A phone fills the vertical video's height, and its window is as wide as the phone
+    const tallLayout = timeline.app !== undefined && timeline.app.platform !== "mac" ? phoneLayout(timeline.screen) : LAYOUTS.tall;
+    const cropWidth = tallLayout === LAYOUTS.tall ? VERTICAL_CROP : timeline.screen.width;
     // The captioned video: the recording with captions over it and the sound at the recording's times
     const over = [];
     for (const cue of cues) over.push({ ...(await drawer.over(cue.text, cue.box ? [cue.box] : [])), start: cue.start, end: cue.end });
@@ -258,7 +309,7 @@ async function finish({ out, timeline, flow, root, theme, voice, work }) {
       const cards = [];
       let chapter = 0;
       for (const card of plan.cards) cards.push({ ...card, file: await drawer.card(card, layout, card.kind === "chapter" ? ++chapter : 0) });
-      return { frame: await drawer.frame(layout), captions, marks, cards, stills, cropWidth: VERTICAL_CROP };
+      return { frame: await drawer.frame(layout), captions, marks, cards, stills, cropWidth };
     };
 
     const wide = await draw(LAYOUTS.wide);
@@ -287,8 +338,8 @@ async function finish({ out, timeline, flow, root, theme, voice, work }) {
     say(`Edited video: ${join(out, "edited.mp4")} (${durationOf(join(out, "edited.mp4")).toFixed(1)}s)`);
 
     if (outputs.includes("9:16")) {
-      const tall = await draw(LAYOUTS.tall);
-      renderEdited({ raw, output: join(out, "vertical.mp4"), plan, layout: LAYOUTS.tall, pictures: tall, sound: editedSound, work });
+      const tall = await draw(tallLayout);
+      renderEdited({ raw, output: join(out, "vertical.mp4"), plan, layout: tallLayout, pictures: tall, sound: editedSound, work });
       say(`Vertical video: ${join(out, "vertical.mp4")}`);
     }
   } finally {
@@ -299,6 +350,22 @@ async function finish({ out, timeline, flow, root, theme, voice, work }) {
     say(`GIF: ${join(out, "edited.gif")}`);
   }
   if (voice.credit !== undefined) say(`Credit for the voice (in credits.txt and on the end card): ${voice.credit}`);
+}
+
+/**
+ * Writes `pressed.mp4` in `work`: an app's `raw` with its presses drawn over it, and returns it. On
+ * macOS the browser's pointer travels along each press's path and a ring grows where it presses; on a
+ * phone a touch mark shows where the finger came down and moves along each swipe.
+ */
+async function drawAppPresses({ raw, timeline, drawer, work }) {
+  const mac = timeline.app.platform === "mac";
+  const marks = timeline.steps.filter((step) => step.press !== undefined).map((step) => ({ t: step.t, ...step.press }));
+  const swipes = timeline.steps.filter((step) => step.swipe !== undefined).map((step) => ({ t: step.t, ...step.swipe }));
+  // The pointer waits in the middle of the screen until the first press's path begins, as in a browser
+  const pointer = mac ? [{ t: 0, x: WIDTH / 2, y: HEIGHT / 2 }, ...timeline.steps.flatMap((step) => step.path ?? [])] : [];
+  const output = join(work, "pressed.mp4");
+  drawPresses({ input: raw, output, pictures: await drawer.presses(), pointer, rings: mac ? marks : [], touches: mac ? [] : marks, swipes, work });
+  return output;
 }
 
 /**
@@ -364,6 +431,8 @@ async function record(file, out, confirmed) {
     );
   }
   const other = flow.addsTo === undefined ? undefined : otherOf(opened);
+  // An app flow's system is checked before anything is cleared or made
+  const driver = flow.app === undefined ? undefined : openDriver(flow.app.platform);
   // A part is paced and pointed at in the look and voice of the flow it joins
   const theme = other?.theme ?? opened.theme;
   const paced = other === undefined ? flow : { ...flow, voice: other.flow.voice, language: languageOf(other.flow) };
@@ -377,7 +446,10 @@ async function record(file, out, confirmed) {
     const work = mkdtempSync(join(tmpdir(), "screen-video-"));
     try {
       const voice = await makeVoices(paced, root, target);
-      const rec = await startRecording({ videoDir: work, credentials: login.credentials, storageState: login.storageState, masks: flow.mask, accent: theme.look.accent });
+      const rec =
+        driver === undefined
+          ? await startRecording({ videoDir: work, credentials: login.credentials, storageState: login.storageState, masks: flow.mask, accent: theme.look.accent })
+          : await startAppRecording({ flow, root, driver, work });
       try {
         await runFlow({ flow, rec, env, voices: voice.clips });
       } catch (error) {
@@ -386,11 +458,24 @@ async function record(file, out, confirmed) {
         const message = error instanceof StepError ? error.message : `${error instanceof Error ? error.message.split("\n")[0] : error}`;
         refuse(`${message} (the screen when it stopped: ${join(dir, "failure.png")})`);
       }
-      const webm = await rec.stop();
-      if (webm === undefined) refuse("The recording has no frames.");
       const raw = join(target, "raw.mp4");
-      normalize(webm, raw);
-      const timeline = { flow: flow.name, width: WIDTH, height: HEIGHT, duration: durationOf(raw), outputs: flow.outputs, steps: rec.steps };
+      let placed = {};
+      if (driver === undefined) {
+        const webm = await rec.stop();
+        if (webm === undefined) refuse("The recording has no frames.");
+        normalize(webm, raw);
+      } else {
+        const { file: capture, masks } = await rec.stop();
+        try {
+          const background = Array.isArray(theme.look.background) ? theme.look.background[0] : theme.look.background;
+          composeApp({ input: capture, output: raw, screen: rec.screen, background: ffmpegColor(background), masks, work });
+        } finally {
+          // The capture still shows the masked parts, so it is not kept
+          rmSync(capture, { force: true });
+        }
+        placed = { app: rec.app, screen: rec.screen };
+      }
+      const timeline = { flow: flow.name, width: WIDTH, height: HEIGHT, duration: durationOf(raw), outputs: flow.outputs, ...placed, steps: rec.steps };
       writeFileSync(join(target, "timeline.json"), `${JSON.stringify(timeline, null, 2)}\n`);
       say(`Raw video: ${raw} (${timeline.duration.toFixed(1)}s)`);
       if (other === undefined) await finish({ out: dir, timeline, flow, root, theme, voice, work });
@@ -571,12 +656,15 @@ async function render(input, out) {
   }
 }
 
-const USAGE = "Usage: screen-video.sh setup | doctor | inspect <flow> | check <flow> | rehearse <flow> | voices <flow> | record <flow> [--confirm-effects] | remake <flow> | compare <flow> [--before <dir>] | login <flow> [--until <text>] [--start <address>] | logout <flow> | scenes <recording> | render <recording> (each takes --out <dir> where it writes files)";
+const USAGE = "Usage: screen-video.sh setup [mac|ios|android] [--yes] | doctor | inspect <flow> | check <flow> | rehearse <flow> | voices <flow> | record <flow> [--confirm-effects] | remake <flow> | compare <flow> [--before <dir>] | login <flow> [--until <text>] [--start <address>] | logout <flow> | scenes <recording> | render <recording> (each takes --out <dir> where it writes files)";
 
 const options = parse(process.argv.slice(2));
 try {
   const [first] = options.args;
   switch (options.command) {
+    case "setup":
+      setup(first, { yes: options.flags.has("yes"), runtimeMissing: process.env.SCREEN_VIDEO_RUNTIME_MISSING === "1", say });
+      break;
     case "doctor":
       doctor(options.flags.has("json"));
       break;

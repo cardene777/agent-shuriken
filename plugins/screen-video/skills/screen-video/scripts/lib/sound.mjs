@@ -92,9 +92,11 @@ export function mixSound({ output, duration, voices = [], presses = [], typed = 
 
   if (mixed.length === 0) lines.push(`anullsrc=r=48000:cl=stereo,atrim=0:${n3(duration)}[out]`);
   else {
-    lines.push(
-      `${mixed.join("")}amix=inputs=${mixed.length}:normalize=0:duration=longest,apad=whole_dur=${n3(duration)},atrim=0:${n3(duration)},alimiter=limit=0.95:level=false[out]`,
-    );
+    // A silent track of the whole length keeps the mix that long. apad does not pad what amix makes of
+    // split and delayed sounds, so without music the track ended at the last click, and the captioned
+    // video, cut to its sound, ended there too
+    lines.push(`anullsrc=r=48000:cl=stereo,atrim=0:${n3(duration)}[silence]`);
+    lines.push(`[silence]${mixed.join("")}amix=inputs=${mixed.length + 1}:normalize=0:duration=longest,atrim=0:${n3(duration)},alimiter=limit=0.95:level=false[out]`);
   }
   const graph = join(work, `sound-${Date.now()}-${Math.random().toString(36).slice(2)}.txt`);
   writeFileSync(graph, lines.join(";\n"));

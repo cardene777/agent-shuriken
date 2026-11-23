@@ -5,6 +5,11 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- A flow with `app` in place of `url` records a macOS app's window, an app on the iOS Simulator, or an app on the Android emulator, planned, rehearsed, and recorded the same way as a web page. Parts are named by role and name, label, text, or testId through each system's accessibility tree, or by a `point` of the app's own coordinates; `swipe` drags a finger on a phone; `mask` also blurs a fixed `rect`; and `inspect` lists the parts of the app's screen
+- The edit draws the pointer and each press over a macOS window and zooms in on each part pressed, and draws a touch mark at each tap and along each swipe on a phone, which is never zoomed into and fills the height of the 9:16 video. The capture taken before the blur is deleted at once
+- `setup mac`, `setup ios`, and `setup android` list what recording that system's apps needs, with the size of each, and install it with `--yes`: the skill's Swift tool, which needs Screen Recording and Accessibility for the app the agent runs in; idb, idb_companion, the iOS runtime, and the simulator `screen-video-ios`; or the Android SDK packages and the emulator `screen-video-android`. Phone flows run only on those two devices
+- A flow without music keeps its sound as long as the recording. Before, the sound ended at the last click or key, and the captioned video, which ends with its sound, was cut there
+
 ## [0.3.1] - 2026-11-23
 
 - A part added with `addsTo` is joined from 0.05 seconds before its first step, as a recording's own edit starts. Before, the joined video showed the blank page of the browser starting for a few seconds where the part began, with the caption of the step before still on screen

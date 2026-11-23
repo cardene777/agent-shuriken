@@ -1,6 +1,7 @@
 /**
  * Draws the pictures the edited videos are built from, in the flow's theme: the frame around the
- * screen, the captions, the title, chapter, and end cards, and the fast-forward mark.
+ * screen, the captions, the title, chapter, and end cards, the fast-forward mark, and the pointer,
+ * press ring, and touch mark drawn over an app's recording.
  *
  * Every picture is drawn by Playwright's Chromium, because many ffmpeg builds cannot draw text, and
  * a browser lays out every script and wraps long lines on its own. Captions and cards are drawn in a
@@ -13,9 +14,12 @@
  * |---|---|---|---|
  * | `wide` | 1920x1080 | 1568x882, 40px from the top | the band below the screen |
  * | `tall` | 1080x1920 | 960x1200, 250px from the top | below the screen |
+ * | `phoneLayout(screen)` | 1080x1920 | a phone's whole screen at the full height, in the middle | over the screen |
  */
+import { renameSync } from "node:fs";
 import { join } from "node:path";
 
+import { POINTER_SVG } from "./recorder.mjs";
 import { rgba } from "./theme.mjs";
 import { playwright } from "./runtime.mjs";
 
@@ -23,6 +27,17 @@ export const LAYOUTS = {
   wide: { width: 1920, height: 1080, window: { x: 176, y: 40, width: 1568, height: 882 }, captions: { top: 922, height: 158, maxWidth: 1500, scale: 1 } },
   tall: { width: 1080, height: 1920, window: { x: 60, y: 250, width: 960, height: 1200 }, captions: { top: 1470, height: 300, maxWidth: 960, scale: 1.3 } },
 };
+/**
+ * The vertical layout of a phone's recording: the phone's screen (`screen`, its place on the
+ * 1920x1080 recording) fills the video's height in its middle, uncut, with captions laid over it.
+ */
+export function phoneLayout(screen) {
+  const width = Math.round((LAYOUTS.tall.height * screen.width) / screen.height / 2) * 2;
+  return { ...LAYOUTS.tall, window: { x: Math.round((LAYOUTS.tall.width - width) / 2), y: 0, width, height: LAYOUTS.tall.height } };
+}
+/** Frames, 30 a second, of the ring a macOS press shows (as a browser press does) and of a phone's touch mark. */
+const RING = { size: 132, frames: 18 };
+const TOUCH = { size: 72, frames: 14 };
 /** Captions laid over the recording itself (the captioned video): at the bottom, or at the top when they would cover the action. */
 const OVER = { width: 1920, height: 1080, maxWidth: 1500, margin: 24, scale: 1 };
 const CLEARANCE = 24;
@@ -146,6 +161,37 @@ export async function openDrawer(look, dir, language = "en") {
     /** A card filling the whole video. `number` is the chapter's number. */
     async card(card, layout, number) {
       return (await shoot(cardPage(card, look, layout, number, language), "body", "card", { width: layout.width, height: layout.height })).file;
+    },
+    /**
+     * The pictures of an app's presses: the browser's pointer (`arrow`), the frames of its press
+     * `ring`, which grows and fades over 0.6 seconds, and the frames and the `still` of a phone's
+     * `touch` mark, which shows for 0.45 seconds.
+     */
+    async presses() {
+      const fill = rgba(look.accent, 0.36);
+      const line = rgba(look.accent, 0.95);
+      const page = (size, body) => `<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:transparent}</style></head><body><svg id="m" xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${body}</svg></body></html>`;
+      const circle = (size, r, opacity) => `<circle cx="${size / 2}" cy="${size / 2}" r="${(r + 1.5).toFixed(2)}" fill="${fill}" stroke="${line}" stroke-width="3" opacity="${opacity.toFixed(3)}"/>`;
+      const arrow = (await shoot(`<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:transparent}</style></head><body>${POINTER_SVG.replace("<svg ", '<svg id="m" ')}</body></html>`, "#m", "arrow", { width: 200, height: 200 })).file;
+      const series = async (prefix, spec, shape) => {
+        for (let k = 0; k < spec.frames; k++) {
+          const shot = await shoot(page(spec.size, shape(k / (spec.frames - 1))), "#m", "unused", { width: 200, height: 200 });
+          renameSync(shot.file, join(dir, `${prefix}-${String(k + 1).padStart(2, "0")}.png`));
+        }
+        return { pattern: join(dir, `${prefix}-%02d.png`), size: spec.size };
+      };
+      // As the browser's ring: strong and growing in the first half, fading in the second
+      const ring = await series("ring", RING, (u) => {
+        const v = u <= 0.5 ? u / 0.5 : (u - 0.5) / 0.5;
+        const e = u <= 0.5 ? 1 - (1 - v) ** 3 : v * v;
+        const scale = u <= 0.5 ? 0.5 + 0.35 * e : 0.85 + 0.15 * e;
+        const opacity = u <= 0.5 ? 1 - 0.1 * e : 0.9 - 0.9 * e;
+        return circle(RING.size, 60 * scale, opacity);
+      });
+      const touchAt = (u) => circle(TOUCH.size, 30 * (u < 0.15 ? 0.7 + 2 * u : 1), u > 0.65 ? Math.max(0, (1 - u) / 0.35) : 1);
+      const touch = await series("touch", TOUCH, touchAt);
+      const still = (await shoot(page(TOUCH.size, touchAt(0.3)), "#m", "touch-still", { width: 200, height: 200 })).file;
+      return { arrow, ring, touch: { ...touch, still } };
     },
     /** The fast-forward mark, at the top right of the screen. */
     async mark(speed, layout) {

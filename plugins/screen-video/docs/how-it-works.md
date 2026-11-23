@@ -115,6 +115,42 @@ A flow with `addsTo` names a recorded flow and the step it comes after.
 It puts the part there, moves the times of the later steps by the part's length, numbers the steps in the joined order, and makes the joined videos in the part's folder with the other flow's title, look, narration, music, cards, and outputs.
 The other flow's folder is not touched, and `remake` of the part joins the two recordings again.
 
+## Apps
+
+A flow with `app` records a macOS app's window, an app on the iOS Simulator, or an app on the Android emulator instead of a web page, through the tools each system has.
+
+| System | Reads the parts with | Presses and types with | Records with |
+|---|---|---|---|
+| macOS | The Accessibility API, through this skill's Swift tool | Mouse and key events posted to the app's window | ScreenCaptureKit, filtered to the app's one window, so no other window, the desktop, or a notification reaches the video |
+| iOS Simulator | `idb ui describe-all` | `idb ui tap`, `swipe`, `text`, and `key` | `idb record-video` |
+| Android emulator | `uiautomator dump` | `adb shell input tap`, `swipe`, `text`, and `keyevent` | `adb shell screenrecord`, in parts of 170 seconds joined afterwards, pulled from the emulator and removed there |
+
+The tools come from the `setup` commands, which list what they install and its size and change nothing without `--yes`.
+
+| Command | What `--yes` installs |
+|---|---|
+| `setup mac` | The Swift tool, built from `scripts/mac/screen-video-mac.swift` with `swiftc` into `apps/mac/` of the data folder; it is built again when the skill brings a newer source. It then checks Screen Recording and Accessibility for the app the agent runs in, and opens the settings page of each one that is off |
+| `setup ios` | The iOS runtime with `xcodebuild -downloadPlatform iOS` when Xcode has none, idb 1.1.7 in a Python virtual environment in `apps/idb/` of the data folder, idb_companion with Homebrew, and the simulator `screen-video-ios` of the newest iPhone the runtime runs |
+| `setup android` | platform-tools, emulator, and an Android 35 Google APIs system image with `sdkmanager`, accepting their licenses, and the emulator `screen-video-android`, a Pixel 7 |
+
+A phone flow runs only on `screen-video-ios`, named by its UDID in every command, or on `screen-video-android`, which runs on port 5600 and is named by its serial `emulator-5600` in every command.
+When the device is missing, `rehearse` and `record` stop before sending anything and name the `setup` command to run.
+They boot the device when it is off, install `app.install` when the flow names a build, and close the app, so the recording starts without it and the flow's `open` brings it up.
+
+A target is looked up in the parts the system lists, by `role` and name, `label`, `text`, or `testId`, or taken as a `point` of the app's own coordinates: points of the window on macOS, points of the screen on iOS, pixels on Android.
+Each press is made at the middle of the part.
+On macOS the pointer travels there at the pace a browser flow's pointer does before the press; on a phone the finger comes down after a short pause, and `swipe` drags it from one point to another.
+`timeline.json` keeps the app and its size (`app`), where its screen is in the video (`screen`), and for each press where it was on the video (`press`); on macOS also the part's box (`box`) and the pointer's way (`path`).
+
+The recording is placed in the middle of the 1920x1080 video, as large as it fits, on the first colour of the theme's background, to make `raw.mp4`.
+The parts the flow's `mask` names, by `target`, by `text`, or as a fixed `rect` of the app's coordinates, are read again before each step and after each action, and each place is blurred from the reading before it to the reading after it, so a part that moves is blurred where it was and where it went.
+The capture is deleted as soon as `raw.mp4` is made, so no video without the blur is kept, and the storyboard's pictures are blurred the same way.
+
+The edit draws the presses over `raw.mp4` before the cards, the captions, and the zoom.
+On macOS it draws the pointer along its way and the ring at each press, and zooms in on each part pressed, as for a web page.
+On a phone it draws a touch mark that shows for 0.45 seconds where the finger came down, and one that moves along each swipe.
+A phone is never zoomed into, and the 9:16 video shows its whole screen at the full height.
+
 ## Folders
 
 | What | Where |
@@ -123,6 +159,7 @@ The other flow's folder is not touched, and `remake` of the part joins the two r
 | A flow's videos | `<data folder>/<project>/<flow name>/`, or the folder given with `--out` |
 | A rehearsal | `rehearsal/` inside the flow's folder |
 | A recording you made | `<data folder>/<project>/<recording name>/` |
+| What app flows use | `<data folder>/apps/`: `mac/` for the Swift tool and `idb/` for idb |
 
 The project is the folder that holds `.screen-video/flows/`, and its name is that folder's name.
 A run empties its folder first, removing only videos, pictures, sounds, `voice/`, `compare/`, and the JSON, SRT, HTML, and text files it writes, and stops, naming them, when the folder holds anything else.
