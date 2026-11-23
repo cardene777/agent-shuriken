@@ -90,14 +90,19 @@ holds_one_skill() {
   grep -qx "name: $NAME" "$SKILL" || { why="SKILL.md does not say name: $NAME"; return 1; }
 }
 
-# Prints file:line for every line under the folders given that holds a home path, a local agent
-# path, an issue reference, or the name of the private configuration repository. The words are
-# built from parts so that this file does not hold them.
-# Only general shapes are listed here. Names from the maintainer's private setup are checked in the private repository.
-names_of_this_pc() {
-  python3 - "$@" <<'PY'
+# The shapes no file of a public plugin may hold, one regular expression per line: a home folder on
+# macOS or Linux where a path starts (a throwaway HOME such as $T/case/home/ is not one), the
+# configuration folder of a local agent, and an issue reference. They are general shapes only, so
+# this file names no product, company, or person.
+SHAPES='(?<![A-Za-z0-9_.-])/(?:Users|home)/[A-Za-z0-9._-]+
+~/[.](?:claude|codex)/
+\b(?:GH|Issue) #[0-9]+'
+
+# Prints file:line for every line under the folders given that holds one of SHAPES.
+private_shapes_in() {
+  SHAPES="$SHAPES" python3 - "$@" <<'PY'
 import os, re, sys
-pattern = re.compile("/Us" "ers/|~/[.]co" "dex/|~/[.]cl" "aude/|\\b(?:G" "H|Iss" "ue) #\\d+|agent-con" "figs")
+pattern = re.compile("|".join(os.environ["SHAPES"].splitlines()))
 images = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico")
 for top in sys.argv[1:]:
     for folder, _, files in os.walk(top):
