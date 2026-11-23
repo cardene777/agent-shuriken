@@ -14,7 +14,8 @@
 | `references/formats.md` | 5つの形式の組み立て |
 | `references/review.md` | 別の読み手へ渡す指示と、返す形 |
 | `references/patterns.tsv` | `check`が出す型 (名前、正規表現、除く形、直し方) |
-| `references/common-katakana.txt` | `check --source`が名前として扱わない、よく使うカタカナの外来語 |
+| `references/<名前>.en.md` | 同じ決まりの英語版。Markdownの参照ごとに同じ見出しで隣に置き、英語で読む人が使う。スキルは日本語のファイルだけを読む |
+| `references/common-katakana.txt` | `check --source`が名前として扱わない、よく使うカタカナの外来語と、その英語の意味 |
 | `scripts/speaking.py` | `check`と`patterns`の命令 |
 | `tests/test-japanese-speaking.sh` | `tests/fixtures/`の写しで`check`を確かめ、`SKILL.md`の手順の順を確かめるテスト |
 

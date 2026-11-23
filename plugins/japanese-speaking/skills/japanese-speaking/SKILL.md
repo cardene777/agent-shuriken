@@ -6,7 +6,8 @@ description: Writes Japanese meant to be heard, not read, such as a podcast or r
 # Japanese Speaking
 
 Write Japanese that sounds like people talking, for listeners who hear it once and cannot look back.
-Talk to the user in the language they write in. The script itself is always Japanese.
+The skill reads the Japanese references under `references/`, and each has an English version beside it named `<name>.en.md` for people who read English.
+The skill explains its changes in the language the user writes in, and the script stays Japanese.
 
 The script is `scripts/speaking.py` next to this `SKILL.md`.
 Put `S=<folder that contains this SKILL.md>/scripts` at the start of the same shell command, and run `python3 "$S/speaking.py" <command>`; `--help` describes the commands, and `python3 "$S/speaking.py" patterns` lists what the check reports and how to fix each.

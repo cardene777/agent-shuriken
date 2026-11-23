@@ -1,42 +1,43 @@
 # Common katakana loanwords that are not names. check --source does not report these words as
-# absent from the source material. One word per line; lines starting with # are comments.
-アカウント
-アクセス
-アプリ
-インターネット
-ウォレット
-エーアイ
-エージェント
-キーボード
-クラウド
-コード
-コマンド
-サーバー
-サービス
-システム
-セキュリティ
-チーム
-ツール
-データ
-テスト
-ドキュメント
-トークン
-ニュース
-ネット
-バージョン
-ファイル
-フレームワーク
-プログラム
-プロンプト
-ブロックチェーン
-ボタン
-ポッドキャスト
-メモリー
-モデル
-ユーザー
-ラジオ
-リスク
-リリース
-ルール
-レビュー
-ワークフロー
+# absent from the source material. One word per line, then a tab and its English meaning;
+# lines starting with # are comments.
+アカウント	account
+アクセス	access
+アプリ	app
+インターネット	internet
+ウォレット	wallet
+エーアイ	AI
+エージェント	agent
+キーボード	keyboard
+クラウド	cloud
+コード	code
+コマンド	command
+サーバー	server
+サービス	service
+システム	system
+セキュリティ	security
+チーム	team
+ツール	tool
+データ	data
+テスト	test
+ドキュメント	document
+トークン	token
+ニュース	news
+ネット	the net
+バージョン	version
+ファイル	file
+フレームワーク	framework
+プログラム	program
+プロンプト	prompt
+ブロックチェーン	blockchain
+ボタン	button
+ポッドキャスト	podcast
+メモリー	memory
+モデル	model
+ユーザー	user
+ラジオ	radio
+リスク	risk
+リリース	release
+ルール	rule
+レビュー	review
+ワークフロー	workflow
