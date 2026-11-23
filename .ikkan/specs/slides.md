@@ -1,11 +1,11 @@
 # slides
 
-| 条件 | 確かめ方 | 出元 |
+| Criterion | How to check | Origin |
 |---|---|---|
 | `plugins/slides/`が既存のプラグインと同じ一式を持つ。一式は2つの`plugin.json`、`README.md`と`README.ja.md`、`CHANGELOG.md`、`LICENSE`、`assets/icon.svg`、`docs/how-it-works.md`と`docs/how-it-works.ja.md`、`skills/slide-builder`と`skills/slide-forge`の`SKILL.md`と`agents/openai.yaml`で、版は`0.1.0`である | `bash scripts/check.sh`の検査`"plugin folders are complete"`、`"plugin manifests agree"`、`"plugin icons are square and present"`、`"versions match the changelogs"`、`"pages have Japanese counterparts"`、`"Codex skill metadata matches SKILL.md"`が通り、`bash scripts/check.sh`が終わり方0で終わる | #324 |
 | マーケットプレイスと2つのREADMEの表と2つの公開の状況の表が`slides`の行を持つ | `bash scripts/check.sh`の検査`"marketplace lists every plugin once"`、`"README tables list every plugin"`、`"publishing tables list every plugin"`、`"claude plugin validate"`が通る | #324 |
 | `plugins/slides/skills/`は`slide-builder`と`slide-forge`の2つだけを持ち、技の名前は手元の写しと同じである | `bash plugins/slides/skills/slide-builder/tests/test-slide-builder.sh`の検査`"the plugin holds the two skills by name"`が通る | #324 |
-| `plugins/slides/`の下のどのfileも、`~/.codex/`、`GH #<数>`か`Issue #<数>`の形の課題の番号、`agent-configs`を書かない。検査はこれらの語を部品から組み立て、そのままの形で書かない | `bash plugins/slides/skills/slide-builder/tests/test-slide-builder.sh`の検査`"no file names a local folder or another repository"`が通る | #324 |
+| No file under `plugins/slides/` holds a home folder path, a local agent configuration folder, or an issue reference such as `GH #<n>` or `Issue #<n>` | `bash plugins/slides/skills/slide-builder/tests/test-slide-builder.sh` check `"no file holds a home path, a local agent path, or an issue reference"` passes | #324 |
 | 2つの`SKILL.md`は、`AskUserQuestion`、`Claude`、`Codex`、モデルの名前を書かず、利用者に会話で聞くと書く。frontmatterは`allowed-tools`を持たない | `bash plugins/slides/skills/slide-builder/tests/test-slide-builder.sh`の検査`"the SKILL.md files name no agent or its tool"`が通る | #324 |
 | `slide-builder`の読みやすさの決まりは、聴衆の既定を非エンジニアとし、禁じる語を関数やクラスのような一般のコードの語に絞り、分野の語は資料ごとに足せると書く。ブロックチェーンと特許の語 (`smart contract`、`mint`、`patent`) を書かない | `bash plugins/slides/skills/slide-builder/tests/test-slide-builder.sh`の検査`"the readability rules hold only general code words"`が通る | #324 |
 | `slide-builder`の`SKILL.md`は確かめのscript `scripts/validate.py`を、`SKILL.md`を置いたフォルダからの相対の場所で名指す。scriptはPython 3の標準libraryだけを使い、利用者のprojectのフォルダから絶対の場所で呼んでも同じ結果を返す | `bash plugins/slides/skills/slide-builder/tests/test-slide-builder.sh`の検査`"the validator uses only the standard library"`と`"the validator runs from any folder"`が通る | #324 |
