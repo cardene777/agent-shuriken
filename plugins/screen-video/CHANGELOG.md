@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-23
+
 - Titles, chapter and end cards, and captions wrap into lines of about the same length, breaking Japanese between phrases, and are drawn in a page whose `lang` is the flow's language (or Japanese, for captions with kana or kanji when `render` has no flow). Before, a long Japanese title could leave one or two characters alone on its last line
 - Japanese narration made on the user's machine uses AivisSpeech Engine 1.2.0 with its voice Mao in the calm style, and the videos carry no credit. The first narrated Japanese flow installs the engine and Mao into `voices/aivisspeech/` of the data folder; the engine runs on 127.0.0.1 with its error reports to Sentry turned off, only while the lines are made. `voice.engine: "aivisspeech"` chooses it outright, and `voice.voice` picks another installed voice as `speaker/style`. VOICEVOX stays available as `voice.engine: "voicevox"`, with its terms and credit as before
 - A target with `frame` is looked for in every iframe whose address holds that text, nested ones too, until one of them holds it within the step's `timeout`. Before, a step failed at once while a payment form was still loading, or looked in another iframe from the same host that held no field
@@ -24,5 +26,6 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - A rehearsal stops before the first step marked with `effect`, and `record` runs marked steps only with `--confirm-effects`. A run stops, naming them, instead of emptying a folder that holds files it did not write
 - `scenes` and `render` caption and edit a recording the user made, from pictures of its scene changes and the captions the agent writes
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/screen-video--v0.1.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/screen-video--v0.2.0...HEAD
+[0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/screen-video--v0.2.0
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/screen-video--v0.1.0
