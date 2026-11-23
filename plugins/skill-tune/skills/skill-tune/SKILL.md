@@ -16,17 +16,17 @@ It keeps copies and results in `${SKILL_TUNE_HOME:-~/.local/share/skill-tune}`, 
 
 | The user wants | Do |
 |---|---|
-| To measure and shorten a skill | Steps 1 to 8 |
-| Eval cases only | Steps 1 to 5, without the cuts |
-| To know why a case fails | Step 7, from the result that has the failing case |
+| To measure and shorten a skill | Steps 1 to 10 |
+| Eval cases only | Steps 1 to 7, without the cuts |
+| To know why a case fails | Step 9, from the result that has the failing case |
 | The longest skills in a repository | `list <repository folder>`, then offer step 1 for one of them |
 
 ## Rules
 
 - `--scaffold` runs each case's `fixture.sh` as the user, and `--trust-plugin` skips the question that guards it, so run the eval only on plugins the user wrote or trusts
 - Run every eval on a copy made with `copy`, never on the user's folder, so the user's files do not change while it runs
-- Spend nothing before the user agrees on the cases in step 2, where the cost per case is said, and show the estimate in step 5 without asking for a limit. Pass `--max-cost-usd` only when the user names a limit
-- In agents other than Claude Code, stop before measuring: do steps 1 to 3, then tell the user that `claude plugin eval` comes with Claude Code and that steps 4 to 8 run there. `run` exits 3 when `claude` is missing
+- Spend nothing before the user agrees on the cases in step 2, where the cost per case is said, and show the estimate in step 6 without asking for a limit. Pass `--max-cost-usd` only when the user names a limit
+- In agents other than Claude Code, stop before measuring: do steps 1 to 3, then tell the user that `claude plugin eval` comes with Claude Code and that steps 4 to 10 run there. `run` exits 3 when `claude` is missing
 - Report the scores that `summary` and `compare` print. A case that scored lower is reported as lower, with its cause
 - Do not publish, release, or push anything
 
@@ -55,13 +55,15 @@ Propose case groups, and the parts to cut with the words each would save, and as
 
 Each case is run three times with the plugin and three times without it, and some cases cost a dollar a run.
 Say that step 4 runs each case once first, at about 0.2 to 1 USD per case.
+Say also that each `llm` grader needs the user to label 12 passing and 12 failing outputs in step 7, and one short run per label.
 
-## 3. Write the cases
+## 3. Write the prompts and fixtures
 
 Put each case in `<plugin>/evals/<case>/case.yaml` with a `fixture.sh` that writes the starting state, and share code between fixtures in `<plugin>/evals/_fixture.py`.
 Copy the shape from a plugin that already has cases, or from `claude plugin eval --help`.
 The prompt asks the way a user would, for what the skill does rather than for an exact edit, which the agent makes without the skill.
 A case that should run to the end says the earlier answers in the prompt.
+A new case gets only its `skill-fired` grader here; step 4 finds what the other graders check.
 
 What the eval sandbox allows decides what a case can test.
 
@@ -72,6 +74,22 @@ What the eval sandbox allows decides what a case can test.
 - `git` fails inside the sandbox (on macOS, `/usr/bin/git` cannot create its cache file). A fixture that needs a repository creates it in `fixture.sh`, and a script that runs `git` stops there unless it can find the repository another way, such as by reading `.git`. The run's `HOME` is itself a repository, so a fixture that runs a plugin script that names things by the repository runs it without `git` on the `PATH`, the way the agent's run sees it
 - `claude plugin eval` keeps the agent out of a plugin folder that holds a file named `report.html`, the name of its own report, so the skill can read none of its files and run none of its scripts. `copy` warns about such a file; rename it in the plugin before measuring
 - Fixture files hold no real secrets, and no fake key that a secret scanner flags
+
+## 4. Read every output and name the failure types
+
+```bash
+S=<skill folder>/scripts
+python3 "$S/skill_tune.py" copy <plugin folder> --label preflight
+python3 "$S/skill_tune.py" run <copy> --label preflight --runs 1 --ablation none
+python3 "$S/skill_tune.py" summary <result> --indicator skill-fired
+```
+
+`run` takes minutes; run it in the background where the agent can.
+When this run writes cases, read every output before writing a grader: its `trace`, and the files it left in the folder `--keep-temp` kept, which holds the `out/` folder of its trace path.
+Note what is wrong with each output, group the notes into failure types that each pass or fail by yes or no, and write one grader per failure type in step 5, as `references/graders.md` says.
+When the cases already exist, these runs only check that every case scores 1.00.
+
+## 5. Write the graders and try each case again
 
 How to grade:
 
@@ -85,33 +103,36 @@ How to grade:
 
 Add checks to the plugin's test: the suite has its cases, each fixture builds the state its case starts from, and files under `evals/results/` are ignored by git.
 
-## 4. Try each case once
-
-```bash
-S=<skill folder>/scripts
-python3 "$S/skill_tune.py" copy <plugin folder> --label preflight
-python3 "$S/skill_tune.py" run <copy> --label preflight --runs 1 --ablation none
-python3 "$S/skill_tune.py" summary <result> --indicator skill-fired
-```
-
-`run` takes minutes; run it in the background where the agent can.
+Run the preflight again on a copy with a new label, since `--replace` also removes the earlier result.
 Every case should score 1.00 here.
 When one does not, read its runs with `trace` and fix the case, its fixture, or its graders, not the `SKILL.md`, until the sandbox can produce the result.
-Try again on a copy with a new label, since `--replace` also removes the earlier result.
 
-## 5. Record the baseline
+## 6. Record the baseline
 
 Run `estimate` on the preflight result and show the user the cost.
 Make a copy with the label `before` before any cut, run it with and without the plugin, and show `summary` with the indicators named.
-Step 7 runs only with the plugin, since the runs without it do not depend on the `SKILL.md`.
+Step 9 runs only with the plugin, since the runs without it do not depend on the `SKILL.md`.
+
+## 7. Check each `llm` grader against labels
+
+Before the comparison counts an `llm` grader, check it against outputs the user labeled, unless a check trusted it with its current criteria.
+From the step 6 baseline, show the user each output's text with `label`, never the grader's verdict, and record each answer with `label --verdict`, until 12 human passes and 12 human fails are labeled; the runs without the plugin supply fails.
+`label-cases` sets 3 examples aside, and 5 passes and 5 fails are held back for one final check.
+Tune the criteria with `agree`, which prints the share of human passes the grader passed and the share of human fails it failed, apart, and read each disagreement's explanation for these failure types:
+
+- Passing a found problem as minor: it names the problem and passes anyway
+- Testing only the surface: it passes on the right headings or words, or skips the edge cases
+
+A grader that agrees on fewer than 4 of the 5 held-back passes or fails stays out of the score through `--indicator`, and is reported as not trusted.
+`references/graders.md` gives the commands in order.
 For eval cases only, stop here and report.
 
-## 6. Shorten
+## 8. Shorten
 
 Make the agreed cuts in the user's `SKILL.md`, and nothing else.
 In the plugin's test, cap the body words and the description characters at the new size, and check that the phrases of each rule are still there.
 
-## 7. Measure again and compare
+## 9. Measure again and compare
 
 ```bash
 S=<skill folder>/scripts
@@ -133,9 +154,9 @@ Read that case's runs with `trace`, on both sides, and name the cause before cha
 Never change a grader and rerun only the after side.
 When several results hold the same case, `summary` and `compare` take it from the last file given.
 
-## 8. Report and clean up
+## 10. Report and clean up
 
-Report a table of each case's score before, after, and without the plugin, the average cost and turns of the runs where the skill fired before and after, and the total cost.
+Report a table of each case's score before, after, and without the plugin, the average cost and turns of the runs where the skill fired before and after, the total cost, and each `llm` grader that is not trusted.
 Say so when a run did not get cheaper.
 Then run `clean <name>` for each copy this run made, the folder under `runs/` that `copy` printed, such as `<plugin>-before`. It removes the copy, its results, and the folders `claude plugin eval` kept for them.
 Never run `clean --all`: other sessions may be measuring with their own copies at the same time.
