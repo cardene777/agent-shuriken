@@ -36,6 +36,7 @@ It lives in `~/.local/share/portman/registry.json`, or under `PORTMAN_HOME` when
 The folder is created with mode 700 and the file with mode 600, so only you can read them.
 Every change is made while holding a lock on `registry.lock` in the same folder, and the file is replaced in one step, so two runs at the same time never lose a change.
 A registry with a field of the wrong type, such as a port written as text, is refused with exit code 2 and a list of the entries to fix.
+When the folder, `registry.lock`, or the file cannot be written, a command that changes the registry exits 2 without changing it, names the path with the home folder shortened to `~`, and says what to fix or that `PORTMAN_HOME` can point to another folder.
 
 | Command | Reads | Changes |
 |---|---|---|
@@ -164,6 +165,7 @@ With `--confirm <token>`, it takes the registry lock, reads the registry and the
 When the registry or a file changed in between, it exits 3 and writes nothing.
 
 Files are replaced in one step and keep their permissions; a new file is created readable only by you.
+When a file cannot be written, `apply` exits 2, names that file and the files it already wrote, and the next preview shows what is left to write.
 After writing, `apply` records the project folder in the registry and prints the address of `PORT`.
 When a written file is not ignored by git, `git check-ignore` tells the preview to suggest adding it to `.gitignore`.
 
@@ -218,6 +220,6 @@ Temporary files are created next to the file they replace and renamed over it, o
 |---|---|
 | 0 | Done |
 | 1 | Nothing is registered for what you asked, or a request was refused, such as a port that is already registered |
-| 2 | The input is not valid, or the registry cannot be read |
+| 2 | The input is not valid, the registry cannot be read or written, or `apply` cannot write a project file |
 | 3 | An entry or a file changed after the preview, so it was skipped or nothing was written |
 | 141 | The reader closed the output pipe, as `head -1` does after the first line. portman stops without printing more; a command that changes the registry or project files finishes writing before it prints |

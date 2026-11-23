@@ -6,6 +6,7 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 ## [Unreleased]
 
 - The chat report follows the `structure` format of page-design in the design-formats plugin through musubi, as an optional follow declared in `skills/portman/musubi.json`: the result first, what was done and skipped with the reasons, ports not tested written as not tested, and the user's steps last. When the `musubi` command is installed, the agent runs `musubi check` before reading the format. Without design-formats, the skill reports in its own order
+- When the registry folder, its lock file, or the registry cannot be written, `add`, `remove --confirm`, and `apply --confirm` refuse with exit code 2, the path with the home folder shortened to `~`, and what to fix, instead of stopping with a Python traceback that shows the full path. When `apply --confirm` cannot write a project file, it refuses the same way and names the files it already wrote
 
 ## [0.3.1] - 2026-11-18
 
