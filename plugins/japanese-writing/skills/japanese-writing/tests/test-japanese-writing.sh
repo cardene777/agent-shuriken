@@ -438,10 +438,20 @@ pages_english() {
 }
 check "the pages say the references read in English" "pages_english"
 
+# changelog_entries <changelog>: the entry lines under ## [Unreleased] and every release. A release moves
+# a line from ## [Unreleased] into its version's section, where it stays through later releases, so
+# either place counts. Link definitions and the header are not entry lines.
+changelog_entries() { awk '/^## \[/ { on = 1 } on' "$1" | grep '^- '; }
+
+# The helper counts a line under an older release, and not a changelog whose sections lack the text.
 changelog_english() {
-  awk '/^## \[Unreleased\]/ { f = 1; next } /^## \[/ { f = 0 } f' "$PLUGIN_DIR/CHANGELOG.md" | grep -F '.en.md' | grep -qi 'English'
+  printf '# Changelog\n\n## [Unreleased]\n\n## [0.4.0] - 2026-11-30\n\n- a later change\n\n## [0.3.0] - 2026-11-23\n\n- English versions in `.en.md` files\n' > "$T/changelog-older"
+  printf '# Changelog\n\n## [Unreleased]\n\n## [0.3.0] - 2026-11-23\n\n- another change\n\n[English .en.md]: https://example.com\n' > "$T/changelog-none"
+  changelog_entries "$T/changelog-older" | grep -F '.en.md' | grep -qi 'English' || return 1
+  ! changelog_entries "$T/changelog-none" | grep -F '.en.md' | grep -qi 'English' || return 1
+  changelog_entries "$PLUGIN_DIR/CHANGELOG.md" | grep -F '.en.md' | grep -qi 'English'
 }
-check "the changelog names the English references under Unreleased" "changelog_english"
+check "the changelog names the English references under Unreleased or any release" "changelog_english"
 
 printf '\n%d passed, %d failed, %d skipped (%d ran)\n' "$PASS" "$FAIL" "$SKIP" "$((PASS + FAIL))"
 [ "$FAIL" = 0 ]
