@@ -7,7 +7,7 @@
 
 ## 動かすための道具
 
-初めて使う時、`screen-video.sh`は`playwright-core` 1.65.0と`ffmpeg-static` 5.3.0を、データのフォルダの`node/`へ`pnpm`で入れます。`pnpm`が無ければ`npm`を使います。続けて、PlaywrightのヘッドレスのChromiumを入れます。
+初めて使う時、`screen-video.sh`は`playwright-core` 1.65.0と`ffmpeg-static` 5.3.0を、データのフォルダの`node/`へ`pnpm`で入れます。`pnpm`が無ければ`npm`を使います。続けて、PlaywrightのヘッドレスのChromiumを入れます。初めての`login`は、ログインの窓を出すため、普通のChromium (約150MB) も入れます。
 2回目からはそこにある物を使い、何も入れません。
 読み上げる流れは、初めての時にその声の道具をデータのフォルダの`voices/`へ入れます。中身は[読み上げと曲と音](#読み上げと曲と音)に書きます。
 ffmpegは次の順で選び、どれを使うかは`screen-video.sh doctor`が示します。

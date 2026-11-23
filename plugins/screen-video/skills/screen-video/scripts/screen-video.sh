@@ -72,5 +72,12 @@ if ! installed; then
   finish_runtime
 fi
 
+# `login` shows a window for the user to log in, which the headless browser cannot, so it needs the
+# full Chromium; it is installed the first time `login` runs (about 150MB), and only then
+if [ "${1:-}" = "login" ] && [ "${SCREEN_VIDEO_HEADLESS:-}" != "1" ]; then
+  echo "screen-video: installing the browser that shows a window, if it is missing" >&2
+  node "$NODE_DIR/node_modules/playwright-core/cli.js" install chromium >&2 || exit 1
+fi
+
 export SCREEN_VIDEO_HOME="$DATA_DIR" SCREEN_VIDEO_NODE_DIR="$NODE_DIR"
 exec node "$HERE/screen_video.mjs" "$@"

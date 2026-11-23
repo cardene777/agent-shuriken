@@ -8,6 +8,7 @@ Everything here is done by `skills/screen-video/scripts/screen-video.sh`, which 
 ## The runtime
 
 On first use, `screen-video.sh` installs `playwright-core` 1.65.0 and `ffmpeg-static` 5.3.0 into `node/` of the data folder with `pnpm`, or with `npm` when `pnpm` is missing, and then Playwright's headless Chromium.
+The first `login` also installs the full Chromium, about 150MB, because it shows a window for you to log in.
 Later runs find them there and install nothing.
 A narrated flow installs its voice engine into `voices/` of the data folder the first time, as [Narration, music, and sounds](#narration-music-and-sounds) describes.
 ffmpeg is chosen in this order, and `screen-video.sh doctor` says which one is used.

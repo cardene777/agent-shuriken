@@ -98,7 +98,7 @@ When you already have a recording, the agent can find its scenes, write the capt
 | Python 3.10 or later | Only when a flow chooses VOICEVOX |
 
 No global package is installed.
-The first run downloads `playwright-core`, its headless browser, and `ffmpeg-static`, which takes about a minute.
+The first run downloads `playwright-core`, its headless browser, and `ffmpeg-static`, which takes about a minute. The first `login` also downloads the full Chromium, about 150MB, to show its window.
 The first narrated flow installs its voice into `voices/` of the data folder: kokoro-js and its model for English, or AivisSpeech Engine with its voice Mao for Japanese, about 1.3GB with the language model and default voices the engine fetches on its first start.
 A video narrated by Mao carries no credit.
 VOICEVOX stays available when a flow chooses it: it is installed after you agree to its terms, and each video names its voice on the end card.
