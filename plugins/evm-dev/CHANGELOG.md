@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-23
+
 ### Added
 
 - `evm-standards` holds an item for EIP-8288, the frame mode that aggregates post-quantum signatures into one recursive STARK per block: what contracts read through the frame introspection of EIP-8141, its `Draft` status, and that no network upgrade names it. The item on EIP-8141 points to it
@@ -115,7 +117,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - Starts when you ask about the status of an ERC or EIP, or when you call it, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
 - The plugin has `claude plugin eval` cases under `evals/` that measure the skill, run by hand
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/evm-dev--v0.7.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/evm-dev--v0.8.0...HEAD
+[0.8.0]: https://github.com/cardene777/agent-shuriken/releases/tag/evm-dev--v0.8.0
 [0.7.0]: https://github.com/cardene777/agent-shuriken/releases/tag/evm-dev--v0.7.0
 [0.6.0]: https://github.com/cardene777/agent-shuriken/releases/tag/evm-dev--v0.6.0
 [0.5.0]: https://github.com/cardene777/agent-shuriken/releases/tag/evm-dev--v0.5.0
