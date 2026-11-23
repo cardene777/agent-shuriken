@@ -221,6 +221,226 @@ check "clean keeps a copy while an eval runs on it, and removes it once the eval
    && grep -qxF "named clean exit 1" "$T/during.txt" \
    && grep -qxF "removed $D/runs/alpha-busy" "$T/after.txt" && [ ! -e "$D/runs/alpha-busy" ]'
 
+# --- labels: a person's pass or fail on the outputs an llm grader read, and the checks of the grader
+# The gamma plugin has one case with an llm grader that reads a file and a regex grader. Its result holds
+# 13 runs with the plugin, the last of which kept no text, and 12 runs without it.
+G="$R/plugins/gamma"
+mkdir -p "$G/skills/gamma" "$G/evals/judged"
+printf -- '---\nname: gamma\ndescription: Writes a report. Use when testing.\n---\n\n# Gamma\n\nWrite a report.\n' > "$G/skills/gamma/SKILL.md"
+cat > "$G/evals/judged/case.yaml" <<'YAML'
+schema_version: "1.1"
+name: gamma-judged
+plugins: ["../.."]
+execution:
+  prompt: |
+    Write the report.
+  max_turns: 10
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: 'gamma'
+    arm: with-only
+  - name: judge
+    type: llm
+    focus: {source: file, path: out/report.md}
+    criteria: |
+      PASS if the report names the owner.
+      FAIL if it names no owner.
+  - name: check-line
+    type: regex
+    target: {source: file, path: out/report.md}
+    pattern: 'owner'
+YAML
+python3 - "$T" <<'PY'
+import json, os, sys
+T = sys.argv[1]
+
+def run(arm, i, human, text=True):
+    judge = {"name": "judge", "passed": human, "weight": 1, "withOnly": False, "scored": True,
+             "explanation": "judge votes: PASS PASS PASS" if human else "judge votes: FAIL FAIL FAIL"}
+    if text:
+        judge["evidence"] = "report from the %s run %d" % (arm, i)
+    return {"score": 1, "passed": True, "turns": 3, "costUsd": 0.1, "judgeCostUsd": 0.01, "durationSeconds": 9,
+            "error": None, "tracePath": None,
+            "graders": [judge, {"name": "check-line", "passed": True, "weight": 1, "withOnly": False, "scored": True}]}
+
+case = {"name": "gamma-judged",
+        "graders": [{"name": "judge", "type": "llm", "config": {"criteria": "PASS if the report names the owner.",
+                                                              "focus": {"source": "file", "path": "out/report.md"}}},
+                    {"name": "check-line", "type": "regex"}],
+        "arms": {"with": [run("with", i, True) for i in range(1, 13)] + [run("with", 13, True, text=False)],
+                 "without": [run("without", i, False) for i in range(1, 13)]}}
+with open(os.path.join(T, "labeled.json"), "w") as f:
+    json.dump({"cases": [case]}, f)
+PY
+LF="$G/evals/labels/gamma-judged/judge.json"
+lbl() { tune label "$T/labeled.json" --case gamma-judged "$@"; }
+
+shown="$(lbl --grader judge --arm with --run 2)"; rc_shown=$?
+check "label shows the text an llm grader read without its verdict" \
+  '[ "$rc_shown" = 0 ] && [ "$shown" = "report from the with run 2" ] && [ ! -e "$G/evals/labels" ]'
+
+first="$(lbl --grader judge --arm with --run 1 --verdict pass --into "$G" | tail -n 1)"
+for i in 2 3 4 5 6 7 8 9 10 11 12; do lbl --grader judge --arm with --run "$i" --verdict pass --into "$G" > /dev/null; done
+for i in 1 2 3 4 5 6 7 8 9 10 11 12; do lbl --grader judge --arm without --run "$i" --verdict fail --into "$G" > /dev/null; done
+changed="$(lbl --grader judge --arm with --run 1 --verdict fail --into "$G" | tail -n 1)"
+again="$(lbl --grader judge --arm with --run 1 --verdict pass --into "$G" | tail -n 1)"
+# A label file in the form label writes: version 1, its case and grader, and each label with its verdict and text.
+label_file_ok() {
+  python3 - "$LF" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+labels = data.get("labels", [])
+one = [l for l in labels if l.get("text") == "report from the with run 1"]
+ok = (data.get("version") == 1 and data.get("case") == "gamma-judged" and data.get("grader") == "judge"
+      and len(labels) == 24 and len(one) == 1 and one[0].get("verdict") == "pass"
+      and sum(1 for l in labels if l.get("verdict") == "fail") == 12)
+sys.exit(0 if ok else 1)
+PY
+}
+check "label records the verdict with the text and counts both sides" \
+  '[ "$first" = "labels for gamma-judged/judge: passes 1/12, fails 0/12" ] \
+   && [ "$changed" = "labels for gamma-judged/judge: passes 11/12, fails 13/12" ] \
+   && [ "$again" = "labels for gamma-judged/judge: passes 12/12, fails 12/12" ] && label_file_ok'
+
+sum_before="$(cksum < "$LF" 2>/dev/null)"
+lbl --grader check-line --arm with --run 3 --verdict pass --into "$G" 2> "$T/regex.err"; rc_regex=$?
+lbl --grader judge --arm with --run 99 --verdict pass --into "$G" 2> /dev/null; rc_missing=$?
+lbl --grader judge --arm with --run 13 --verdict pass --into "$G" 2> /dev/null; rc_bare=$?
+lbl --grader judge --arm with --run 13 > /dev/null 2>&1; rc_bare_show=$?
+check "label refuses a grader that is not llm, a missing run, and a verdict without text" \
+  '[ "$rc_regex" = 2 ] && [ "$rc_missing" = 2 ] && [ "$rc_bare" = 2 ] && [ "$rc_bare_show" = 2 ] \
+   && [ "$(cksum < "$LF")" = "$sum_before" ] && grep -qF "llm" "$T/regex.err"'
+
+# The split label-cases keeps in the label file: how many labels each part holds, and each label's part.
+cat > "$T/split.py" <<'PY'
+import json, sys
+labels = json.load(open(sys.argv[1], encoding="utf-8"))["labels"]
+parts = {}
+for l in labels:
+    key = l.get("set", "") + ("-" + l["verdict"] if l.get("set") == "held" else "")
+    parts[key] = parts.get(key, 0) + 1
+print(" ".join("%s=%d" % kv for kv in sorted(parts.items())))
+print(",".join(l.get("set", "") for l in labels))
+if len(sys.argv) > 2:
+    for l in labels:
+        if l.get("set") == sys.argv[2]:
+            print(l["text"])
+PY
+gcopy="$(tune copy "$G" --label lbl)"
+tune label-cases "$gcopy" --labels "$LF" --set tune > "$T/lc.txt"; rc_lc=$?
+split1="$(python3 "$T/split.py" "$LF")"
+tune label-cases "$gcopy" --labels "$LF" --set tune > /dev/null
+split2="$(python3 "$T/split.py" "$LF")"
+python3 "$T/split.py" "$LF" held | tail -n +3 > "$T/held-texts.txt"
+# Every tuning case grades the copy's current grader on the label's text, put where the grader reads it.
+tuning_cases_ok() {
+  local dirs d n
+  dirs="$(find "$gcopy/label-evals" -mindepth 1 -maxdepth 1 -type d -name 'tune-*' | sort)"
+  [ "$(printf '%s\n' "$dirs" | grep -c .)" = 11 ] || return 1
+  [ -z "$(find "$gcopy/label-evals" -mindepth 1 -maxdepth 1 -type d ! -name 'tune-*' ! -name results)" ] || return 1
+  for d in $dirs; do
+    n="$(basename "$d")"
+    grep -qx "name: $n" "$d/case.yaml" && grep -qF "PASS if the report names the owner." "$d/case.yaml" \
+      && grep -qF "focus: {source: file, path: out/report.md}" "$d/case.yaml" && ! grep -qF "check-line" "$d/case.yaml" \
+      && grep -qF "out/report.md" "$d/fixture.sh" || return 1
+    python3 - "$LF" "$n" "$d" <<'PY' || return 1
+import json, os, sys
+labels = json.load(open(sys.argv[1], encoding="utf-8"))["labels"]
+label = labels[int(sys.argv[2].split("-")[1]) - 1]
+text = open(os.path.join(sys.argv[3], "text"), encoding="utf-8").read()
+sys.exit(0 if label.get("set") == "tune" and text == label["text"] else 1)
+PY
+  done
+}
+no_held_text_shown() {
+  local line
+  [ -s "$T/held-texts.txt" ] || return 1
+  while IFS= read -r line; do grep -qxF "$line" "$T/lc.txt" && return 1; done < "$T/held-texts.txt"
+  return 0
+}
+check "label-cases fixes the split once and writes one case per tuning label" \
+  '[ "$rc_lc" = 0 ] && [ "$(printf "%s\n" "$split1" | head -n 1)" = "example=3 held-fail=5 held-pass=5 tune=11" ] \
+   && [ "$split1" = "$split2" ] && tuning_cases_ok && no_held_text_shown'
+
+# --- run on another eval folder
+: > "$CLAUDE_LOG"
+tune run "$gcopy" --label lbl1 --eval-dir label-evals > /dev/null; rc_dir=$?
+grep -qF -- "--eval-dir label-evals" "$CLAUDE_LOG"; logged_dir=$?
+: > "$CLAUDE_LOG"
+tune run "$gcopy" --label lbl2 --eval-dir nowhere 2> /dev/null; rc_nowhere=$?
+check "run passes --eval-dir to claude plugin eval" \
+  '[ "$rc_dir" = 0 ] && [ "$logged_dir" = 0 ] && [ "$rc_nowhere" = 2 ] && [ ! -s "$CLAUDE_LOG" ]'
+
+# --- agree: results of the label cases, where the grader differs from the person on some labels
+# Writes a result for the labels of one part; flips the grader's verdict on the first N human passes
+# and the first M human fails, and leaves K cases without a run. Prints the human passes and fails.
+cat > "$T/agree.py" <<'PY'
+import json, sys
+path, part, out, flip_pass, flip_fail, missing = sys.argv[1], sys.argv[2], sys.argv[3], *map(int, sys.argv[4:7])
+labels = json.load(open(path, encoding="utf-8"))["labels"]
+cases, passes, fails = [], 0, 0
+for i, l in enumerate(labels, 1):
+    if l.get("set") != part:
+        continue
+    human = l["verdict"] == "pass"
+    passes, fails = passes + human, fails + (not human)
+    grader = human
+    if human and flip_pass:
+        grader, flip_pass = False, flip_pass - 1
+    elif not human and flip_fail:
+        grader, flip_fail = True, flip_fail - 1
+    runs = [{"graders": [{"name": "judge", "passed": grader, "scored": True, "withOnly": False}]}]
+    if missing:
+        runs, missing = [], missing - 1
+    cases.append({"name": "%s-%02d" % (part, i), "arms": {"with": runs, "without": []}})
+json.dump({"cases": cases}, open(out, "w"))
+print(passes, fails)
+PY
+read -r tp tf < <(python3 "$T/agree.py" "$LF" tune "$T/agree-tune.json" 1 0 0)
+tune agree "$T/agree-tune.json" --labels "$LF" > "$T/agree-tune.txt"; rc_tune=$?
+check "agree counts human passes and human fails apart" \
+  '[ "$rc_tune" = 0 ] \
+   && grep -qxF "tune: human passes the grader passed: $((tp - 1))/$tp ($(python3 -c "print(\"%.2f\" % (($tp - 1) / $tp))"))" "$T/agree-tune.txt" \
+   && grep -qxF "tune: human fails the grader failed: $tf/$tf (1.00)" "$T/agree-tune.txt"'
+
+tune label-cases "$gcopy" --labels "$LF" --set held > /dev/null; rc_held_cases=$?
+held_cases="$(find "$gcopy/label-evals" -mindepth 1 -maxdepth 1 -type d -name 'held-*' | grep -c .)"
+python3 "$T/agree.py" "$LF" held "$T/agree-held.json" 0 1 0 > /dev/null
+tune agree "$T/agree-held.json" --labels "$LF" > "$T/agree-held.txt"; rc_held=$?
+check "agree trusts a grader at 4 of 5 on each held-back side" \
+  '[ "$rc_held_cases" = 0 ] && [ "$held_cases" = 10 ] && [ "$rc_held" = 0 ] \
+   && grep -qxF "held: human passes the grader passed: 5/5 (1.00)" "$T/agree-held.txt" \
+   && grep -qxF "held: human fails the grader failed: 4/5 (0.80)" "$T/agree-held.txt" \
+   && grep -qxF "trusted: judge counts in the score" "$T/agree-held.txt"'
+
+python3 "$T/agree.py" "$LF" held "$T/agree-low.json" 2 0 0 > /dev/null
+tune agree "$T/agree-low.json" --labels "$LF" > "$T/agree-low.txt"; rc_low=$?
+python3 "$T/agree.py" "$LF" held "$T/agree-gap.json" 0 0 1 > /dev/null
+tune agree "$T/agree-gap.json" --labels "$LF" > "$T/agree-gap.txt"; rc_gap=$?
+check "agree does not trust a grader below 4 of 5 on either held-back side" \
+  '[ "$rc_low" = 1 ] && grep -qxF "held: human passes the grader passed: 3/5 (0.60)" "$T/agree-low.txt" \
+   && grep -q "^not trusted: .*--indicator judge" "$T/agree-low.txt" && ! grep -q "^trusted:" "$T/agree-low.txt" \
+   && [ "$rc_gap" = 1 ] && grep -qx "not measured: 1" "$T/agree-gap.txt" && grep -q "^not trusted: " "$T/agree-gap.txt"'
+
+# Too few labels: a label file with one pass less and no split yet.
+python3 - "$LF" "$T/few.json" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+drop = next(i for i, l in enumerate(data["labels"]) if l["verdict"] == "pass")
+data["labels"] = [dict(l, set="") for i, l in enumerate(data["labels"]) if i != drop]
+data["checks"] = []
+json.dump(data, open(sys.argv[2], "w"))
+PY
+fcopy="$(tune copy "$G" --label few)"
+tune label-cases "$fcopy" --labels "$T/few.json" --set tune 2> "$T/few.err"; rc_few=$?
+sum_checked="$(cksum < "$LF")"
+tune label-cases "$gcopy" --labels "$LF" --set held 2> "$T/reheld.err"; rc_reheld=$?
+check "label-cases refuses too few labels and a held-back part already checked" \
+  '[ "$rc_few" = 2 ] && [ ! -e "$fcopy/label-evals" ] && grep -qF "11" "$T/few.err" \
+   && [ "$rc_reheld" = 2 ] && [ "$(cksum < "$LF")" = "$sum_checked" ] && grep -qF "checked" "$T/reheld.err"'
+
 # --- SKILL.md
 SKILL="$SKILL_DIR/SKILL.md"
 skill_rules() {
@@ -250,6 +470,51 @@ skill_rules() {
 }
 check "the SKILL.md keeps its rules on the sandbox, graders, cost, and other agents" "skill_rules"
 
+# The two steps that come before trusting a grader: phrases that only the failure-type step holds, and
+# phrases that only the grader check holds, so removing either step drops one of the two sets.
+types_step() {
+  local phrase
+  for phrase in "Read every output" "pass or fail by yes or no" "one grader per failure type"; do
+    grep -qF -- "$phrase" "$1" || return 1
+  done
+}
+grader_step() {
+  local phrase
+  for phrase in "share of human passes" "share of human fails" "held back" \
+    "Passing a found problem as minor" "Testing only the surface"; do
+    grep -qF -- "$phrase" "$1" || return 1
+  done
+}
+skill_steps() { [ -f "$1" ] && types_step "$1" && grader_step "$1" && grep -qF 'references/graders.md' "$1"; }
+REF="$SKILL_DIR/references/graders.md"
+graders_ref() {
+  local word
+  [ -f "$REF" ] || return 1
+  for word in 'label-cases' 'agree' '4 of the 5' '--indicator' 'failure type'; do
+    grep -qF -- "$word" "$REF" || return 1
+  done
+}
+check "the SKILL.md keeps the failure-type step and the grader check" 'skill_steps "$SKILL" && graders_ref'
+
+# Writes the SKILL.md without the step whose heading holds the given words; fails when no heading does.
+without_step() {
+  python3 - "$SKILL" "$1" "$2" <<'PY'
+import re, sys
+src, words, out = sys.argv[1:]
+parts = re.split(r"(?m)^(?=## )", open(src, encoding="utf-8").read())
+kept = [p for p in parts if not (p.startswith("## ") and words in p.splitlines()[0])]
+open(out, "w", encoding="utf-8").write("".join(kept))
+sys.exit(0 if len(kept) < len(parts) else 1)
+PY
+}
+step_check_bites() {
+  skill_steps "$SKILL" || return 1
+  without_step "Read every output" "$T/no-types.md" || return 1
+  without_step "against labels" "$T/no-check.md" || return 1
+  ! skill_steps "$T/no-types.md" && ! skill_steps "$T/no-check.md"
+}
+check "the step check fails on a SKILL.md without either new step" "step_check_bites"
+
 SKILL_WORDS_MAX=1870
 SKILL_DESCRIPTION_MAX=357
 skill_size() {
@@ -273,6 +538,20 @@ readme_cost_first() {
   done
 }
 check "the READMEs say before the steps what measuring needs and costs" "readme_cost_first"
+
+# Every page a reader opens names the commands of the grader check; the How it works pages also say the bar.
+docs_grader_check() {
+  local f word base="$SKILL_DIR/../.."
+  for f in docs/how-it-works.md docs/how-it-works.ja.md README.md README.ja.md CHANGELOG.md; do
+    for word in 'label-cases' 'agree'; do
+      grep -qF -- "$word" "$base/$f" || { echo "      $f does not name $word"; return 1; }
+    done
+  done
+  grep -qF "failure type" "$base/docs/how-it-works.md" && grep -qF "4 of the 5" "$base/docs/how-it-works.md" \
+    && grep -qF "$(printf '5\344\273\266\344\270\2554\344\273\266')" "$base/docs/how-it-works.ja.md" \
+    || { echo "      a How it works page does not give the failure types or the bar of 4 of the 5"; return 1; }
+}
+check "the docs describe the failure types and the grader check" "docs_grader_check"
 
 printf '\n%d passed, %d failed (%d ran)\n' "$PASS" "$FAIL" "$((PASS + FAIL))"
 [ "$FAIL" = 0 ]
