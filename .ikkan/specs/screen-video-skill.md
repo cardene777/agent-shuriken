@@ -1,6 +1,6 @@
 # screen-video-skill
 
-| 条件 | 確かめ方 | 出元 |
+| Criterion | How to check | Origin |
 |---|---|---|
 | `SKILL.md`は、撮る前に目的と見る人と長さを聞き、画面を開いて押せる物を読んで流れのfileを`.screen-video/flows/`に書き、通しの台本の頁を本人に見せて答えを受けるまで録画の命令を打たない手順を持つ。質問の道具が無いagentでの聞き方も書く | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"SKILL.md plans the flow and shows the storyboard before recording"`が通る | #337 |
 | 流れのfileを確かめる命令`check`は、正しい流れを通し、送信と支払いの印が付いた操作を番号と費用の書き付きで挙げる | `bash plugins/screen-video/skills/screen-video/tests/test-screen-video.sh`の検査`"check accepts a flow and lists its marked steps"`が通る | #337 |
