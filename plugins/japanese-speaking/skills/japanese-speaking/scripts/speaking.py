@@ -54,11 +54,16 @@ def load_patterns():
 
 
 def load_common_katakana():
+    """Return the words of common-katakana.txt. Each word line holds the word, a tab, and its English meaning."""
     words = set()
-    for row in (DATA / "common-katakana.txt").read_text(encoding="utf-8").splitlines():
-        row = row.strip()
-        if row and not row.startswith("#"):
-            words.add(row)
+    lines = (DATA / "common-katakana.txt").read_text(encoding="utf-8").splitlines()
+    for number, row in enumerate(lines, start=1):
+        if not row.strip() or row.startswith("#"):
+            continue
+        fields = row.split("\t")
+        if len(fields) != 2 or not fields[0].strip() or not fields[1].strip():
+            raise InputError(f"references/common-katakana.txt line {number} needs a word, a tab, and its English meaning")
+        words.add(fields[0].strip())
     return words
 
 
@@ -215,12 +220,13 @@ def check(args):
             if not file.is_file():
                 raise InputError(f"{path} is not a readable source file")
             sources.append(file.read_text(encoding="utf-8", errors="replace"))
+        common = load_common_katakana() if args.source else set()
     except InputError as err:
         print(f"error: {err}", file=sys.stderr)
         return 2
     found = find_patterns(utterances, load_patterns())
     if args.source:
-        found += find_absent(utterances, readings, sources, load_common_katakana())
+        found += find_absent(utterances, readings, sources, common)
     found.sort(key=lambda item: item[0])
     for number, name, detail in found:
         print(f"L{number} {name} {detail}")

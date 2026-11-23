@@ -54,6 +54,9 @@ JA_ALLOWED=(
   plugins/japanese-speaking/skills/japanese-speaking/references/speaking.md
   plugins/japanese-speaking/skills/japanese-speaking/references/formats.md
   plugins/japanese-speaking/skills/japanese-speaking/references/review.md
+  plugins/japanese-speaking/skills/japanese-speaking/references/speaking.en.md
+  plugins/japanese-speaking/skills/japanese-speaking/references/formats.en.md
+  plugins/japanese-speaking/skills/japanese-speaking/references/review.en.md
   plugins/japanese-speaking/skills/japanese-speaking/references/patterns.tsv
   plugins/japanese-speaking/skills/japanese-speaking/references/common-katakana.txt
   plugins/japanese-speaking/skills/japanese-speaking/scripts/speaking.py

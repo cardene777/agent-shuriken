@@ -5,6 +5,9 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The references read in English: each Markdown file under `references/` has an English version beside it named `<name>.en.md`, with the same headings, and the skill keeps reading the Japanese files
+- Each word in `references/common-katakana.txt` carries its English meaning after a tab, and `speaking.py check --source` refuses a word line without one with exit 2
+
 ## [0.1.0] - 2026-11-18
 
 First public release.
