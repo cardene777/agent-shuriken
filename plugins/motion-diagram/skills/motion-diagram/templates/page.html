@@ -108,6 +108,11 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--s
 .md-back { fill: none; stroke: var(--accent); stroke-width: 2; stroke-dasharray: 6 5; transition: stroke-width .2s; }
 .md-back.on { stroke-width: 3.5; }
 .md-back-label { font: 700 12.5px var(--sans); fill: var(--accent); paint-order: stroke; stroke: var(--bg); stroke-width: 5px; }
+/* On paper the picture keeps its colors, and the buttons that only work on screen are left out. */
+@media print {
+  :root { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .md-tools { display: none; }
+}
 </style>
 </head>
 <body>
@@ -147,6 +152,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--s
   const params = new URLSearchParams(location.hash.slice(1));
   const PROBE = params.has('probe');
   const EXPORT = params.has('export');
+  const END = !EXPORT && params.has('end');
   const SPEED = PROBE ? 25 : 1;
   const REDUCE = !EXPORT && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const NS = 'http://www.w3.org/2000/svg';
@@ -461,6 +467,28 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--s
   }
   const ended = () => new Promise(r => { if (!running) r(); else waiters.push(r); });
   md.querySelector('.md-replay').addEventListener('click', run);
+
+  /* The finished picture without a run: every count at its number and the resting cards in place.
+     A run in progress stops here, as when printing starts. */
+  function showEnd() {
+    if (running) { running = false; const w = waiters; waiters = []; w.forEach(f => f()); }
+    prepare();
+    if (REDUCE) setCounts(0, true); else draw(plan.total);
+  }
+
+  /* The run starts the first time the picture is on screen. A page opened in a tab is on screen as
+     it opens and runs on its first frame; a page in a frame, which may sit further down a document or
+     in a hidden part, watches for the reader to reach it and shows its finished picture until then,
+     so one never shown prints finished. */
+  let begun = false;
+  function begin() { if (!begun) { begun = true; run(); } }
+  function watch() {
+    if (!('IntersectionObserver' in window)) { begin(); return; }
+    const seen = new IntersectionObserver(entries => {
+      if (entries.some(e => e.isIntersecting)) { seen.disconnect(); begin(); }
+    });
+    seen.observe(stage);
+  }
   let resizing;
   window.addEventListener('resize', () => {
     clearTimeout(resizing);
@@ -475,7 +503,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--s
   function snapshot() {
     const counts = {};
     Object.keys(countEls).forEach(id => { counts[id] = countEls[id].textContent.replace(/\D/g, ''); });
-    return { counts, cards: els.length };
+    return { counts, cards: els.length, shown: els.filter(e => e.style.opacity === '1').length };
   }
   async function still() {
     const f = frames;
@@ -501,8 +529,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--s
     return [...new Set(hits)];
   }
   async function probe() {
-    run();
-    await ended();
+    while (!END && (runs === 0 || running)) await pause(50);
     const firstRun = snapshot();
     firstRun.moving = await still();
     const lines = document.body.innerText.split('\n').map(s => s.trim()).filter(Boolean);
@@ -511,7 +538,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--s
     if (params.has('replay')) { md.querySelector('.md-replay').click(); await ended(); }
     const last = snapshot();
     const out = {
-      runs, cards: last.cards, counts: last.counts, moving: await still(), firstRun,
+      runs, cards: last.cards, shown: last.shown, counts: last.counts, moving: await still(), firstRun,
       before: lines, pressed, flow: stage.dataset.flow, covered: covered(),
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1
     };
@@ -519,7 +546,13 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--s
   }
 
   if (EXPORT) { decideFlow(); drawLines(); return; }
-  window.requestAnimationFrame(() => (PROBE ? probe() : run()));
+  window.addEventListener('beforeprint', showEnd);
+  const paper = window.matchMedia('print');
+  if (paper.addEventListener) paper.addEventListener('change', e => { if (e.matches) showEnd(); });
+  if (END) showEnd();
+  else if (window.self === window.top) window.requestAnimationFrame(begin);
+  else { showEnd(); watch(); }
+  if (PROBE) probe();
 })();
 </script>
 </body>

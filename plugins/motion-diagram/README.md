@@ -76,7 +76,9 @@ Parts are sources, boxes, checks, people, bins, ends, and parts outside a bounda
 | `<name>.gif` | The same run as a GIF, 960 pixels wide, from `export` |
 | `<name>.png` | The finished picture as an image, from `export` |
 
-The page runs once when it opens and stops; nothing moves after the run, and a replay button runs it again.
+The page runs once when its picture is first on screen and stops; nothing moves after the run, and a replay button runs it again.
+Placed in a frame further down another document, it shows the finished picture until the reader reaches it, and then runs.
+Adding `#end` to the page's address opens it finished without running, and a printed page stops any run and prints the finished picture without its buttons.
 A reader who asks the system for reduced motion sees the final counts without movement.
 Pressing a part shows its details and, when the spec gives one, an example.
 The picture runs left to right, and top to bottom on a phone.

@@ -10,10 +10,12 @@
 #   3. In a headless browser: the cards run once and stop at the counts of the spec, replay runs
 #      them again, reduced motion shows the end, a pressed part shows its details, the page shows no
 #      prose before a part is pressed, and the flow turns from left to right to top to bottom on a
-#      phone. Without a browser these cases fail.
+#      phone. In a frame of a throwaway document, a page below the first screen or in a hidden part
+#      waits in its finished state and runs once when shown, and printing stops a run at the finished
+#      picture; a page opened with #end never runs. Without a browser these cases fail.
 #   4. The theme keys, the light and dark colors, and the one dictionary of interface words.
 #   5. export writes an MP4 video, a GIF, and a PNG image, and says how to install Node.js without it.
-#   6. SKILL.md and the repository checks.
+#   6. SKILL.md, the pages that tell when the page runs, and the repository checks.
 #
 # Exit 0 when every case passes, 1 when any fails (the failing cases are listed).
 set -u
@@ -276,6 +278,139 @@ PY
   done
 }
 
+# framed <name> <layout> <steps>: puts the rendered page into a frame of a throwaway document and lets
+# the document's script take <steps>, then saves what it saw. <layout> is "below" (the frame sits
+# under two screens of space), "hidden" (the frame sits in a hidden part), or "top" (the frame is on
+# the first screen). A srcdoc frame shares the document's origin, so the script can read the page,
+# and the page cannot tell it from the isolated frame of a document that embeds it.
+# On virtual time the headless browser paints only now and then, so inside the frame two stand-ins
+# play the browser's part: a timer gives the animation frames, as #probe does for the page alone,
+# and an observer reports the picture on screen when the steps call onScreen(true), as a browser does
+# when the document scrolls the frame into view or shows its part.
+framed() {
+  local name="$1" layout="$2" steps="$3"
+  render_full || return 1
+  python3 - "$WORK/full.html" "$WORK/$name.html" "$layout" "$steps" "$WANT_COUNTS" <<'PY' || { why="the throwaway document was not written"; return 1; }
+import html, sys
+page, out, layout, steps, want = open(sys.argv[1]).read(), sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5]
+browser = """<script>
+window.requestAnimationFrame = f => setTimeout(() => f(performance.now()), 16);
+window.__watchers = [];
+window.IntersectionObserver = class { constructor(cb) { this.cb = cb; window.__watchers.push(this); } observe(el) { this.el = el; } disconnect() { this.off = true; } };
+window.__onScreen = on => window.__watchers.forEach(w => { if (!w.off && w.el) w.cb([{ isIntersecting: on, target: w.el }]); });
+</script>"""
+page = page.replace('<head>', '<head>' + browser, 1)
+frame ='<iframe id="f" style="display:block;width:1000px;height:820px;border:0" srcdoc="%s"></iframe>' % html.escape(page, quote=True)
+body = {
+    "below": '<div style="height:2400px"></div>' + frame + '<div style="height:1600px"></div>',
+    "hidden": '<div id="part" hidden>' + frame + '</div>',
+    "top": frame,
+}[layout]
+script = """
+const f = document.getElementById('f');
+const want = %s;
+const pause = ms => new Promise(r => setTimeout(r, ms));
+function look() {
+  const d = f.contentDocument, counts = {};
+  d.querySelectorAll('[data-count-for]').forEach(e => { counts[e.dataset.countFor] = e.textContent.replace(/\\D/g, ''); });
+  const cards = [...d.querySelectorAll('.md-card')];
+  return { counts, shown: cards.filter(c => c.style.opacity === '1').length, places: cards.map(c => c.style.transform + ' ' + c.style.opacity).join('|') };
+}
+async function moving() { const a = look().places; await pause(400); return look().places !== a; }
+async function settle() { for (let i = 0; i < 200 && await moving(); i++); }
+async function starts() { for (let i = 0; i < 8; i++) { if (await moving()) return true; } return false; }
+const onScreen = on => f.contentWindow.__onScreen(on);
+const full = c => Object.keys(want).every(k => c[k] === want[k]);
+const seen = {};
+f.addEventListener('load', async () => {
+  try { %s } catch (e) { seen.error = String(e); }
+  document.getElementById('seen').textContent = JSON.stringify(seen);
+});
+""" % (want, steps)
+open(out, "w").write('<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0">%s<pre id="seen"></pre><script>%s</script></body></html>' % (body, script))
+PY
+  python3 "$BROWSER" dump "file://$WORK/$name.html" --size 1000x900 > "$WORK/$name.dom" 2> "$WORK/$name.err" || { why="no browser: $(head -1 "$WORK/$name.err")"; return 1; }
+  python3 - "$WORK/$name.dom" "$WORK/$name.json" <<'PY' || { why="the throwaway document saw nothing"; return 1; }
+import html, re, sys
+m = re.search(r'<pre id="seen">(.*?)</pre>', open(sys.argv[1]).read(), re.S)
+if not m or not m.group(1).strip():
+    sys.exit(1)
+open(sys.argv[2], "w").write(html.unescape(m.group(1)))
+PY
+}
+
+# seen_is <name> <python condition on d>: the condition holds on what the throwaway document saw;
+# otherwise prints what it saw.
+seen_is() {
+  python3 - "$WORK/$1.json" "$2" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1]))
+if not eval(sys.argv[2], {}, {"d": d}):
+    print(json.dumps(d)[:300])
+    sys.exit(1)
+PY
+}
+
+a_page_below_the_first_screen_waits_finished() {
+  framed below below "
+    onScreen(false); await pause(3000);
+    const b = look(); seen.beforeFull = full(b.counts); seen.beforeShown = b.shown; seen.beforeMoving = await moving();
+    f.scrollIntoView(); onScreen(true);
+    seen.startedMoving = await starts();
+    await settle();
+    const a = look(); seen.afterFull = full(a.counts); seen.afterShown = a.shown;
+    window.scrollTo(0, 0); onScreen(false); await pause(1500); f.scrollIntoView(); onScreen(true);
+    seen.againMoving = await starts();" || return 1
+  seen_is below 'd.get("beforeFull") and d.get("beforeShown", 0) > 0 and d.get("beforeMoving") is False' > "$WORK/below.diff" || { why="before it was on screen the page did not wait in its finished state: $(cat "$WORK/below.diff")"; return 1; }
+  seen_is below 'd.get("startedMoving") is True' > "$WORK/below.diff" || { why="the page did not run when scrolled into view: $(cat "$WORK/below.diff")"; return 1; }
+  seen_is below 'd.get("afterFull") and d.get("afterShown", 0) > 0 and d.get("againMoving") is False' > "$WORK/below.diff" || { why="the run did not end finished, or ran again: $(cat "$WORK/below.diff")"; return 1; }
+}
+
+a_page_in_a_hidden_part_runs_when_shown() {
+  framed hidden hidden "
+    onScreen(false); await pause(3000);
+    const b = look(); seen.beforeFull = full(b.counts); seen.beforeMoving = await moving();
+    document.getElementById('part').hidden = false; onScreen(true);
+    seen.startedMoving = await starts();
+    await settle();
+    const a = look(); seen.afterFull = full(a.counts); seen.afterShown = a.shown;" || return 1
+  seen_is hidden 'd.get("beforeFull") and d.get("beforeMoving") is False' > "$WORK/hidden.diff" || { why="while hidden the page did not wait in its finished state: $(cat "$WORK/hidden.diff")"; return 1; }
+  seen_is hidden 'd.get("startedMoving") is True and d.get("afterFull") and d.get("afterShown", 0) > 0' > "$WORK/hidden.diff" || { why="the page did not run once when shown: $(cat "$WORK/hidden.diff")"; return 1; }
+}
+
+a_page_opened_with_end_never_runs() {
+  probe ended 1000 "probe&end" || return 1
+  python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if d.get("runs") == 0 and d.get("shown", 0) > 0 and d.get("moving") is False else 1)' "$WORK/ended.json" || { why="the page ran, or shows no resting cards: $(head -c 200 "$WORK/ended.json")"; return 1; }
+  counts_are "$WORK/ended.json" > "$WORK/ended.diff" || { why="counts with #end $(cat "$WORK/ended.diff")"; return 1; }
+}
+
+printing_draws_the_finished_picture() {
+  framed printed top "
+    onScreen(true); await pause(700);
+    seen.runningBefore = await moving();
+    f.contentWindow.dispatchEvent(new Event('beforeprint'));
+    const p = look(); seen.printFull = full(p.counts); seen.printShown = p.shown;
+    seen.movingAfter = await moving();" || return 1
+  seen_is printed 'd.get("runningBefore") is True' > "$WORK/printed.diff" || { why="the run was not in progress when printing started: $(cat "$WORK/printed.diff")"; return 1; }
+  seen_is printed 'd.get("printFull") and d.get("printShown", 0) > 0 and d.get("movingAfter") is False' > "$WORK/printed.diff" || { why="printing did not stop the run at the finished picture: $(cat "$WORK/printed.diff")"; return 1; }
+  python3 - "$WORK/full.html" <<'PY' || { why="no print rule hides the replay button and the switches"; return 1; }
+import re, sys
+page = open(sys.argv[1]).read()
+at = page.find("@media print")
+if at < 0:
+    sys.exit(1)
+depth, end = 0, None
+for i in range(page.index("{", at), len(page)):
+    depth += {"{": 1, "}": -1}.get(page[i], 0)
+    if depth == 0:
+        end = i
+        break
+block = page[at:end]
+hidden =[sel for sel, body in re.findall(r'([^{}]+)\{([^{}]*)\}', block[block.index("{") + 1:]) if re.search(r'display:\s*none', body)]
+sys.exit(0 if any(".md-tools" in sel for sel in hidden) else 1)
+PY
+}
+
 # --- 4. theme and interface words -------------------------------------------------------------
 
 the_page_takes_the_theme_keys() {
@@ -369,6 +504,24 @@ sys.exit(0 if order and commands and text.startswith("---\nname: motion-diagram\
 PY
 }
 
+# Each page that tells how the page plays says that it runs when its picture is first on screen, that
+# #end opens it finished, and that it prints finished.
+the_docs_say_when_the_page_runs() {
+  python3 - "$SKILL_DIR/SKILL.md" "$PLUGIN/README.md" "$PLUGIN/docs/how-it-works.md" "$PLUGIN/README.ja.md" "$PLUGIN/docs/how-it-works.ja.md" <<'PY' > "$WORK/docs.diff" || { why="$(cat "$WORK/docs.diff")"; return 1; }
+import sys
+missing = []
+for path in sys.argv[1:]:
+    text = open(path).read()
+    words = ("#end", "画面に", "印刷") if path.endswith(".ja.md") else ("#end", "on screen", "print")
+    lacks = [w for w in words if w not in text]
+    if lacks:
+        missing.append("%s lacks %s" % (path.split("/plugins/")[-1], ", ".join(lacks)))
+if missing:
+    print("; ".join(missing))
+    sys.exit(1)
+PY
+}
+
 # The same command as the check of that name in scripts/check.sh, run on the marketplace and this
 # plugin only, so the case stays fast; the whole of scripts/check.sh runs before the pull request.
 claude_plugin_validate() {
@@ -391,11 +544,16 @@ check "a pressed part shows its details and example" a_pressed_part_shows_its_de
 check "the page shows no prose before a part is pressed" the_page_shows_no_prose_before_a_part_is_pressed
 check "the picture runs left to right when wide and top to bottom on a phone" the_picture_turns_on_a_phone
 check "resting cards cover no line back and no part text" resting_cards_cover_nothing
+check "a page below the first screen waits finished and runs once when scrolled into view" a_page_below_the_first_screen_waits_finished
+check "a page in a hidden part runs once when the part is shown" a_page_in_a_hidden_part_runs_when_shown
+check "a page opened with #end shows the finished picture and never runs" a_page_opened_with_end_never_runs
+check "printing stops the run and draws the finished picture without the tools" printing_draws_the_finished_picture
 check "the page takes the theme keys and has light and dark colors" the_page_takes_the_theme_keys
 check "interface words come from one dictionary in both languages" interface_words_come_from_one_dictionary
 check "export writes mp4, gif, and png" export_writes_mp4_gif_and_png
 check "export without node says how to install it" export_without_node_says_how_to_install_it
 check "the skill agrees on the parts before writing the spec" the_skill_agrees_on_the_parts_first
+check "the docs say when the page runs, what #end does, and how it prints" the_docs_say_when_the_page_runs
 check "claude plugin validate" claude_plugin_validate
 
 echo ""
