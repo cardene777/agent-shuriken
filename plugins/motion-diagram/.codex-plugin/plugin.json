@@ -19,7 +19,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Motion Diagram",
-    "shortDescription": "A mechanism as one moving picture",
+    "shortDescription": "Mechanisms as moving pictures",
     "longDescription": "Shows how a system or a process works as one picture that moves. You agree on the parts first: sources, boxes, checks that drop items, the place where dropped items are kept, the person who decides, the end, lines back, and boundaries the flow never crosses. The plugin lays the parts out from their lines, left to right on a wide screen and top to bottom on a phone. When the page opens, cards run through the flow once and the counts rise as they pass; pressing a part shows its details. Long text is refused before anything is drawn. The page opens offline, and one run can be written as an MP4 video and a GIF, and the end as a PNG image.",
     "developerName": "cardene777",
     "category": "Productivity",

@@ -26,6 +26,10 @@ JA_ALLOWED=(
   plugins/slides/skills/slide-forge/scripts/edit-text.json
   plugins/slides/skills/slide-builder/scripts/outline-headings.json
   plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh
+  plugins/motion-diagram/skills/motion-diagram/templates/page.html
+  plugins/motion-diagram/skills/motion-diagram/templates/ui.json
+  plugins/motion-diagram/skills/motion-diagram/tests/test-motion-diagram.sh
+  plugins/motion-diagram/examples/idea-intake.ja.json
   plugins/account-cleanup/skills/account-cleanup/scripts/browser.mjs
   plugins/account-cleanup/skills/account-cleanup/scripts/connections-guide.sh
   plugins/account-cleanup/skills/account-cleanup/scripts/subscriptions-guide.sh

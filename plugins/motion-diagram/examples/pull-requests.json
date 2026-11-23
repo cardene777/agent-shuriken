@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "lang": "en",
+  "title": "Changes from people and bots reach main only after tests and a review",
+  "unit": "a week",
+  "parts": [
+    {"id": "people", "kind": "source", "name": "Contributors", "count": 40, "icon": "people", "details": "Pull requests opened by people on the team."},
+    {"id": "bots", "kind": "source", "name": "Update bots", "count": 20, "icon": "gear", "details": "Pull requests that raise the version of a dependency."},
+    {"id": "tests", "kind": "check", "name": "Tests", "keep": 45, "icon": "code", "details": "The test suite runs on each pull request. A failing one goes back to its author.", "example": "Sent back: a change that broke the login test"},
+    {"id": "review", "kind": "person", "name": "Reviewer", "keep": 30, "details": "A reviewer reads the change and approves it or asks for changes."},
+    {"id": "back", "kind": "bin", "name": "Sent back", "details": "Pull requests that wait for their author, with the reason."},
+    {"id": "main", "kind": "end", "name": "main", "icon": "flag", "details": "Approved pull requests are merged into main."},
+    {"id": "production", "kind": "outside", "name": "Production", "icon": "cloud", "details": "Deploying is a separate step that a person starts."}
+  ],
+  "lines": [
+    {"from": "people", "to": "tests"},
+    {"from": "bots", "to": "tests"},
+    {"from": "tests", "to": "review"},
+    {"from": "tests", "to": "back", "drop": true},
+    {"from": "review", "to": "back", "drop": true},
+    {"from": "review", "to": "main"},
+    {"from": "review", "to": "tests", "back": true, "label": "Review notes become tests"}
+  ],
+  "boundaries": [
+    {"name": "Merging never deploys", "parts": ["production"]}
+  ]
+}
