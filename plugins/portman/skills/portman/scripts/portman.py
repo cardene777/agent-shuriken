@@ -17,7 +17,8 @@ Usage:
   portman.py apply [--project NAME] [--dir DIR] [--confirm TOKEN]
 
 Exit codes: 0 on success, 1 when something is not registered or a request is refused,
-2 for bad input or a registry that cannot be read, 3 when an entry or a file changed after the preview,
+2 for bad input, a registry that cannot be read or written, or a project file that apply cannot write,
+3 when an entry or a file changed after the preview,
 141 when the reader closes the output pipe, as `portman.py doctor | head -1` does after its first line.
 """
 import argparse
@@ -217,15 +218,42 @@ def duplicates(data):
     return out
 
 
+def unwritable(problem, fix=None):
+    """Refused (exit 2) for a registry folder or file that cannot be written.
+
+    problem names the path with ~; fix, when given, is what to change before PORTMAN_HOME is offered."""
+    other = "set PORTMAN_HOME to a folder of yours that you can write, then run again."
+    return Refused("%s. %s" % (problem, "%s, or %s" % (fix, other) if fix else other[0].upper() + other[1:]), 2)
+
+
 @contextlib.contextmanager
 def locked():
-    """Hold the registry lock, so two runs never change the registry at the same time."""
+    """Hold the registry lock, so two runs never change the registry at the same time.
+
+    Raises Refused (exit 2) when the folder or the lock file cannot be created or written."""
     home = state_home()
-    os.makedirs(home, mode=0o700, exist_ok=True)
-    os.chmod(home, 0o700)
-    fd = os.open(os.path.join(home, "registry.lock"), os.O_RDWR | os.O_CREAT, 0o600)
+    lock = os.path.join(home, "registry.lock")
     try:
-        os.fchmod(fd, 0o600)
+        os.makedirs(home, mode=0o700, exist_ok=True)
+    except FileExistsError:
+        raise unwritable("%s is a file, not a folder" % shown(home), "Move the file away") from None
+    except OSError as e:
+        raise unwritable("Cannot create %s: %s" % (shown(home), e.strerror),
+                         "Make the folder above it writable") from None
+    try:
+        os.chmod(home, 0o700)
+    except OSError as e:
+        raise unwritable("Cannot make %s readable only by you: %s" % (shown(home), e.strerror)) from None
+    try:
+        fd = os.open(lock, os.O_RDWR | os.O_CREAT, 0o600)
+    except OSError as e:
+        raise unwritable("Cannot write %s: %s" % (shown(lock), e.strerror),
+                         "Make the lock file writable by you") from None
+    try:
+        try:
+            os.fchmod(fd, 0o600)
+        except OSError as e:
+            raise unwritable("Cannot make %s readable only by you: %s" % (shown(lock), e.strerror)) from None
         fcntl.flock(fd, fcntl.LOCK_EX)
         yield
     finally:
@@ -233,17 +261,25 @@ def locked():
 
 
 def save_registry(data):
-    """Replace the registry in one step, readable only by you. Call it while holding locked()."""
-    fd, tmp = tempfile.mkstemp(prefix=".registry.", dir=state_home())
+    """Replace the registry in one step, readable only by you. Call it while holding locked().
+
+    Raises Refused (exit 2), leaving the registry as it was, when the new file cannot be written."""
+    path = registry_path()
+    tmp = None
     try:
+        fd, tmp = tempfile.mkstemp(prefix=".registry.", dir=state_home())
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
             f.write("\n")
         os.chmod(tmp, 0o600)
-        os.replace(tmp, registry_path())
-    except BaseException:
-        with contextlib.suppress(OSError):
-            os.unlink(tmp)
+        os.replace(tmp, path)
+    except BaseException as e:
+        if tmp:
+            with contextlib.suppress(OSError):
+                os.unlink(tmp)
+        if isinstance(e, OSError):
+            raise unwritable("Cannot write %s: %s" % (shown(path), e.strerror),
+                             "Free space on its disk or make its folder writable") from None
         raise
 
 
@@ -1191,8 +1227,17 @@ def cmd_apply(args):
             if token_of(folder, project, changes) != args.confirm:
                 raise Refused("The registry or the files changed after the preview, so nothing was written. "
                               "Run apply without --confirm to see the change again.", 3)
+            written = []
             for path, _, text in changes:
-                write_file(path, text)
+                try:
+                    write_file(path, text)
+                except OSError as e:
+                    raise Refused("Cannot write %s: %s.%s Make the folder writable, then run apply without "
+                                  "--confirm to see the change again."
+                                  % (shown(path), e.strerror,
+                                     " Already written: %s." % ", ".join(shown(p) for p in written) if written else ""),
+                                  2) from None
+                written.append(path)
             recorded = data["projects"][project].get("dir") != folder
             if recorded:
                 data["projects"][project]["dir"] = folder
