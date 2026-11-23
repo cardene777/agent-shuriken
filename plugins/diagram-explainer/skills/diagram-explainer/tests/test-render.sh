@@ -712,11 +712,13 @@ cat > "$WORK/probe.js" <<'JSEOF'
 (function () {
   'use strict';
   var CJK = /[぀-ヿ㐀-䶿一-鿿]/;
+  // A color mixed with color-mix() is computed as color(srgb r g b), with channels from 0 to 1.
   function rgb(s) {
-    var m = /rgba?\(([^)]*)\)/.exec(s || '');
+    var m = /rgba?\(([^)]*)\)/.exec(s || ''), k = 1;
+    if (!m) { m = /color\(srgb ([^)]*)\)/.exec(s || ''); k = 255; }
     if (!m) return null;
     var p = m[1].split(/[\s,\/]+/).filter(Boolean).map(parseFloat);
-    return { c: [p[0], p[1], p[2]], a: p.length > 3 ? p[3] : 1 };
+    return { c: [p[0] * k, p[1] * k, p[2] * k], a: p.length > 3 ? p[3] : 1 };
   }
   function lum(c) {
     var a = c.map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
@@ -1853,12 +1855,15 @@ def probe(name):
     raise Missing("the %s browser run gave no result (%s)" % (name, norm(state)[-160:] or "no output"))
 
 
+# A color mixed with color-mix() is computed as color(srgb r g b), with channels from 0 to 1.
 def color(s):
-    m = re.match(r"rgba?\(([^)]*)\)", s or "")
+    m, k = re.match(r"rgba?\(([^)]*)\)", s or ""), 1.0
+    if not m:
+        m, k = re.match(r"color\(srgb ([^)]*)\)", s or ""), 255.0
     if not m:
         return None
     p = [float(x) for x in re.split(r"[\s,/]+", m.group(1).strip()) if x]
-    return (p[:3], p[3] if len(p) > 3 else 1.0)
+    return ([v * k for v in p[:3]], p[3] if len(p) > 3 else 1.0)
 
 
 def lum(c):
