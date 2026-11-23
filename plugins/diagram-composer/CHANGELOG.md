@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The test that scans the plugin for private names looks only for general shapes: a home folder path, a local agent configuration folder, and an issue reference
+
 ## [0.1.0] - 2026-11-19
 
 First public release.
