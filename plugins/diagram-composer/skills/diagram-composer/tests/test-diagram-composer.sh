@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Tests for the diagram-composer skill: what SKILL.md says, and how validate_diagram_geometry.py
-# judges a geometry manifest. Every manifest is written to a throwaway folder.
+# Tests for the diagram-composer skill: which shapes no file of the plugin holds, what SKILL.md says,
+# and how validate_diagram_geometry.py judges a geometry manifest. Every manifest is written to a
+# throwaway folder.
 set -u
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -54,11 +55,31 @@ skill_name() {
   grep -qx '  display_name: "Diagram Composer"' "$YAML" || { why="openai.yaml does not show Diagram Composer"; return 1; }
 }
 
-no_private_names() {
-  need_skill || return 1
-  local hits
-  hits="$(grep -rIl --exclude="$(basename "$0")" -e 'deep-navy' -e 'editorial-gold' -e 'reference-decks' -e 'slide/references' "$PLUGIN_DIR")"
-  [ -z "$hits" ] || { why="private names in: $(printf '%s ' $hits)"; return 1; }
+# The shapes no file of a public plugin may hold, one regular expression per line: a home folder on
+# macOS or Linux where a path starts (a throwaway HOME such as $T/case/home/ is not one), the
+# configuration folder of a local agent, and an issue reference. They are general shapes only, so
+# this file names no product, company, or person.
+SHAPES='(?<![A-Za-z0-9_.-])/(?:Users|home)/[A-Za-z0-9._-]+
+~/[.](?:claude|codex)/
+\b(?:GH|Issue) #[0-9]+'
+
+# Prints file:line for every line under the folders given that holds one of SHAPES.
+private_shapes_in() {
+  SHAPES="$SHAPES" python3 - "$@" <<'PY'
+import os, re, sys
+pattern = re.compile("|".join(os.environ["SHAPES"].splitlines()))
+images = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico")
+for top in sys.argv[1:]:
+    for folder, _, files in os.walk(top):
+        for name in files:
+            path = os.path.join(folder, name)
+            if name.lower().endswith(images):
+                continue
+            with open(path, encoding="utf-8", errors="ignore") as source:
+                for number, line in enumerate(source, 1):
+                    if pattern.search(line):
+                        print(f"{os.path.relpath(path, top)}:{number}")
+PY
 }
 
 # need_scan: this file defines the private-name scan the checks below run.
@@ -265,7 +286,6 @@ accepts_clean() {
 }
 
 check "the skill keeps the name diagram-composer" skill_name
-check "no file names a private deck or theme" no_private_names
 check "the private-name scan lists only general shapes" scan_lists_general_shapes
 check "the private-name scan finds a planted line of each shape" scan_finds_planted_shapes
 check "the private-name scan passes placeholders and plain words" scan_passes_placeholders
