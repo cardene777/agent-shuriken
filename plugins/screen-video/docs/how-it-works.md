@@ -104,6 +104,15 @@ With `--before <folder>`, the plain side is an edited video made earlier, so two
 
 A `fill` step with `env` types the variable's value; the value never appears in the output, the storyboard, or `timeline.json`.
 `login` opens a browser window, waits until you have logged in (until the address holds the `--until` text, or until you close the window), and saves the login to `sessions/<project>--<session>.json` with permission 600.
+`--start <address>` opens another address, such as the login page of an outside service whose dashboard the video shows, and each `login` starts from the login already saved, so the app and the service can each be logged in to once.
+`logout` removes the saved login, and with `login.forget: true` `record` removes it when it ends, also when a step fails, because a saved login to an outside service lets anyone with the file into that account.
+
+## Parts added later
+
+A flow with `addsTo` names a recorded flow and the step it comes after.
+`record` checks first that the other flow has a recording with that step, records only the part's steps into `part/` of the part's folder, and cuts the other recording where the step after `after` began to move, so the page's answer to step `after` stays.
+It puts the part there, moves the times of the later steps by the part's length, numbers the steps in the joined order, and makes the joined videos in the part's folder with the other flow's title, look, narration, music, cards, and outputs.
+The other flow's folder is not touched, and `remake` of the part joins the two recordings again.
 
 ## Folders
 

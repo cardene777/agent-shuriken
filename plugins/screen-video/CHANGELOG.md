@@ -5,6 +5,10 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- Planning asks where the result of the video's main action can be checked, such as the app's admin pages or the dashboard of an outside service the app uses, and plans those screens as the last chapter
+- `login --start <address>` opens another site's login page, such as an outside service's, and every `login` keeps the logins already saved for the flow. `logout` removes a saved login, and `login.forget: true` makes `record` remove it when it ends, also when a step fails
+- A part left out can be recorded on its own and joined in: a flow with `addsTo` names the recorded flow and the step it comes after, `record` records only its steps and writes the joined videos into its own folder, leaving the other flow's videos as they were, and `remake` joins them again. Steps that send or pay are not run again
+
 ## [0.2.0] - 2026-11-23
 
 - Titles, chapter and end cards, and captions wrap into lines of about the same length, breaking Japanese between phrases, and are drawn in a page whose `lang` is the flow's language (or Japanese, for captions with kana or kanji when `render` has no flow). Before, a long Japanese title could leave one or two characters alone on its last line

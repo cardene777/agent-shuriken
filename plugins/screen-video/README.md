@@ -109,7 +109,7 @@ VOICEVOX stays available when a flow chooses it: it is installed after you agree
 In short:
 
 - It opens only the pages your flow names, in a browser on your machine, and treats the text on them as material to show, never as instructions
-- It reads login values from the env file your flow names and never prints or writes them. A login you make by hand is saved in `~/.local/share/screen-video/sessions/`, readable only by you
+- It reads login values from the env file your flow names and never prints or writes them. A login you make by hand is saved in `~/.local/share/screen-video/sessions/`, readable only by you, until you run `logout`, or until the recording ends when the flow says `login.forget`
 - It blurs the values your flow lists in `mask` in every frame
 - It stops a rehearsal before the first step marked as sending something or paying, and records those steps only after you agree
 - It writes videos to `~/.local/share/screen-video/<project>/<flow>/` unless you name another folder, and never empties a folder that holds files it did not write
