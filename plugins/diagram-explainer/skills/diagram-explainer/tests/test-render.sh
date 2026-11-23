@@ -3097,8 +3097,11 @@ _yes "11-3 page-design theme writes a theme's colors and fonts into a built page
 s11_layout_kept() {
   local before after
   before="$(s11_blocks "$WORK/doc-en.html")"
-  [ -f "$S11/applied/repo/page.html" ] || return 1
-  after="$(s11_blocks "$S11/applied/repo/page.html")"
+  s11_place keys
+  printf '%s\n' "$S11_THEME" > "$S11/keys/home/.design-theme.json"
+  s11_theme keys --keys "$THEME_KEYS" > "$S11/keys.out" 2>&1 || { sed 's/^/      /' "$S11/keys.out"; return 1; }
+  ! cmp -s "$WORK/doc-en.html" "$S11/keys/repo/page.html" || { echo "      the theme changed nothing"; return 1; }
+  after="$(s11_blocks "$S11/keys/repo/page.html")"
   s11_place every
   printf '%s\n' "$S11_THEME" > "$S11/every/home/.design-theme.json"
   s11_theme every > /dev/null 2>&1 || return 1
@@ -3122,9 +3125,12 @@ s11_no_file() {
 _yes "11-5 without a theme file the built page stays as built" s11_no_file
 
 s11_themed_checks() {
-  [ -f "$S11/applied/repo/page.html" ] || return 1
-  python3 "$CHECK" "$S11/applied/repo/page.html" > "$S11/themed-check.out" 2>&1 || { grep -E '^NG' "$S11/themed-check.out" | head -3 | sed 's/^/      /'; return 1; }
-  python3 "$PAGE_DESIGN_PY" verify "$S11/applied/repo/page.html" > "$S11/themed-verify.out" 2>&1 || { head -3 "$S11/themed-verify.out" | sed 's/^/      /'; return 1; }
+  s11_place checked
+  printf '%s\n' "$S11_THEME" > "$S11/checked/home/.design-theme.json"
+  s11_theme checked --keys "$THEME_KEYS" > "$S11/checked.out" 2>&1 || { sed 's/^/      /' "$S11/checked.out"; return 1; }
+  ! cmp -s "$WORK/doc-en.html" "$S11/checked/repo/page.html" || { echo "      the theme changed nothing"; return 1; }
+  python3 "$CHECK" "$S11/checked/repo/page.html" > "$S11/themed-check.out" 2>&1 || { grep -E '^NG' "$S11/themed-check.out" | head -3 | sed 's/^/      /'; return 1; }
+  python3 "$PAGE_DESIGN_PY" verify "$S11/checked/repo/page.html" > "$S11/themed-verify.out" 2>&1 || { head -3 "$S11/themed-verify.out" | sed 's/^/      /'; return 1; }
 }
 _yes "11-6 a themed page passes check.py and page-design verify" s11_themed_checks
 
