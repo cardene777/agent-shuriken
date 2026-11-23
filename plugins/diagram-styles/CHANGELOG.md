@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- `tech-book-figure` draws from the written style4 rules without `~/.styles/`, instead of stopping. `references/style4.md` now writes the look in words that are enough to draw, and the provided `style4` moves to version 1.1.0. Your style4 samples are passed as references only when the catalog and two or more samples are there, and the skill tells you which of the two it drew from and what was missing. A theme file, `.design-theme.json` at the root of your repository or `~/.design-theme.json`, in the format of the design-formats theme file, replaces the ground, the ink, the gray, the first accent and its fill, and the handwritten letters with your colors and typeface; a file with an unknown key or a bad value is refused with each key named, and the skill stops before drawing. The new `scripts/book_style.py` tells the skill which of these applies
+
 ## [0.3.0] - 2026-11-21
 
 - `article-diagram-styles` ships thirty-two built-in styles in eight families, adding `dimensional` (`low-poly`, `papercraft`, `diorama`, `toy-blocks`), `notebook-and-archive` (`notebook-doodle`, `grid-memo`, `patent-drawing`, `old-map`), `ink-and-print` (`sumi-e`, `risograph`, `copperplate`, `paper-cut`), and `signs-and-screens` (`pictogram`, `metro-map`, `terminal-screen`, `sticker`). The definitions of `flat-vector`, `isometric`, `minimal`, and `comic-panel` now name what they forbid: a gradient anywhere, an oblique view, a second place for the accent color, and decoration unrelated to the content
