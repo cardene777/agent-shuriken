@@ -25,8 +25,8 @@ Put `S=<folder that contains this SKILL.md>/scripts` at the start of the same sh
 Collect, from the request and the files the user points to:
 
 - The material: articles, notes, or facts, with where each came from
-- The speakers: name, role (host, co-host, guest, narrator), and how each sounds
-- The format: a news item read by one host and then discussed, small talk, an interview, a narration, or a talk script
+- The speakers: the number of speakers, and each one's name, role (host, co-host, guest, narrator), and how each sounds
+- The format: a news item read by one host and then discussed, small talk, an interview, a round-table of three or more speakers led by one host, a narration, or a talk script
 - The length, in lines or minutes, and the caller's constraints
 
 Ask only for what is missing and cannot be inferred, such as who the speakers are.

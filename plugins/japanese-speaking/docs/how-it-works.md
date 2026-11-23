@@ -11,7 +11,7 @@ The agent writes the script; the script in `skills/japanese-speaking/scripts/` o
 |---|---|
 | `SKILL.md` | The steps the agent follows: gather, lay out the beats, write, check, have a fresh reader listen, fix and check again |
 | `references/speaking.md` | How to write Japanese that sounds spoken, each rule with its source |
-| `references/formats.md` | How each of the five formats is laid out |
+| `references/formats.md` | How each of the six formats is laid out |
 | `references/review.md` | The instructions given to the fresh reader, and the form of its answer |
 | `references/patterns.tsv` | The patterns `check` reports: name, regular expression, exception, and how to fix it |
 | `references/<name>.en.md` | The same rules in English, one beside each Markdown reference with the same headings, for people who read English; the skill reads only the Japanese files |
@@ -35,7 +35,7 @@ It splits each utterance into sentences and reports each pattern once per senten
 | `vague-source` | A source named only vaguely |
 | `not-in-source` | With `--source`: a number, a Latin word, or a katakana word absent from the material. A katakana word in `readings` is looked up by its written form |
 
-It also prints `note` lines about the whole script, which never change the exit code: the median and coefficient of variation of utterance length, the share of utterances of 10 characters or fewer, the number of utterances that open with a backchannel, the share of sentences ending in the particles ne or yo, runs of three or more utterances with the same ending, and sentences over 50 characters.
+It also prints `note` lines about the whole script, which never change the exit code: the median and coefficient of variation of utterance length, the share of utterances of 10 characters or fewer, the number of utterances that open with a backchannel, the share of sentences ending in the particles ne or yo, runs of three or more utterances with the same ending, sentences over 50 characters, and the number of utterances of each named speaker (`speaker-utterances`), so a round-table that leans on one speaker shows in numbers.
 The notes stay notes because no measurement of polite radio talk sets their thresholds yet; the agent reads them and rewrites a script that sounds uniform.
 
 The exit code is 0 when no pattern is found, 1 when one is, and 2 when the script or a source file cannot be read, with one `error:` line saying why.

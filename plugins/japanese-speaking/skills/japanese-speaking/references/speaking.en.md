@@ -42,7 +42,7 @@ The default style is a polite way of talking like a radio host, and when the cal
 - Attach the sentence-final particles 「ね」「よ」「よね」 to the polite style. In everyday conversation, 「ね」 is 7 times and 「よ」 is 4 times more frequent than in written language (Hara 2026, comparing the Corpus of Everyday Japanese Conversation with a written-language corpus).
 - Vary the length of utterances. Mix short responding utterances with long explaining ones. In real chats, 23% of utterances are 4 characters or fewer (check_spontaneity.py in kaburi-tts).
 - You may use joint utterances, where one speaker takes up and completes what the other started to say (Hayashi 2003).
-- Do not make the two agree on everything. Include one difference in views (Pacific Content).
+- Do not make the speakers agree on everything. Include one difference in views (Pacific Content).
 - When you change topics, use 「そういえば」「で、」「〜といえば」 ("by the way", "so,", "speaking of ~"), and do not use the same set phrase every time (Makihara).
 - Do not use the same sentence ending three times in a row.
 - Do not start every responding utterance with the same back-channel word. After responding with 「ええ。」, respond next with a repeat of the other person's words or with a different back-channel word.

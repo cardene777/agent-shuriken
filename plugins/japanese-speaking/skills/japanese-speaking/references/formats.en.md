@@ -52,3 +52,13 @@ A script that a person reads aloud at a presentation, a greeting, or a briefing 
 2. In each part, show where you are with 「1つ目は」 ("the first is") and 「次に」 ("next").
 3. Repeat numbers and proper nouns.
 4. At the end, restate the conclusion.
+
+## Round-table
+
+Three or more people talk about one topic. One host runs the talk, and the other speakers give their views.
+
+1. The host greets the listeners and introduces the topic and each speaker, one at a time, by name and role.
+2. The host names a speaker and hands them a question. Listeners cannot tell who is speaking from the voice alone, so the host says the name at the start of the question.
+3. In each beat, every speaker talks at least once. The host hands the turn to a speaker who has not talked yet, with 「〇〇さんはどうですか？」 ("what do you think, ~?").
+4. The speakers may also pick up each other's words. Include one difference in views.
+5. The host briefly sums up what each speaker said and ends with a closing line.
