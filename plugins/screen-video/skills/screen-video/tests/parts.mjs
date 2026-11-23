@@ -219,12 +219,29 @@ export async function partsChecks({ check }) {
       return true;
     });
 
+    let baseRecorded = false;
+    await check("a flow without addsTo records and remakes as before", async () => {
+      const recorded = await run(["record", BASE]);
+      if (recorded.status !== 0) return `record exited ${recorded.status}: ${last(recorded)}`;
+      const dir = folderOf("counter");
+      if (existsSync(join(dir, "part"))) return "a flow without addsTo got a part/ folder";
+      const steps = readJson(join(dir, "timeline.json")).steps;
+      if (steps.length !== 4) return `the recording holds ${steps.length} steps`;
+      const remade = await run(["remake", BASE]);
+      if (remade.status !== 0) return `remake exited ${remade.status}: ${last(remade)}`;
+      if (!existsSync(join(dir, "edited.mp4"))) return "remake wrote no edited.mp4";
+      baseRecorded = true;
+      return true;
+    });
+
     let baseBefore;
     let partRun;
     let appRequestsDuringPart = 0;
     await check("a part added later is recorded alone and joined after the step it names", async () => {
-      const base = await run(["record", BASE]);
-      if (base.status !== 0) return `the recording of the other flow exited ${base.status}: ${last(base)}`;
+      if (!baseRecorded) {
+        const base = await run(["record", BASE]);
+        if (base.status !== 0) return `the recording of the other flow exited ${base.status}: ${last(base)}`;
+      }
       const baseDir = folderOf("counter");
       baseBefore = fingerprints(baseDir);
       const login = await run(["login", PART, "--until", "/dashboard", "--start", `${OUTSIDE}/login`], headless);
