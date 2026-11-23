@@ -87,6 +87,22 @@ JA_ALLOWED=(
   plugins/japanese-writing/skills/japanese-writing/references/terminology.md
   plugins/japanese-writing/skills/japanese-writing/references/connecting.md
   plugins/japanese-writing/skills/japanese-writing/references/metaphor-words.tsv
+  plugins/japanese-writing/skills/japanese-writing/references/rules.en.md
+  plugins/japanese-writing/skills/japanese-writing/references/terminology.en.md
+  plugins/japanese-writing/skills/japanese-writing/references/subject-and-verb.en.md
+  plugins/japanese-writing/skills/japanese-writing/references/ai-smell.en.md
+  plugins/japanese-writing/skills/japanese-writing/references/explaining.en.md
+  plugins/japanese-writing/skills/japanese-writing/references/asking.en.md
+  plugins/japanese-writing/skills/japanese-writing/references/natural-explanation.en.md
+  plugins/japanese-writing/skills/japanese-writing/references/sentence-forms.en.md
+  plugins/japanese-writing/skills/japanese-writing/references/connecting.en.md
+  plugins/japanese-writing/skills/japanese-writing/references/diagnose.en.md
+  plugins/japanese-writing/skills/japanese-writing/references/manual-checklist.en.md
+  plugins/japanese-writing/skills/japanese-writing/references/doctypes/guide.en.md
+  plugins/japanese-writing/skills/japanese-writing/references/doctypes/memo.en.md
+  plugins/japanese-writing/skills/japanese-writing/references/doctypes/minutes.en.md
+  plugins/japanese-writing/skills/japanese-writing/references/doctypes/report.en.md
+  plugins/japanese-writing/skills/japanese-writing/references/doctypes/slide.en.md
   plugins/japanese-writing/THIRD_PARTY_NOTICES.md
   plugins/japanese-writing/skills/japanese-writing/scripts/suspects.py
   plugins/japanese-writing/skills/japanese-writing/tests/test-japanese-writing.sh

@@ -1,36 +1,36 @@
-種類	正規表現	よく指している操作
+種類	正規表現	よく指している操作	English
 # 正規表現は地の文へ re.search で当てる。擬人は識別子が主語の文だけを指す。
 # 前後の条件は、比喩でない複合語と定着した言い方を一覧の側で外すために持つ。
 # 語や外す形を足す時は、人が書いた文章 (上流の scripts/fixtures/natural.md と、このプラグインの参照) に当てて件数を測り、正当な文で当たる形を外す。
-擬人	(?<!役)(?<!役に)(?<!目)(?<!成り)(?<!際)(?<!先)(?<!主語に)(?:立つ|立ち(?!上が|会)|立って|立った)	置く / 作る
-擬人	立ち上が(?:る|り|って|った)	起動する
-擬人	預か(?:る|り|って|った)?	持つ / 保存する
-擬人	寄り添(?:う|い|って|った)?	近い位置に置く / 合わせる
-擬人	面倒を見(?:る|て|た)?	持つ / 管理する
-擬人	見張(?:る|り|って|った)?	検査する
-擬人	歩い(?:て|た)?	順に処理する
-擬人	眠(?:る|り|って|った)?	使われていない
-擬人	迷(?:う|い|って|った)?	判定できない
-擬人	困(?:る|り|って|った)?	失敗する / 処理できない
-擬人	嫌が(?:る|り|って|った)?	受け付けない
-擬人	望(?:む|み)	必要とする / 条件にする
-擬人	覚え(?:る|て|た)?	記録する
-擬人	忘れ(?:る|て|た)?	記録が消える
-擬人	知って(?:いる|いない)?	参照できる
-擬人	話(?:す|し|して|した)	やり取りする
-擬人	踏み込(?:む|み|んで|んだ)?	実行する
-擬人	引き返(?:す|し|して|した)?	中断する / 元へ戻す
-擬人	添え(?:る|て|た)?	追加する
-擬人	黙(?:る|り|って|った)	出力しない / 検知しない
-擬人	沈黙(?:する|し|して|した)?	出力しない / 検知しない
-操作	効(?:く|かない|い|いて|いた)	判定に入る / 期待した結果が出る
-操作	(?<!卒)(?<!圧)(?<!転)(?<!打)(?<!安全側へ)(?<!安全側に)倒(?:す|し|して|した)	既定値にする / 除外する
-操作	潰(?:す|し|して|した)	修正する / 除外する
-操作	壊れ(?:る|て|た)?	落ちる / 誤った結果を返す / 不整合が起きる
-操作	(?<!氷を)(?<!雪を)溶か(?:す|し|して|した)?	時間を要する / 減らす
-操作	着地させ(?:る|て|た)?	完了させる / 合意する
-操作	(?<!お)(?<!主導権を)握(?!り飯)(?:る|り|って|った)	選ぶ / 制御する
-操作	収斂(?:する|させる|し|して|した)?	候補を絞る / まとめる
-副詞	静かに	記録を残さずに / error を出さずに / 誰も気付かないまま
-副詞	地味に	少しずつ / 目立たない所で
-副詞	ひっそり	告知せずに
+擬人	(?<!役)(?<!役に)(?<!目)(?<!成り)(?<!際)(?<!先)(?<!主語に)(?:立つ|立ち(?!上が|会)|立って|立った)	置く / 作る	Personification: a thing stands somewhere; say put or make
+擬人	立ち上が(?:る|り|って|った)	起動する	Personification: a thing stands up; say start
+擬人	預か(?:る|り|って|った)?	持つ / 保存する	Personification: a thing takes custody of something; say holds or stores
+擬人	寄り添(?:う|い|って|った)?	近い位置に置く / 合わせる	Personification: a thing snuggles up to something; say placed close to or matched to
+擬人	面倒を見(?:る|て|た)?	持つ / 管理する	Personification: a thing looks after something; say holds or manages
+擬人	見張(?:る|り|って|った)?	検査する	Personification: a thing keeps watch; say checks
+擬人	歩い(?:て|た)?	順に処理する	Personification: a thing walks through; say processes in order
+擬人	眠(?:る|り|って|った)?	使われていない	Personification: a thing sleeps; say is unused
+擬人	迷(?:う|い|って|った)?	判定できない	Personification: a thing is at a loss; say cannot decide
+擬人	困(?:る|り|って|った)?	失敗する / 処理できない	Personification: a thing is troubled; say fails or cannot process
+擬人	嫌が(?:る|り|って|った)?	受け付けない	Personification: a thing dislikes something; say does not accept
+擬人	望(?:む|み)	必要とする / 条件にする	Personification: a thing wishes for something; say requires or takes as a condition
+擬人	覚え(?:る|て|た)?	記録する	Personification: a thing remembers; say records
+擬人	忘れ(?:る|て|た)?	記録が消える	Personification: a thing forgets; say the record is lost
+擬人	知って(?:いる|いない)?	参照できる	Personification: a thing knows; say can refer to
+擬人	話(?:す|し|して|した)	やり取りする	Personification: a thing talks; say exchanges data with
+擬人	踏み込(?:む|み|んで|んだ)?	実行する	Personification: a thing steps in; say runs
+擬人	引き返(?:す|し|して|した)?	中断する / 元へ戻す	Personification: a thing turns back; say stops or reverts
+擬人	添え(?:る|て|た)?	追加する	Personification: a thing adds a touch; say adds
+擬人	黙(?:る|り|って|った)	出力しない / 検知しない	Personification: a thing falls silent; say prints nothing or detects nothing
+擬人	沈黙(?:する|し|して|した)?	出力しない / 検知しない	Personification: a thing keeps silent; say prints nothing or detects nothing
+操作	効(?:く|かない|い|いて|いた)	判定に入る / 期待した結果が出る	Metaphor for an operation: something takes effect; say counts in the judgment or gives the expected result
+操作	(?<!卒)(?<!圧)(?<!転)(?<!打)(?<!安全側へ)(?<!安全側に)倒(?:す|し|して|した)	既定値にする / 除外する	Metaphor for an operation: knock something over; say set to the default or leave out
+操作	潰(?:す|し|して|した)	修正する / 除外する	Metaphor for an operation: crush something; say fix or leave out
+操作	壊れ(?:る|て|た)?	落ちる / 誤った結果を返す / 不整合が起きる	Metaphor for an operation: something breaks; say fails, returns a wrong result, or becomes inconsistent
+操作	(?<!氷を)(?<!雪を)溶か(?:す|し|して|した)?	時間を要する / 減らす	Metaphor for an operation: melt something away; say takes time or reduces
+操作	着地させ(?:る|て|た)?	完了させる / 合意する	Metaphor for an operation: bring something in to land; say finish or agree on
+操作	(?<!お)(?<!主導権を)握(?!り飯)(?:る|り|って|った)	選ぶ / 制御する	Metaphor for an operation: grip something; say choose or control
+操作	収斂(?:する|させる|し|して|した)?	候補を絞る / まとめる	Metaphor for an operation: converge; say narrow the candidates or bring together
+副詞	静かに	記録を残さずに / error を出さずに / 誰も気付かないまま	Metaphorical adverb: quietly; say without a record, without an error, or without anyone noticing
+副詞	地味に	少しずつ / 目立たない所で	Metaphorical adverb: plainly; say little by little or where no one sees
+副詞	ひっそり	告知せずに	Metaphorical adverb: secretly; say without notice

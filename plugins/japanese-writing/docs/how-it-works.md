@@ -17,7 +17,8 @@ Paths are relative to `skills/japanese-writing/`.
 | `references/terminology.md`, `subject-and-verb.md`, `ai-smell.md`, `explaining.md`, `asking.md`, `natural-explanation.md`, `sentence-forms.md` | This plugin | Choosing terms, rewriting things used as subjects with metaphor verbs, three shapes of AI-like text, building an explanation, writing questions and options, opening an article, and eight sentence forms |
 | `references/connecting.md` | This plugin, edited from two documents of the Agency for Cultural Affairs | Cutting long sentences in messages for people, connecting them with a conjunction for each relation, and putting the conclusion first |
 | `musubi.json` | This plugin | The content `connecting`, version 1.0.0, that other skills follow through musubi: the file `references/connecting.md` |
-| `references/metaphor-words.tsv` | This plugin | The metaphor words and the patterns `suspects.py` matches |
+| `references/metaphor-words.tsv` | This plugin | The metaphor words and the patterns `suspects.py` matches, each row with an English gloss of what the pattern finds and what to write instead |
+| `references/<name>.en.md`, `references/doctypes/<name>.en.md` | This plugin, translated from the reference beside it | The same rules in English, one beside each Markdown reference with the same headings and tables, for people who read English; the skill reads only the Japanese files |
 | `scripts/suspects.py` | This plugin | Points at the forms `lint.py` does not count |
 | `upstream-manifest.txt` | This plugin | The SHA-256 of every file copied from upstream |
 | `tests/test-japanese-writing.sh` | This plugin | The plugin's checks |
