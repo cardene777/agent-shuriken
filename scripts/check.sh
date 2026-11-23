@@ -498,10 +498,11 @@ check_readme_names_agent_shared() {
 
 # No copy of agent-shared is left here: no agent-shared/ folder, no docs/agent-shared page, and no
 # file that names the old install command, which installed agent-shared from this repository.
+# The records under .ikkan/ quote the command when they describe this check, so they are skipped.
 check_no_agent_shared_copy() {
   local bad=0
   all_files | grep -E '^agent-shared/|^docs/agent-shared(\.ja)?\.md$' && bad=1
-  own_text_files | grep -vxF scripts/check.sh | while IFS= read -r f; do
+  own_text_files | grep -vxF scripts/check.sh | grep -vE '^\.ikkan/' | while IFS= read -r f; do
     grep -nF 'agent-shuriken#subdirectory=agent-shared' "$f" | sed "s|^|$f:|"
   done | grep . && bad=1
   return "$bad"
