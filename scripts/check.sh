@@ -372,6 +372,22 @@ check_versions() {
 }
 
 # Each README has a row per plugin whose last column links the plugin's current version.
+# The root changelog names every plugin: a released plugin is a row of the ### Plugins table of the
+# newest repository release, and a new plugin has a line under ## [Unreleased] that starts with
+# "The <name> plugin". Versions are not compared here, since plugins are released between repository
+# releases; scripts/release.sh compares them when the repository is released.
+check_root_changelog() {
+  local name table unreleased bad=0
+  table="$(awk '/^## \[[0-9]+\.[0-9]+\.[0-9]+\] - / { if (seen) exit; seen = 1; on = 1; next } /^## \[/ { on = 0 } on' CHANGELOG.md)"
+  unreleased="$(awk '/^## \[Unreleased\]/ { on = 1; next } /^## \[/ { on = 0 } on' CHANGELOG.md)"
+  for name in $(plugin_names); do
+    printf '%s\n' "$table" | grep -qE "^\| $name \| [0-9]+\.[0-9]+\.[0-9]+ \|$" && continue
+    printf '%s\n' "$unreleased" | grep -qE "^- The $name plugin" && continue
+    echo "CHANGELOG.md does not name $name: add a line under ## [Unreleased] that starts with \"The $name plugin\""
+    bad=1
+  done
+  return "$bad"
+}
 check_readme_tables() {
   local name readme version row bad=0
   for readme in README.md README.ja.md; do
@@ -605,6 +621,7 @@ run "SKILL.md frontmatter" check_skill_frontmatter
 run "Codex skill metadata matches SKILL.md" check_codex_skill_metadata
 run "versions match the changelogs" check_versions
 run "README tables list every plugin" check_readme_tables
+run "the root changelog names every plugin" check_root_changelog
 run "publishing tables list every plugin" check_publishing_tables
 run "pages have Japanese counterparts" check_japanese_pages
 run "relative links resolve" check_links

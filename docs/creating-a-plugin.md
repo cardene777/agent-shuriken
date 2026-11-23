@@ -39,9 +39,10 @@ The marketplace at `.claude-plugin/marketplace.json` lists every plugin folder, 
 4. Add `.claude-plugin/plugin.json` and `.codex-plugin/plugin.json`. Copy them from an existing plugin and change `name`, `description`, `keywords`, and `interface`. Start at version `0.1.0`. Put a square icon of at least 48 px in `assets/icon.svg` and point `interface.composerIcon` and `interface.logo` at it, reusing the tile of the existing icons with a glyph of your own
 5. Add `README.md` and `README.ja.md`. Describe everything the plugin reads, runs, connects to, and keeps, because the directories' security reviews compare the README with what the code does. Show images with Markdown image syntax from `assets/`
 6. Add `CHANGELOG.md` with an empty `## [Unreleased]` section, and copy the root `LICENSE`
-7. Add an entry to `.claude-plugin/marketplace.json` with the same `name` and `description`, and `"source": "./plugins/<name>"`
-8. Add a row to the plugin tables in `README.md` and `README.ja.md`. In the run column, give the Claude Code command `/<plugin>:<skill>`, the `interface.displayName` to pick after typing `$` in Codex, and whether the plugin starts when the user describes the task
-9. Run `bash scripts/check.sh` and fix everything it reports
+7. Add a line under `## [Unreleased]` in the root `CHANGELOG.md` that starts with `The <name> plugin` and says what the plugin does. The next repository release lists it under Added
+8. Add an entry to `.claude-plugin/marketplace.json` with the same `name` and `description`, and `"source": "./plugins/<name>"`
+9. Add a row to the plugin tables in `README.md` and `README.ja.md`. In the run column, give the Claude Code command `/<plugin>:<skill>`, the `interface.displayName` to pick after typing `$` in Codex, and whether the plugin starts when the user describes the task
+10. Run `bash scripts/check.sh` and fix everything it reports
 
 ## Keeping a plugin small and reviewable
 
