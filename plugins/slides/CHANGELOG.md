@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-23
+
 - The test that scans the plugin for private names looks only for general shapes, in the same form as the other plugins: a home folder path under `/Users/` or `/home/`, the configuration folder of either local agent, and an issue reference, and a check fails if the scan lists anything else
 
 ## [0.1.1] - 2026-11-22
@@ -18,6 +20,7 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - The `slide-forge` skill designs a one-slide or short presentation as HTML in one of four tones, adds a toolbar for editing the text in the browser, in English by default with a switch to Japanese, and exports PowerPoint, HTML, and PDF into `decks/<deck-name>/` in your project
 - `export_all.sh` runs the PowerPoint builder through `uv run --with python-pptx --with Pillow` and the PDF through `uv run --with playwright`, so nothing is installed into your Python. Without uv, it writes nothing and says how to install uv; without Playwright's browser, it skips only the PDF, says how to install the browser, and never downloads it
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/slides--v0.1.1...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/slides--v0.1.2...HEAD
+[0.1.2]: https://github.com/cardene777/agent-shuriken/releases/tag/slides--v0.1.2
 [0.1.1]: https://github.com/cardene777/agent-shuriken/releases/tag/slides--v0.1.1
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/slides--v0.1.0
