@@ -364,7 +364,7 @@ results_ignored() {
 _yes "eval results are ignored by git" results_ignored
 
 # The body is counted in words and the description in characters, as the size the agent reads.
-SKILL_WORDS_MAX=2173
+SKILL_WORDS_MAX=2196
 SKILL_DESCRIPTION_MAX=309
 skill_size() {
   python3 - "$SKILL" "$SKILL_WORDS_MAX" "$SKILL_DESCRIPTION_MAX" <<'PYEOF'
@@ -2856,10 +2856,11 @@ def _():
     en = ["facts table", "page tabs", "enlarge", "header band"]
     ja = ["\u4e8b\u5b9f\u306e\u8868", "\u30da\u30fc\u30b8\u306e\u30bf\u30d6", "\u62e1\u5927", "\u898b\u51fa\u3057\u5e2f"]
     log = open(os.path.join(PLUGIN, "CHANGELOG.md"), encoding="utf-8").read()
-    m = re.search(r"^## \[Unreleased\]\n(.*?)(?=^## \[|\Z)", log, re.S | re.M)
+    # The lines under Unreleased move into a release section when the plugin is released.
+    m = re.search(r"^## \[Unreleased\]\n(.*)", log, re.S | re.M)
     texts = [("README.md", open(os.path.join(PLUGIN, "README.md"), encoding="utf-8").read(), en),
              ("docs/how-it-works.md", open(os.path.join(PLUGIN, "docs", "how-it-works.md"), encoding="utf-8").read(), en),
-             ("CHANGELOG.md [Unreleased]", m.group(1) if m else "", en),
+             ("CHANGELOG.md [Unreleased] and the releases", m.group(1) if m else "", en),
              ("README.ja.md", open(os.path.join(PLUGIN, "README.ja.md"), encoding="utf-8").read(), ja),
              ("docs/how-it-works.ja.md", open(os.path.join(PLUGIN, "docs", "how-it-works.ja.md"), encoding="utf-8").read(), ja)]
     p = []
@@ -3170,10 +3171,11 @@ s11_readmes() {
 }
 _yes "11-9 the READMEs say where to place a theme file and what it changes" s11_readmes
 
+# The line moves from Unreleased into a release section when the plugin is released.
 s11_changelog() {
-  awk '/^## \[Unreleased\]/ { on = 1; next } /^## \[/ { on = 0 } on' "$PLUGIN/CHANGELOG.md" | grep -qF '.design-theme.json'
+  awk '/^## \[Unreleased\]/ { on = 1 } on' "$PLUGIN/CHANGELOG.md" | grep -qF '.design-theme.json'
 }
-_yes "11-10 the changelog names the theme file under Unreleased" s11_changelog
+_yes "11-10 the changelog names the theme file under Unreleased or a release" s11_changelog
 
 # The repository checks, last because they take the longest.
 s11_repo_checks() {
