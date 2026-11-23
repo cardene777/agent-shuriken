@@ -1,6 +1,6 @@
 {
   "name": "screen-video",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Plan a screen video of a web app with your agent, check it as a storyboard of pictures, and record it in a browser into narrated videos with quiet music, a themed frame, title and chapter cards, and a zoom on each action, as 16:9, 9:16, and GIF, blurring private values and stopping before steps that send something or pay",
   "author": {
     "name": "cardene777",

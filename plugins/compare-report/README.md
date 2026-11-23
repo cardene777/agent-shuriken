@@ -51,6 +51,31 @@ On screen the candidates form a candidate list beside the details of the one you
 Two switches sit at the top right of the cover. The language switch, English / 日本語, changes the words of the frame, such as the labels of the facts table and the buttons of the candidate list, and leaves the report's text as written. Light / Dark changes the colors.
 Until you choose, the colors follow your system. The PDF always prints in the light colors, without the switches.
 
+## Your own colors and fonts
+
+When the design-formats plugin is installed, the report takes your colors and fonts from a theme file in the page-design format.
+The agent reads the first of these two files that exists.
+
+| Order | File | Use |
+|---|---|---|
+| 1 | `.design-theme.json` at the root of the repository | The look of one project |
+| 2 | `~/.design-theme.json` | The look of every report you make |
+
+Only the colors (`light` and `dark`) and the fonts (`font.sans` and `font.mono`) apply, so the report keeps its own text size, widths, and corners.
+The lighter and darker shades of lines, stripes, and secondary text are mixed from your colors, so they fit any background, and the PDF prints in your light colors.
+The cover, the status colors, and the type tags keep their own colors.
+
+```json
+{
+  "light": { "bg": "#fafaf7", "surface": "#ffffff", "ink": "#111111", "sub": "#444444", "line": "#dddddd", "accent": "#0b6e4f", "accent-ink": "#ffffff", "accent-soft": "#e3f2ec", "label": "#f2f2f2" },
+  "dark": { "bg": "#101312", "surface": "#181c1a", "ink": "#eeeeee", "sub": "#b0b8b4", "line": "#2c3330", "accent": "#5fd0a5", "accent-ink": "#0b1410", "accent-soft": "#1b3a2f", "label": "#1f2523" },
+  "font": { "sans": "\"Inter\", sans-serif", "mono": "\"JetBrains Mono\", monospace" }
+}
+```
+
+The keys and their types are in `formats/theme.md` of page-design.
+Without design-formats or a theme file, the report keeps its own colors and fonts.
+
 ## Requirements
 
 | Tool | When it's needed |
@@ -58,7 +83,7 @@ Until you choose, the colors follow your system. The PDF always prints in the li
 | Web search in your agent | Always. Claude Code and Codex both have it; in other agents, check that web search is turned on |
 | `python3` | To check the report. The one that ships with macOS works |
 | Chrome, Chromium, Edge, or Brave | To print the PDF. Without one, you get the HTML, which any browser can print |
-| The design-formats plugin | Optional. When its page-design skill is installed, the agent writes the report on its formats, draws the bar charts with dragon, and runs its verify on the finished page |
+| The design-formats plugin | Optional. When its page-design skill is installed, the agent writes the report on its formats, applies your theme file, draws the bar charts with dragon, and runs its verify on the finished page |
 | Node.js | Optional, with page-design. `npx` fetches dragon to draw the charts. Without it, the report keeps its CSS bar charts |
 | The `musubi` command | Optional. When it is installed, the agent runs `musubi check` before reading the page-design formats |
 

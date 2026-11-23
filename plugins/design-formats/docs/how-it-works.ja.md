@@ -47,10 +47,10 @@ agentは頁の型の雛形を写し、`DATA`と`TEXT`の言葉を書き換え、
 | スキル | plugin | 従う中身 |
 |---|---|---|
 | `techdebt` | techdebt | `structure`、`look`、`report`、`verify` |
-| `compare-report` | compare-report | `structure`、`look`、`report`、`verify` |
+| `compare-report` | compare-report | `structure`、`look`、`report`、`verify`、`theme` |
 | `machine-cleanup` | machine-cleanup | `structure`、`look`、`sheet`、`verify` |
 | `account-cleanup` | account-cleanup | `structure`、`look`、`sheet`、`verify` |
-| `diagram-explainer` | diagram-explainer | `structure`、`look`、`document`、`verify` |
+| `diagram-explainer` | diagram-explainer | `structure`、`look`、`document`、`verify`、`theme` |
 | `repo-progress` | repo-progress | `structure` |
 | `secure-dotfile` | secure-dotfile | `structure` |
 | `init-project` | init-project | `structure` |

@@ -144,16 +144,20 @@ try {
 }
 const ffmpeg = () => FFMPEG;
 
-/** Width, height, and duration of a video, read from ffmpeg's banner. */
+/** Width, height, duration, and sample and display aspect ratios of a video, read from ffmpeg's banner. */
 function probe(file) {
   const text = spawnSync(ffmpeg(), ["-hide_banner", "-i", file], { encoding: "utf8" }).stderr ?? "";
   const duration = /Duration: (\d+):(\d+):([\d.]+)/.exec(text);
   const size = /Video: .*?, (\d{2,5})x(\d{2,5})/.exec(text);
   if (duration === null || size === null) throw new Error(`cannot read ${file}`);
+  // ffmpeg prints no [SAR ...] when the pixels are square and nothing marks them
+  const aspect = /Video: .*?\[SAR (\d+:\d+) DAR (\d+:\d+)\]/.exec(text);
   return {
     width: Number(size[1]),
     height: Number(size[2]),
     duration: Number(duration[1]) * 3600 + Number(duration[2]) * 60 + Number(duration[3]),
+    sar: aspect === null ? "1:1" : aspect[1],
+    dar: aspect === null ? null : aspect[2],
   };
 }
 
@@ -441,6 +445,16 @@ await check("record writes the vertical video and the GIF only when the flow ask
   return true;
 });
 
+await check("the edited videos have square pixels, so the vertical one shows at 9:16", () => {
+  if (shopRun.status !== 0) return "the shop recording failed";
+  const vertical = probe(join(SHOP_OUT, "vertical.mp4"));
+  if (vertical.sar !== "1:1") return `vertical.mp4 has a sample aspect ratio of ${vertical.sar}, so it shows at ${vertical.dar}`;
+  if (vertical.dar !== null && vertical.dar !== "9:16") return `vertical.mp4 shows at ${vertical.dar}`;
+  const edited = probe(join(SHOP_OUT, "edited.mp4"));
+  if (edited.sar !== "1:1") return `edited.mp4 has a sample aspect ratio of ${edited.sar}`;
+  return true;
+});
+
 await check("masked elements are blurred in the recording", async () => {
   if (shopRun.status !== 0) return "the shop recording failed";
   const timeline = JSON.parse(readText(join(SHOP_OUT, "timeline.json")));
@@ -654,6 +668,10 @@ await check("the plugin names nothing from the product it came from", async () =
 // How the videos look and sound, checked on a site and data folder of their own (quality.mjs)
 const { qualityChecks } = await import(join(HERE, "quality.mjs"));
 await qualityChecks({ check, SHOP_OUT, FFMPEG });
+
+// Logging in to an outside service and parts added later, on two sites of their own (parts.mjs)
+const { partsChecks } = await import(join(HERE, "parts.mjs"));
+await partsChecks({ check });
 
 server.close();
 rmSync(T, { recursive: true, force: true });

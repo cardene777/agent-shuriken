@@ -20,6 +20,11 @@
       "version": "^2.0.0",
       "integrity": "sha256-ghJirjAe489dKI3Jgu+6G2ysIGRE/q1LLVd5oHxVhqY=",
       "optional": true
+    },
+    "page-design/theme": {
+      "version": "^1.0.0",
+      "integrity": "sha256-8nPej6uEJCt1SyiKJ+v7BMSjEfM8+jlixZydzrnZfjI=",
+      "optional": true
     }
   }
 }

@@ -67,7 +67,7 @@ HTMLの目次には番号を付けません。
 | ファイル | 持つ物 |
 |---|---|
 | `templates/base.html` | レポートのページ。スタイル、明るい色と暗い色、切り替えと候補の一覧のスクリプトを中に持ちます |
-| `musubi.json` | musubiでの`page-design/structure`、`page-design/look`、`page-design/report`、`page-design/verify`への任意の準拠。それぞれにバージョンの範囲`^1.0.0`と、最後に確かめた時のコンテンツのフィンガープリントと、`"optional": true`を持つ |
+| `musubi.json` | musubiでの`page-design/structure`、`page-design/look`、`page-design/report`、`page-design/verify`、`page-design/theme`への任意の準拠。それぞれにバージョンの範囲 (`^1.0.0`か`^2.0.0`) と、最後に確かめた時のコンテンツのフィンガープリントと、`"optional": true`を持つ |
 
 レポートの表紙の右上には2つの切り替えがあります。
 言語の切り替え(English / 日本語)は枠の言葉を変えます。事実の表の見出し、目次の見出し、候補の一覧と詳細のボタン、点数の凡例、候補のカードの見出し、グラフの操作がこれに当たります。
@@ -82,6 +82,7 @@ PDFは切り替えを除き、いつも明るい色で印刷します。
 PDFでは候補のカードを順に載せます。
 
 - `design-formats`のプラグインの`page-design`のスキルが入っていれば、エージェントはその形式`structure`と`look`、ページの型`report`を読みます。`musubi.json`はこれらに任意の準拠で従います。`scripts/check-report.py`が通った後、レポートに`page-design`の`verify`を回し、`ok`が出るまで、名指された行を書いた文の中で直します。ほかのプラグインからはこれ以外を読みません
+- `report.html`を作った後、エージェントはそれに`page-design`の`theme --keys light,dark,font.sans,font.mono`を回します。repoの根の`.design-theme.json`か、無ければ`~/.design-theme.json`の色と書体をレポートに書き込み、どちらも無ければレポートをそのまま残します。`templates/base.html`は基本の色を意匠のfileの鍵 (`bg`、`surface`、`ink`、`sub`、`line`、`label`とアクセントの色) の名前で持ち、ほかの色 (`--faint`、行の線の`--rule`、`--stripe`、`--selected`) は`color-mix()`で基本の色から混ぜるので、意匠の色に従います。表紙と状態の色と種類の札、文字の大きさと幅と角は自分の値のままです
 - `musubi`のコマンドが入っていれば、エージェントはこれらを読む前に`musubi check`を回し、失敗したら止まります。`design-formats`が入っていない時、`musubi check`は警告を出してこれらの準拠を飛ばします。従うコンテンツが変わると、フィンガープリントを確かめ直すまで`musubi check`は`compare-report`を拒否します
 - `page-design`が入っていれば、エージェントは棒グラフを`page-design`が使う図の道具のdragonで、動かない図のブロックとしてレポートに描きます。ブロックを`dragon check`で確かめてから`dragon embed`を回し、すべてのブロックをSVGとしてレポートに描き込みます。Node.jsが無い時や`dragon embed`が失敗した時は、ひな形のCSSの棒グラフのままにします
 - `page-design`が無ければ、`templates/base.html`だけでレポートを書きます。プラグインのどこも`design-formats`を求めません

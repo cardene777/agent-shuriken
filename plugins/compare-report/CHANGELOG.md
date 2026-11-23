@@ -5,6 +5,10 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-23
+
+- When design-formats is installed, the report takes the user's colors and fonts from a theme file, `.design-theme.json` at the root of the repository or else `~/.design-theme.json`: after creating `report.html`, the agent runs page-design's `theme --keys light,dark,font.sans,font.mono` on it. `templates/base.html` names its base colors after the keys of the theme file: `--muted` becomes `--sub`, the soft `--border` becomes `--line`, and the row lines take `--rule`. The other shades (`--faint`, `--rule`, `--stripe`, `--selected`) are mixed from the base colors with `color-mix()`, and the text reads the fonts from `--sans` and `--mono`, so a report without a theme looks as before. `musubi.json` follows `page-design/theme` at `^1.0.0` as an optional follow
+- The SKILL.md asks the user through the agent's question tool, and starts sub-agents for the research when the agent has them, without naming a particular agent
 - `musubi.json` follows `look`, `report`, and `verify` of page-design at `^2.0.0`, the version that adds the pattern rules
 - `musubi.json` follows the `structure` and `look` formats, the `report` page type, and `verify` of page-design in the design-formats plugin through musubi, as optional follows. When page-design is installed, the agent writes the report on them and runs page-design's verify on `report.html`; when the `musubi` command is installed, it runs `musubi check` first. Without design-formats, the report is written in the plugin's own template as before
 - The report has two switches at the top right of its cover: the language switch, English / 日本語, for the words of the frame, such as the labels of the facts table and the buttons of the candidate list, and Light / Dark for the colors. Until you choose, the colors follow your system, and your browser keeps your choice in its local storage under `compare-report-theme` and `compare-report-lang`. The PDF always prints in the light colors, without the switches
@@ -52,7 +56,8 @@ First public release.
 - Checks that every score has a rationale and that the report loads nothing from the network, then prints it to PDF with a browser already installed
 - Starts when you ask for a comparison, or when you call it, in Claude Code and in Codex
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/compare-report--v0.5.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/compare-report--v0.6.0...HEAD
+[0.6.0]: https://github.com/cardene777/agent-shuriken/releases/tag/compare-report--v0.6.0
 [0.5.0]: https://github.com/cardene777/agent-shuriken/releases/tag/compare-report--v0.5.0
 [0.4.0]: https://github.com/cardene777/agent-shuriken/releases/tag/compare-report--v0.4.0
 [0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/compare-report--v0.3.0
