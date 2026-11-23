@@ -1,7 +1,7 @@
 {
   "name": "digital-dashboard",
   "displayName": "Digital Dashboard",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Judge which screens of a design are presentation dashboards, download the official files of the Japanese Digital Agency's dashboard design guidebook with their fingerprints checked, and write the request that applies them to those screens only",
   "author": {
     "name": "cardene777",

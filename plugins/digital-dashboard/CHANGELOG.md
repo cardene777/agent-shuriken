@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-23
+
 - The test that scans the plugin for private names looks only for general shapes, in the same form as product-deck and diagram-composer: a home folder path under `/Users/` or `/home/`, a local agent configuration folder, and an issue reference, and a check fails if the scan lists anything else
 
 ## [0.1.1] - 2026-11-22
@@ -19,6 +21,7 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - The agent writes one request for the user's drawing tool that applies the guidebook to the dashboard screens only, and checks the drawn screens itself
 - `THIRD_PARTY_NOTICES.md` gives the source and the terms of use of every downloaded file: the Public Data License (PDL) 1.0 of digital.go.jp, and the terms of the National Land Numerical Information for the maps
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/digital-dashboard--v0.1.1...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/digital-dashboard--v0.1.2...HEAD
+[0.1.2]: https://github.com/cardene777/agent-shuriken/releases/tag/digital-dashboard--v0.1.2
 [0.1.1]: https://github.com/cardene777/agent-shuriken/releases/tag/digital-dashboard--v0.1.1
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/digital-dashboard--v0.1.0
