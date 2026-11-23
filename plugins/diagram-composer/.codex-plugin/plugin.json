@@ -1,6 +1,6 @@
 {
   "name": "diagram-composer",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Design the diagram area of a slide with one visual metaphor, a meaning for every connector, and labels kept off the lines, checked by a script before the slide is rendered",
   "author": {
     "name": "cardene777",

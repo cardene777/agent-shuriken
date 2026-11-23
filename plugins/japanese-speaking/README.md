@@ -50,6 +50,9 @@ In GitHub Copilot CLI, write `/japanese-speaking` in your request, and in Gemini
 4. `speaking.py check` reports each line to fix, and the agent fixes them
 5. A reader that has not seen the conversation listens for lines that still sound read, and the agent fixes those and checks again, up to three rounds
 
+The rules the skill follows are written in Japanese under `references/`, and each has an English version beside it named `<name>.en.md`, so you can read them in English.
+The skill reads only the Japanese files, explains its changes in the language you write in, and keeps the script Japanese.
+
 For the rejected drafts kept in the tests, the check prints one line per thing to fix and notes on the whole script.
 
 ```text
