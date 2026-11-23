@@ -63,7 +63,10 @@ export async function partsChecks({ check }) {
       return res.end();
     }
     if (url.pathname === "/dashboard") {
-      return res.end(page("Dashboard", signedIn(req, "outside") ? '<h1>Records</h1><button type="button">Open the record</button>' : "<h1>Sign in to the dashboard</h1>"));
+      const body = page("Dashboard", signedIn(req, "outside") ? '<h1>Records</h1><button type="button">Open the record</button>' : "<h1>Sign in to the dashboard</h1>");
+      // Slow, as a real dashboard is, so the part's recording has a blank start before its first step
+      if (url.searchParams.has("slow")) return void setTimeout(() => res.end(body), 1500);
+      return res.end(body);
     }
     res.statusCode = 404;
     res.end("not found");
@@ -137,7 +140,7 @@ export async function partsChecks({ check }) {
     addsTo: { flow: "counter", after: 2 },
     login: { session: "dashboard", forget: true },
     steps: [
-      { do: "open", url: "/dashboard", caption: "Open the outside dashboard" },
+      { do: "open", url: "/dashboard?slow", caption: "Open the outside dashboard" },
       { do: "hold", seconds: 1 },
     ],
   });
