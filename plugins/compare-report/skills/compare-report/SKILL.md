@@ -71,7 +71,7 @@ The topic slug uses lowercase letters, digits, and hyphens, such as `static-site
 
 When the `page-design` skill is installed, follow the `structure` and `look` formats and the `report` page type of the `page-design` skill: open the `page-design` skill by name and read the files it names for `structure`, `look`, `report`, and `verify`.
 If the `musubi` command is available, run `musubi check` before reading, and stop if it fails.
-Then apply the user's colors and fonts: `python3 <the file page-design names for verify> theme --keys light,dark,font.sans,font.mono <path of report.html>`, which reads `.design-theme.json` at the repository root, else `~/.design-theme.json`.
+Apply the user's colors and fonts with `python3 <the file page-design names for verify> theme --keys light,dark,font.sans,font.mono <path of report.html>`, which reads `.design-theme.json` at the repository root, else `~/.design-theme.json`.
 If the `page-design` skill is not installed, go on with the templates of this skill, without the formats of `page-design`.
 
 Fill the template's cover facts, contents, summary, candidates, one section per axis, risks, ranking, and sources as `references/report-structure.md` describes, with each candidate's key on its card and its table rows.
