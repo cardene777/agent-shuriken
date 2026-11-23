@@ -55,6 +55,30 @@ It is written in the language you write in, and its buttons and labels start in 
 The header band holds the title, the page tabs, two switches side by side, and a `?` button that explains how to read the page. English / 日本語 changes only the interface text, such as the contents button, the previous and next buttons, the Save PDF menu, the help, and chart units, and the other switch chooses light or dark colors. The document's own text stays in the language it was written in, and printing always uses light colors.
 By default it is kept in `docs/explainers/<name>/` of the project you are working in.
 
+## Your own colors and fonts
+
+When the design-formats plugin is installed, the document takes your colors and fonts from a theme file in the page-design format.
+The agent reads the first of these two files that exists.
+
+| Order | File | Use |
+|---|---|---|
+| 1 | `.design-theme.json` at the root of the repository | The look of one project |
+| 2 | `~/.design-theme.json` | The look of every document you make |
+
+Only the colors (`light` and `dark`) and the fonts (`font.sans` and `font.mono`) apply, so the document keeps its own text size, widths, and corners.
+The lighter and darker shades of lines and secondary text are mixed from your colors, so they fit any background.
+
+```json
+{
+  "light": { "bg": "#fafaf7", "surface": "#ffffff", "ink": "#111111", "sub": "#444444", "line": "#dddddd", "accent": "#0b6e4f", "accent-ink": "#ffffff", "accent-soft": "#e3f2ec", "label": "#f2f2f2" },
+  "dark": { "bg": "#101312", "surface": "#181c1a", "ink": "#eeeeee", "sub": "#b0b8b4", "line": "#2c3330", "accent": "#5fd0a5", "accent-ink": "#0b1410", "accent-soft": "#1b3a2f", "label": "#1f2523" },
+  "font": { "sans": "\"Inter\", sans-serif", "mono": "\"JetBrains Mono\", monospace" }
+}
+```
+
+The keys and their types are in `formats/theme.md` of page-design.
+Without design-formats or a theme file, the document keeps its own colors and fonts.
+
 ## Requirements
 
 | Tool | When it's needed |
