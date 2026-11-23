@@ -296,10 +296,91 @@ pages_english() {
 }
 check "the pages say the references read in English" "pages_english"
 
-changelog_english() {
-  awk '/^## \[Unreleased\]/ { f = 1; next } /^## \[/ { f = 0 } f' "$PLUGIN_DIR/CHANGELOG.md" | grep -F '.en.md' | grep -qi 'English'
+# changelog_entries <changelog>: the entry lines under ## [Unreleased] and every release. A release moves
+# a line from ## [Unreleased] into its version's section, where it stays through later releases, so
+# either place counts. Link definitions and the header are not entry lines.
+changelog_entries() { awk '/^## \[/ { on = 1 } on' "$1" | grep '^- '; }
+
+# The helper counts a line under an older release, and not a changelog whose sections lack the text.
+changelog_counts_any_release() {
+  printf '# Changelog\n\n## [Unreleased]\n\n## [0.3.0] - 2026-11-30\n\n- a later change\n\n## [0.2.0] - 2026-11-23\n\n- the round-table format\n' > "$T/changelog-older"
+  printf '# Changelog\n\n## [Unreleased]\n\n## [0.2.0] - 2026-11-23\n\n- another change\n\n[round-table]: https://example.com\n' > "$T/changelog-none"
+  changelog_entries "$T/changelog-older" | grep -qi 'round-table' && ! changelog_entries "$T/changelog-none" | grep -qi 'round-table'
 }
-check "the changelog names the English references under Unreleased" "changelog_english"
+
+changelog_english() {
+  changelog_counts_any_release && changelog_entries "$PLUGIN_DIR/CHANGELOG.md" | grep -F '.en.md' | grep -qi 'English'
+}
+check "the changelog names the English references under Unreleased or any release" "changelog_english"
+
+changelog_round_table() {
+  changelog_counts_any_release && changelog_entries "$PLUGIN_DIR/CHANGELOG.md" | grep -qi 'round-table'
+}
+check "the changelog names the round-table under Unreleased or any release" "changelog_round_table"
+
+# --- the round-table for three or more speakers
+
+FORMATS="$SKILL_DIR/references/formats.md"
+
+# formats.md holds six formats, and the round-table section says who leads, how turns pass, and how it closes.
+formats_round_table() {
+  "$PY" - "$FORMATS" <<'PY'
+import re, sys
+text = open(sys.argv[1], encoding="utf-8").read()
+sections = re.split(r"^## ", text, flags=re.M)[1:]
+if len(sections) != 6:
+    sys.exit(1)
+table = next((s for s in sections if "座談" in s.split("\n", 1)[0]), None)
+if table is None or not re.search(r"^1\. ", table, re.M) or not re.search(r"^4\. ", table, re.M):
+    sys.exit(1)
+sys.exit(0 if all(word in table for word in ("3人以上", "司会", "名指", "全員", "締め")) else 1)
+PY
+}
+check "formats.md lays out a host-led round-table for three or more speakers" "formats_round_table"
+
+rules_name_speakers() {
+  local speaking="$SKILL_DIR/references/speaking.md" review="$SKILL_DIR/references/review.md"
+  grep -F '意見を全部そろえない' "$speaking" | grep -qF '話し手' || return 1
+  ! grep -F '意見を全部そろえない' "$speaking" | grep -qE '2人|もう1人' || return 1
+  grep -F '専門家役' "$review" | grep -qF '話し手' && grep -F '意見が全部そろ' "$review" | grep -qF '話し手' || return 1
+  ! grep -qE '2人|もう1人' "$review"
+}
+check "the rules on differing views and quizzing name speakers, not two people" "rules_name_speakers"
+
+reader_silent() {
+  grep -F '3人以上' "$SKILL_DIR/references/review.md" | grep -qF '一度も話さない話し手'
+}
+check "the fresh reader looks for a speaker silent through a beat" "reader_silent"
+
+# A round-table prints one note per named speaker, in the order they first speak, and keeps exit 0;
+# a narration with no speaker names prints none.
+speaker_counts() {
+  run round "$FIX/round-table.json"
+  status_is round 0 || return 1
+  [ "$(grep '^note speaker-utterances ' "$T/round.out")" = "$(printf 'note speaker-utterances ハル 4\nnote speaker-utterances ルミ 2\nnote speaker-utterances ボルト 2\nnote speaker-utterances ソラ 1')" ] || return 1
+  printf '昔の電話は、数字の穴に指を入れて回す形でした。\n今はボタンを押すだけです。\n' > "$T/narration.txt"
+  run narration "$T/narration.txt"
+  status_is narration 0 && ! grep -q '^note speaker-utterances ' "$T/narration.out"
+}
+check "check prints how many utterances each speaker has" "speaker_counts"
+
+skill_round_table() {
+  "$PY" - "$SKILL_DIR/SKILL.md" <<'PY'
+import re, sys
+text = open(sys.argv[1], encoding="utf-8").read()
+m = re.search(r"^## 1\. .*?(?=^## 2\. )", text, re.S | re.M)
+sys.exit(0 if m and re.search(r"number of speakers", m.group(0)) and re.search(r"round-table", m.group(0)) else 1)
+PY
+}
+check "SKILL.md asks for the number of speakers and names the round-table" "skill_round_table"
+
+pages_six() {
+  grep -qE '^\| Round-table \|' "$PLUGIN_DIR/README.md" && grep -qE '^\| 座談 \|' "$PLUGIN_DIR/README.ja.md" \
+    && grep -qF 'six formats' "$PLUGIN_DIR/docs/how-it-works.md" && grep -qF '6つの形式' "$PLUGIN_DIR/docs/how-it-works.ja.md" \
+    && ! grep -qiE 'five formats' "$PLUGIN_DIR/README.md" "$PLUGIN_DIR/docs/how-it-works.md" \
+    && ! grep -qF '5つの形式' "$PLUGIN_DIR/README.ja.md" "$PLUGIN_DIR/docs/how-it-works.ja.md"
+}
+check "the pages list six formats including the round-table" "pages_six"
 
 printf '\n%d passed, %d failed, 0 skipped (%d ran)\n' "$PASS" "$FAIL" "$((PASS + FAIL))"
 [ "$FAIL" = 0 ]

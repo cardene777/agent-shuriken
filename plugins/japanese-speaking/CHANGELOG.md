@@ -5,6 +5,10 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- A sixth format, the round-table, for three or more speakers: one host opens, names each speaker before handing over a question, lets every speaker talk in each beat, and closes. The rule on differing views and the fresh reader's checklist say speakers instead of two people, and the reader looks for a speaker who never talks during a beat
+- `speaking.py check` prints `note speaker-utterances <speaker> <count>` for each named speaker, in the order they first speak, without changing the exit code
+- The first step asks for the number of speakers along with their names and roles
+
 ## [0.2.0] - 2026-11-23
 
 - The references read in English: each Markdown file under `references/` has an English version beside it named `<name>.en.md`, with the same headings, and the skill keeps reading the Japanese files

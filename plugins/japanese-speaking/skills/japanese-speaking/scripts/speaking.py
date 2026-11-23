@@ -208,6 +208,12 @@ def notes(utterances):
         for sentence in sentences(text):
             if len(sentence) > LONG_SENTENCE:
                 out.append(f"long-sentence L{number} {len(sentence)} characters")
+    counts = {}
+    for _number, speaker, _text in utterances:
+        if speaker:
+            counts[speaker] = counts.get(speaker, 0) + 1
+    for speaker, count in counts.items():
+        out.append(f"speaker-utterances {speaker} {count}")
     return out
 
 

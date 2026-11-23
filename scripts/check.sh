@@ -72,6 +72,7 @@ JA_ALLOWED=(
   plugins/japanese-speaking/skills/japanese-speaking/tests/fixtures/sources.json
   plugins/japanese-speaking/skills/japanese-speaking/tests/fixtures/sourced.json
   plugins/japanese-speaking/skills/japanese-speaking/tests/fixtures/notes.json
+  plugins/japanese-speaking/skills/japanese-speaking/tests/fixtures/round-table.json
   plugins/japanese-writing/README.md
   plugins/convey/skills/convey/scripts/convey.py
   plugins/convey/skills/convey/references/filler-phrases.tsv

@@ -1,6 +1,6 @@
 # Japanese Speaking
 
-Write Japanese that sounds like people talking, not like lines read from paper, for podcast and radio dialogue, a news item one host reads and both discuss, interviews, narration, and talk scripts.
+Write Japanese that sounds like people talking, not like lines read from paper, for podcast and radio dialogue, a news item one host reads and both discuss, interviews, round-tables of three or more speakers, narration, and talk scripts.
 
 English · [日本語](README.ja.md)
 
@@ -41,6 +41,7 @@ In GitHub Copilot CLI, write `/japanese-speaking` in your request, and in Gemini
 | News read and discussed | One host reads the whole item, then both react, say why it matters, what is still unknown, and where they see it differently |
 | Small talk | A cue that the talk starts, one topic taken up in turns, and a line back to the main program |
 | Interview | The host asks what a listener would ask and picks up the guest's words |
+| Round-table | One host opens, names each of three or more speakers before handing them a question, lets every speaker talk in each beat, and closes |
 | Narration | The point or a question to the listener first, one fact per sentence |
 | Talk script | What the talk is about and its conclusion first, signposts between parts, the conclusion again at the end |
 
