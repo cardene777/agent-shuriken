@@ -5,6 +5,10 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+### Added
+
+- `solidity-code` holds an item for solc 0.8.39: it suggests moving to 0.8.39 or later when a contract copies a recursive struct between storage locations where the target contains the source, which silently corrupts storage on 0.4.9 to 0.8.38 (SOL-2026-8), and says that nested tuple assignments of string literals swap values in the default pipeline before 0.8.39
+
 ### Fixed
 
 - `release-check.py layout` compares the slot each ERC-7201 namespace sits at, as the contract or a base assigns it to `<pointer>.slot` in inline assembly, a number or a constant, and names a changed one with a `slot` line instead of printing `compatible`. A constant written as an expression is compared by its expression, and a namespace whose slot no build sets, or sets to two values, is `not-compared`
