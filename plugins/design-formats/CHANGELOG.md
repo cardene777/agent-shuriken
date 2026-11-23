@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-23
+
 - The tables of the skills that follow page-design list `theme` for compare-report and diagram-explainer, which apply the user's theme file to their pages
 - `page-design.py theme --keys <key>,...` writes only the named groups and keys of the theme file, such as `--keys light,dark,font.sans,font.mono` for a page that keeps its own sizes, and refuses a name that is neither. `theme` also writes the dark colors into dark blocks that carry more guards after their selector, such as `:not([data-paper])`
 - Pages take the user's own look from a theme file, `.design-theme.json` at the root of the repository or else `~/.design-theme.json`. `page-design.py theme <page>` writes its colors, fonts, text size, line height, page width, and corners into a page made from a template, keeps the page's values for the keys it leaves out, and leaves the page as it is without a theme file. A theme file with an unknown key or a bad value is refused with each key named. `page-design.py theme --defaults <page>` prints a page's values as JSON, and `formats/theme.md` lists every key, its type, and each template's default. The four templates take the text size, line height, page width, and the three corner sizes from tokens with the same values as before. `theme` is version 1.0.0 in `musubi.json`
@@ -29,5 +31,6 @@ First public release.
 - The `page-design` skill holds how documents and reports explain (`formats/structure.md`) and how they look (`formats/look.md`), and four self-contained HTML page templates: a report with details beside the list, an approval sheet, an explainer with a contents list and a glossary, and a choice page that keeps today's version as an option. Skills follow it through musubi, which pins each content's version and fingerprint
 - `page-design.py verify` names each line of a page or a Markdown document with a colon or a Japanese comma or period in a heading, facts crammed into one line, or a label joined with a colon, and each page with text under 12px, no language or theme switch, no dictionary, no dark colors, motion without the reduced-motion setting, or a file read from another site, with how to fix it and without printing the page's text
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/design-formats--v0.1.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/design-formats--v0.2.0...HEAD
+[0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/design-formats--v0.2.0
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/design-formats--v0.1.0

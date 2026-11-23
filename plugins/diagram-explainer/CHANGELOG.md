@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-23
+
 - When design-formats is installed, the document takes the user's colors and fonts from a theme file, `.design-theme.json` at the root of the repository or else `~/.design-theme.json`: after the build, the agent runs page-design's `theme --keys light,dark,font.sans,font.mono` on the finished page. `assets/doc.css` names its base colors after the keys of the theme file, adding `--surface` and `--sub`, and mixes the other shades (`--panel-2`, `--line-2`, `--rule`, `--ink-2`, `--ink-3`, `--ink-faint`, `--track`) from them with `color-mix()`, so a page without a theme looks as before. `musubi.json` follows `page-design/theme` at `^1.0.0` as an optional follow
 - `musubi.json` follows `look`, `document`, and `verify` of page-design at `^2.0.0`, the version that adds the pattern rules
 - `musubi.json` follows the `structure` and `look` formats, the `document` page type, and `verify` of page-design in the design-formats plugin through musubi, as optional follows. When page-design is installed, the agent writes the document on them and runs page-design's verify on the finished page; when the `musubi` command is installed, it runs `musubi check` first. Without design-formats, the document is built from the plugin's own template as before
@@ -48,7 +50,8 @@ First public release.
 - Prints the document to PDF with a browser already installed
 - Starts when you ask for an explainer, or when you call it, in Claude Code and in Codex
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/diagram-explainer--v0.2.2...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/diagram-explainer--v0.3.0...HEAD
+[0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/diagram-explainer--v0.3.0
 [0.2.2]: https://github.com/cardene777/agent-shuriken/releases/tag/diagram-explainer--v0.2.2
 [0.2.1]: https://github.com/cardene777/agent-shuriken/releases/tag/diagram-explainer--v0.2.1
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/diagram-explainer--v0.2.0
