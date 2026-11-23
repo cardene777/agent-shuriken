@@ -1,4 +1,4 @@
-# 0004. machine-cleanupは、agentが見える形で打つsudoで管理者の権限を求める
+# 0004. machine-cleanupはagentが見える形で打つsudoで管理者の権限を求める
 
 ## 決めたこと
 
