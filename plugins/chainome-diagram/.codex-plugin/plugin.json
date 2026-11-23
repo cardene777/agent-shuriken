@@ -18,9 +18,9 @@
   ],
   "skills": "./skills/",
   "interface": {
-    "displayName": "Chainome Diagram",
+    "displayName": "Blockchain Diagram",
     "shortDescription": "Animated blockchain diagrams",
-    "longDescription": "Guides the design and review of Chainome-style educational diagrams that explain blockchain mechanics with moving tokens, paths, and state badges in React and SVG, animated with GSAP or Motion. A scene model comes first, one phase is active at a time, state changes appear where they happen, and the prose stays in a separate panel. It checks protocol structure, such as an ERC-20 transfer whose function, storage, and event all sit inside the contract boundary, and reviews desktop and mobile screenshots before handing off. The plugin has no scripts: the agent writes code only in your project and runs your project's own lint, build, and Playwright commands, and nothing is sent anywhere.",
+    "longDescription": "Guides the design and review of animated diagrams that explain blockchain mechanics with moving tokens, paths, and state badges in React and SVG, animated with GSAP or Motion. A scene model comes first, one phase is active at a time, state changes appear where they happen, and the prose stays in a separate panel. It checks protocol structure, such as an ERC-20 transfer whose function, storage, and event all sit inside the contract boundary, and reviews desktop and mobile screenshots before handing off. When you place a theme file, .design-theme.json at the root of your repository or ~/.design-theme.json, the diagram takes its colors, fonts, text size, and corners; without one, it keeps your project's own look. The plugin's one script reads only that theme file. The agent writes code only in your project and runs your project's own lint, build, and Playwright commands, and nothing is sent anywhere.",
     "developerName": "cardene777",
     "category": "Productivity",
     "capabilities": [],

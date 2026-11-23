@@ -1,5 +1,5 @@
 interface:
-  display_name: "Chainome Diagram"
+  display_name: "Blockchain Diagram"
   short_description: "Design animated diagrams that explain blockchain mechanics with moving tokens and separated prose"
   default_prompt: "Use $chainome-diagram to design an animated diagram that explains an ERC-20 transfer."
 

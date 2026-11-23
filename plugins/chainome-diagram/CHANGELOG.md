@@ -5,6 +5,9 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The diagram takes its colors, fonts, text size, and corners from your theme file, `.design-theme.json` at the root of the repository or `~/.design-theme.json`, in the format design-formats uses. The new `diagram-theme.py` reads it, refuses an unknown key or a bad value with each key named, and without a theme file the diagram keeps your project's own look
+- The skill and its listings describe the diagrams in general words, and the display name is now Blockchain Diagram
+
 ## [0.1.0] - 2026-11-22
 
 - The `chainome-diagram` skill guides the design of animated React and SVG diagrams that explain blockchain mechanics: a scene model before rendering, one active phase and one moving path at a time, state changes shown as transient badges where they happen, and the prose kept in a separate panel
