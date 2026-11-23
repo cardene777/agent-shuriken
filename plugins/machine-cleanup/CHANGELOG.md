@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-23
+
 ### Added
 
 - Every row has a level, Recommended, Restorable, or Risky, with the reason, and a row that a running program holds is marked In use. Each list shows one table per level with the count and size of the level, and the rows in use last. The Recommended and Restorable tables have a Pick all button, which replaces the tab's button that also picked risky rows
@@ -56,4 +58,6 @@ First public release.
 - Reports free disk, memory used, and load before and after, measured on the machine, and says when Docker Desktop gives the space back later
 - Starts when you say the disk is full or the computer is slow, or when you call it, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/machine-cleanup--v0.1.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/machine-cleanup--v0.2.0...HEAD
+[0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/machine-cleanup--v0.2.0
+[0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/machine-cleanup--v0.1.0

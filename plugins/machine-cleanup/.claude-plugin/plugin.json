@@ -1,7 +1,7 @@
 {
   "name": "machine-cleanup",
   "displayName": "Machine Cleanup",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Free disk space, memory, and CPU on your computer: find caches tools rebuild, build output git ignores, large and duplicate files, idle projects, unused apps and their leftovers, old tool versions, AI models, and dev servers left running, pick on a local page, and free only your picks, with anything another session uses kept out of reach",
   "author": {
     "name": "cardene777",
