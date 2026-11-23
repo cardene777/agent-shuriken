@@ -45,6 +45,7 @@ Each move from one part to the next takes 0.75 seconds.
 At a check or a person, a card goes on or drops into the bin, and the cards that go on are spread evenly over the run, so the share that drops matches the share the spec drops.
 A person's cards that go on are marked with a tick, and a line back pulses each time a card passes the part it starts from.
 Each part's count rises as cards pass it and reaches the number of the spec when the last card arrives.
+Cards that reach a part with no line onward stack inside its top-right corner, clear of its icon, name, and count and of the lines that start or end at its edges.
 
 The run has no randomness: the same spec gives the same run in every browser and in the export.
 When the run ends, nothing moves.
