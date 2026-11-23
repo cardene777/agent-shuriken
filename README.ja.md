@@ -8,7 +8,7 @@
 
 どのプラグインでも、面倒な作業はエージェントが進め、取り消せない操作はすべてあなたが決めます。
 同じプラグインを、Claude Code、Codex、GitHub Copilot CLIにインストールでき、そのスキルはGemini CLIや`SKILL.md`を読むほかのエージェントでも動きます。
-自分のスキルとルールとhookを全てのエージェントへ配る`agent-shared`は、非公開のリポジトリ[cardene777/agent-shared](https://github.com/cardene777/agent-shared)にあります。
+自分のスキルとルールとhookを全てのエージェントへ配る`agent-shared`は、専用のリポジトリ[cardene777/agent-shared](https://github.com/cardene777/agent-shared)にあります。
 
 [English](README.md) · 日本語
 
