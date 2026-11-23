@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-23
+
 - `tech-book-figure` draws from the written style4 rules without `~/.styles/`, instead of stopping. `references/style4.md` now writes the look in words that are enough to draw, and the provided `style4` moves to version 1.1.0. Your style4 samples are passed as references only when the catalog and two or more samples are there, and the skill tells you which of the two it drew from and what was missing. A theme file, `.design-theme.json` at the root of your repository or `~/.design-theme.json`, in the format of the design-formats theme file, replaces the ground, the ink, the gray, the first accent and its fill, and the handwritten letters with your colors and typeface; a file with an unknown key or a bad value is refused with each key named, and the skill stops before drawing. The new `scripts/book_style.py` tells the skill which of these applies
 
 ## [0.3.0] - 2026-11-21
@@ -25,7 +27,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - `article-diagram-styles` provides `style4`, `figure-request`, and `style-catalog` through musubi, and `tech-book-figure` follows `article-diagram-styles/style4`
 - The font Kaisei Decol Bold ships with its license for figures drawn from HTML or SVG source
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/diagram-styles--v0.3.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/diagram-styles--v0.4.0...HEAD
+[0.4.0]: https://github.com/cardene777/agent-shuriken/releases/tag/diagram-styles--v0.4.0
 [0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/diagram-styles--v0.3.0
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/diagram-styles--v0.2.0
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/diagram-styles--v0.1.0
