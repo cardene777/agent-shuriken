@@ -123,7 +123,7 @@ For `html` figures:
 For Japanese documents, also write a term table: one line per word to avoid, `word -> replacement`, and `allow: phrase` for phrases that may keep the word (for example a glossary row that shows the original term in parentheses).
 When you align a name between the text and a figure, add the old name to the table so it cannot come back.
 For readers who are not engineers, also pass `references/words-plain.txt`.
-A term table can be used for English documents as well.
+English documents can use a term table too.
 
 ### 4. Build the document
 
@@ -145,7 +145,7 @@ rm "$X/body.html"
 When a script refuses the content or an unfinished document, it names the block, field, or slot; fix the content and build again.
 To change any text, edit `content.json` and rebuild; never edit the finished HTML by hand.
 
-When the `page-design` skill is installed, apply the user's colors and fonts with the file it names for `verify`: `python3 <that file> theme --keys light,dark,font.sans,font.mono "$X/<slug>.html"`.
+With `page-design` installed, apply the user's colors and fonts with the file it names for `verify`: `python3 <that file> theme --keys light,dark,font.sans,font.mono "$X/<slug>.html"`.
 It reads `.design-theme.json` at the root of the repository, else `~/.design-theme.json`.
 
 ### 5. Check
@@ -163,7 +163,7 @@ When it finds no browser, ask the user which Chromium-based browser they use and
 `NG` lines fail and name what to fix; `--` lines only count.
 Fix every `NG` in `content.json` (or the ladder JSON) and build again until `check.py` exits 0.
 
-When the `page-design` skill is installed, run `python3 <that file> verify "$X/<slug>.html"` with the file it names for `verify`, fix each line it names in `content.json`, and build and check until it prints `ok`. Tell the user about any line it names in this skill's template frame.
+When the `page-design` skill is installed, run its `verify` on the finished page with the file it names for `verify`, `python3 <that file> verify "$X/<slug>.html"`, fix each line it names in `content.json`, and build and check until it prints `ok`. Tell the user about any line it names in this skill's template frame.
 Japanese documents (by `<html lang>`) get every wording rule; others get the language-independent checks.
 
 ### 6. Reread the text
