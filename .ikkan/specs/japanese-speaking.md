@@ -1,6 +1,6 @@
 # japanese-speaking
 
-| 条件 | 確かめ方 | 出元 |
+| Criterion | How to check | Origin |
 |---|---|---|
 | `plugins/japanese-speaking/` が両方の manifest、README.md と README.ja.md、CHANGELOG.md、LICENSE、`assets/icon.svg`、`skills/japanese-speaking/agents/openai.yaml` を持ち、リポジトリの検査が通る | `bash scripts/check.sh` が終了 0 | #235 |
 | `speaking.py check` は、`speaker` と `text` を持つ行の JSON を読み、見つけた型ごとに行番号と型の名前を出し、型が1つでもあれば1で終わる | `bash plugins/japanese-speaking/skills/japanese-speaking/tests/test-japanese-speaking.sh`の検査`"check reports each pattern with its line number in a JSON script"`が通る | #235 |
