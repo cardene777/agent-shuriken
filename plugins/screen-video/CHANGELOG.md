@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- A part added with `addsTo` is joined from 0.05 seconds before its first step, as a recording's own edit starts. Before, the joined video showed the blank page of the browser starting for a few seconds where the part began, with the caption of the step before still on screen
+
 ## [0.3.0] - 2026-11-23
 
 - Planning asks where the result of the video's main action can be checked, such as the app's admin pages or the dashboard of an outside service the app uses, and plans those screens as the last chapter

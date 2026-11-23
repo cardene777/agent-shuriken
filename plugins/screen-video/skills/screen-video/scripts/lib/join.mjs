@@ -23,19 +23,29 @@ function moved(step, by, number) {
   return out;
 }
 
+/** How long before its first step a recording's edit starts (`lib/edit.mjs`), so a part starts the same way. */
+const LEAD = 0.05;
+
 /**
  * `other` and `part` are timelines (`{ steps, duration }`); `after` is a step number of `other`.
- * Returns the joined `steps` and `duration`, and `cut`, the second of `other` where the part goes.
+ * Returns the joined `steps` and `duration`, `cut`, the second of `other` where the part goes, and
+ * `start`, the second of the part it is taken from.
+ *
+ * The part's recording begins with the browser starting before its first step, which a recording's
+ * own edit never shows, so the part is taken from just before its first step.
  */
 export function joinTimelines(other, part, after) {
   const next = other.steps[after];
   const cut = next === undefined ? other.duration : (next.from ?? next.t);
+  const first = part.steps[0];
+  const start = Math.min(part.duration, Math.max(0, (first?.from ?? first?.t ?? 0) - LEAD));
+  const length = part.duration - start;
   const steps = [
     ...other.steps.slice(0, after).map((step, i) => moved(step, 0, i + 1)),
-    ...part.steps.map((step, i) => moved(step, cut, after + i + 1)),
-    ...other.steps.slice(after).map((step, i) => moved(step, part.duration, after + part.steps.length + i + 1)),
+    ...part.steps.map((step, i) => moved(step, cut - start, after + i + 1)),
+    ...other.steps.slice(after).map((step, i) => moved(step, length, after + part.steps.length + i + 1)),
   ];
-  return { steps, duration: round3(other.duration + part.duration), cut: round3(cut) };
+  return { steps, duration: round3(other.duration + length), cut: round3(cut), start: round3(start) };
 }
 
 /** The other flow with the part's steps after step `after`, named as the part, with both planned lengths added. */

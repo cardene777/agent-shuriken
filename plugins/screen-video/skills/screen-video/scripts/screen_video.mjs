@@ -327,7 +327,7 @@ async function joinPart({ flow, root, dir, other, work }) {
   const part = { ...JSON.parse(readFileSync(join(dir, "part", "timeline.json"), "utf8")), duration: durationOf(partRaw) };
   const joined = joinTimelines(other.timeline, part, other.after);
   const raw = join(dir, "raw.mp4");
-  joinRecordings({ other: other.raw, part: partRaw, cut: joined.cut, output: raw });
+  joinRecordings({ other: other.raw, part: partRaw, cut: joined.cut, start: joined.start, output: raw });
   const timeline = {
     flow: flow.name,
     width: WIDTH,
