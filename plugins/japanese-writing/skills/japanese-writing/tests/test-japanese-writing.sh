@@ -88,6 +88,102 @@ every_file_listed() {
 }
 check "every file is an upstream copy or a listed own file" "every_file_listed"
 
+# --- the English versions of the references
+
+# Prints each reference under references/ whose English version <name>.en.md is missing, or differs in
+# the number of headings at a level or in the number of table rows. Lines inside fenced code blocks are
+# examples and are not counted. Prints "no references" when there is no reference, and nothing when
+# every English version has the shape of its reference.
+shape_mismatches() {  # <skill folder>
+  python3 - "$1" <<'PY'
+import pathlib, re, sys
+root = pathlib.Path(sys.argv[1])
+
+def shape(path):
+    headings, rows, fence = {}, 0, None
+    for line in path.read_text(encoding="utf-8").splitlines():
+        mark = re.match(r"^ {0,3}(`{3,}|~{3,})", line)
+        if mark:
+            run = mark.group(1)
+            if fence is None:
+                fence = run
+            elif run[0] == fence[0] and len(run) >= len(fence) and not line.strip()[len(run):].strip():
+                fence = None
+            continue
+        if fence:
+            continue
+        heading = re.match(r"^(#{1,6}) ", line)
+        if heading:
+            level = len(heading.group(1))
+            headings[level] = headings.get(level, 0) + 1
+        elif line.lstrip().startswith("|"):
+            rows += 1
+    return headings, rows
+
+refs = sorted(p for p in (root / "references").rglob("*.md") if not p.name.endswith(".en.md"))
+if not refs:
+    print("no references")
+for ref in refs:
+    english = ref.with_name(ref.name[:-3] + ".en.md")
+    if not english.is_file() or shape(english) != shape(ref):
+        print(ref.relative_to(root))
+PY
+}
+check "every reference has an English version with the same headings and table rows" '[ -z "$(shape_mismatches "$SKILL_DIR")" ]'
+
+# Drops one heading, or the last table row outside a code block, from the given file.
+drop_line() {  # <file> heading|row
+  python3 - "$1" "$2" <<'PY'
+import re, sys
+path, what = sys.argv[1], sys.argv[2]
+lines = open(path, encoding="utf-8").read().split("\n")
+inside, wanted = False, []
+for i, line in enumerate(lines):
+    if re.match(r"^ {0,3}(`{3,}|~{3,})", line):
+        inside = not inside
+        continue
+    if not inside and ((what == "heading" and re.match(r"^#{1,6} ", line)) or (what == "row" and line.lstrip().startswith("|"))):
+        wanted.append(i)
+if not wanted:
+    sys.exit(1)
+del lines[wanted[0] if what == "heading" else wanted[-1]]
+open(path, "w", encoding="utf-8").write("\n".join(lines))
+PY
+}
+
+# The English rules hold headings and the tables of own files, so each break below changes its shape.
+shorter_english_fails() {
+  local broken copy
+  [ -f "$SKILL_DIR/references/rules.en.md" ] || return 1
+  for broken in missing heading row; do
+    copy="$T/shape-$broken"
+    cp -R "$SKILL_DIR" "$copy"
+    if [ "$broken" = missing ]; then
+      rm "$copy/references/rules.en.md"
+    else
+      drop_line "$copy/references/rules.en.md" "$broken" || return 1
+    fi
+    [ "$(shape_mismatches "$copy")" = "references/rules.md" ] || return 1
+  done
+}
+check "a missing or shorter English version fails the check" "shorter_english_fails"
+
+metaphor_glosses() {
+  python3 - "$SKILL_DIR/references/metaphor-words.tsv" <<'PY'
+import re, sys
+rows = [line for line in open(sys.argv[1], encoding="utf-8").read().splitlines() if line.strip() and not line.startswith("#")]
+if not rows or rows[0].split("\t") != ["種類", "正規表現", "よく指している操作", "English"]:
+    sys.exit(1)
+japanese = re.compile("[぀-ヿ㐀-鿿]")
+for row in rows[1:]:
+    fields = row.split("\t")
+    if len(fields) != 4 or not re.search("[A-Za-z]", fields[3]) or japanese.search(fields[3]):
+        sys.exit(1)
+sys.exit(0 if len(rows) > 1 else 1)
+PY
+}
+check "the metaphor word list gives every row an English gloss" "metaphor_glosses"
+
 # The name of the private workflow these files came from, split so that this file does not hold it.
 W1=ik
 W2=kan
@@ -178,6 +274,7 @@ MD
 if ! command -v uv >/dev/null 2>&1; then
   sk "lint finds suspects in the AI-smelly sample" "uv is not installed"
   sk "suspects points at the line with a metaphor verb" "uv is not installed"
+  sk "suspects refuses a word list whose columns differ" "uv is not installed"
   sk "running the scripts leaves no bytecode in the skill folder" "uv is not installed"
 else
   lint_out="$(run_script "$RUN" lint "$RUN/scripts/fixtures/ai-smelly.md" 2>"$T/lint.err")"
@@ -189,6 +286,26 @@ else
   suspects_status=$?
   check "suspects points at the line with a metaphor verb" \
     '[ "$suspects_status" = 0 ] && printf "%s\n" "$suspects_out" | grep -q "^L5 \[比喩の動詞\] "'
+
+  # A list with the three columns before the English gloss, and a list whose fourth column has another
+  # name, both end with 1 and point at no line.
+  refuses_columns() {
+    local form copy out status
+    for form in three renamed; do
+      copy="$T/columns-$form"
+      cp -R "$RUN" "$copy"
+      if [ "$form" = three ]; then
+        cut -f1-3 "$RUN/references/metaphor-words.tsv" > "$copy/references/metaphor-words.tsv"
+      else
+        awk -F'\t' 'BEGIN { OFS = "\t" } /^#/ { print; next } { print $1, $2, $3, (NR == 1 ? "Gloss" : ($4 == "" ? "x" : $4)) }' \
+          "$RUN/references/metaphor-words.tsv" > "$copy/references/metaphor-words.tsv"
+      fi
+      out="$(run_script "$copy" suspects "$T/metaphor.md" 2>/dev/null)"
+      status=$?
+      [ "$status" = 1 ] && ! printf '%s\n' "$out" | grep -q '^L[0-9]' || return 1
+    done
+  }
+  check "suspects refuses a word list whose columns differ" "refuses_columns"
 
   check "running the scripts leaves no bytecode in the skill folder" \
     '[ "$lint_status" = 0 ] && [ "$suspects_status" = 0 ] && [ -z "$(find "$RUN" -name __pycache__)" ]'
@@ -301,6 +418,30 @@ pages_musubi() {
   done
 }
 check "the pages describe musubi.json and connecting" "pages_musubi"
+
+# The skill reads the Japanese references; the English versions are for people who read English.
+skill_language() {
+  local s="$SKILL_DIR/SKILL.md"
+  grep -qF '.en.md' "$s" && grep -qiE 'reads? the Japanese references' "$s" && grep -qiE 'for people who read English' "$s" \
+    && grep -qiE 'in the language the user writes in' "$s" && grep -qiE 'fixed text stays Japanese' "$s"
+}
+check "the SKILL.md explains fixes in the user's language and keeps the fixed text Japanese" "skill_language"
+
+pages_english() {
+  local page
+  for page in README.md docs/how-it-works.md; do
+    grep -qF '.en.md' "$PLUGIN_DIR/$page" && grep -qiE 'in English' "$PLUGIN_DIR/$page" || return 1
+  done
+  for page in README.ja.md docs/how-it-works.ja.md; do
+    grep -qF '.en.md' "$PLUGIN_DIR/$page" && grep -qF '英語' "$PLUGIN_DIR/$page" || return 1
+  done
+}
+check "the pages say the references read in English" "pages_english"
+
+changelog_english() {
+  awk '/^## \[Unreleased\]/ { f = 1; next } /^## \[/ { f = 0 } f' "$PLUGIN_DIR/CHANGELOG.md" | grep -F '.en.md' | grep -qi 'English'
+}
+check "the changelog names the English references under Unreleased" "changelog_english"
 
 printf '\n%d passed, %d failed, %d skipped (%d ran)\n' "$PASS" "$FAIL" "$SKIP" "$((PASS + FAIL))"
 [ "$FAIL" = 0 ]
