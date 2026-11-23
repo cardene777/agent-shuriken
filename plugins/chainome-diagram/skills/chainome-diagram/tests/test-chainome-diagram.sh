@@ -172,13 +172,13 @@ PY
 
 theme_from_home() {
   need "$THEME" || return 1
-  theme_case home
+  theme_case from-home
   printf '%s\n' '{"light": {"accent": "#0b6e4f", "ink": "#111111"}, "dark": {"accent": "#5fd0a5"}, "font": {"size": 16, "mono": "\"JetBrains Mono\", monospace"}, "space": {"radius": 6}}' \
-    > "$T/home/home/.design-theme.json"
-  run_theme home
-  [ "$status" -eq 0 ] || { why="exit $status: $(head -3 "$T/home/err")"; return 1; }
-  same_json "$T/home/out" '{"light": {"accent": "#0b6e4f", "ink": "#111111"}, "dark": {"accent": "#5fd0a5"}, "font": {"size": 16, "mono": "\"JetBrains Mono\", monospace"}, "space": {"radius": 6}}' \
-    || { why="printed: $(head -c 300 "$T/home/out")"; return 1; }
+    > "$T/from-home/home/.design-theme.json"
+  run_theme from-home
+  [ "$status" -eq 0 ] || { why="exit $status: $(head -3 "$T/from-home/err")"; return 1; }
+  same_json "$T/from-home/out" '{"light": {"accent": "#0b6e4f", "ink": "#111111"}, "dark": {"accent": "#5fd0a5"}, "font": {"size": 16, "mono": "\"JetBrains Mono\", monospace"}, "space": {"radius": 6}}' \
+    || { why="printed: $(head -c 300 "$T/from-home/out")"; return 1; }
 }
 
 repository_theme_wins() {
