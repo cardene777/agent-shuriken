@@ -669,6 +669,10 @@ await check("the plugin names nothing from the product it came from", async () =
 const { qualityChecks } = await import(join(HERE, "quality.mjs"));
 await qualityChecks({ check, SHOP_OUT, FFMPEG });
 
+// Logging in to an outside service and parts added later, on two sites of their own (parts.mjs)
+const { partsChecks } = await import(join(HERE, "parts.mjs"));
+await partsChecks({ check });
+
 server.close();
 rmSync(T, { recursive: true, force: true });
 process.stdout.write(`\n${passed} passed, ${failed} failed (${passed + failed} ran)\n`);

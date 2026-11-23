@@ -4,6 +4,7 @@
  * | Function | What it does |
  * |---|---|
  * | `normalize` | Turns a recording into a 1920x1080, 30 frames a second `mp4`, with black bars when the shape differs |
+ * | `joinRecordings` | Puts a part recorded later into another recording at a given second |
  * | `probe` | Width, height, and length in seconds of a video |
  * | `renderEdited` | Makes an edited video from the recording and a plan (`planEdit`): the frames kept, still frames under the cards, page dissolves, the zoom or the vertical window, the frame, captions, the fast-forward mark, the cards, and the sound |
  * | `renderOver` | The recording with captions laid over it and the sound, at the recording's own times |
@@ -64,6 +65,19 @@ export const durationOf = (file) => probe(file).duration;
 export function normalize(input, output) {
   const fit = `scale=${WIDTH}:${HEIGHT}:force_original_aspect_ratio=decrease,pad=${WIDTH}:${HEIGHT}:(ow-iw)/2:(oh-ih)/2:color=black`;
   ffmpeg(["-i", input, "-vf", `fps=${FPS},${fit},setsar=1`, "-an", ...ENCODE, output]);
+}
+
+/**
+ * Writes `output` from the recording `other` up to `cut` seconds, then all of the recording `part`,
+ * then the rest of `other`. Both are recordings `normalize` wrote, so they share size and rate.
+ */
+export function joinRecordings({ other, part, cut, output }) {
+  const end = durationOf(other);
+  const graph =
+    cut >= end - 1 / FPS
+      ? "[0:v]setpts=PTS-STARTPTS[a];[1:v]setpts=PTS-STARTPTS[b];[a][b]concat=n=2:v=1:a=0,setsar=1[v]"
+      : `[0:v]split[x][y];[x]trim=end=${num(cut)},setpts=PTS-STARTPTS[a];[1:v]setpts=PTS-STARTPTS[b];[y]trim=start=${num(cut)},setpts=PTS-STARTPTS[c];[a][b][c]concat=n=3:v=1:a=0,setsar=1[v]`;
+  ffmpeg(["-i", other, "-i", part, "-filter_complex", graph, "-map", "[v]", "-an", "-r", String(FPS), ...ENCODE, output]);
 }
 
 /** Frame `index` (30 a second) of a video as a PNG. */

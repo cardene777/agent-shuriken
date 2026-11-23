@@ -9,10 +9,11 @@
  * | `check <flow>` | Checks a flow file, names its theme, and lists the steps that send something or pay | none |
  * | `rehearse <flow> [--out <dir>]` | Runs the flow without recording, up to the first step that sends something or pays, and writes the storyboard | `storyboard.html`, `frames/`, `rehearsal.json` |
  * | `voices <flow> [--out <dir>]` | Makes the flow's narration, installing the local voice engine the first time | `voice/`, `voice.json`, `credits.txt` |
- * | `record <flow> [--out <dir>] [--confirm-effects]` | Makes the narration, records the flow, and makes the videos | `raw.mp4`, `captioned.mp4`, `edited.mp4`, `vertical.mp4`, `edited.gif`, `timeline.json`, `captions.srt`, `edited.srt`, `edit.json`, `voice/`, `voice.json`, `credits.txt` |
- * | `remake <flow> [--out <dir>]` | Makes the narration and the videos again from `raw.mp4` and `timeline.json` in the flow's current look, without recording | the same as `record`, except `raw.mp4` and `timeline.json` |
+ * | `record <flow> [--out <dir>] [--confirm-effects]` | Makes the narration, records the flow, and makes the videos. A flow with `addsTo` records only its own steps into `part/` and joins them into the other flow's recording; with `login.forget`, the saved login is removed when it ends | `raw.mp4`, `captioned.mp4`, `edited.mp4`, `vertical.mp4`, `edited.gif`, `timeline.json`, `captions.srt`, `edited.srt`, `edit.json`, `voice/`, `voice.json`, `credits.txt` |
+ * | `remake <flow> [--out <dir>]` | Makes the narration and the videos again from `raw.mp4` and `timeline.json` in the flow's current look, without recording; for a flow with `addsTo`, joins the two recordings again first | the same as `record`, except `raw.mp4` and `timeline.json` |
  * | `compare <flow> [--out <dir>] [--before <dir>]` | Shows the plain video and the edited one side by side for each point the edit improves | `compare/compare.html`, `compare/plain.mp4` |
- * | `login <flow> [--until <text in the address>]` | Opens a browser to log in by hand and saves the login for the flow's `login.session` | `sessions/<project>--<session>.json` in the data folder |
+ * | `login <flow> [--until <text in the address>] [--start <address>]` | Opens a browser to log in by hand, at `--start` when given, keeping the logins already saved, and saves the login for the flow's `login.session` | `sessions/<project>--<session>.json` in the data folder |
+ * | `logout <flow>` | Removes the saved login of the flow's `login.session` | none |
  * | `scenes <recording> [--out <dir>]` | Finds the scene changes and still stretches in a recording the user made | `scenes/`, `scenes.json`, `freezes.json` |
  * | `render <recording> [--out <dir>]` | Makes the captioned and edited videos from `captions.json` the agent wrote | `captioned.mp4`, `edited.mp4`, `captions.srt` |
  *
@@ -26,8 +27,9 @@ import { captionImages } from "./lib/captions.mjs";
 import { writeCompare } from "./lib/compare.mjs";
 import { captionCues, cutsForFreezes, mapCues, planEdit, segmentsWithout, VERTICAL_CROP } from "./lib/edit.mjs";
 import { envLookup, languageOf, loadFlow, markedSteps, readLogin } from "./lib/flow.mjs";
+import { joinedFlow, joinTimelines } from "./lib/join.mjs";
 import { LAYOUTS, openDrawer } from "./lib/look.mjs";
-import { burn, detectFreezes, detectScenes, durationOf, HEIGHT, normalize, renderEdited, renderOver, stillFrame, toGif, toSrt, WIDTH } from "./lib/media.mjs";
+import { burn, detectFreezes, detectScenes, durationOf, HEIGHT, joinRecordings, normalize, renderEdited, renderOver, stillFrame, toGif, toSrt, WIDTH } from "./lib/media.mjs";
 import { startRecording } from "./lib/recorder.mjs";
 import { runFlow, StepError } from "./lib/runner.mjs";
 import { dataDir, ensureDir, ffmpegChoice, nodeDir, playwright, playwrightVersion, projectName, projectRoot, sessionFile } from "./lib/runtime.mjs";
@@ -50,7 +52,7 @@ function parse(argv) {
   const options = { command, args: [], flags: new Set() };
   for (let i = 0; i < rest.length; i++) {
     const arg = rest[i];
-    if (arg === "--out" || arg === "--until" || arg === "--path" || arg === "--before") options[arg.slice(2)] = rest[++i];
+    if (arg === "--out" || arg === "--until" || arg === "--path" || arg === "--before" || arg === "--start") options[arg.slice(2)] = rest[++i];
     else if (arg.startsWith("--")) options.flags.add(arg.slice(2));
     else options.args.push(arg);
   }
@@ -120,6 +122,7 @@ function check(file) {
   const { flow, theme } = openFlow(file);
   say(`${flow.name}: ${flow.steps.length} steps, videos ${flow.outputs.join(", ")}`);
   say(`theme: ${theme.name} (${theme.source})`);
+  if (flow.addsTo !== undefined) say(`A part: it adds to ${flow.addsTo.flow} after ${flow.addsTo.after === undefined ? "its last step" : `step ${flow.addsTo.after}`}`);
   const marked = markedSteps(flow);
   if (marked.length === 0) say("No step sends anything or pays.");
   else say(`Steps that send something or pay each time the video is recorded:\n${listMarked(marked)}`);
@@ -298,8 +301,61 @@ async function finish({ out, timeline, flow, root, theme, voice, work }) {
   if (voice.credit !== undefined) say(`Credit for the voice (in credits.txt and on the end card): ${voice.credit}`);
 }
 
+/**
+ * The flow a part (`addsTo`) is added to, with its last recording and the step the part comes after.
+ * Refuses, before anything is opened, when the flow file or its recording is missing or `after` is
+ * past its last step.
+ */
+function otherOf({ flow, root }) {
+  const name = flow.addsTo.flow;
+  const file = join(root, ".screen-video", "flows", `${name}.json`);
+  if (!existsSync(file)) refuse(`The part adds to ${name}, but the project has no flow file ${file}.`);
+  const other = openFlow(file);
+  const raw = join(other.defaultOut, "raw.mp4");
+  const timelineFile = join(other.defaultOut, "timeline.json");
+  if (!existsSync(raw) || !existsSync(timelineFile)) refuse(`The part adds to ${name}, which has no recording in ${other.defaultOut}. Record ${name} first.`);
+  const timeline = { ...JSON.parse(readFileSync(timelineFile, "utf8")), duration: durationOf(raw) };
+  const count = timeline.steps.length;
+  const after = flow.addsTo.after ?? count;
+  if (after > count) refuse(`The part goes after step ${after}, but the recording of ${name} has ${count} steps.`);
+  return { ...other, dir: other.defaultOut, raw, timeline, after };
+}
+
+/** Joins the part recorded in `<dir>/part/` into the other flow's recording and makes the joined videos in `dir`. */
+async function joinPart({ flow, root, dir, other, work }) {
+  const partRaw = join(dir, "part", "raw.mp4");
+  const part = { ...JSON.parse(readFileSync(join(dir, "part", "timeline.json"), "utf8")), duration: durationOf(partRaw) };
+  const joined = joinTimelines(other.timeline, part, other.after);
+  const raw = join(dir, "raw.mp4");
+  joinRecordings({ other: other.raw, part: partRaw, cut: joined.cut, output: raw });
+  const timeline = {
+    flow: flow.name,
+    width: WIDTH,
+    height: HEIGHT,
+    duration: durationOf(raw),
+    outputs: other.flow.outputs,
+    joined: { flow: other.flow.name, after: other.after },
+    steps: joined.steps,
+  };
+  writeFileSync(join(dir, "timeline.json"), `${JSON.stringify(timeline, null, 2)}\n`);
+  say(`Joined after step ${other.after} of ${other.flow.name}: ${raw} (${timeline.duration.toFixed(1)}s)`);
+  const whole = joinedFlow(other.flow, flow, other.after);
+  const voice = await makeVoices(whole, root, dir);
+  await finish({ out: dir, timeline, flow: whole, root, theme: other.theme, voice, work });
+}
+
+/** Removes the saved login of a flow whose `login.forget` is true, and says so. */
+function forgetLogin(flow, root) {
+  if (flow.login?.forget !== true || flow.login.session === undefined) return;
+  const saved = sessionFile(root, flow.login.session);
+  if (!existsSync(saved)) return;
+  rmSync(saved, { force: true });
+  say(`Removed the saved login "${flow.login.session}" (login.forget): ${saved}`);
+}
+
 async function record(file, out, confirmed) {
-  const { flow, root, theme, defaultOut } = openFlow(file);
+  const opened = openFlow(file);
+  const { flow, root, defaultOut } = opened;
   const marked = markedSteps(flow);
   if (marked.length > 0 && !confirmed) {
     refuse(
@@ -307,32 +363,43 @@ async function record(file, out, confirmed) {
         "Show them to the user, and only after the user agrees, run record again with --confirm-effects.",
     );
   }
+  const other = flow.addsTo === undefined ? undefined : otherOf(opened);
+  // A part is paced and pointed at in the look and voice of the flow it joins
+  const theme = other?.theme ?? opened.theme;
+  const paced = other === undefined ? flow : { ...flow, voice: other.flow.voice, language: languageOf(other.flow) };
   const dir = out ?? defaultOut;
-  clearDir(dir, { keep: ["rehearsal"], folders: ["voice", "compare"] });
-  const login = readLogin(flow, root);
-  const env = envLookup(flow, root);
-  const work = mkdtempSync(join(tmpdir(), "screen-video-"));
+  clearDir(dir, { keep: ["rehearsal"], folders: ["voice", "compare", "part"] });
+  const target = other === undefined ? dir : ensureDir(join(dir, "part"));
+  // From here the saved login is used, so a login marked forget is removed however the recording ends
   try {
-    const voice = await makeVoices(flow, root, dir);
-    const rec = await startRecording({ videoDir: work, credentials: login.credentials, storageState: login.storageState, masks: flow.mask, accent: theme.look.accent });
+    const login = readLogin(flow, root);
+    const env = envLookup(flow, root);
+    const work = mkdtempSync(join(tmpdir(), "screen-video-"));
     try {
-      await runFlow({ flow, rec, env, voices: voice.clips });
-    } catch (error) {
-      await rec.screenshot(join(dir, "failure.png"));
-      await rec.abort();
-      const message = error instanceof StepError ? error.message : `${error instanceof Error ? error.message.split("\n")[0] : error}`;
-      refuse(`${message} (the screen when it stopped: ${join(dir, "failure.png")})`);
+      const voice = await makeVoices(paced, root, target);
+      const rec = await startRecording({ videoDir: work, credentials: login.credentials, storageState: login.storageState, masks: flow.mask, accent: theme.look.accent });
+      try {
+        await runFlow({ flow, rec, env, voices: voice.clips });
+      } catch (error) {
+        await rec.screenshot(join(dir, "failure.png"));
+        await rec.abort();
+        const message = error instanceof StepError ? error.message : `${error instanceof Error ? error.message.split("\n")[0] : error}`;
+        refuse(`${message} (the screen when it stopped: ${join(dir, "failure.png")})`);
+      }
+      const webm = await rec.stop();
+      if (webm === undefined) refuse("The recording has no frames.");
+      const raw = join(target, "raw.mp4");
+      normalize(webm, raw);
+      const timeline = { flow: flow.name, width: WIDTH, height: HEIGHT, duration: durationOf(raw), outputs: flow.outputs, steps: rec.steps };
+      writeFileSync(join(target, "timeline.json"), `${JSON.stringify(timeline, null, 2)}\n`);
+      say(`Raw video: ${raw} (${timeline.duration.toFixed(1)}s)`);
+      if (other === undefined) await finish({ out: dir, timeline, flow, root, theme, voice, work });
+      else await joinPart({ flow, root, dir, other, work });
+    } finally {
+      rmSync(work, { recursive: true, force: true });
     }
-    const webm = await rec.stop();
-    if (webm === undefined) refuse("The recording has no frames.");
-    const raw = join(dir, "raw.mp4");
-    normalize(webm, raw);
-    const timeline = { flow: flow.name, width: WIDTH, height: HEIGHT, duration: durationOf(raw), outputs: flow.outputs, steps: rec.steps };
-    writeFileSync(join(dir, "timeline.json"), `${JSON.stringify(timeline, null, 2)}\n`);
-    say(`Raw video: ${raw} (${timeline.duration.toFixed(1)}s)`);
-    await finish({ out: dir, timeline, flow, root, theme, voice, work });
   } finally {
-    rmSync(work, { recursive: true, force: true });
+    forgetLogin(flow, root);
   }
 }
 
@@ -348,6 +415,21 @@ function lastRecording(file, out) {
 }
 
 async function remake(file, out) {
+  const opened = openFlow(file);
+  if (opened.flow.addsTo !== undefined) {
+    const other = otherOf(opened);
+    const dir = out ?? opened.defaultOut;
+    if (!existsSync(join(dir, "part", "raw.mp4")) || !existsSync(join(dir, "part", "timeline.json"))) refuse(`${join(dir, "part")} has no raw.mp4 and timeline.json. Record the part first.`);
+    for (const name of MADE_FILES) rmSync(join(dir, name), { force: true });
+    rmSync(join(dir, "compare"), { recursive: true, force: true });
+    const work = mkdtempSync(join(tmpdir(), "screen-video-"));
+    try {
+      await joinPart({ flow: opened.flow, root: opened.root, dir, other, work });
+    } finally {
+      rmSync(work, { recursive: true, force: true });
+    }
+    return;
+  }
   const { flow, root, theme, dir, timeline } = lastRecording(file, out);
   for (const name of MADE_FILES) rmSync(join(dir, name), { force: true });
   rmSync(join(dir, "compare"), { recursive: true, force: true });
@@ -388,17 +470,24 @@ async function compare(file, out, before) {
   }
 }
 
-async function login(file, until) {
+async function login(file, until, start) {
   const { flow, root } = openFlow(file);
   if (flow.login?.session === undefined) refuse("The flow has no login.session to save the login under.");
+  if (start !== undefined && !/^https?:\/\/[^/\s]+/.test(start)) refuse("--start takes a full address that starts with http:// or https://");
   const credentials = flow.login.basic === undefined ? undefined : readLogin({ ...flow, login: { ...flow.login, session: undefined } }, root).credentials;
+  const saved = sessionFile(root, flow.login.session);
   const headless = process.env.SCREEN_VIDEO_HEADLESS === "1";
   const { chromium } = playwright();
   const browser = await chromium.launch({ headless });
   try {
-    const context = await browser.newContext({ viewport: null, ...(credentials === undefined ? {} : { httpCredentials: credentials }) });
+    // Starting from the saved login keeps it, so the app and an outside service can each be logged in to once
+    const context = await browser.newContext({
+      viewport: null,
+      ...(credentials === undefined ? {} : { httpCredentials: credentials }),
+      ...(existsSync(saved) ? { storageState: saved } : {}),
+    });
     const page = await context.newPage();
-    await page.goto(new URL(flow.login.start ?? "/", flow.url).toString(), { waitUntil: "load", timeout: 90000 });
+    await page.goto(start ?? new URL(flow.login.start ?? "/", flow.url).toString(), { waitUntil: "load", timeout: 90000 });
     if (until !== undefined) {
       if (!headless) say(`Log in in the browser window. The login is saved once the address holds "${until}".`);
       await page.waitForURL((url) => url.toString().includes(until), { timeout: 15 * 60 * 1000 });
@@ -406,14 +495,26 @@ async function login(file, until) {
       say("Log in in the browser window, then close the window. The login is saved when the window closes.");
       await page.waitForEvent("close", { timeout: 0 });
     }
-    const file = sessionFile(root, flow.login.session);
     ensureDir(join(dataDir(), "sessions"));
-    writeFileSync(file, JSON.stringify(await context.storageState()), { mode: 0o600 });
-    chmodSync(file, 0o600);
-    say(`Saved the login "${flow.login.session}" for this project: ${file}`);
+    writeFileSync(saved, JSON.stringify(await context.storageState()), { mode: 0o600 });
+    chmodSync(saved, 0o600);
+    say(`Saved the login "${flow.login.session}" for this project: ${saved}`);
+    if (flow.login.forget === true) say("record removes it when it ends, because the flow says login.forget.");
   } finally {
     await browser.close();
   }
+}
+
+function logout(file) {
+  const { flow, root } = openFlow(file);
+  if (flow.login?.session === undefined) refuse("The flow has no login.session, so it has no saved login.");
+  const saved = sessionFile(root, flow.login.session);
+  if (!existsSync(saved)) {
+    say(`No saved login "${flow.login.session}" for this project.`);
+    return;
+  }
+  rmSync(saved, { force: true });
+  say(`Removed the saved login "${flow.login.session}": ${saved}`);
 }
 
 function recordingOut(input, out) {
@@ -470,7 +571,7 @@ async function render(input, out) {
   }
 }
 
-const USAGE = "Usage: screen-video.sh setup | doctor | inspect <flow> | check <flow> | rehearse <flow> | voices <flow> | record <flow> [--confirm-effects] | remake <flow> | compare <flow> [--before <dir>] | login <flow> [--until <text>] | scenes <recording> | render <recording> (each takes --out <dir> where it writes files)";
+const USAGE = "Usage: screen-video.sh setup | doctor | inspect <flow> | check <flow> | rehearse <flow> | voices <flow> | record <flow> [--confirm-effects] | remake <flow> | compare <flow> [--before <dir>] | login <flow> [--until <text>] [--start <address>] | logout <flow> | scenes <recording> | render <recording> (each takes --out <dir> where it writes files)";
 
 const options = parse(process.argv.slice(2));
 try {
@@ -501,7 +602,10 @@ try {
       await compare(first, options.out, options.before);
       break;
     case "login":
-      await login(first, options.until);
+      await login(first, options.until, options.start);
+      break;
+    case "logout":
+      logout(first);
       break;
     case "scenes":
       scenes(first, recordingOut(first ?? "", options.out));
