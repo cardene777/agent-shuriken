@@ -221,6 +221,25 @@ erc7201_item() {
 }
 check "the erc7201 builtin item says where the builtin cannot be used and what to write instead" erc7201_item
 
+# What Solidity's bugs.json and the 0.8.39 announcement say: SOL-2026-8 affects 0.4.9 to 0.8.38 on the
+# default pipeline and 0.8.13 to 0.8.38 with via_ir, and the nested tuple fix touches the default
+# pipeline only.
+solc_0839_item() {
+  local f="$ITEMS/solc-0.8.39-recursive-struct-copy-fix.md" phrase
+  [ -f "$f" ] || return 1
+  for phrase in \
+    'tool: solc' \
+    'since: 0.8.39' \
+    'SOL-2026-8' \
+    '0.4.9 to 0.8.38' \
+    '0.8.13 to 0.8.38' \
+    'suggest moving to 0.8.39 or later' \
+    'only in the default pipeline'; do
+    grep -qF -- "$phrase" "$f" || return 1
+  done
+}
+check "the solc 0.8.39 item gives the affected versions per pipeline and the pipeline of the tuple bug" solc_0839_item
+
 skill_rules() {
   local phrase
   [ -f "$SKILL" ] || return 1
