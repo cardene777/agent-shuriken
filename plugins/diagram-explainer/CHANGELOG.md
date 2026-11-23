@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-23
+
 - A `motion` block places a moving picture of a mechanism in a section: it names a page that `motion-diagram render` wrote, relative to the content JSON, and `render.py` carries that page byte for byte in a frame of a captioned figure, refusing a missing page or one that `motion-diagram render` did not write. `build.py` lets only that frame through. In the document the frame is as tall as the picture and follows the light or dark of the document, the picture runs once when its section is first shown and shows its finished picture until then, and on paper `print.js` has every figure, also on pages not opened, draw its finished picture in light colors. The PDF button waits for the figures of the pages it fills before opening the print dialog
 
 ## [0.3.0] - 2026-11-23
@@ -52,7 +54,8 @@ First public release.
 - Prints the document to PDF with a browser already installed
 - Starts when you ask for an explainer, or when you call it, in Claude Code and in Codex
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/diagram-explainer--v0.3.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/diagram-explainer--v0.4.0...HEAD
+[0.4.0]: https://github.com/cardene777/agent-shuriken/releases/tag/diagram-explainer--v0.4.0
 [0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/diagram-explainer--v0.3.0
 [0.2.2]: https://github.com/cardene777/agent-shuriken/releases/tag/diagram-explainer--v0.2.2
 [0.2.1]: https://github.com/cardene777/agent-shuriken/releases/tag/diagram-explainer--v0.2.1
