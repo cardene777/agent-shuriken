@@ -1,7 +1,7 @@
 {
   "name": "skill-tune",
   "displayName": "Skill Tune",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Measure a plugin's skill with claude plugin eval cases kept in the plugin, shorten its SKILL.md, and measure again so that no case scores lower, with the cost agreed before any run and the size capped in the plugin's test",
   "author": {
     "name": "cardene777",
