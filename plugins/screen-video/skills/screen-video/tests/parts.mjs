@@ -86,7 +86,9 @@ export async function partsChecks({ check }) {
       });
     });
   }
-  const headless = { env: { SCREEN_VIDEO_HEADLESS: "1" } };
+  // The login pages here redirect at once, so a login that is still waiting after 90 seconds opened
+  // the wrong page; stopping it keeps a broken login from holding the run for its 15 minutes
+  const headless = { env: { SCREEN_VIDEO_HEADLESS: "1" }, timeout: 90_000 };
   const last = (r) => r.all.trim().split("\n").at(-1);
   function flow(name, body) {
     const file = join(FLOWS, `${name}.json`);
