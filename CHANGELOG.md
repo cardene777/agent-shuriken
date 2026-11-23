@@ -7,14 +7,59 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-11-24
+
+### Plugins
+
+| Plugin | Version |
+|---|---|
+| account-cleanup | 0.3.0 |
+| chainome-diagram | 0.2.0 |
+| compare-report | 0.6.0 |
+| convey | 0.2.0 |
+| design-formats | 0.2.0 |
+| diagram-composer | 0.1.1 |
+| diagram-explainer | 0.4.0 |
+| diagram-styles | 0.4.0 |
+| digital-dashboard | 0.1.2 |
+| doc-formats | 0.1.0 |
+| docs-publish | 0.4.0 |
+| evm-dev | 0.9.0 |
+| excalidraw-diagram | 0.3.0 |
+| feedback-loop | 0.1.2 |
+| init-project | 0.3.0 |
+| japanese-speaking | 0.3.0 |
+| japanese-writing | 0.3.0 |
+| learning-to-skill | 0.1.2 |
+| machine-cleanup | 0.2.0 |
+| motion-diagram | 0.1.0 |
+| portman | 0.4.0 |
+| product-deck | 0.2.0 |
+| repo-progress | 0.1.2 |
+| screen-video | 0.3.1 |
+| secure-dotfile | 0.7.1 |
+| session-handoff | 0.1.1 |
+| skill-tune | 0.2.0 |
+| slides | 0.1.2 |
+| techdebt | 0.3.1 |
+
+### Added
+
 - The screen-video plugin, whose skill plans a video of a web app with the user, writes it as a flow file in the project, rehearses it into a storyboard of pictures, and records it in a browser into captioned, edited, vertical, and GIF videos only after the user has seen the storyboard, blurring private values and stopping before steps that send something or pay. The edited videos zoom on each action, sit in a themed frame with title, chapter, and end cards, are narrated on the user's machine, and have quiet music and click sounds
 - The diagram-styles plugin, whose two skills make figures for articles and technical books: each figure is designed from the reader's question first and drawn with the agent's image generation in a style from the user's own sample images and catalog in `~/.styles/`, which the plugin does not ship. Other skills follow its style4 rules and figure request format through musubi
 - The design-formats plugin, whose page-design skill holds how documents and reports explain and look: two formats, four HTML page templates, and the verify script that checks a page or a document. Other skills follow it through musubi
-- The report skills of ten plugins, techdebt, compare-report, machine-cleanup, account-cleanup, diagram-explainer, repo-progress, secure-dotfile, init-project, portman, and release-check in evm-dev, follow page-design of design-formats through musubi as optional follows, so each plugin still installs and works alone
 - The doc-formats plugin, whose design-doc skill holds the shared format of a design document and the verify script that checks one. The five design skills of evm-dev now follow it through musubi
-- Getting started now places Codex skills in `~/.agents/skills` instead of `~/.codex/skills`, which Codex keeps only for older setups
 - The diagram-composer plugin, which designs the diagram area of a slide with one visual metaphor, a meaning for every connector, and labels kept off the lines, and checks the diagram's geometry with a script before the slide is rendered
 - The slides plugin, whose two skills write and check the outline of a deck of ten or more slides, and design a short presentation as HTML that you edit in the browser and export as PowerPoint, PDF, and HTML. The export fetches python-pptx, Pillow, and Playwright through uv for one run, and stops before writing anything when uv is missing
+- The chainome-diagram plugin, whose skill designs and reviews animated React and SVG diagrams that explain blockchain mechanics, with one active phase, state changes shown where they happen, and the prose kept apart from the diagram
+- The digital-dashboard plugin, whose skill judges which screens of a design are presentation dashboards, downloads the official files of the Japanese Digital Agency's dashboard design guidebook with their fingerprints checked, and writes the request that applies them to those screens only
+- The product-deck plugin, whose skill makes a product introduction deck: it takes screenshots of the real product, decides the structure from ten base slides, builds the slides with the words kept apart from the layout, checks the layout and the wording by machine, and renders HTML, PDF, and PowerPoint
+- The motion-diagram plugin, whose skill shows how a mechanism works as one moving picture drawn from a small JSON spec, written as an HTML page, a video, a GIF, or an image, and which diagram-explainer places in a section of a document
+
+### Changed
+
+- The report skills of ten plugins, techdebt, compare-report, machine-cleanup, account-cleanup, diagram-explainer, repo-progress, secure-dotfile, init-project, portman, and release-check in evm-dev, follow page-design of design-formats through musubi as optional follows, so each plugin still installs and works alone
+- Getting started now places Codex skills in `~/.agents/skills` instead of `~/.codex/skills`, which Codex keeps only for older setups
 
 ## [0.20.0] - 2026-11-18
 
@@ -522,7 +567,8 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 - First public release with the account-cleanup and pc-tidy plugins, installable from this marketplace in Claude Code and Codex
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/v0.20.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/v0.21.0...HEAD
+[0.21.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.21.0
 [0.20.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.20.0
 [0.19.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.19.0
 [0.18.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.18.0
