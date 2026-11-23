@@ -1,6 +1,6 @@
 # diagram-styles
 
-| 条件 | 確かめ方 | 出元 |
+| Criterion | How to check | Origin |
 |---|---|---|
 | `plugins/diagram-styles/`は`.claude-plugin/plugin.json`と`.codex-plugin/plugin.json`と2つの技`skills/article-diagram-styles/`と`skills/tech-book-figure/`を持ち、2本の英語の`SKILL.md`は`name`に`article-diagram-styles`と`tech-book-figure`を返し、repoの`.claude-plugin/marketplace.json`は`diagram-styles`を載せる | `bash plugins/diagram-styles/skills/article-diagram-styles/tests/test-article-diagram-styles.sh`の検査`"the plugin holds both skills and the marketplace lists it"`が通る | #264 |
 | 書体`KaiseiDecol-Bold.ttf`は利用許諾`OFL.txt`と同じフォルダに在り、pluginの根の`THIRD_PARTY_NOTICES.md`は`Kaisei Decol`とその出どころと`SIL Open Font License 1.1`を名指す | `bash plugins/diagram-styles/skills/article-diagram-styles/tests/test-article-diagram-styles.sh`の検査`"the font ships with its license and notice"`が通る | #264 |
