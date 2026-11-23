@@ -48,6 +48,7 @@ from figure import lang_of  # noqa: E402
 
 # The contents of <script> and <style> are code, not markup: drop them and keep the tags.
 CODE_BODY = re.compile(r"(<(script|style)\b[^>]*>).*?(</\2>)", re.S | re.I)
+FRAME_PAGE = re.compile(r'(<iframe class="motion-frame" title="[^"]*" srcdoc=")[^"]*(")')
 
 EMPTY_SLOT = re.compile(r'<div\b[^>]*\bclass="ladder"[^>]*>\s*</div>')
 LADDER_SLOT = re.compile(r'<div\b[^>]*\bclass="ladder"[^>]*\bdata-ladder="')
@@ -239,8 +240,9 @@ NAMED = re.compile(r"([^\s(]+)\(([^)]*)\)")
 
 
 def strip_code(doc):
-    """The markup without the code inside <script> and <style>."""
-    return CODE_BODY.sub(r"\1\3", doc)
+    """The markup without the code inside <script> and <style>, and without the page a motion
+    figure carries in its frame, a document of its own whose ids and references stay inside it."""
+    return FRAME_PAGE.sub(r"\1\2", CODE_BODY.sub(r"\1\3", doc))
 
 
 def refs(text):

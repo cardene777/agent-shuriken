@@ -47,7 +47,8 @@ In GitHub Copilot CLI, write `/diagram-explainer` in your request, and in Gemini
 The document shows one section at a time from a contents list, splits two or more topics into pages with page tabs in the header band, slides its contents list in on a phone, and has a Save PDF button that prints every collapsed block open.
 Under the title, a facts table gives the time the document describes, the specification and version it follows, and the date its sources were read.
 Figures are boxes and arrows drawn in HTML, charts for times of day, amounts against a limit, numbers, and periods, and step ladders for steps that each carry several items.
-Every figure has an enlarge button that opens it at twice its size in a dialog.
+With the motion-diagram plugin, a section can also hold a moving picture of a mechanism from a page that `motion-diagram render` wrote: it runs once when its section is first shown, shows its finished picture until then and on paper, and follows the light or dark of the document.
+Every figure but a moving picture has an enlarge button that opens it at twice its size in a dialog.
 Comparisons sit in tables with a caption, units in the column headers, and numbers aligned right; a long or wide table scrolls in its box and keeps its header row and first column in view.
 Warnings are framed boxes with an icon and a title, explanations are titled paragraphs, and raw data of ten lines or more is folded under a summary that names it.
 On a phone, a figure too wide for the screen keeps its text size and scrolls sideways, with a line under it that says so.
@@ -99,6 +100,7 @@ In short:
 - It measures the layout and prints the PDF with your browser in headless mode and a throwaway profile, which is removed afterwards, so your own browser profile is never used
 - The document loads nothing from the network when you open it. Your browser remembers the reader's choices of language and colors in its local storage under `diagram-explainer-lang` and `diagram-explainer-theme`, and nothing is sent anywhere
 - `skills/diagram-explainer/musubi.json` declares through musubi that diagram-explainer follows the `structure` and `look` formats, the `document` page type, and `verify` of page-design, in the design-formats plugin, as optional follows with `"optional": true`. The agent reads them only when page-design is installed, runs page-design's verify on the finished document, and otherwise uses the skill's own template. It reads nothing else from other plugins
+- For a moving picture, `render.py` reads the one page that `motion-diagram render` wrote and the content JSON names, and puts it whole into a frame of the document, where its script runs; it never reads the motion-diagram plugin
 
 ## License
 

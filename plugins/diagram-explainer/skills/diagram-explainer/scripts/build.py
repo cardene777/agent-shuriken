@@ -8,7 +8,7 @@ What counts as unfinished:
 
 | Leftover | Why it is refused |
 |---|---|
-| `<iframe>` | The document draws its figures itself; a frame shows nothing once shared, or hides a second document |
+| `<iframe>` other than the frame of a `motion` figure | The document draws its figures itself; a frame shows nothing once shared, or hides a second document. The frame `render.py` writes for a `motion` block carries its page in `srcdoc` and loads nothing |
 | `class="mermaid"` | Needs a drawing library fetched when the page opens |
 | `<script type="text/html"` | Figure source hidden in the body instead of a drawn figure |
 | empty step ladder slot | `ladder.py` has not filled it |
@@ -29,7 +29,8 @@ import sys
 EMPTY_LADDER = re.compile(r'<div\b[^>]*\bclass="ladder"[^>]*>\s*</div>')
 # Charts (`data-chart`) are drawn by `assets/charts.js` when the page opens, so they stay empty.
 EMPTY_SVG = re.compile(r"<svg\b(?![^>]*\bdata-chart=)[^>]*>\s*</svg>")
-IFRAME_TAG = re.compile(r"<iframe\b", re.I)
+# Every frame except the one render.py writes for a motion block, whose page sits whole in srcdoc.
+IFRAME_TAG = re.compile(r'<iframe\b(?! class="motion-frame" title="[^"]*" srcdoc="[^"]*"></iframe>)', re.I)
 MARK_NAME = "diagram-explainer:asset"
 
 LITERAL = [
