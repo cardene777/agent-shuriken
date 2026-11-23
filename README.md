@@ -4,15 +4,14 @@
 
 # agent-shuriken
 
-**One folder of skills, rules, and hooks for every coding agent, and careful plugins to add.**
+**Careful plugins for Claude Code, Codex, and other coding agents.**
 
-`agent-shared` puts the skills, rules, and hooks you keep in `~/.shared` into Claude Code, Codex, and the other agents that read `SKILL.md`, so every agent reads the same files.
 Each plugin hands a tedious chore to your agent and keeps you in charge of every irreversible step.
 The same plugin installs in Claude Code, Codex, and GitHub Copilot CLI, and its skill works in Gemini CLI and other agents that read `SKILL.md`.
+`agent-shared`, the command that places your own skills, rules, and hooks in every agent, lives in its own private repository, [cardene777/agent-shared](https://github.com/cardene777/agent-shared).
 
 English · [日本語](README.ja.md)
 
-[agent-shared](#agent-shared) ·
 [Plugins](#plugins) ·
 [Install](#install) ·
 [Docs](#docs) ·
@@ -20,40 +19,6 @@ English · [日本語](README.ja.md)
 [Changelog](CHANGELOG.md)
 
 </div>
-
-## agent-shared
-
-Keep your own skills, rules, and hooks in one folder, and `agent-shared` places them in every agent.
-Install the command with [uv](https://docs.astral.sh/uv/), then deploy.
-
-```
-uv tool install "git+https://github.com/cardene777/agent-shuriken#subdirectory=agent-shared"
-agent-shared deploy
-```
-
-The folder `~/.shared` has the same layout for every agent.
-
-```
-~/.shared/
-  skills/<name>/SKILL.md   one folder per skill
-  rules/*.md               instructions every agent reads
-  hooks.json               hooks, written like the hooks in Claude Code's settings
-  agents.json              optional rows that add an agent or move where one keeps its files
-```
-
-| Agent | Skills | Rules | Hooks |
-|---|---|---|---|
-| Claude Code | `~/.claude/skills` | `~/.claude/rules` | `~/.claude/settings.json` |
-| Codex | `~/.agents/skills` | one block in `~/.codex/AGENTS.md` | `~/.codex/hooks.json`, with Codex's trust written for them |
-
-GitHub Copilot CLI and Gemini CLI read the skills in `~/.agents/skills` too.
-Skills and rules are links to the one copy in `~/.shared`, so an edit reaches every agent at once.
-A repository can keep its own skills in `.shared/skills`, and running `agent-shared deploy` inside it links them into the repository's `.claude/skills` and `.agents/skills`.
-Running the command again places what is new and removes only what it placed before, and it never sends anything over the network.
-`agent-shared hooks --agent <name>` prints the hooks `deploy` places for one agent and writes nothing, so a guard can compare an agent's hook file with it.
-`agent-shared placed --source <folder>` prints, as JSON, the skills, rules, and hooks one folder placed in each agent and writes nothing, so an app can list what it deployed.
-`agent-shared off --source <folder> --agent <name> <item>` leaves one rule or hook out of one agent at every later deploy, and `agent-shared on` with the same arguments places it again; the choice is kept in `off.json` beside the record, never in the source folder.
-[agent-shared](docs/agent-shared.md) explains every place it writes and every refusal.
 
 ## Plugins
 
@@ -130,7 +95,6 @@ Installing a plugin copies only that plugin's folder.
 
 | Page | For |
 |---|---|
-| [agent-shared](docs/agent-shared.md) | Deploying your own skills, rules, and hooks to every agent from `~/.shared` |
 | [Getting started](docs/getting-started.md) | Installing, running, updating, and removing plugins in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents |
 | [Safety](docs/safety.md) | The guarantees every plugin keeps when it touches your accounts and files |
 | [Creating a plugin](docs/creating-a-plugin.md) | Adding a new plugin to this repository |

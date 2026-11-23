@@ -4,15 +4,14 @@
 
 # agent-shuriken
 
-**スキルとルールとhookを1つのフォルダーに置いて全てのコーディングエージェントへ配るコマンドと、足して使える慎重なプラグイン集。**
+**Claude Code、Codex、ほかのコーディングエージェントで使える、慎重なプラグイン集。**
 
-`agent-shared`は、あなたが`~/.shared`に置いたスキルとルールとhookを、Claude Code、Codex、`SKILL.md`を読むほかのエージェントへ配り、どのエージェントも同じファイルを読むようにします。
 どのプラグインでも、面倒な作業はエージェントが進め、取り消せない操作はすべてあなたが決めます。
 同じプラグインを、Claude Code、Codex、GitHub Copilot CLIにインストールでき、そのスキルはGemini CLIや`SKILL.md`を読むほかのエージェントでも動きます。
+自分のスキルとルールとhookを全てのエージェントへ配る`agent-shared`は、非公開のリポジトリ[cardene777/agent-shared](https://github.com/cardene777/agent-shared)にあります。
 
 [English](README.md) · 日本語
 
-[agent-shared](#agent-shared) ·
 [プラグイン](#プラグイン) ·
 [インストール](#インストール) ·
 [ドキュメント](#ドキュメント) ·
@@ -20,40 +19,6 @@
 [変更履歴](CHANGELOG.md)
 
 </div>
-
-## agent-shared
-
-自分のスキルとルールとhookを1つのフォルダーに置くと、`agent-shared`が全てのエージェントへ配ります。
-[uv](https://docs.astral.sh/uv/)でコマンドをインストールし、配ります。
-
-```
-uv tool install "git+https://github.com/cardene777/agent-shuriken#subdirectory=agent-shared"
-agent-shared deploy
-```
-
-フォルダー`~/.shared`は、どのエージェントにも同じ形で置きます。
-
-```
-~/.shared/
-  skills/<name>/SKILL.md   スキルごとに1つのフォルダー
-  rules/*.md               全てのエージェントが読む指示
-  hooks.json               hook。Claude Codeの設定のhooksと同じ形で書く
-  agents.json              エージェントを足すか、置き場を変える行 (無くてもよい)
-```
-
-| エージェント | スキル | ルール | hook |
-|---|---|---|---|
-| Claude Code | `~/.claude/skills` | `~/.claude/rules` | `~/.claude/settings.json` |
-| Codex | `~/.agents/skills` | `~/.codex/AGENTS.md`の中の1つの囲み | `~/.codex/hooks.json`。Codexの信頼の印も書く |
-
-GitHub Copilot CLIとGemini CLIも、`~/.agents/skills`のスキルを読みます。
-スキルとルールは`~/.shared`の1つの実体を指すリンクなので、直すと全てのエージェントに一度に届きます。
-リポジトリは自分のスキルを`.shared/skills`に置けて、その中で`agent-shared deploy`を打つと、そのリポジトリの`.claude/skills`と`.agents/skills`にリンクを置きます。
-もう一度打つと新しい物を置き、前に自分が置いた物だけを外します。ネットワークには何も送りません。
-`agent-shared hooks --agent <名前>`は、`deploy`が1つのエージェントへ置くhookを何も書かずに出すので、見張りはエージェントのhookの置き場とこの出力を比べられます。
-`agent-shared placed --source <フォルダー>`は、1つのフォルダーが各エージェントへ置いたスキルとルールとhookを何も書かずにJSONで出すので、アプリは配った物を一覧にできます。
-`agent-shared off --source <フォルダー> --agent <名前> <項目>`は、1つのルールかhookを、それ以降に配るたびに1つのエージェントから外します。同じ引数の`agent-shared on`で、また置きます。選んだ状態は記録の隣の`off.json`に残り、配る元のフォルダーには書きません。
-置き場と断る場合の全ては[agent-shared](docs/agent-shared.ja.md)にあります。
 
 ## プラグイン
 
@@ -130,7 +95,6 @@ gemini skills install https://github.com/cardene777/agent-shuriken.git --path pl
 
 | ページ | 内容 |
 |---|---|
-| [agent-shared](docs/agent-shared.ja.md) | `~/.shared`の自分のスキルとルールとhookを全てのエージェントへ配る方法 |
 | [はじめに](docs/getting-started.ja.md) | Claude Code、Codex、GitHub Copilot CLI、Gemini CLI、ほかのエージェントでのプラグインのインストール、起動、アップデート、削除 |
 | [安全性](docs/safety.ja.md) | あなたのアカウントやファイルに触れる時に、どのプラグインも守る約束 |
 | [プラグインの作り方](docs/creating-a-plugin.ja.md) | このリポジトリに新しいプラグインを追加する方法 |
