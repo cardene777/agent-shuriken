@@ -202,6 +202,67 @@ def contract(name, nodes=(), bases=(), kind="contract"):
 def unit(path, *nodes):
     return {"nodeType": "SourceUnit", "id": next(_ids), "absolutePath": path, "nodes": list(nodes)}
 
+# Places in the source, unique across one build, that tie a Yul identifier to its external reference.
+_places = itertools.count(100)
+
+def _place():
+    return "%d:6:0" % (next(_places) * 10)
+
+def constant(name, value=None, expression=None):
+    """A bytes32 constant whose value is a hex literal, or the given expression node."""
+    if expression is None:
+        expression = {"nodeType": "Literal", "id": next(_ids), "kind": "number", "value": value,
+                      "typeDescriptions": _desc("int_const %d" % int(value, 16))}
+    return {"nodeType": "VariableDeclaration", "id": next(_ids), "name": name, "constant": True,
+            "mutability": "constant", "stateVariable": True, "typeName": elem("bytes32"), "value": expression,
+            "typeDescriptions": _desc("bytes32")}
+
+def slot_expression(text):
+    """keccak256(abi.encode(uint256(keccak256(text)) - 1)) & ~bytes32(uint256(0xff)), as solc writes it."""
+    def call(callee, *args):
+        return {"nodeType": "FunctionCall", "id": next(_ids), "kind": "functionCall", "arguments": list(args),
+                "expression": callee}
+    def ident(name):
+        return {"nodeType": "Identifier", "id": next(_ids), "name": name, "referencedDeclaration": -1}
+    def literal(kind, value):
+        return {"nodeType": "Literal", "id": next(_ids), "kind": kind, "value": value}
+    def conv(name, arg):
+        return call({"nodeType": "ElementaryTypeNameExpression", "id": next(_ids), "typeName": elem(name)}, arg)
+    inner = {"nodeType": "BinaryOperation", "id": next(_ids), "operator": "-",
+             "leftExpression": conv("uint256", call(ident("keccak256"), literal("string", text))),
+             "rightExpression": literal("number", "1")}
+    encoded = call({"nodeType": "MemberAccess", "id": next(_ids), "memberName": "encode",
+                    "expression": ident("abi")}, inner)
+    mask = {"nodeType": "UnaryOperation", "id": next(_ids), "operator": "~", "prefix": True,
+            "subExpression": conv("bytes32", conv("uint256", literal("number", "0xff")))}
+    return {"nodeType": "BinaryOperation", "id": next(_ids), "operator": "&",
+            "leftExpression": call(ident("keccak256"), encoded), "rightExpression": mask}
+
+def getter(name, target, slot):
+    """A private function that points `$` at the struct target in inline assembly. slot is a constant
+    declaration, written as a Yul identifier, or a hex string, written as a Yul literal."""
+    pointer = {"nodeType": "VariableDeclaration", "id": next(_ids), "name": "$", "storageLocation": "storage",
+               "typeName": ref(target, "struct " + target["canonicalName"]),
+               "typeDescriptions": _desc("struct %s storage pointer" % target["canonicalName"])}
+    pointer_place = _place()
+    references = [{"declaration": pointer["id"], "isOffset": False, "isSlot": True, "src": pointer_place,
+                   "suffix": "slot", "valueSize": 1}]
+    if isinstance(slot, dict):
+        value_place = _place()
+        value = {"nodeType": "YulIdentifier", "name": slot["name"], "src": value_place}
+        references.append({"declaration": slot["id"], "isOffset": False, "isSlot": False, "src": value_place,
+                           "valueSize": 1})
+    else:
+        value = {"nodeType": "YulLiteral", "kind": "number", "type": "", "value": slot, "src": _place()}
+    assembly = {"nodeType": "InlineAssembly", "id": next(_ids), "evmVersion": "prague", "externalReferences": references,
+                "AST": {"nodeType": "YulBlock", "statements": [{"nodeType": "YulAssignment", "value": value,
+                        "variableNames": [{"nodeType": "YulIdentifier", "name": "$.slot", "src": pointer_place}]}]}}
+    return {"nodeType": "FunctionDefinition", "id": next(_ids), "name": name, "kind": "function",
+            "visibility": "private", "stateMutability": "pure",
+            "parameters": {"nodeType": "ParameterList", "id": next(_ids), "parameters": []},
+            "returnParameters": {"nodeType": "ParameterList", "id": next(_ids), "parameters": [pointer]},
+            "body": {"nodeType": "Block", "id": next(_ids), "statements": [assembly]}}
+
 def artifact(root, path, ast=None, layout=None):
     p = os.path.join(root, path)
     os.makedirs(os.path.dirname(p), exist_ok=True)
@@ -322,13 +383,22 @@ namespaced_builds() {
 import os, sys
 root, T = sys.argv[1], sys.argv[2]
 sys.path.insert(0, T)
-from astfix import array, artifact, contract, elem, field, mapping, ref, struct, unit
+from astfix import array, artifact, constant, contract, elem, field, getter, mapping, ref, slot_expression, struct, unit
 
-def build(folder, counted_fields, position_fields, points_fields, membership_as_address=False, with_ast=True):
+COUNTED_SLOT = "0x183a6125c38840424c4a85fa12bab2ab606c4b6d0e7cc73c0c06ba5300eab500"
+POINTS_SLOT = "0x52c63247e1f47db19d5ce0460030c497f067ca4cebf71ba98eeadabe20bace00"
+
+# Counted reaches its struct through the constant COUNTED_SLOT, a hex literal or, with counted_text,
+# the ERC-7201 formula over that text; Points sets its struct's slot to a hex literal in each of
+# points_slots (none leaves the slot unset).
+def build(folder, counted_fields, position_fields, points_fields, membership_as_address=False, with_ast=True,
+          counted_slot=COUNTED_SLOT, counted_text=None, points_slots=(POINTS_SLOT,)):
     out = os.path.join(root, folder)
     iface = contract("IMembership", kind="interface")
     counted_struct = struct("CountedStorage", "Counted", [field(n, elem(t)) for n, t in counted_fields], "example.counted")
-    counted = contract("Counted", [counted_struct])
+    location = constant("COUNTED_SLOT", expression=slot_expression(counted_text)) if counted_text \
+        else constant("COUNTED_SLOT", counted_slot)
+    counted = contract("Counted", [counted_struct, location, getter("_countedStorage", counted_struct, location)])
     position = struct("Position", "Points", [field(n, elem(t)) for n, t in position_fields])
     membership = elem("address") if membership_as_address else ref(iface, "contract IMembership")
     types = {"membership": membership,
@@ -336,7 +406,9 @@ def build(folder, counted_fields, position_fields, points_fields, membership_as_
              "missing": ref(999999, "struct Lib.Missing"),
              "days": array(elem("uint64"), 3)}
     fields = [field(n, types[t] if t in types else elem(t)) for n, t in points_fields]
-    points = contract("Points", [position, struct("PointsStorage", "Points", fields, "example.points")], [counted])
+    points_struct = struct("PointsStorage", "Points", fields, "example.points")
+    getters = [getter("_pointsStorage%d" % i, points_struct, s) for i, s in enumerate(points_slots)]
+    points = contract("Points", [position, points_struct] + getters, [counted])
     artifact(out, "IMembership.sol/IMembership.json", unit("src/IMembership.sol", iface) if with_ast else None)
     artifact(out, "Counted.sol/Counted.json", unit("src/Counted.sol", counted) if with_ast else None)
     artifact(out, "Points.sol/Points.json", unit("src/Points.sol", points) if with_ast else None)
@@ -350,6 +422,13 @@ build("bad", [("count", "uint128")], [("since", "uint64"), ("amount", "uint128")
       [("membership", "membership"), ("cap", "uint128"), ("positions", "positions"), ("lastDay", "uint64"), ("days", "days")])
 build("odd", [("count", "uint256")], [("amount", "uint128"), ("since", "uint64")], v1_points + [("extra", "missing")])
 build("flat", [("count", "uint256")], [("amount", "uint128"), ("since", "uint64")], v1_points, with_ast=False)
+v1_args = ([("count", "uint256")], [("amount", "uint128"), ("since", "uint64")], v1_points)
+build("moved", *v1_args, counted_slot="0x" + "11" * 32, points_slots=("0x" + "22" * 32,))
+build("expr-a", *v1_args, counted_text="example.counted")
+build("expr-b", *v1_args, counted_text="example.counted")
+build("expr-c", *v1_args, counted_text="example.other")
+build("noslot", *v1_args, points_slots=())
+build("twoslots", *v1_args, points_slots=(POINTS_SLOT, "0x" + "33" * 32))
 PYEOF
 }
 
@@ -412,6 +491,72 @@ namespaced_unread() {
   [ "$status" -eq 1 ] && grep -q '^not-compared Points ' "$out" && ! grep -q 'compatible' "$out"
 }
 check "layout names a contract whose namespaced storage it could not compare and never prints compatible for it" namespaced_unread
+
+# moved keeps every field of v1 and points both namespaces at other slots: Counted through its
+# constant, Points through a literal in assembly.
+slot_moved() {
+  local d="$T/ns" out="$T/ns-moved.out" status c="0x$(printf '11%.0s' $(seq 32))" p="0x$(printf '22%.0s' $(seq 32))"
+  [ -d "$d/v1" ] || namespaced_builds "$d" || return 1
+  run layout "$d/v1" "$d/moved" > "$out" 2>&1
+  status=$?
+  [ "$status" -eq 1 ] || { echo "      exit $status"; return 1; }
+  grep -qx "slot Counted erc7201:example.counted 0x183a6125c38840424c4a85fa12bab2ab606c4b6d0e7cc73c0c06ba5300eab500 -> $c" "$out" \
+    && grep -qx "slot Points erc7201:example.counted 0x183a6125c38840424c4a85fa12bab2ab606c4b6d0e7cc73c0c06ba5300eab500 -> $c" "$out" \
+    && grep -qx "slot Points erc7201:example.points 0x52c63247e1f47db19d5ce0460030c497f067ca4cebf71ba98eeadabe20bace00 -> $p" "$out" \
+    && ! grep -q 'compatible' "$out" \
+    && grep -qx 'layout: 3 problems in 3 contracts compared (0 renamed)' "$out" \
+    || { echo "      $(tail -n 1 "$out")"; return 1; }
+}
+check "layout names a namespace whose slot changed between the versions" slot_moved
+
+# expr-a and expr-b write Counted's slot constant as the same ERC-7201 formula; expr-c over another text.
+slot_expression_compared() {
+  local d="$T/ns" out="$T/ns-expr.out" status
+  [ -d "$d/v1" ] || namespaced_builds "$d" || return 1
+  run layout "$d/expr-a" "$d/expr-b" > "$out" 2>&1 || { echo "      the same expression: $(tail -n 1 "$out")"; return 1; }
+  grep -qx 'layout: compatible (3 contracts compared, 3 namespaces, 0 renamed)' "$out" || return 1
+  run layout "$d/expr-a" "$d/expr-c" > "$out" 2>&1
+  status=$?
+  [ "$status" -eq 1 ] && grep -q '^slot Counted erc7201:example.counted .* -> ' "$out" && ! grep -q 'compatible' "$out" \
+    || { echo "      another expression: exit $status, $(tail -n 1 "$out")"; return 1; }
+}
+check "layout compares a slot constant written as an expression by its expression" slot_expression_compared
+
+# noslot sets no slot for PointsStorage; twoslots sets it to two different values.
+slot_unread() {
+  local d="$T/ns" out status build
+  [ -d "$d/v1" ] || namespaced_builds "$d" || return 1
+  for build in noslot twoslots; do
+    out="$T/ns-$build.out"
+    run layout "$d/v1" "$d/$build" > "$out" 2>&1
+    status=$?
+    [ "$status" -eq 1 ] && grep -q '^not-compared Points erc7201:example.points: ' "$out" && ! grep -q 'compatible' "$out" \
+      || { echo "      $build: exit $status, $(tail -n 1 "$out")"; return 1; }
+  done
+}
+check "layout names a namespace whose slot it could not read and never prints compatible for it" slot_unread
+
+slot_documented() {
+  python3 -c 'import ast, sys
+doc = ast.get_docstring(ast.parse(open(sys.argv[1], encoding="utf-8").read()))
+sys.exit(0 if "slot <contract> erc7201:<id> <old> -> <new>" in doc and "sets no slot" in doc else 1)' "$SCRIPT" || return 1
+  grep -qE '^\| `slot` \|' "$PLUGIN/docs/how-it-works.md" && grep -q 'sets no slot' "$PLUGIN/docs/how-it-works.md" || return 1
+  grep -qE '^\| `slot` \|' "$PLUGIN/docs/how-it-works.ja.md"
+}
+check "the docs list the slot line of layout" slot_documented
+
+skill_slot_and_simulation() {
+  grep -qF '`gap`, or `slot` line' "$SKILL" && grep -qF 'without `--broadcast`' "$SKILL" \
+    && grep -qF '`anvil`' "$SKILL" && grep -qF 'deploy script' "$SKILL"
+}
+check "the release-check SKILL.md names the slot line and where to simulate the upgrade" skill_slot_and_simulation
+
+changelog_slot() {
+  local entries
+  entries="$(awk '/^## \[/ { on = 1 } on' "$PLUGIN/CHANGELOG.md" | grep '^- ')"
+  printf '%s\n' "$entries" | grep -q 'slot' && printf '%s\n' "$entries" | grep -q '`anvil`'
+}
+check "the changelog names the slot comparison and the simulation step" changelog_slot
 
 abis() {
   python3 - "$1" <<'PYEOF'

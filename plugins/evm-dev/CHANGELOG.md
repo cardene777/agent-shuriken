@@ -5,6 +5,12 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+### Fixed
+
+- `release-check.py layout` compares the slot each ERC-7201 namespace sits at, as the contract or a base assigns it to `<pointer>.slot` in inline assembly, a number or a constant, and names a changed one with a `slot` line instead of printing `compatible`. A constant written as an expression is compared by its expression, and a namespace whose slot no build sets, or sets to two values, is `not-compared`
+- `contract-tests.py uncovered` counts an access point only when a test expects the error its guard raises: `OwnableUnauthorizedAccount` for `onlyOwner`, `AccessControlUnauthorizedAccount` for `onlyRole`, `AccessManagedUnauthorized` for `restricted`, and the custom error or revert string of the project's own guard. A bare `vm.expectRevert()`, a bare revert check in a Hardhat test, or another error no longer counts; when the guard's error cannot be read, the test must name some error
+- The release-check skill says where to simulate the upgrade script: without `--broadcast` against the chain the proxy lives on, or, when no reachable chain has it, on `anvil` after deploying the deployed version from the worktree with its own deploy script
+
 ## [0.8.0] - 2026-11-23
 
 ### Added

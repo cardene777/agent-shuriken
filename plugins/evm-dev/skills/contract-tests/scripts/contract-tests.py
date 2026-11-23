@@ -21,11 +21,21 @@ Kinds of points
              changes state
 
 A test touches a function when it calls `.<name>`, an error or an event when it names it, an access
-rule when a test expects a revert on a call to the function, a fuzz target when a Solidity test
+rule when a test expects the error its guard raises on a call to the function, a fuzz target when a Solidity test
 function (its name starts with `test`) that takes parameters or a fast-check property calls it, and
 an invariant when a Solidity test file that names the contract has a function whose name starts with
 `invariant`, or a fast-check `fc.commands` test names it. A helper that takes parameters but is not a
 test function does not count, even when a test calls it. Names inside comments do not count.
+
+The error a guard raises is OwnableUnauthorizedAccount for `onlyOwner`, AccessControlUnauthorizedAccount
+for `onlyRole`, and AccessManagedUnauthorized for `restricted`, unless the project declares a modifier
+of that name; for a modifier the project declares, and for a comparison with msg.sender, it is the
+custom error after `revert`, or the custom error or message of `require`. A Solidity test expects it
+when the `expectRevert` before the call names the error or holds the message; a TypeScript or
+JavaScript test, when the statement with the call and the revert check does. When the guard's error
+cannot be read, as for a `require` without a message or a modifier from a dependency, the test counts
+when it names some error: an `expectRevert` with an argument, or a check such as
+`revertedWithCustomError` or `revertedWith`.
 
 Contracts are read from the `src` folder in foundry.toml (default `src`) and from `contracts` in a
 Hardhat project, leaving out interfaces and `.t.sol` and `.s.sol` files. Tests are the files under
@@ -68,6 +78,15 @@ INTEGER = re.compile(r"\bu?int\d*\b")
 GUARD_MODIFIER = re.compile(r"\bonly\w+|\brestricted\b")
 SENDER_CHECK = re.compile(r"msg\.sender\s*[!=]=|[!=]=\s*msg\.sender|\b_check(?:Owner|Role)\s*\(")
 REVERT = re.compile(r"\b(?:expect\w*Revert\w*|revert\w*|reject\w*)\b")
+MODIFIER = re.compile(r"\bmodifier\s+(" + IDENT + r")\b")
+REVERT_ERROR = re.compile(r"\brevert\s+(?:" + IDENT + r"\.)*(" + IDENT + r")\s*\(")
+REQUIRE = re.compile(r"\brequire\s*\(")
+STRING = re.compile(r'"((?:[^"\\\n]|\\.)*)"' + r"|'((?:[^'\\\n]|\\.)*)'")
+NAMED_CHECK = re.compile(r"\brevert\w*With\w*\s*\(")
+# The errors OpenZeppelin's guards raise, by the modifier or the check that raises them.
+OZ_GUARD_ERRORS = {"onlyOwner": "OwnableUnauthorizedAccount", "onlyRole": "AccessControlUnauthorizedAccount",
+                   "restricted": "AccessManagedUnauthorized", "_checkOwner": "OwnableUnauthorizedAccount",
+                   "_checkRole": "AccessControlUnauthorizedAccount"}
 JS_TEST = re.compile(r"\b(?:it|test)(?:\.(?:only|skip|each\([^)]*\)))?\s*\(")
 FAST_CHECK = re.compile(r"\bfc\.(?:assert|property|asyncProperty)\s*\(")
 FAST_CHECK_COMMANDS = re.compile(r"\bfc\.commands\s*\(")
@@ -330,11 +349,78 @@ def read(path):
     return path.read_text(encoding="utf-8", errors="replace")
 
 
+def raised_error(text):
+    """("error", name) or ("message", text) for the first revert or require in text, or None."""
+    revert = REVERT_ERROR.search(text)
+    require = REQUIRE.search(text)
+    if revert and (not require or revert.start() < require.start()):
+        return ("error", revert.group(1))
+    if not require:
+        return None
+    inside = text[require.end():matching(text, require.end() - 1, "(", ")") - 1]
+    depth, comma = 0, None
+    for i, c in enumerate(inside):
+        depth += c in "([{"
+        depth -= c in ")]}"
+        if c == "," and depth == 0:
+            comma = i
+            break
+    if comma is None:
+        return None
+    second = inside[comma + 1:].strip()
+    message = STRING.fullmatch(second)
+    if message:
+        return ("message", message.group(1) if message.group(1) is not None else message.group(2))
+    error = re.match(r"(?:" + IDENT + r"\.)*(" + IDENT + r")\s*\(", second)
+    return ("error", error.group(1)) if error else None
+
+
+def statement_at(body, at):
+    """The statement of body around offset `at`: from the last `;`, `{`, or `}` before it to the next `;`."""
+    start = max(body.rfind(c, 0, at) for c in ";{}") + 1
+    end = body.find(";", at)
+    return body[start:end if end >= 0 else len(body)]
+
+
+def project_modifiers(files):
+    """The error each modifier the project declares raises, by name, or None when it cannot be read or
+    two modifiers of that name raise different errors."""
+    found = {}
+    for path, _ in files:
+        text = clean(read(path), blank_strings=False)
+        for match in MODIFIER.finditer(text):
+            brace = re.compile(r"[{;]").search(text, match.end())
+            body = text[brace.start():matching(text, brace.start(), "{", "}")] if brace and text[brace.start()] == "{" else ""
+            found.setdefault(match.group(1), set()).add(raised_error(body))
+    return {name: errors.pop() if len(errors) == 1 else None for name, errors in found.items()}
+
+
+def guard_error(header, body, modifiers):
+    """The error the guard of a function raises, as raised_error gives it, or None when it cannot be read."""
+    guard = GUARD_MODIFIER.search(header)
+    if guard:
+        name = guard.group(0)
+        if name in modifiers:
+            return modifiers[name]
+        return ("error", OZ_GUARD_ERRORS[name]) if name in OZ_GUARD_ERRORS else None
+    check = SENDER_CHECK.search(body)
+    if not check:
+        return None
+    called = re.match(r"\b(_check(?:Owner|Role))", check.group(0))
+    if called:
+        return ("error", OZ_GUARD_ERRORS[called.group(1)])
+    return raised_error(statement_at(body, check.start()))
+
+
 def project_points(root):
-    """(points, contracts read): points as dicts with kind, name, contract, member, place."""
+    """(points, contracts read): points as dicts with kind, name, contract, member, place, and for an
+    access point the error its guard raises."""
     sources, tests = layout(root)
     points, contracts = [], 0
-    for path, rel in contract_files(root, sources, tests):
+    files = list(contract_files(root, sources, tests))
+    modifiers = project_modifiers(files)
+    for path, rel in files:
+        raw = clean(read(path), blank_strings=False)
         text = clean(read(path), blank_strings=True)
         for kind, name, offset, start, end in declarations(text):
             if kind == "interface":
@@ -342,10 +428,10 @@ def project_points(root):
             contracts += 1
             flat = top_level(text[start:end])
 
-            def add(point_kind, member, at, contract=name):
+            def add(point_kind, member, at, contract=name, error=None):
                 points.append({"kind": point_kind, "contract": contract, "member": member,
                                "name": "%s.%s" % (contract, member) if member else contract,
-                               "place": "%s:%d" % (rel, line_at(text, at))})
+                               "place": "%s:%d" % (rel, line_at(text, at)), "error": error})
 
             for match in ERROR.finditer(flat):
                 add("error", match.group(1), start + match.start())
@@ -360,7 +446,9 @@ def project_points(root):
                 if not readonly:
                     changes_state = True
                 if GUARD_MODIFIER.search(header) or SENDER_CHECK.search(body):
-                    add("access", fname, at)
+                    # The same span of the text with its strings kept, for the message of a require.
+                    body_at = text.find(body, at)
+                    add("access", fname, at, error=guard_error(header, raw[body_at:body_at + len(body)], modifiers))
                 if not readonly and INTEGER.search(params):
                     add("fuzz", fname, at)
             if kind == "contract" and changes_state and UINT_MAPPING.search(state_text(text, start, end, flat)):
@@ -391,19 +479,30 @@ def project_tests(root):
     return texts, solidity_cases, script_cases, solidity_files
 
 
-def reverting_call(case, call, solidity):
-    """Whether the test expects a revert on a call that `call` matches.
+def expects(check, error):
+    """Whether a revert check names the error a guard raises, or names some error when that is None."""
+    if error is None:
+        return bool(NAMED_CHECK.search(check)) or bool(re.search(r"\bexpect\w*Revert\s*\(\s*[^\s)]", check))
+    kind, value = error
+    if kind == "message":
+        return any((m.group(1) if m.group(1) is not None else m.group(2)) == value for m in STRING.finditer(check))
+    return bool(re.search(r"\b%s\b" % re.escape(value), check))
+
+
+def reverting_call(case, call, solidity, error):
+    """Whether the test expects a revert on a call that `call` matches, with a revert check that
+    expects `error` as `expects` reads it.
 
     In Solidity the call is the first statement after `expectRevert` that is not a `vm.` cheatcode;
     in TypeScript and JavaScript the call and the revert check sit in one statement."""
     statements = case.split(";")
     if not solidity:
-        return any(call.search(s) and REVERT.search(s) for s in statements)
+        return any(call.search(s) and REVERT.search(s) and expects(s, error) for s in statements)
     for i, statement in enumerate(statements):
         if not re.search(r"\bexpect\w*Revert\b", statement):
             continue
         following = (s for s in statements[i + 1:] if not re.match(r"[\s{}]*vm\.", s))
-        if call.search(next(following, "")):
+        if call.search(next(following, "")) and expects(statement, error):
             return True
     return False
 
@@ -418,8 +517,8 @@ def touched(point, texts, solidity_cases, script_cases, solidity_files):
     if kind in ("error", "event"):
         return any(named.search(t) for t in texts)
     if kind == "access":
-        return (any(reverting_call(c["body"], call, solidity=True) for c in solidity_cases)
-                or any(reverting_call(c, call, solidity=False) for c in script_cases))
+        return (any(reverting_call(c["body"], call, True, point["error"]) for c in solidity_cases)
+                or any(reverting_call(c, call, False, point["error"]) for c in script_cases))
     if kind == "fuzz":
         return (any(c["test"] and c["params"] and call.search(c["body"]) for c in solidity_cases)
                 or any(FAST_CHECK.search(c) and call.search(c) for c in script_cases))

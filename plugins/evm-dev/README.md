@@ -250,9 +250,9 @@ record: 2 contracts on 2 chains, 2 transactions to look at
 
 1. The agent reads the project's versions and the items on each chain's EVM version, the per-transaction gas cap, storage layouts, and the tools, and re-checks the ones that are out of date
 2. For an upgrade, the agent checks out the deployed git tag or commit in a temporary worktree and builds it and the new version from the same source folder, with the storage layout and the syntax tree (`--ast`) in the build output
-3. The agent compares the two storage layouts and names each variable that was removed, moved, or retyped, also inside structs and inside ERC-7201 namespaced structs, and each `__gap` that no longer ends where it did; a contract whose namespaced storage it could not compare is named, never passed. It compares the ABIs and names each function, event, and error that was removed or changed
+3. The agent compares the two storage layouts and names each variable that was removed, moved, or retyped, also inside structs and inside ERC-7201 namespaced structs, each `__gap` that no longer ends where it did, and each namespace whose slot changed; a contract whose namespaced storage it could not compare is named, never passed. It compares the ABIs and names each function, event, and error that was removed or changed
 4. The agent names each opcode the target chain's EVM version lacks, in the runtime code and in the constructor, and says whether a compiler setting fixes it or the code must change
-5. When the project has OpenZeppelin's upgrade check, the agent runs it as well and reports both. It compares gas with `forge snapshot --diff` and sizes with `forge build --sizes`, checks each deployment transaction against the chain's gas cap, and removes the temporary worktree
+5. When the project has OpenZeppelin's upgrade check, the agent runs it as well and reports both. It compares gas with `forge snapshot --diff` and sizes with `forge build --sizes`, simulates the upgrade on the chain the proxy lives on, or on a local `anvil` after deploying the deployed version there, checks each transaction against the chain's gas cap, and removes the temporary worktree
 
 The layout comparison names each variable that would read the wrong value after the upgrade.
 

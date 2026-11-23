@@ -174,7 +174,7 @@ Foundry 1.0が`testFail`を外したことのような、Solidityの書き方に
 | `function` | 外から呼べる関数 | `.<名前>`を呼ぶ時 |
 | `error` | 独自のerror | errorの名前を書く時 |
 | `event` | event | eventの名前を書く時 |
-| `access` | 名前が`only`で始まる修飾子、`restricted`(OpenZeppelinの`AccessManaged`)、`msg.sender`との比べのどれかで守った関数 | その関数を呼ぶ所でrevertを待つ時。Solidityでは`expectRevert`の後の、`vm.`の命令でない最初の呼び出しを見ます。TypeScriptでは、revertの確かめと同じ文の中の呼び出しを見ます |
+| `access` | 名前が`only`で始まる修飾子、`restricted`(OpenZeppelinの`AccessManaged`)、`msg.sender`との比べのどれかで守った関数 | その関数を呼ぶ所で、守りが投げるエラーを待つ時。Solidityでは、`vm.`の命令でない最初の呼び出しの前の`expectRevert`がそのエラーを名指すか、その文字列を持つかを見ます。TypeScriptでは、呼び出しとrevertの確かめの文を見ます。エラーは`onlyOwner`が`OwnableUnauthorizedAccount`、`onlyRole`が`AccessControlUnauthorizedAccount`、`restricted`が`AccessManagedUnauthorized`で、プロジェクトが書いた守りはその独自のエラーか`require`の文字列です。読めない時は、何かエラーを名指すテストだけを数えます |
 | `fuzz` | 状態を変え、整数を受ける関数 | 引数を受けるSolidityのテストの関数(名前が`test`で始まる関数)か、fast-checkの性質がその関数を呼ぶ時。引数を受ける補助の関数は数えません |
 | `invariant` | 符号なし整数への`mapping`と、状態を変える関数を持つコントラクト。`mapping`の鍵と値に名前が付いていても、コントラクトが宣言したstruct(ERC-7201の名前空間のstructなど)の中に在っても数えます | コントラクトの名前を書いたSolidityのテストのファイルが、名前が`invariant`で始まる関数を持つ時か、fast-checkの`fc.commands`のテストがその名前を書く時 |
 
@@ -293,6 +293,7 @@ Foundry 1.0が`testFail`を外したことのような、Solidityの書き方に
 | `retyped` | 変数の型が変わりました。structの中か、mappingの値か、配列の要素の中の変化は`changed inside`と出します |
 | `gap` | `__gap`の配列が前と同じslotで終わらず、その後ろの変数が動きました |
 | `renamed` | 前の変数の場所に、同じ型の変数が新しい名前で在ります。問題には数えません |
+| `slot` | ERC-7201の名前空間のstructが新しい版で別のslotに在ります。前と後のslotを出します。新しい版は、前の版が書いた場所から欄を読みません |
 | `not-compared` | その契約のERC-7201の名前空間の保存を比べませんでした。名前空間(ビルドがどれを持つか分からない時は`namespaces`)と理由を出します。この時`layout`は`compatible`を出さず、1で終わります |
 
 変数は名前で突き合わせ、合わなければ場所で突き合わせます。
@@ -300,7 +301,8 @@ structとenumの名前は宣言した契約の名前を除いて比べるため�
 フォルダでは、テストとスクリプトのartifact(`*.t.sol/`、`*.s.sol/`)、`build-info/`、Hardhatの`*.dbg.json`のファイルを除き、`--contract`と`--new-contract`で名前の違う2つの契約を比べます。
 ERC-7201の名前空間の保存の変数(`@custom:storage-location erc7201:<id>`を付けたstruct)は、solcの保存の配置の出力に在りません。
 `layout`は、そのstructを各artifactの構文木から、契約と、契約が継ぐ全ての契約について読み、solcがstructを並べるのと同じ規則で欄を並べ、名前空間ごとに同じ行で比べます。行の名前は`erc7201:<id>.<欄>`で、slotは名前空間のslotから数えます。
-artifactが構文木を持たない時(`forge inspect`の出力か、`--ast`無しのビルド)、継ぐ契約がどのartifactにも無い時、ビルドがコンパイラの別々の実行を混ぜた時、欄の型を並べられない時は`not-compared`を出します。
+名前空間のslotは、契約か継ぐ契約がinline assemblyで`<ポインタ>.slot`に入れる値で、数か定数です。式で書いた定数は計算せず、式どうしで比べます。
+artifactが構文木を持たない時(`forge inspect`の出力か、`--ast`無しのビルド)、継ぐ契約がどのartifactにも無い時、ビルドがコンパイラの別々の実行を混ぜた時、欄の型を並べられない時、ビルドが名前空間のslotを入れないか、2つの違う値を入れるか、数でも定数でもない値を入れる時は`not-compared`を出します。
 
 `abi`は`removed-function`、`changed-function`(出力か状態の変更の可否)、`removed-event`、`changed-event`(どの引数がindexedか、anonymousか)、`removed-error`を出します。
 足した物は互換で、出しません。`receive`と`fallback`は関数に数えます。

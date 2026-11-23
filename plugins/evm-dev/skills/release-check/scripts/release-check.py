@@ -30,6 +30,8 @@ Lines from layout
   gap <contract> <label> ends at slot <n> instead of <n>   a __gap array no longer ends where it did
   renamed <contract> <old> -> <new> slot <n> offset <n>   same place and type, new name (not counted
           as a problem)
+  slot <contract> erc7201:<id> <old> -> <new>   the namespace's struct sits at another slot, so the
+          new version reads none of its fields where the old one wrote them
   not-compared <contract> <namespace>: <why>   the contract's ERC-7201 namespaced storage was not
           compared; <namespace> is `namespaces` when the build does not say which it has
 A variable is matched by name first, then by place. New variables are fine where nothing lived
@@ -43,10 +45,14 @@ ERC-7201 namespaced storage
   artifact, for the contract and every contract it inherits from, lays out their fields the way solc
   lays out a struct, and compares them namespace by namespace with the same lines as above. The label
   is `erc7201:<id>.<field>` and the slot counts from the namespace's own slot. A namespace that is gone
-  from the new version has every field removed. layout prints `not-compared` instead, and never
-  `compatible` for that contract, when an artifact has no syntax tree (forge inspect output, or a build
-  without --ast), when a base contract is in no artifact given (pass the out/ folder rather than one
-  artifact), when the build mixes compiler runs, or when a field's type cannot be laid out.
+  from the new version has every field removed. The namespace's own slot is the value the contract or
+  a base assigns to `<pointer>.slot` in inline assembly, a number or a constant; a constant written as
+  an expression is compared by its expression, not worked out. layout prints `not-compared` instead,
+  and never `compatible` for that contract, when an artifact has no syntax tree (forge inspect output,
+  or a build without --ast), when a base contract is in no artifact given (pass the out/ folder rather
+  than one artifact), when the build mixes compiler runs, when a field's type cannot be laid out, or
+  when a build sets no slot for the namespace, sets it to two different values, or sets it from a value
+  that is not a number or a constant.
 
 Lines from abi
   removed-function <contract> <signature>   (receive() and fallback() included)
@@ -376,8 +382,9 @@ def compare_layout(name, old, new, prefix=""):
 # ---- ERC-7201 namespaced storage ---------------------------------------------------------------
 
 class AstIndex:
-    """The contracts, structs, enums, and user-defined value types of the syntax trees on one side,
-    by node id. An id that names two different declarations means the build mixes compiler runs."""
+    """The contracts, structs, enums, user-defined value types, and constants of the syntax trees on
+    one side, by node id. An id that names two different declarations means the build mixes compiler
+    runs."""
 
     def __init__(self):
         self.nodes, self.clashes = {}, set()
@@ -393,7 +400,10 @@ class AstIndex:
                     self.keep(child)
 
     def keep(self, node):
-        if not isinstance(node, dict) or node.get("nodeType") not in DECLARATIONS:
+        if not isinstance(node, dict):
+            return
+        kind = node.get("nodeType")
+        if kind not in DECLARATIONS and not (kind == "VariableDeclaration" and node.get("constant")):
             return
         seen = self.nodes.setdefault(node.get("id"), node)
         if (seen.get("nodeType"), seen.get("canonicalName", seen.get("name"))) != \
@@ -518,34 +528,136 @@ def storage_location(node):
     return match.group(1) if match else None
 
 
+# Keys of a syntax tree node that change from build to build without changing what the node computes.
+VOLATILE_KEYS = {"id", "src", "nameLocation", "nameLocations", "referencedDeclaration", "overloadedDeclarations",
+                 "typeDescriptions", "argumentTypes", "nativeSrc", "isConstant", "isLValue", "isPure",
+                 "lValueRequested", "tryCall"}
+
+
+def fingerprint(node):
+    """A text that is the same for two syntax tree nodes that compute the same value."""
+    def strip(value):
+        if isinstance(value, dict):
+            return {k: strip(v) for k, v in value.items() if k not in VOLATILE_KEYS}
+        if isinstance(value, list):
+            return [strip(v) for v in value]
+        return value
+    return json.dumps(strip(node), sort_keys=True)
+
+
+def walk_nodes(node):
+    """Every dict under node, node included."""
+    stack = [node]
+    while stack:
+        item = stack.pop()
+        if isinstance(item, dict):
+            yield item
+            stack.extend(item.values())
+        elif isinstance(item, list):
+            stack.extend(item)
+
+
+def number_of(literal):
+    """The number a Solidity or Yul number literal writes, or None."""
+    try:
+        return int(str(literal.get("value")).replace("_", ""), 0)
+    except ValueError:
+        return None
+
+
+def slot_value(value, references, index):
+    """(key, shown) for the value a Yul assignment gives a slot, or (None, why) when it cannot be read.
+
+    The key is the same for two builds that use the same slot: the number of a literal, or the
+    fingerprint of a constant written as an expression."""
+    if value.get("nodeType") == "YulLiteral" and value.get("kind") == "number":
+        number = number_of(value)
+        return (("number", number), "0x%x" % number) if number is not None else (None, "a literal it cannot read")
+    reference = references.get(value.get("src")) if value.get("nodeType") == "YulIdentifier" else None
+    if reference is None:
+        return None, "a value it works out in assembly"
+    constant, _ = index.get(reference.get("declaration"))
+    name = value.get("name")
+    if constant is None or constant.get("nodeType") != "VariableDeclaration":
+        return None, "%s, which is not a constant" % name
+    literal = constant.get("value") or {}
+    if literal.get("nodeType") == "Literal" and literal.get("kind") == "number":
+        number = number_of(literal)
+        return (("number", number), "0x%x" % number) if number is not None else (None, "%s, a literal it cannot read" % name)
+    return ("expression", fingerprint(literal)), "%s(expression)" % name
+
+
+def slot_assignments(contract, index):
+    """(struct id, key or None, shown or why) for each `<pointer>.slot := <value>` in the inline
+    assembly of the contract's functions and modifiers."""
+    found = []
+    for function in contract.get("nodes") or []:
+        if not isinstance(function, dict) or function.get("nodeType") not in ("FunctionDefinition", "ModifierDefinition"):
+            continue
+        nodes = list(walk_nodes(function))
+        pointers = {n.get("id"): n for n in nodes if n.get("nodeType") == "VariableDeclaration"}
+        for assembly in (n for n in nodes if n.get("nodeType") == "InlineAssembly"):
+            references = {r.get("src"): r for r in assembly.get("externalReferences") or [] if isinstance(r, dict)}
+            for assignment in walk_nodes(assembly.get("AST")):
+                if assignment.get("nodeType") != "YulAssignment":
+                    continue
+                for target in assignment.get("variableNames") or []:
+                    reference = references.get(target.get("src")) if isinstance(target, dict) else None
+                    if not reference or reference.get("suffix") != "slot":
+                        continue
+                    pointer = pointers.get(reference.get("declaration")) or {}
+                    struct_id = (pointer.get("typeName") or {}).get("referencedDeclaration")
+                    key, shown = slot_value(assignment.get("value") or {}, references, index)
+                    found.append((struct_id, key, shown))
+    return found
+
+
+def namespace_slot(assigned):
+    """(key, shown) for the one slot the assignments give a namespace, or (None, why)."""
+    if not assigned:
+        return None, "sets no slot for it in inline assembly"
+    unread = next((shown for key, shown in assigned if key is None), None)
+    if unread:
+        return None, "sets its slot from " + unread
+    keys = {key for key, _ in assigned}
+    if len(keys) > 1:
+        return None, "sets its slot to %d different values" % len(keys)
+    return assigned[0]
+
+
 def namespaces(index, data, contract):
-    """(laid out, unsized, why) for one side of one contract: each namespace of the contract and its
-    bases as a layout, each namespace whose fields cannot be laid out with the reason, and why the
-    contract's namespaces cannot all be known (no syntax tree, a missing base, mixed runs), or None."""
+    """(laid out, unsized, slots, why) for one side of one contract: each namespace of the contract and
+    its bases as a layout, each namespace whose fields cannot be laid out with the reason, the slot of
+    each namespace as namespace_slot gives it, and why the contract's namespaces cannot all be known
+    (no syntax tree, a missing base, mixed runs), or None."""
     unit = data.get("ast") if isinstance(data, dict) else None
     if not isinstance(unit, dict):
-        return {}, {}, "no AST"
+        return {}, {}, {}, "no AST"
     node = next((n for n in unit.get("nodes") or [] if isinstance(n, dict)
                  and n.get("nodeType") == "ContractDefinition" and n.get("name") == contract), None)
     if node is None:
-        return {}, {}, "no contract"
-    laid, unsized, why = {}, {}, None
+        return {}, {}, {}, "no contract"
+    laid, unsized, why, struct_ids, assigned = {}, {}, None, {}, []
     for base_id in node.get("linearizedBaseContracts") or [node.get("id")]:
         base, missing = (node, None) if base_id == node.get("id") else index.get(base_id)
         if base is None:
             why = why or ("mixed runs" if missing == "clash" else "missing base")
             continue
+        assigned += slot_assignments(base, index)
         for child in base.get("nodes") or []:
             namespace = storage_location(child)
             if namespace is None or namespace in laid or namespace in unsized:
                 continue
+            struct_ids[namespace] = child.get("id")
             layouter = Layouter(index)
             try:
                 members, _ = layouter.struct(child)
                 laid[namespace] = {"storage": members, "types": layouter.types}
             except Unsized as error:
                 unsized[namespace] = str(error)
-    return laid, unsized, why
+    slots = {ns: namespace_slot([(key, shown) for struct_id, key, shown in assigned if struct_id == sid])
+             for ns, sid in struct_ids.items()}
+    return laid, unsized, slots, why
 
 
 REASONS = {"no AST": "the %s build has no AST; build it with --ast",
@@ -568,8 +680,8 @@ def unread_reason(old_why, new_why):
 
 def compare_namespaces(name, old, old_index, new, new_index):
     """(problem lines, renamed lines, not-compared lines, namespaces compared) for one contract."""
-    old_laid, old_unsized, old_why = namespaces(old_index, old[2], old[0])
-    new_laid, new_unsized, new_why = namespaces(new_index, new[2], new[0])
+    old_laid, old_unsized, old_slots, old_why = namespaces(old_index, old[2], old[0])
+    new_laid, new_unsized, new_slots, new_why = namespaces(new_index, new[2], new[0])
     if old_why or new_why:
         why = unread_reason(old_why, new_why)
         known = sorted(set(old_laid) | set(old_unsized) | set(new_laid) | set(new_unsized))
@@ -584,6 +696,15 @@ def compare_namespaces(name, old, old_index, new, new_index):
         problems += p
         renamed += r
         compared += 1
+        # A namespace gone from the new version already has every field removed.
+        if ns in new_laid:
+            (old_key, old_shown), (new_key, new_shown) = old_slots[ns], new_slots[ns]
+            if old_key is None or new_key is None:
+                unread.append("not-compared %s %s: %s" % (name, ns, "; ".join(
+                    "the %s build %s" % (which, shown) for which, key, shown
+                    in (("old", old_key, old_shown), ("new", new_key, new_shown)) if key is None)))
+            elif old_key != new_key:
+                problems.append("slot %s %s %s -> %s" % (name, ns, old_shown, new_shown))
     return problems, renamed, unread, compared
 
 
