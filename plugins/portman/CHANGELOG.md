@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-23
+
 - The chat report follows the `structure` format of page-design in the design-formats plugin through musubi, as an optional follow declared in `skills/portman/musubi.json`: the result first, what was done and skipped with the reasons, ports not tested written as not tested, and the user's steps last. When the `musubi` command is installed, the agent runs `musubi check` before reading the format. Without design-formats, the skill reports in its own order
 - When the registry folder, its lock file, or the registry cannot be written, `add`, `remove --confirm`, and `apply --confirm` refuse with exit code 2, the path with the home folder shortened to `~`, and what to fix, instead of stopping with a Python traceback that shows the full path. When `apply --confirm` cannot write a project file, it refuses the same way and names the files it already wrote
 
@@ -37,7 +39,8 @@ First public release.
 - Removes ports only after you approve the entries it shows, and skips an entry that changed in between
 - Starts when a port is already in use, when two projects want the same port, or when you set up ports for a project, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/portman--v0.3.1...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/portman--v0.4.0...HEAD
+[0.4.0]: https://github.com/cardene777/agent-shuriken/releases/tag/portman--v0.4.0
 [0.3.1]: https://github.com/cardene777/agent-shuriken/releases/tag/portman--v0.3.1
 [0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/portman--v0.3.0
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/portman--v0.2.0
