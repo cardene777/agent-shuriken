@@ -17,6 +17,7 @@ The agent follows `skills/product-deck/SKILL.md`, writes the deck's files in you
 | `scripts/capture.mjs` | Takes a screenshot of one page |
 | `scripts/audit.mjs` | Checks the rendered slides |
 | `scripts/audit-text.mjs` | Checks the wording from the deck's data |
+| `scripts/theme.mjs` | Reads the user's theme file and prints the CSS variables a deck takes from it |
 | `scripts/shoot.mjs`, `scripts/render.mjs` | Render slides to 1920x1080 PNG files |
 | `scripts/glyph-fit.mjs` | Measures whether icons fit their containers |
 | `scripts/load-playwright.mjs` | Resolves Playwright for the scripts that drive a browser |
@@ -48,17 +49,25 @@ The agent writes them in `docs/decks/<name>/` of your repository.
 | Check | Reads | Exit |
 |---|---|---|
 | `audit.mjs <viewer HTML> <style>...` | The rendered slides, opened in a headless browser | 0 when nothing is flagged, 1 when a slide is flagged, 2 when a style cannot be opened or a check counted nothing |
-| `audit-text.mjs <deck-data.mjs>` | The deck's data and the two word lists | 0 when nothing is flagged, 1 when a slide is flagged, 2 when a list is missing or a check counted nothing |
+| `audit-text.mjs <deck-data.mjs>` | The deck's data, the deck's terms, and the words to drop when that list is found | 0 when nothing is flagged, 1 when a slide is flagged, 2 when the terms or a list passed by path are missing, or a check counted nothing |
 
 Each check prints how many items it looked at, so that "flagged 0 slides" can be told apart from a check that looked at nothing; a count of 0 stops the run with exit 2.
 
 ## The word lists
 
-`audit-text.mjs` reads two lists, and neither ships with the plugin.
+`audit-text.mjs` always runs three built-in rules, which need no list of the user's.
+
+| Built-in rule | What it sees |
+|---|---|
+| `the same thing is called by different words` | A word that mixes in, from the `synonym` lines of the deck's terms |
+| `a core word comes before its explanation` | A core word on a slide before the one that explains it, from the `core` lines of the deck's terms |
+| `a person does a thing's action` | A Japanese sentence where a person or an agent does what a thing does |
+
+It reads two lists, and neither ships with the plugin.
 
 | List | Read from | When it is missing |
 |---|---|---|
-| The words to drop | `--prose-words <path>`, or else `~/.product-deck/prose-words.txt` | No check runs; exit 2 names the place it looked |
+| The words to drop | `--prose-words <path>`, or else `~/.product-deck/prose-words.txt` | Without a list in the home folder, the built-in rules run alone, and the script says on standard error that no word list was found and where it looked. A path passed with `--prose-words` that does not exist stops the run with exit 2 |
 | The deck's terms | `--terms <path>`, or else `~/.product-deck/writing-terms.txt` | No check runs; exit 2 names the place it looked |
 
 The home folder is found with Node.js's `os.homedir()`.
@@ -108,6 +117,44 @@ The list needs at least one `synonym` and one `core` line, or the check stops wi
 
 For a deck in Japanese, the kinds may keep their Japanese names, which `scripts/audit-text.mjs` lists.
 
+## The theme file
+
+`theme.mjs`, run in your repository, reads the first of these two places that holds a theme file.
+
+| Order | Place | Use |
+|---|---|---|
+| 1 | `.design-theme.json` at the root of the git repository the command runs in | The look of one project |
+| 2 | `~/.design-theme.json` | The look of everything you make |
+
+The repository's file is used as it is, and the home file is not merged into it.
+It is the theme file of the page-design skill of design-formats, with the same keys and the same values; product-deck reads it with its own script, because a plugin reads nothing outside its own folder.
+
+A deck takes these keys, and every style of the deck takes them through the CSS variables.
+
+| Key | CSS variable |
+|---|---|
+| `light.accent`, `light.accent-ink`, `light.accent-soft` | `--accent`, `--accent-ink`, `--accent-soft`: the main color |
+| `light.bg`, `light.surface`, `light.ink`, `light.sub`, `light.line` | `--bg`, `--surface`, `--ink`, `--sub`, `--line`: the neutrals |
+| `font.sans`, `font.mono`, `font.line-height` | `--sans`, `--mono`, `--line-height` |
+| `space.radius-small`, `space.radius`, `space.radius-large` | `--radius-small`, `--radius`, `--radius-large`, in pixels |
+
+The other keys are not used on slides, and the script names the ones the file holds.
+
+| Key | Why it is not used |
+|---|---|
+| `dark.*` | A handout has one look |
+| `light.bar`, `light.label` | They are parts of pages |
+| `font.size` | Slide text is sized for 1920x1080 and stays at 22px or more |
+| `space.page-width` | A slide is 1920 wide |
+
+| Case | Standard output | Standard error | Exit |
+|---|---|---|---|
+| No theme file | Nothing | That there is no theme file and the deck keeps its own look | 0 |
+| A theme file | A `:root { ... }` block of the keys it sets that a deck takes | The file read, and the keys not used | 0 |
+| A file that is not JSON, holds a key not listed, or a value of the wrong kind or out of range | Nothing | Each such key, such as `light.acent` | 2 |
+
+Without a theme file, the agent picks one main color for the deck, with neutrals only.
+
 ## Samples
 
 When `~/.product-deck/samples/` exists, the agent lists it and looks at the images in it before placing screenshots.
@@ -116,4 +163,4 @@ The plugin ships no sample image.
 ## What it writes and keeps
 
 The plugin writes only the deck's files in your repository.
-It writes nothing in `~/.product-deck/`, which you keep yourself, and sends nothing anywhere.
+It writes nothing in `~/.product-deck/` or in the theme file, which you keep yourself, and sends nothing anywhere.
