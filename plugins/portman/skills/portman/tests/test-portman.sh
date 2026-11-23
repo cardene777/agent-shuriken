@@ -795,7 +795,10 @@ codes = " ".join(doc.split("Exit codes:", 1)[-1].split())
 two = re.search(r"\b2 for (.*?)\b3 when", codes)
 sys.exit(0 if two and "written" in two.group(1) else 1)' "$SCRIPT" || return 1
   grep -qE "^\| 2 \| .*written" "$HERE/../../../docs/how-it-works.md" || return 1
-  grep -qE "^\| 2 \| .*書け" "$HERE/../../../docs/how-it-works.ja.md"
+  # The Japanese table says "cannot write" as U+66F8 U+3051, written as escapes so this file stays in English.
+  python3 -c 'import sys
+rows = [l for l in open(sys.argv[1], encoding="utf-8") if l.startswith("| 2 |")]
+sys.exit(0 if rows and "\u66f8\u3051" in rows[0] else 1)' "$HERE/../../../docs/how-it-works.ja.md"
 }
 check "the exit code 2 lists a registry or project file that cannot be written" exit_2_documented
 
