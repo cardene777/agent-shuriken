@@ -333,9 +333,10 @@ if "motion" not in block["properties"]["type"]["enum"]:
 if not any(r.get("if", {}).get("properties", {}).get("type", {}).get("const") == "motion" and set(r.get("then", {}).get("required", [])) >= {"id", "page", "caption"} for r in block.get("allOf", [])):
     missing.append("the schema does not require id, page, and caption for motion")
 log = open(plugin + "/CHANGELOG.md", encoding="utf-8").read()
-unreleased = log.split("## [Unreleased]", 1)[-1].split("\n## [", 1)[0]
-if "`motion`" not in unreleased:
-    missing.append("the changelog has no motion line under Unreleased")
+# The line moves from Unreleased into a release section when the plugin is released.
+releases = log.split("## [Unreleased]", 1)[-1]
+if "`motion`" not in releases:
+    missing.append("the changelog has no motion line under Unreleased or a release")
 if missing:
     print("; ".join(missing))
     sys.exit(1)
