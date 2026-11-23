@@ -5,8 +5,6 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
-- A `motion` block places a moving picture of a mechanism in a section: it names a page that `motion-diagram render` wrote, relative to the content JSON, and `render.py` carries that page byte for byte in a frame of a captioned figure, refusing a missing page or one that `motion-diagram render` did not write. `build.py` lets only that frame through. In the document the frame is as tall as the picture and follows the light or dark of the document, the picture runs once when its section is first shown and shows its finished picture until then, and on paper `print.js` has every figure, also on pages not opened, draw its finished picture in light colors. The PDF button waits for the figures of the pages it fills before opening the print dialog
-
 ## [0.3.0] - 2026-11-23
 
 - When design-formats is installed, the document takes the user's colors and fonts from a theme file, `.design-theme.json` at the root of the repository or else `~/.design-theme.json`: after the build, the agent runs page-design's `theme --keys light,dark,font.sans,font.mono` on the finished page. `assets/doc.css` names its base colors after the keys of the theme file, adding `--surface` and `--sub`, and mixes the other shades (`--panel-2`, `--line-2`, `--rule`, `--ink-2`, `--ink-3`, `--ink-faint`, `--track`) from them with `color-mix()`, so a page without a theme looks as before. `musubi.json` follows `page-design/theme` at `^1.0.0` as an optional follow

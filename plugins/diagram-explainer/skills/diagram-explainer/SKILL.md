@@ -67,7 +67,6 @@ Pick a figure for every section.
 | HTML figure | `html` block with a `caption` | Parts and how they connect, flows, layers, ownership, anything spatial |
 | Chart | `chart` block (`timeband`, `capbar`, `bars`, `period`) | Times of day, amounts against a limit, comparing numbers, periods on a year axis |
 | Step ladder | `html` block holding a ladder slot | Steps that each carry four or more items (number, action, what is called, the gate, who acts, where the result goes) |
-| Moving picture | `motion` block naming a page that `motion-diagram render` wrote, only with that skill | Items passing checks that drop some |
 
 A section without a figure states why in `nofigure` (for example a section that is only a glossary or only a list of sources).
 Do not use `nofigure` to save the work of drawing.

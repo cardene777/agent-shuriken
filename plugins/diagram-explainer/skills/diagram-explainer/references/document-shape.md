@@ -133,14 +133,13 @@ Write assumptions and reading notes in the section that needs them.
 
 Every section has a figure, or states why it has none in `nofigure` (rendered as `data-nofig`).
 `check.py` fails a section with neither.
-Four kinds of figure are drawn inside the document; none loads anything from outside.
+Three kinds of figure are drawn inside the document; none loads anything from outside.
 
 | Figure | How to write it | Use it for |
 |---|---|---|
 | Chart | `chart` block with `kind` `timeband`, `capbar`, `bars`, or `period` ([chart-shape.md](chart-shape.md)) | Hours in a day, an amount against a limit, numbers to compare, periods on a year axis |
 | HTML figure | `html` block with `caption`, rendered as `<figure class="free">` | Boxes and arrows, layers, comparisons laid out in space: anything the other kinds do not cover |
 | Step ladder | `html` block with `caption` whose `html` is `<div class="ladder" data-ladder="NAME"></div>`, filled by `ladder.py` ([ladder-shape.md](ladder-shape.md)) | A sequence of steps where each step carries several items |
-| Moving picture | `motion` block naming a page that `motion-diagram render` wrote, rendered as `<figure class="motion">` | A mechanism that reads best in motion: things come in, checks drop some, and the rest reach a person or an end |
 
 Captions start with the figure number: `Figure 1`, `Fig. 1`, or `Example 1` in English, and the Japanese words for figure and example followed by the number in Japanese (see `content.sample.ja.json`).
 Numbers run from 1 on each page and are counted separately for each prefix; `prose.py` fails gaps and repeats.
@@ -148,7 +147,7 @@ Numbers run from 1 on each page and are counted separately for each prefix; `pro
 
 Do not put figures inside a collapsed `details` block: the reader would not see the figure while reading the section.
 
-Every figure but a moving picture, which already takes the section width, gets an enlarge button at the right of its caption (`assets/doc.js`); it, or a press on the drawing, opens a copy of the drawing at twice its size in a dialog (`dialog.fig-zoom`), and closing the dialog returns the focus to the button.
+Every figure gets an enlarge button at the right of its caption (`assets/doc.js`); it, or a press on the drawing, opens a copy of the drawing at twice its size in a dialog (`dialog.fig-zoom`), and closing the dialog returns the focus to the button.
 A figure or table wider than its box scrolls sideways in a named region that takes the focus, and fades the side where it continues.
 
 ## Blocks
@@ -166,7 +165,6 @@ A figure or table wider than its box scrolls sideways in a named region that tak
 | `compare` | `items`: exactly 2 objects with `label` and `value` (the large value), optional `text` | `<div class="compare">`, left and right with the right side emphasized |
 | `chart` | `id`, `kind`, `caption`, `spec`, optional `views` (timeband only, at most 5) | `<figure class="chart">` with an `<svg data-chart>` and its JSON |
 | `html` | `id`, `html`, optional `css` and `caption` | `<figure class="free">` with a caption, otherwise `<div class="free">` |
-| `motion` | `id`, `page` (a page that `motion-diagram render` wrote, relative to the content JSON), `caption` | `<figure class="motion">` whose frame carries the page byte for byte |
 | `details` | `summary`, `blocks` (any blocks but `details`) | `<details class="exp">`, closed |
 
 `tone` is one of `accent`, `good`, `warn`, `info`.
@@ -179,16 +177,6 @@ In text fields (all except `code` and `html`), `` `name` `` becomes `<code>name<
 
 In Japanese documents (`"lang": "ja"`), `render.py` starts each sentence of `paragraph`, `list` items, `lead`, `note`, and `cards` text on a new line, splitting at the Japanese full stop (U+3002) but not inside brackets (Japanese corner brackets and parentheses, full-width or not) or backticks.
 Other documents keep each text as one run.
-
-## `motion` blocks
-
-A `motion` block places a moving picture of a mechanism in a section: the page that `motion-diagram render` of the `motion-diagram` skill wrote.
-`render.py` reads only that file, from `page` relative to the content JSON, refuses a page without the marks `motion-diagram render` writes (`<main class="md" data-md>` and the `md-spec` data), and puts the page whole into `srcdoc` of a frame (`<iframe class="motion-frame">`).
-`build.py` lets that frame through and refuses every other one.
-The frame shares the document's origin, so its script and its colors stay apart from the document's while `assets/doc.js` can reach it.
-`doc.js` makes the frame as tall as the picture and gives the page the light or dark of the document.
-The page runs once when its picture is first on screen and shows its finished picture until then; before paper, `print.js` sends it `beforeprint`, so it draws its finished picture at the paper width in light colors.
-Without the `motion-diagram` skill, draw the section as an HTML figure instead.
 
 ## `html` blocks
 

@@ -60,14 +60,11 @@
     expand();
     unfold();
     root.setAttribute('data-paper', m);
-    // Motion figures draw their finished picture at the paper width (doc.js).
-    if (typeof window.dxMotionPaper === 'function') window.dxMotionPaper();
   }
   function paperOff() {
     root.removeAttribute('data-paper');
     refold();
     chosen = null;
-    if (typeof window.dxMotionThemes === 'function') window.dxMotionThemes();
   }
 
   window.addEventListener('beforeprint', function () { paperOn(chosen || 'all'); });
@@ -80,13 +77,8 @@
   function print(mode) {
     chosen = mode;
     paperOn(mode);
-    // The frames of motion figures on pages just filled load first, and then draw their finished
-    // picture. Opening the dialog right away would fix the layout before figure heights settle.
-    var ready = typeof window.dxMotionLoaded === 'function' ? window.dxMotionLoaded() : Promise.resolve();
-    ready.then(function () {
-      if (typeof window.dxMotionPaper === 'function') window.dxMotionPaper();
-      window.setTimeout(function () { window.print(); }, 120);
-    });
+    // Opening the dialog right away would fix the layout before figure heights settle.
+    window.setTimeout(function () { window.print(); }, 120);
   }
 
   var bar = document.createElement('div');

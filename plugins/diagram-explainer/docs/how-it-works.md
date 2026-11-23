@@ -39,9 +39,6 @@ Every figure is drawn inside the page:
 | Bar chart | Comparing two or more numbers |
 | Period chart | Periods on a year axis |
 | Step ladder | Steps that each carry several items, such as what is called, the check, and who acts |
-| Moving picture | A mechanism where things come in, checks drop some, and the rest reach a person or an end, from a page that `motion-diagram render` wrote |
-
-A moving picture is the page that `motion-diagram render` of the motion-diagram plugin wrote. `render.py` reads that one file, named relative to the content JSON, and carries it whole in a frame of the figure, so the document stays one file that loads nothing. The picture runs once when its section is first shown and shows its finished picture until then and on paper; the frame is as tall as the picture and takes the light or dark of the document. Without motion-diagram, a section uses another figure.
 
 Charts are drawn at the width of their frame, so their text keeps its size at every screen width, and step ladders sit in the middle of their frame. Lines in a chart pass under its text, and its bars keep their contrast in light and dark colors.
 

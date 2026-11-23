@@ -157,7 +157,6 @@
     document.documentElement.dataset.theme = mode;
     store(THEME_KEY, mode);
     pressed();
-    motionThemes();
   }
 
   function setLang(next) {
@@ -356,74 +355,6 @@
   }
   enlargers(document);
 
-  // ---- Motion figures ----
-  //
-  // A `motion` figure carries a page that motion-diagram render wrote, whole in a frame that
-  // shares this document's origin. The page runs when its picture is first on screen and shows its
-  // finished picture until then. Here each frame gets the height of the picture, so the picture
-  // never scrolls inside its frame, and the light or dark of the document. Before paper, print.js
-  // calls `dxMotionPaper`, which sends each page the beforeprint event a browser sends when printing,
-  // so it draws its finished picture at the paper width, in light colors like the rest of paper.
-  function motionPage(f) {
-    try {
-      var d = f.contentDocument;
-      return d && d.querySelector('[data-md]') ? d : null;
-    } catch (e) { return null; }
-  }
-  function motionTheme(d) {
-    var t = root.hasAttribute('data-paper') ? 'light' : root.getAttribute('data-theme');
-    if (t === 'light' || t === 'dark') d.documentElement.setAttribute('data-theme', t);
-    else d.documentElement.removeAttribute('data-theme');
-  }
-  function motionFit(f, d) {
-    var h = Math.ceil(d.body.getBoundingClientRect().height);
-    if (h > 0 && Math.abs(f.getBoundingClientRect().height - h) > 1) f.style.height = h + 'px';
-  }
-  function motionReady(f) {
-    var d = motionPage(f);
-    if (!d || f.dxMotion) return;
-    f.dxMotion = true;
-    motionTheme(d);
-    if (root.hasAttribute('data-paper')) f.contentWindow.dispatchEvent(new Event('beforeprint'));
-    motionFit(f, d);
-    var Watch = f.contentWindow.ResizeObserver;
-    if (Watch) new Watch(function () { motionFit(f, d); }).observe(d.body);
-  }
-  function motionFrames(scope) {
-    all('iframe.motion-frame', scope).forEach(function (f) {
-      f.addEventListener('load', function () { motionReady(f); });
-      motionReady(f);
-    });
-  }
-  function motionThemes() {
-    all('iframe.motion-frame').forEach(function (f) {
-      var d = motionPage(f);
-      if (d) motionTheme(d);
-    });
-  }
-  motionFrames(document);
-  window.dxMotionThemes = motionThemes;
-  window.dxMotionPaper = function () {
-    all('iframe.motion-frame').forEach(function (f) {
-      var d = motionPage(f);
-      if (!d) return;
-      f.getBoundingClientRect();
-      motionTheme(d);
-      f.contentWindow.dispatchEvent(new Event('beforeprint'));
-      motionFit(f, d);
-    });
-  };
-  // Resolves once every frame holds its page, or after three seconds.
-  window.dxMotionLoaded = function () {
-    return Promise.all(all('iframe.motion-frame').map(function (f) {
-      return new Promise(function (resolve) {
-        if (motionPage(f)) { resolve(); return; }
-        f.addEventListener('load', resolve, { once: true });
-        window.setTimeout(resolve, 3000);
-      });
-    }));
-  };
-
   // ---- Collapsed details ----
   //
   // A run of four or more collapsed blocks starts with buttons (render.py writes them) that open
@@ -460,7 +391,6 @@
     page.removeChild(t);
     if (typeof window.dxCharts === 'function') window.dxCharts(page);
     enlargers(page);
-    motionFrames(page);
   }
 
   // Paper output needs the pages that have not been opened yet.

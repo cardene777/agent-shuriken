@@ -254,8 +254,6 @@ dialog.doc-helpbox { width: min(480px, calc(100vw - 32px)); }
 /* Writer-made shapes (`html` blocks). The writer's CSS applies only inside the block. */
 .free { max-width: 100%; overflow-x: auto; }
 figure.free { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px 26px 16px; }
-/* A motion figure: the page motion-diagram wrote, in a frame that doc.js makes as tall as the picture. */
-.motion-frame { display: block; width: 100%; height: 420px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
 
 /* Tables. The caption names the table and its box. The box scrolls when the table is longer or wider
    than it, keeping the header row on top and the first column at the left. The table takes the width

@@ -11,9 +11,6 @@ figure come from the same input. Figures are drawn inside the document:
   attributes starting with `on`) or loads from outside (`<link>`, `<iframe>`, ...) is refused.
 - A step ladder is an `html` block holding `<div class="ladder" data-ladder="NAME"></div>`,
   filled later by ladder.py.
-- `motion` blocks name a page that `motion-diagram render` wrote, relative to the content JSON,
-  and become `<figure class="motion">` whose frame carries that page byte for byte (`srcdoc`), so
-  its script and colors stay apart from the document's. Only that file is read.
 
 Fixed shapes that help reading without being figures (keys, cards, note, compare, table) are
 built from their own fields.
@@ -180,9 +177,8 @@ def say(ui, key, **values):
 class Ctx:
     """Per-document state: the language, the ids already used, and the section being written."""
 
-    def __init__(self, lang="en", base="."):
+    def __init__(self, lang="en"):
         self.lang = lang
-        self.base = base
         self.ui = ui_words(lang)
         self.names = set()
         self.section = None
@@ -403,36 +399,6 @@ def render_free(block, ctx):
     return '%s<div class="free" id="%s">\n%s\n</div>' % (style, free_id, body)
 
 
-# Marks that every page written by `motion-diagram render` carries: the picture and its spec.
-MOTION_MARKS = ('<main class="md" data-md>', '<script type="application/json" id="md-spec">')
-
-
-def render_motion(block, ctx):
-    """A moving picture of a mechanism: the page `motion-diagram render` wrote, carried whole in a
-    frame of its own. The frame shares the document's origin, so doc.js can give it the height of
-    the picture and the document's light or dark; the page runs when its picture is first on screen
-    and shows its finished picture until then and on paper.
-    """
-    motion_id = check_id(block.get("id"), "motion")
-    ctx.claim(motion_id, "motion")
-    page = block.get("page")
-    cap = block.get("caption")
-    if not isinstance(page, str) or not page.strip():
-        fail("motion block %s has no page" % motion_id)
-    if not isinstance(cap, str) or not cap.strip():
-        fail("motion block %s has no caption" % motion_id)
-    path = os.path.join(ctx.base, page)
-    try:
-        with io.open(path, encoding="utf-8") as f:
-            source = f.read()
-    except (OSError, UnicodeDecodeError) as exc:
-        fail("motion block %s: cannot read %s (%s)" % (motion_id, page, exc))
-    if not all(mark in source for mark in MOTION_MARKS):
-        fail("motion block %s: %s is not a page written by motion-diagram render" % (motion_id, page))
-    return ('<figure class="motion" id="%s">\n<iframe class="motion-frame" title="%s" srcdoc="%s"></iframe>\n'
-            '  <figcaption>%s</figcaption>\n</figure>' % (motion_id, esc(cap), esc(source), caption(cap)))
-
-
 def render_block(block, ctx):
     if not isinstance(block, dict) or not isinstance(block.get("type"), str):
         fail("each block must be an object with a type")
@@ -467,8 +433,6 @@ def render_block(block, ctx):
         return render_compare(block, ctx)
     if kind == "html":
         return render_free(block, ctx)
-    if kind == "motion":
-        return render_motion(block, ctx)
     if kind == "details":
         return render_details(block, ctx)
     fail("unknown block type: %s" % kind)
@@ -591,9 +555,8 @@ def lang_of(doc):
     return lang
 
 
-def render(doc, template, today=None, base="."):
-    """Return (html, stats) where stats counts pages, sections, and figures. `base` is the folder
-    the pages of `motion` blocks are named from, the folder of the content JSON."""
+def render(doc, template, today=None):
+    """Return (html, stats) where stats counts pages, sections, and figures."""
     if not isinstance(doc, dict):
         fail("the top level of the content JSON must be an object")
     lang = lang_of(doc)
@@ -606,7 +569,7 @@ def render(doc, template, today=None, base="."):
     if len(keys) != len(set(keys)):
         fail("duplicate tab id")
     many = len(tabs) > 1
-    ctx = Ctx(lang, base)
+    ctx = Ctx(lang)
     ui = ctx.ui
     facts = render_facts(doc, ui, lang, today)
     ctx.claim("doc-side", "document")
@@ -703,7 +666,7 @@ def main(argv=None):
             doc = json.load(f)
         with io.open(args.template, encoding="utf-8") as f:
             template = f.read()
-        output, stats = render(doc, template, base=os.path.dirname(os.path.abspath(args.src)))
+        output, stats = render(doc, template)
         with io.open(args.out, "w", encoding="utf-8") as f:
             f.write(output)
         print("wrote %s (%d pages, %d sections, %d figures)"
