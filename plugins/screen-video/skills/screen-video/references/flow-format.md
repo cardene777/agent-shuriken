@@ -180,6 +180,7 @@ A flow with `addsTo` is a part left out of a recorded flow: `record` records onl
 | `after` | The step of that flow the part comes after, from 1. Without it, the part goes at the end |
 
 The part's own recording goes to `part/` in its folder, and the joined `raw.mp4`, `timeline.json`, and videos to the folder itself, with the steps numbered in the joined order.
+The part is joined from 0.05 seconds before its first step, as a recording's own edit starts, so the browser starting before that step is left out.
 The joined videos take `title`, `theme`, `voice`, `music`, `sounds`, `end`, `outputs`, and `language` from the other flow, and add the two `seconds`.
 The part has its own `url`, `login`, and `mask`, and its narration is paced with the other flow's voice.
 `record` refuses before opening anything when the other flow has no recording or fewer steps than `after`, and `remake` of the part joins the two recordings again.

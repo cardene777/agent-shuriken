@@ -268,13 +268,31 @@ export async function partsChecks({ check }) {
       const baseTimeline = readJson(join(baseDir, "timeline.json"));
       const partTimeline = readJson(join(dir, "part", "timeline.json"));
       if (joined.steps[2].t < baseTimeline.steps[1].end) return "the part starts before the step it comes after ends";
-      const expected = lengthOf(join(baseDir, "raw.mp4")) + lengthOf(join(dir, "part", "raw.mp4"));
       const got = lengthOf(join(dir, "raw.mp4"));
-      if (!(Math.abs(got - expected) < 0.5)) return `the joined recording is ${got.toFixed(2)}s, not ${expected.toFixed(2)}s`;
       if (Math.abs(joined.duration - got) > 0.2) return `timeline.json says ${joined.duration}s for a ${got.toFixed(2)}s recording`;
       if (partTimeline.steps.length !== 2) return `the part's own timeline holds ${partTimeline.steps.length} steps`;
       if (joined.joined?.flow !== "counter" || joined.joined?.after !== 2) return `timeline.json does not say what it joins: ${JSON.stringify(joined.joined)}`;
       if (sessionOf("dashboard") !== undefined) return "the login marked forget is still saved after the recording";
+      return true;
+    });
+
+    // The part's own recording begins with the browser starting before its first step; a recording's
+    // edit never shows that, so the joined recording must not either
+    await check("an added part starts at its first step, without the browser's start before it", async () => {
+      if (partRun?.status !== 0) return "the part was not recorded";
+      const dir = folderOf("counter-check");
+      const baseDir = folderOf("counter");
+      const joined = readJson(join(dir, "timeline.json"));
+      const baseTimeline = readJson(join(baseDir, "timeline.json"));
+      const partTimeline = readJson(join(dir, "part", "timeline.json"));
+      const lead = partTimeline.steps[0].from ?? partTimeline.steps[0].t;
+      if (!(lead > 0.3)) return `the part's recording has no start before its first step to leave out (${lead}s)`;
+      const cut = baseTimeline.steps[2].from ?? baseTimeline.steps[2].t;
+      const first = joined.steps[2].from ?? joined.steps[2].t;
+      if (!(first - cut >= 0 && first - cut <= 0.1)) return `the part's first step begins ${(first - cut).toFixed(2)}s after the cut`;
+      const expected = lengthOf(join(baseDir, "raw.mp4")) + lengthOf(join(dir, "part", "raw.mp4")) - (lead - 0.05);
+      const got = lengthOf(join(dir, "raw.mp4"));
+      if (!(Math.abs(got - expected) < 0.5)) return `the joined recording is ${got.toFixed(2)}s, not ${expected.toFixed(2)}s`;
       return true;
     });
 

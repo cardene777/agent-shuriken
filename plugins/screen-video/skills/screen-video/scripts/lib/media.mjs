@@ -71,12 +71,14 @@ export function normalize(input, output) {
  * Writes `output` from the recording `other` up to `cut` seconds, then all of the recording `part`,
  * then the rest of `other`. Both are recordings `normalize` wrote, so they share size and rate.
  */
-export function joinRecordings({ other, part, cut, output }) {
+export function joinRecordings({ other, part, cut, start = 0, output }) {
   const end = durationOf(other);
+  // The part is taken from `start`, just before its first step, as `joinTimelines` moved its steps
+  const piece = `[1:v]trim=start=${num(start)},setpts=PTS-STARTPTS[b]`;
   const graph =
     cut >= end - 1 / FPS
-      ? "[0:v]setpts=PTS-STARTPTS[a];[1:v]setpts=PTS-STARTPTS[b];[a][b]concat=n=2:v=1:a=0,setsar=1[v]"
-      : `[0:v]split[x][y];[x]trim=end=${num(cut)},setpts=PTS-STARTPTS[a];[1:v]setpts=PTS-STARTPTS[b];[y]trim=start=${num(cut)},setpts=PTS-STARTPTS[c];[a][b][c]concat=n=3:v=1:a=0,setsar=1[v]`;
+      ? `[0:v]setpts=PTS-STARTPTS[a];${piece};[a][b]concat=n=2:v=1:a=0,setsar=1[v]`
+      : `[0:v]split[x][y];[x]trim=end=${num(cut)},setpts=PTS-STARTPTS[a];${piece};[y]trim=start=${num(cut)},setpts=PTS-STARTPTS[c];[a][b][c]concat=n=3:v=1:a=0,setsar=1[v]`;
   ffmpeg(["-i", other, "-i", part, "-filter_complex", graph, "-map", "[v]", "-an", "-r", String(FPS), ...ENCODE, output]);
 }
 
