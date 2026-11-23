@@ -1,6 +1,6 @@
 # diagram-explainer-skill
 
-| 条件 | 確かめ方 | 出元 |
+| Criterion | How to check | Origin |
 |---|---|---|
 | diagram-explainerの評価のセットは、決めた4組の案件を5件のフォルダとして`plugins/diagram-explainer/evals/`の下に持ち、どれも`case.yaml`を持つ。5件は`outline-first`、`unrelated-request`、`build-from-outline`、`fix-missing-figure`、`japanese-document` | `bash plugins/diagram-explainer/skills/diagram-explainer/tests/test-render.sh`の検査`"the eval suite has the five cases"`が通る | #149 |
 | 案件の用意の命令を一時の作業の場所で回すと、案件が前提にする状態ができる。5件とも説明する小さなproject(`package.json`と`src/queue.js`)を持ち、`fix-missing-figure`だけが`docs/explainers/queue-lite/`に内容のJSONと組み立てたHTMLを持ち、そのHTMLに`check.py`を当てると図の無い節を名指して1で終わる。ほかの4件は`docs/explainers/`を持たない | `bash plugins/diagram-explainer/skills/diagram-explainer/tests/test-render.sh`の検査`"the eval fixtures build the states their cases start from"`が通る | #149 |

@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Changes from people and bots reach main only after tests and a review</title>
+<style>
+/* Colors and fonts are tokens named after the keys of the page-design theme file, so the theme
+   command of page-design can replace them; the other shades are mixed from them. Light values sit
+   on :root, dark values for the system setting and for the reader's choice (data-theme on <html>). */
+:root {
+  color-scheme: light;
+  --bg: #f6f6f8; --surface: #ffffff; --ink: #111114; --sub: #545a66; --line: #e4e4e8;
+  --accent: #1d4ed8; --accent-ink: #ffffff; --accent-soft: #eef2ff; --bar: #111114; --label: #f0f0f3;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --good: #047857; --critical: #b91c1c;
+  --c1: #2563eb; --c2: #0d9488; --c3: #d97706; --c4: #7c3aed; --c5: #db2777; --c6: #475569;
+  --edge: color-mix(in srgb, var(--sub) 70%, var(--line));
+  --line-2: color-mix(in srgb, var(--ink) 10%, var(--line));
+  --ink-2: color-mix(in srgb, var(--ink) 40%, var(--sub));
+  --radius: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #121519; --surface: #1a1e24; --ink: #e6e9ee; --sub: #b0b8c4; --line: #2e343d;
+    --accent: #8aa8ff; --accent-ink: #0f1420; --accent-soft: #1f2a45; --bar: #e6e9ee; --label: #242a32;
+    --good: #6fd3a8; --critical: #f19999;
+    --c1: #7aa2ff; --c2: #5eead4; --c3: #fbbf24; --c4: #c4b5fd; --c5: #f9a8d4; --c6: #cbd5e1;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #121519; --surface: #1a1e24; --ink: #e6e9ee; --sub: #b0b8c4; --line: #2e343d;
+  --accent: #8aa8ff; --accent-ink: #0f1420; --accent-soft: #1f2a45; --bar: #e6e9ee; --label: #242a32;
+  --good: #6fd3a8; --critical: #f19999;
+  --c1: #7aa2ff; --c2: #5eead4; --c3: #fbbf24; --c4: #c4b5fd; --c5: #f9a8d4; --c6: #cbd5e1;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); }
+.md { max-width: 1180px; margin: 0 auto; padding: 20px 16px 28px; }
+.md-top { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; margin: 0 0 16px; }
+.md-title { margin: 0; flex: 1 1 320px; font-size: 20px; font-weight: 700; line-height: 1.45; }
+.md-unit { display: inline-block; margin-left: 6px; padding: 1px 9px; border-radius: 999px; background: var(--label); color: var(--ink-2); font-size: 12.5px; font-weight: 700; vertical-align: 2px; white-space: nowrap; }
+.md-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.md-btn { font: 600 13.5px var(--sans); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink); cursor: pointer; }
+.md-seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: 8px; overflow: hidden; }
+.md-seg button { font: 600 12.5px var(--sans); padding: 5px 10px; border: 0; background: var(--surface); color: var(--ink-2); cursor: pointer; }
+.md-seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.md-seg svg { display: block; width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+
+.md-stage { position: relative; }
+.md-stage[data-flow="row"]:not([data-back="0"]) { padding-top: 48px; }
+.md-stage[data-flow="column"]:not([data-back="0"]) { padding-left: 34px; }
+.md-lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 0; }
+.md-fx { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+.md-grid { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 32px 22px; align-items: center; }
+.md-cell { grid-column: calc(var(--r) + 1) / span var(--span); grid-row: var(--l); display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.md-stage[data-flow="column"] .md-grid { grid-template-columns: repeat(var(--lanes), minmax(0, 1fr)); gap: 30px 30px; }
+.md-stage[data-flow="column"] .md-cell { grid-row: calc(var(--r) + 1) / span var(--span); grid-column: var(--l); flex-direction: row; flex-wrap: wrap; }
+.md-stage[data-flow="column"] .md-cell[data-wide] { grid-column: 1 / -1; }
+.md-stage[data-flow="column"] .md-cell > .md-part { flex: 1 1 0; }
+.md-stage[data-flow="column"] .md-part[data-kind="source"] { gap: 0 6px; padding: 7px 8px; }
+.md-stage[data-flow="column"] .md-part[data-kind="source"] .md-icon { width: 24px; height: 24px; }
+.md-stage[data-flow="column"] .md-part[data-kind="source"] .md-icon svg { width: 16px; height: 16px; }
+
+.md-part { position: relative; display: grid; justify-items: center; align-content: center; gap: 6px; min-width: 0; padding: 10px 6px; border-radius: var(--radius); border: 1px solid var(--line-2); background: var(--surface); color: var(--ink); font: inherit; cursor: pointer; transition: border-color .2s, box-shadow .2s; }
+.md-part:hover, .md-part[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.md-part:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.md-icon { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 10px; background: var(--label); color: var(--ink); }
+.md-icon svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.md-name { font-size: 14px; font-weight: 700; line-height: 1.3; text-align: center; overflow-wrap: anywhere; }
+.md-count { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.md-part[data-kind="check"] .md-icon { background: var(--accent); color: var(--accent-ink); }
+.md-part[data-kind="person"] .md-icon { background: var(--ink); color: var(--bg); }
+.md-part[data-kind="end"] .md-icon { background: var(--good); color: var(--bg); }
+.md-part[data-kind="bin"] { border-style: dashed; }
+.md-part[data-kind="source"] { grid-template-columns: auto minmax(0, 1fr); justify-items: start; align-items: center; gap: 0 8px; padding: 8px 10px; border-left: 4px solid var(--src-color, var(--accent)); }
+.md-part[data-kind="source"] .md-icon { grid-row: 1 / span 2; width: 28px; height: 28px; border-radius: 8px; }
+.md-part[data-kind="source"] .md-icon svg { width: 18px; height: 18px; }
+.md-part[data-kind="source"] .md-name { grid-column: 2; text-align: left; }
+.md-part[data-kind="source"] .md-count { grid-column: 2; font-size: 14px; }
+
+.md-boundary { margin-top: 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 10px 14px; border: 1.5px dashed var(--critical); border-radius: var(--radius); }
+.md-boundary > .md-icon { width: 30px; height: 30px; background: transparent; color: var(--critical); border: 1px solid var(--critical); }
+.md-boundary > .md-icon svg { width: 18px; height: 18px; }
+.md-bname { font-size: 14px; font-weight: 700; }
+.md-outside { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+.md-outside .md-part { grid-auto-flow: column; align-items: center; padding: 6px 10px; border-color: var(--critical); }
+.md-outside .md-icon { width: 26px; height: 26px; background: transparent; color: var(--critical); }
+.md-outside .md-icon svg { width: 17px; height: 17px; }
+
+.md-info { margin-top: 14px; min-height: 58px; padding: 12px 14px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line-2); }
+.md-info h3 { margin: 0; font-size: 15px; }
+.md-info p { margin: 6px 0 0; font-size: 14px; line-height: 1.65; color: var(--ink-2); }
+.md-info .md-hint { margin: 0; }
+.md-ex { margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: var(--label); font-size: 13.5px; line-height: 1.6; }
+.md-ex b { display: block; margin-bottom: 2px; font-size: 12px; color: var(--ink-2); }
+
+.md-card { position: absolute; left: 0; top: 0; width: 22px; height: 16px; margin: -8px 0 0 -11px; border-radius: 4px; background: var(--surface); border: 1px solid var(--line-2); border-top: 4px solid var(--card-color, var(--accent)); box-shadow: 0 1px 3px rgba(0, 0, 0, .18); opacity: 0; }
+.md-card.ok { border-color: var(--good); border-top-color: var(--good); }
+.md-card.ok::after, .md-card.ng::after { position: absolute; inset: -4px 0 0; display: grid; place-items: center; font-size: 11px; font-weight: 900; }
+.md-card.ok::after { content: "\2713"; color: var(--good); }
+.md-card.ng::after { content: "\2715"; color: var(--critical); }
+.md-main-line { fill: none; stroke: var(--edge); stroke-width: 2; }
+.md-drop-line { fill: none; stroke: var(--edge); stroke-width: 2; stroke-dasharray: 2 5; }
+.md-back { fill: none; stroke: var(--accent); stroke-width: 2; stroke-dasharray: 6 5; transition: stroke-width .2s; }
+.md-back.on { stroke-width: 3.5; }
+.md-back-label { font: 700 12.5px var(--sans); fill: var(--accent); paint-order: stroke; stroke: var(--bg); stroke-width: 5px; }
+/* On paper the picture keeps its colors, and the buttons that only work on screen are left out. */
+@media print {
+  :root { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .md-tools { display: none; }
+}
+</style>
+</head>
+<body>
+<main class="md" data-md>
+  <header class="md-top">
+    <p class="md-title">Changes from people and bots reach main only after tests and a review <span class="md-unit">a week</span></p>
+    <div class="md-tools">
+      <button type="button" class="md-btn md-replay" data-ui="replay">Run again</button>
+      <div class="md-seg" role="group" data-ui-label="language"><button type="button" data-lang="en" data-ui="langEn" lang="en">English</button><button type="button" data-lang="ja" data-ui="langJa" lang="ja">日本語</button></div>
+      <div class="md-seg" role="group" data-ui-label="theme"><button type="button" data-theme-choice="light" data-ui-label="light"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button><button type="button" data-theme-choice="dark" data-ui-label="dark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button></div>
+    </div>
+  </header>
+  <div class="md-stage" data-flow="row" data-back="1">
+    <svg class="md-lines" aria-hidden="true"><defs><marker id="md-ah" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--edge)"/></marker><marker id="md-ahb" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--accent)"/></marker></defs></svg>
+    <div class="md-grid" style="--cols:4;--lanes:2">
+<div class="md-cell" style="--r:0;--l:1;--span:1" data-wide>
+<button type="button" class="md-part" data-part="people" data-rank="0" data-lane="main" data-kind="source" aria-pressed="false"><span class="md-icon" data-icon="people"></span><span class="md-name">Contributors</span><span class="md-count" data-count-for="people">0</span></button>
+<button type="button" class="md-part" data-part="bots" data-rank="0" data-lane="main" data-kind="source" aria-pressed="false"><span class="md-icon" data-icon="gear"></span><span class="md-name">Update bots</span><span class="md-count" data-count-for="bots">0</span></button>
+</div>
+<div class="md-cell" style="--r:1;--l:1;--span:1">
+<button type="button" class="md-part" data-part="tests" data-rank="1" data-lane="main" data-kind="check" aria-pressed="false"><span class="md-icon" data-icon="code"></span><span class="md-name">Tests</span><span class="md-count" data-count-for="tests">0</span></button>
+</div>
+<div class="md-cell" style="--r:1;--l:2;--span:2">
+<button type="button" class="md-part" data-part="back" data-rank="1" data-lane="side" data-kind="bin" aria-pressed="false"><span class="md-icon" data-icon="archive"></span><span class="md-name">Sent back</span><span class="md-count" data-count-for="back">0</span></button>
+</div>
+<div class="md-cell" style="--r:2;--l:1;--span:1">
+<button type="button" class="md-part" data-part="review" data-rank="2" data-lane="main" data-kind="person" aria-pressed="false"><span class="md-icon" data-icon="person"></span><span class="md-name">Reviewer</span><span class="md-count" data-count-for="review">0</span></button>
+</div>
+<div class="md-cell" style="--r:3;--l:1;--span:1">
+<button type="button" class="md-part" data-part="main" data-rank="3" data-lane="main" data-kind="end" aria-pressed="false"><span class="md-icon" data-icon="flag"></span><span class="md-name">main</span><span class="md-count" data-count-for="main">0</span></button>
+</div>
+    </div>
+    <div class="md-fx"></div>
+  </div>
+<div class="md-boundary" data-boundary="0"><span class="md-icon" data-icon="lock"></span><span class="md-bname">Merging never deploys</span><div class="md-outside"><button type="button" class="md-part" data-part="production" data-kind="outside" aria-pressed="false"><span class="md-icon" data-icon="cloud"></span><span class="md-name">Production</span></button></div></div>
+  <section class="md-info" aria-live="polite"><p class="md-hint" data-ui="hint">Press a part to see what it does</p></section>
+  <pre id="md-probe" hidden></pre>
+</main>
+<script type="application/json" id="md-spec">{"lang": "en", "numbered": true, "columns": 4, "parts": {"people": {"kind": "source", "name": "Contributors", "details": "Pull requests opened by people on the team.", "example": "", "keep": null, "count": 40, "received": 0}, "bots": {"kind": "source", "name": "Update bots", "details": "Pull requests that raise the version of a dependency.", "example": "", "keep": null, "count": 20, "received": 0}, "tests": {"kind": "check", "name": "Tests", "details": "The test suite runs on each pull request. A failing one goes back to its author.", "example": "Sent back: a change that broke the login test", "keep": 45, "count": null, "received": 60}, "review": {"kind": "person", "name": "Reviewer", "details": "A reviewer reads the change and approves it or asks for changes.", "example": "", "keep": 30, "count": null, "received": 45}, "back": {"kind": "bin", "name": "Sent back", "details": "Pull requests that wait for their author, with the reason.", "example": "", "keep": null, "count": null, "received": 30}, "main": {"kind": "end", "name": "main", "details": "Approved pull requests are merged into main.", "example": "", "keep": null, "count": null, "received": 30}, "production": {"kind": "outside", "name": "Production", "details": "Deploying is a separate step that a person starts.", "example": "", "keep": null, "count": null, "received": 0}}, "order": ["people", "bots", "tests", "review", "main"], "main": [{"from": "people", "to": "tests", "count": null}, {"from": "bots", "to": "tests", "count": null}, {"from": "tests", "to": "review", "count": null}, {"from": "review", "to": "main", "count": null}], "drops": [{"from": "tests", "to": "back"}, {"from": "review", "to": "back"}], "backs": [{"from": "review", "to": "tests", "label": "Review notes become tests"}], "finals": {"people": 40, "bots": 20, "tests": 45, "review": 30, "back": 30, "main": 30}}</script>
+<script type="application/json" id="md-ui">{"en": {"replay": "Run again", "hint": "Press a part to see what it does", "example": "Example", "language": "Language", "theme": "Light or dark", "light": "Light", "dark": "Dark", "langEn": "English", "langJa": "日本語"}, "ja": {"replay": "もう一度流す", "hint": "部品を押すと中身が出る", "example": "例", "language": "言語", "theme": "明るい表示か暗い表示", "light": "明るい表示", "dark": "暗い表示", "langEn": "English", "langJa": "日本語"}}</script>
+<script>
+(() => {
+  'use strict';
+  const D = JSON.parse(document.getElementById('md-spec').textContent);
+  const UI = JSON.parse(document.getElementById('md-ui').textContent);
+  const root = document.documentElement;
+  const md = document.querySelector('[data-md]');
+  const stage = md.querySelector('.md-stage');
+  const fx = md.querySelector('.md-fx');
+  const svg = md.querySelector('.md-lines');
+  const info = md.querySelector('.md-info');
+  const params = new URLSearchParams(location.hash.slice(1));
+  const PROBE = params.has('probe');
+  const EXPORT = params.has('export');
+  const END = !EXPORT && params.has('end');
+  const SPEED = PROBE ? 25 : 1;
+  const REDUCE = !EXPORT && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const NS = 'http://www.w3.org/2000/svg';
+  const HOP = 0.75, GAP = 0.16, MAX_CARDS = 24;
+  const ICONS = {
+    inbox: '<path d="M4 13h4l2 3h4l2-3h4"/><path d="M5.5 5h13L20 13v6H4v-6z"/>',
+    filter: '<path d="M4 5h16l-6 7.5V18l-4 2v-7.5z"/>',
+    read: '<path d="M4 6h9M4 10h6M4 14h4"/><circle cx="15.5" cy="14.5" r="4"/><path d="M18.5 17.5L21 20"/>',
+    stack: '<rect x="5" y="9" width="14" height="11" rx="2"/><path d="M7 6h10M9 3h6"/>',
+    person: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+    archive: '<rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10h14V9M10 13h4"/>',
+    done: '<circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.2l2.4 2.4 4.6-5"/>',
+    lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+    doc: '<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/>',
+    feed: '<circle cx="6" cy="18" r="1.5"/><path d="M5 11a8 8 0 0 1 8 8M5 5a14 14 0 0 1 14 14"/>',
+    code: '<path d="M9 8l-4 4 4 4M15 8l4 4-4 4"/>',
+    chat: '<path d="M4 5h16v11H9l-5 4z"/>',
+    mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
+    data: '<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/>',
+    cloud: '<path d="M7 18h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6 10a4 4 0 0 0 1 8z"/>',
+    gear: '<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>',
+    chart: '<path d="M4 20h16"/><rect x="6" y="11" width="3" height="6"/><rect x="11" y="6" width="3" height="11"/><rect x="16" y="13" width="3" height="4"/>',
+    clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/>',
+    people: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6.5 6.5 0 0 1 3.5 6"/>',
+    flag: '<path d="M5 21V4M5 4h12l-2 4 2 4H5"/>',
+    bell: '<path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
+    key: '<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/>',
+    cart: '<path d="M3 4h2l2.5 11h11L21 7H6.5"/><circle cx="9" cy="19" r="1.5"/><circle cx="17" cy="19" r="1.5"/>',
+    globe: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.5 3.5 5.5 3.5 8.5s-1 6-3.5 8.5c-2.5-2.5-3.5-5.5-3.5-8.5s1-6 3.5-8.5z"/>'
+  };
+  md.querySelectorAll('.md-icon').forEach(e => {
+    e.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + (ICONS[e.dataset.icon] || ICONS.inbox) + '</svg>';
+  });
+
+  const partEl = id => md.querySelector('.md-part[data-part="' + id + '"]');
+  const sources = D.order.filter(id => D.parts[id].kind === 'source');
+  const color = {};
+  sources.forEach((id, i) => {
+    color[id] = 'var(--c' + (i % 6 + 1) + ')';
+    partEl(id).style.setProperty('--src-color', color[id]);
+  });
+
+  /* Interface words, light or dark, and the details of a pressed part. */
+  const read = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  const store = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* storage may be blocked */ } };
+  let lang = D.lang;
+  let current = null;
+  function setLang(l) {
+    lang = l;
+    md.querySelectorAll('[data-ui]').forEach(e => { e.textContent = UI[l][e.dataset.ui]; });
+    md.querySelectorAll('[data-ui-label]').forEach(e => { e.setAttribute('aria-label', UI[l][e.dataset.uiLabel]); e.title = UI[l][e.dataset.uiLabel]; });
+    md.querySelectorAll('[data-lang]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === l)));
+    if (current) show(current);
+  }
+  function setTheme(t) {
+    if (t === 'light' || t === 'dark') root.dataset.theme = t; else delete root.dataset.theme;
+    const now = root.dataset.theme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    md.querySelectorAll('[data-theme-choice]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.themeChoice === now)));
+  }
+  function show(id) {
+    current = id;
+    md.querySelectorAll('.md-part').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.part === id)));
+    const p = D.parts[id];
+    info.replaceChildren();
+    const h = document.createElement('h3');
+    h.textContent = p.name;
+    info.appendChild(h);
+    if (p.details) { const d = document.createElement('p'); d.textContent = p.details; info.appendChild(d); }
+    if (p.example) {
+      const ex = document.createElement('div'); ex.className = 'md-ex';
+      const b = document.createElement('b'); b.dataset.ui = 'example'; b.textContent = UI[lang].example;
+      ex.appendChild(b); ex.appendChild(document.createTextNode(p.example));
+      info.appendChild(ex);
+    }
+  }
+  md.querySelectorAll('[data-lang]').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang)));
+  md.querySelectorAll('[data-theme-choice]').forEach(b => b.addEventListener('click', () => { store('md-theme', b.dataset.themeChoice); setTheme(b.dataset.themeChoice); }));
+  md.querySelectorAll('.md-part').forEach(b => b.addEventListener('click', () => show(b.dataset.part)));
+  setLang(D.lang);
+  setTheme(read('md-theme'));
+
+  /* Left to right when the columns fit, top to bottom otherwise. */
+  function decideFlow() {
+    const w = stage.clientWidth;
+    const flow = (w < 600 || w / D.columns < 92) ? 'column' : 'row';
+    if (stage.dataset.flow !== flow) stage.dataset.flow = flow;
+  }
+  function box(el) {
+    const a = el.getBoundingClientRect(), s = stage.getBoundingClientRect();
+    return { x: a.left - s.left + a.width / 2, y: a.top - s.top + a.height / 2, l: a.left - s.left, r: a.right - s.left, t: a.top - s.top, b: a.bottom - s.top, w: a.width, h: a.height };
+  }
+
+  /* Lines between the parts: the main lines, the drops to a bin, and the lines back. */
+  let backPaths = [];
+  function drawLines() {
+    [...svg.childNodes].forEach(n => { if (n.nodeName !== 'defs') n.remove(); });
+    /* Where the line between the centers of two parts leaves the first part, so the arrow sits in
+       the gap between them and is never hidden under a part. */
+    const edge = (from, to) => {
+      const dx = to.x - from.x, dy = to.y - from.y;
+      const sx = dx ? from.w / 2 / Math.abs(dx) : Infinity, sy = dy ? from.h / 2 / Math.abs(dy) : Infinity;
+      const k = Math.min(sx, sy, 1);
+      return { x: from.x + dx * k, y: from.y + dy * k };
+    };
+    const poly = (from, to, cls) => {
+      const a = edge(from, to), b = edge(to, from);
+      const p = document.createElementNS(NS, 'polyline');
+      p.setAttribute('points', a.x + ',' + a.y + ' ' + (a.x + b.x) / 2 + ',' + (a.y + b.y) / 2 + ' ' + b.x + ',' + b.y);
+      p.setAttribute('class', cls);
+      p.setAttribute('marker-mid', 'url(#md-ah)');
+      svg.appendChild(p);
+    };
+    D.main.forEach(l => poly(box(partEl(l.from)), box(partEl(l.to)), 'md-main-line'));
+    D.drops.forEach(l => poly(box(partEl(l.from)), box(partEl(l.to)), 'md-drop-line'));
+    const row = stage.dataset.flow === 'row';
+    backPaths = D.backs.map((l, i) => {
+      const a = box(partEl(l.from)), b = box(partEl(l.to));
+      const path = document.createElementNS(NS, 'path');
+      const label = document.createElementNS(NS, 'text');
+      if (row) {
+        const top = Math.min(a.t, b.t) - 30 - i * 14;
+        path.setAttribute('d', 'M' + a.x + ',' + a.t + ' C' + a.x + ',' + top + ' ' + b.x + ',' + top + ' ' + b.x + ',' + (b.t - 3));
+        label.setAttribute('x', (a.x + b.x) / 2);
+        label.setAttribute('y', top + 10);
+        label.setAttribute('text-anchor', 'middle');
+      } else {
+        const x = Math.min(a.l, b.l) - 16 - i * 8;
+        path.setAttribute('d', 'M' + a.l + ',' + a.y + ' L' + x + ',' + a.y + ' L' + x + ',' + b.y + ' L' + (b.l - 3) + ',' + b.y);
+        label.setAttribute('transform', 'translate(' + (x - 5) + ',' + (a.y + b.y) / 2 + ') rotate(-90)');
+        label.setAttribute('text-anchor', 'middle');
+      }
+      path.setAttribute('class', 'md-back');
+      path.setAttribute('marker-end', 'url(#md-ahb)');
+      label.setAttribute('class', 'md-back-label');
+      label.textContent = l.label || '';
+      svg.appendChild(path);
+      svg.appendChild(label);
+      return path;
+    });
+  }
+
+  /* The plan of one run: which card leaves which source when, and where each check sends it. */
+  function share(total, weights) {
+    const sum = weights.reduce((a, b) => a + b, 0);
+    if (!sum || !total) return weights.map(() => 0);
+    const raw = weights.map(w => total * w / sum);
+    const out = raw.map(Math.floor);
+    const left = total - out.reduce((a, b) => a + b, 0);
+    raw.map((r, i) => [r - Math.floor(r), i]).sort((a, b) => b[0] - a[0]).slice(0, left).forEach(([, i]) => { out[i] += 1; });
+    weights.forEach((w, i) => { if (w > 0 && out[i] === 0 && total >= weights.filter(x => x > 0).length) { const j = out.indexOf(Math.max(...out)); out[j] -= 1; out[i] = 1; } });
+    return out;
+  }
+  function buildPlan() {
+    const weights = sources.map(id => (D.numbered ? D.parts[id].count : 3));
+    const total = weights.reduce((a, b) => a + b, 0);
+    const per = share(Math.min(total, MAX_CARDS), weights);
+    const outLines = {}, dropTo = {};
+    D.main.forEach(l => { (outLines[l.from] = outLines[l.from] || []).push(l); });
+    D.drops.forEach(l => { dropTo[l.from] = l.to; });
+    const cin = {}, cout = {};
+    D.order.forEach(id => { cin[id] = cin[id] || 0; });
+    D.order.forEach(id => {
+      const p = D.parts[id];
+      if (p.kind === 'source') cout[id] = per[sources.indexOf(id)];
+      else if ((p.kind === 'check' || p.kind === 'person') && D.numbered) {
+        const want = p.received ? Math.round(cin[id] * p.keep / p.received) : 0;
+        cout[id] = Math.min(cin[id], Math.max(p.keep > 0 && cin[id] > 0 ? 1 : 0, want));
+      } else cout[id] = cin[id];
+      const lines = outLines[id] || [];
+      if (lines.length === 1) cin[lines[0].to] = (cin[lines[0].to] || 0) + cout[id];
+      else if (lines.length > 1) share(cout[id], lines.map(l => l.count || 1)).forEach((n, i) => { cin[lines[i].to] = (cin[lines[i].to] || 0) + n; });
+    });
+    const order = [];
+    const lists = sources.map((id, i) => Array.from({ length: per[i] }, () => id));
+    for (let k = 0; lists.some(l => l.length); k++) lists.forEach(l => { if (l.length) order.push(l.shift()); });
+    const cards = order.map((src, i) => ({ src, spawn: i * GAP, segs: [], end: 'gone', okAt: Infinity }));
+    const seen = {}, sent = {}, rested = {}, counts = {}, pulses = [];
+    const backFrom = new Set(D.backs.map(b => b.from));
+    const mark = (id, t) => { (counts[id] = counts[id] || []).push(t); };
+    const queue = cards.map(c => ({ t: c.spawn, card: c, at: c.src }));
+    while (queue.length) {
+      queue.sort((a, b) => a.t - b.t);
+      const { t, card, at } = queue.shift();
+      const p = D.parts[at];
+      let pass = true;
+      if (p.kind === 'source') mark(at, t);
+      if (p.kind === 'check' || p.kind === 'person') {
+        const k = seen[at] = (seen[at] || 0) + 1;
+        pass = Math.floor(k * cout[at] / cin[at]) > Math.floor((k - 1) * cout[at] / cin[at]);
+        if (pass) { mark(at, t); if (backFrom.has(at)) pulses.push(t); if (p.kind === 'person') card.okAt = t; }
+      }
+      if (!pass) {
+        if (dropTo[at]) {
+          card.segs.push({ t0: t, t1: t + HOP, a: at, b: dropTo[at], type: 'drop' });
+          mark(dropTo[at], t + HOP);
+        } else card.segs.push({ t0: t, t1: t + 0.6, a: at, b: at, type: 'reject' });
+        continue;
+      }
+      const lines = outLines[at] || [];
+      if (p.kind === 'box' || p.kind === 'end') mark(at, t);
+      if (!lines.length) {
+        const slot = rested[at] = (rested[at] || 0) + 1;
+        card.end = 'rest'; card.rest = { at, slot: slot - 1, t };
+        continue;
+      }
+      let line = lines[0];
+      if (lines.length > 1) {
+        const w = lines.map(l => l.count || 1), sum = w.reduce((a, b) => a + b, 0);
+        const n = (sent[at] = (sent[at] || 0) + 1);
+        let best = 0, gap = -Infinity;
+        lines.forEach((l, i) => { const g = n * w[i] / sum - ((l._n || 0)); if (g > gap) { gap = g; best = i; } });
+        line = lines[best]; line._n = (line._n || 0) + 1;
+      }
+      card.segs.push({ t0: t, t1: t + HOP, a: at, b: line.to, type: 'move' });
+      queue.push({ t: t + HOP, card, at: line.to });
+    }
+    D.main.forEach(l => { delete l._n; });
+    let end = 0;
+    cards.forEach(c => c.segs.forEach(s => { end = Math.max(end, s.t1); }));
+    return { cards, counts, pulses, total: end + 0.3 };
+  }
+
+  /* Draw the state of the run at time t (seconds). */
+  let plan = null, els = [], countEls = {};
+  md.querySelectorAll('[data-count-for]').forEach(e => { countEls[e.dataset.countFor] = e; });
+  const ease = x => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+  function anchor(id) { return box(partEl(id)); }
+  /* Cards that stop at a part stack inside its top-right corner, clear of its icon, name, and count,
+     and of the lines that start or end at its edges. */
+  function restPos(r) { const b = anchor(r.at); return { x: b.r - 15, y: b.t + 12 + (r.slot % 6) * 4 }; }
+  function setCounts(t, done) {
+    Object.keys(countEls).forEach(id => {
+      const final = D.finals[id];
+      if (final === undefined) return;
+      const times = plan ? (plan.counts[id] || []) : [];
+      let n = final;
+      if (!done && times.length) n = Math.round(final * times.filter(x => x <= t).length / times.length);
+      else if (!done && !times.length) n = 0;
+      const text = String(n);
+      if (countEls[id].textContent !== text) countEls[id].textContent = text;
+    });
+  }
+  function draw(t) {
+    const done = t >= plan.total;
+    plan.cards.forEach((c, i) => {
+      const el = els[i];
+      if (!el) return;
+      let x = 0, y = 0, o = 0, cls = '';
+      if (t >= c.spawn) {
+        const seg = c.segs.find(s => t >= s.t0 && t < s.t1);
+        if (seg) {
+          const k = ease((t - seg.t0) / (seg.t1 - seg.t0));
+          const a = anchor(seg.a);
+          const last = seg === c.segs[c.segs.length - 1];
+          const b = seg.type === 'move' && last && c.end === 'rest' ? restPos(c.rest) : anchor(seg.b);
+          x = a.x + (b.x - a.x) * k; y = a.y + (b.y - a.y) * k; o = 1;
+          if (seg.type === 'drop') o = k > 0.7 ? 1 - (k - 0.7) / 0.3 : 1;
+          if (seg.type === 'reject') { o = 1 - k; cls = 'ng'; }
+        } else if (c.segs.length && t >= c.segs[c.segs.length - 1].t1) {
+          if (c.end === 'rest') { const r = restPos(c.rest); x = r.x; y = r.y; o = 1; }
+        } else if (c.end === 'rest' && !c.segs.length) {
+          const r = restPos(c.rest); x = r.x; y = r.y; o = 1;
+        } else { const a = anchor(c.src); x = a.x; y = a.y; o = 1; }
+        if (t >= c.okAt && !cls) cls = 'ok';
+      }
+      el.style.transform = 'translate(' + x + 'px,' + y + 'px)';
+      el.style.opacity = o;
+      if (el.className !== 'md-card ' + cls) el.className = ('md-card ' + cls).trim();
+    });
+    setCounts(t, done);
+    backPaths.forEach(p => p.classList.toggle('on', !done && plan.pulses.some(x => x <= t && t - x < 0.5)));
+  }
+
+  /* One run: plan, cards, and the clock. It stops at the end and nothing moves after it. */
+  let running = false, runs = 0, frames = 0, start = 0, waiters = [];
+  const tick = PROBE ? (f => setTimeout(f, 16)) : (f => window.requestAnimationFrame(f));
+  function prepare() {
+    decideFlow();
+    drawLines();
+    fx.replaceChildren();
+    plan = buildPlan();
+    els = REDUCE ? [] : plan.cards.map(c => {
+      const el = document.createElement('div');
+      el.className = 'md-card';
+      el.style.setProperty('--card-color', color[c.src]);
+      fx.appendChild(el);
+      return el;
+    });
+    return plan.total;
+  }
+  function finish() {
+    running = false;
+    runs += 1;
+    const w = waiters; waiters = [];
+    w.forEach(f => f());
+  }
+  function loop() {
+    if (!running) return;
+    frames += 1;
+    const t = (performance.now() - start) / 1000 * SPEED;
+    if (t >= plan.total) { draw(plan.total); finish(); return; }
+    draw(t);
+    tick(loop);
+  }
+  function run() {
+    prepare();
+    if (REDUCE) { setCounts(0, true); finish(); return; }
+    start = performance.now();
+    running = true;
+    draw(0);
+    tick(loop);
+  }
+  const ended = () => new Promise(r => { if (!running) r(); else waiters.push(r); });
+  md.querySelector('.md-replay').addEventListener('click', run);
+
+  /* The finished picture without a run: every count at its number and the resting cards in place.
+     A run in progress stops here, as when printing starts. */
+  function showEnd() {
+    if (running) { running = false; const w = waiters; waiters = []; w.forEach(f => f()); }
+    prepare();
+    if (REDUCE) setCounts(0, true); else draw(plan.total);
+  }
+
+  /* The run starts the first time the picture is on screen. A page opened in a tab is on screen as
+     it opens and runs on its first frame; a page in a frame, which may sit further down a document or
+     in a hidden part, watches for the reader to reach it and shows its finished picture until then,
+     so one never shown prints finished. */
+  let begun = false;
+  function begin() { if (!begun) { begun = true; run(); } }
+  function watch() {
+    if (!('IntersectionObserver' in window)) { begin(); return; }
+    const seen = new IntersectionObserver(entries => {
+      if (entries.some(e => e.isIntersecting)) { seen.disconnect(); begin(); }
+    });
+    seen.observe(stage);
+  }
+  let resizing;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizing);
+    resizing = setTimeout(() => { decideFlow(); drawLines(); if (plan && !running) draw(plan.total); }, 120);
+  });
+
+  /* For export: draw any moment of the run on request. */
+  window.__md = { prepare, seek: t => draw(Math.min(t, plan.total)), finals: () => D.finals };
+
+  /* For tests: run, wait, press, replay, and report what the page shows. */
+  const pause = ms => new Promise(r => setTimeout(r, ms));
+  function snapshot() {
+    const counts = {};
+    Object.keys(countEls).forEach(id => { counts[id] = countEls[id].textContent.replace(/\D/g, ''); });
+    return { counts, cards: els.length, shown: els.filter(e => e.style.opacity === '1').length };
+  }
+  async function still() {
+    const f = frames;
+    const before = els.map(e => e.style.transform + e.style.opacity).join('|');
+    await pause(400);
+    return running || frames !== f || els.map(e => e.style.transform + e.style.opacity).join('|') !== before;
+  }
+  /* The resting cards that cover their part's icon, name, or count, or the start of a line back. */
+  function covered() {
+    const s = stage.getBoundingClientRect(), hits = [];
+    const rel = r => ({ l: r.left - s.left, t: r.top - s.top, r: r.right - s.left, b: r.bottom - s.top });
+    const meet = (a, b) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
+    const row = stage.dataset.flow === 'row';
+    const starts = D.backs.map(l => { const a = box(partEl(l.from)); return row ? { x: a.x, y: a.t } : { x: a.l, y: a.y }; });
+    plan.cards.forEach((c, i) => {
+      if (c.end !== 'rest' || !els[i]) return;
+      const card = rel(els[i].getBoundingClientRect());
+      partEl(c.rest.at).querySelectorAll('.md-icon, .md-name, .md-count').forEach(e => {
+        if (meet(card, rel(e.getBoundingClientRect()))) hits.push(c.rest.at + ' ' + e.className);
+      });
+      starts.forEach(p => { if (meet(card, { l: p.x - 4, t: p.y - 4, r: p.x + 4, b: p.y + 4 })) hits.push(c.rest.at + ' line back'); });
+    });
+    return [...new Set(hits)];
+  }
+  async function probe() {
+    while (!END && (runs === 0 || running)) await pause(50);
+    const firstRun = snapshot();
+    firstRun.moving = await still();
+    const lines = document.body.innerText.split('\n').map(s => s.trim()).filter(Boolean);
+    let pressed = '';
+    if (params.get('press') && partEl(params.get('press'))) { partEl(params.get('press')).click(); pressed = info.innerText; }
+    if (params.has('replay')) { md.querySelector('.md-replay').click(); await ended(); }
+    const last = snapshot();
+    const out = {
+      runs, cards: last.cards, shown: last.shown, counts: last.counts, moving: await still(), firstRun,
+      before: lines, pressed, flow: stage.dataset.flow, covered: covered(),
+      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1
+    };
+    document.getElementById('md-probe').textContent = JSON.stringify(out);
+  }
+
+  if (EXPORT) { decideFlow(); drawLines(); return; }
+  window.addEventListener('beforeprint', showEnd);
+  const paper = window.matchMedia('print');
+  if (paper.addEventListener) paper.addEventListener('change', e => { if (e.matches) showEnd(); });
+  if (END) showEnd();
+  else if (window.self === window.top) window.requestAnimationFrame(begin);
+  else { showEnd(); watch(); }
+  if (PROBE) probe();
+})();
+</script>
+</body>
+</html>
