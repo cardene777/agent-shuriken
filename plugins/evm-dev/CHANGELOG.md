@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-23
+
 ### Added
 
 - `solidity-code` holds an item for solc 0.8.39: it suggests moving to 0.8.39 or later when a contract copies a recursive struct between storage locations where the target contains the source, which silently corrupts storage on 0.4.9 to 0.8.38 (SOL-2026-8), and says that nested tuple assignments of string literals swap values in the default pipeline before 0.8.39
@@ -124,7 +126,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - Starts when you ask about the status of an ERC or EIP, or when you call it, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
 - The plugin has `claude plugin eval` cases under `evals/` that measure the skill, run by hand
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/evm-dev--v0.8.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/evm-dev--v0.9.0...HEAD
+[0.9.0]: https://github.com/cardene777/agent-shuriken/releases/tag/evm-dev--v0.9.0
 [0.8.0]: https://github.com/cardene777/agent-shuriken/releases/tag/evm-dev--v0.8.0
 [0.7.0]: https://github.com/cardene777/agent-shuriken/releases/tag/evm-dev--v0.7.0
 [0.6.0]: https://github.com/cardene777/agent-shuriken/releases/tag/evm-dev--v0.6.0
