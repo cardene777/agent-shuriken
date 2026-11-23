@@ -58,7 +58,7 @@
       "type": "object",
       "required": ["type"],
       "properties": {
-        "type": {"enum": ["paragraph", "heading", "list", "chart", "keys", "cards", "note", "compare", "html", "table", "code", "details"]}
+        "type": {"enum": ["paragraph", "heading", "list", "chart", "keys", "cards", "note", "compare", "html", "motion", "table", "code", "details"]}
       },
       "allOf": [
         {
@@ -167,6 +167,17 @@
               "html": {"type": "string", "description": "HTML for a shape the other blocks do not cover. No script, style, link, iframe, object, embed, meta, base, frame, on* attributes, or javascript: URLs"},
               "css": {"type": "string", "description": "CSS that applies only inside this block (nested under the block id). No @import or tags"},
               "caption": {"type": "string", "description": "With a caption the block becomes a figure and counts as the section's figure"}
+            }
+          }
+        },
+        {
+          "if": {"properties": {"type": {"const": "motion"}}},
+          "then": {
+            "required": ["id", "page", "caption"],
+            "properties": {
+              "id": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"},
+              "page": {"type": "string", "minLength": 1, "description": "The HTML page that motion-diagram render wrote, relative to the content JSON. It is carried whole in a frame of the figure"},
+              "caption": {"type": "string", "description": "Caption starting with the figure number. The block counts as the section's figure"}
             }
           }
         },
