@@ -5,6 +5,10 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- Before writing graders for new cases, the skill runs each case once, reads every output, and groups what is wrong into failure types that each pass or fail by yes or no, with one grader per failure type
+- Before the comparison counts an `llm` grader, the skill checks it against outputs you label. `label` shows the text the grader read without its verdict and records your pass or fail with that text in `<plugin>/evals/labels/`; `label-cases` sets 3 labels aside as examples, holds 5 passes and 5 fails back at random, and writes one small case per label that the eval's own judge grades; `agree` prints the share of human passes the grader passed and the share of human fails it failed, apart. A grader that agrees on fewer than 4 of the 5 held-back passes or fails leaves the score through `--indicator` and is reported as not trusted. While tuning, the skill looks for two ways a grader goes wrong: passing a found problem as minor, and testing only the surface
+- `run --eval-dir` passes the folder of the cases to `claude plugin eval`
+- The steps are renumbered from 8 to 10, and the details of the two new steps are in `references/graders.md`, read only at those steps
 - The README says before its steps that measuring needs Claude Code and paid model runs, about 0.44 USD a run in its example, and that the agent shows the estimate before anything is spent
 - `copy` warns when the plugin holds a file named `report.html`: `claude plugin eval` names its own report that way and keeps the agent out of such a plugin's folder, so the skill there can read none of its files. The `SKILL.md` says to rename the file before measuring
 - The rules for writing cases say that the run's `HOME` is itself a git repository, so a fixture that runs a plugin script that names things by the repository runs it without `git` on the `PATH`. Measuring session-handoff saved its fixture's state under a project that the agent's run, where `git` fails, could not find, and three cases were run again on both sides

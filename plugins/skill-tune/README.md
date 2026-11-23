@@ -41,18 +41,20 @@ In GitHub Copilot CLI, write `/skill-tune` in your request, and in Gemini CLI, d
 | You want | What happens |
 |---|---|
 | To measure and shorten a skill | Every step below |
-| Eval cases only | Steps 1 to 5, without the cuts |
+| Eval cases only | Steps 1 to 7, without the cuts |
 | To know why a case fails | The agent reads the failing runs' tool calls and names the cause |
 | The longest skills in a repository | A table of every skill by length, with its eval cases, and an offer to start with one |
 
 1. The agent measures the `SKILL.md` and lists the parts that repeat what its scripts, headings, or `--help` already say, with the words each cut would save
-2. You pick the case groups and the cuts. The agent says what a run costs
-3. The agent writes the cases into the plugin's `evals/` folder, each with a `fixture.sh` that builds its starting state, and adds checks for them to the plugin's test
-4. The script copies the plugin and runs each case once, so a case the sandbox cannot pass is fixed before any money goes into measuring
-5. From that run, the script estimates the cost of measuring. The agent shows it, and the script records the baseline on a fresh copy
-6. The agent makes only the agreed cuts in your `SKILL.md`, and caps its size in the plugin's test
-7. The script measures a copy of the new `SKILL.md` and compares it case by case. A case that scored lower is read run by run, and its cause is named before anything changes
-8. The agent reports each case's score before, after, and without the plugin, with the cost, and removes the copies and the folders the eval kept
+2. You pick the case groups and the cuts. The agent says what a run costs, and that each `llm` grader needs 12 passing and 12 failing outputs labeled by you
+3. The agent writes each case's prompt into the plugin's `evals/` folder, with a `fixture.sh` that builds its starting state
+4. The script copies the plugin and runs each case once. For new cases, the agent reads every output, notes what is wrong, and groups the notes into failure types that each pass or fail by yes or no
+5. The agent writes one grader per failure type, adds checks for the cases to the plugin's test, and runs each case once again, so a case the sandbox cannot pass is fixed before any money goes into measuring
+6. From that run, the script estimates the cost of measuring. The agent shows it, and the script records the baseline on a fresh copy
+7. For each `llm` grader, the agent shows you its outputs one at a time and records your pass or fail with `label`. `label-cases` holds 5 passes and 5 fails back, the agent tunes the grader against the rest with `agree`, and then checks it once against the held-back labels. A grader that agrees on fewer than 4 of the 5 on either side leaves the score
+8. The agent makes only the agreed cuts in your `SKILL.md`, and caps its size in the plugin's test
+9. The script measures a copy of the new `SKILL.md` and compares it case by case. A case that scored lower is read run by run, and its cause is named before anything changes
+10. The agent reports each case's score before, after, and without the plugin, with the cost and the graders not trusted, and removes the copies and the folders the eval kept
 
 In agents other than Claude Code, the skill does steps 1 to 3 and stops, since `claude plugin eval` comes with Claude Code.
 

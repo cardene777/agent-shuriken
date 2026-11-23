@@ -515,7 +515,7 @@ step_check_bites() {
 }
 check "the step check fails on a SKILL.md without either new step" "step_check_bites"
 
-SKILL_WORDS_MAX=1870
+SKILL_WORDS_MAX=2209
 SKILL_DESCRIPTION_MAX=357
 skill_size() {
   [ -f "$SKILL" ] || return 1

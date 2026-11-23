@@ -12,3 +12,6 @@ Words this repository uses with one meaning.
 | rehearsal | A run of a flow by the `screen-video` plugin that records nothing and stops before the first step that sends something or pays |
 | storyboard | The page a rehearsal writes, `storyboard.html`, with a picture, the action, and the caption of each step |
 | theme | A JSON file of colours, fonts, and corners that sets how the edited videos of the `screen-video` plugin look: bundled in its `themes/`, or a project's own in `.screen-video/themes/` |
+| failure type | In the `skill-tune` plugin, one way a skill's output goes wrong, written as a question about an output answered with yes or no; each becomes one grader |
+| label | In the `skill-tune` plugin, a person's pass or fail on one output an `llm` grader read, kept with the output's text in the plugin's `evals/labels/` |
+| held-back part | In the `skill-tune` plugin, the 5 passing and 5 failing labels set aside at random before an `llm` grader is tuned, used once to decide whether the grader is trusted |

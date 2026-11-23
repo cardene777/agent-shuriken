@@ -1,6 +1,6 @@
 # skill-tune
 
-| 条件 | 確かめ方 | 出元 |
+| Criterion | How to check | Origin |
 |---|---|---|
 | `skill_tune.py size <SKILL.md>`は、本文の語数(空白で区切った数)と説明文の字数を出す | `bash plugins/skill-tune/skills/skill-tune/tests/test-skill-tune.sh`の検査`"size prints the body words and the description characters"`が通る | #154 |
 | `skill_tune.py list <folder>`は、その下の全pluginのスキルを本文の語数の多い順に並べ、説明文の字数と評価の案件の数を添える | `bash plugins/skill-tune/skills/skill-tune/tests/test-skill-tune.sh`の検査`"list ranks the skills by body words and counts their eval cases"`が通る | #154 |
