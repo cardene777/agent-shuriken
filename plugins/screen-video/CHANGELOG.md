@@ -5,6 +5,12 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-23
+
+- Planning asks where the result of the video's main action can be checked, such as the app's admin pages or the dashboard of an outside service the app uses, and plans those screens as the last chapter
+- `login --start <address>` opens another site's login page, such as an outside service's, and every `login` keeps the logins already saved for the flow. `logout` removes a saved login, and `login.forget: true` makes `record` remove it when it ends, also when a step fails
+- A part left out can be recorded on its own and joined in: a flow with `addsTo` names the recorded flow and the step it comes after, `record` records only its steps and writes the joined videos into its own folder, leaving the other flow's videos as they were, and `remake` joins them again. Steps that send or pay are not run again
+- `login` installs the full Chromium the first time it runs, so its window opens. Before, only the headless browser was installed and `login` could not show a window
 - The 9:16 video is written with square pixels, so players show it at 9:16. Before, it was marked with a sample aspect ratio of 20:9 and most players showed it stretched to 5:4
 
 ## [0.2.0] - 2026-11-23
@@ -28,6 +34,7 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - A rehearsal stops before the first step marked with `effect`, and `record` runs marked steps only with `--confirm-effects`. A run stops, naming them, instead of emptying a folder that holds files it did not write
 - `scenes` and `render` caption and edit a recording the user made, from pictures of its scene changes and the captions the agent writes
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/screen-video--v0.2.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/screen-video--v0.3.0...HEAD
+[0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/screen-video--v0.3.0
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/screen-video--v0.2.0
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/screen-video--v0.1.0

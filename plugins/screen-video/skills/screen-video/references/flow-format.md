@@ -48,6 +48,7 @@ A flow is a JSON file in `.screen-video/flows/` of the project that says what on
 | `end` | No | The end card: `{"title", "url", "note"}`, each optional. Without it, the video ends without one |
 | `mask` | No | What to blur in every frame: `{"css": "<selector>"}` for elements, `{"text": "<text>"}` for any element or field holding that text |
 | `login` | No | How to sign in, described below |
+| `addsTo` | No | Makes the flow a part added to a recorded flow, described below |
 | `steps` | Yes | One or more steps, in order |
 
 ## Steps
@@ -162,7 +163,23 @@ A rehearsal stops before the first marked step, and `record` runs marked steps o
 | `envFile` | An env file inside the project, such as `.env.local`, to read the values from. Without it, the values come from the environment |
 | `basic` | `{"username": "<VARIABLE>", "password": "<VARIABLE>"}`: the env variables holding the user name and password for HTTP basic authentication |
 | `session` | A name for a login made by hand with `screen-video.sh login <flow>`, saved in the data folder and readable only by the user |
-| `start` | The page where `login` begins, relative to the flow's `url`. Without it, the flow's `url` |
+| `start` | The page where `login` begins, relative to the flow's `url`. Without it, the flow's `url`. `login --start <address>` opens another address for one login, such as an outside service's login page |
+| `forget` | `true` to remove the saved login when `record` ends, also when a step fails. For a login to an outside service, which lets anyone with the file into that account. `logout <flow>` removes it at any time |
 
 Never write a login value into a flow.
 `check` refuses a `fill` step that types plain `text` into a field named like a password, a token, or a one-time code; use `env` for those.
+Each `login` keeps the logins already saved for the flow, so a flow can be logged in to the app and to an outside service.
+
+## Parts added later
+
+A flow with `addsTo` is a part left out of a recorded flow: `record` records only its steps and joins them into the other flow's recording, so the other flow's steps, and those that send or pay, are not run again.
+
+| Field | What it does |
+|---|---|
+| `flow` | The name of the recorded flow, whose file is `.screen-video/flows/<flow>.json` and whose recording is in its folder in the data folder |
+| `after` | The step of that flow the part comes after, from 1. Without it, the part goes at the end |
+
+The part's own recording goes to `part/` in its folder, and the joined `raw.mp4`, `timeline.json`, and videos to the folder itself, with the steps numbered in the joined order.
+The joined videos take `title`, `theme`, `voice`, `music`, `sounds`, `end`, `outputs`, and `language` from the other flow, and add the two `seconds`.
+The part has its own `url`, `login`, and `mask`, and its narration is paced with the other flow's voice.
+`record` refuses before opening anything when the other flow has no recording or fewer steps than `after`, and `remake` of the part joins the two recordings again.
