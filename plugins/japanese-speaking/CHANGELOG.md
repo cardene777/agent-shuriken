@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-23
+
 - A sixth format, the round-table, for three or more speakers: one host opens, names each speaker before handing over a question, lets every speaker talk in each beat, and closes. The rule on differing views and the fresh reader's checklist say speakers instead of two people, and the reader looks for a speaker who never talks during a beat
 - `speaking.py check` prints `note speaker-utterances <speaker> <count>` for each named speaker, in the order they first speak, without changing the exit code
 - The first step asks for the number of speakers along with their names and roles
@@ -23,6 +25,7 @@ First public release.
 - `speaking.py check` prints script-level notes that never fail the check: the median and spread of utterance length, the share of short replies, backchannels, sentences ending in the particles ne and yo, the same ending three times in a row, and long sentences
 - After the check, a reader that has not seen the conversation listens for lines that still sound read, and the agent fixes them
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/japanese-speaking--v0.2.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/japanese-speaking--v0.3.0...HEAD
+[0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/japanese-speaking--v0.3.0
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/japanese-speaking--v0.2.0
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/japanese-speaking--v0.1.0
