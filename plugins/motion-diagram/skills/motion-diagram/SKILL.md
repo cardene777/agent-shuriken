@@ -75,7 +75,9 @@ S=<folder>/scripts; python3 "$S/motion_diagram.py" render <spec.json> --out <pag
 
 `motion_diagram.py render` runs the same checks and writes nothing when any fails.
 Show the user the page: open it in a browser view the agent has, or give the path to open.
-The page runs once when it opens; the replay button runs it again, and a reader who asks for reduced motion sees the final counts without movement.
+The page runs once when its picture is first on screen: at once when it is opened in a tab, and when the reader reaches it when it sits in a frame further down another document or in a hidden part, showing the finished picture until then.
+Adding `#end` to the page's address opens it finished, without running, and a printed page stops any run and prints the finished picture without its buttons.
+The replay button runs it again, and a reader who asks for reduced motion sees the final counts without movement.
 When the page is narrower than 600 pixels, or too narrow for its columns, the picture runs top to bottom.
 With `page-design` installed, apply the user's colors and fonts with the file it names for `verify`: `python3 <that file> theme --keys light,dark,font.sans,font.mono <page.html>`, which reads `.design-theme.json` at the repository root, else `~/.design-theme.json`.
 Run it again after each `render`, since `render` writes the page anew.

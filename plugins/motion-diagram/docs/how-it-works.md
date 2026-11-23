@@ -51,6 +51,14 @@ The run has no randomness: the same spec gives the same run in every browser and
 When the run ends, nothing moves.
 The replay button runs it again from the start, and a reader whose system asks for reduced motion sees the final counts without movement.
 
+The run starts the first time the picture is on screen.
+A page opened in a tab is on screen as it opens and runs on its first frame.
+A page in a frame watches with an `IntersectionObserver`, which also works inside a frame of another origin, so in a frame further down another document, or in a hidden part of it, it runs when the reader reaches it.
+Until then it shows the finished picture, so a page never shown prints finished.
+With `#end` at the end of its address, the page shows the finished picture and never runs.
+When printing starts, which the page learns from the `beforeprint` event or from the print media query, it stops a run in progress and draws the finished picture.
+On paper it keeps its colors and leaves out the replay button and the switches.
+
 ## The page
 
 The page is one HTML file: the template, the spec as data, and the dictionary of interface words in English and Japanese.

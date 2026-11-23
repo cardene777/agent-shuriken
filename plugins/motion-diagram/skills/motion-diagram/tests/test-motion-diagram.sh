@@ -283,17 +283,23 @@ PY
 # under two screens of space), "hidden" (the frame sits in a hidden part), or "top" (the frame is on
 # the first screen). A srcdoc frame shares the document's origin, so the script can read the page,
 # and the page cannot tell it from the isolated frame of a document that embeds it.
-# On virtual time the headless browser paints a frame only now and then, so a run driven by animation
-# frames stops after the first one; a timer stands in for them inside the frame, as #probe does for
-# the page alone.
+# On virtual time the headless browser paints only now and then, so inside the frame two stand-ins
+# play the browser's part: a timer gives the animation frames, as #probe does for the page alone,
+# and an observer reports the picture on screen when the steps call onScreen(true), as a browser does
+# when the document scrolls the frame into view or shows its part.
 framed() {
   local name="$1" layout="$2" steps="$3"
   render_full || return 1
   python3 - "$WORK/full.html" "$WORK/$name.html" "$layout" "$steps" "$WANT_COUNTS" <<'PY' || { why="the throwaway document was not written"; return 1; }
 import html, sys
 page, out, layout, steps, want = open(sys.argv[1]).read(), sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5]
-timer = '<script>window.requestAnimationFrame = f => setTimeout(() => f(performance.now()), 16);</script>'
-page = page.replace('<head>', '<head>' + timer, 1)
+browser = """<script>
+window.requestAnimationFrame = f => setTimeout(() => f(performance.now()), 16);
+window.__watchers = [];
+window.IntersectionObserver = class { constructor(cb) { this.cb = cb; window.__watchers.push(this); } observe(el) { this.el = el; } disconnect() { this.off = true; } };
+window.__onScreen = on => window.__watchers.forEach(w => { if (!w.off && w.el) w.cb([{ isIntersecting: on, target: w.el }]); });
+</script>"""
+page = page.replace('<head>', '<head>' + browser, 1)
 frame ='<iframe id="f" style="display:block;width:1000px;height:820px;border:0" srcdoc="%s"></iframe>' % html.escape(page, quote=True)
 body = {
     "below": '<div style="height:2400px"></div>' + frame + '<div style="height:1600px"></div>',
@@ -313,6 +319,7 @@ function look() {
 async function moving() { const a = look().places; await pause(400); return look().places !== a; }
 async function settle() { for (let i = 0; i < 200 && await moving(); i++); }
 async function starts() { for (let i = 0; i < 8; i++) { if (await moving()) return true; } return false; }
+const onScreen = on => f.contentWindow.__onScreen(on);
 const full = c => Object.keys(want).every(k => c[k] === want[k]);
 const seen = {};
 f.addEventListener('load', async () => {
@@ -346,13 +353,13 @@ PY
 
 a_page_below_the_first_screen_waits_finished() {
   framed below below "
-    await pause(3000);
+    onScreen(false); await pause(3000);
     const b = look(); seen.beforeFull = full(b.counts); seen.beforeShown = b.shown; seen.beforeMoving = await moving();
-    f.scrollIntoView();
+    f.scrollIntoView(); onScreen(true);
     seen.startedMoving = await starts();
     await settle();
     const a = look(); seen.afterFull = full(a.counts); seen.afterShown = a.shown;
-    window.scrollTo(0, 0); await pause(1500); f.scrollIntoView();
+    window.scrollTo(0, 0); onScreen(false); await pause(1500); f.scrollIntoView(); onScreen(true);
     seen.againMoving = await starts();" || return 1
   seen_is below 'd.get("beforeFull") and d.get("beforeShown", 0) > 0 and d.get("beforeMoving") is False' > "$WORK/below.diff" || { why="before it was on screen the page did not wait in its finished state: $(cat "$WORK/below.diff")"; return 1; }
   seen_is below 'd.get("startedMoving") is True' > "$WORK/below.diff" || { why="the page did not run when scrolled into view: $(cat "$WORK/below.diff")"; return 1; }
@@ -361,9 +368,9 @@ a_page_below_the_first_screen_waits_finished() {
 
 a_page_in_a_hidden_part_runs_when_shown() {
   framed hidden hidden "
-    await pause(3000);
+    onScreen(false); await pause(3000);
     const b = look(); seen.beforeFull = full(b.counts); seen.beforeMoving = await moving();
-    document.getElementById('part').hidden = false;
+    document.getElementById('part').hidden = false; onScreen(true);
     seen.startedMoving = await starts();
     await settle();
     const a = look(); seen.afterFull = full(a.counts); seen.afterShown = a.shown;" || return 1
@@ -379,7 +386,7 @@ a_page_opened_with_end_never_runs() {
 
 printing_draws_the_finished_picture() {
   framed printed top "
-    await pause(700);
+    onScreen(true); await pause(700);
     seen.runningBefore = await moving();
     f.contentWindow.dispatchEvent(new Event('beforeprint'));
     const p = look(); seen.printFull = full(p.counts); seen.printShown = p.shown;
