@@ -13,6 +13,11 @@ ok() { PASS=$((PASS + 1)); printf 'ok    %s\n' "$1"; }
 ng() { FAIL=$((FAIL + 1)); printf 'FAIL  %s\n' "$1"; }
 check() { if eval "$2"; then ok "$1"; else ng "$1"; fi; }
 
+# changelog_entries <changelog>: the entries from ## [Unreleased] down to the link definitions. A
+# release moves a line from Unreleased into its version's section, where it stays, so a check that
+# looks for a line reads every section.
+changelog_entries() { awk '/^## \[Unreleased\]/ { on = 1 } on && /^\[[^]]+\]: / { exit } on' "$1"; }
+
 export HOME="$T/home"
 export PYTHONDONTWRITEBYTECODE=1
 mkdir -p "$HOME"
@@ -676,10 +681,10 @@ check "SKILL.md uses an existing docs folder when the dry run lists every file a
 check "SKILL.md writes nothing into an existing docs folder when the dry run keeps a file" \
   'unasked_says "\`kept\`" && unasked_says "write nothing"'
 
-unreleased="$(awk '/^## \[Unreleased\]/{f=1; next} /^## /{f=0} f' "$PLUGIN/CHANGELOG.md")"
-unreleased_line() { printf '%s\n' "$unreleased" | grep '^- ' | grep -i -- "$1" | grep -qi -- "$2"; }
+entries="$(changelog_entries "$PLUGIN/CHANGELOG.md")"
+changelog_line() { printf '%s\n' "$entries" | grep '^- ' | grep -i -- "$1" | grep -qi -- "$2"; }
 check "the changelog has a line for each change of #237" \
-  'unreleased_line "order of the plan" "scaffold" && unreleased_line "heading" "check" && unreleased_line "cannot be asked" "docs/"'
+  'changelog_line "order of the plan" "scaffold" && changelog_line "heading" "check" && changelog_line "cannot be asked" "docs/"'
 
 # The changelog reading counts a line that only a released section holds, and finds nothing when no
 # section names the text (a link definition does not count).

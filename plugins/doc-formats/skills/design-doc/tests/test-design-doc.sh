@@ -25,6 +25,14 @@ ng() { FAIL=$((FAIL + 1)); printf 'FAIL  %s\n' "$1"; }
 skip() { SKIP=$((SKIP + 1)); printf 'skip  %s (%s)\n' "$1" "$2"; }
 check() { if eval "$2"; then ok "$1"; else ng "$1"; fi; }
 
+# changelog_entries <changelog>: the entries from ## [Unreleased] down to the link definitions. A
+# release moves a line from Unreleased into its version's section, where it stays, so a check that
+# looks for a line reads every section.
+changelog_entries() { awk '/^## \[Unreleased\]/ { on = 1 } on && /^\[[^]]+\]: / { exit } on' "$1"; }
+
+# newest_release <changelog>: the version of the newest release section, or 0.1.0 before the first.
+newest_release() { awk -F'[][]' '/^## \[[0-9]+\.[0-9]+\.[0-9]+\] - / { print $2; found = 1; exit } END { if (!found) print "0.1.0" }' "$1"; }
+
 run() { python3 "$SCRIPT" "$@"; }
 
 # The sections of a skill that follows the format. Their order is not alphabetical, and one name
@@ -89,12 +97,12 @@ plugin_files() {
     skills/design-doc/agents/openai.yaml; do
     [ -f "$PLUGIN/$f" ] || { echo "      missing $f"; return 1; }
   done
-  python3 - "$PLUGIN" <<'PYEOF'
+  python3 - "$PLUGIN" "$(newest_release "$PLUGIN/CHANGELOG.md")" <<'PYEOF'
 import json, sys
-root = sys.argv[1]
+root, version = sys.argv[1], sys.argv[2]
 for path in (".claude-plugin/plugin.json", ".codex-plugin/plugin.json"):
     manifest = json.load(open("%s/%s" % (root, path), encoding="utf-8"))
-    if manifest.get("name") != "doc-formats" or manifest.get("version") != "0.1.0":
+    if manifest.get("name") != "doc-formats" or manifest.get("version") != version:
         print("      %s is %s %s" % (path, manifest.get("name"), manifest.get("version")))
         sys.exit(1)
 PYEOF
@@ -363,15 +371,12 @@ releasing_step() {
 }
 check "the releasing pages run musubi check before doc-formats or evm-dev is released" releasing_step
 
-# unreleased <changelog>: the lines between ## [Unreleased] and the next release.
-unreleased() { awk '/^## \[Unreleased\]/{on=1; next} /^## \[/{on=0} on' "$1"; }
-
 # A new plugin's changelog opens with its first release; the changes to evm-dev and the new plugin
-# in the repository wait under Unreleased.
+# in the repository sit under Unreleased, or under a release once one moves them.
 changelogs() {
   awk '/^## \[0\.1\.0\]/{on=1; next} /^## \[/{on=0} on' "$PLUGIN/CHANGELOG.md" | grep -q 'design-doc' || return 1
-  unreleased "$REPO/plugins/evm-dev/CHANGELOG.md" | grep -q 'design-doc' || return 1
-  unreleased "$REPO/CHANGELOG.md" | grep -q 'doc-formats'
+  changelog_entries "$REPO/plugins/evm-dev/CHANGELOG.md" | grep -q 'design-doc' || return 1
+  changelog_entries "$REPO/CHANGELOG.md" | grep -q 'doc-formats'
 }
 check "the changelogs name the shared design format" changelogs
 

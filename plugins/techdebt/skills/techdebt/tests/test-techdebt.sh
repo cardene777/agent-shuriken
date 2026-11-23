@@ -38,6 +38,11 @@ ng() { FAIL=$((FAIL + 1)); printf 'FAIL  %s\n' "$1"; }
 skip() { SKIP=$((SKIP + 1)); printf 'skip  %s (%s)\n' "$1" "$2"; }
 check() { if eval "$2"; then ok "$1"; else ng "$1"; fi; }
 
+# changelog_entries <changelog>: the entries from ## [Unreleased] down to the link definitions. A
+# release moves a line from Unreleased into its version's section, where it stays, so a check that
+# looks for a line reads every section.
+changelog_entries() { awk '/^## \[Unreleased\]/ { on = 1 } on && /^\[[^]]+\]: / { exit } on' "$1"; }
+
 g() { git -C "$R" -c user.name=test -c user.email=test@example.com "$@"; }
 commit_at() { # <days ago> <message>
   local when
@@ -2512,14 +2517,15 @@ check "the changelog, README, and how-it-works describe the tabs, the link to an
 # The docs say that braces in parameter and return types and braces in strings over several lines
 # are not counted. The Japanese words are written as escapes.
 brace_docs() {
-  python3 - "$PLUGIN" <<'PYEOF'
+  changelog_entries "$PLUGIN/CHANGELOG.md" > "$T/brace-docs-entries.md"
+  python3 - "$PLUGIN" "$T/brace-docs-entries.md" <<'PYEOF'
 import sys
 root = sys.argv[1]
-unreleased = open(root + "/CHANGELOG.md", encoding="utf-8").read().split("## [Unreleased]")[1].split("\n## [")[0]
-texts = {"CHANGELOG.md (Unreleased)": unreleased,
+entries = open(sys.argv[2], encoding="utf-8").read()
+texts = {"CHANGELOG.md (Unreleased and releases)": entries,
          "docs/how-it-works.md": open(root + "/docs/how-it-works.md", encoding="utf-8").read(),
          "docs/how-it-works.ja.md": open(root + "/docs/how-it-works.ja.md", encoding="utf-8").read()}
-want = {"CHANGELOG.md (Unreleased)": ["parameter and return types", "strings that span lines", "lifetimes"],
+want = {"CHANGELOG.md (Unreleased and releases)": ["parameter and return types", "strings that span lines", "lifetimes"],
         "docs/how-it-works.md": ["parameter and return types", "strings that span lines"],
         "docs/how-it-works.ja.md": ["\u5f15\u6570\u3068\u623b\u308a\u5024\u306e\u578b",
                                     "\u8907\u6570\u884c\u306b\u307e\u305f\u304c\u308b\u6587\u5b57\u5217"]}
@@ -2535,15 +2541,16 @@ check "the changelog and how-it-works describe braces in types and multi-line st
 # The docs say that the report leaves out the path of the scanned folder. The Japanese words are
 # written as escapes.
 root_docs() {
-  python3 - "$PLUGIN" <<'PYEOF'
+  changelog_entries "$PLUGIN/CHANGELOG.md" > "$T/root-docs-entries.md"
+  python3 - "$PLUGIN" "$T/root-docs-entries.md" <<'PYEOF'
 import sys
 root = sys.argv[1]
 def read(name):
     return open(root + "/" + name, encoding="utf-8").read()
-unreleased = read("CHANGELOG.md").split("## [Unreleased]")[1].split("\n## [")[0]
+entries = open(sys.argv[2], encoding="utf-8").read()
 english = "leaves out the path of the scanned folder"
 japanese = "\u8abf\u3079\u305f\u30d5\u30a9\u30eb\u30c0\u306e\u30d1\u30b9\u3092\u6301\u305f\u305a"
-texts = {"CHANGELOG.md (Unreleased)": (unreleased, english), "README.md": (read("README.md"), english),
+texts = {"CHANGELOG.md (Unreleased and releases)": (entries, english), "README.md": (read("README.md"), english),
          "docs/how-it-works.md": (read("docs/how-it-works.md"), english),
          "README.ja.md": (read("README.ja.md"), japanese), "docs/how-it-works.ja.md": (read("docs/how-it-works.ja.md"), japanese)}
 problems = ["%s does not say %r" % (name, word) for name, (text, word) in texts.items() if word not in text]
