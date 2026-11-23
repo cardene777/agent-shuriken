@@ -1,6 +1,6 @@
 # motion-diagram-skill
 
-| 条件 | 確かめ方 | 出元 |
+| Criterion | How to check | Origin |
 |---|---|---|
 | Rendering a spec with sources, boxes, checks, a place for dropped cards, an input that joins midway, a person who decides, an end, a line back, and a boundary writes one HTML file that loads nothing from the network | `bash plugins/motion-diagram/skills/motion-diagram/tests/test-motion-diagram.sh`の検査`"render writes one offline page from a full spec"`が通る | #403 |
 | The engine places each part after every part that sends it cards, and a line back or a line to the place for dropped cards does not move a part | `bash plugins/motion-diagram/skills/motion-diagram/tests/test-motion-diagram.sh`の検査`"layout orders parts by their lines"`が通る | #403 |
