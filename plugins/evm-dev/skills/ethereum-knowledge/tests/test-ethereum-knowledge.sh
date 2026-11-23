@@ -443,31 +443,23 @@ PY
 }
 check "the manifests name L2 and consensus" manifests_name
 
-# unreleased <changelog>: the lines of the ## [Unreleased] section.
-unreleased() { awk '/^## \[Unreleased\]/{on=1; next} /^## \[/{on=0} on' "$1"; }
-
-# released <changelog> <version>: the lines of the ## [<version>] section.
-released() { awk -v v="$2" 'index($0, "## [" v "]") == 1 {on=1; next} /^## \[/{on=0} on' "$1"; }
-
-# changelog_entries <changelog> <version>: the entry lines the changelog check reads.
-changelog_entries() { { unreleased "$1"; released "$1" "$2"; } | grep '^- '; }
+# changelog_entries <changelog>: the entry lines of ## [Unreleased] and of every release section.
+changelog_entries() { awk '/^## \[/ { on = 1 } on' "$1" | grep '^- '; }
 
 # A release moves the line from ## [Unreleased] into a release section, and later releases push it
 # further down, so the line counts under Unreleased or any release. A throwaway changelog whose line
 # sits under an older release counts, and one whose sections do not name the skill does not.
 changelog_names() {
-  local version
   need "$PLUGIN/CHANGELOG.md" || return 1
-  version="$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["version"])' "$PLUGIN/.claude-plugin/plugin.json")"
   printf '%s\n' '# Changelog' '' '## [Unreleased]' '' '## [2.0.0] - 2026-01-02' '' '- Something else' '' \
     '## [1.0.0] - 2026-01-01' '' '- `ethereum-knowledge` arrives' > "$T/older.md"
   printf '%s\n' '# Changelog' '' '## [Unreleased]' '' '- Something else' '' '## [1.0.0] - 2026-01-01' '' \
     '- Another thing' > "$T/none.md"
-  changelog_entries "$T/older.md" 2.0.0 | grep -qF 'ethereum-knowledge' \
+  changelog_entries "$T/older.md" | grep -qF 'ethereum-knowledge' \
     || { why="a line under an older release is not counted"; return 1; }
-  ! changelog_entries "$T/none.md" 2.0.0 | grep -qF 'ethereum-knowledge' \
+  ! changelog_entries "$T/none.md" | grep -qF 'ethereum-knowledge' \
     || { why="a changelog whose sections do not name the skill is counted"; return 1; }
-  changelog_entries "$PLUGIN/CHANGELOG.md" "$version" | grep -qF 'ethereum-knowledge' \
+  changelog_entries "$PLUGIN/CHANGELOG.md" | grep -qF 'ethereum-knowledge' \
     || { why="no line under ## [Unreleased] or any release names ethereum-knowledge"; return 1; }
 }
 check "the changelog names the new skill under Unreleased or any release" changelog_names

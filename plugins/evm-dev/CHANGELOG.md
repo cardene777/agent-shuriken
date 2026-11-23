@@ -8,6 +8,11 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 ### Added
 
 - `evm-standards` holds an item for EIP-8288, the frame mode that aggregates post-quantum signatures into one recursive STARK per block: what contracts read through the frame introspection of EIP-8141, its `Draft` status, and that no network upgrade names it. The item on EIP-8141 points to it
+- `ethereum-knowledge` holds two items on the post-quantum work on L1: EIP-8292, the opt-in aggregator role that proves many post-quantum attestation signatures in one proof and leaves the execution layer unchanged, and pqai27, the proposal of 2026-11-11 to reach post-quantum security in 2027, with what it asks of Hegotá, quick slots, and FOCIL and the thread that argues to keep shipping finished features in parallel
+
+### Fixed
+
+- The `ethereum-knowledge` test finds its changelog line under any release, so it no longer fails after a later release moves the line down
 
 ## [0.7.0] - 2026-11-22
 
