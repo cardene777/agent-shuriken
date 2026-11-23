@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-23
+
 - Before writing graders for new cases, the skill runs each case once, reads every output, and groups what is wrong into failure types that each pass or fail by yes or no, with one grader per failure type
 - Before the comparison counts an `llm` grader, the skill checks it against outputs you label. `label` shows the text the grader read without its verdict and records your pass or fail with that text in `<plugin>/evals/labels/`; `label-cases` sets 3 labels aside as examples, holds 5 passes and 5 fails back at random, and writes one small case per label that the eval's own judge grades; `agree` prints the share of human passes the grader passed and the share of human fails it failed, apart. A grader that agrees on fewer than 4 of the 5 held-back passes or fails leaves the score through `--indicator` and is reported as not trusted. While tuning, the skill looks for two ways a grader goes wrong: passing a found problem as minor, and testing only the surface
 - `run --eval-dir` passes the folder of the cases to `claude plugin eval`
@@ -34,4 +36,6 @@ First public release.
 - Lists the skills in a repository by length, with how many eval cases each has
 - Writes the cases in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`, and measures in Claude Code, which has `claude plugin eval`
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/skill-tune--v0.1.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/skill-tune--v0.2.0...HEAD
+[0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/skill-tune--v0.2.0
+[0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/skill-tune--v0.1.0
