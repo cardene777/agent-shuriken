@@ -358,7 +358,7 @@
 
   // ---- Motion figures ----
   //
-  // A `motion` figure carries a page that motion-diagram render wrote, in a frame (`srcdoc`) that
+  // A `motion` figure carries a page that motion-diagram render wrote, whole in a frame that
   // shares this document's origin. The page runs when its picture is first on screen and shows its
   // finished picture until then. Here each frame gets the height of the picture, so the picture
   // never scrolls inside its frame, and the light or dark of the document. Before paper, print.js
