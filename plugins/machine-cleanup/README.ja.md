@@ -51,6 +51,15 @@ GitHub Copilot CLIでは依頼の文に`/machine-cleanup`と書き、Gemini CLI�
 その隣の明るい色と暗い色の切り替えで、色を変えられます。選ぶまではシステムの設定に従い、選んだ色はブラウザのローカルストレージに`machine-cleanup-theme`の名前で残ります。
 エージェントがページを待つのをやめていた時は、タブの上にその知らせが出ます。**空ける**を押し、開いた画面の**コピー**を押して、選択をチャットに貼ります。
 
+## 決まった時刻に動かす
+
+ひとりでに片付けるようエージェントに頼むと、エージェントは許す種類を、前に調べた種類ごとの大きさと一緒に聞き、毎日か毎週かを聞きます。
+許せるのは3つの種類だけです。`cache` (道具が作り直すキャッシュ)、`build` (30日コミットの無いプロジェクトの、gitが無視するビルドの出力)、`log` (30日より古いログ) です。
+`schedule add`は03:00 (毎週の時は日曜日) に動く仕事を1件、macOSではLaunchAgent、Linuxではsystemdのユーザーのタイマー、systemdのユーザーのセッションが無い時はcrontabの1行として登録します。
+1回ごとに、許した種類のうち調べた結果がおすすめにした行だけを、`apply`と同じ確かめを通して空け、空けた物を記録します。
+`schedule show`と次に調べた時に最後の回が出て、`schedule remove`で仕事を外します。
+種類ごとに空ける物と残す物は[仕組み](docs/how-it-works.ja.md#予約した片付け)にあります。
+
 ## 見つける物
 
 | 種類 | 並ぶ物 | 空けた時に起きること |
@@ -88,6 +97,7 @@ GitHub Copilot CLIでは依頼の文に`/machine-cleanup`と書き、Gemini CLI�
 | `docker` | 無くても動きます。入っていて動いている時は、キャッシュと動いているコンテナを並べます |
 | npm、pnpm、Yarn、Bun、pip、uv、Homebrew、Go、CocoaPods | 無くても動きます。入っている時は、その道具の消す命令でキャッシュを空けます。無い時はキャッシュのフォルダを消します |
 | `flatpak` | 無くても動きます。LinuxでFlatpakのアプリを並べるため |
+| `launchctl`、`systemctl`、`crontab` | 予約の時だけ。macOSは`launchctl`、LinuxとWSLはsystemdのユーザーのセッションか`crontab` |
 | ブラウザ | ページで選ぶため |
 | `design-formats`のプラグイン | 無くても動きます。`page-design`のスキルが入っていれば、エージェントはページのひな形をその`verify`で確かめます |
 | `musubi`のコマンド | 無くても動きます。入っていれば、エージェントは`page-design`の形式を読む前に`musubi check`を回します |
@@ -101,9 +111,9 @@ GitHub Copilot CLIでは依頼の文に`/machine-cleanup`と書き、Gemini CLI�
 - プロジェクトの版の指定のファイル (`.nvmrc`、`.python-version`、`.tool-versions`、`mise.toml`、`rust-toolchain.toml`など)、版の管理の道具の設定、Ollamaのモデルのmanifestを読みます
 - `ps`、`du`、`df`、`lsof`、`git`、macOSでは`mdls`を動かし、入っている時は`docker`、`flatpak`、`rustup`、`ollama`、パッケージ管理の消す命令を動かします。`git`は読むだけで、取り込みはしません
 - ページは一回限りの合言葉を付けて`127.0.0.1`だけで出し、そのページからの選択だけを受け取ります。ネットワークには何も送りません
-- 選んだ物だけを、確かめ直してから変えます。管理者のパスワードを求めず、使いません
+- 選んだ物だけを、確かめ直してから変えます。予約は許した種類だけを空けます。管理者のパスワードを求めず、使いません
 - 名前がトークン、秘密、パスワード、APIキーを思わせるコマンドの引数と環境変数の値は、プロセスの命令の文がページやファイルに届く前に伏せます
-- 調べた結果、ページの接続の記録、`restore`に要る物を、自分だけが読める`~/.local/share/machine-cleanup/`に置きます。`finish`は元に戻すための記録以外を消します
+- 調べた結果、ページの接続の記録、`restore`に要る物、予約とそのスクリプトの写しと回の記録を、自分だけが読める`~/.local/share/machine-cleanup/`に置きます。`finish`は元に戻すための記録と予約以外を消します
 - `skills/machine-cleanup/musubi.json`は、`machine-cleanup`が`design-formats`のプラグインにある`page-design`の形式`structure`と`look`、ページの型`sheet`、`verify`に、`"optional": true`の任意の準拠で従うことをmusubiで宣言します。エージェントは`page-design`が入っている時だけこれらを読み、ページのひな形に`page-design`の`verify`を回します。入っていなければ、スキルのひな形を使います。ほかのプラグインからはこれ以外を読みません
 
 ## ライセンス
