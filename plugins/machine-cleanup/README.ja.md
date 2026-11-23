@@ -58,7 +58,17 @@ GitHub Copilot CLIでは依頼の文に`/machine-cleanup`と書き、Gemini CLI�
 `schedule add`は03:00 (毎週の時は日曜日) に動く仕事を1件、macOSではLaunchAgent、Linuxではsystemdのユーザーのタイマー、systemdのユーザーのセッションが無い時はcrontabの1行として登録します。
 1回ごとに、許した種類のうち調べた結果がおすすめにした行だけを、`apply`と同じ確かめを通して空け、空けた物を記録します。
 `schedule show`と次に調べた時に最後の回が出て、`schedule remove`で仕事を外します。
+予約は管理者の行を空けません。
 種類ごとに空ける物と残す物は[仕組み](docs/how-it-works.ja.md#予約した片付け)にあります。
+
+## 管理者の権限が要る行
+
+管理者だけが変えられる場所があります。macOSでは`/Library/Caches`のキャッシュ、`/Library/Logs`と`/private/var/log`の古いログ、管理者が`/Applications`に入れたアプリ、`/Library/LaunchDaemons`と`/Library/LaunchAgents`のplistです。Linuxではaptとdnfのキャッシュ、journaldのログ、単位のファイルが`/etc/systemd/system`に在るサービスです。
+調べる時はパスワード無しで測り、読めない物は**測れませんでした**と出し、ページではその行に**管理者**の札を付けます。
+その行を選んで**空ける**を押すと、エージェントはほかの選んだ物を先に空け、それから`sudo -A`の命令を1つ動かします。OSのパスワードの窓がそれら全部の分を1回だけ尋ね、打った文字は`askpass.sh`が`sudo`にだけ渡すので、エージェントには見えません。
+`sudo`がパスワードを求めない環境では、エージェントは代わりに`sudo -n`を動かし、窓は開きません。
+SSH越しや、画面か窓のプログラムが無いLinuxのように窓を開けず、`sudo`がパスワードを求める環境では、その行は大きさと推奨度を出しますが選べず、詳細に理由を出します。
+System Integrity Protectionが守る場所とApple自身のキャッシュは出ません。
 
 ## 見つける物
 
@@ -74,6 +84,7 @@ GitHub Copilot CLIでは依頼の文に`/machine-cleanup`と書き、Gemini CLI�
 | プロセス | 始めた会話が終わった後も残っている開発用のサーバー、監視、テストと、メモリかCPUを最も多く使う15のプロセス | 終了の合図を送るので、プロセスは作業を保存できます。もう一度選んだ時だけ、すぐに終わらせます |
 | ログイン項目 | 自分のLibraryにあるmacOSのLaunchAgentと、Linuxの自動起動とsystemdのユーザー単位 | 止めて取っておくので、エージェントが元に戻せます |
 | コンテナ | 動いているDockerのコンテナ | 止めます。データは残ります |
+| システム (管理者) | macOSでは、Apple以外の`/Library/Caches`のキャッシュのうち50MB以上か読めない物、`/Library/Logs`と`/private/var/log`の30日より古いファイル、管理者が`/Applications`に入れて90日開いていないアプリ、`/Library/LaunchDaemons`と`/Library/LaunchAgents`のplist。Linuxでは、aptとdnfのキャッシュ、journaldのログ、単位のファイルが`/etc/systemd/system`に在る有効なサービス | システムのキャッシュと古いシステムのログは消します。aptとdnfのキャッシュは`apt-get clean`と`dnf clean all`で、journaldは`journalctl --vacuum-time=30d`で空けます。アプリは自分のゴミ箱へ移します。LaunchDaemonとLaunchAgentは止めて`/Library/Application Support/machine-cleanup/disabled/`に取っておき、サービスは`systemctl disable --now`で止めるので、エージェントが元に戻せます |
 
 ファイルとフォルダは1つの行にだけ出ます。ダウンロードの古いインストーラーはゴミ箱とログのタブに出て、大きいファイルとしてもう一度は出ません。
 使っていないプロジェクトの中の`node_modules`やアプリのキャッシュのように、ほかの行の中にある行は、それだけを空けられるよう自分の行を持ちます。合計では1回だけ数え、両方を選ぶと、エージェントは外の行を中の行ごと空けます。
@@ -83,7 +94,7 @@ GitHub Copilot CLIでは依頼の文に`/machine-cleanup`と書き、Gemini CLI�
 - 動いているエージェントの会話 (Claude Code、Codex、GitHub Copilot CLI、Gemini CLI) か開いている端末が動かす物、会話を抱えるアプリや端末、会話と同じプロジェクトで作業しているプロセスと、動いているプログラムが作業しているプロジェクトの中の全ての項目。これらの行は理由を示し、選べません
 - iCloud Drive、Dropbox、Google Drive、OneDriveなどの同期フォルダ (ここで消すとクラウド側からも消えます) と、WSLから見たWindowsのドライブ
 - シンボリックリンクとその先、gitが追跡するファイル、Dockerのボリューム
-- 管理者のパスワードが要る物と、ほかのユーザーのプロセス
+- System Integrity Protectionが守る場所、`/Library/Caches`にあるAppleのキャッシュ、ほかのユーザーのプロセス
 - スワップや索引のようなOSの設定
 
 ## 要る物
@@ -98,6 +109,7 @@ GitHub Copilot CLIでは依頼の文に`/machine-cleanup`と書き、Gemini CLI�
 | npm、pnpm、Yarn、Bun、pip、uv、Homebrew、Go、CocoaPods | 無くても動きます。入っている時は、その道具の消す命令でキャッシュを空けます。無い時はキャッシュのフォルダを消します |
 | `flatpak` | 無くても動きます。LinuxでFlatpakのアプリを並べるため |
 | `launchctl`、`systemctl`、`crontab` | 予約の時だけ。macOSは`launchctl`、LinuxとWSLはsystemdのユーザーのセッションか`crontab` |
+| `sudo` | 管理者の行を空ける時だけ。Linuxでパスワードの窓を開くには、画面と`zenity`、`kdialog`、`ssh-askpass`のどれかが要ります。macOSは`osascript`で自分の窓を開きます |
 | ブラウザ | ページで選ぶため |
 | `design-formats`のプラグイン | 無くても動きます。`page-design`のスキルが入っていれば、エージェントはページのひな形をその`verify`で確かめます |
 | `musubi`のコマンド | 無くても動きます。入っていれば、エージェントは`page-design`の形式を読む前に`musubi check`を回します |
@@ -111,7 +123,8 @@ GitHub Copilot CLIでは依頼の文に`/machine-cleanup`と書き、Gemini CLI�
 - プロジェクトの版の指定のファイル (`.nvmrc`、`.python-version`、`.tool-versions`、`mise.toml`、`rust-toolchain.toml`など)、版の管理の道具の設定、Ollamaのモデルのmanifestを読みます
 - `ps`、`du`、`df`、`lsof`、`git`、macOSでは`mdls`を動かし、入っている時は`docker`、`flatpak`、`rustup`、`ollama`、パッケージ管理の消す命令を動かします。`git`は読むだけで、取り込みはしません
 - ページは一回限りの合言葉を付けて`127.0.0.1`だけで出し、そのページからの選択だけを受け取ります。ネットワークには何も送りません
-- 選んだ物だけを、確かめ直してから変えます。予約は許した種類だけを空けます。管理者のパスワードを求めず、使いません
+- 選んだ物だけを、確かめ直してから変えます。予約は許した種類だけを空けます。管理者の権限は、選んだ管理者の行を空ける`sudo -A`の命令1つでだけ使い、パスワードはOSの窓から`sudo`へ渡り、エージェントにもファイルにも届きません
+- システムの場所はパスワード無しで測ります。`MACHINE_CLEANUP_SYSTEM_ROOT`はシステムの場所を別のフォルダへ向け、テストが使います。rootで動かすと、`admin-apply`と`admin-restore`は`/`以外のフォルダを断ります
 - 名前がトークン、秘密、パスワード、APIキーを思わせるコマンドの引数と環境変数の値は、プロセスの命令の文がページやファイルに届く前に伏せます
 - 調べた結果、ページの接続の記録、`restore`に要る物、予約とそのスクリプトの写しと回の記録を、自分だけが読める`~/.local/share/machine-cleanup/`に置きます。`finish`は元に戻すための記録と予約以外を消します
 - `skills/machine-cleanup/musubi.json`は、`machine-cleanup`が`design-formats`のプラグインにある`page-design`の形式`structure`と`look`、ページの型`sheet`、`verify`に、`"optional": true`の任意の準拠で従うことをmusubiで宣言します。エージェントは`page-design`が入っている時だけこれらを読み、ページのひな形に`page-design`の`verify`を回します。入っていなければ、スキルのひな形を使います。ほかのプラグインからはこれ以外を読みません

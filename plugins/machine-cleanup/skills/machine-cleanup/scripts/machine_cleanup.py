@@ -20,6 +20,12 @@ Usage:
   machine_cleanup.py schedule add --kinds cache,build,log [--every daily|weekly] [--at HH:MM]
   machine_cleanup.py schedule show | schedule remove
   machine_cleanup.py scheduled-run            what the scheduled job runs
+  machine_cleanup.py admin-apply --plan FILE  frees the picked administrator rows; apply prints it with sudo
+  machine_cleanup.py admin-restore --state DIR ID...   puts administrator rows back; restore prints it with sudo
+
+Rows that need administrator rights are read from MACHINE_CLEANUP_SYSTEM_ROOT (default /), without
+sudo. apply leaves them to admin-apply, which the agent runs through sudo -A, whose askpass.sh opens
+the operating system's password dialog, or through sudo -n where sudo needs no password.
 
 Exit codes: 0 on success, 1 when a selection or a restore is refused, 2 for bad input, a missing
 scan, or a system that cannot run a schedule, 3 when an item could not be freed or a schedule could
@@ -40,6 +46,7 @@ import shlex
 import shutil
 import signal
 import socket
+import stat
 import subprocess
 import sys
 import time
@@ -48,8 +55,24 @@ import urllib.parse
 FORMAT_VERSION = 1  # restore.json
 # scan.json; 2 added each item's level and reason, 3 the whole disk size, 4 work folders, app leftovers,
 # tool versions, and models, 5 one row for each path, the rows that hold a row, and keys for the names
-# the script makes
-SCAN_VERSION = 5
+# the script makes, 6 the rows that need administrator rights, how they are approved, and the system root
+SCAN_VERSION = 6
+ADMIN_PLAN_VERSION = 1  # admin-plan.json
+# Why an administrator row cannot be picked: no password dialog can open, and sudo needs a password.
+ADMIN_BLOCKED = "no way to approve administrator rights here"
+ADMIN_PROMPT = "machine-cleanup needs your administrator password to free the items you picked"
+# Restore records that only admin-restore, run through sudo, can put back.
+ADMIN_RECORDS = ("system-trash", "launch-daemon", "system-launch-agent", "systemd-system")
+# The programs askpass.sh opens a password dialog with on Linux.
+DIALOG_PROGRAMS = ("zenity", "kdialog", "ssh-askpass")
+# The file flags System Integrity Protection sets on what it guards (restricted, and system no-unlink).
+SIP_FLAGS = 0x00080000 | 0x00100000
+# The Linux caches of the package managers, freed by their own clean command:
+# kind: (the command that must be installed, the folder under the system root, the clean command, the name).
+SYSTEM_CACHES = {
+    "apt-cache": ("apt-get", ("var", "cache", "apt", "archives"), ["apt-get", "clean"], "apt cache"),
+    "dnf-cache": ("dnf", ("var", "cache", "dnf"), ["dnf", "clean", "all"], "dnf cache"),
+}
 SCHEDULE_VERSION = 1  # schedule.json
 RUNS_VERSION = 1  # each line of schedule-runs.jsonl
 # The kinds a schedule can free: caches tools rebuild, build output git ignores, and old logs.
@@ -167,6 +190,9 @@ class Ctx:
         self.platform = platform or detect_platform()
         self.home = os.path.realpath(os.path.expanduser("~"))
         self.state = os.environ.get("MACHINE_CLEANUP_HOME") or os.path.join(self.home, ".local", "share", "machine-cleanup")
+        # The folder that stands in for / when the script reads and frees the system places. Tests point
+        # it at a throwaway folder; run as root, admin-apply and admin-restore take only /.
+        self.root = os.path.realpath(os.environ.get("MACHINE_CLEANUP_SYSTEM_ROOT") or "/")
         self.uid = os.getuid()
         try:
             self.user = pwd.getpwuid(self.uid).pw_name
@@ -180,6 +206,9 @@ class Ctx:
 
     def h(self, *parts):
         return os.path.join(self.home, *parts)
+
+    def system(self, *parts):
+        return os.path.join(self.root, *parts)
 
     def cache_root(self):
         if self.mac:
@@ -225,8 +254,14 @@ def ensure_state(ctx):
 
 
 def write_private(path, text):
+    """Writes a file only its owner can read. The temporary file is made new and never followed as a
+    link, since admin-apply runs as root and writes in the user's own folder."""
     tmp = path + ".tmp"
-    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    try:
+        os.unlink(tmp)
+    except FileNotFoundError:
+        pass
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)
     with os.fdopen(fd, "w", encoding="utf-8") as f:
         f.write(text)
     os.chmod(tmp, 0o600)
@@ -239,6 +274,29 @@ def read_json(path, default=None):
             return json.load(f)
     except (OSError, ValueError):
         return default
+
+
+def read_json_nofollow(path, default=None):
+    """Reads a JSON file that is not a symbolic link: admin-apply reads the user's files as root."""
+    try:
+        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        with os.fdopen(fd, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return default
+
+
+def file_flags(path):
+    """The BSD file flags of a path, without following a link; 0 where the system has none."""
+    try:
+        return getattr(os.lstat(path), "st_flags", 0)
+    except OSError:
+        return 0
+
+
+def sip_guarded(path):
+    """Whether System Integrity Protection guards the path, so that not even root can change it."""
+    return bool(file_flags(path) & SIP_FLAGS)
 
 
 def human(n):
@@ -292,15 +350,34 @@ def excluded(path, platform, home):
 
 # --- sizes ----------------------------------------------------------------------------------
 
+def io_prefix(ctx):
+    """The command that runs another at the lowest I/O priority, or nothing where there is none."""
+    if ctx.mac and shutil.which("taskpolicy"):
+        return ["taskpolicy", "-b"]
+    if not ctx.mac and shutil.which("ionice"):
+        return ["ionice", "-c3"]
+    return []
+
+
+def system_size(ctx, path, deadline=None):
+    """Measures one system place with du, as the user and without sudo. Returns None when du could not
+    read all of it, so that a place only root can read is shown as not measured instead of too small."""
+    timeout = 600 if deadline is None else max(1, deadline - time.time())
+    rc, stdout, _ = run(io_prefix(ctx) + ["du", "-sk", path], timeout=timeout)
+    if rc != 0:
+        return None
+    for line in stdout.splitlines():
+        kb, _, p = line.partition("\t")
+        if p == path and kb.strip().isdigit():
+            return int(kb.strip()) * 1024
+    return None
+
+
 def du_sizes(ctx, paths, deadline=None):
     """Measures folders with du at the lowest I/O priority. Returns {path: bytes}."""
     out = {}
     paths = [p for p in paths if p]
-    prefix = []
-    if ctx.mac and shutil.which("taskpolicy"):
-        prefix = ["taskpolicy", "-b"]
-    elif not ctx.mac and shutil.which("ionice"):
-        prefix = ["ionice", "-c3"]
+    prefix = io_prefix(ctx)
     for i in range(0, len(paths), 40):
         if deadline is not None and time.time() > deadline:
             break
@@ -1642,6 +1719,442 @@ def scan_containers(ctx, procs, cwds):
     return items
 
 
+# --- administrator rows ---------------------------------------------------------------------
+# Rows that only root can free: on macOS the caches in /Library/Caches, old logs in /Library/Logs and
+# /private/var/log, apps root installed in /Applications, and the launch daemons and agents installed
+# for everyone; on Linux the apt and dnf caches, journald's logs, and the system services an
+# administrator installed in /etc/systemd/system. The scan reads them as the user and never asks for a
+# password. apply leaves them to admin-apply, which the agent runs through sudo in plain sight.
+
+def admin_approval(ctx):
+    """How administrator rights can be approved here: "dialog" when sudo -A can call askpass.sh to open
+    the operating system's password dialog, "nopasswd" when sudo needs no password, or None."""
+    if not shutil.which("sudo"):
+        return None
+    if ctx.mac:
+        dialog = bool(shutil.which("osascript")) and not (os.environ.get("SSH_CONNECTION") or os.environ.get("SSH_TTY"))
+    else:
+        screen = os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")
+        dialog = bool(screen) and any(shutil.which(p) for p in DIALOG_PROGRAMS)
+    if dialog:
+        return "dialog"
+    return "nopasswd" if run(["sudo", "-n", "true"], timeout=15)[0] == 0 else None
+
+
+def entries(folder):
+    try:
+        return sorted(os.scandir(folder), key=lambda e: e.name)
+    except OSError:
+        return []
+
+
+def plist_row(ctx, kind, path):
+    try:
+        with open(path, "rb") as f:
+            info = plistlib.load(f)
+    except Exception:
+        info = {}
+    label = info.get("Label") or os.path.basename(path)[:-6]
+    program = info.get("Program") or (info.get("ProgramArguments") or [""])[0]
+    st = stat_or_none(path)
+    return {
+        "id": item_id("p", "login-item", path), "group": "process", "category": "login-item", "kind": kind,
+        "name": label, "path": path, "size": None, "rebuilt": False, "action": "disable", "command": None, "locked": None,
+        "detail": {"program": redact(str(program))}, "fingerprint": {"mtime": st.st_mtime if st else None},
+    }
+
+
+def scan_system_logs(ctx, deadline, skipped):
+    """Files older than 30 days in /Library/Logs and /private/var/log, one row for each top folder."""
+    items = []
+    cutoff = ctx.now - OLD_DAYS * 86400
+
+    def unreadable(err):
+        skipped.append({"path": err.filename, "reason": "needs administrator rights to read"})
+    for root in (ctx.system("Library", "Logs"), ctx.system("private", "var", "log")):
+        if not os.path.isdir(root) or os.path.islink(root) or sip_guarded(root):
+            continue
+        groups = {}
+        for dirpath, dirnames, filenames in os.walk(root, onerror=unreadable):
+            if time.time() > deadline:
+                skipped.append({"path": dirpath, "reason": "time limit"})
+                break
+            dirnames[:] = [d for d in dirnames if not os.path.islink(os.path.join(dirpath, d))
+                           and not sip_guarded(os.path.join(dirpath, d))]
+            for fn in filenames:
+                p = os.path.join(dirpath, fn)
+                st = stat_or_none(p)
+                if not st or os.path.islink(p) or st.st_mtime > cutoff or sip_guarded(p):
+                    continue
+                rel = os.path.relpath(p, root).split(os.sep)
+                groups.setdefault(os.path.join(root, rel[0]) if len(rel) > 1 else root, []).append((p, st.st_size))
+        for group, files in sorted(groups.items()):
+            app = os.path.basename(group)
+            name, label = ("System logs", {"key": "system_logs"}) if group == root else (app + " logs", {"key": "app_logs", "vars": {"app": app}})
+            items.append(disk_item("log", "system-logs", name, group, sum(s for _, s in files), False, "delete-files",
+                                   detail={"files": [p for p, _ in files][:500], "file_count": len(files),
+                                           "older_than_days": OLD_DAYS}, label=label))
+    return items
+
+
+def scan_admin_mac(ctx, procs, deadline, skipped):
+    items = []
+    for e in entries(ctx.system("Library", "Caches")):
+        # Apple's caches belong to the operating system, which uses them while it runs.
+        if e.name.startswith(("com.apple.", ".")) or e.is_symlink() or sip_guarded(e.path):
+            continue
+        if time.time() > deadline:
+            skipped.append({"path": e.path, "reason": "time limit"})
+            continue
+        size = system_size(ctx, e.path, deadline)
+        if size is not None and size < APP_CACHE_MIN:
+            continue
+        items.append(disk_item("cache", "system-cache", e.name, e.path, size, True, "delete"))
+    items += scan_system_logs(ctx, deadline, skipped)
+    apps = ctx.system("Applications")
+    running = running_apps(procs)
+    cutoff = ctx.now - APP_UNUSED_DAYS * 86400
+    for e in entries(apps):
+        if not e.name.endswith(".app") or e.is_symlink() or not e.is_dir(follow_symlinks=False) or sip_guarded(e.path):
+            continue
+        # An app the user can move is a plain app row already.
+        if os.access(e.path, os.W_OK) and os.access(apps, os.W_OK):
+            continue
+        if time.time() > deadline:
+            skipped.append({"path": e.path, "reason": "time limit"})
+            continue
+        bid, name = app_info(e.path)
+        if not bid or bid.startswith("com.apple."):
+            continue
+        used = last_used(e.path)
+        if used is None or used > cutoff:
+            continue
+        lock = "the app is running" if e.path in running else None
+        items.append(disk_item("app", "system-app", name, e.path, system_size(ctx, e.path, deadline), False, "trash-app", None, lock,
+                               {"bundle_id": bid, "last_used": iso(used), "support": []}))
+    for kind, folder in (("launch-daemon", ctx.system("Library", "LaunchDaemons")),
+                         ("system-launch-agent", ctx.system("Library", "LaunchAgents"))):
+        for e in entries(folder):
+            if e.name.endswith(".plist") and not e.is_symlink() and not sip_guarded(e.path):
+                items.append(plist_row(ctx, kind, e.path))
+    return items
+
+
+def journal_bytes(text):
+    """The size `journalctl --disk-usage` prints ("take up 1.5G"), in bytes, or None."""
+    m = re.search(r"take up ([0-9.]+)\s*([BKMGT]?)", text or "")
+    if not m:
+        return None
+    return int(float(m.group(1)) * 1024 ** "BKMGT".find(m.group(2) or "B"))
+
+
+def unit_program(path):
+    try:
+        m = re.search(r"^ExecStart\s*=\s*(.+)$", open(path, encoding="utf-8", errors="replace").read(), re.M)
+    except OSError:
+        return ""
+    return redact(m.group(1)) if m else ""
+
+
+def scan_admin_linux(ctx, procs, deadline, skipped):
+    items = []
+    for kind, (tool, parts, command, name) in SYSTEM_CACHES.items():
+        path = ctx.system(*parts)
+        if not shutil.which(tool) or not os.path.isdir(path) or os.path.islink(path):
+            continue
+        size = system_size(ctx, path, deadline)
+        if size is not None and size < BUILD_MIN:
+            continue
+        items.append(disk_item("cache", kind, name, path, size, True, "tool", command, label=name_key("cache", kind)))
+    journal = next((ctx.system(*p) for p in (("var", "log", "journal"), ("run", "log", "journal"))
+                    if os.path.isdir(ctx.system(*p))), None)
+    if journal and shutil.which("journalctl"):
+        rc, stdout, _ = run(["journalctl", "--disk-usage"], timeout=30)
+        items.append(disk_item("log", "journald", "journald logs", journal, journal_bytes(stdout) if rc == 0 else None, False,
+                               "tool", ["journalctl", "--vacuum-time=%dd" % OLD_DAYS], label={"key": "journald"},
+                               detail={"older_than_days": OLD_DAYS}))
+    if shutil.which("systemctl"):
+        rc, stdout, _ = run(["systemctl", "list-unit-files", "--type=service", "--state=enabled", "--no-legend", "--no-pager"], timeout=30)
+        etc = ctx.system("etc", "systemd", "system")
+        for line in stdout.splitlines() if rc == 0 else []:
+            unit = line.split()[0] if line.split() else ""
+            path = os.path.join(etc, unit)
+            # A unit whose file sits in /etc/systemd/system was put there by an administrator; the
+            # operating system's packages put theirs in /usr/lib/systemd/system or /lib/systemd/system.
+            if not unit.endswith(".service") or os.path.islink(path) or not os.path.isfile(path):
+                continue
+            st = stat_or_none(path)
+            items.append({
+                "id": item_id("p", "login-item", "systemd-system", unit), "group": "process", "category": "login-item",
+                "kind": "systemd-system", "name": unit, "path": path, "size": None, "rebuilt": False, "action": "disable",
+                "command": None, "locked": None, "detail": {"unit": unit, "program": unit_program(path)},
+                "fingerprint": {"mtime": st.st_mtime if st else None},
+            })
+    return items
+
+
+def scan_admin(ctx, procs, deadline, skipped, approval):
+    items = scan_admin_mac(ctx, procs, deadline, skipped) if ctx.mac else scan_admin_linux(ctx, procs, deadline, skipped)
+    for it in items:
+        it["admin"] = True
+        if approval is None:
+            it["blocked"] = ADMIN_BLOCKED
+    return items
+
+
+def admin_places(ctx, kind):
+    """The folders an administrator row of this kind sits directly in."""
+    return {
+        "system-cache": [ctx.system("Library", "Caches")],
+        "system-logs": [ctx.system("Library", "Logs"), ctx.system("private", "var", "log")],
+        "system-app": [ctx.system("Applications")],
+        "launch-daemon": [ctx.system("Library", "LaunchDaemons")],
+        "system-launch-agent": [ctx.system("Library", "LaunchAgents")],
+        "systemd-system": [ctx.system("etc", "systemd", "system")],
+    }.get(kind, [])
+
+
+def admin_place_ok(ctx, it):
+    """Whether an administrator row still points at its own system place: no link on the way, nothing
+    System Integrity Protection guards, and the folder its kind sits in (or, for a log row, the log
+    folder itself)."""
+    kind, path = it["kind"], it.get("path")
+    if kind == "journald":
+        return True
+    if not path or os.path.islink(path) or os.path.realpath(path) != path or sip_guarded(path):
+        return False
+    if kind in SYSTEM_CACHES:
+        return path == ctx.system(*SYSTEM_CACHES[kind][1])
+    places = admin_places(ctx, kind)
+    if kind == "system-logs":
+        return path in places or os.path.dirname(path) in places
+    if kind == "system-app" and not path.endswith(".app"):
+        return False
+    if kind in ("launch-daemon", "system-launch-agent") and not path.endswith(".plist"):
+        return False
+    if kind == "systemd-system" and os.path.basename(path) != (it.get("detail") or {}).get("unit"):
+        return False
+    return os.path.dirname(path) in places
+
+
+def admin_changed(ctx, it, procs):
+    """Why an administrator row no longer matches the scan, or None."""
+    if it["kind"] == "journald":
+        return None
+    fp = it.get("fingerprint") or {}
+    st = stat_or_none(it["path"])
+    if st is None:
+        return "no longer exists"
+    if fp.get("ino") is not None and st.st_ino != fp["ino"]:
+        return "changed after the scan (replaced)"
+    if it["group"] == "process":
+        return "changed after the scan" if st.st_mtime != fp.get("mtime") else None
+    if it["kind"] == "system-app" and it["path"] in running_apps(procs):
+        return "in use: the app is running"
+    # Each old log is checked again right before it is deleted, and a size the user could not read at
+    # the scan cannot be compared.
+    if it["kind"] == "system-logs" or fp.get("size") is None:
+        return None
+    return changed(ctx, it)
+
+
+def admin_user(ctx):
+    """The user the rows belong to: the one sudo names in SUDO_UID, or the one running this. Returns
+    (uid, gid, home). Run as root, home is that user's home folder, not root's."""
+    raw_uid, raw_gid = os.environ.get("SUDO_UID") or "", os.environ.get("SUDO_GID") or ""
+    uid = int(raw_uid) if raw_uid.isdigit() else os.getuid()
+    gid = int(raw_gid) if raw_gid.isdigit() else None
+    home = ctx.home
+    if os.geteuid() == 0 and raw_uid.isdigit():
+        try:
+            pw = pwd.getpwuid(uid)
+            home = os.path.realpath(pw.pw_dir)
+            gid = pw.pw_gid if gid is None else gid
+        except KeyError:
+            pass
+    return uid, os.getgid() if gid is None else gid, home
+
+
+def own(path, uid, gid):
+    """Gives a file written in the user's folder back to the user sudo names."""
+    if os.environ.get("SUDO_UID"):
+        try:
+            os.chown(path, uid, gid, follow_symlinks=False)
+        except OSError:
+            pass
+
+
+def admin_command(ctx, args, approval):
+    """The command the agent runs to free or restore administrator rows: through sudo -A, which calls
+    askpass.sh to open the password dialog, or through sudo -n where sudo needs no password."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    core = [sys.executable or "python3", os.path.join(here, "machine_cleanup.py")] + args
+    if approval == "nopasswd":
+        return " ".join(shlex.quote(a) for a in ["sudo", "-n"] + core)
+    return "SUDO_ASKPASS=%s %s" % (shlex.quote(os.path.join(here, "askpass.sh")),
+                                   " ".join(shlex.quote(a) for a in ["sudo", "-A", "-p", ADMIN_PROMPT] + core))
+
+
+def free_admin_item(ctx, it, records, uid, home):
+    """Frees one administrator row. Returns (status, note)."""
+    kind, path = it["kind"], it.get("path")
+    if kind == "system-cache":
+        remove_tree(path)
+        return "done", "deleted"
+    if kind == "system-logs":
+        n, cutoff = 0, time.time() - OLD_DAYS * 86400
+        for p in (it.get("detail") or {}).get("files", []):
+            st = stat_or_none(p)
+            folder = os.path.dirname(p)
+            if (st and stat.S_ISREG(st.st_mode) and st.st_mtime <= cutoff and (folder == path or folder.startswith(path + "/"))
+                    and os.path.realpath(folder) == folder and not sip_guarded(p)):
+                os.remove(p)
+                n += 1
+        return "done", "deleted %d old files" % n
+    if kind in SYSTEM_CACHES or kind == "journald":
+        rc, _, err = run(it["command"], timeout=1800)
+        if rc != 0:
+            return "failed", "%s exited %d: %s" % (" ".join(it["command"]), rc, (err.strip().splitlines() or [""])[-1][:200])
+        return "done", "ran %s" % " ".join(it["command"])
+    if kind == "system-app":
+        trash = os.path.join(home, ".Trash")
+        st = stat_or_none(trash)
+        if os.path.islink(trash) or (st is not None and st.st_uid != uid):
+            return "skipped", "the Trash is not the user's own folder"
+        dest = move_to_trash(path, ctx.platform, home)
+        records.append({"id": it["id"], "type": "system-trash", "from": dest, "to": path})
+        return "done", "moved to the Trash; restore %s puts it back" % it["id"]
+    if kind in ("launch-daemon", "system-launch-agent"):
+        domain = "system" if kind == "launch-daemon" else "gui/%d" % uid
+        run(["launchctl", "bootout", domain, path], timeout=60)
+        keep = admin_keep(ctx)
+        os.makedirs(keep, mode=0o700, exist_ok=True)
+        dest = os.path.join(keep, "%s-%s" % (it["id"], os.path.basename(path)))
+        shutil.move(path, dest)
+        records.append({"id": it["id"], "type": kind, "from": dest, "to": path})
+        return "done", "stopped; restore %s turns it back on" % it["id"]
+    if kind == "systemd-system":
+        unit = it["detail"]["unit"]
+        rc, _, err = run(["systemctl", "disable", "--now", unit], timeout=60)
+        if rc != 0:
+            return "failed", err.strip()[:200]
+        records.append({"id": it["id"], "type": "systemd-system", "unit": unit})
+        return "done", "disabled; restore %s turns it back on" % it["id"]
+    return "failed", "unknown kind %s" % kind
+
+
+def admin_keep(ctx):
+    """Where stopped launch daemons and agents are kept: a folder only root can change, so that the
+    plist put back is the one taken out."""
+    return ctx.system("Library", "Application Support", "machine-cleanup", "disabled")
+
+
+def refuse_other_root(ctx, command):
+    if os.geteuid() == 0 and ctx.root != "/":
+        print("Run as root, %s works only on /, not on %s." % (command, ctx.root), file=sys.stderr)
+        return True
+    return False
+
+
+def cmd_admin_apply(ctx, args):
+    if refuse_other_root(ctx, "admin-apply"):
+        return 2
+    plan_path = os.path.abspath(args.plan)
+    state = os.path.dirname(plan_path)
+    plan = read_json_nofollow(plan_path)
+    if not isinstance(plan, dict) or plan.get("version") != ADMIN_PLAN_VERSION or not isinstance(plan.get("ids"), list):
+        print("No plan of administrator rows at %s. Run apply again." % plan_path, file=sys.stderr)
+        return 2
+    scan = read_json_nofollow(os.path.join(state, "scan.json"))
+    if not isinstance(scan, dict) or scan.get("version") != SCAN_VERSION:
+        print("No scan of this version next to the plan. Run scan and apply again.", file=sys.stderr)
+        return 2
+    uid, gid, home = admin_user(ctx)
+    by_id = {it["id"]: it for it in scan.get("items", [])}
+    procs = read_procs()
+    records, failed = [], False
+    for i in plan["ids"]:
+        it = by_id.get(i) if isinstance(i, str) else None
+        name = it["name"] if it else "-"
+        if it is None or not it.get("admin"):
+            why = "not an administrator row of the last scan"
+        elif it.get("blocked") or it.get("locked"):
+            why = it.get("blocked") or "in use: " + it["locked"]
+        elif not admin_place_ok(ctx, it):
+            why = "not in its system place any more, or a symbolic link"
+        else:
+            why = admin_changed(ctx, it, procs)
+        if why:
+            line("skipped", str(i), name, why)
+            continue
+        status, note = free_admin_item(ctx, by_id[i], records, uid, home)
+        failed = failed or status == "failed"
+        line(status, i, name, note)
+    if records:
+        path = os.path.join(state, "restore.json")
+        data = read_json_nofollow(path, None) or {"version": FORMAT_VERSION, "records": []}
+        data["records"].extend(records)
+        write_private(path, json.dumps(data, indent=1))
+        own(path, uid, gid)
+    try:
+        os.remove(plan_path)
+    except OSError:
+        pass
+    return 3 if failed else 0
+
+
+def admin_restore_ok(ctx, r, home):
+    """Whether a record puts back only what admin-apply took: from the user's Trash or the folder only
+    root can change, to the system place of its kind."""
+    to, frm = r.get("to") or "", r.get("from") or ""
+    if r["type"] == "system-trash":
+        return (os.path.dirname(to) == ctx.system("Applications") and to.endswith(".app")
+                and os.path.dirname(frm) == os.path.join(home, ".Trash"))
+    return os.path.dirname(to) in admin_places(ctx, r["type"]) and to.endswith(".plist") and os.path.dirname(frm) == admin_keep(ctx)
+
+
+def cmd_admin_restore(ctx, args):
+    if refuse_other_root(ctx, "admin-restore"):
+        return 2
+    state = os.path.abspath(args.state)
+    path = os.path.join(state, "restore.json")
+    data = read_json_nofollow(path, None) or {"version": FORMAT_VERSION, "records": []}
+    uid, gid, home = admin_user(ctx)
+    keep, status = [], 0
+    for r in data.get("records", []):
+        if r.get("id") not in args.ids or r.get("type") not in ADMIN_RECORDS:
+            keep.append(r)
+            continue
+        if r["type"] == "systemd-system":
+            rc, _, err = run(["systemctl", "enable", "--now", r["unit"]], timeout=60)
+            line("done" if rc == 0 else "failed", r["id"], r["unit"], "turned back on" if rc == 0 else err.strip()[:200])
+            if rc != 0:
+                keep.append(r)
+                status = 3
+            continue
+        name = os.path.basename(r.get("to") or "")
+        if not admin_restore_ok(ctx, r, home) or os.path.islink(r["from"]):
+            line("skipped", r["id"], name, "the record points outside the places admin-apply uses")
+            keep.append(r)
+            continue
+        if os.path.lexists(r["to"]):
+            line("skipped", r["id"], name, "something is already at %s" % r["to"])
+            keep.append(r)
+            continue
+        if not os.path.lexists(r["from"]):
+            line("skipped", r["id"], name, "the saved copy is gone (the Trash may have been emptied)")
+            continue
+        shutil.move(r["from"], r["to"])
+        if r["type"] in ("launch-daemon", "system-launch-agent"):
+            domain = "system" if r["type"] == "launch-daemon" else "gui/%d" % uid
+            run(["launchctl", "bootstrap", domain, r["to"]], timeout=60)
+        line("done", r["id"], name, "restored to %s" % r["to"])
+    data["records"] = keep
+    write_private(path, json.dumps(data, indent=1))
+    own(path, uid, gid)
+    return status
+
+
 def measure(ctx):
     # disk_total and disk_free are None when df cannot tell; the page then says "not measured".
     free = total_disk = None
@@ -1712,10 +2225,12 @@ def cmd_scan(ctx, args):
     items += scan_app_caches(ctx, procs, running_ids, deadline, skipped)
     items += scan_docker(ctx, deadline, skipped)
     items += scan_trash_logs_installers(ctx, deadline, skipped)
-    apps_dirs = args.apps_dir or (["/Applications", ctx.h("Applications")] if ctx.mac else [])
+    apps_dirs = args.apps_dir or ([ctx.system("Applications"), ctx.h("Applications")] if ctx.mac else [])
     items += scan_apps(ctx, procs, apps_dirs, deadline, skipped)
+    approval = admin_approval(ctx)
+    items += scan_admin(ctx, procs, deadline, skipped, approval)
     listed = {it["path"] for it in items if it.get("path")} | {p for it in items for p in (it.get("detail") or {}).get("support", [])}
-    items += scan_leftovers(ctx, procs, args.apps_dir or apps_dirs + ["/System/Applications"], listed, deadline, skipped)
+    items += scan_leftovers(ctx, procs, args.apps_dir or apps_dirs + [ctx.system("System", "Applications")], listed, deadline, skipped)
     found = {}
     items += scan_home(ctx, args.root or [ctx.home], procs, cwds, deadline, skipped, found)
     items += scan_projects(ctx, found["repos"], procs, cwds, deadline, skipped)
@@ -1732,7 +2247,7 @@ def cmd_scan(ctx, args):
     result = {
         "version": SCAN_VERSION, "platform": ctx.platform, "home": ctx.home, "scanned_at": iso(time.time()),
         "seconds": round(time.time() - started, 1), "time_limit": args.time_limit, "measure": measure(ctx),
-        "items": unique, "skipped": skipped,
+        "items": unique, "skipped": skipped, "admin_approval": approval, "system_root": ctx.root,
     }
     write_private(os.path.join(ctx.state, "scan.json"), json.dumps(result, indent=1))
     if args.json:
@@ -1829,7 +2344,7 @@ def rank(ctx, it, last_commits):
     if cat == "model":
         got = parse_iso((it.get("detail") or {}).get("downloaded"))
         return "check", {"code": "model", "days": days_since(got, ctx.now) if got else 0}
-    if cat == "app" and it["kind"] == "mac-app":
+    if cat == "app" and it["kind"] in ("mac-app", "system-app"):
         used = parse_iso((it.get("detail") or {}).get("last_used"))
         return "check", ({"code": "app_unused", "days": days_since(used, ctx.now)} if used else {"code": "app_unused_unknown"})
     if cat == "app":
@@ -1873,6 +2388,12 @@ def print_summary(ctx, result):
     rec = [it for it in result["items"] if it["level"] == "recommended" and not it["locked"]]
     rec_size = sum(it["size"] or 0 for it in rec if it["group"] == "disk")
     print("Recommended: %d items, %s of disk." % (len(rec), human(rec_size)))
+    admin = [it for it in result["items"] if it.get("admin")]
+    if admin:
+        how = {"dialog": "the operating system's password dialog approves them",
+               "nopasswd": "sudo needs no password here"}.get(result.get("admin_approval"), "they cannot be approved here")
+        print("Need administrator rights: %d items, %s of disk measured; %s." % (
+            len(admin), human(sum(it["size"] or 0 for it in admin if it["group"] == "disk")), how))
     m = result["measure"]
     print("Free disk now %s, memory used %s of %s." % (human(m["disk_free"]), human(m["memory_used"]), human(m["memory_total"])))
     if result["skipped"]:
@@ -1936,7 +2457,7 @@ def cmd_serve(ctx, args):
     write_private(session_path, json.dumps({"port": port, "token": token}))
     origin = "http://127.0.0.1:%d" % port
     page = page_html(ctx, scan, token).encode("utf-8")
-    pickable = {it["id"] for it in scan["items"] if not it["locked"]}
+    pickable = {it["id"] for it in scan["items"] if not it["locked"] and not it.get("blocked")}
     state = {"ids": None}
 
     class Handler(http.server.BaseHTTPRequestHandler):
@@ -2307,7 +2828,8 @@ def save_records(ctx, records):
 
 
 def line(status, ident, name, note):
-    print("%-9s%s  %s  %s" % (status, ident, name, note))
+    # A status as long as the column, needs-admin, still gets a space before the id.
+    print("%s%s  %s  %s" % (status.ljust(9) if len(status) < 9 else status + " ", ident, name, note))
 
 
 def cmd_apply(ctx, args):
@@ -2328,6 +2850,8 @@ def cmd_apply(ctx, args):
             refused.append((i, "not in the last scan"))
         elif by_id[i]["locked"]:
             refused.append((i, "in use: %s" % by_id[i]["locked"]))
+        elif by_id[i].get("blocked"):
+            refused.append((i, by_id[i]["blocked"]))
     picked = [by_id[i] for i in ids if i in by_id]
     chosen = set(ids)
 
@@ -2352,9 +2876,14 @@ def cmd_apply(ctx, args):
     records, failed, docker_done = [], False, False
     targets = []
     done = set()
+    # Rows that need administrator rights are left to admin-apply, which the agent runs through sudo.
+    admin = [it for it in picked if it.get("admin")]
     # Rows that hold others go first, so a row inside a freed row is skipped instead of freed twice;
     # when the holder is skipped, the row inside it is still freed on its own.
     for it in sorted(picked, key=lambda x: len(x.get("within") or [])):
+        if it.get("admin"):
+            line("needs-admin", it["id"], it["name"], "needs administrator rights; the command at the end frees it")
+            continue
         if it["group"] == "disk":
             holder = next((by_id[w] for w in it.get("within") or [] if w in done), None)
             if holder is not None:
@@ -2420,6 +2949,16 @@ def cmd_apply(ctx, args):
             os.remove(os.path.join(ctx.state, n))
         except OSError:
             pass
+    if admin:
+        plan = os.path.join(ctx.state, "admin-plan.json")
+        write_private(plan, json.dumps({"version": ADMIN_PLAN_VERSION, "ids": [it["id"] for it in admin],
+                                        "scanned_at": scan.get("scanned_at")}))
+        approval = scan.get("admin_approval")
+        print("")
+        print("%d picked %s administrator rights. Run this command as it is to free %s; %s:" % (
+            len(admin), "item needs" if len(admin) == 1 else "items need", "it" if len(admin) == 1 else "them",
+            "sudo needs no password here" if approval == "nopasswd" else "the operating system asks for the password once"))
+        print(admin_command(ctx, ["admin-apply", "--plan", plan], approval))
     return 3 if failed else 0
 
 
@@ -2471,9 +3010,18 @@ def cmd_restore(ctx, args):
         for i in unknown:
             line("refused", i, "-", "nothing recorded to restore")
         return 1
+    admin = []
     for r in records:
         if r["id"] not in args.ids:
             keep.append(r)
+            continue
+        if r["type"] in ADMIN_RECORDS:
+            # Only root can put these back, so admin-restore does it through sudo.
+            line("needs-admin", r["id"], os.path.basename(r.get("to") or r.get("unit") or ""),
+                 "needs administrator rights; the command at the end puts it back")
+            keep.append(r)
+            if r["id"] not in admin:
+                admin.append(r["id"])
             continue
         if r["type"] == "systemd-user":
             rc, _, err = run(["systemctl", "--user", "enable", "--now", r["unit"]], timeout=60)
@@ -2500,11 +3048,20 @@ def cmd_restore(ctx, args):
         line("done", r["id"], os.path.basename(r["to"]), "restored to %s" % tilde(ctx, r["to"]))
     data["records"] = keep
     write_private(path, json.dumps(data, indent=1))
+    if admin:
+        approval = admin_approval(ctx)
+        print("")
+        if approval is None:
+            print("Administrator rights cannot be approved here: no password dialog can open, and sudo asks for a password.")
+            return 1
+        print("Run this command as it is to put back what needs administrator rights; %s:" % (
+            "sudo needs no password here" if approval == "nopasswd" else "the operating system asks for the password once"))
+        print(admin_command(ctx, ["admin-restore", "--state", os.path.abspath(ctx.state)] + admin, approval))
     return status
 
 
 def cmd_finish(ctx, args):
-    for n in ("scan.json", "session.json", "selection.txt", "survivors.json"):
+    for n in ("scan.json", "session.json", "selection.txt", "survivors.json", "admin-plan.json"):
         try:
             os.remove(os.path.join(ctx.state, n))
         except OSError:
@@ -2903,6 +3460,11 @@ def main(argv=None, platform=None):
     cs.add_parser("remove")
     cs.add_parser("show")
     sub.add_parser("scheduled-run")
+    aa = sub.add_parser("admin-apply", help="frees the administrator rows apply planned; the agent runs it through sudo")
+    aa.add_argument("--plan", required=True)
+    ar = sub.add_parser("admin-restore", help="puts back administrator rows; the agent runs it through sudo")
+    ar.add_argument("--state", required=True)
+    ar.add_argument("ids", nargs="+")
     args = parser.parse_args(argv)
     if args.cmd is None:
         parser.print_help()
@@ -2915,7 +3477,8 @@ def main(argv=None, platform=None):
         return 2
     ctx = Ctx(platform)
     return {"scan": cmd_scan, "serve": cmd_serve, "apply": cmd_apply, "restore": cmd_restore, "finish": cmd_finish,
-            "schedule": cmd_schedule, "scheduled-run": cmd_scheduled_run}[args.cmd](ctx, args)
+            "schedule": cmd_schedule, "scheduled-run": cmd_scheduled_run, "admin-apply": cmd_admin_apply,
+            "admin-restore": cmd_admin_restore}[args.cmd](ctx, args)
 
 
 if __name__ == "__main__":
