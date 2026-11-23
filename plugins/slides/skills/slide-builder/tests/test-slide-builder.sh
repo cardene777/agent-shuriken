@@ -59,14 +59,123 @@ holds_two_skills() {
   done
 }
 
-# The words are built from parts so that this file does not hold what it looks for.
-# Only general shapes are listed here. Names from the maintainer's private setup are checked in the private repository.
+# The shapes no file of a public plugin may hold, one regular expression per line: a home folder on
+# macOS or Linux where a path starts (a throwaway HOME such as $T/case/home/ is not one), the
+# configuration folder of a local agent, and an issue reference. They are general shapes only, so
+# this file names no product, company, or person.
+SHAPES='(?<![A-Za-z0-9_.-])/(?:Users|home)/[A-Za-z0-9._-]+
+~/[.](?:claude|codex)/
+\b(?:GH|Issue) #[0-9]+'
+
+# Prints file:line for every line under the folders given that holds one of SHAPES.
+private_shapes_in() {
+  SHAPES="$SHAPES" python3 - "$@" <<'PY'
+import os, re, sys
+pattern = re.compile("|".join(os.environ["SHAPES"].splitlines()))
+images = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico")
+for top in sys.argv[1:]:
+    for folder, _, files in os.walk(top):
+        for name in files:
+            path = os.path.join(folder, name)
+            if name.lower().endswith(images):
+                continue
+            with open(path, encoding="utf-8", errors="ignore") as source:
+                for number, line in enumerate(source, 1):
+                    if pattern.search(line):
+                        print(f"{os.path.relpath(path, top)}:{number}")
+PY
+}
+
+# need_scan: this file defines the private-name scan the checks below run.
+need_scan() { declare -F private_shapes_in > /dev/null || { why="the test defines no private_shapes_in scan"; return 1; }; }
+
+# The scan's patterns are general shapes only: SHAPES is assigned once, as three plain lines with no
+# quote or expansion that could join parts into a word, and once the words of those shapes and the
+# syntax of regular expressions are taken out, no letter is left. The name scan compiles no other
+# pattern and the test searches with no recursive grep, so it cannot look for a specific word. The
+# readability check compiles its own pattern of domain words under another name, and is not a name scan.
+scan_lists_general_shapes() {
+  local said
+  said="$(python3 - "$HERE/test-slide-builder.sh" 2>&1 <<'PY'
+import re, sys
+source = open(sys.argv[1], encoding="utf-8").read()
+found = re.findall(r"^SHAPES='([^']*)'$", source, re.M)
+if len(found) != 1:
+    sys.exit("SHAPES is assigned %d times, not once" % len(found))
+lines = found[0].splitlines()
+if len(lines) != 3 or any(c in found[0] for c in "\"$`"):
+    sys.exit("SHAPES is not three plain lines: %r" % found[0])
+rest = re.sub(r"\\[bdsw]|\[[^]]*\]|\b(?:Users|home|claude|codex|GH|Issue)\b", "", found[0])
+if re.search(r"[A-Za-z]", rest):
+    sys.exit("SHAPES holds a word other than the general shapes: %r" % rest)
+compiled = re.findall(r"^\s*pattern = re[.]compile[(](.*)[)]$", source, re.M)
+if compiled != ['"|".join(os.environ["SHAPES"].splitlines())']:
+    sys.exit("the name scan compiles a pattern other than SHAPES: %r" % compiled)
+greps = [str(n) for n, line in enumerate(source.splitlines(), 1) if re.search(r"\bgrep\s+(?:-[A-Za-z]*[rR]|--recursive)", line)]
+if greps:
+    sys.exit("the test searches with a recursive grep at line %s" % ", ".join(greps))
+PY
+)" || { why="$said"; return 1; }
+}
+
+# One line of each shape, planted in a throwaway folder, is found. The lines are printed from parts
+# so that this file does not hold them.
+scan_finds_planted_shapes() {
+  need_scan || return 1
+  local hits
+  mkdir -p "$T/shapes"
+  {
+    printf 'see /%s/someone/notes\n' Users home
+    printf 'see ~/.%s/settings\n' claude codex
+    printf 'see %s #%d\n' GH 12 Issue 3
+  } > "$T/shapes/planted.md"
+  hits="$(private_shapes_in "$T/shapes" | LC_ALL=C sort | tr '\n' ' ')"
+  [ "$hits" = "planted.md:1 planted.md:2 planted.md:3 planted.md:4 planted.md:5 planted.md:6 " ] \
+    || { why="expected lines 1 to 6 of planted.md (a home folder under /Users and /home, a local agent path for each agent, an issue reference of each form), the scan found: ${hits:-nothing}"; return 1; }
+}
+
+# A home folder written with a <name> placeholder, a throwaway folder whose path ends in a home
+# folder, and plain words with a bare number sign are not shapes.
+scan_passes_placeholders() {
+  need_scan || return 1
+  local hits
+  mkdir -p "$T/plain"
+  {
+    printf 'a placeholder such as /%s/<name> or /%s/<name>\n' Users home
+    printf 'a throwaway HOME such as $T/case/%s/notes\n' home
+    printf 'plain words, a docs/%s/page.md link, and #12 alone\n' home
+  } > "$T/plain/plain.md"
+  hits="$(private_shapes_in "$T/plain")"
+  [ -z "$hits" ] || { why="the scan flagged: $(printf '%s ' $hits)"; return 1; }
+}
+
+# A shape planted in a copy of the plugin is found in a top-level file, in a file of a skill folder,
+# and in a file of a hidden manifest folder, and nowhere else.
+scan_finds_shapes_in_plugin_copy() {
+  need_scan || return 1
+  local hits
+  cp -R "$PLUGIN_DIR" "$T/copy"
+  printf 'see /%s/someone/notes\n' Users >> "$T/copy/README.md"
+  printf 'see ~/.%s/settings\n' codex >> "$T/copy/skills/slide-builder/SKILL.md"
+  printf 'see %s #%d\n' Issue 3 >> "$T/copy/.codex-plugin/plugin.json"
+  hits="$(private_shapes_in "$T/copy" | sed 's/:[0-9]*$//' | LC_ALL=C sort | tr '\n' ' ')"
+  [ "$hits" = ".codex-plugin/plugin.json README.md skills/slide-builder/SKILL.md " ] \
+    || { why="expected .codex-plugin/plugin.json, README.md, and skills/slide-builder/SKILL.md, the scan found: ${hits:-nothing}"; return 1; }
+}
+
 no_local_names() {
-  need "$SKILL" || return 1
-  local pattern hits
-  pattern="$(printf '%s|' '~/[.]co''dex/' '/Us''ers/' '(G''H|Iss''ue) #[0-9]' 'agent-''configs')"
-  hits="$(grep -rIlE "${pattern%|}" "$PLUGIN_DIR")"
-  [ -z "$hits" ] || { why="found in: $(printf '%s ' $hits)"; return 1; }
+  need_scan || return 1
+  local hits
+  # The scan finds planted lines (the checks above), so an empty result means the shapes are absent.
+  hits="$(private_shapes_in "$PLUGIN_DIR")"
+  [ -z "$hits" ] || { why="found at: $(printf '%s ' $hits)"; return 1; }
+}
+
+changelog_names_general_shapes() {
+  local log="$PLUGIN_DIR/CHANGELOG.md"
+  [ -f "$log" ] || { why="$log is missing"; return 1; }
+  grep -qF 'looks only for general shapes' "$log" \
+    || { why="CHANGELOG.md does not say that the name scan looks only for general shapes"; return 1; }
 }
 
 no_agent_names() {
@@ -236,7 +345,12 @@ accepts_other_spellings() {
 }
 
 check "the plugin holds the two skills by name" holds_two_skills
-check "no file names a local folder or another repository" no_local_names
+check "the private-name scan lists only general shapes" scan_lists_general_shapes
+check "the private-name scan finds a planted line of each shape" scan_finds_planted_shapes
+check "the private-name scan passes placeholders and plain words" scan_passes_placeholders
+check "the private-name scan finds shapes planted in a copy of the plugin" scan_finds_shapes_in_plugin_copy
+check "no file holds a home path, a local agent path, or an issue reference" no_local_names
+check "the changelog says the name scan looks only for general shapes" changelog_names_general_shapes
 check "the SKILL.md files name no agent or its tool" no_agent_names
 check "the readability rules hold only general code words" general_code_words
 check "the validator uses only the standard library" standard_library_only

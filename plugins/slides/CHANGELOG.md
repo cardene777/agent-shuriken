@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The test that scans the plugin for private names looks only for general shapes, in the same form as the other plugins: a home folder path under `/Users/` or `/home/`, the configuration folder of either local agent, and an issue reference, and a check fails if the scan lists anything else
+
 ## [0.1.1] - 2026-11-22
 
 - The `slide-builder` test no longer spells out the names of the maintainer's private decks. It still checks that no file holds a home path, a local Codex path, an issue reference, or the name of the private configuration repository
