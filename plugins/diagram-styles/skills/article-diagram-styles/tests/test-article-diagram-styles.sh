@@ -897,7 +897,7 @@ import json, os, sys
 skill = sys.argv[1]
 provides = json.load(open(os.path.join(skill, "musubi.json"), encoding="utf-8")).get("provides", {})
 problems = []
-for name, version in (("style-catalog", "1.2.0"), ("figure-request", "1.2.0"), ("style4", "1.0.0")):
+for name, version in (("style-catalog", "1.2.0"), ("figure-request", "1.2.0"), ("style4", "1.1.0")):
     item = provides.get(name)
     if not isinstance(item, dict):
         problems.append("provides no " + name)
@@ -911,23 +911,23 @@ for problem in problems:
 sys.exit(1 if problems else 0)
 PYEOF
 }
-check "article-diagram-styles provides style-catalog and figure-request at 1.2.0 and style4 at 1.0.0" provides_three
+check "article-diagram-styles provides style-catalog and figure-request at 1.2.0 and style4 at 1.1.0" provides_three
 
 pages_say_built_in() {
   local page bad=0
   for page in README.md docs/how-it-works.md; do
     has "$PLUGIN/$page" "thirty-two built-in styles" "defined in words" '`article-diagram-styles` draws without `~/.styles/`' \
       "adds styles beside the built-in ones" "replaces the built-in style of the same name" '`retired`' \
-      '`tech-book-figure` still needs your style4 samples' || bad=1
+      '`tech-book-figure` draws from the written style4 rules without `~/.styles/`' || bad=1
   done
   for page in README.ja.md docs/how-it-works.ja.md; do
     has "$PLUGIN/$page" "32の既定の画風" "文で定義" '`~/.styles/`が無くても`article-diagram-styles`は描きます' \
       "既定の画風の横に画風を足し" "同じ名前の既定の画風を置き換え" '`retired`' \
-      '`tech-book-figure`は今もstyle4の見本が要ります' || bad=1
+      '`~/.styles/`が無くても`tech-book-figure`は文で書いたstyle4の決まりで描きます' || bad=1
   done
   return "$bad"
 }
-check "the pages say the built-in styles draw without ~/.styles" pages_say_built_in
+check "the pages say both skills draw without ~/.styles" pages_say_built_in
 
 pages_say_structures() {
   local page bad=0

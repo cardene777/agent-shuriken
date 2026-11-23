@@ -6,17 +6,26 @@
    On narrow screens a bar shows the current section and the contents button slides the list in. */
 :root {
   color-scheme: light;
-  --bg: #f6f6f8; --panel: #fff; --panel-2: #fafafb; --card: #fff; --line: #e4e4e8; --line-2: #d2d2d8;
-  --rule: #8a8a95; --label: #f0f0f3;
-  --ink: #111114; --ink-2: #3c3c44; --ink-3: #6e6e78; --ink-sub: #545a66; --ink-faint: #6b6b75;
+  --bg: #f6f6f8; --surface: #fff; --line: #e4e4e8; --label: #f0f0f3;
+  --ink: #111114; --sub: #545a66;
   --accent: #1d4ed8; --accent-soft: #eef2ff; --accent-ink: #fff;
   --critical: #b91c1c; --critical-soft: #fdf2f2; --warn: #a15c07; --warn-soft: #fdf8ec;
   --good: #047857; --good-soft: #ecfdf5;
   --edge: #64748b; --edge-emphasis: #047857; --edge-dashed: #8b5cf6;
   /* Chart colors named in a chart spec (assets/charts.js); --chart-on is text drawn on a colored bar. */
   --chart-gray: #64748b; --chart-blue: #0369a1; --chart-orange: #c2410c; --chart-violet: #6d28d9;
-  --chart-violet2: #7c3aed; --chart-green: #047857; --chart-red: #b91c1c; --chart-on: #fff; --track: #f1f1f4;
+  --chart-violet2: #7c3aed; --chart-green: #047857; --chart-red: #b91c1c; --chart-on: #fff;
   --shadow: rgba(0, 0, 0, .12); --scrim: rgba(17, 17, 20, .35);
+  /* The base colors are named after the keys of the page-design theme file (formats/theme.md), so
+     `page-design.py theme` can replace them; the shades below are mixed from them and follow along. */
+  --panel: var(--surface); --card: var(--surface); --ink-sub: var(--sub);
+  --panel-2: color-mix(in srgb, var(--bg) 51%, var(--surface));
+  --line-2: color-mix(in srgb, var(--ink) 8%, var(--line));
+  --rule: color-mix(in srgb, var(--bg) 32%, var(--sub));
+  --ink-2: color-mix(in srgb, var(--ink) 39%, var(--sub));
+  --ink-3: color-mix(in srgb, color-mix(in srgb, var(--ink) 36%, var(--sub)) 71%, var(--line));
+  --ink-faint: color-mix(in srgb, color-mix(in srgb, var(--ink) 38%, var(--sub)) 74%, var(--label));
+  --track: color-mix(in srgb, var(--bg) 97%, var(--sub));
   --radius: 14px;
   --side: 264px;
   --top: 56px;
@@ -29,30 +38,42 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]):not([data-paper]) {
     color-scheme: dark;
-    --bg: #121519; --panel: #1a1e24; --panel-2: #20252c; --card: #1a1e24; --line: #2e343d; --line-2: #414955;
-    --rule: #666e7b; --label: #242a32;
-    --ink: #e6e9ee; --ink-2: #c9ced6; --ink-3: #a3abb7; --ink-sub: #b0b8c4; --ink-faint: #98a1ae;
+    --bg: #121519; --surface: #1a1e24; --line: #2e343d; --label: #242a32;
+    --ink: #e6e9ee; --sub: #b0b8c4;
     --accent: #8aa8ff; --accent-soft: #1f2a45; --accent-ink: #0f1420;
     --critical: #f19999; --critical-soft: #3a1f22; --warn: #e8b766; --warn-soft: #3a2e17;
     --good: #6fd3a8; --good-soft: #15322a;
     --edge: #94a3b8; --edge-emphasis: #34d399; --edge-dashed: #a78bfa;
     --chart-gray: #94a3b8; --chart-blue: #7dd3fc; --chart-orange: #fdba74; --chart-violet: #c4b5fd;
-    --chart-violet2: #a78bfa; --chart-green: #6ee7b7; --chart-red: #fca5a5; --chart-on: #111418; --track: #262c35;
+    --chart-violet2: #a78bfa; --chart-green: #6ee7b7; --chart-red: #fca5a5; --chart-on: #111418;
     --shadow: rgba(0, 0, 0, .5); --scrim: rgba(0, 0, 0, .55);
+    --panel-2: color-mix(in srgb, var(--bg) 22%, var(--label));
+    --line-2: color-mix(in srgb, var(--sub) 16%, var(--line));
+    --rule: color-mix(in srgb, var(--sub) 45%, var(--line));
+    --ink-2: color-mix(in srgb, var(--ink) 44%, var(--sub));
+    --ink-3: color-mix(in srgb, var(--sub) 91%, var(--label));
+    --ink-faint: color-mix(in srgb, var(--bg) 14%, var(--sub));
+    --track: color-mix(in srgb, var(--line) 23%, var(--label));
   }
 }
 :root[data-theme="dark"]:not([data-paper]) {
   color-scheme: dark;
-  --bg: #121519; --panel: #1a1e24; --panel-2: #20252c; --card: #1a1e24; --line: #2e343d; --line-2: #414955;
-  --rule: #666e7b; --label: #242a32;
-  --ink: #e6e9ee; --ink-2: #c9ced6; --ink-3: #a3abb7; --ink-sub: #b0b8c4; --ink-faint: #98a1ae;
+  --bg: #121519; --surface: #1a1e24; --line: #2e343d; --label: #242a32;
+  --ink: #e6e9ee; --sub: #b0b8c4;
   --accent: #8aa8ff; --accent-soft: #1f2a45; --accent-ink: #0f1420;
   --critical: #f19999; --critical-soft: #3a1f22; --warn: #e8b766; --warn-soft: #3a2e17;
   --good: #6fd3a8; --good-soft: #15322a;
   --edge: #94a3b8; --edge-emphasis: #34d399; --edge-dashed: #a78bfa;
   --chart-gray: #94a3b8; --chart-blue: #7dd3fc; --chart-orange: #fdba74; --chart-violet: #c4b5fd;
-  --chart-violet2: #a78bfa; --chart-green: #6ee7b7; --chart-red: #fca5a5; --chart-on: #111418; --track: #262c35;
+  --chart-violet2: #a78bfa; --chart-green: #6ee7b7; --chart-red: #fca5a5; --chart-on: #111418;
   --shadow: rgba(0, 0, 0, .5); --scrim: rgba(0, 0, 0, .55);
+  --panel-2: color-mix(in srgb, var(--bg) 22%, var(--label));
+  --line-2: color-mix(in srgb, var(--sub) 16%, var(--line));
+  --rule: color-mix(in srgb, var(--sub) 45%, var(--line));
+  --ink-2: color-mix(in srgb, var(--ink) 44%, var(--sub));
+  --ink-3: color-mix(in srgb, var(--sub) 91%, var(--label));
+  --ink-faint: color-mix(in srgb, var(--bg) 14%, var(--sub));
+  --track: color-mix(in srgb, var(--line) 23%, var(--label));
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }

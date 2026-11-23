@@ -56,7 +56,7 @@ The buttons and labels of the document start in its language, English or Japanes
 | `templates/starter-doc.html` | The frame of the document: the header band, the facts table, the contents list, the switches, and the markers where `build.py` puts the assets |
 | `assets/` | The styles and scripts copied into every document: the layout and its light and dark colors, charts, step ladders, the print layout, and the script of the switches |
 | `assets/ui.json` | The interface words in English and Japanese, defined only here. `render.py` and `ladder.py` read it when they write the page, and `build.py` copies it into the page, where the switches read it |
-| `musubi.json` | The optional follows of `page-design/structure`, `page-design/look`, `page-design/document`, and `page-design/verify` through musubi: for each, the version range `^1.0.0`, the fingerprint of the content at the last check, and `"optional": true` |
+| `musubi.json` | The optional follows of `page-design/structure`, `page-design/look`, `page-design/document`, `page-design/verify`, and `page-design/theme` through musubi: for each, the version range (`^1.0.0` for `structure` and `theme`, `^2.0.0` for the others), the fingerprint of the content at the last check, and `"optional": true` |
 
 The header band holds two switches side by side: a language switch (English / 日本語) that changes only the interface text, such as the contents button, the previous and next buttons, the Save PDF menu, the help, and chart units, and a light and dark switch.
 The document's own text stays in the language it was written in, and printing always uses light colors.
@@ -64,6 +64,7 @@ The page starts in the document's language and the system's light or dark settin
 
 - When the page-design skill of the design-formats plugin is installed, the agent reads its `structure` and `look` formats and its `document` page type, which `musubi.json` follows as optional follows. After `scripts/check.py` passes, it runs page-design's `verify` on the finished `<name>.html`, fixes each line it names in `content.json`, and builds and checks again until it prints `ok`. It reads nothing else from other plugins
 - When the `musubi` command is installed, the agent runs `musubi check` before reading them and stops if it fails; the check skips the follows with a warning when design-formats is not installed. When a followed content changes, `musubi check` refuses diagram-explainer until its fingerprint is checked again
+- After the build, the agent runs page-design's `theme --keys light,dark,font.sans,font.mono` on the finished `<name>.html`. It writes the colors and fonts of `.design-theme.json` at the root of the repository, or else of `~/.design-theme.json`, into the page, and leaves the page as it is without either. `assets/doc.css` names its base colors after the keys of the theme file (`bg`, `surface`, `ink`, `sub`, `line`, `label`, and the accent colors) and mixes the other shades from them with `color-mix()`, so they follow a theme's colors
 - Without page-design, the document is built from `templates/starter-doc.html` and `assets/` alone. Nothing in the plugin requires design-formats
 
 ## What is checked before you see it

@@ -66,6 +66,30 @@ GitHub Copilot CLIでは依頼の中に`/diagram-explainer`と書き、Gemini CL
 見出し帯には、題、ページのタブ、並んだ2つの切り替え、資料の読み方を示す`?`のボタンが並びます。English / 日本語の切り替えは、目次のボタン、前と次のボタン、「PDFで保存」のメニュー、使い方、グラフの単位のような画面の文字だけを変えます。もう1つは明るい色と暗い色の切り替えです。資料の本文は書いた言語のままで、印刷はいつも明るい色です。
 既定では、作業中のプロジェクトの`docs/explainers/<名前>/`に置きます。
 
+## 自分の色と書体
+
+design-formatsのプラグインが入っていれば、資料はpage-designの形式の意匠のfileから色と書体を取ります。
+エージェントは次の2つのうち先に在るfileを読みます。
+
+| 順 | file | 使い道 |
+|---|---|---|
+| 1 | repoの根の`.design-theme.json` | 1つのプロジェクトの見た目 |
+| 2 | `~/.design-theme.json` | 自分が作る全ての資料の見た目 |
+
+当てるのは色と書体 (`light`と`dark`、`font.sans`と`font.mono`) だけで、文字の大きさと幅と角の丸みは資料のままです。
+線や副の文字の薄い色と濃い色は意匠の色から混ぜて作るので、どの背景にも馴染みます。
+
+```json
+{
+  "light": { "bg": "#fafaf7", "surface": "#ffffff", "ink": "#111111", "sub": "#444444", "line": "#dddddd", "accent": "#0b6e4f", "accent-ink": "#ffffff", "accent-soft": "#e3f2ec", "label": "#f2f2f2" },
+  "dark": { "bg": "#101312", "surface": "#181c1a", "ink": "#eeeeee", "sub": "#b0b8b4", "line": "#2c3330", "accent": "#5fd0a5", "accent-ink": "#0b1410", "accent-soft": "#1b3a2f", "label": "#1f2523" },
+  "font": { "sans": "\"Inter\", sans-serif", "mono": "\"JetBrains Mono\", monospace" }
+}
+```
+
+鍵と型はpage-designの`formats/theme.md`が持ちます。
+design-formatsか意匠のfileが無ければ、資料は自分の色と書体のままです。
+
 ## 必要な物
 
 | ツール | 必要な時 |

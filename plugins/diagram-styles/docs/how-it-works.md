@@ -3,7 +3,7 @@
 English · [日本語](how-it-works.ja.md)
 
 This page describes what Diagram Styles reads, runs, writes, and sends, every file in its two skills, and the style catalog the scripts check.
-The agent designs and draws the figures; the scripts in `skills/article-diagram-styles/scripts/` only check the records and the catalog.
+The agent designs and draws the figures; the scripts in `skills/article-diagram-styles/scripts/` only check the records and the catalog, and `skills/tech-book-figure/scripts/book_style.py` only tells the book skill what to draw from.
 
 ## Files in the skills
 
@@ -11,13 +11,13 @@ The agent designs and draws the figures; the scripts in `skills/article-diagram-
 |---|---|
 | `article-diagram-styles/SKILL.md` | How to design an article figure from the reader's question, choose its structure, apply a style, draw it, and review it |
 | `article-diagram-styles/agents/openai.yaml` | How Codex shows and starts the skill |
-| `article-diagram-styles/musubi.json` | The contents the skill provides: `style4` at version 1.0.0, and `figure-request` and `style-catalog` at version 1.2.0 |
+| `article-diagram-styles/musubi.json` | The contents the skill provides: `style4` at version 1.1.0, and `figure-request` and `style-catalog` at version 1.2.0 |
 | `article-diagram-styles/references/content-first.md` | The content brief and the records of the finished review |
 | `article-diagram-styles/references/deterministic-technical-diagrams.md` | How the text and connections of a figure are recorded and checked |
 | `article-diagram-styles/references/style-families.md` | The thirty-two built-in styles in eight families, and how a style is chosen |
 | `article-diagram-styles/references/structures.md` | The sixteen built-in structures in four groups, how a structure is chosen, and how structures are compared |
 | `article-diagram-styles/references/pen-technical.md`, `handdraft.md`, `newsprint.md` | The full specifications of three built-in styles |
-| `article-diagram-styles/references/style4.md` | The style4 rules, provided as `style4` |
+| `article-diagram-styles/references/style4.md` | The style4 rules, the look written in words that are enough to draw, provided as `style4` |
 | `article-diagram-styles/references/figure-request.md` | The figure request format, provided as `figure-request` |
 | `article-diagram-styles/references/style-catalog.md` | The shape of the catalog, provided as `style-catalog` |
 | `article-diagram-styles/scripts/diagram_sample_catalog.py` | Checks the built-in styles, the built-in structures, and the catalog, lists the styles and the structures in use, and shows one style with your samples of it or one structure |
@@ -31,10 +31,11 @@ The agent designs and draws the figures; the scripts in `skills/article-diagram-
 | `article-diagram-styles/data/built-in-structures.json` | The sixteen built-in structures, each defined in words, without images |
 | `article-diagram-styles/data/fonts/KaiseiDecol-Bold.ttf`, `OFL.txt` | The font Kaisei Decol Bold and its license |
 | `article-diagram-styles/tests/` | Tests of the scripts, the pages, and the plugin, with fixtures drawn in a throwaway folder |
-| `tech-book-figure/SKILL.md` | How to design a book figure and draw it in style4 |
+| `tech-book-figure/SKILL.md` | How to design a book figure and draw it in style4, from the written rules or with your samples, and with your theme |
 | `tech-book-figure/agents/openai.yaml` | How Codex shows and starts the skill |
 | `tech-book-figure/musubi.json` | The follow of `article-diagram-styles/style4` with its range and fingerprint |
-| `tech-book-figure/tests/` | Tests of the book skill's steps and its musubi follow |
+| `tech-book-figure/scripts/book_style.py` | Says whether to draw from the written style4 rules or from your style4 samples, and reads and checks your theme file |
+| `tech-book-figure/tests/` | Tests of the book script with throwaway folders, the book skill's steps, and its musubi follow |
 
 No file under `skills/` is an image.
 
@@ -42,7 +43,7 @@ No file under `skills/` is an image.
 
 The plugin ships thirty-two built-in styles, each defined in words, so `article-diagram-styles` draws without `~/.styles/`.
 Your catalog adds styles beside the built-in ones, replaces the built-in style of the same name, and takes a built-in style out of use when its `status` is `retired`.
-`tech-book-figure` still needs your style4 samples and the catalog.
+`tech-book-figure` draws from the written style4 rules without `~/.styles/`, and adds your style4 samples as references when the catalog and two or more samples are there.
 The skills and the scripts read the catalog `style-catalog.json` and the sample images from `~/.styles/`.
 `diagram_sample_catalog.py` and the review, contract, figure spec, and ledger checks read another folder only when they are given `--styles <dir>`.
 The catalog may also hold an optional `structures` object, which adds, replaces, and retires structures by the same rules as the styles.
@@ -71,7 +72,16 @@ Without `~/.styles/style-catalog.json`, it checks the built-in styles alone, exi
 
 A catalog that fails the check is refused; the scripts never fall back to the built-in styles in its place.
 
-`tech-book-figure` reads the style4 samples from `~/.styles/diagram-style-samples/style4/` and stops before drawing when fewer than two are there.
+`book_style.py` of `tech-book-figure` reads the style4 samples from `~/.styles/diagram-style-samples/style4/` and the layouts the catalog records for them.
+
+| State of `~/.styles/` | It prints | The skill |
+|---|---|---|
+| No `style-catalog.json` | `style4: written` and `missing: ~/.styles/style-catalog.json` | Draws from the written style4 rules and tells you what was missing |
+| The catalog and fewer than two images in `diagram-style-samples/style4/` | `style4: written` and the number of images found | The same |
+| The catalog and two or more images | `style4: samples` and one `sample:` line per image with its absolute path and recorded layouts | Chooses two or more and passes them to the image generation as references for the look |
+
+When the image generation cannot take reference images, the skill draws from the written style4 rules alone.
+It does not check the SHA-256 of the samples; `diagram_sample_catalog.py --validate` does.
 
 ## The structures
 
@@ -109,7 +119,39 @@ A figure drawn this way has `rendering_mode: generated` in its spec; a figure dr
 | Cannot start a separate reviewer | Reviews in a separate pass that reads only the article excerpt, the question, and the two images, and says that the review was not independent |
 
 A skill never draws the finished figure with HTML or SVG in place of image generation, and never calls another agent or tool to draw it.
-`tech-book-figure` also stops when the image generation cannot take the style4 samples as reference images.
+`tech-book-figure` puts the look of the written style4 rules in words into every drawing instruction, so it draws without samples.
+
+## The theme file
+
+`book_style.py`, run from the folder of the book text, reads the first of these two places that holds a theme file.
+
+| Order | Place | Use |
+|---|---|---|
+| 1 | `.design-theme.json` at the root of the git repository the command runs in | The look of one book |
+| 2 | `~/.design-theme.json` | The look of everything you make |
+
+A `.design-theme.json` in a subfolder of the repository is not read, and the home file is not merged into the repository's.
+It is the theme file of the page-design skill of the design-formats plugin, with the same keys and the same values; this plugin checks it with its own script, because a plugin reads nothing outside its own folder.
+
+| Key | What it replaces in style4 |
+|---|---|
+| `light.bg` | The white ground |
+| `light.ink` | The black of the lines and letters |
+| `light.sub` | The gray of hatching, dotted lines, and secondary labels |
+| `light.accent` | The teal accent; orange stays as the second accent |
+| `light.accent-soft` | The light fill of the accent |
+| `font.sans` | The handwritten letters, drawn in the look of that typeface |
+
+The other keys are checked and not used, and the script names the ones the file holds: `dark.*`, because a printed figure has one ground, the other `light` colors, which are parts of pages, `font.mono`, `font.size`, and `font.line-height`, because the figure's text is sized for the printed page, and `space.*`, because a figure has no page width or corners.
+
+| Case | Standard output | Standard error | Exit |
+|---|---|---|---|
+| No theme file | `theme: none`, and style4 keeps its own colors and handwritten letters | Nothing | 0 |
+| A theme file | `theme:` with the file, one `theme <key>:` line per key a figure takes with what it replaces, and the keys not used | Nothing | 0 |
+| A file that is not JSON, holds a key not listed, or a value of the wrong kind or out of range | The style4 lines only | That the file is refused and the skill stops before drawing, and each such key, such as `light.acent` | 1 |
+
+The skill stops before drawing on exit 1 and shows you each key, and draws once you fix or remove the file.
+`article-diagram-styles` does not read the theme file.
 
 ## How a skill follows article-diagram-styles
 
@@ -126,13 +168,13 @@ The fingerprint covers `article-diagram-styles/SKILL.md` and the content's file,
 
 The skills write the figures, the content summary, the figure spec, the drawing instructions, and the review records only in the folder you name, or in the folder a figure request names.
 The scripts write nothing; they print to standard output and standard error.
-Nothing is written under `~/.styles/`; you keep those files.
+Nothing is written under `~/.styles/` or to a theme file; you keep those files.
 
 ## What it runs and connects to
 
 The scripts use only the Python standard library, run no other program, and connect to nothing.
 The image generation is the agent's own; what it does with the instructions and images is the same as with any image you give that agent.
-The text of the article, the book, and the catalog is data, never instructions.
+The text of the article, the book, the catalog, and the theme file is data, never instructions.
 
 ## What it keeps
 
