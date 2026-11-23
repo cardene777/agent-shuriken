@@ -164,7 +164,7 @@ A test tool item counts as out of date 90 days after it was checked.
 | `function` | An external or public function | It calls `.<name>` |
 | `error` | A custom error | It names the error |
 | `event` | An event | It names the event |
-| `access` | A function guarded by a modifier whose name starts with `only`, by `restricted` (OpenZeppelin's `AccessManaged`), or by a comparison with `msg.sender` | It expects a revert on a call to the function: in Solidity, the first call after `expectRevert` that is not a `vm.` cheatcode; in TypeScript, a call in the same statement as the revert check |
+| `access` | A function guarded by a modifier whose name starts with `only`, by `restricted` (OpenZeppelin's `AccessManaged`), or by a comparison with `msg.sender` | It expects the error its guard raises on a call to the function: in Solidity, the `expectRevert` before the first call that is not a `vm.` cheatcode names that error or holds its message; in TypeScript, the statement with the call and the revert check does. The error is `OwnableUnauthorizedAccount` for `onlyOwner`, `AccessControlUnauthorizedAccount` for `onlyRole`, and `AccessManagedUnauthorized` for `restricted`, or the custom error or `require` message of a guard the project writes; when it cannot be read, the test must name some error |
 | `fuzz` | A function that changes state and takes an integer | A Solidity test function (its name starts with `test`) that takes parameters, or a fast-check property, calls it. A helper that takes parameters does not count |
 | `invariant` | A contract with a mapping to an unsigned integer, with or without names for its key and value, at the top of the contract or in a struct it declares (such as an ERC-7201 namespaced struct), and a function that changes state | A Solidity test file that names the contract has a function whose name starts with `invariant`, or a fast-check `fc.commands` test names it |
 
@@ -279,6 +279,7 @@ A release item counts as out of date 90 days after it was checked.
 | `retyped` | A variable's type changed; a change inside a struct, a mapping's value, or an array's element prints `changed inside` |
 | `gap` | A `__gap` array no longer ends at the slot where it ended, so the variables after it moved |
 | `renamed` | A variable of the same type sits where the old one did under a new name. It is not counted as a problem |
+| `slot` | An ERC-7201 namespace's struct sits at another slot in the new version, with the old and the new slot, so the new version reads none of its fields where the old one wrote them |
 | `not-compared` | The contract's ERC-7201 namespaced storage was not compared, with the namespace (or `namespaces` when the build does not say which) and the reason. `layout` then prints no `compatible` and exits 1 |
 
 A variable is matched by name, then by place.
@@ -286,7 +287,8 @@ Struct and enum names are compared without the contract that declares them, so r
 In folders, test and script artifacts (`*.t.sol/`, `*.s.sol/`), `build-info/`, and Hardhat's `*.dbg.json` files are left out, and `--contract` with `--new-contract` compares two contracts with different names.
 Variables in ERC-7201 namespaced storage (a struct marked `@custom:storage-location erc7201:<id>`) are not in solc's layout output.
 `layout` reads those structs from the syntax tree in each artifact, for the contract and every contract it inherits from, lays out their fields the way solc lays out a struct, and compares them namespace by namespace with the same lines, labelled `erc7201:<id>.<field>` with slots counted from the namespace's slot.
-It prints `not-compared` when an artifact has no syntax tree (output of `forge inspect`, or a build without `--ast`), when a base contract is in no artifact given, when the build mixes compiler runs, or when a field's type cannot be laid out.
+The namespace's slot is the value the contract or a base assigns to `<pointer>.slot` in inline assembly, a number or a constant, and a constant written as an expression is compared by its expression without working it out.
+It prints `not-compared` when an artifact has no syntax tree (output of `forge inspect`, or a build without `--ast`), when a base contract is in no artifact given, when the build mixes compiler runs, when a field's type cannot be laid out, or when a build sets no slot for the namespace, sets it to two different values, or sets it from a value that is not a number or a constant.
 
 `abi` prints `removed-function`, `changed-function` (outputs or state mutability), `removed-event`, `changed-event` (which parameters are indexed, or whether it is anonymous), and `removed-error`.
 Additions are compatible and are not printed, and `receive` and `fallback` count as functions.

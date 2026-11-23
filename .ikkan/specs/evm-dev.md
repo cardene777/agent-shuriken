@@ -1,6 +1,6 @@
 # evm-dev
 
-| 条件 | 確かめ方 | 出元 |
+| Criterion | How to check | Origin |
 |---|---|---|
 | `evm-standards.sh check`は、同梱の全ての項目が`status`と`checked`と`source`の3つの欄を持ち、`status`が`announced`、`specified`、`live`、`stopped`のどれかで、`checked`が実在する日付の時に0で終わる | `bash plugins/evm-dev/skills/evm-standards/tests/test-evm-standards.sh`の検査`"check passes on the bundled items"`が通る | #199 |
 | `evm-standards.sh check`は、欄が欠けた項目、知らない`status`の項目、実在しない日付の項目を名指して1で終わる | `bash plugins/evm-dev/skills/evm-standards/tests/test-evm-standards.sh`の検査`"check names an item with a missing field, an unknown status, or an impossible date"`が通る | #199 |
@@ -42,7 +42,7 @@
 | `contract-tests.py list`は、全ての項目を`tool`と`since`と`checked`とfile名で並べ、`--today`の日から数えて90日を過ぎた項目に`stale`の印を付ける | `bash plugins/evm-dev/skills/contract-tests/tests/test-contract-tests.sh`の検査`"list marks the items checked more than 90 days ago"`が通る | #207 |
 | `contract-tests.py points <project>`は、Foundryの`foundry.toml`の`src`かHardhatの`contracts`の下の各コントラクトについて、外から呼べる関数(`function`)、独自のerror(`error`)、event(`event`)、名前が`only`で始まる修飾子か`restricted`か`msg.sender`の確かめで守った関数(`access`)、整数を受けて状態を変える関数(`fuzz`)、符号なし整数への`mapping`(structの中を含む)を持ち状態を変える関数を持つコントラクト(`invariant`)を、種類と名前と`file:line`で挙げる。interfaceと、`lib`、`node_modules`、テストとscriptの置き場は読まない | `bash plugins/evm-dev/skills/contract-tests/tests/test-contract-tests.sh`の検査`"points lists the functions, errors, events, access rules, fuzz targets, and invariants of each contract"`が通る | #207 |
 | `contract-tests.py points`は、複数の行に分かれた関数の宣言を読み、コメントの中の宣言を挙げない | `bash plugins/evm-dev/skills/contract-tests/tests/test-contract-tests.sh`の検査`"points reads signatures over several lines and skips comments"`が通る | #207 |
-| `contract-tests.py uncovered <project>`は、どのテストも呼ばない関数、どのテストも名指さないerrorとevent、呼んでrevertを待つテストが無い`access`の関数、引数を受けるSolidityのテストの関数かfast-checkの性質で呼ばれない`fuzz`の関数、コントラクトの名前を書いたテストに`invariant`で始まる関数が無いコントラクトを、種類と名前と`file:line`で名指して1で終わり、テストのコードを出さない | `bash plugins/evm-dev/skills/contract-tests/tests/test-contract-tests.sh`の検査`"uncovered names each point no test touches without printing the tests"`が通る | #207 |
+| `contract-tests.py uncovered <project>`は、どのテストも呼ばない関数、どのテストも名指さないerrorとevent、守りが投げるエラーを待つテストが無い`access`の関数、引数を受けるSolidityのテストの関数かfast-checkの性質で呼ばれない`fuzz`の関数、コントラクトの名前を書いたテストに`invariant`で始まる関数が無いコントラクトを、種類と名前と`file:line`で名指して1で終わり、テストのコードを出さない | `bash plugins/evm-dev/skills/contract-tests/tests/test-contract-tests.sh`の検査`"uncovered names each point no test touches without printing the tests"`が通る | #207 #247 |
 | `contract-tests.py uncovered`は、Foundryのテストが全ての点に触れる時と、HardhatのTypeScriptのテストが全ての点に触れる時に0で終わる | `bash plugins/evm-dev/skills/contract-tests/tests/test-contract-tests.sh`の検査`"uncovered passes when Foundry tests touch every point"`と`"uncovered passes when Hardhat TypeScript tests touch every point"`が通る | #207 |
 | `contract-tests.py uncovered`は、テストのコメントの中に名前を書いただけの点を、テストのある点と数えない | `bash plugins/evm-dev/skills/contract-tests/tests/test-contract-tests.sh`の検査`"uncovered does not count a name that only appears in a comment"`が通る | #207 |
 | `contract-tests`の同梱の項目はURLを持たず、出どころを組織と文書の名前で書く | `bash plugins/evm-dev/skills/contract-tests/tests/test-contract-tests.sh`の検査`"no item holds a URL"`が通る | #207 |
