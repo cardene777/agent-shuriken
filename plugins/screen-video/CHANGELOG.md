@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The 9:16 video is written with square pixels, so players show it at 9:16. Before, it was marked with a sample aspect ratio of 20:9 and most players showed it stretched to 5:4
+
 ## [0.2.0] - 2026-11-23
 
 - Titles, chapter and end cards, and captions wrap into lines of about the same length, breaking Japanese between phrases, and are drawn in a page whose `lang` is the flow's language (or Japanese, for captions with kana or kanji when `render` has no flow). Before, a long Japanese title could leave one or two characters alone on its last line
