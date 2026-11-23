@@ -180,7 +180,7 @@ contract VaultTest is Test {
 
     function test_sweep_refuses_other_accounts() public {
         vm.prank(address(1));
-        vm.expectRevert();
+        vm.expectRevert(bytes("owner only"));
         vault.sweep(address(1));
     }
 
@@ -571,6 +571,192 @@ fuzz_needs_a_test_function() {
   ! grep -q '^uncovered function Vault\.withdraw ' "$out"
 }
 check "uncovered counts a fuzz point only when a test function with parameters calls it" fuzz_needs_a_test_function
+
+# access_test_file <file> <contract import> <contract> <test lines...>: a Foundry test file whose
+# functions each hold one line of the form `<function>|<expectation>|<call>`.
+access_test_file() {
+  local file="$1" import="$2" name="$3" line fn expectation call
+  shift 3
+  {
+    printf '// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\n\n'
+    printf 'import {Test} from "forge-std/Test.sol";\nimport {%s} from "%s";\n\n' "$name" "$import"
+    printf 'contract AccessTest is Test {\n    %s target = new %s();\n' "$name" "$name"
+    for line in "$@"; do
+      IFS='|' read -r fn expectation call <<< "$line"
+      printf '\n    function %s() public {\n        vm.prank(address(1));\n        %s\n        %s\n    }\n' \
+        "$fn" "$expectation" "$call"
+    done
+    printf '}\n'
+  } > "$file"
+}
+
+# The Foundry sample guards setPaused with its own onlyOwner modifier, which reverts with NotOwner,
+# and sweep with require(msg.sender == owner, "owner only").
+access_needs_the_guard_error() {
+  local p="$T/access-error" out="$T/uncovered-access-error.out" v="src/Vault.sol"
+  foundry_project "$p"
+  # A bare expectRevert, and the error of another check, leave both access points untested.
+  access_test_file "$p/test/Access.t.sol" "../src/Vault.sol" Vault \
+    'test_setPaused_refuses|vm.expectRevert();|target.setPaused(true);' \
+    'test_sweep_refuses|vm.expectRevert(Vault.ZeroAmount.selector);|target.sweep(address(1));'
+  run uncovered "$p" > "$out" 2>&1
+  has "$out" "uncovered access Vault.setPaused $v:$(line_of "$VAULT" 'function setPaused(')" || { echo "      a bare expectRevert counted for setPaused"; return 1; }
+  has "$out" "uncovered access Vault.sweep $v:$(line_of "$VAULT" 'function sweep(')" || { echo "      another error counted for sweep"; return 1; }
+  # The guard's custom error and the guard's revert string count.
+  access_test_file "$p/test/Access.t.sol" "../src/Vault.sol" Vault \
+    'test_setPaused_refuses|vm.expectRevert(abi.encodeWithSelector(Vault.NotOwner.selector, address(1)));|target.setPaused(true);' \
+    'test_sweep_refuses|vm.expectRevert(bytes("owner only"));|target.sweep(address(1));'
+  run uncovered "$p" > "$out" 2>&1
+  ! grep -qE '^uncovered access Vault\.(setPaused|sweep) ' "$out" || { echo "      the guard's error did not count"; return 1; }
+}
+check "uncovered counts an access point only when a test expects the error its guard raises" access_needs_the_guard_error
+
+# A contract guarded by OpenZeppelin's onlyOwner, onlyRole, and restricted, none of them declared in
+# the project, so their errors come from the names of the modifiers.
+oz_guarded_project() {
+  local p="$1"
+  mkdir -p "$p/src" "$p/test" "$p/lib/forge-std/src"
+  printf '[profile.default]\nsrc = "src"\nout = "out"\nlibs = ["lib"]\n' > "$p/foundry.toml"
+  printf 'contract Test {}\n' > "$p/lib/forge-std/src/Test.sol"
+  cat > "$p/src/Guarded.sol" <<'SOL'
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.28;
+
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManaged.sol";
+
+contract Guarded is Ownable, AccessControl, AccessManaged {
+    bytes32 public constant MINTER = keccak256("MINTER");
+
+    constructor(address manager) Ownable(msg.sender) AccessManaged(manager) {}
+
+    function setFee(uint256 fee) external onlyOwner {}
+
+    function mint(address to) external onlyRole(MINTER) {}
+
+    function pause() external restricted {}
+}
+SOL
+}
+
+oz_guard_errors() {
+  local p="$T/oz-guards" out="$T/uncovered-oz.out" g="src/Guarded.sol"
+  oz_guarded_project "$p"
+  # Each test expects the error of another guard, so no access point counts.
+  access_test_file "$p/test/Guarded.t.sol" "../src/Guarded.sol" Guarded \
+    'test_setFee|vm.expectRevert(abi.encodeWithSelector(AccessControl.AccessControlUnauthorizedAccount.selector, address(1), bytes32(0)));|target.setFee(1);' \
+    'test_mint|vm.expectRevert(abi.encodeWithSelector(AccessManaged.AccessManagedUnauthorized.selector, address(1)));|target.mint(address(1));' \
+    'test_pause|vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, address(1)));|target.pause();'
+  run uncovered "$p" > "$out" 2>&1
+  has "$out" "uncovered access Guarded.setFee $g:$(line_of "$p/$g" 'function setFee(')" || { echo "      setFee counted another guard's error"; return 1; }
+  has "$out" "uncovered access Guarded.mint $g:$(line_of "$p/$g" 'function mint(')" || { echo "      mint counted another guard's error"; return 1; }
+  has "$out" "uncovered access Guarded.pause $g:$(line_of "$p/$g" 'function pause(')" || { echo "      pause counted another guard's error"; return 1; }
+  # Each test expects its own guard's error.
+  access_test_file "$p/test/Guarded.t.sol" "../src/Guarded.sol" Guarded \
+    'test_setFee|vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, address(1)));|target.setFee(1);' \
+    'test_mint|vm.expectRevert(abi.encodeWithSelector(AccessControl.AccessControlUnauthorizedAccount.selector, address(1), target.MINTER()));|target.mint(address(1));' \
+    'test_pause|vm.expectRevert(abi.encodeWithSelector(AccessManaged.AccessManagedUnauthorized.selector, address(1)));|target.pause();'
+  run uncovered "$p" > "$out" 2>&1
+  ! grep -qE '^uncovered access Guarded\.' "$out" || { echo "      $(grep -E '^uncovered access' "$out" | head -1)"; return 1; }
+}
+check "uncovered takes the error of OpenZeppelin's guards from their modifiers" oz_guard_errors
+
+# Hardhat tests of Counter.reset, which reverts with NotOwner: bare revert checks do not count, and
+# the viem and ethers checks that name NotOwner do.
+hardhat_access_errors() {
+  local p="$T/hardhat-access" out="$T/uncovered-hardhat-access.out" c="contracts/Counter.sol"
+  hardhat_project "$p"
+  cat > "$p/test/Access.ts" <<'TS'
+import { describe, it } from "node:test";
+import { network } from "hardhat";
+
+describe("Counter access", async function () {
+  const { viem } = await network.connect();
+
+  it("reset refuses other accounts", async function () {
+    const counter = await viem.deployContract("Counter");
+    const [, other] = await viem.getWalletClients();
+    await viem.assertions.revert(counter.write.reset({ account: other.account }));
+  });
+
+  it("reset refuses other accounts with ethers", async function () {
+    await expect(counter.connect(other).reset()).to.be.reverted;
+  });
+});
+TS
+  run uncovered "$p" > "$out" 2>&1
+  has "$out" "uncovered access Counter.reset $c:$(line_of "$p/$c" 'function reset(')" || { echo "      a bare revert check counted"; return 1; }
+  cat > "$p/test/Access.ts" <<'TS'
+import { describe, it } from "node:test";
+import { network } from "hardhat";
+
+describe("Counter access", async function () {
+  it("reset refuses other accounts with ethers", async function () {
+    await expect(counter.connect(other).reset()).to.be.revertedWithCustomError(counter, "NotOwner");
+  });
+});
+TS
+  run uncovered "$p" > "$out" 2>&1
+  ! grep -q '^uncovered access Counter\.reset ' "$out" || { echo "      revertedWithCustomError did not count"; return 1; }
+}
+check "uncovered reads the expected error of Hardhat tests for access points" hardhat_access_errors
+
+# Guards whose error cannot be read: a require on msg.sender without a message, and onlyGovernance
+# from a dependency that the project does not declare.
+unread_guard_project() {
+  local p="$1"
+  mkdir -p "$p/src" "$p/test" "$p/lib/forge-std/src"
+  printf '[profile.default]\nsrc = "src"\nout = "out"\nlibs = ["lib"]\n' > "$p/foundry.toml"
+  printf 'contract Test {}\n' > "$p/lib/forge-std/src/Test.sol"
+  cat > "$p/src/Fees.sol" <<'SOL'
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.28;
+
+import {Governed} from "governance/Governed.sol";
+
+contract Fees is Governed {
+    address public owner = msg.sender;
+
+    function kill() external {
+        require(msg.sender == owner);
+    }
+
+    function setFee(uint256 fee) external onlyGovernance {}
+}
+SOL
+}
+
+unread_guard_needs_a_named_error() {
+  local p="$T/unread-guard" out="$T/uncovered-unread.out" f="src/Fees.sol"
+  unread_guard_project "$p"
+  access_test_file "$p/test/Fees.t.sol" "../src/Fees.sol" Fees \
+    'test_kill|vm.expectRevert();|target.kill();' \
+    'test_setFee|vm.expectRevert();|target.setFee(1);'
+  run uncovered "$p" > "$out" 2>&1
+  has "$out" "uncovered access Fees.kill $f:$(line_of "$p/$f" 'function kill(')" || { echo "      a bare expectRevert counted for kill"; return 1; }
+  has "$out" "uncovered access Fees.setFee $f:$(line_of "$p/$f" 'function setFee(')" || { echo "      a bare expectRevert counted for setFee"; return 1; }
+  access_test_file "$p/test/Fees.t.sol" "../src/Fees.sol" Fees \
+    'test_kill|vm.expectRevert(bytes(""));|target.kill();' \
+    'test_setFee|vm.expectRevert(Governed.NotGovernance.selector);|target.setFee(1);'
+  run uncovered "$p" > "$out" 2>&1
+  ! grep -qE '^uncovered access Fees\.' "$out" || { echo "      $(grep -E '^uncovered access' "$out" | head -1)"; return 1; }
+}
+check "uncovered asks for a named error when it cannot read the guard's error" unread_guard_needs_a_named_error
+
+access_documented() {
+  python3 -c 'import ast, sys
+doc = ast.get_docstring(ast.parse(open(sys.argv[1], encoding="utf-8").read()))
+sys.exit(0 if "OwnableUnauthorizedAccount" in doc and "the error its guard raises" in doc else 1)' "$SCRIPT" || return 1
+  grep -E '^\| `access` \|' "$PLUGIN/docs/how-it-works.md" | grep -q 'the error its guard raises' || return 1
+  grep -E '^\| `access` \|' "$PLUGIN/docs/how-it-works.ja.md" | grep -q 'OwnableUnauthorizedAccount'
+}
+check "the docs say an access point needs the error its guard raises" access_documented
+
+changelog_access() {
+  awk '/^## \[/ { on = 1 } on' "$PLUGIN/CHANGELOG.md" | grep '^- ' | grep -q 'the error its guard raises'
+}
+check "the changelog names the error an access test must expect" changelog_access
 
 # A contract behind OpenZeppelin's AccessManaged: restricted guards setCap and pause, whenNotPaused
 # alone guards nothing, and a name that only starts with restricted is not the modifier.
