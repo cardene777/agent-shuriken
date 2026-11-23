@@ -59,6 +59,33 @@ holds_two_skills() {
   done
 }
 
+# The shapes no file of a public plugin may hold, one regular expression per line: a home folder on
+# macOS or Linux where a path starts (a throwaway HOME such as $T/case/home/ is not one), the
+# configuration folder of a local agent, and an issue reference. They are general shapes only, so
+# this file names no product, company, or person.
+SHAPES='(?<![A-Za-z0-9_.-])/(?:Users|home)/[A-Za-z0-9._-]+
+~/[.](?:claude|codex)/
+\b(?:GH|Issue) #[0-9]+'
+
+# Prints file:line for every line under the folders given that holds one of SHAPES.
+private_shapes_in() {
+  SHAPES="$SHAPES" python3 - "$@" <<'PY'
+import os, re, sys
+pattern = re.compile("|".join(os.environ["SHAPES"].splitlines()))
+images = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico")
+for top in sys.argv[1:]:
+    for folder, _, files in os.walk(top):
+        for name in files:
+            path = os.path.join(folder, name)
+            if name.lower().endswith(images):
+                continue
+            with open(path, encoding="utf-8", errors="ignore") as source:
+                for number, line in enumerate(source, 1):
+                    if pattern.search(line):
+                        print(f"{os.path.relpath(path, top)}:{number}")
+PY
+}
+
 # need_scan: this file defines the private-name scan the checks below run.
 need_scan() { declare -F private_shapes_in > /dev/null || { why="the test defines no private_shapes_in scan"; return 1; }; }
 
