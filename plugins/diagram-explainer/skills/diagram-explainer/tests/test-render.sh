@@ -24,6 +24,9 @@
 #      tables, page tabs, the contents drawer, enlarged figures, collapsed blocks, notes, the header
 #      band and its help, and the docs and samples that describe them. Fixtures are built once and
 #      opened in a headless browser at 1400 and 390 px; without a browser those cases fail.
+#  11. The user's theme file: the page names its base colors after the page-design keys and derives its
+#      other shades from them, and the theme command of page-design (from design-formats in this
+#      repository) writes a theme's colors and fonts into a built page and nothing else.
 #
 # Exit 0 when every case passes, 1 when any fails (the failing cases are listed),
 # 77 when python3 is missing.
@@ -709,11 +712,13 @@ cat > "$WORK/probe.js" <<'JSEOF'
 (function () {
   'use strict';
   var CJK = /[぀-ヿ㐀-䶿一-鿿]/;
+  // A color mixed with color-mix() is computed as color(srgb r g b), with channels from 0 to 1.
   function rgb(s) {
-    var m = /rgba?\(([^)]*)\)/.exec(s || '');
+    var m = /rgba?\(([^)]*)\)/.exec(s || ''), k = 1;
+    if (!m) { m = /color\(srgb ([^)]*)\)/.exec(s || ''); k = 255; }
     if (!m) return null;
     var p = m[1].split(/[\s,\/]+/).filter(Boolean).map(parseFloat);
-    return { c: [p[0], p[1], p[2]], a: p.length > 3 ? p[3] : 1 };
+    return { c: [p[0] * k, p[1] * k, p[2] * k], a: p.length > 3 ? p[3] : 1 };
   }
   function lum(c) {
     var a = c.map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
@@ -1850,12 +1855,15 @@ def probe(name):
     raise Missing("the %s browser run gave no result (%s)" % (name, norm(state)[-160:] or "no output"))
 
 
+# A color mixed with color-mix() is computed as color(srgb r g b), with channels from 0 to 1.
 def color(s):
-    m = re.match(r"rgba?\(([^)]*)\)", s or "")
+    m, k = re.match(r"rgba?\(([^)]*)\)", s or ""), 1.0
+    if not m:
+        m, k = re.match(r"color\(srgb ([^)]*)\)", s or ""), 255.0
     if not m:
         return None
     p = [float(x) for x in re.split(r"[\s,/]+", m.group(1).strip()) if x]
-    return (p[:3], p[3] if len(p) > 3 else 1.0)
+    return ([v * k for v in p[:3]], p[3] if len(p) > 3 else 1.0)
 
 
 def lum(c):
@@ -2919,6 +2927,261 @@ for name in "${S10_CASES[@]}"; do
   got="$(awk -F '\t' -v k="$key" '$1 == k { print $2; exit }' "$S10/results.txt")"
   if [ -z "$got" ]; then _pass "$name"; else _fail "$name" "$got"; fi
 done
+
+# --- 11. The user's theme file, applied with the theme command of page-design ---
+# The page names its base colors after the page-design keys, derives its other shades from them,
+# and takes a theme's colors and fonts through `page-design.py theme --keys light,dark,font.sans,font.mono`.
+PAGE_DESIGN_PY="$(cd "$PLUGIN/.." && pwd)/design-formats/skills/page-design/scripts/page-design.py"
+THEME_KEYS="light,dark,font.sans,font.mono"
+S11="$WORK/s11"
+mkdir -p "$S11"
+
+# s11_blocks <page>: prints the tokens of the light block and the two dark blocks as JSON.
+s11_blocks() {
+  python3 - "$1" <<'PYEOF'
+import json, re, sys
+text = open(sys.argv[1], encoding="utf-8").read()
+def tokens(pattern):
+    m = re.search(pattern + r"\s*\{([^}]*)\}", text)
+    return dict((k, v.strip()) for k, v in re.findall(r"--([a-z][a-z0-9-]*)\s*:\s*([^;}]+)", m.group(1))) if m else None
+print(json.dumps({
+    "light": tokens(r":root"),
+    "system": tokens(r':root:not\(\[data-theme="light"\]\)(?::not\([^)]*\))*'),
+    "chosen": tokens(r':root\[data-theme="dark"\](?::not\([^)]*\))*'),
+}))
+PYEOF
+}
+
+# s11_place <name>: makes $S11/<name>/repo (a git repository holding the built page) and $S11/<name>/home.
+s11_place() {
+  mkdir -p "$S11/$1/home" "$S11/$1/repo"
+  git -C "$S11/$1/repo" init -q
+  cp "$WORK/doc-en.html" "$S11/$1/repo/page.html"
+}
+s11_theme() { local place="$1"; shift; (cd "$S11/$place/repo" && HOME="$S11/$place/home" python3 "$PAGE_DESIGN_PY" theme "$@" page.html); }
+
+S11_THEME='{"light": {"bg": "#fafaf7", "surface": "#fefefe", "ink": "#111111", "sub": "#444444", "line": "#dddddd", "accent": "#0b6e4f", "accent-ink": "#ffffff", "accent-soft": "#e3f2ec", "bar": "#eeeeee", "label": "#f2f2f2"}, "dark": {"bg": "#101312", "surface": "#181c1a", "ink": "#eeeeee", "sub": "#b0b8b4", "line": "#2c3330", "accent": "#5fd0a5", "accent-ink": "#0b1410", "accent-soft": "#1b3a2f", "bar": "#232a27", "label": "#1f2523"}, "font": {"sans": "\"Inter\", sans-serif", "mono": "\"JetBrains Mono\", monospace", "size": 18, "line-height": 1.9}, "space": {"page-width": 1100, "radius-small": 4, "radius": 6, "radius-large": 8}}'
+
+s11_base_names() {
+  python3 - "$(s11_blocks "$WORK/doc-en.html")" <<'PYEOF'
+import json, sys
+blocks = json.loads(sys.argv[1])
+want = {"light": {"surface": "#fff", "sub": "#545a66"},
+        "system": {"surface": "#1a1e24", "sub": "#b0b8c4"},
+        "chosen": {"surface": "#1a1e24", "sub": "#b0b8c4"}}
+problems = []
+for side, values in want.items():
+    block = blocks.get(side) or {}
+    for key, value in values.items():
+        if block.get(key, "").lower() != value:
+            problems.append("%s --%s is %r" % (side, key, block.get(key)))
+light = blocks.get("light") or {}
+for alias, base in (("panel", "surface"), ("card", "surface"), ("ink-sub", "sub")):
+    if light.get(alias) != "var(--%s)" % base:
+        problems.append("light --%s is %r, not var(--%s)" % (alias, light.get(alias), base))
+    for side in ("system", "chosen"):
+        value = (blocks.get(side) or {}).get(alias)
+        if value is not None and value != "var(--%s)" % base:
+            problems.append("%s --%s is %r" % (side, alias, value))
+print("; ".join(problems[:4]))
+sys.exit(1 if problems else 0)
+PYEOF
+}
+_yes "11-1 the built page names its base colors after the page-design keys with today's values" "s11_base_names > '$S11/base.out' || { sed 's/^/      /' '$S11/base.out'; false; }"
+
+s11_shades() {
+  python3 - "$(s11_blocks "$WORK/doc-en.html")" <<'PYEOF'
+import json, re, sys
+blocks = json.loads(sys.argv[1])
+today = {"light": {"panel-2": "#fafafb", "line-2": "#d2d2d8", "ink-2": "#3c3c44", "ink-3": "#6e6e78", "ink-faint": "#6b6b75", "rule": "#8a8a95", "track": "#f1f1f4"},
+         "dark": {"panel-2": "#20252c", "line-2": "#414955", "ink-2": "#c9ced6", "ink-3": "#a3abb7", "ink-faint": "#98a1ae", "rule": "#666e7b", "track": "#262c35"}}
+def hex_rgb(value):
+    m = re.fullmatch(r"#([0-9a-f]{3}|[0-9a-f]{6})", value.strip().lower())
+    if not m:
+        return None
+    h = m.group(1)
+    if len(h) == 3:
+        h = "".join(c * 2 for c in h)
+    return [int(h[i:i + 2], 16) for i in (0, 2, 4)]
+def split_top(text):
+    parts, depth, cur = [], 0, ""
+    for c in text:
+        if c == "(":
+            depth += 1
+        elif c == ")":
+            depth -= 1
+        if c == "," and depth == 0:
+            parts.append(cur.strip())
+            cur = ""
+        else:
+            cur += c
+    parts.append(cur.strip())
+    return parts
+class NotMix(Exception):
+    pass
+# evaluate: the color of a value made only of var() references and color-mix() in srgb.
+def evaluate(value, tokens, depth=0):
+    value = value.strip()
+    if depth > 12:
+        raise NotMix("references loop")
+    m = re.fullmatch(r"var\(--([a-z0-9-]+)\)", value)
+    if m:
+        ref = tokens.get(m.group(1))
+        if ref is None:
+            raise NotMix("--%s is not defined" % m.group(1))
+        color = hex_rgb(ref)
+        return color if color is not None else evaluate(ref, tokens, depth + 1)
+    m = re.fullmatch(r"color-mix\((.*)\)", value, re.S)
+    if not m:
+        raise NotMix("%r is neither var() nor color-mix()" % value)
+    parts = split_top(m.group(1))
+    if len(parts) != 3 or parts[0] != "in srgb":
+        raise NotMix("%r does not mix two colors in srgb" % value)
+    colors, weights = [], []
+    for part in parts[1:]:
+        w = re.search(r"\s(\d+(?:\.\d+)?)%$", part)
+        colors.append(evaluate(part[:w.start()] if w else part, tokens, depth + 1))
+        weights.append(float(w.group(1)) if w else None)
+    if weights[0] is None and weights[1] is None:
+        weights = [50.0, 50.0]
+    elif weights[1] is None:
+        weights[1] = 100 - weights[0]
+    elif weights[0] is None:
+        weights[0] = 100 - weights[1]
+    total = weights[0] + weights[1]
+    return [(colors[0][i] * weights[0] + colors[1][i] * weights[1]) / total for i in range(3)]
+problems = []
+for side, base in (("light", "light"), ("system", "dark"), ("chosen", "dark")):
+    tokens = dict(blocks.get("light") or {})
+    if side != "light":
+        tokens.update(blocks.get(side) or {})
+    for name, want in today[base].items():
+        value = tokens.get(name, "")
+        if not value.startswith("color-mix("):
+            problems.append("%s --%s is %r, not a color-mix of the base tokens" % (side, name, value))
+            continue
+        try:
+            got = [round(c) for c in evaluate(value, tokens)]
+        except NotMix as err:
+            problems.append("%s --%s: %s" % (side, name, err))
+            continue
+        exp = hex_rgb(want)
+        if max(abs(got[i] - exp[i]) for i in range(3)) > 2:
+            problems.append("%s --%s mixes to %s, today %s" % (side, name, "#%02x%02x%02x" % tuple(got), want))
+print("; ".join(problems[:4]))
+sys.exit(1 if problems else 0)
+PYEOF
+}
+_yes "11-2 the derived shades mix the base colors and stay within 2 of today's values" "s11_shades > '$S11/shades.out' || { sed 's/^/      /' '$S11/shades.out'; false; }"
+
+s11_applied() {
+  s11_place applied
+  printf '%s\n' "$S11_THEME" > "$S11/applied/home/.design-theme.json"
+  s11_theme applied --keys "$THEME_KEYS" > "$S11/applied.out" 2>&1 || { sed 's/^/      /' "$S11/applied.out"; return 1; }
+  python3 - "$(s11_blocks "$S11/applied/repo/page.html")" "$S11_THEME" <<'PYEOF'
+import json, sys
+blocks, theme = json.loads(sys.argv[1]), json.loads(sys.argv[2])
+problems = []
+for side, group in (("light", "light"), ("system", "dark"), ("chosen", "dark")):
+    block = blocks.get(side) or {}
+    for key, value in theme[group].items():
+        if key == "bar":
+            continue
+        if block.get(key) != value:
+            problems.append("%s --%s is %r, the theme says %s" % (side, key, block.get(key), value))
+light = blocks.get("light") or {}
+for key in ("sans", "mono"):
+    if light.get(key) != theme["font"][key]:
+        problems.append("--%s is %r" % (key, light.get(key)))
+print("; ".join(problems[:4]))
+sys.exit(1 if problems else 0)
+PYEOF
+}
+_yes "11-3 page-design theme writes a theme's colors and fonts into a built page" "s11_applied > '$S11/applied.check' 2>&1 || { sed 's/^/      /' '$S11/applied.check'; false; }"
+
+s11_layout_kept() {
+  local before after
+  before="$(s11_blocks "$WORK/doc-en.html")"
+  s11_place keys
+  printf '%s\n' "$S11_THEME" > "$S11/keys/home/.design-theme.json"
+  s11_theme keys --keys "$THEME_KEYS" > "$S11/keys.out" 2>&1 || { sed 's/^/      /' "$S11/keys.out"; return 1; }
+  ! cmp -s "$WORK/doc-en.html" "$S11/keys/repo/page.html" || { echo "      the theme changed nothing"; return 1; }
+  after="$(s11_blocks "$S11/keys/repo/page.html")"
+  s11_place every
+  printf '%s\n' "$S11_THEME" > "$S11/every/home/.design-theme.json"
+  s11_theme every > /dev/null 2>&1 || return 1
+  python3 - "$before" "$after" "$(s11_blocks "$S11/every/repo/page.html")" <<'PYEOF'
+import json, sys
+before, after, every = (json.loads(a)["light"] or {} for a in sys.argv[1:4])
+problems = ["--%s became %r" % (k, after.get(k)) for k in ("radius", "side", "top") if after.get(k) != before.get(k)]
+if every.get("radius") != "6px":
+    problems.append("theme without --keys left --radius at %r, so the check does not see the keys" % every.get("radius"))
+print("; ".join(problems))
+sys.exit(1 if problems else 0)
+PYEOF
+}
+_yes "11-4 a theme leaves the corners, the side width, and the header height of a built page as they were" "s11_layout_kept > '$S11/layout.out' 2>&1 || { sed 's/^/      /' '$S11/layout.out'; false; }"
+
+s11_no_file() {
+  s11_place none
+  s11_theme none --keys "$THEME_KEYS" > "$S11/none.out" 2>&1 || return 1
+  cmp -s "$WORK/doc-en.html" "$S11/none/repo/page.html"
+}
+_yes "11-5 without a theme file the built page stays as built" s11_no_file
+
+s11_themed_checks() {
+  s11_place checked
+  printf '%s\n' "$S11_THEME" > "$S11/checked/home/.design-theme.json"
+  s11_theme checked --keys "$THEME_KEYS" > "$S11/checked.out" 2>&1 || { sed 's/^/      /' "$S11/checked.out"; return 1; }
+  ! cmp -s "$WORK/doc-en.html" "$S11/checked/repo/page.html" || { echo "      the theme changed nothing"; return 1; }
+  python3 "$CHECK" "$S11/checked/repo/page.html" > "$S11/themed-check.out" 2>&1 || { grep -E '^NG' "$S11/themed-check.out" | head -3 | sed 's/^/      /'; return 1; }
+  python3 "$PAGE_DESIGN_PY" verify "$S11/checked/repo/page.html" > "$S11/themed-verify.out" 2>&1 || { head -3 "$S11/themed-verify.out" | sed 's/^/      /'; return 1; }
+}
+_yes "11-6 a themed page passes check.py and page-design verify" s11_themed_checks
+
+s11_skill_step() {
+  local phrase
+  for phrase in 'theme --keys light,dark,font.sans,font.mono' '`.design-theme.json`' '`~/.design-theme.json`'; do
+    _has "$SKILL" "$phrase" || { echo "      SKILL.md lacks: $phrase"; return 1; }
+  done
+}
+_yes "11-7 the SKILL.md says to apply the user's theme with page-design after the build" s11_skill_step
+
+s11_follows_theme() {
+  python3 - "$SKILL_DIR/musubi.json" <<'PYEOF'
+import json, sys
+entry = json.load(open(sys.argv[1], encoding="utf-8")).get("follows", {}).get("page-design/theme", {})
+ok = entry.get("version") == "^1.0.0" and entry.get("optional") is True and str(entry.get("integrity", "")).startswith("sha256-")
+if not ok:
+    print("      page-design/theme is followed as %s" % json.dumps(entry))
+sys.exit(0 if ok else 1)
+PYEOF
+}
+_yes "11-8 musubi.json follows page-design/theme as optional" s11_follows_theme
+
+s11_readmes() {
+  local phrase
+  for phrase in '~/.design-theme.json' '.design-theme.json' 'design-formats' 'colors and fonts'; do
+    _has "$PLUGIN/README.md" "$phrase" || { echo "      README.md lacks: $phrase"; return 1; }
+  done
+  for phrase in '~/.design-theme.json' '.design-theme.json' 'design-formats' '色と書体'; do
+    _has "$PLUGIN/README.ja.md" "$phrase" || { echo "      README.ja.md lacks: $phrase"; return 1; }
+  done
+}
+_yes "11-9 the READMEs say where to place a theme file and what it changes" s11_readmes
+
+s11_changelog() {
+  awk '/^## \[Unreleased\]/ { on = 1; next } /^## \[/ { on = 0 } on' "$PLUGIN/CHANGELOG.md" | grep -qF '.design-theme.json'
+}
+_yes "11-10 the changelog names the theme file under Unreleased" s11_changelog
+
+# The repository checks, last because they take the longest.
+s11_repo_checks() {
+  local repo
+  repo="$(git -C "$PLUGIN" rev-parse --show-toplevel 2>/dev/null)" || return 1
+  bash "$repo/scripts/check.sh" > "$WORK/repo-check.out" 2>&1 || { tail -5 "$WORK/repo-check.out" | sed 's/^/      /'; return 1; }
+}
+_yes "the repository checks pass" s11_repo_checks
 
 echo ""
 echo "[test-render] ran: $((PASS + FAIL))"

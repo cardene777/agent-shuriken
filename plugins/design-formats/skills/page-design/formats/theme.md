@@ -20,6 +20,7 @@ When neither place holds a file, `theme` leaves the page as it is and ends with 
 The file is JSON with up to four objects, `light`, `dark`, `font`, and `space`.
 Every key may be left out, and a key left out keeps the value the page already has.
 `light` and `dark` set the colors of the light and the dark theme, and `dark` is written into both dark blocks of the page, the one for the system's dark mode and the one for the dark button.
+A dark block may carry more guards after its selector, such as `:root[data-theme="dark"]:not([data-paper])` on a page that prints in the light colors.
 
 ```json
 {
@@ -98,6 +99,12 @@ A template marked "not used" has no such token, and a theme value for it is igno
 | `space.radius-small` | pixels from 0 to 64 | `8` | `8` | `8` | `8` |
 | `space.radius` | pixels from 0 to 64 | `10` | `10` | `10` | `10` |
 | `space.radius-large` | pixels from 0 to 64 | `12` | `12` | `12` | `12` |
+
+## Taking some keys
+
+A page that keeps its own sizes takes only some keys with `--keys`, a comma-separated list of groups (`light`, `dark`, `font`, `space`) and keys (such as `font.sans`).
+`page-design.py theme --keys light,dark,font.sans,font.mono <page>` writes the colors and the two font lists and leaves the text size, the line height, the page width, and the corners as the page has them.
+A name in `--keys` that is neither a group nor a key is refused with exit 2, and the page is left as it is.
 
 ## Values
 

@@ -3,7 +3,7 @@
 
 Usage:
   page-design.py verify [--source] <file>...
-  page-design.py theme [--defaults] <page.html>
+  page-design.py theme [--keys <key>,...] [--defaults] <page.html>
 
 Each file ending in .html or .htm is read as a page, and each file ending in .md as a document.
 Every problem is printed as one line, <file>:<line>: <rule>: <how to fix>. The text of the page is
@@ -20,7 +20,10 @@ the root of the git repository the command runs in, or else ~/.design-theme.json
 types are in formats/theme.md. The values replace the tokens in the light :root block and in both
 dark blocks; keys the theme leaves out keep the page's values. Without a theme file the page is left
 as it is. A theme file with an unknown key or a bad value is refused, each key named, and the page is
-left as it is. With --defaults, theme prints the keys a page defines and their values as JSON.
+left as it is. With --keys, only the named groups (light, dark, font, space) and keys (such as
+font.sans) are written, for a page that keeps its own sizes. A dark block may carry more guards
+after its selector, such as :not([data-paper]). With --defaults, theme prints the keys a page
+defines and their values as JSON.
 
 Exit codes:
   0  every file keeps the rules; or theme applied the theme, found no theme file, or printed the defaults
@@ -393,8 +396,10 @@ FONT_KEYS = {"sans": ("sans", "font"), "mono": ("mono", "font"), "size": ("text-
 SPACE_KEYS = {"page-width": ("page-width", "px"), "radius-small": ("radius-small", "px"),
               "radius": ("radius", "px"), "radius-large": ("radius-large", "px")}
 LIGHT_BLOCK = re.compile(r"(:root\s*\{)([^}]*)(\})")
-DARK_BLOCKS = (re.compile(r'(:root:not\(\[data-theme="light"\]\)\s*\{)([^}]*)(\})'),
-               re.compile(r'(:root\[data-theme="dark"\]\s*\{)([^}]*)(\})'))
+# A dark block may carry more guards after its selector, such as :not([data-paper]) on a page
+# that prints in the light colors.
+DARK_BLOCKS = (re.compile(r'(:root:not\(\[data-theme="light"\]\)(?::not\([^)]*\))*\s*\{)([^}]*)(\})'),
+               re.compile(r'(:root\[data-theme="dark"\](?::not\([^)]*\))*\s*\{)([^}]*)(\})'))
 TOKEN = r"(--%s\s*:\s*)([^;}]+)(;?)"
 COLOR = re.compile(r"^(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(rgb|rgba|hsl|hsla)\([0-9.,%\s/+-]+\))$")
 # Each number key: (smallest, largest). The text stays at 12px or larger, as verify asks.
@@ -509,11 +514,45 @@ def theme_file():
     return home if os.path.isfile(home) else None
 
 
+def key_problems(keys):
+    """Returns one line per name in a --keys list that is neither a group nor a group.key."""
+    groups = {"light": COLOR_KEYS, "dark": COLOR_KEYS, "font": tuple(FONT_KEYS), "space": tuple(SPACE_KEYS)}
+    problems = []
+    for name in keys:
+        group, _, key = name.partition(".")
+        if group not in groups or (key and key not in groups[group]):
+            problems.append("--keys: %s is not a key; name a group (light, dark, font, space) or a key such as font.sans" % (name or "an empty name"))
+    return problems
+
+
+def pick_keys(theme, keys):
+    """Returns the part of a theme that the --keys list names."""
+    picked = {}
+    for group, values in theme.items():
+        for key, value in values.items():
+            if group in keys or "%s.%s" % (group, key) in keys:
+                picked.setdefault(group, {})[key] = value
+    return picked
+
+
 def theme_main(args):
+    keys = None
+    if args[:1] == ["--keys"]:
+        if len(args) < 2:
+            args = []
+        else:
+            keys = [name.strip() for name in args[1].split(",")]
+            args = args[2:]
     defaults = args[:1] == ["--defaults"]
     pages = args[1:] if defaults else args
     if len(pages) != 1 or not re.search(r"\.html?$", pages[0], re.I):
-        print("usage: page-design.py theme [--defaults] <page.html>", file=sys.stderr)
+        print("usage: page-design.py theme [--keys <key>,...] [--defaults] <page.html>", file=sys.stderr)
+        return 2
+    problems = key_problems(keys) if keys is not None else []
+    if problems:
+        for line in problems:
+            print("page-design: %s" % line, file=sys.stderr)
+        print("page-design: %s left as it is" % pages[0], file=sys.stderr)
         return 2
     page = pages[0]
     try:
@@ -540,7 +579,7 @@ def theme_main(args):
             print("page-design: %s: %s" % (path, line), file=sys.stderr)
         print("page-design: %s left as it is; fix the theme file and run theme again" % page, file=sys.stderr)
         return 2
-    themed = apply_theme(text, theme)
+    themed = apply_theme(text, theme if keys is None else pick_keys(theme, keys))
     if themed != text:
         with open(page, "w", encoding="utf-8") as out:
             out.write(themed)
@@ -554,7 +593,7 @@ def main(argv):
     source = len(argv) > 1 and argv[1] == "--source"
     files = argv[2:] if source else argv[1:]
     if not argv or argv[0] != "verify" or not files:
-        print("usage: page-design.py verify [--source] <file>...\n       page-design.py theme [--defaults] <page.html>", file=sys.stderr)
+        print("usage: page-design.py verify [--source] <file>...\n       page-design.py theme [--keys <key>,...] [--defaults] <page.html>", file=sys.stderr)
         return 2
     for path in files:
         if not re.search(r"\.(html?|md)$", path, re.I):

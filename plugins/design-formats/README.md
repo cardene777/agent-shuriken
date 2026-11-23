@@ -94,6 +94,7 @@ Any key may be left out, and a key left out keeps the template's value.
 
 `formats/theme.md` lists each key, its type, and each template's default, and `page-design.py theme --defaults <page>` prints a page's values as JSON.
 Without a theme file, pages keep the template's look.
+A skill whose pages keep their own sizes takes only some keys, such as `page-design.py theme --keys light,dark,font.sans,font.mono <page>` for the colors and fonts.
 A theme file with an unknown key or a bad value is refused, with each key named, and the page is left as it is.
 
 ## Skills that follow it
