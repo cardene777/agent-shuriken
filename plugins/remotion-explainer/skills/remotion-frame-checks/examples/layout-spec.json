@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "canvas": {
+    "width": 1920,
+    "height": 1080
+  },
+  "safeContent": {
+    "x": 96,
+    "y": 64,
+    "width": 1728,
+    "height": 832
+  },
+  "subtitleSafeZone": {
+    "x": 240,
+    "y": 920,
+    "width": 1440,
+    "height": 120
+  },
+  "elements": [
+    {
+      "id": "title",
+      "role": "heading",
+      "anchor": "top-left",
+      "bounds": {
+        "x": 160,
+        "y": 96,
+        "width": 900,
+        "height": 80
+      }
+    },
+    {
+      "id": "warehouse",
+      "role": "subject",
+      "anchor": "center",
+      "bounds": {
+        "x": 160,
+        "y": 360,
+        "width": 400,
+        "height": 280
+      }
+    },
+    {
+      "id": "sorter",
+      "role": "operation",
+      "anchor": "center",
+      "bounds": {
+        "x": 760,
+        "y": 380,
+        "width": 400,
+        "height": 240
+      }
+    },
+    {
+      "id": "door",
+      "role": "result",
+      "anchor": "center",
+      "bounds": {
+        "x": 1360,
+        "y": 360,
+        "width": 400,
+        "height": 280
+      }
+    },
+    {
+      "id": "sorter-note",
+      "role": "annotation",
+      "anchor": "top-center",
+      "bounds": {
+        "x": 800,
+        "y": 660,
+        "width": 320,
+        "height": 56
+      }
+    },
+    {
+      "id": "camera-feed",
+      "role": "frame",
+      "anchor": "top-right",
+      "bounds": {
+        "x": 1440,
+        "y": 96,
+        "width": 320,
+        "height": 180
+      },
+      "aspectRatio": 1.7778
+    },
+    {
+      "id": "caption",
+      "role": "caption",
+      "anchor": "bottom-center",
+      "allowOutsideSafe": true,
+      "bounds": {
+        "x": 360,
+        "y": 940,
+        "width": 1200,
+        "height": 80
+      }
+    }
+  ],
+  "clearanceRules": [
+    {
+      "a": "sorter",
+      "b": "sorter-note",
+      "minimum": 24
+    },
+    {
+      "a": "warehouse",
+      "b": "sorter",
+      "minimum": 120
+    },
+    {
+      "a": "sorter",
+      "b": "door",
+      "minimum": 120
+    },
+    {
+      "a": "title",
+      "b": "warehouse",
+      "minimum": 64
+    },
+    {
+      "a": "camera-feed",
+      "b": "door",
+      "minimum": 48
+    }
+  ],
+  "alignmentGroups": [
+    {
+      "id": "stations",
+      "members": [
+        "warehouse",
+        "door"
+      ],
+      "sameY": true,
+      "equalSize": true,
+      "tolerance": 1
+    },
+    {
+      "id": "row",
+      "members": [
+        "warehouse",
+        "sorter",
+        "door"
+      ],
+      "equalHorizontalGap": true,
+      "tolerance": 1
+    }
+  ],
+  "routes": [
+    {
+      "id": "parcel-path",
+      "bounds": {
+        "x": 560,
+        "y": 490,
+        "width": 800,
+        "height": 20
+      },
+      "avoid": [
+        "sorter-note",
+        "title"
+      ]
+    }
+  ],
+  "reviewFrames": [
+    0,
+    24,
+    48,
+    72,
+    96,
+    120
+  ]
+}

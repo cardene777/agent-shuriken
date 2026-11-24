@@ -131,6 +131,11 @@
       "description": "Make a product introduction deck: take screenshots of the real product, decide the structure from ten base slides, build the slides with the words kept apart from the layout, check the layout and the wording by machine, and render HTML, PDF, and PowerPoint"
     },
     {
+      "name": "remotion-explainer",
+      "source": "./plugins/remotion-explainer",
+      "description": "Check the frames of a Remotion explainer video by machine: connectors that end on their ports, a layout that keeps the safe area and the subtitle zone, no flash where an element starts or ends, and scenes that do not repeat one design"
+    },
+    {
       "name": "repo-progress",
       "source": "./plugins/repo-progress",
       "description": "See where every repository you work on stands in one table: worktrees, open issues and pull requests, uncommitted files, and which ones have stalled, without changing anything"
