@@ -214,3 +214,6 @@
 | `schedule add` still refuses a kind other than `cache`, `build`, and `log`, and a scheduled run still frees only the approved kinds it ranks recommended | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh` checks `"schedule add refuses other kinds, other intervals, and a system with neither systemd nor cron"` and `"a scheduled run frees only the approved kinds it ranks recommended"` pass | #143 |
 | No script of the plugin connects outside the machine | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh` check `"no script connects outside the machine"` passes | #143 |
 | The repository's checks pass | `bash scripts/check.sh` ends with 0 | #143 |
+| Every plugin's version matches the newest section of its changelog | `bash scripts/check.sh` check `"versions match the changelogs"` passes | #469 |
+| The Latest column of both READMEs shows each plugin's version | `bash scripts/check.sh` check `"README tables list every plugin"` passes | #469 |
+| The machine-cleanup test still passes after the version raise | `bash plugins/machine-cleanup/skills/machine-cleanup/tests/test-machine-cleanup.sh` check `"the marketplace and the root READMEs list machine-cleanup"` passes | #469 |
