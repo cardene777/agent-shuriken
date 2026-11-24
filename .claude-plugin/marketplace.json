@@ -81,6 +81,11 @@
       "description": "When you correct an agent's work, record the correction, fix the files, have an evaluator that edits nothing judge the fix, and repeat until it passes, keeping the lesson as a check or a rule for next time"
     },
     {
+      "name": "flow-format",
+      "source": "./plugins/flow-format",
+      "description": "Explain how a flow, a procedure, a chain of steps, or a workflow goes as numbered steps, each one action sentence and a short unindented paragraph of details, with a plain-text diagram after them when the flow branches or loops"
+    },
+    {
       "name": "init-project",
       "source": "./plugins/init-project",
       "description": "Set up a project for local work: pick a free local port, add a Docker setup, and link its env files to 1Password with references, writing each file only after you approve it"
