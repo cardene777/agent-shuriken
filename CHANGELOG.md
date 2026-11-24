@@ -7,6 +7,7 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ## [Unreleased]
 
+- The flow-format plugin, which answers a question about how a flow, a procedure, or a workflow goes as numbered steps, each one action sentence and a short unindented paragraph of details, with a plain-text diagram after them when the flow branches or loops
 - The agent-guards plugin, which adds hooks that stop the agent from reading key files, sending text or commits that hold a key, running destructive git commands, and deleting whole folder trees in Claude Code and Codex
 - A plugin that holds hooks and no skills may carry hooks, and is not uploaded to OpenAI's directory; every other plugin stays without hooks
 

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Flow Format"
+  short_description: "Explain a flow as numbered steps, each one action and a short paragraph of details"
+  default_prompt: "Use $flow-format to explain how a change goes from an issue to a merge."
+
+policy:
+  allow_implicit_invocation: true
