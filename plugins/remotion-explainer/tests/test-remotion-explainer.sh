@@ -3,6 +3,8 @@
 # the frame checks of remotion-frame-checks on the skill's valid examples and on broken copies made in
 # a throwaway folder. PNG frames are drawn here with Python's zlib, so the plugin stores no image.
 # The checks of remotion-motion-plan run the same way on the skill's example plans and evidence library.
+# The catalog of remotion-catalog is fetched from git repositories made in the throwaway folder, with
+# HOME pointing there too, so no network is used and no real data folder is touched.
 set -u
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -11,6 +13,7 @@ ROOT="$(cd "$PLUGIN/../.." && pwd)"
 SKILLS="$PLUGIN/skills"
 FRAME="$SKILLS/remotion-frame-checks"
 MOTION="$SKILLS/remotion-motion-plan"
+CATALOG="$SKILLS/remotion-catalog"
 T="$(cd "$(mktemp -d)" && pwd -P)"
 trap 'rm -rf "$T"' EXIT
 
@@ -521,12 +524,260 @@ PY
   why=""
 }
 
+# catalog_run makes five source repositories in the throwaway folder, lists them with a pinned commit
+# each, runs sync, build, and search of remotion-catalog with HOME there, then again with
+# REMOTION_EXPLAINER_HOME, and writes what it saw to $T/catalog-run.json for the three checks below.
+catalog_run() {
+  [ -f "$T/catalog-run.json" ] && return 0
+  python3 - "$CATALOG" "$T" <<'PY'
+import json, os, stat, subprocess, sys
+skill, tmp = sys.argv[1], sys.argv[2]
+script = os.path.join(skill, "scripts", "catalog.mjs")
+repos = os.path.join(tmp, "repos")
+home = os.path.join(tmp, "home")
+work = os.path.join(tmp, "work")
+custom = os.path.join(tmp, "custom")
+for d in (repos, home, work):
+    os.makedirs(d, exist_ok=True)
+base_env = {"PATH": os.environ["PATH"], "HOME": home, "GIT_CONFIG_GLOBAL": "/dev/null", "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_AUTHOR_NAME": "Test", "GIT_AUTHOR_EMAIL": "test@example.com", "GIT_COMMITTER_NAME": "Test",
+            "GIT_COMMITTER_EMAIL": "test@example.com", "GIT_AUTHOR_DATE": "2026-01-01T00:00:00Z",
+            "GIT_COMMITTER_DATE": "2026-01-01T00:00:00Z"}
+
+def git(repo, *args):
+    return subprocess.run(["git", "-C", repo, *args], env=base_env, capture_output=True, text=True, check=True).stdout.strip()
+
+def repo(name, files, later=None):
+    path = os.path.join(repos, name)
+    os.makedirs(path)
+    git(path, "init", "-q")
+    git(path, "config", "uploadpack.allowReachableSHA1InWant", "true")
+    git(path, "config", "uploadpack.allowAnySHA1InWant", "true")
+    for rel, text in files.items():
+        os.makedirs(os.path.dirname(os.path.join(path, rel)) or path, exist_ok=True)
+        with open(os.path.join(path, rel), "w", encoding="utf-8") as f:
+            f.write(text)
+    git(path, "add", "-A")
+    git(path, "commit", "-q", "-m", "first")
+    pinned = git(path, "rev-parse", "HEAD")
+    for rel, text in (later or {}).items():
+        with open(os.path.join(path, rel), "w", encoding="utf-8") as f:
+            f.write(text)
+        git(path, "add", "-A")
+        git(path, "commit", "-q", "-m", "later")
+    return path, pinned
+
+readme = ("# Example templates\n\n### Motion (2)\n\n| Template | File | Description |\n|---|---|---|\n"
+          "| Route line | `route-line.tsx` | A route path drawn along a bezier line |\n"
+          "| Title reveal | `title-reveal.tsx` | A title that fades in word by word |\n\n"
+          "### Devices (1)\n\n| Template | File | Description |\n|---|---|---|\n"
+          "| Phone frame | `phone-frame.tsx` | A phone screen shown as a device |\n")
+alpha, alpha_pin = repo("alpha", {
+    "LICENSE": "MIT License\n", "README.md": readme,
+    "templates/route-line.tsx": "export const RouteLine = () => <path d='M0 0 C10 10 20 10 30 0' strokeDashoffset={1} />;\n",
+    "templates/title-reveal.tsx": "export const TitleReveal = () => <h1>Each word of the title fades in</h1>;\n",
+    "templates/phone-frame.tsx": "export const PhoneFrame = () => <div className='phone screen' />;\n",
+    "media/clip.txt": "a stand-in for a media file the list leaves out\n",
+}, later={"templates/late-added.tsx": "export const LateAdded = () => null;\n"})
+library = {"cards": [{"name": "card-stack", "category": "ui-entrance", "summary": "Cards slide in and stack with depth",
+                      "use": "Showing items gathered into a pile", "tags": ["cards", "stack"],
+                      "source": "references/card-stack.md",
+                      "styles": [{"key": "card-stack-slide", "label": "Card stack slide",
+                                  "description": "Cards slide in from the side and stack with depth"}]}]}
+beta, beta_pin = repo("beta", {
+    "LICENSE": "Apache License\nVersion 2.0, January 2004\n",
+    "gallery/api/library.json": json.dumps(library),
+    "references/card-stack.md": "# Card stack\n\nCards slide in and stack.\n",
+    "demos/ui-entrance/card-stack/CardStack.tsx": "export const CardStack = () => <div className='stack of cards' />;\n",
+})
+gamma, gamma_pin = repo("gamma", {"README.md": "# No license here\n", "templates/a.tsx": "export const A = 1;\n"})
+delta, _ = repo("delta", {"LICENSE": "MIT License\n", "templates/b.tsx": "export const B = 1;\n"})
+epsilon, epsilon_pin = repo("epsilon", {"LICENSE": "All rights reserved\n", "templates/c.tsx": "export const C = 1;\n"})
+files_adapter = {"kind": "files", "folder": "templates", "extension": ".tsx", "readme": "README.md"}
+sources = {"schemaVersion": 1, "sources": [
+    {"id": "alpha", "repository": f"file://{alpha}", "commit": alpha_pin, "license": "MIT", "licenseEvidence": "LICENSE",
+     "exclude": ["media/"], "adapter": files_adapter},
+    {"id": "beta", "repository": f"file://{beta}", "commit": beta_pin, "license": "Apache-2.0", "licenseEvidence": "LICENSE",
+     "adapter": {"kind": "cards", "library": "gallery/api/library.json", "demos": "demos"}},
+    {"id": "gamma", "repository": f"file://{gamma}", "commit": gamma_pin, "license": "MIT", "licenseEvidence": "LICENSE",
+     "adapter": files_adapter},
+    {"id": "delta", "repository": f"file://{delta}", "commit": "main", "license": "MIT", "licenseEvidence": "LICENSE",
+     "adapter": files_adapter},
+    {"id": "epsilon", "repository": f"file://{epsilon}", "commit": epsilon_pin, "license": "LicenseRef-proprietary",
+     "licenseEvidence": "LICENSE", "adapter": files_adapter},
+]}
+list_file = os.path.join(tmp, "sources.json")
+with open(list_file, "w", encoding="utf-8") as f:
+    json.dump(sources, f)
+
+def run(args, env_extra=None):
+    env = dict(base_env, **(env_extra or {}))
+    p = subprocess.run(["node", script, *args], cwd=work, env=env, capture_output=True, text=True)
+    try:
+        out = json.loads(p.stdout)
+    except ValueError:
+        out = None
+    return {"code": p.returncode, "out": out, "err": p.stderr.strip()[-400:]}
+
+def listing(root):
+    found = []
+    for r, dirs, names in os.walk(root):
+        if ".git" in dirs:
+            dirs.remove(".git")
+        for n in dirs + names:
+            found.append(os.path.relpath(os.path.join(r, n), root))
+    return sorted(found)
+
+def mode(path):
+    try:
+        return oct(stat.S_IMODE(os.stat(path).st_mode))
+    except OSError:
+        return None
+
+result = {"pins": {"alpha": alpha_pin, "beta": beta_pin}}
+result["sync"] = run(["sync", "--sources", list_file])
+result["build"] = run(["build", "--sources", list_file])
+result["searches"] = {
+    "motion route": run(["search", "--layer", "motion", "route"]),
+    "typography title": run(["search", "--layer", "typography", "title"]),
+    "form phone": run(["search", "--layer", "form", "phone"]),
+    "typography phone": run(["search", "--layer", "typography", "phone"]),
+    "composition stack": run(["search", "--layer", "composition", "stack"]),
+    "no layer": run(["search", "route"]),
+    "unknown layer": run(["search", "--layer", "sound", "route"]),
+}
+data = os.path.join(home, ".local", "share", "remotion-explainer")
+clone = os.path.join(data, "catalog", "sources", "alpha")
+result["home"] = listing(home)
+result["work"] = listing(work)
+result["modes"] = {"data": mode(data), "catalog": mode(os.path.join(data, "catalog")),
+                   "catalog.json": mode(os.path.join(data, "catalog", "catalog.json"))}
+result["sourceFolders"] = sorted(os.listdir(os.path.join(data, "catalog", "sources"))) if os.path.isdir(os.path.join(data, "catalog", "sources")) else []
+try:
+    result["alphaHead"] = git(clone, "rev-parse", "HEAD")
+except (subprocess.CalledProcessError, OSError):
+    result["alphaHead"] = None
+result["alphaLate"] = os.path.exists(os.path.join(clone, "templates", "late-added.tsx"))
+result["alphaMedia"] = os.path.exists(os.path.join(clone, "media"))
+before = listing(home)
+result["customSync"] = run(["sync", "--sources", list_file], {"REMOTION_EXPLAINER_HOME": custom})
+result["customBuild"] = run(["build", "--sources", list_file], {"REMOTION_EXPLAINER_HOME": custom})
+result["customHomeUnchanged"] = listing(home) == before
+result["custom"] = listing(custom)
+result["customModes"] = {"data": mode(custom), "catalog.json": mode(os.path.join(custom, "catalog", "catalog.json"))}
+with open(os.path.join(tmp, "catalog-run.json"), "w", encoding="utf-8") as f:
+    json.dump(result, f)
+PY
+}
+
+# catalog_judge <part> runs one part of the judgment below on $T/catalog-run.json.
+catalog_judge() {
+  command -v node >/dev/null || { why="node is not installed"; return 1; }
+  command -v git >/dev/null || { why="git is not installed"; return 1; }
+  [ -f "$CATALOG/scripts/catalog.mjs" ] || { why="remotion-catalog has no scripts/catalog.mjs"; return 1; }
+  catalog_run 2>"$T/catalog-run.err" || { why="the catalog run stopped: $(tail -1 "$T/catalog-run.err")"; return 1; }
+  why="$(python3 - "$1" "$T/catalog-run.json" "$CATALOG" <<'PY'
+import json, os, re, sys
+part, path, skill = sys.argv[1], sys.argv[2], sys.argv[3]
+r = json.load(open(path, encoding="utf-8"))
+def fail(message):
+    sys.exit(print(message) or 1)
+def out(step):
+    if not r[step]["out"]:
+        fail(f"{step} printed no JSON (exit {r[step]['code']}): {r[step]['err']}")
+    return r[step]["out"]
+if part == "fetch":
+    sync = out("sync")
+    if r["sync"]["code"] != 1:
+        fail(f"sync exited {r['sync']['code']}, not 1, although three sources had to be left out")
+    fetched = sorted(item["id"] for item in sync.get("fetched", []))
+    left = {item["id"]: item.get("reason", "") for item in sync.get("leftOut", [])}
+    if fetched != ["alpha", "beta"]:
+        fail(f"sync fetched {fetched}, not alpha and beta")
+    if sorted(left) != ["delta", "epsilon", "gamma"] or not all(left.values()):
+        fail(f"sync left out {left}, not gamma, delta, and epsilon each with a reason")
+    if "licen" not in left["gamma"].lower() or "licen" not in left["epsilon"].lower() or "commit" not in left["delta"].lower():
+        fail(f"the reasons do not name the license or the commit: {left}")
+    if r["sourceFolders"] != ["alpha", "beta"]:
+        fail(f"the data folder holds the sources {r['sourceFolders']}, not only alpha and beta")
+    if r["alphaHead"] != r["pins"]["alpha"]:
+        fail(f"alpha is at {r['alphaHead']}, not at its pinned commit {r['pins']['alpha']}")
+    if r["alphaLate"]:
+        fail("alpha holds a file of a commit after the pinned one")
+    if r["alphaMedia"]:
+        fail("alpha holds the media folder its entry excludes")
+    shipped = json.load(open(os.path.join(skill, "data", "sources.json"), encoding="utf-8"))
+    allowed = {"MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "ISC", "0BSD", "CC0-1.0", "Unlicense"}
+    if not shipped.get("sources"):
+        fail("data/sources.json lists no source")
+    for s in shipped["sources"]:
+        if not re.fullmatch(r"[0-9a-f]{40}", str(s.get("commit", ""))):
+            fail(f"{s.get('id')} in data/sources.json has no pinned commit")
+        if not str(s.get("repository", "")).startswith("https://"):
+            fail(f"{s.get('id')} in data/sources.json is not fetched over https")
+        if s.get("license") not in allowed or not s.get("licenseEvidence"):
+            fail(f"{s.get('id')} in data/sources.json has no allowed license with its evidence")
+elif part == "search":
+    build = out("build")
+    if r["build"]["code"] != 0 or not build.get("items"):
+        fail(f"build exited {r['build']['code']} with {build.get('items')} items")
+    s = r["searches"]
+    def results(key):
+        step = s[key]
+        if step["code"] != 0 or not step["out"]:
+            fail(f"search {key} exited {step['code']}: {step['err']}")
+        return step["out"].get("results", [])
+    for key, layer in (("motion route", "motion"), ("typography title", "typography"), ("form phone", "form"),
+                       ("typography phone", "typography"), ("composition stack", "composition")):
+        for item in results(key):
+            if layer not in (item.get("layers") or {}) or not item["layers"][layer]:
+                fail(f"search {key} returned {item.get('id')}, which has no {layer} layer")
+            if not item.get("source") or not item.get("file"):
+                fail(f"search {key} returned {item.get('id')} without its source and file")
+    want = {"motion route": ("alpha:route-line", "alpha", "templates/route-line.tsx"),
+            "typography title": ("alpha:title-reveal", "alpha", "templates/title-reveal.tsx"),
+            "form phone": ("alpha:phone-frame", "alpha", "templates/phone-frame.tsx"),
+            "composition stack": ("beta:card-stack-slide", "beta", "demos/ui-entrance/card-stack/CardStack.tsx")}
+    for key, (id_, source, file) in want.items():
+        hit = [i for i in results(key) if i.get("id") == id_]
+        if not hit or hit[0].get("source") != source or hit[0].get("file") != file:
+            fail(f"search {key} did not return {id_} from {source} with the file {file}")
+    if any(i.get("id") == "alpha:phone-frame" for i in results("typography phone")):
+        fail("the typography layer returned the phone frame, which has no typography")
+    if s["no layer"]["code"] != 2 or s["unknown layer"]["code"] != 2:
+        fail(f"a search without a known layer exited {s['no layer']['code']} and {s['unknown layer']['code']}, not 2")
+elif part == "folder":
+    for step in ("sync", "build"):
+        out(step)
+    prefix = os.path.join(".local", "share", "remotion-explainer")
+    stray = [p for p in r["home"] if not (p == prefix or p.startswith(prefix + os.sep) or prefix.startswith(p + os.sep) or p in (".local", os.path.join(".local", "share")))]
+    if stray:
+        fail(f"the catalog wrote outside its data folder: {stray[:3]}")
+    if r["work"]:
+        fail(f"the catalog wrote into the folder it ran from: {r['work'][:3]}")
+    if r["modes"] != {"data": "0o700", "catalog": "0o700", "catalog.json": "0o600"}:
+        fail(f"the data folder is not readable only by the user: {r['modes']}")
+    if r["customSync"]["code"] != 1 or r["customBuild"]["code"] != 0 or not r["customHomeUnchanged"]:
+        fail("with REMOTION_EXPLAINER_HOME the catalog did not keep to that folder")
+    if os.path.join("catalog", "catalog.json") not in r["custom"] or r["customModes"] != {"data": "0o700", "catalog.json": "0o600"}:
+        fail(f"REMOTION_EXPLAINER_HOME does not hold the catalog readable only by the user: {r['customModes']}")
+PY
+)" || return 1
+  why=""
+}
+catalog_fetch() { catalog_judge fetch; }
+catalog_search() { catalog_judge search; }
+catalog_folder() { catalog_judge folder; }
+
 check "the READMEs state the Remotion license terms" readme_license
 check "AGENTS.md names the plugin's Node.js use" agents_node
 check "remotion-frame-checks provides its contracts and checks" frame_provides
 check "the frame checks accept valid and refuse broken examples" frame_judgments
 check "remotion-motion-plan provides its contracts and checks" motion_provides
 check "the motion plan checks accept valid and refuse broken plans" motion_judgments
+check "remotion-catalog fetches only licensed sources at pinned commits" catalog_fetch
+check "remotion-catalog searches each layer" catalog_search
+check "remotion-catalog keeps its data in its own folder" catalog_folder
 
 printf 'checks: %d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
