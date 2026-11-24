@@ -11,6 +11,11 @@
       "description": "Find web accounts you no longer use without reading any passwords, then cancel subscriptions and delete the accounts you approve"
     },
     {
+      "name": "agent-guards",
+      "source": "./plugins/agent-guards",
+      "description": "Hooks that stop an agent from reading key files and .env files, sending text or commits that hold a key, running force pushes and other destructive git commands, and deleting whole folder trees, in Claude Code and Codex"
+    },
+    {
       "name": "chainome-diagram",
       "source": "./plugins/chainome-diagram",
       "description": "Design and review animated React and SVG diagrams that explain blockchain mechanics, with one active phase, state changes shown where they happen, and the prose kept apart from the diagram"

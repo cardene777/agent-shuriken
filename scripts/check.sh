@@ -289,8 +289,23 @@ check_plugin_files() {
       [ -f "plugins/$name/$f" ] || { echo "$name: $f is missing"; bad=1; }
     done
     cmp -s LICENSE "plugins/$name/LICENSE" || { echo "$name: LICENSE differs from the root LICENSE"; bad=1; }
+    # A plugin that holds hooks and no skills is checked by check_hook_plugins instead.
+    [ -e "plugins/$name/hooks" ] && continue
     ls plugins/"$name"/skills/*/SKILL.md >/dev/null 2>&1 || { echo "$name: no skills/<skill>/SKILL.md"; bad=1; }
-    [ ! -e "plugins/$name/hooks" ] || { echo "$name: hooks make the plugin ineligible for OpenAI's directory"; bad=1; }
+  done
+  return "$bad"
+}
+
+# Hooks make a plugin ineligible for OpenAI's directory, so only a plugin that holds hooks and no
+# skills carries them, it keeps them in hooks/hooks.json, and AGENTS.md states the rule.
+check_hook_plugins() {
+  local name bad=0
+  grep -qF 'holds hooks and no skills' AGENTS.md \
+    || { echo "AGENTS.md does not say that only a plugin that holds hooks and no skills carries hooks"; bad=1; }
+  for name in $(plugin_names); do
+    [ -e "plugins/$name/hooks" ] || continue
+    [ ! -e "plugins/$name/skills" ] || { echo "$name: a plugin with hooks holds no skills"; bad=1; }
+    [ -f "plugins/$name/hooks/hooks.json" ] || { echo "$name: hooks/hooks.json is missing"; bad=1; }
   done
   return "$bad"
 }
@@ -399,6 +414,7 @@ check_readme_tables() {
         || { echo "$readme: the row for $name does not end with [$version](plugins/$name/CHANGELOG.md)"; bad=1; }
       # The run column names, for every skill, the Claude Code command and the name Codex lists after typing $.
       for skill in plugins/"$name"/skills/*/; do
+        [ -d "$skill" ] || continue
         display="$(sed -nE 's/^  display_name: "(.+)"$/\1/p' "$skill/agents/openai.yaml")"
         skill="$(basename "$skill")"
         [[ "$row" == *"\`/$name:$skill\`"* ]] || { echo "$readme: the row for $name does not show \`/$name:$skill\`"; bad=1; }
@@ -616,6 +632,7 @@ run "marketplace lists every plugin once" check_marketplace
 run "plugin manifests agree" check_manifests
 run "plugin icons are square and present" check_icons
 run "plugin folders are complete" check_plugin_files
+run "hooks live only in plugins without skills" check_hook_plugins
 run "plugins stay within directory limits" check_plugin_limits
 run "SKILL.md frontmatter" check_skill_frontmatter
 run "Codex skill metadata matches SKILL.md" check_codex_skill_metadata

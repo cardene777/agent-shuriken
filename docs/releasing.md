@@ -59,6 +59,8 @@ It then tags `<name>--vX.Y.Z`, pushes the tag, and creates a GitHub release with
 | `<name>-X.Y.Z-skill.zip` | The skill folder | Unzipping into a skills folder without the marketplace |
 | `<name>-X.Y.Z-plugin.zip` | The whole plugin folder | Uploading to OpenAI's plugin directory |
 
+A plugin that holds hooks and no skills, such as agent-guards, gets only the plugin zip, and it is not uploaded to OpenAI's plugin directory.
+
 ## Release the repository
 
 Release the repository after one or more plugin releases, or after a change to the repository itself.

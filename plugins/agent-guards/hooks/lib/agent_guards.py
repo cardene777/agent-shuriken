@@ -1,0 +1,828 @@
+#!/usr/bin/env python3
+"""The four blocking hooks of agent-guards.
+
+Claude Code and Codex start a hook for each PreToolUse event and pass the event as JSON on standard
+input. A hook prints a deny decision when it refuses the tool call and prints nothing otherwise, so
+it never approves a call that the agent's own permission rules would ask about.
+
+    agent_guards.py secret-read | outbound | git | delete
+
+Each hook turns off with its own environment variable set to `off`. With AGENT_GUARDS_RECORD=on,
+each refusal adds one line (time, hook, kind) to refusals.log in the data folder; the line never
+holds the command or a value.
+"""
+
+import fnmatch
+import json
+import os
+import re
+import shlex
+import subprocess
+import sys
+import time
+
+OFF_VARS = {
+    "secret-read": "AGENT_GUARDS_SECRET_READ",
+    "outbound": "AGENT_GUARDS_OUTBOUND",
+    "git": "AGENT_GUARDS_GIT",
+    "delete": "AGENT_GUARDS_DELETE",
+}
+
+
+class Refusal(Exception):
+    def __init__(self, kind, reason):
+        super().__init__(reason)
+        self.kind = kind
+        self.reason = reason
+
+
+def home():
+    return os.environ.get("HOME") or os.path.expanduser("~")
+
+
+def config_file(name):
+    base = os.environ.get("XDG_CONFIG_HOME") or os.path.join(home(), ".config")
+    return os.path.join(base, "agent-guards", name)
+
+
+def record(hook, kind):
+    if os.environ.get("AGENT_GUARDS_RECORD", "").lower() != "on":
+        return
+    folder = os.path.join(os.environ.get("XDG_DATA_HOME") or os.path.join(home(), ".local", "share"), "agent-guards")
+    try:
+        os.makedirs(folder, mode=0o700, exist_ok=True)
+        with open(os.path.join(folder, "refusals.log"), "a", encoding="utf-8") as f:
+            f.write(f"{time.strftime('%Y-%m-%dT%H:%M:%S%z')}\t{hook}\t{kind}\n")
+    except OSError:
+        pass
+
+
+def deny(hook, reason):
+    print(json.dumps({"hookSpecificOutput": {
+        "hookEventName": "PreToolUse",
+        "permissionDecision": "deny",
+        "permissionDecisionReason": f"agent-guards ({hook}): {reason}",
+    }}))
+
+
+def list_entries(name):
+    """Lines of a list file in ~/.config/agent-guards/, without blanks and # comments."""
+    try:
+        with open(config_file(name), encoding="utf-8") as f:
+            lines = f.read().splitlines()
+    except OSError:
+        return []
+    out = []
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line == "~" or line.startswith("~/"):
+            line = home() + line[1:]
+        out.append(line.rstrip("/") or "/")
+    return out
+
+
+def listed(path, name):
+    """Whether an absolute path is one of the places in a list file, or inside one."""
+    for entry in list_entries(name):
+        if "/" not in entry:
+            if fnmatch.fnmatch(os.path.basename(path), entry):
+                return True
+        elif path == entry or path.startswith(entry + "/") or fnmatch.fnmatch(path, entry) \
+                or fnmatch.fnmatch(path, entry + "/*"):
+            return True
+    return False
+
+
+# ---------------------------------------------------------------------------------------------
+# Reading the command
+
+def command_text(event):
+    command = (event.get("tool_input") or {}).get("command", "")
+    if isinstance(command, list):
+        # Codex can pass the shell's argv, such as ["bash", "-lc", "<script>"].
+        if len(command) >= 3 and os.path.basename(str(command[0])) in SHELLS and command[1] in ("-c", "-lc", "-ic"):
+            return str(command[2])
+        return shlex.join(str(c) for c in command)
+    return str(command or "")
+
+
+SHELLS = {"bash", "sh", "zsh", "dash", "ksh"}
+OPERATORS = {";", "&&", "||", "|", "|&", "&", "(", ")", ";;", "{", "}"}
+WRAPPERS = {"sudo", "command", "builtin", "exec", "nohup", "time", "nice", "doas"}
+
+
+def strip_heredocs(text):
+    """Removes the bodies of here-documents opened outside quotes; quoted ones stay in the text."""
+    out, i, n = [], 0, len(text)
+    quote = None
+    pending = []
+    while i < n:
+        c = text[i]
+        if quote:
+            out.append(c)
+            if c == "\\" and quote == '"' and i + 1 < n:
+                out.append(text[i + 1])
+                i += 2
+                continue
+            if c == quote:
+                quote = None
+            i += 1
+            continue
+        if c in ("'", '"'):
+            quote = c
+            out.append(c)
+            i += 1
+            continue
+        if c == "\\" and i + 1 < n:
+            out.append(text[i:i + 2])
+            i += 2
+            continue
+        if text.startswith("<<", i) and not text.startswith("<<<", i):
+            m = re.match(r"<<(-?)\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\2", text[i:])
+            if m:
+                pending.append((m.group(3), m.group(1) == "-"))
+                out.append(text[i:i + m.end()])
+                i += m.end()
+                continue
+        if c == "\n" and pending:
+            out.append("\n")
+            i += 1
+            for word, tabs in pending:
+                while i < n:
+                    end = text.find("\n", i)
+                    end = n if end < 0 else end
+                    line = text[i:end]
+                    i = end + 1
+                    if (line.lstrip("\t") if tabs else line) == word:
+                        break
+            pending = []
+            continue
+        out.append(c)
+        i += 1
+    return "".join(out)
+
+
+def unquoted_newlines_to_semicolons(text):
+    out, quote, i = [], None, 0
+    while i < len(text):
+        c = text[i]
+        if quote:
+            if c == "\\" and quote == '"' and i + 1 < len(text):
+                out.append(text[i:i + 2])
+                i += 2
+                continue
+            if c == quote:
+                quote = None
+        elif c in ("'", '"'):
+            quote = c
+        elif c == "\\" and i + 1 < len(text):
+            if text[i + 1] == "\n":
+                i += 2
+                continue
+            out.append(text[i:i + 2])
+            i += 2
+            continue
+        elif c == "\n":
+            c = ";"
+        out.append(c)
+        i += 1
+    return "".join(out)
+
+
+def tokens(text):
+    lexer = shlex.shlex(unquoted_newlines_to_semicolons(strip_heredocs(text)), posix=True, punctuation_chars=";&|()<>")
+    lexer.whitespace_split = True
+    lexer.commenters = "#"
+    try:
+        return list(lexer)
+    except ValueError:
+        return None
+
+
+def segments(text, depth=0):
+    """Simple commands of a shell text, each a list of words, with nested `bash -c` and `eval` texts."""
+    words = tokens(text)
+    if words is None:
+        return None
+    out, current = [], []
+    for w in words + [";"]:
+        if w in OPERATORS:
+            if current:
+                out.append(current)
+            current = []
+        else:
+            current.append(w)
+    nested = []
+    for seg in out:
+        cmd, args = command_of(seg)
+        if depth < 3 and cmd in SHELLS:
+            for i, a in enumerate(args):
+                if a in ("-c", "-lc", "-ic") and i + 1 < len(args):
+                    inner = segments(args[i + 1], depth + 1)
+                    nested.extend(inner or [])
+                    break
+        elif depth < 3 and cmd == "eval":
+            nested.extend(segments(" ".join(args), depth + 1) or [])
+    return out + nested
+
+
+def command_of(seg):
+    """The command name of a simple command and its arguments, past assignments and wrappers."""
+    i = 0
+    while i < len(seg):
+        w = seg[i]
+        if re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", w):
+            i += 1
+        elif os.path.basename(w) in WRAPPERS:
+            i += 1
+            while i < len(seg) and seg[i].startswith("-"):
+                i += 1
+        elif os.path.basename(w) == "env":
+            i += 1
+            while i < len(seg) and (seg[i].startswith("-") or re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", seg[i])):
+                i += 1
+        elif os.path.basename(w) == "timeout":
+            i += 1
+            while i < len(seg) and seg[i].startswith("-"):
+                i += 1
+            i += 1
+        else:
+            return os.path.basename(w), seg[i + 1:]
+    return "", []
+
+
+VAR = re.compile(r"\$(\{[A-Za-z_][A-Za-z0-9_]*\}|[A-Za-z_][A-Za-z0-9_]*)")
+
+
+def expand(word):
+    """The word with ~ and $HOME expanded, or None when another variable or a substitution is left."""
+    if word == "~" or word.startswith("~/"):
+        word = home() + word[1:]
+    word = word.replace("${HOME}", home())
+    word = re.sub(r"\$HOME(?![A-Za-z0-9_])", lambda _match: home(), word)
+    if "`" in word or "$" in word:
+        return None
+    return word
+
+
+def absolute(path, cwd):
+    return os.path.normpath(path if os.path.isabs(path) else os.path.join(cwd, path))
+
+
+# ---------------------------------------------------------------------------------------------
+# secret-read
+
+ENV_KEEP = (".example", ".sample", ".template")
+KEY_NAMES = {"id_rsa", "id_ed25519", "id_ecdsa", "id_dsa"}
+KEY_EXTS = (".pem", ".key", ".p12", ".pfx", ".token", ".secret", ".private")
+SOURCE_EXTS = (".py", ".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx", ".go", ".rs", ".rb", ".java", ".kt",
+               ".swift", ".c", ".h", ".cc", ".cpp", ".cs", ".php", ".sh", ".bash", ".zsh", ".md", ".mdx",
+               ".html", ".css", ".scss", ".vue", ".svelte", ".sol")
+SECRET_PLACES = [
+    (re.compile(r"/\.ssh/(id_[^/]*|config|[^/]*\.pem)$"), "an SSH key or SSH config"),
+    (re.compile(r"/\.aws/(credentials|config)$"), "AWS credentials"),
+    (re.compile(r"/\.config/gcloud/"), "Google Cloud credentials"),
+    (re.compile(r"/\.azure/"), "Azure credentials"),
+    (re.compile(r"/\.(zsh|bash)_history$"), "a shell history"),
+    (re.compile(r"/\.npmrc$"), "an npm token file"),
+    (re.compile(r"/\.git-credentials$"), "git credentials"),
+    (re.compile(r"/\.docker/config\.json$"), "Docker credentials"),
+    (re.compile(r"/\.kube/config$"), "a Kubernetes config"),
+    (re.compile(r"/\.netrc$"), "a .netrc file"),
+    (re.compile(r"/\.pgpass$"), "a PostgreSQL password file"),
+    (re.compile(r"/\.gnupg/"), "a GnuPG folder"),
+    (re.compile(r"/\.claude/history\.jsonl$"), "Claude Code's conversation records"),
+    (re.compile(r"/\.claude/projects/.*\.jsonl$"), "Claude Code's conversation records"),
+    (re.compile(r"/Library/(Keychains|Messages|Mail|Calendars|Safari|Cookies)(/|$)"), "private app data"),
+    (re.compile(r"/Library/Application Support/(AddressBook|Google/Chrome|Firefox|1Password)(/|$)"), "private app data"),
+    (re.compile(r"/Library/Group Containers(/|$)"), "private app data"),
+]
+
+
+def secret_kind(path):
+    """What makes an absolute path secret, or None."""
+    base = os.path.basename(path)
+    if base == ".env" or (base.startswith(".env.") and not base.endswith(ENV_KEEP) and base != ".env.test"):
+        return "a .env file"
+    if base in KEY_NAMES or (base.startswith("id_") and "/.ssh/" in path and not base.endswith(".pub")):
+        return "a private key"
+    if base.endswith(KEY_EXTS):
+        return "a key file"
+    if re.search(r"_(token|key)([^a-zA-Z]|$)", base) and not base.endswith(SOURCE_EXTS):
+        return "a token or key file"
+    parts = path.split("/")[:-1]
+    if "secrets" in parts or ".secrets" in parts:
+        return "a file in a secrets folder"
+    for pattern, kind in SECRET_PLACES:
+        if pattern.search(path) and not (kind == "an SSH key or SSH config" and base.endswith(".pub")):
+            return kind
+    if listed(path, "secret-paths"):
+        return "a place in your secret-paths list"
+    return None
+
+
+READERS = {"cat", "head", "tail", "less", "more", "strings", "xxd", "hexdump", "od", "grep", "egrep", "fgrep",
+           "rg", "sed", "awk", "gawk", "source", ".", "bat", "nl", "tac", "base64", "jq", "cut", "sort",
+           "uniq", "diff", "cmp", "cp", "scp", "rsync", "wc", "file"}
+INTERPRETERS = {"python", "python3", "node", "ruby", "perl", "php", "bun", "deno"}
+# Options that take the next word as their value, per reader.
+VALUE_OPTIONS = {
+    "head": {"-n", "-c"}, "tail": {"-n", "-c"},
+    "grep": {"-e", "-f", "-m", "-A", "-B", "-C", "--regexp", "--file"},
+    "egrep": {"-e", "-f", "-m", "-A", "-B", "-C"}, "fgrep": {"-e", "-f", "-m", "-A", "-B", "-C"},
+    "rg": {"-e", "-f", "-m", "-A", "-B", "-C", "-g", "-t", "-T", "--glob", "--type"},
+    "sed": {"-e", "-f"}, "awk": {"-f", "-v", "-F"}, "gawk": {"-f", "-v", "-F"},
+    "jq": {"-f", "--from-file", "--indent"}, "cut": {"-d", "-f", "-c", "-b"},
+    "sort": {"-k", "-t", "-o"}, "diff": {"-U", "-C"},
+}
+PATTERN_FIRST = {"grep", "egrep", "fgrep", "rg", "sed", "awk", "gawk", "jq"}
+TAKES_PROGRAM = {"-e", "-f", "--regexp", "--file", "--from-file"}
+CANNOT_TELL = ("it cannot tell which file the command reads, because the path comes from a variable or a "
+               "command substitution, so name the file directly in the command.")
+
+
+def read_targets(cmd, args):
+    """The words a reader reads as files, with None for a word it cannot tell."""
+    opts = VALUE_OPTIONS.get(cmd, set())
+    positional, i, program_given = [], 0, False
+    while i < len(args):
+        a = args[i]
+        if a == "--":
+            positional.extend(args[i + 1:])
+            break
+        if a in ("<", "<<<"):
+            i += 2
+            continue
+        if a.startswith("-") and a != "-":
+            name = a.split("=", 1)[0]
+            if name in TAKES_PROGRAM:
+                program_given = True
+                if name in ("-f", "--file", "--from-file") and "=" not in a and i + 1 < len(args):
+                    positional.append(args[i + 1])
+            if name in opts and "=" not in a:
+                i += 2
+                continue
+            i += 1
+            continue
+        if a in (">", ">>", "2>", "&>"):
+            i += 2
+            continue
+        positional.append(a)
+        i += 1
+    if cmd in PATTERN_FIRST and not program_given and positional:
+        positional = positional[1:]
+    if cmd in ("cp", "scp", "rsync") and positional:
+        positional = positional[:-1]
+    return positional
+
+
+def check_secret_path(path_word, cwd):
+    path = expand(path_word)
+    if path is None:
+        raise Refusal("cannot tell", CANNOT_TELL)
+    kind = secret_kind(absolute(path, cwd))
+    if kind:
+        raise Refusal("secret read", f"`{path_word}` is {kind}, which can hold keys, so the agent does not read it.")
+
+
+def redirect_targets(seg):
+    return [seg[i + 1] for i, w in enumerate(seg[:-1]) if w == "<"]
+
+
+def strings_in_code(code):
+    found = re.findall(r"\"([^\"]*)\"|'([^']*)'", code)
+    words = [a or b for a, b in found]
+    words += re.findall(r"[\w~./-]+", code)
+    return words
+
+
+def secret_read(event):
+    cwd = event.get("cwd") or os.getcwd()
+    tool = event.get("tool_name")
+    if tool == "Read":
+        path = (event.get("tool_input") or {}).get("file_path") or ""
+        if path:
+            kind = secret_kind(absolute(os.path.expanduser(path), cwd))
+            if kind:
+                raise Refusal("secret read", f"`{path}` is {kind}, which can hold keys, so the agent does not read it.")
+        return
+    text = command_text(event)
+    segs = segments(text)
+    if segs is None:
+        raise Refusal("cannot tell", "it cannot read the command's quoting. Write the command without unbalanced quotes.")
+    every_word = [w for seg in segs for w in seg]
+    for seg in segs:
+        cmd, args = command_of(seg)
+        for target in redirect_targets(seg):
+            check_secret_path(target, cwd)
+        if cmd in READERS:
+            for target in read_targets(cmd, args):
+                check_secret_path(target, cwd)
+        elif cmd in INTERPRETERS:
+            for i, a in enumerate(args):
+                if a in ("-c", "-e", "--eval", "-p", "--print") and i + 1 < len(args):
+                    for word in strings_in_code(args[i + 1]):
+                        p = expand(word)
+                        if p and secret_kind(absolute(p, cwd)):
+                            raise Refusal("secret read", f"the code reads `{word}`, which can hold keys, so the agent does not run it.")
+        elif cmd == "xargs" and any(command_of(args)[0] == r for r in READERS):
+            for word in every_word:
+                p = expand(word)
+                if p and secret_kind(absolute(p, cwd)):
+                    raise Refusal("secret read", f"the command passes `{word}` to a reader through xargs, and it can hold keys.")
+
+
+# ---------------------------------------------------------------------------------------------
+# outbound
+
+# Key shapes with a fixed prefix, from the default rules of gitleaks (MIT), and two forms of a
+# password in a header or a URL.
+KEY_SHAPES = [
+    ("a GitHub token", r"\b(?:ghp|gho|ghu|ghs|ghr)_[0-9A-Za-z]{36}\b"),
+    ("a GitHub token", r"\bgithub_pat_\w{82}\b"),
+    ("an npm token", r"\b(?i:npm_[a-z0-9]{36})\b"),
+    ("an Anthropic API key", r"\bsk-ant-(?:api03|admin01)-[A-Za-z0-9_\-]{93}AA"),
+    ("an AWS access key", r"\b(?:A3T[A-Z0-9]|AKIA|ASIA|ABIA|ACCA)[A-Z2-7]{16}\b"),
+    ("a GitLab token", r"\bglpat-[\w\-]{20}"),
+    ("a Google API key", r"\bAIza[\w\-]{35}"),
+    ("a Slack token", r"\bxox[bpas]-[0-9]{10,13}-[0-9A-Za-z\-]+"),
+    ("a Stripe key", r"\b(?:sk|rk)_(?:test|live|prod)_[A-Za-z0-9]{10,99}\b"),
+    ("a PyPI token", r"\bpypi-AgEIcHlwaS5vcmc[\w\-]{50,1000}"),
+    ("a Hugging Face token", r"\bhf_(?i:[a-z]{34})\b"),
+    ("a DigitalOcean token", r"\bdop_v1_[a-f0-9]{64}\b"),
+    ("a Shopify token", r"\bshpat_[a-fA-F0-9]{32}\b"),
+    ("a Linear API key", r"\blin_api_(?i:[a-z0-9]{40})\b"),
+    ("a Doppler token", r"\bdp\.pt\.(?i:[a-z0-9]{43})"),
+    ("a SendGrid key", r"\bSG\.(?i:[a-z0-9=_\-\.]{66})"),
+    ("an OpenAI API key", r"\bsk-(?:proj|svcacct|admin)-[A-Za-z0-9_\-]{58,74}T3BlbkFJ[A-Za-z0-9_\-]{58,74}"),
+    ("a private key block", r"-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----"),
+    ("a password in an Authorization header", r"(?i:authorization)\s*[:=]\s*(?i:bearer|basic|token)\s+[^\s'\"\\<>$*{}\[\]]{8,}"),
+    ("a password in a URL", r"[A-Za-z][A-Za-z0-9+.\-]*://[^\s/:@'\"\\<>$*{}\[\]]+:[^\s/@'\"\\<>$*{}\[\]]{8,}@"),
+]
+KEY_PATTERNS = [(kind, re.compile(p)) for kind, p in KEY_SHAPES]
+
+
+def key_in(line):
+    for kind, pattern in KEY_PATTERNS:
+        if pattern.search(line):
+            return kind
+    return None
+
+
+def scan_text(text, where):
+    for n, line in enumerate(text.splitlines(), 1):
+        kind = key_in(line)
+        if kind:
+            raise Refusal("key in outbound text", f"{where} holds {kind} on line {n}. The value is not shown. "
+                          "Remove it, or keep it in a secret store, before sending.")
+
+
+BODY_FILE_HINT = ("it cannot read the text this command sends, so it cannot check it for keys. "
+                  "Write the text to a file and pass it with `--body-file <path>`.")
+
+
+def unreadable_value(value):
+    if "$(" in value and "<<" not in value:
+        return True
+    if "`" in value or VAR.search(value):
+        return True
+    return False
+
+
+def read_file_for_scan(word, cwd):
+    if word == "-":
+        raise Refusal("unreadable text", BODY_FILE_HINT)
+    path = expand(word)
+    if path is None:
+        raise Refusal("unreadable text", BODY_FILE_HINT)
+    try:
+        with open(absolute(path, cwd), encoding="utf-8", errors="replace") as f:
+            return f.read()
+    except OSError:
+        raise Refusal("unreadable text", f"it cannot open `{word}` to check it for keys. Pass a file that exists.")
+
+
+GH_SENDS = {("issue", "create"), ("issue", "comment"), ("issue", "edit"), ("issue", "close"),
+            ("pr", "create"), ("pr", "comment"), ("pr", "edit"), ("pr", "review"), ("pr", "close"),
+            ("release", "create"), ("release", "edit"), ("gist", "create")}
+
+
+def scan_gh(args, cwd):
+    sub = [a for a in args if not a.startswith("-")][:2]
+    if not sub:
+        return
+    is_api = sub[0] == "api"
+    if not is_api and tuple(sub) not in GH_SENDS:
+        return
+    i = 0
+    while i < len(args):
+        a = args[i]
+        name, _, inline = a.partition("=")
+        value = inline if inline else (args[i + 1] if i + 1 < len(args) else "")
+        step = 1 if inline else 2
+        if is_api and name in ("-f", "-F", "--field", "--raw-field"):
+            field_value = value.partition("=")[2]
+            if name in ("-F", "--field") and field_value.startswith("@"):
+                scan_text(read_file_for_scan(field_value[1:], cwd), f"`{field_value[1:]}`")
+            elif unreadable_value(field_value):
+                raise Refusal("unreadable text", BODY_FILE_HINT)
+            i += step
+            continue
+        if is_api and name == "--input":
+            scan_text(read_file_for_scan(value, cwd), f"`{value}`")
+            i += step
+            continue
+        if not is_api and name in ("--body-file", "-F", "--notes-file"):
+            scan_text(read_file_for_scan(value, cwd), f"`{value}`")
+            i += step
+            continue
+        if not is_api and name in ("--body", "-b", "--title", "-t", "--notes", "-n"):
+            if value == "-" or unreadable_value(value):
+                raise Refusal("unreadable text", BODY_FILE_HINT)
+            i += step
+            continue
+        i += 1
+
+
+def git_lines(cwd, *args):
+    try:
+        out = subprocess.run(["git", "-C", cwd, *args], capture_output=True, text=True, timeout=20)
+    except (OSError, subprocess.TimeoutExpired):
+        raise Refusal("unreadable change", "it cannot read the change this commit records, so it cannot check it for keys.")
+    if out.returncode != 0:
+        raise Refusal("unreadable change", "it cannot read the change this commit records, so it cannot check it for keys.")
+    return out.stdout
+
+
+def scan_diff(diff):
+    path, line = None, 0
+    for raw in diff.splitlines():
+        if raw.startswith("+++ "):
+            path = raw[6:] if raw.startswith("+++ b/") else None
+        elif raw.startswith("@@"):
+            m = re.search(r"\+(\d+)", raw)
+            line = int(m.group(1)) if m else 0
+        elif raw.startswith("+") and path:
+            kind = key_in(raw[1:])
+            if kind:
+                raise Refusal("key in a commit", f"the change to `{path}` holds {kind} on line {line}. The value is not shown. "
+                              "Remove it from the file before committing.")
+            line += 1
+
+
+def git_root(cwd):
+    out = subprocess.run(["git", "-C", cwd, "rev-parse", "--show-toplevel"], capture_output=True, text=True)
+    return out.stdout.strip() if out.returncode == 0 else None
+
+
+def scan_commit(args, cwd, added_paths):
+    i, every, paths = 0, False, []
+    while i < len(args):
+        a = args[i]
+        name, _, inline = a.partition("=")
+        if name in ("-m", "--message"):
+            value = inline if inline else (args[i + 1] if i + 1 < len(args) else "")
+            if unreadable_value(value):
+                raise Refusal("unreadable text", BODY_FILE_HINT.replace("`--body-file <path>`", "`git commit -F <path>`"))
+            i += 1 if inline else 2
+            continue
+        if name in ("-F", "--file"):
+            value = inline if inline else (args[i + 1] if i + 1 < len(args) else "")
+            scan_text(read_file_for_scan(value, cwd), f"`{value}`")
+            i += 1 if inline else 2
+            continue
+        if a in ("-a", "--all") or (re.match(r"^-[a-zA-Z]+$", a) and "a" in a[1:] and "m" not in a[1:-1]):
+            every = True
+        if a == "--":
+            paths.extend(args[i + 1:])
+            break
+        i += 1
+    root = git_root(cwd)
+    if root is None:
+        return
+    scan_diff(git_lines(cwd, "diff", "--cached", "--unified=0", "--no-color"))
+    if every or paths:
+        scan_diff(git_lines(cwd, "diff", "--unified=0", "--no-color", "--", *paths))
+    for word in added_paths:
+        p = expand(word)
+        if p is None:
+            raise Refusal("unreadable change", "it cannot tell which files `git add` stages, so it cannot check them for keys.")
+        full = absolute(p, cwd)
+        files = []
+        if os.path.isdir(full):
+            listing = git_lines(cwd, "ls-files", "--others", "--exclude-standard", "--", full)
+            files = [os.path.join(root, f) for f in listing.splitlines() if f]
+            scan_diff(git_lines(cwd, "diff", "--unified=0", "--no-color", "--", full))
+        elif os.path.isfile(full):
+            files = [full]
+        for f in files:
+            try:
+                with open(f, encoding="utf-8", errors="replace") as fh:
+                    scan_text(fh.read(), f"`{os.path.relpath(f, cwd)}`")
+            except OSError:
+                pass
+
+
+def git_parts(args):
+    """The git subcommand and its arguments, past git's own options, with a -C folder."""
+    i, folder = 0, None
+    while i < len(args):
+        a = args[i]
+        if a in ("-C", "-c", "--git-dir", "--work-tree", "--namespace"):
+            if a == "-C" and i + 1 < len(args):
+                folder = args[i + 1]
+            i += 2
+            continue
+        if a.startswith("-"):
+            i += 1
+            continue
+        return a, args[i + 1:], folder
+    return "", [], folder
+
+
+def outbound(event):
+    cwd = event.get("cwd") or os.getcwd()
+    text = command_text(event)
+    segs = segments(text)
+    if segs is None:
+        if re.search(r"\b(gh|git)\b", text):
+            raise Refusal("unreadable text", BODY_FILE_HINT)
+        return
+    sends = False
+    added = []
+    for seg in segs:
+        cmd, args = command_of(seg)
+        if cmd == "gh":
+            sub = [a for a in args if not a.startswith("-")][:2]
+            if sub and (sub[0] == "api" or tuple(sub) in GH_SENDS):
+                sends = True
+        if cmd == "git" and git_parts(args)[0] == "commit":
+            sends = True
+    if not sends:
+        return
+    # The command line itself goes out with the text, so a key anywhere in it is refused.
+    kind = key_in(text)
+    if kind:
+        raise Refusal("key in outbound text", f"the command holds {kind}. The value is not shown. "
+                      "Remove it, or keep it in a secret store, before sending.")
+    for seg in segs:
+        cmd, args = command_of(seg)
+        if cmd == "gh":
+            scan_gh(args, cwd)
+        elif cmd == "git":
+            sub, rest, folder = git_parts(args)
+            here = cwd if folder is None else absolute(expand(folder) or folder, cwd)
+            if sub == "add":
+                added.extend(a for a in rest if not a.startswith("-"))
+            elif sub == "commit":
+                scan_commit(rest, here, added)
+
+
+# ---------------------------------------------------------------------------------------------
+# git
+
+def run_it_yourself(text):
+    one_line = " ".join(text.split())
+    return f" If you mean it, run it yourself in this conversation: ! {one_line}"
+
+
+def short_flags(args):
+    return "".join(a[1:] for a in args if re.match(r"^-[A-Za-z]+$", a))
+
+
+def git_danger(sub, rest):
+    flags = short_flags(rest)
+    if "--no-verify" in rest or any(a.startswith("--no-verify=") for a in rest) or (sub == "commit" and "n" in flags):
+        return "skips the repository's checks with --no-verify"
+    if sub == "push":
+        if any(a in ("--force", "--force-with-lease", "--force-if-includes") or a.startswith("--force-with-lease=") for a in rest) \
+                or "f" in flags or any(a.startswith("+") for a in rest):
+            return "overwrites the remote branch's history with a force push"
+    if sub == "reset" and "--hard" in rest:
+        return "throws away uncommitted work with reset --hard"
+    if sub == "clean" and ("--force" in rest or "f" in flags) and not ("--dry-run" in rest or "n" in flags):
+        return "deletes untracked files with clean -f"
+    if sub in ("checkout", "switch"):
+        if "--" in rest or "." in rest or "--force" in rest or "--discard-changes" in rest or "f" in flags:
+            return "throws away uncommitted changes"
+    if sub == "restore":
+        staged_only = "--staged" in rest or "S" in flags
+        worktree = "--worktree" in rest or "W" in flags
+        if not staged_only or worktree:
+            return "throws away uncommitted changes with restore"
+    return None
+
+
+def git_hook(event):
+    text = command_text(event)
+    segs = segments(text)
+    if segs is None:
+        return
+    for seg in segs:
+        cmd, args = command_of(seg)
+        if cmd != "git":
+            continue
+        sub, rest, _ = git_parts(args)
+        why = git_danger(sub, rest)
+        if why:
+            raise Refusal(f"git {sub}", f"the command {why}." + run_it_yourself(text))
+
+
+# ---------------------------------------------------------------------------------------------
+# delete
+
+SYSTEM_TOP = {"bin", "boot", "dev", "etc", "lib", "opt", "private", "sbin", "System", "usr", "var",
+              "Applications", "Library", "Users", "home", "Volumes"}
+
+
+def broad(word, cwd):
+    if word in (".", "..", "./", "../", "*", ".*", "./*", "/*", "~/*", "$HOME/*", "${HOME}/*"):
+        return True
+    path = expand(word)
+    if path is None:
+        return False
+    path = os.path.normpath(path)
+    if path in ("/", home(), os.path.normpath(cwd)) and os.path.isabs(path):
+        return True
+    parts = [p for p in path.split("/") if p]
+    return os.path.isabs(path) and len(parts) == 1 and parts[0] in SYSTEM_TOP
+
+
+def protected(word, cwd):
+    path = expand(word)
+    return path is not None and listed(absolute(path, cwd), "protected-paths")
+
+
+def delete_targets(cmd, args):
+    if cmd in ("rm", "mv", "rmdir", "unlink", "trash"):
+        targets = [a for a in args if not a.startswith("-") or a == "-"]
+        if cmd == "mv" and targets:
+            targets = targets[:-1]
+        return targets
+    return []
+
+
+def delete_hook(event):
+    cwd = event.get("cwd") or os.getcwd()
+    text = command_text(event)
+    segs = segments(text)
+    if segs is None:
+        return
+    for seg in segs:
+        cmd, args = command_of(seg)
+        recursive = cmd == "rm" and ("--recursive" in args or re.search(r"[rR]", short_flags(args) or ""))
+        for target in delete_targets(cmd, args):
+            if protected(target, cwd):
+                raise Refusal("protected path", f"`{target}` is in your protected-paths list." + run_it_yourself(text))
+            if (recursive or cmd == "mv") and broad(target, cwd):
+                raise Refusal("broad delete", f"`{target}` would remove a whole folder tree such as the root, "
+                              "the home folder, or the current folder." + run_it_yourself(text))
+        if cmd == "find" and ("-delete" in args or ("-exec" in args and "rm" in args)):
+            starts = []
+            for a in args:
+                if a.startswith("-") or a in ("(", "!"):
+                    break
+                starts.append(a)
+            starts = starts or ["."]
+            filtered = any(a in ("-name", "-iname", "-path", "-ipath", "-regex", "-iregex") for a in args)
+            for s in starts:
+                if protected(s, cwd):
+                    raise Refusal("protected path", f"`{s}` is in your protected-paths list." + run_it_yourself(text))
+                if broad(s, cwd) and not (filtered and s in (".", "./")):
+                    raise Refusal("broad delete", f"`find {s}` with -delete would remove a whole folder tree." + run_it_yourself(text))
+
+
+HOOKS = {"secret-read": secret_read, "outbound": outbound, "git": git_hook, "delete": delete_hook}
+
+
+def main():
+    hook = sys.argv[1] if len(sys.argv) > 1 else ""
+    if hook not in HOOKS:
+        print(f"usage: agent_guards.py {' | '.join(HOOKS)}", file=sys.stderr)
+        return 2
+    if os.environ.get(OFF_VARS[hook], "").lower() == "off":
+        return 0
+    try:
+        event = json.load(sys.stdin)
+    except ValueError:
+        deny(hook, "it could not read the event Claude Code or Codex sent, so it refuses the call.")
+        record(hook, "unreadable event")
+        return 0
+    if event.get("tool_name") not in ("Bash", "Read") and "command" not in (event.get("tool_input") or {}):
+        return 0
+    try:
+        HOOKS[hook](event)
+    except Refusal as r:
+        deny(hook, r.reason)
+        record(hook, r.kind)
+    except Exception as e:  # A bug must not let the call through unseen.
+        deny(hook, f"it failed while judging the call ({type(e).__name__}). Turn this hook off with "
+             f"{OFF_VARS[hook]}=off if it keeps failing, and report it.")
+        record(hook, "internal error")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

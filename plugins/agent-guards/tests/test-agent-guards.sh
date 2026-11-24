@@ -1,0 +1,306 @@
+#!/usr/bin/env bash
+# Tests for the agent-guards hooks. Each hook reads one PreToolUse event as JSON on stdin and prints
+# a deny decision, or nothing when it lets the command through. HOME points at a throwaway folder,
+# so no real list file, record, or repository is read or written. Key-shaped values are built while
+# the tests run, so this file holds none.
+set -u
+
+HERE="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN="$(cd "$HERE/.." && pwd)"
+HOOKS="$PLUGIN/hooks"
+REPO="$(git -C "$HERE" rev-parse --show-toplevel 2>/dev/null || true)"
+T="$(cd "$(mktemp -d)" && pwd -P)"
+trap 'rm -rf "$T"' EXIT
+
+export HOME="$T/home"
+WORK="$T/work"
+mkdir -p "$HOME" "$WORK"
+unset XDG_CONFIG_HOME XDG_DATA_HOME AGENT_GUARDS_SECRET_READ AGENT_GUARDS_OUTBOUND AGENT_GUARDS_GIT \
+  AGENT_GUARDS_DELETE AGENT_GUARDS_RECORD
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+
+PASS=0
+FAIL=0
+why=""
+ok() { PASS=$((PASS + 1)); printf 'ok    %s\n' "$1"; }
+ng() { FAIL=$((FAIL + 1)); printf 'FAIL  %s\n' "$1"; [ -n "$why" ] && printf '        %s\n' "$why"; }
+check() { why=""; if "$2"; then ok "$1"; else ng "$1"; fi; }
+
+# Events in the shape Claude Code and Codex hand to a PreToolUse hook.
+event_bash() { jq -nc --arg c "$1" --arg d "${2:-$WORK}" '{hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: {command: $c}, cwd: $d}'; }
+event_read() { jq -nc --arg p "$1" --arg d "$WORK" '{hook_event_name: "PreToolUse", tool_name: "Read", tool_input: {file_path: $p}, cwd: $d}'; }
+
+# run_hook <hook> <event> prints what the hook printed. A missing hook prints nothing.
+run_hook() {
+  [ -f "$HOOKS/$1.sh" ] || return 0
+  (cd "$(printf '%s' "$2" | jq -r '.cwd')" && printf '%s' "$2" | bash "$HOOKS/$1.sh" 2>/dev/null)
+}
+decision() { run_hook "$1" "$2" | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null; }
+reason() { run_hook "$1" "$2" | jq -r '.hookSpecificOutput.permissionDecisionReason // empty' 2>/dev/null; }
+
+# refuses <hook> <event> <label>: the hook denies the event.
+refuses() {
+  [ -f "$HOOKS/$1.sh" ] || { why="hooks/$1.sh does not exist"; return 1; }
+  [ "$(decision "$1" "$2")" = deny ] || { why="$1 let through: $3"; return 1; }
+}
+# passes <hook> <event> <label>: the hook exists and prints nothing, so it neither denies nor approves.
+passes() {
+  [ -f "$HOOKS/$1.sh" ] || { why="hooks/$1.sh does not exist"; return 1; }
+  local out
+  out="$(run_hook "$1" "$2")"
+  [ -z "$out" ] || { why="$1 printed a decision for: $3 ($out)"; return 1; }
+}
+
+# A GitHub token shape and an AWS key id shape, assembled here so the file never holds one.
+KEY_GH="gh""p_aB3dE5gH7jK9mN1pQ3sT5vW7yZ9bC1dE3fG5"
+KEY_AWS="AK""IAQ3EXAMPLE7XYZ7W2"
+
+secret_shell_refused() {
+  local c
+  for c in 'cat .env' 'head -5 .env.local' 'grep TOKEN .env.production' 'cat ~/.ssh/id_ed25519' \
+    'less certs/server.pem' 'cat secrets/api.txt' 'python3 -c "print(open(\".env\").read())"'; do
+    refuses secret-read "$(event_bash "$c")" "$c" || return 1
+  done
+}
+
+secret_read_tool_refused() {
+  local p
+  for p in "$WORK/.env" "$WORK/.env.production" "$HOME/.ssh/id_ed25519" "$WORK/certs/server.pem"; do
+    refuses secret-read "$(event_read "$p")" "Read $p" || return 1
+  done
+}
+
+secret_ordinary_allowed() {
+  local c p
+  for c in 'cat .env.example' 'cat src/main.py' 'grep -n TODO README.md'; do
+    passes secret-read "$(event_bash "$c")" "$c" || return 1
+  done
+  for p in "$WORK/.env.example" "$WORK/README.md"; do
+    passes secret-read "$(event_read "$p")" "Read $p" || return 1
+  done
+}
+
+secret_app_data_refused() {
+  local c p
+  for c in 'cat ~/Library/Keychains/login.keychain-db' 'cat ~/Library/Messages/chat.db' \
+    'cat ~/Library/Mail/V10/inbox.emlx' 'cat "$HOME/Library/Application Support/Google/Chrome/Default/Cookies"' \
+    'cat ~/.claude/history.jsonl' 'tail ~/.claude/projects/demo/session.jsonl'; do
+    refuses secret-read "$(event_bash "$c")" "$c" || return 1
+  done
+  for p in "$HOME/.claude/history.jsonl" "$HOME/Library/Messages/chat.db"; do
+    refuses secret-read "$(event_read "$p")" "Read $p" || return 1
+  done
+}
+
+secret_personal_folders_allowed() {
+  local c
+  for c in 'cat ~/Documents/notes.txt' 'head ~/Downloads/data.csv' 'ls ~/Pictures'; do
+    passes secret-read "$(event_bash "$c")" "$c" || return 1
+  done
+  passes secret-read "$(event_read "$HOME/Downloads/data.csv")" "Read ~/Downloads/data.csv"
+}
+
+secret_paths_listed() {
+  mkdir -p "$HOME/.config/agent-guards"
+  printf '%s\n' '# places only this person keeps keys in' '~/vault/keys' '# ~/other' > "$HOME/.config/agent-guards/secret-paths"
+  local result=0
+  refuses secret-read "$(event_bash 'cat ~/vault/keys/a.txt')" 'cat ~/vault/keys/a.txt' || result=1
+  [ "$result" -eq 0 ] && { refuses secret-read "$(event_read "$HOME/vault/keys/b.txt")" "Read ~/vault/keys/b.txt" || result=1; }
+  [ "$result" -eq 0 ] && { passes secret-read "$(event_bash 'cat ~/vault/notes.txt')" 'cat ~/vault/notes.txt' || result=1; }
+  [ "$result" -eq 0 ] && { passes secret-read "$(event_bash 'cat ~/other/a.txt')" 'cat ~/other/a.txt (a # line)' || result=1; }
+  rm -f "$HOME/.config/agent-guards/secret-paths"
+  return "$result"
+}
+
+secret_unknown_target_refused() {
+  local c
+  for c in 'cat "$SECRET_FILE"' 'cat $(find . -name "*.key")' 'head "$(ls | head -1)"'; do
+    refuses secret-read "$(event_bash "$c")" "$c" || return 1
+  done
+  case "$(reason secret-read "$(event_bash 'cat "$SECRET_FILE"')")" in
+    *"name the file"*) ;;
+    *) why="the refusal does not say to name the file directly"; return 1 ;;
+  esac
+}
+
+printf 'first line\ntoken: %s\n' "$KEY_GH" > "$WORK/body.md"
+printf 'nothing secret here\n' > "$WORK/clean.md"
+
+outbound_body_key_refused() {
+  local c r
+  for c in 'gh issue create --title t --body-file body.md' 'gh pr create --title t --body-file body.md' \
+    'gh api repos/o/r/issues -X POST -F body=@body.md' "gh issue comment 1 --body \"key $KEY_AWS\""; do
+    refuses outbound "$(event_bash "$c")" "$c" || return 1
+  done
+  r="$(reason outbound "$(event_bash 'gh issue create --title t --body-file body.md')")"
+  case "$r" in *"$KEY_GH"*) why="the refusal shows the value"; return 1 ;; esac
+  case "$r" in *"line 2"*) ;; *) why="the refusal does not name line 2: $r"; return 1 ;; esac
+}
+
+REPO_DIR="$WORK/repo"
+git init -q "$REPO_DIR"
+git -C "$REPO_DIR" config user.email test
+git -C "$REPO_DIR" config user.name test
+printf 'ok\n' > "$REPO_DIR/a.txt"
+git -C "$REPO_DIR" add a.txt
+git -C "$REPO_DIR" commit -qm first
+
+outbound_commit_key_refused() {
+  printf 'aws = "%s"\n' "$KEY_AWS" > "$REPO_DIR/config.txt"
+  git -C "$REPO_DIR" add config.txt
+  local result=0 r
+  refuses outbound "$(event_bash 'git commit -m "add config"' "$REPO_DIR")" 'git commit with a staged key' || result=1
+  r="$(reason outbound "$(event_bash 'git commit -m "add config"' "$REPO_DIR")")"
+  case "$r" in *"$KEY_AWS"*) why="the refusal shows the value"; result=1 ;; esac
+  git -C "$REPO_DIR" rm -qf --cached config.txt
+  rm -f "$REPO_DIR/config.txt"
+  return "$result"
+}
+
+outbound_unreadable_body_refused() {
+  local c
+  for c in 'gh issue create --title t --body "$(cat body.md)"' 'gh issue create --title t --body -' \
+    'gh issue create --title t --body-file "$BODY"'; do
+    refuses outbound "$(event_bash "$c")" "$c" || return 1
+  done
+  case "$(reason outbound "$(event_bash 'gh issue create --title t --body "$(cat body.md)"')")" in
+    *"--body-file"*) ;;
+    *) why="the refusal does not show the --body-file form"; return 1 ;;
+  esac
+}
+
+outbound_clean_allowed() {
+  local c
+  for c in 'gh issue create --title t --body-file clean.md' 'gh issue comment 1 --body "looks good"' 'ls -la'; do
+    passes outbound "$(event_bash "$c")" "$c" || return 1
+  done
+  printf 'more\n' >> "$REPO_DIR/a.txt"
+  git -C "$REPO_DIR" add a.txt
+  passes outbound "$(event_bash 'git commit -m "more"' "$REPO_DIR")" 'git commit without a key'
+  local result=$?
+  git -C "$REPO_DIR" reset -q
+  git -C "$REPO_DIR" checkout -q -- a.txt
+  return "$result"
+}
+
+git_dangerous_refused() {
+  local c r
+  for c in 'git push --force' 'git push -f origin main' 'git reset --hard HEAD~1' 'git commit --no-verify -m wip' \
+    'git clean -fd' 'git checkout -- .'; do
+    refuses git "$(event_bash "$c" "$REPO_DIR")" "$c" || return 1
+    r="$(reason git "$(event_bash "$c" "$REPO_DIR")")"
+    case "$r" in *"! $c"*) ;; *) why="the refusal of '$c' does not show '! $c'"; return 1 ;; esac
+  done
+}
+
+git_ordinary_allowed() {
+  local c
+  for c in 'git push' 'git push origin feat/x' 'git checkout main' 'git clean -n' 'git restore --staged a.txt' 'git status'; do
+    passes git "$(event_bash "$c" "$REPO_DIR")" "$c" || return 1
+  done
+}
+
+delete_broad_refused() {
+  local c r
+  for c in 'rm -rf /' 'rm -rf ~' 'rm -rf "$HOME"' 'rm -rf .' 'find / -delete'; do
+    refuses delete "$(event_bash "$c")" "$c" || return 1
+    r="$(reason delete "$(event_bash "$c")")"
+    case "$r" in *"! $c"*) ;; *) why="the refusal of '$c' does not show '! $c'"; return 1 ;; esac
+  done
+}
+
+delete_named_allowed() {
+  local c
+  for c in 'rm -rf ./build' 'rm -rf node_modules' 'rm notes.txt'; do
+    passes delete "$(event_bash "$c")" "$c" || return 1
+  done
+}
+
+protected_paths_listed() {
+  mkdir -p "$HOME/.config/agent-guards"
+  printf '%s\n' '~/work/keep' > "$HOME/.config/agent-guards/protected-paths"
+  local result=0
+  refuses delete "$(event_bash 'rm -rf ~/work/keep')" 'rm -rf ~/work/keep' || result=1
+  [ "$result" -eq 0 ] && { refuses delete "$(event_bash 'rm ~/work/keep/a.txt')" 'rm ~/work/keep/a.txt' || result=1; }
+  [ "$result" -eq 0 ] && { passes delete "$(event_bash 'rm -rf ~/work/other')" 'rm -rf ~/work/other' || result=1; }
+  rm -f "$HOME/.config/agent-guards/protected-paths"
+  return "$result"
+}
+
+turn_off_one_hook() {
+  local hooks=(secret-read outbound git delete)
+  local vars=(AGENT_GUARDS_SECRET_READ AGENT_GUARDS_OUTBOUND AGENT_GUARDS_GIT AGENT_GUARDS_DELETE)
+  local events=("$(event_bash 'cat .env')" "$(event_bash 'gh issue create --title t --body-file body.md')" \
+    "$(event_bash 'git push --force' "$REPO_DIR")" "$(event_bash 'rm -rf ~')")
+  local i j
+  for i in 0 1 2 3; do
+    export "${vars[$i]}=off"
+    passes "${hooks[$i]}" "${events[$i]}" "${hooks[$i]} with ${vars[$i]}=off" || { unset "${vars[$i]}"; return 1; }
+    for j in 0 1 2 3; do
+      [ "$i" -eq "$j" ] && continue
+      refuses "${hooks[$j]}" "${events[$j]}" "${hooks[$j]} with ${vars[$i]}=off" || { unset "${vars[$i]}"; return 1; }
+    done
+    unset "${vars[$i]}"
+  done
+}
+
+records_off_by_default() {
+  local log="$HOME/.local/share/agent-guards/refusals.log"
+  rm -rf "$HOME/.local/share/agent-guards"
+  refuses git "$(event_bash 'git push --force' "$REPO_DIR")" 'git push --force' || return 1
+  [ ! -e "$log" ] || { why="a record was written with the record variable unset"; return 1; }
+  export AGENT_GUARDS_RECORD=on
+  refuses git "$(event_bash 'git push --force' "$REPO_DIR")" 'git push --force' || { unset AGENT_GUARDS_RECORD; return 1; }
+  refuses delete "$(event_bash 'rm -rf ~')" 'rm -rf ~' || { unset AGENT_GUARDS_RECORD; return 1; }
+  unset AGENT_GUARDS_RECORD
+  [ -f "$log" ] || { why="no record was written with AGENT_GUARDS_RECORD=on"; return 1; }
+  [ "$(wc -l < "$log" | tr -d ' ')" = 2 ] || { why="expected 2 record lines, found $(wc -l < "$log" | tr -d ' ')"; return 1; }
+}
+
+manifests_declare_hooks() {
+  local claude="$PLUGIN/.claude-plugin/plugin.json" codex="$PLUGIN/.codex-plugin/plugin.json" file h
+  [ -f "$claude" ] && [ -f "$codex" ] || { why="a plugin.json is missing"; return 1; }
+  [ "$(jq -c '.hooks' "$claude")" = "$(jq -c '.hooks' "$codex")" ] || { why="the two manifests declare different hooks"; return 1; }
+  file="$(jq -r '.hooks // empty' "$claude")"
+  [ -n "$file" ] && [ -f "$PLUGIN/${file#./}" ] || { why="the manifests name no hooks file that exists"; return 1; }
+  for h in secret-read outbound git delete; do
+    jq -e --arg h "$h" '[.hooks.PreToolUse[] | select(.matcher | test("Bash")) | .hooks[].command] | any(contains("hooks/" + $h + ".sh"))' \
+      "$PLUGIN/${file#./}" > /dev/null || { why="hooks file does not run $h.sh for Bash"; return 1; }
+  done
+  jq -e '[.hooks.PreToolUse[] | select(.matcher | test("Read")) | .hooks[].command] | any(contains("hooks/secret-read.sh"))' \
+    "$PLUGIN/${file#./}" > /dev/null || { why="hooks file does not run secret-read.sh for Read"; return 1; }
+}
+
+repository_rules_allow_hook_plugins() {
+  [ -n "$REPO" ] || { why="not inside the repository"; return 1; }
+  grep -qF 'holds hooks and no skills' "$REPO/AGENTS.md" || { why="AGENTS.md does not state the exception"; return 1; }
+  grep -qF 'holds hooks and no skills' "$REPO/docs/creating-a-plugin.md" || { why="docs/creating-a-plugin.md does not state the exception"; return 1; }
+  # The Japanese page says the same rule; the phrase is written as escapes to keep this file English.
+  python3 -I -c 'import sys; sys.exit(0 if "\u6280\u3092\u6301\u305f\u305a\u30d5\u30c3\u30af\u3060\u3051\u3092\u6301\u3064" in open(sys.argv[1], encoding="utf-8").read() else 1)' \
+    "$REPO/docs/creating-a-plugin.ja.md" || { why="docs/creating-a-plugin.ja.md does not state the exception"; return 1; }
+}
+
+check "secret read refuses .env and key files in a shell command" secret_shell_refused
+check "secret read refuses .env and key files in the Read tool" secret_read_tool_refused
+check "secret read allows .env.example and ordinary files" secret_ordinary_allowed
+check "secret read refuses app data and conversation records" secret_app_data_refused
+check "secret read allows Documents, Downloads, and Pictures by default" secret_personal_folders_allowed
+check "secret-paths adds places to refuse reading" secret_paths_listed
+check "secret read refuses a target it cannot tell" secret_unknown_target_refused
+check "outbound refuses a body holding a key without showing it" outbound_body_key_refused
+check "outbound refuses a commit whose staged change holds a key" outbound_commit_key_refused
+check "outbound refuses a body it cannot read and shows --body-file" outbound_unreadable_body_refused
+check "outbound allows text without keys" outbound_clean_allowed
+check "git refuses force push, hard reset, skipped checks, and discarded changes with a ! command" git_dangerous_refused
+check "git allows ordinary commands" git_ordinary_allowed
+check "delete refuses broad deletes with a ! command" delete_broad_refused
+check "delete allows a named folder" delete_named_allowed
+check "protected-paths adds places to refuse deleting" protected_paths_listed
+check "each hook turns off with its own variable" turn_off_one_hook
+check "records are off by default and on with a variable" records_off_by_default
+check "both manifests declare the same hooks" manifests_declare_hooks
+check "the repository rules allow hooks only in plugins without skills" repository_rules_allow_hook_plugins
+
+printf '%d passed, %d failed\n' "$PASS" "$FAIL"
+printf 'checks: %d\n' "$((PASS + FAIL))"
+[ "$FAIL" -eq 0 ]
