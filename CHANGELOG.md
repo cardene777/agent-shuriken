@@ -7,6 +7,44 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-11-24
+
+### Plugins
+
+| Plugin | Version |
+|---|---|
+| account-cleanup | 0.4.0 |
+| chainome-diagram | 0.2.0 |
+| compare-report | 0.6.0 |
+| convey | 0.3.0 |
+| design-formats | 0.2.0 |
+| diagram-composer | 0.1.1 |
+| diagram-explainer | 0.4.0 |
+| diagram-styles | 0.4.0 |
+| digital-dashboard | 0.1.2 |
+| doc-formats | 0.1.0 |
+| docs-publish | 0.4.0 |
+| evm-dev | 0.9.0 |
+| excalidraw-diagram | 0.3.0 |
+| feedback-loop | 0.1.2 |
+| init-project | 0.4.0 |
+| japanese-speaking | 0.3.0 |
+| japanese-writing | 0.3.0 |
+| learning-to-skill | 0.1.2 |
+| machine-cleanup | 0.3.0 |
+| motion-diagram | 0.1.0 |
+| portman | 0.4.0 |
+| product-deck | 0.2.0 |
+| repo-progress | 0.2.0 |
+| screen-video | 0.4.0 |
+| secure-dotfile | 0.8.0 |
+| session-handoff | 0.1.1 |
+| skill-tune | 0.2.0 |
+| slides | 0.1.2 |
+| techdebt | 0.4.0 |
+
+### Changed
+
 - The follower test of page-design runs the own tests of page-design and of the skills that follow it, and `scripts/check.sh`, only with `test-followers.sh --own-tests`, which Releasing asks for when page-design changes and before releasing design-formats, so a default run ends in seconds instead of about 25 minutes
 
 ## [0.22.0] - 2026-11-24
@@ -609,7 +647,8 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 - First public release with the account-cleanup and pc-tidy plugins, installable from this marketplace in Claude Code and Codex
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/v0.22.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/v0.23.0...HEAD
+[0.23.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.23.0
 [0.22.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.22.0
 [0.21.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.21.0
 [0.20.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.20.0
