@@ -20,7 +20,7 @@ Record the four layers of every scene in `storyboard/scene-design-layers.json` o
 | `scenes[]` | At least two scenes, in the order they play |
 | `scenes[].id` | The scene's ID |
 | `scenes[].viewerQuestion` | The question of the viewer the scene answers |
-| `scenes[].form`, `composition`, `typography`, `motion` | Each a `mode` of `catalog`, `bespoke`, or `none`. A `catalog` layer names the entry `id` and the `adaptation` made to it; a `bespoke` layer gives the `rationale` for not using a catalog entry; only `typography` may be `none` |
+| `scenes[].form`, `composition`, `typography`, `motion` | Each a `mode` of `catalog`, `bespoke`, or `none`. A `catalog` layer names the entry `id` that a search of `remotion-catalog` returned, in the form `<source>:<name>`, and the `adaptation` made to it; a `bespoke` layer gives the `rationale` for not using a catalog entry; only `typography` may be `none` |
 | `scenes[].silhouetteFamily` | The family of outlines the scene's objects belong to |
 | `scenes[].spatialGrammar` | How the scene arranges its parts in space |
 | `scenes[].revealGrammar` | How the scene shows its parts over time |

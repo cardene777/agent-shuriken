@@ -1,7 +1,7 @@
 {
   "name": "remotion-explainer",
   "version": "0.1.0",
-  "description": "Plan the motion of a Remotion explainer video and check its frames by machine: one subject carried from scene to scene, motions backed by videos you watched, connectors that end on their ports, a layout that keeps the safe area and the subtitle zone, and no flash where an element starts or ends",
+  "description": "Plan the motion of a Remotion explainer video, find built examples for each scene in a catalog of licensed Remotion sources, and check its frames by machine: one subject carried from scene to scene, motions backed by videos you watched, connectors that end on their ports, a layout that keeps the safe area and the subtitle zone, and no flash where an element starts or ends",
   "author": {
     "name": "cardene777",
     "url": "https://github.com/cardene777"
@@ -20,13 +20,14 @@
   "interface": {
     "displayName": "Remotion Explainer",
     "shortDescription": "Plan and check Remotion videos",
-    "longDescription": "Plans how the scenes of a Remotion explainer video move, and checks the files of the Remotion project by machine, naming the scene, the element, the frame, or the library entry of every issue. The choreography check makes each scene bring objects in when they are needed and change their state, the continuous choreography check makes each scene take over the subject the scene before it handed on instead of clearing the screen, and the motion language check makes each scene's motion rest on a video in your own evidence library that was watched, with the time range where it shows. The SVG geometry check keeps connectors on the ports of their targets, elements apart by their minimum, and moving things on their target at the arrival frame. The layout check keeps elements in the safe area and out of the subtitle zone, aligned, and clear of the routes of moving things. The timing boundary check reads the PNG frames rendered around the start or end of an element and finds pixels that show too early or too late, flashes of three frames or fewer, and flicker. The scene layers check makes every scene decide its form, composition, typography, and motion apart, and refuses two scenes in a row with the same design. The checks run on Node.js with its built-in modules only, read only the files you name, and send nothing anywhere.",
+    "longDescription": "Plans how the scenes of a Remotion explainer video move, and checks the files of the Remotion project by machine, naming the scene, the element, the frame, or the library entry of every issue. The choreography check makes each scene bring objects in when they are needed and change their state, the continuous choreography check makes each scene take over the subject the scene before it handed on instead of clearing the screen, and the motion language check makes each scene's motion rest on a video in your own evidence library that was watched, with the time range where it shows. The SVG geometry check keeps connectors on the ports of their targets, elements apart by their minimum, and moving things on their target at the arrival frame. The layout check keeps elements in the safe area and out of the subtitle zone, aligned, and clear of the routes of moving things. The timing boundary check reads the PNG frames rendered around the start or end of an element and finds pixels that show too early or too late, flashes of three frames or fewer, and flicker. The scene layers check makes every scene decide its form, composition, typography, and motion apart, and refuses two scenes in a row with the same design. The catalog fetches the outside Remotion examples the plugin lists, each under a license that allows the use and at a pinned commit, into your data folder with git, never runs their code, and searches them by form, composition, typography, or motion, returning each entry with its source, commit, and license. The checks run on Node.js with its built-in modules only, read only the files you name, and send nothing anywhere.",
     "developerName": "cardene777",
     "category": "Productivity",
     "capabilities": [],
     "defaultPrompt": [
       "Plan how the scenes of this explainer video move",
-      "Check the layout spec of this Remotion project"
+      "Check the layout spec of this Remotion project",
+      "Find a composition in the Remotion catalog for a scene that compares two routes"
     ],
     "composerIcon": "./assets/icon.svg",
     "logo": "./assets/icon.svg"
