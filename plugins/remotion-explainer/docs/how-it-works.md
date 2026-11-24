@@ -2,8 +2,8 @@
 
 English · [日本語](how-it-works.ja.md)
 
-This page explains what each check of `remotion-motion-plan` and `remotion-frame-checks` reads, how it decides, and what it writes.
-The checks are eight Node.js scripts, four in `skills/remotion-motion-plan/scripts/` and four in `skills/remotion-frame-checks/scripts/`, that use only the modules built into Node.js 18 or later.
+This page explains what each check of `remotion-motion-plan` and `remotion-frame-checks` reads, how it decides, and what it writes, and how `remotion-catalog` fetches, builds, and searches its catalog.
+The checks are eight Node.js scripts, four in `skills/remotion-motion-plan/scripts/` and four in `skills/remotion-frame-checks/scripts/`, and the catalog is one more, `skills/remotion-catalog/scripts/catalog.mjs`; all of them use only the modules built into Node.js 18 or later.
 
 ## How a check runs
 
@@ -113,12 +113,65 @@ Each scene needs an id, the viewer question it answers, and its four layers.
 A layer from the catalog names the entry and what was adapted, a bespoke layer gives its reason, and only typography may be left out with `none`.
 The silhouette family, spatial grammar, and reveal grammar of each scene are compared with the scene before it, and the check refuses when all three are the same.
 
+## Catalog
+
+`catalog.mjs` has three commands, and each prints one JSON object.
+It keeps everything in `catalog/` of the data folder: each fetched source in `catalog/sources/<id>`, and the catalog in `catalog/catalog.json`.
+The folders are made readable only by you, and the catalog file has mode 600.
+
+| Command | What it does | Exits |
+|---|---|---|
+| `sync` | Fetches each listed source at its pinned commit, and prints the sources fetched, the sources left out with their reason, and the folders of sources no longer listed | 0, or 1 when a source was left out |
+| `build` | Reads the fetched sources and writes `catalog.json`, skipping with its reason a source that is not fetched at its pinned commit | 0 |
+| `search --layer <layer> <words>` | Returns the entries tagged in that layer that match the words, best first, 12 by default or the number `--limit` gives | 0 |
+
+Each command exits 2 with the reason on standard error when it is called the wrong way or cannot read a file.
+`sync` and `build` read `data/sources.json` of the skill, or the list `--sources` names.
+
+### Fetching a source
+
+Before it fetches anything, `sync` checks each entry of the list, and leaves out with its reason an entry that breaks one of these rules.
+
+| Field | Must be |
+|---|---|
+| `id` | Lowercase letters and digits joined by `-` |
+| `repository` | An `https://` or `file://` address |
+| `commit` | A full commit hash of 40 hexadecimal characters |
+| `license` | MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, 0BSD, CC0-1.0, or Unlicense |
+| `licenseEvidence` | A file inside the repository, with an optional `#` and section name |
+| `exclude` | Paths inside the repository, when given |
+| `adapter.kind` | `files` or `cards` |
+
+It then makes an empty git repository in the source's folder, fetches only the pinned commit with depth 1 and no tags, and checks it out with a sparse checkout that leaves out the excluded paths.
+Git runs with its hooks turned off (`core.hooksPath=/dev/null`) and never asks for a password (`GIT_TERMINAL_PROMPT=0`), so nothing from the source runs.
+When the checked-out commit is not the pinned one, or the license evidence is not a regular file inside the source, it removes the folder and leaves the source out.
+A source already at its pinned commit with the same excluded paths is not fetched again.
+
+### Building the catalog
+
+`build` reads each fetched source through its adapter, and never follows a symbolic link, so a source cannot point the catalog at a file outside it.
+
+| Adapter | Reads |
+|---|---|
+| `files` | Every file with the given extension under the given folder, one entry each. The tables of the README, under headings, give an entry its title, description, and category by file name |
+| `cards` | The cards of the card library, with one entry for each style of a card, and the files under `<demos>/<category>/<name>` |
+
+For each entry it joins the title, the description, the category, the path, the tags, and the code, and tags the four layers with English word rules, for example `title` for typography when the text has "title", "headline", or "heading", and `path-trace` for motion when it has "stroke", "trace", or "dash".
+An entry with no tag in a layer is not returned for that layer.
+Each entry keeps its source, repository, commit, and license, and the catalog keeps the code itself out.
+
+### Searching
+
+`search` splits the words into lowercase tokens of two characters or more, and scores each entry tagged in the layer: 20 for each token found in one of its tags in that layer, and 7 for each token found in its ID, title, description, category, file, card tags, or the tags of any layer.
+It drops the entries that score 0 and sorts the rest by score, then by ID.
+Each result holds its `id`, `source`, `title`, `file`, the absolute `path` of that file in the data folder, its `layers`, its `score`, the tokens that matched in `why`, and its `license`, `repository`, and `commit`.
+
 ## What it reads, writes, and sends
 
 | Kind | What |
 |---|---|
-| Reads | The files named on the command line |
-| Writes | The checks write only the audit files where `--audit-dir` or `--out` points; the agent writes the plans under `storyboard/` and the entries of the library |
-| Runs | Nothing but itself; rendering frames is done by Remotion in your project |
-| Sends | The checks make no network connection; a search for a video uses only general words for the kind of motion |
-| Keeps | The motion evidence library in the data folder, readable only by you, until you delete it; nothing else outside your project |
+| Reads | The files named on the command line; the catalog also reads its source list and the fetched sources |
+| Writes | The checks write only the audit files where `--audit-dir` or `--out` points; the agent writes the plans under `storyboard/` and the entries of the library; the catalog writes only under `catalog/` of the data folder |
+| Runs | Nothing but itself and, for the catalog, `git`; rendering frames is done by Remotion in your project, and code from a catalog source is never run |
+| Sends | The checks make no network connection; `sync` downloads only the repositories of its source list; a search for a video uses only general words for the kind of motion |
+| Keeps | The motion evidence library, the fetched sources, and the catalog in the data folder, readable only by you, until you delete them; nothing else outside your project |
