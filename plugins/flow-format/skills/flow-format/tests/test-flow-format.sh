@@ -294,11 +294,15 @@ repository_lists_it() {
 }
 
 # root_changelog_names <file>: the root changelog names the plugin with a line under ## [Unreleased]
-# that starts with "The <name> plugin".
+# that starts with "The <name> plugin", or with a row of the newest repository release's table, the
+# same two forms that check_root_changelog in scripts/check.sh accepts. A repository release moves
+# the line into the table.
 root_changelog_names() {
-  local unreleased
+  local unreleased newest
   unreleased="$(awk '/^## \[Unreleased\]/ { on = 1; next } /^## \[/ { on = 0 } on' "$1")"
-  grep -qE "^- The $NAME plugin" <<< "$unreleased"
+  grep -qE "^- The $NAME plugin" <<< "$unreleased" && return 0
+  newest="$(awk '/^## \[[0-9]+\.[0-9]+\.[0-9]+\] - / { if (seen) exit; seen = 1; on = 1; next } /^## \[/ { on = 0 } on' "$1")"
+  grep -qE "^\| $NAME \| [0-9]+\.[0-9]+\.[0-9]+ \|$" <<< "$newest"
 }
 
 # changelog_case <file> <form>: writes a root changelog that names the plugin under Unreleased
