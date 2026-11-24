@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-24
+
 - `musubi.json` follows `japanese-writing/connecting`, the guide to connecting sentences, as an optional musubi follow. When the `musubi` command is installed, the agent runs `musubi check` before reading the guide, and the check refuses convey when the guide changed after the last check. Without japanese-writing, convey writes as before
 
 ## [0.2.0] - 2026-11-16
@@ -27,5 +29,6 @@ First public release.
 - Follows the japanese-writing skill for Japanese when it is installed
 - Starts when you ask to share, report, announce, or ask for something in a message, or when you call it, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/convey--v0.2.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/convey--v0.3.0...HEAD
+[0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/convey--v0.3.0
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/convey--v0.2.0

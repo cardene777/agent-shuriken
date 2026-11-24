@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-24
+
 - A flow with `app` in place of `url` records a macOS app's window, an app on the iOS Simulator, or an app on the Android emulator, planned, rehearsed, and recorded the same way as a web page. Parts are named by role and name, label, text, or testId through each system's accessibility tree, or by a `point` of the app's own coordinates; `swipe` drags a finger on a phone; `mask` also blurs a fixed `rect`; and `inspect` lists the parts of the app's screen
 - The edit draws the pointer and each press over a macOS window and zooms in on each part pressed, and draws a touch mark at each tap and along each swipe on a phone, which is never zoomed into and fills the height of the 9:16 video. The capture taken before the blur is deleted at once
 - `setup mac`, `setup ios`, and `setup android` list what recording that system's apps needs, with the size of each, and install it with `--yes`: the skill's Swift tool, which needs Screen Recording and Accessibility for the app the agent runs in; idb, idb_companion, the iOS runtime, and the simulator `screen-video-ios`; or the Android SDK packages and the emulator `screen-video-android`. Phone flows run only on those two devices
@@ -43,7 +45,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - A rehearsal stops before the first step marked with `effect`, and `record` runs marked steps only with `--confirm-effects`. A run stops, naming them, instead of emptying a folder that holds files it did not write
 - `scenes` and `render` caption and edit a recording the user made, from pictures of its scene changes and the captions the agent writes
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/screen-video--v0.3.1...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/screen-video--v0.4.0...HEAD
+[0.4.0]: https://github.com/cardene777/agent-shuriken/releases/tag/screen-video--v0.4.0
 [0.3.1]: https://github.com/cardene777/agent-shuriken/releases/tag/screen-video--v0.3.1
 [0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/screen-video--v0.3.0
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/screen-video--v0.2.0

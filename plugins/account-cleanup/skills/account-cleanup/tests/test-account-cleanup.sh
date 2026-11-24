@@ -1433,7 +1433,7 @@ check "the follow-up table is as wide as its content with 8px by 12px cells" 'pa
 check "the follow-up page lists the newest record first" 'pattern followups-newest "$T/followups-three.html"'
 check "below 600px the follow-up page shows each record as a heading and value pairs" 'pattern followups-phone "$T/followups-three.html"'
 check "an empty follow-up page shows a sentence instead of a table" 'pattern followups-empty "$T/followups-none.html"'
-check "the changelog names the new sheet behavior under Unreleased" 'grep -qF "Delete and Keep buttons" "$PLUGIN/CHANGELOG.md"'
+check "the changelog names the new sheet behavior" 'grep -qF "Delete and Keep buttons" "$PLUGIN/CHANGELOG.md"'
 check "the copied text keeps its fixed first line and one key per line in either language" \
   'js_is "selectionText memoText?" "$SELECTION_JS memos = { \"a.example\": \"photos first\" }; var o = []; [\"en\", \"ja\"].forEach(function (l) { lang = l; o.push(JSON.stringify(selectionText())); }); console.log(o.join(\"|\"));" "\"account-cleanup selection\\na.example\\tphotos first\\nc.example\\n\"|\"account-cleanup selection\\na.example\\tphotos first\\nc.example\\n\""'
 

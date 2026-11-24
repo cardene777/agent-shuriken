@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-24
+
 - `report.html` leaves out the path of the scanned folder and writes your home folder as `~` in all of its data, notes included, so the page can be passed on without your user name. Before, the data inside the page kept the absolute path of the scanned folder, though the page never showed it. `scan.json` keeps the path, because the commands read it
 - The README shows the current report, with the list and the details of the pressed file beside it, and its sample summary and screenshot come from one scan of the sample repository that `tests/sample_repo.py` builds. The tests compare the README with a fresh scan of that repository, so a change to the scan output that leaves the README behind fails them
 - Long functions in JavaScript, TypeScript, Go, Rust, Java, Kotlin, C, C++, C#, Swift, PHP, and Dart are measured to their real end in more shapes. Braces in parameter and return types, such as `{ a: string }` in TypeScript and `map[string]struct{}` or `interface{}` in Go, are no longer read as the body. Braces inside strings that span lines are no longer counted: template literals whose `${...}` runs over lines, raw strings in Go, Rust, and C++, Rust and PHP strings, triple-quoted strings in Swift, Java, Kotlin, C#, and Dart, C# verbatim strings, and PHP heredocs. Rust functions with lifetimes in their head are found, and an arrow function that ends on its first line is no longer stretched to the end of the next function
@@ -52,7 +54,8 @@ First public release.
 - Writes one HTML report with a tab per measure, an English and Japanese switch, and pages of 50 rows, which loads nothing from the network
 - Starts when you ask about technical debt, or when you call it, in Claude Code and in Codex
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/techdebt--v0.3.1...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/techdebt--v0.4.0...HEAD
+[0.4.0]: https://github.com/cardene777/agent-shuriken/releases/tag/techdebt--v0.4.0
 [0.3.1]: https://github.com/cardene777/agent-shuriken/releases/tag/techdebt--v0.3.1
 [0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/techdebt--v0.3.0
 [0.2.2]: https://github.com/cardene777/agent-shuriken/releases/tag/techdebt--v0.2.2
