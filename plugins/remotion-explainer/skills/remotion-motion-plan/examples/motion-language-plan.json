@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "scenes": [
+    {
+      "id": "arrive",
+      "viewerQuestion": "Where does a parcel start its trip?",
+      "primaryRecipe": "spatial-journey",
+      "evidenceIds": [
+        "example-dock-journey"
+      ],
+      "visualReason": "The trip itself is the explanation, so the camera travels with the parcel",
+      "officialMechanism": "svg-paths",
+      "entry": "The truck at the dock",
+      "operation": "The parcel follows the ramp onto the dock",
+      "result": "The parcel waits on the dock",
+      "proofFrames": [
+        "entry",
+        "operation",
+        "result"
+      ]
+    },
+    {
+      "id": "scan",
+      "viewerQuestion": "How does the center learn where the parcel goes?",
+      "primaryRecipe": "live-inspection",
+      "supportingRecipe": "focus-push",
+      "evidenceIds": [
+        "example-label-scan"
+      ],
+      "visualReason": "The label holds the answer, so it opens and its fields are read in order",
+      "officialMechanism": "css-mask",
+      "entry": "The parcel under the scanner",
+      "operation": "The label opens and the route field lights up",
+      "result": "The route is printed beside the label",
+      "proofFrames": [
+        "entry",
+        "operation",
+        "result"
+      ]
+    },
+    {
+      "id": "sort",
+      "viewerQuestion": "How does the sorter choose a lane?",
+      "primaryRecipe": "branch-prune",
+      "evidenceIds": [
+        "example-sorting-lanes"
+      ],
+      "visualReason": "Three lanes are offered and two fall away, which shows the choice",
+      "officialMechanism": "spring-interpolate",
+      "entry": "The belt with three closed gates",
+      "operation": "Only the gate of lane 2 opens",
+      "result": "The parcel is in lane 2",
+      "proofFrames": [
+        "entry",
+        "operation",
+        "result"
+      ]
+    },
+    {
+      "id": "deliver",
+      "viewerQuestion": "When is the parcel delivered?",
+      "primaryRecipe": "return-and-resolve",
+      "evidenceIds": [
+        "example-door-arrival"
+      ],
+      "visualReason": "The parcel comes back to the person who waits for it, and its state settles",
+      "officialMechanism": "svg-paths",
+      "entry": "The van at the street",
+      "operation": "The parcel moves along a curved path to the door",
+      "result": "The status mark reads delivered",
+      "proofFrames": [
+        "entry",
+        "operation",
+        "result"
+      ]
+    }
+  ]
+}

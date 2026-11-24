@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Made-up entries that show the form of a library; a real plan cites only entries of the user's own library",
+  "entries": [
+    {
+      "id": "example-dock-journey",
+      "status": "verified",
+      "source": {
+        "platform": "Example video site",
+        "creator": "Example Studio",
+        "title": "A day in a parcel center",
+        "url": "https://example.com/videos/example-dock-journey"
+      },
+      "observations": [
+        {
+          "range": "00:05-00:21",
+          "description": "The camera rides along with one box from the truck to the dock, and the dock stays in view as the box arrives"
+        }
+      ],
+      "recipes": [
+        "spatial-journey",
+        "focus-push"
+      ],
+      "useWhen": "The route through a place is the answer",
+      "avoidWhen": "Only one place matters",
+      "reviewedAt": "2026-11-24"
+    },
+    {
+      "id": "example-label-scan",
+      "status": "verified",
+      "source": {
+        "platform": "Example video site",
+        "creator": "Example Studio",
+        "title": "Reading a shipping label",
+        "url": "https://example.com/videos/example-label-scan"
+      },
+      "observations": [
+        {
+          "range": "00:10-00:24",
+          "description": "The label grows to fill the frame and its fields light up one after another while the rest dims"
+        }
+      ],
+      "recipes": [
+        "live-inspection",
+        "focus-push"
+      ],
+      "useWhen": "One record holds the answer",
+      "avoidWhen": "Nothing on the record changes",
+      "reviewedAt": "2026-11-24"
+    },
+    {
+      "id": "example-sorting-lanes",
+      "status": "verified",
+      "source": {
+        "platform": "Example video site",
+        "creator": "Example Studio",
+        "title": "How sorters pick a lane",
+        "url": "https://example.com/videos/example-sorting-lanes"
+      },
+      "observations": [
+        {
+          "range": "01:02-01:19",
+          "description": "Three lanes are offered, two gates stay shut and fade back, and the box takes the open lane"
+        }
+      ],
+      "recipes": [
+        "branch-prune",
+        "aggregate-into-container"
+      ],
+      "useWhen": "A rule chooses one of several paths",
+      "avoidWhen": "Every path is taken",
+      "reviewedAt": "2026-11-24"
+    },
+    {
+      "id": "example-door-arrival",
+      "status": "verified",
+      "source": {
+        "platform": "Example video site",
+        "creator": "Example Studio",
+        "title": "The last mile",
+        "url": "https://example.com/videos/example-door-arrival"
+      },
+      "observations": [
+        {
+          "range": "02:40-02:58",
+          "description": "The box travels a curved path back to the house that ordered it, and its status mark turns green on the step"
+        }
+      ],
+      "recipes": [
+        "return-and-resolve",
+        "morph-state"
+      ],
+      "useWhen": "A later update settles the state of the first subject",
+      "avoidWhen": "The subject never returns",
+      "reviewedAt": "2026-11-24"
+    },
+    {
+      "id": "example-warehouse-tour",
+      "status": "candidate",
+      "source": {
+        "platform": "Example video site",
+        "creator": "Example Studio",
+        "title": "Warehouse tour",
+        "url": "https://example.com/videos/example-warehouse-tour"
+      },
+      "observations": [
+        {
+          "range": "not checked",
+          "description": "Found by its title; it may show shelves being built up in the order goods arrive"
+        }
+      ],
+      "recipes": [
+        "build-through"
+      ],
+      "useWhen": "A whole is built from its parts",
+      "avoidWhen": "Not to be cited until it is watched",
+      "reviewedAt": "2026-11-24"
+    }
+  ]
+}

@@ -11,3 +11,7 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - The timing boundary check reads the PNG frames rendered around the start or end of an element with Node.js's own zlib, and finds pixels that show too early or too late, flashes of three frames or fewer, flicker, and boundary frames left out
 - The scene layers check makes every scene decide its form, composition, typography, and motion apart, and refuses two scenes in a row with the same design
 - The checks run on Node.js 18 or later with its built-in modules only, and the README states that Remotion itself comes under the Remotion License
+- A second skill, `remotion-motion-plan`, that plans how the scenes of a Remotion explainer video move before the rough cut, and provides its choreography, continuous choreography, motion language, and motion evidence contracts and their checks through musubi
+- The choreography check makes every scene bring an object in when it is needed and change a state, and keeps the rough cut's camera, routes, and handoffs the same as the final cut's
+- The continuous choreography check makes every scene take over the subject the scene before it handed on, instead of clearing the screen, and keeps a summary to the objects shown before it
+- The motion language check makes every scene rest its main recipe on a watched video of the user's motion evidence library, kept in `~/.local/share/remotion-explainer/` or the folder `REMOTION_EXPLAINER_HOME` names, and the evidence check refuses a verified entry without a time range
