@@ -54,7 +54,7 @@
 | `verify`が、今の規則を破る文書を拒む | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"verify refuses a Markdown document that breaks a rule"`が通る | #312 |
 | `techdebt`と`account-cleanup`を含む従う側の頁の雛形を、新しい`verify`が通す | `bash plugins/design-formats/skills/page-design/tests/test-followers.sh`の検査`"verify accepts every report page template"`が通る | #312 |
 | `musubi check`が`page-design`と従う側のスキルを通す | `bash plugins/design-formats/skills/page-design/tests/test-followers.sh`の検査`"musubi check accepts page-design and its followers"`が通る | #312 |
-| 従う側のスキルと`page-design`が、新しい規則の検査を足した`page-design`のテストを含めて自分のテストを通す | `bash plugins/design-formats/skills/page-design/tests/test-followers.sh`の検査`"the followers and page-design keep passing their own tests"`が通る | #312 |
+| 従う側のスキルと`page-design`が、新しい規則の検査を足した`page-design`のテストを含めて自分のテストを通す | `bash plugins/design-formats/skills/page-design/tests/test-followers.sh --own-tests`の検査`"the followers and page-design keep passing their own tests"`が通る | #312 #474 |
 | 変えたpluginが`CHANGELOG.md`の`## [Unreleased]`かリリースの節に変更を書く | `bash plugins/design-formats/skills/page-design/tests/test-followers.sh`の検査`"the changed plugins note the page-design follow in their changelogs"`が通る | #312 #467 |
 | repoの検査が通る | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"the repository checks pass"`が通る | #312 |
 | 300文字を超えるスクリプトの文字列が数を持つ3つ以上の項目をカンマで繋ぐ時、`verify`がその行を`facts-in-one-line`で名指して終わり方1を返す | `bash plugins/design-formats/skills/page-design/tests/test-page-design.sh`の検査`"verify refuses a long script string that joins facts in one line"`が通る | #296 |

@@ -5,8 +5,17 @@
 # tests. It reads the other plugins of this repository, so it runs from a checkout of the repository,
 # not from an installed plugin. Copies live in a throwaway folder; nothing reaches the network. The
 # musubi checks run only when the musubi command is on PATH, and are reported as skipped, never as
-# passed, when it is not.
+# passed, when it is not. The followers' own tests and scripts/check.sh take more than 20
+# minutes, so they run only with --own-tests: when a format, a template, or verify of page-design
+# changes, and before releasing design-formats. Without it, both checks are reported as skipped.
 set -u
+
+OWN_TESTS=0
+case "$#:${1:-}" in
+  0:) ;;
+  1:--own-tests) OWN_TESTS=1 ;;
+  *) echo "usage: bash $0 [--own-tests]" >&2; exit 2 ;;
+esac
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$(cd "$HERE/.." && pwd)"
@@ -349,10 +358,16 @@ own_tests() {
   done
   return "$bad"
 }
-check "the followers and page-design keep passing their own tests" own_tests
 
 repo_checks() { bash "$REPO/scripts/check.sh" > "$T/check.out" 2>&1 || { tail -5 "$T/check.out" | sed 's/^/      /'; return 1; }; }
-check "the repository checks pass" repo_checks
+WHEN="run with --own-tests when page-design changes and before releasing design-formats"
+if [ "$OWN_TESTS" = 1 ]; then
+  check "the followers and page-design keep passing their own tests" own_tests
+  check "the repository checks pass" repo_checks
+else
+  skip "the followers and page-design keep passing their own tests" "$WHEN"
+  skip "the repository checks pass" "$WHEN"
+fi
 
 printf '%d passed, %d failed (%d ran, %d skipped)\n' "$PASS" "$FAIL" "$((PASS + FAIL))" "$SKIP"
 [ "$FAIL" -eq 0 ]

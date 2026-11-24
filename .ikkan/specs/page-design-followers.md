@@ -15,5 +15,5 @@
 | `design-formats`の英語と日本語のREADMEと`docs/how-it-works.md`が、`page-design`に従う10のスキルを名指す | `bash plugins/design-formats/skills/page-design/tests/test-followers.sh`の検査`"design-formats names the skills that follow page-design"`が通る | #263 |
 | `docs/releasing.md`と日本語版が、`design-formats`か従うpluginを出す前に回す`musubi check`の命令を持つ | `bash plugins/design-formats/skills/page-design/tests/test-followers.sh`の検査`"the releasing pages run musubi check for page-design and its followers"`が通る | #263 |
 | 従う10のpluginと`design-formats`の`CHANGELOG.md`が`## [Unreleased]`かリリースの節で`page-design`を名指す | `bash plugins/design-formats/skills/page-design/tests/test-followers.sh`の検査`"the changed plugins note the page-design follow in their changelogs"`が通る | #263 #467 |
-| 従う10のスキルと`page-design`の今のテストが全て通る | `bash plugins/design-formats/skills/page-design/tests/test-followers.sh`の検査`"the followers and page-design keep passing their own tests"`が通る | #263 |
-| repoの検査`scripts/check.sh`が通る | `bash plugins/design-formats/skills/page-design/tests/test-followers.sh`の検査`"the repository checks pass"`が通る | #263 |
+| 従う10のスキルと`page-design`の今のテストが全て通る | `bash plugins/design-formats/skills/page-design/tests/test-followers.sh --own-tests`の検査`"the followers and page-design keep passing their own tests"`が通る | #263 #474 |
+| repoの検査`scripts/check.sh`が通る | `bash plugins/design-formats/skills/page-design/tests/test-followers.sh --own-tests`の検査`"the repository checks pass"`が通る | #263 #474 |
