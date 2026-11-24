@@ -61,6 +61,7 @@ The five skills with HTML pages keep their own templates, because a plugin's scr
 The five skills that report in the chat write the report in the order of `structure`: the result first, what was done and skipped with the reasons, values not measured written as not measured, and the user's steps last.
 When design-formats is not installed, `musubi check` skips these follows with a warning, and each skill works without page-design.
 `tests/test-followers.sh` checks the declarations, the lines in each `SKILL.md`, the templates, and `musubi check` with and without design-formats, from a checkout of this repository.
+`tests/test-followers.sh --own-tests` also runs the own tests of page-design and of the ten skills that follow it, and the repository checks, in about 25 minutes. Run it when a format, a template, or `verify` of page-design changes, and before releasing design-formats; without the option, the test reports those two checks as skipped and ends in seconds.
 
 ## How the templates work
 

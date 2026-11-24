@@ -7,6 +7,8 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ## [Unreleased]
 
+- The follower test of page-design runs the own tests of page-design and of the skills that follow it, and `scripts/check.sh`, only with `test-followers.sh --own-tests`, which Releasing asks for when page-design changes and before releasing design-formats, so a default run ends in seconds instead of about 25 minutes
+
 ## [0.22.0] - 2026-11-24
 
 ### Plugins

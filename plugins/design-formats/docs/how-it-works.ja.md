@@ -61,6 +61,7 @@ HTMLの頁を持つ5つのスキルは、自分の雛形を持ち続け、仕上
 チャットで報告する5つのスキルは、`structure`の順で報告を書きます。結果を先に書き、したことと飛ばしたことを理由とともに書き、測れなかった値は測れなかったと書き、使う人の手順を最後に書きます。
 design-formatsが入っていない時、`musubi check`は警告を出してこれらの準拠を飛ばし、各スキルは`page-design`無しで動きます。
 `tests/test-followers.sh`は、宣言、各`SKILL.md`の行、雛形、design-formatsが有る時と無い時の`musubi check`を、このリポジトリを取り出した写しから確かめます。
+`tests/test-followers.sh --own-tests`は、page-designと、それに従う10個のスキルのテストと、リポジトリの検査も回し、約25分かかります。page-designの書式か雛形か`verify`を変えた時と、design-formatsをリリースする前に回します。引数を付けない時は、この2つの検査を飛ばしたと報告し、数秒で終わります。
 
 ## 雛形の作り
 
