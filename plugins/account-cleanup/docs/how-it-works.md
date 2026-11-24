@@ -52,6 +52,10 @@ Development addresses and items without a URL are never contacted.
 
 It sends nothing else, and it never sends your candidate list anywhere.
 
+Only maintainers of this repository run [`tools/update-sites.sh`](../tools/update-sites.sh), which refreshes the bundled directory.
+It asks GitHub, through a signed-in `gh`, for the newest commit of jdm-contrib/jdm and the `_data/sites.json` file at that commit, and sends nothing else.
+The skill never runs it.
+
 ## The two pages
 
 `build-sheet.sh` writes the candidate sheet from a template of the skill, and `followup.sh page` writes the follow-up page from another. Paths in the table are relative to `skills/account-cleanup/`.
