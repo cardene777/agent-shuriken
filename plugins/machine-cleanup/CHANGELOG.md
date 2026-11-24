@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-24
+
 ### Added
 
 - Rows that need administrator rights, tagged Administrator on the page. On macOS: caches in `/Library/Caches` of 50 MB or more other than Apple's, files older than 30 days in `/Library/Logs` and `/private/var/log`, apps an administrator installed in `/Applications` that nobody opened for 90 days, and the plists in `/Library/LaunchDaemons` and `/Library/LaunchAgents`. On Linux: the apt and dnf caches, journald's logs, and enabled services whose unit file sits in `/etc/systemd/system`. The scan measures them without a password and shows what it cannot read as Not measured, and it leaves out places System Integrity Protection guards
@@ -70,6 +72,7 @@ First public release.
 - Reports free disk, memory used, and load before and after, measured on the machine, and says when Docker Desktop gives the space back later
 - Starts when you say the disk is full or the computer is slow, or when you call it, in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, and other agents that read `SKILL.md`
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/machine-cleanup--v0.2.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/machine-cleanup--v0.3.0...HEAD
+[0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/machine-cleanup--v0.3.0
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/machine-cleanup--v0.2.0
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/machine-cleanup--v0.1.0
