@@ -1,7 +1,0 @@
-interface:
-  display_name: "Remotion Catalog"
-  short_description: "Search licensed Remotion examples by form, composition, type, and motion"
-  default_prompt: "Use $remotion-catalog to find a composition for a scene that compares two routes."
-
-policy:
-  allow_implicit_invocation: true
