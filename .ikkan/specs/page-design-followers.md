@@ -1,6 +1,6 @@
 # page-design-followers
 
-| 条件 | 確かめ方 | 出元 |
+| Criterion | How to check | Origin |
 |---|---|---|
 | 10のスキルが`musubi.json`で`page-design`に任意で従う。HTMLの頁を書く5つは`structure`と`look`と頁の型の雛形 (techdebtとcompare-reportは`report`、machine-cleanupとaccount-cleanupは`sheet`、diagram-explainerは`document`) と`verify`に、チャットで報告する5つ (repo-progress、secure-dotfile、init-project、release-check、portman) は`structure`に従い、どの従う先も版の幅`^1.0.0`と指紋と`"optional": true`を持つ | `bash plugins/design-formats/skills/page-design/tests/test-followers.sh`の検査`"the report skills follow page-design as optional follows"`が通る | #263 |
 | 10のスキルの`SKILL.md`が、`page-design`が入っている時に名前で開いて従う中身のfileを読む行、`musubi`の命令が在れば先に`musubi check`を打って落ちたら止まる行、入っていない時は自分の雛形か今の順で進める行の3行を持つ | `bash plugins/design-formats/skills/page-design/tests/test-followers.sh`の検査`"the report skills carry the musubi lines for page-design"`が通る | #263 |
