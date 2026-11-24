@@ -1,0 +1,249 @@
+{
+  "schemaVersion": 1,
+  "scenes": [
+    {
+      "id": "arrive",
+      "viewGrammar": "overview",
+      "viewerQuestion": "Where does a parcel start its trip?",
+      "camera": {
+        "entry": "The whole dock and the truck at its edge",
+        "operation": "Follow the parcel off the truck",
+        "result": "The parcel on the dock with the scanner ahead",
+        "movement": "follow"
+      },
+      "objectLifecycles": [
+        {
+          "object": "dock",
+          "role": "where parcels wait",
+          "entryState": "empty",
+          "introducedAt": "entry",
+          "operation": "the parcel is set down on it",
+          "resultState": "holding-parcel",
+          "resultAt": "result",
+          "sourceZone": "dock",
+          "targetZone": "dock"
+        },
+        {
+          "object": "parcel",
+          "role": "the subject of the video",
+          "entryState": "on-truck",
+          "introducedAt": "operation",
+          "operation": "slides off the truck",
+          "resultState": "on-dock",
+          "resultAt": "result",
+          "sourceZone": "truck",
+          "targetZone": "dock"
+        }
+      ],
+      "motionBeats": [
+        {
+          "kind": "reveal",
+          "subject": "parcel",
+          "effect": "the parcel appears at the truck door"
+        },
+        {
+          "kind": "spatial-route",
+          "subject": "parcel",
+          "effect": "the parcel slides along the ramp to the dock"
+        }
+      ],
+      "handoff": "The parcel on the dock moves under the scanner",
+      "reviewFrames": [
+        "entry",
+        "operation",
+        "result"
+      ],
+      "finalMotionParity": {
+        "camera": true,
+        "blocking": true,
+        "revealOrder": true,
+        "objectRoutes": true,
+        "transforms": true,
+        "handoff": true
+      }
+    },
+    {
+      "id": "scan",
+      "viewGrammar": "inspection",
+      "viewerQuestion": "How does the center learn where the parcel goes?",
+      "camera": {
+        "entry": "The parcel under the scanner",
+        "operation": "Push in on the label as it is read",
+        "result": "The route printed beside the label",
+        "movement": "push-in"
+      },
+      "objectLifecycles": [
+        {
+          "object": "parcel",
+          "role": "the subject of the video",
+          "entryState": "route-unknown",
+          "introducedAt": "entry",
+          "operation": "its label is read",
+          "resultState": "route-known",
+          "resultAt": "result",
+          "sourceZone": "scanner",
+          "targetZone": "scanner"
+        },
+        {
+          "object": "scanner-beam",
+          "role": "what reads the label",
+          "entryState": "off",
+          "introducedAt": "operation",
+          "operation": "sweeps across the label",
+          "resultState": "reading",
+          "resultAt": "operation",
+          "sourceZone": "scanner",
+          "targetZone": "parcel"
+        }
+      ],
+      "motionBeats": [
+        {
+          "kind": "camera-reframe",
+          "subject": "parcel",
+          "effect": "the view closes in on the label"
+        },
+        {
+          "kind": "state-transition",
+          "subject": "parcel",
+          "effect": "the route appears on the label"
+        }
+      ],
+      "handoff": "The parcel with its route leaves for the lanes",
+      "reviewFrames": [
+        "entry",
+        "operation",
+        "result"
+      ],
+      "finalMotionParity": {
+        "camera": true,
+        "blocking": true,
+        "revealOrder": true,
+        "objectRoutes": true,
+        "transforms": true,
+        "handoff": true
+      }
+    },
+    {
+      "id": "sort",
+      "viewGrammar": "branching",
+      "viewerQuestion": "How does the sorter choose a lane?",
+      "camera": {
+        "entry": "The belt and its three lanes",
+        "operation": "Hold while the gates move",
+        "result": "The parcel in lane 2",
+        "movement": "static"
+      },
+      "objectLifecycles": [
+        {
+          "object": "parcel",
+          "role": "the subject of the video",
+          "entryState": "on-belt",
+          "introducedAt": "entry",
+          "operation": "drops through the open gate",
+          "resultState": "in-lane-2",
+          "resultAt": "result",
+          "sourceZone": "belt",
+          "targetZone": "lane-2"
+        },
+        {
+          "object": "lane-gates",
+          "role": "what splits the belt",
+          "entryState": "closed",
+          "introducedAt": "operation",
+          "operation": "the gate of lane 2 opens",
+          "resultState": "lane-2-open",
+          "resultAt": "operation",
+          "sourceZone": "belt",
+          "targetZone": "belt"
+        }
+      ],
+      "motionBeats": [
+        {
+          "kind": "branch",
+          "subject": "lane-gates",
+          "effect": "only the gate of lane 2 opens"
+        },
+        {
+          "kind": "spatial-route",
+          "subject": "parcel",
+          "effect": "the parcel turns into lane 2"
+        }
+      ],
+      "handoff": "Lane 2 carries the parcel to the van",
+      "reviewFrames": [
+        "entry",
+        "operation",
+        "result"
+      ],
+      "finalMotionParity": {
+        "camera": true,
+        "blocking": true,
+        "revealOrder": true,
+        "objectRoutes": true,
+        "transforms": true,
+        "handoff": true
+      }
+    },
+    {
+      "id": "deliver",
+      "viewGrammar": "state-machine",
+      "viewerQuestion": "When is the parcel delivered?",
+      "camera": {
+        "entry": "The van at the street",
+        "operation": "Follow the parcel to the door",
+        "result": "The parcel settled on the step",
+        "movement": "follow"
+      },
+      "objectLifecycles": [
+        {
+          "object": "parcel",
+          "role": "the subject of the video",
+          "entryState": "in-van",
+          "introducedAt": "entry",
+          "operation": "is carried to the door",
+          "resultState": "delivered",
+          "resultAt": "result",
+          "sourceZone": "van",
+          "targetZone": "step"
+        },
+        {
+          "object": "door",
+          "role": "where the trip ends",
+          "entryState": "closed",
+          "introducedAt": "operation",
+          "operation": "comes into view at the end of the path",
+          "resultState": "closed",
+          "resultAt": "result",
+          "sourceZone": "street",
+          "targetZone": "street"
+        }
+      ],
+      "motionBeats": [
+        {
+          "kind": "state-transition",
+          "subject": "parcel",
+          "effect": "the status mark turns to delivered"
+        },
+        {
+          "kind": "handoff",
+          "subject": "parcel",
+          "effect": "the parcel passes from the van to the step"
+        }
+      ],
+      "handoff": "The delivered parcel stays on the step for the summary",
+      "reviewFrames": [
+        "entry",
+        "operation",
+        "result"
+      ],
+      "finalMotionParity": {
+        "camera": true,
+        "blocking": true,
+        "revealOrder": true,
+        "objectRoutes": true,
+        "transforms": true,
+        "handoff": true
+      }
+    }
+  ]
+}

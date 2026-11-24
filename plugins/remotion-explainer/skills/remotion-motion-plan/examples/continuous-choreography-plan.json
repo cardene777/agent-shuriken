@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "persistentSubjects": [
+    "parcel"
+  ],
+  "scenes": [
+    {
+      "id": "arrive",
+      "subjects": [
+        "parcel",
+        "dock"
+      ],
+      "operation": "The parcel slides off the truck onto the dock",
+      "exitTo": {
+        "subject": "parcel",
+        "state": "on-dock"
+      },
+      "cameraRelation": "follow",
+      "continuityMode": "camera-follow",
+      "primaryAxis": "horizontal"
+    },
+    {
+      "id": "scan",
+      "subjects": [
+        "parcel",
+        "scanner"
+      ],
+      "entryFrom": {
+        "subject": "parcel",
+        "state": "on-dock"
+      },
+      "operation": "The scanner reads the label and the route appears beside it",
+      "exitTo": {
+        "subject": "parcel",
+        "state": "route-known"
+      },
+      "cameraRelation": "push-in",
+      "continuityMode": "state-carry",
+      "primaryAxis": "none"
+    },
+    {
+      "id": "sort",
+      "subjects": [
+        "parcel",
+        "lane-gates"
+      ],
+      "entryFrom": {
+        "subject": "parcel",
+        "state": "route-known"
+      },
+      "operation": "The gate of lane 2 opens and the parcel drops into it",
+      "exitTo": {
+        "subject": "parcel",
+        "state": "in-lane-2"
+      },
+      "cameraRelation": "pull-out",
+      "continuityMode": "spatial-reframe",
+      "primaryAxis": "vertical"
+    },
+    {
+      "id": "deliver",
+      "subjects": [
+        "parcel",
+        "door"
+      ],
+      "entryFrom": {
+        "subject": "parcel",
+        "state": "in-lane-2"
+      },
+      "operation": "The parcel rides the van to the door and settles on the step",
+      "exitTo": {
+        "subject": "parcel",
+        "state": "delivered"
+      },
+      "cameraRelation": "follow",
+      "continuityMode": "object-transform",
+      "primaryAxis": "horizontal"
+    },
+    {
+      "id": "summary",
+      "role": "summary",
+      "subjects": [
+        "parcel",
+        "dock",
+        "scanner",
+        "lane-gates",
+        "door"
+      ],
+      "entryFrom": {
+        "subject": "parcel",
+        "state": "delivered"
+      },
+      "operation": "The view pulls back along the route the parcel took and marks each place it changed",
+      "cameraRelation": "pull-out",
+      "continuityMode": "spatial-reframe",
+      "primaryAxis": "none"
+    }
+  ]
+}

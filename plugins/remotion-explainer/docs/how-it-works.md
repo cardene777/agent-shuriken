@@ -2,19 +2,59 @@
 
 English · [日本語](how-it-works.ja.md)
 
-This page explains what each check of `remotion-frame-checks` reads, how it decides, and what it writes.
-The checks are four Node.js scripts in `skills/remotion-frame-checks/scripts/` that use only the modules built into Node.js 18 or later.
+This page explains what each check of `remotion-motion-plan` and `remotion-frame-checks` reads, how it decides, and what it writes.
+The checks are eight Node.js scripts, four in `skills/remotion-motion-plan/scripts/` and four in `skills/remotion-frame-checks/scripts/`, that use only the modules built into Node.js 18 or later.
 
 ## How a check runs
 
 Each check reads the files named on its command line and nothing else.
-It prints one JSON object to standard output with `check`, `decision`, `issueCount`, and `issues`, where each issue holds the `rule` it breaks, the `element`, `scene`, or `frame` it is about, and a `message`.
+It prints one JSON object to standard output with `check`, `decision`, `issueCount`, and `issues`, where each issue holds the `rule` it breaks, the `element`, `scene`, `frame`, or library `entry` it is about, and a `message`.
 
 | Exit code | Means |
 |---|---|
 | 0 | The files pass, and `decision` is `pass` |
 | 1 | The files need revising, and `decision` is `revise` |
 | 2 | The check was called the wrong way or could not read a file; the reason is on standard error and nothing is printed to standard output |
+
+## Choreography
+
+`check-choreography.mjs` reads `storyboard/choreography-plan.json`.
+For each scene it checks the fields of the scene, its camera, each object, and each motion beat, then three things that make a scene a scene rather than a still picture.
+
+| Rule | How it decides |
+|---|---|
+| `no-late-introduction` | Every object's `introducedAt` is `entry` |
+| `no-state-change` | Every object's `resultState` equals its `entryState` |
+| `motion-variety` | The motion beats have fewer than two different kinds |
+
+Across the plan, it compares each scene's view grammar with the one before it, counts the scenes that carry sideways, which may be at most two, and counts the grammars used, which must be at least four, or one per scene in a plan of fewer than four scenes.
+Each of the six keys of `finalMotionParity` must be `true`.
+
+## Continuous choreography
+
+`check-continuous-choreography.mjs` reads `storyboard/continuous-choreography-plan.json` and walks the scenes in order.
+
+| Rule | How it decides |
+|---|---|
+| `handoff-not-carried` | The subject of a scene's `entryFrom` is neither the subject nor the `becomes` of the `exitTo` of the scene before it |
+| `persistent-subject-share` | Fewer than half of the scenes list one of `persistentSubjects` among their subjects |
+| `repeated-axis` | A scene and the scene before it have the same `primaryAxis`, other than `none` |
+| `three-scenes-without-change` | In three scenes in a row, no `continuityMode` is `object-transform`, `container-reveal`, or `spatial-reframe`, and no `cameraRelation` is `push-in`, `pull-out`, or `orbit` |
+| `summary-new-subject` | The scene with the role `summary` lists a subject that no earlier scene listed or became |
+
+## Motion language
+
+`check-motion-language.mjs` reads `storyboard/motion-language-plan.json` and the user's motion evidence library.
+It indexes the library's entries by ID and checks each scene's recipe and mechanism against the lists of the contract.
+A scene that cites no entry is `missing-evidence`, one that cites an ID the library lacks is `unknown-evidence`, and one whose cited entries include no `verified` entry listing its main recipe is `unverified-evidence`.
+Neighboring scenes may not share a main recipe, a plan of eight scenes or more needs six main recipes, and at most two scenes have `object-handoff` as their main recipe.
+
+## Motion evidence
+
+`check-motion-evidence.mjs` reads the library named on its command line, which the skill keeps as `motion-evidence-library.json` in `~/.local/share/remotion-explainer/` or in the folder `REMOTION_EXPLAINER_HOME` names.
+Each entry needs a unique ID, a status of `verified` or `candidate`, a source with a platform, a title, and an `http` or `https` address, at least one observation with a range and a description, the recipes it shows, `useWhen`, `avoidWhen`, and a `reviewedAt` day.
+Every observation of a verified entry must have a time range such as `00:13-00:45` or `1:02:10-1:02:30`, because only a played video can be verified.
+An empty library passes; a plan that cites nothing from it does not.
 
 ## SVG geometry
 
@@ -78,7 +118,7 @@ The silhouette family, spatial grammar, and reveal grammar of each scene are com
 | Kind | What |
 |---|---|
 | Reads | The files named on the command line |
-| Writes | The audit files where `--audit-dir` or `--out` points, nothing else |
+| Writes | The checks write only the audit files where `--audit-dir` or `--out` points; the agent writes the plans under `storyboard/` and the entries of the library |
 | Runs | Nothing but itself; rendering frames is done by Remotion in your project |
-| Sends | Nothing; the checks make no network connection |
-| Keeps | Nothing outside your project |
+| Sends | The checks make no network connection; a search for a video uses only general words for the kind of motion |
+| Keeps | The motion evidence library in the data folder, readable only by you, until you delete it; nothing else outside your project |

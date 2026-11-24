@@ -2,20 +2,63 @@
 
 [English](how-it-works.md) · 日本語
 
-このページは、`remotion-frame-checks`の確かめる仕組みが、それぞれ何を読み、どう決め、何を書くかを説明します。
-確かめる仕組みは`skills/remotion-frame-checks/scripts/`にある4つのNode.jsのスクリプトで、Node.js 18以降に初めから入っている部品だけを使います。
+このページは、`remotion-motion-plan`と`remotion-frame-checks`の確かめる仕組みが、それぞれ何を読み、どう決め、何を書くかを説明します。
+確かめる仕組みは8つのNode.jsのスクリプトで、4つが`skills/remotion-motion-plan/scripts/`に、4つが`skills/remotion-frame-checks/scripts/`にあり、Node.js 18以降に初めから入っている部品だけを使います。
 
 ## 確かめる仕組みの動き方
 
 どの仕組みも、コマンドで名指したファイルだけを読みます。
 標準出力には、`check`、`decision`、`issueCount`、`issues`を持つJSONを1つ出します。
-`issues`の1つずつは、破った決まりの`rule`、対象の`element`か`scene`か`frame`、説明の`message`を持ちます。
+`issues`の1つずつは、破った決まりの`rule`、対象の`element`か`scene`か`frame`か一覧の`entry`、説明の`message`を持ちます。
 
 | 終わりのコード | 意味 |
 |---|---|
 | 0 | ファイルが通り、`decision`は`pass`です |
 | 1 | ファイルを直す必要があり、`decision`は`revise`です |
 | 2 | 呼び方が誤っているか、ファイルを読めませんでした。理由を標準エラーに出し、標準出力には何も出しません |
+
+## 振り付け
+
+`check-choreography.mjs`は`storyboard/choreography-plan.json`を読みます。
+場面ごとに、場面、カメラ、物、動きの区切りの項目がそろっているかを見てから、場面を止まった絵でなく場面にする3つの点を見ます。
+
+| 決まり | 決め方 |
+|---|---|
+| `no-late-introduction` | どの物の`introducedAt`も`entry`です |
+| `no-state-change` | どの物の`resultState`も`entryState`と同じです |
+| `motion-variety` | 動きの区切りの種類が2つより少ないです |
+
+計画の全体では、場面ごとの見せ方の型を前の場面と比べ、横へ運ぶ場面を数えて2つまでに抑え、使った型を数えます。
+型は4つ以上、場面が4つより少ない計画では場面と同じ数だけ要ります。
+`finalMotionParity`の6つのキーは、どれも`true`である必要があります。
+
+## 続いた振り付け
+
+`check-continuous-choreography.mjs`は`storyboard/continuous-choreography-plan.json`を読み、場面を順にたどります。
+
+| 決まり | 決め方 |
+|---|---|
+| `handoff-not-carried` | 場面の`entryFrom`の主役が、前の場面の`exitTo`の主役でも`becomes`でもありません |
+| `persistent-subject-share` | `persistentSubjects`のどれかを主役に並べる場面が半分より少ないです |
+| `repeated-axis` | 場面と前の場面の`primaryAxis`が、`none`以外で同じです |
+| `three-scenes-without-change` | 続いた3つの場面に、`continuityMode`が`object-transform`か`container-reveal`か`spatial-reframe`の物も、`cameraRelation`が`push-in`か`pull-out`か`orbit`の物もありません |
+| `summary-new-subject` | 役割が`summary`の場面が、前のどの場面も並べず、どの物もなっていない主役を並べます |
+
+## 動きの言葉
+
+`check-motion-language.mjs`は`storyboard/motion-language-plan.json`と、あなたの動きの根拠の一覧を読みます。
+一覧の項目をIDで引けるようにし、場面ごとの動きと作り方を取り決めの一覧と比べます。
+どの項目も挙げない場面は`missing-evidence`、一覧に無いIDを挙げる場面は`unknown-evidence`、挙げた項目に主な動きを持つ`verified`の項目が無い場面は`unverified-evidence`です。
+隣り合う場面は同じ主な動きを使えず、8つ以上の場面の計画は6種類の主な動きを使い、`object-handoff`を主な動きにする場面は2つまでです。
+
+## 動きの根拠
+
+`check-motion-evidence.mjs`はコマンドで名指した一覧を読みます。
+スキルは一覧を、`~/.local/share/remotion-explainer/`か`REMOTION_EXPLAINER_HOME`が名指すフォルダに`motion-evidence-library.json`として置きます。
+項目ごとに、重ならないID、`verified`か`candidate`の状態、場所と題とhttpかhttpsのアドレスを持つ出所、範囲と説明を持つ1つ以上の見た記録、見せる動き、`useWhen`、`avoidWhen`、`reviewedAt`の日付が要ります。
+確かめ済みの項目の見た記録は、どれも`00:13-00:45`や`1:02:10-1:02:30`のような時間の範囲を持つ必要があります。
+確かめ済みにできるのは、実際に再生した動画だけだからです。
+空の一覧は通りますが、一覧から何も挙げない計画は通りません。
 
 ## SVGの図形
 
@@ -82,7 +125,7 @@ PNGはNode.jsの`zlib`で読みます。
 | 種類 | 中身 |
 |---|---|
 | 読む物 | コマンドで名指したファイル |
-| 書く物 | `--audit-dir`か`--out`が指す所の記録だけで、ほかには書きません |
+| 書く物 | 確かめる仕組みが書くのは、`--audit-dir`か`--out`が指す所の記録だけです。計画は`storyboard/`に、一覧の項目はデータのフォルダに、エージェントが書きます |
 | 動かす物 | 自分だけです。フレームの書き出しは、あなたのプロジェクトでRemotionが行います |
-| 送る物 | ありません。確かめる仕組みはネットにつなぎません |
-| 残す物 | プロジェクトの外には何も残しません |
+| 送る物 | 確かめる仕組みはネットにつなぎません。動画を探す時は、動きの種類を表す一般的な言葉だけを使います |
+| 残す物 | 動きの根拠の一覧を、あなただけが読めるようにデータのフォルダに置き、あなたが消すまで残します。ほかはプロジェクトの外に何も残しません |

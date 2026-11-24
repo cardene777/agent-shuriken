@@ -1,0 +1,7 @@
+interface:
+  display_name: "Remotion Motion Plan"
+  short_description: "Plan how the scenes of a Remotion video move, backed by watched examples"
+  default_prompt: "Use $remotion-motion-plan to plan the motion of this Remotion video."
+
+policy:
+  allow_implicit_invocation: true

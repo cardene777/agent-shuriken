@@ -1,0 +1,37 @@
+{
+  "musubi": "2026-11-21",
+  "provides": {
+    "choreography": {
+      "version": "1.0.0",
+      "file": "formats/choreography.md"
+    },
+    "continuous-choreography": {
+      "version": "1.0.0",
+      "file": "formats/continuous-choreography.md"
+    },
+    "motion-language": {
+      "version": "1.0.0",
+      "file": "formats/motion-language.md"
+    },
+    "motion-evidence": {
+      "version": "1.0.0",
+      "file": "formats/motion-evidence.md"
+    },
+    "check-choreography": {
+      "version": "1.0.0",
+      "file": "scripts/check-choreography.mjs"
+    },
+    "check-continuous-choreography": {
+      "version": "1.0.0",
+      "file": "scripts/check-continuous-choreography.mjs"
+    },
+    "check-motion-language": {
+      "version": "1.0.0",
+      "file": "scripts/check-motion-language.mjs"
+    },
+    "check-motion-evidence": {
+      "version": "1.0.0",
+      "file": "scripts/check-motion-evidence.mjs"
+    }
+  }
+}

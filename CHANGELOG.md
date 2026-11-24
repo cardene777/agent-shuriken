@@ -7,7 +7,7 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ## [Unreleased]
 
-- The remotion-explainer plugin, whose `remotion-frame-checks` skill checks the frames of a Remotion explainer video by machine and provides its SVG geometry, layout, timing boundary, and scene layers contracts and their checks to other skills through musubi
+- The remotion-explainer plugin, whose `remotion-motion-plan` skill plans how the scenes of a Remotion explainer video move, carrying one subject from scene to scene and resting each motion on a watched video, and whose `remotion-frame-checks` skill checks its frames by machine; both provide their contracts and checks to other skills through musubi
 - The flow-format plugin, which answers a question about how a flow, a procedure, or a workflow goes as numbered steps, each one action sentence and a short unindented paragraph of details, with a plain-text diagram after them when the flow branches or loops
 - The agent-guards plugin, which adds hooks that stop the agent from reading key files, sending text or commits that hold a key, running destructive git commands, and deleting whole folder trees in Claude Code and Codex
 - The agent-notices plugin, which adds hooks that tell the agent about fragile shell commands, branch switches that did not happen, environment variables missing from `.env.example`, a temporary directory running short, and risky code patterns, format each edited file with the project's own formatter, and log skill and MCP calls when turned on, in Claude Code and Codex, without stopping a call

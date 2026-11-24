@@ -133,7 +133,7 @@
     {
       "name": "remotion-explainer",
       "source": "./plugins/remotion-explainer",
-      "description": "Check the frames of a Remotion explainer video by machine: connectors that end on their ports, a layout that keeps the safe area and the subtitle zone, no flash where an element starts or ends, and scenes that do not repeat one design"
+      "description": "Plan the motion of a Remotion explainer video and check its frames by machine: one subject carried from scene to scene, motions backed by videos you watched, connectors that end on their ports, a layout that keeps the safe area and the subtitle zone, and no flash where an element starts or ends"
     },
     {
       "name": "repo-progress",
