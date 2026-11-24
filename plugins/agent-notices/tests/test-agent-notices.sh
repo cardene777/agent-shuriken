@@ -141,7 +141,7 @@ grep_binary_quiet() {
 BR="$WORK/br"
 mkdir -p "$BR"
 git -C "$BR" init -q -b main
-git -C "$BR" -c user.name=t -c user.email=t@example.invalid commit -q --allow-empty -m init
+git -C "$BR" -c user.name=test -c user.email=test commit -q --allow-empty -m init
 git -C "$BR" branch feature
 branch_switch_noticed() {
   git -C "$BR" checkout -q main
