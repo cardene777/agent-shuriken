@@ -1,0 +1,22 @@
+{
+  "description": "agent-guards: refuse secret reads, keys in outbound text, dangerous git commands, and broad deletes",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/secret-read.sh\"", "timeout": 10 },
+          { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/outbound.sh\"", "timeout": 30 },
+          { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/git.sh\"", "timeout": 10 },
+          { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/delete.sh\"", "timeout": 10 }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/secret-read.sh\"", "timeout": 10 }
+        ]
+      }
+    ]
+  }
+}

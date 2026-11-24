@@ -1,0 +1,12 @@
+# Changelog
+
+Releases of the agent-guards plugin, newest first.
+Versions follow semantic versioning: a major release changes how the plugin is called or what it stores, a minor release adds behavior, and a patch release fixes behavior.
+
+## [Unreleased]
+
+- Four hooks for Claude Code and Codex that run before each shell command and file read: secret read, outbound, git, and delete
+- The secret read hook refuses reads of `.env` files, private keys, credential files, shell histories, the private data of macOS apps, and Claude Code's conversation records, and refuses a read whose file comes from a variable or a command substitution
+- The outbound hook refuses `gh` sends and `git commit` whose command, body file, or staged change holds a key-shaped value, naming the kind and the line without the value, and refuses a body it cannot read
+- The git hook refuses force pushes, `git reset --hard`, `--no-verify`, `git clean -f`, and commands that throw away uncommitted changes, and the delete hook refuses deletes of the root, the home folder, the current folder, and system folders; both show the refused command with a leading `!`
+- `~/.config/agent-guards/secret-paths` and `protected-paths` add your own places, each hook turns off with its own `AGENT_GUARDS_*` variable, and `AGENT_GUARDS_RECORD=on` writes one line per refusal

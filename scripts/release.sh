@@ -79,12 +79,16 @@ trap 'rm -rf "$out"' EXIT
 printf '%s\n\n%s\n' "$notes" "$footer" > "$out/notes.md"
 
 # A plugin release attaches the skill folders, to unzip into a skills folder, and the plugin
-# folder's contents, to upload to OpenAI's plugin directory.
+# folder's contents, to upload to OpenAI's plugin directory. A plugin that holds hooks and no
+# skills attaches only the plugin folder.
 assets=()
 if [ "$target" != repo ]; then
-  git archive --format=zip -o "$out/$target-$version-skill.zip" "HEAD:plugins/$target/skills"
+  if git cat-file -e "HEAD:plugins/$target/skills" 2>/dev/null; then
+    git archive --format=zip -o "$out/$target-$version-skill.zip" "HEAD:plugins/$target/skills"
+    assets+=("$out/$target-$version-skill.zip")
+  fi
   git archive --format=zip -o "$out/$target-$version-plugin.zip" "HEAD:plugins/$target"
-  assets=("$out/$target-$version-skill.zip" "$out/$target-$version-plugin.zip")
+  assets+=("$out/$target-$version-plugin.zip")
 fi
 
 if [ "$dry_run" = true ]; then

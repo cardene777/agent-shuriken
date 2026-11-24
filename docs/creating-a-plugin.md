@@ -48,7 +48,9 @@ The marketplace at `.claude-plugin/marketplace.json` lists every plugin folder, 
 
 The plugin directories hold a version for a reviewer when a file other than an image is over 256 KiB, when the plugin has more than 512 files, or when it contains binaries other than images and fonts.
 Keep scripts readable, and keep dependencies to Bash, `jq`, the Python 3 standard library, and Node.js where a browser is driven.
-Do not ask users to install global packages, and do not add hooks, because hooks make a plugin ineligible for OpenAI's directory.
+Do not ask users to install global packages.
+Do not add hooks to a plugin with skills, because hooks make a plugin ineligible for OpenAI's directory.
+A plugin that holds hooks and no skills, such as `agent-guards`, keeps them in `hooks/hooks.json`, names that file as `hooks` in both `plugin.json` files, and is not uploaded to OpenAI's directory.
 
 ## Testing
 

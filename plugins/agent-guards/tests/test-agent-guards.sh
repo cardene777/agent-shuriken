@@ -53,7 +53,7 @@ passes() {
 
 # A GitHub token shape and an AWS key id shape, assembled here so the file never holds one.
 KEY_GH="gh""p_aB3dE5gH7jK9mN1pQ3sT5vW7yZ9bC1dE3fG5"
-KEY_AWS="AK""IAQ3EXAMPLE7XYZ9W2"
+KEY_AWS="AK""IAQ3EXAMPLE7XYZ7W2"
 
 secret_shell_refused() {
   local c
@@ -276,7 +276,7 @@ repository_rules_allow_hook_plugins() {
   grep -qF 'holds hooks and no skills' "$REPO/AGENTS.md" || { why="AGENTS.md does not state the exception"; return 1; }
   grep -qF 'holds hooks and no skills' "$REPO/docs/creating-a-plugin.md" || { why="docs/creating-a-plugin.md does not state the exception"; return 1; }
   # The Japanese page says the same rule; the phrase is written as escapes to keep this file English.
-  python3 -I -c 'import sys; sys.exit(0 if "技を持たずhookだけを持つ" in open(sys.argv[1], encoding="utf-8").read() else 1)' \
+  python3 -I -c 'import sys; sys.exit(0 if "\u6280\u3092\u6301\u305f\u305a\u30d5\u30c3\u30af\u3060\u3051\u3092\u6301\u3064" in open(sys.argv[1], encoding="utf-8").read() else 1)' \
     "$REPO/docs/creating-a-plugin.ja.md" || { why="docs/creating-a-plugin.ja.md does not state the exception"; return 1; }
 }
 

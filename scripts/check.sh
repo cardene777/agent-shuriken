@@ -289,8 +289,9 @@ check_plugin_files() {
       [ -f "plugins/$name/$f" ] || { echo "$name: $f is missing"; bad=1; }
     done
     cmp -s LICENSE "plugins/$name/LICENSE" || { echo "$name: LICENSE differs from the root LICENSE"; bad=1; }
+    # A plugin that holds hooks and no skills is checked by check_hook_plugins instead.
+    [ -e "plugins/$name/hooks" ] && continue
     ls plugins/"$name"/skills/*/SKILL.md >/dev/null 2>&1 || { echo "$name: no skills/<skill>/SKILL.md"; bad=1; }
-    [ ! -e "plugins/$name/hooks" ] || { echo "$name: hooks make the plugin ineligible for OpenAI's directory"; bad=1; }
   done
   return "$bad"
 }
@@ -413,6 +414,7 @@ check_readme_tables() {
         || { echo "$readme: the row for $name does not end with [$version](plugins/$name/CHANGELOG.md)"; bad=1; }
       # The run column names, for every skill, the Claude Code command and the name Codex lists after typing $.
       for skill in plugins/"$name"/skills/*/; do
+        [ -d "$skill" ] || continue
         display="$(sed -nE 's/^  display_name: "(.+)"$/\1/p' "$skill/agents/openai.yaml")"
         skill="$(basename "$skill")"
         [[ "$row" == *"\`/$name:$skill\`"* ]] || { echo "$readme: the row for $name does not show \`/$name:$skill\`"; bad=1; }
