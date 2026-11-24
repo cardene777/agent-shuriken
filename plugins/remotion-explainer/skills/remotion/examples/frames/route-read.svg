@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 108" width="192" height="108">
+  <!-- Stand-in for a rendered frame: the view closes in on the label and "Lane 3" is read. -->
+  <rect width="192" height="108" fill="#f6f1e7"/>
+  <rect x="46" y="24" width="100" height="60" fill="#ffffff" stroke="#172d3b" stroke-width="3"/>
+  <text x="66" y="62" font-family="sans-serif" font-size="20" fill="#172d3b">Lane 3</text>
+</svg>

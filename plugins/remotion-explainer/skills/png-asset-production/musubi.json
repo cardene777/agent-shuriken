@@ -1,0 +1,23 @@
+{
+  "musubi": "2026-11-21",
+  "provides": {
+    "material-styles": {
+      "version": "1.0.0",
+      "file": "formats/material-styles.md"
+    },
+    "asset-manifest": {
+      "version": "1.0.0",
+      "file": "formats/asset-manifest.md"
+    },
+    "check-asset-manifest": {
+      "version": "1.0.0",
+      "file": "scripts/check-asset-manifest.py"
+    }
+  },
+  "follows": {
+    "png-outline-tracing/outline-timing": {
+      "version": "^1.0.0",
+      "integrity": "sha256-imZR2OGBZhJK+EtZVEbIvNhlfwf8rhGRpjqCYCjuwjk="
+    }
+  }
+}

@@ -1,0 +1,171 @@
+{
+  "musubi": "2026-11-21",
+  "provides": {
+    "engineering": {
+      "version": "1.0.0",
+      "file": "formats/engineering.md"
+    },
+    "art-direction": {
+      "version": "1.0.0",
+      "file": "formats/art-direction.md"
+    },
+    "explainer-direction": {
+      "version": "1.0.0",
+      "file": "formats/explainer-direction.md"
+    },
+    "composition-and-staging": {
+      "version": "1.0.0",
+      "file": "formats/composition-and-staging.md"
+    },
+    "rough-proxy": {
+      "version": "1.0.0",
+      "file": "formats/rough-proxy.md"
+    },
+    "reference-beats": {
+      "version": "1.0.0",
+      "file": "formats/reference-beats.md"
+    },
+    "beat-dossier": {
+      "version": "1.0.0",
+      "file": "formats/beat-dossier.md"
+    },
+    "check-beat-dossier": {
+      "version": "1.0.0",
+      "file": "scripts/check-beat-dossier.mjs"
+    },
+    "beat-review": {
+      "version": "1.0.0",
+      "file": "formats/beat-review.md"
+    },
+    "check-beat-review": {
+      "version": "1.0.0",
+      "file": "scripts/check-beat-review.mjs"
+    },
+    "video-quality-review": {
+      "version": "1.0.0",
+      "file": "formats/video-quality-review.md"
+    },
+    "static-art": {
+      "version": "1.0.0",
+      "file": "formats/static-art.md"
+    },
+    "felt-applique": {
+      "version": "1.0.0",
+      "file": "formats/felt-applique.md"
+    },
+    "check-stage-theme": {
+      "version": "1.0.0",
+      "file": "scripts/check-stage-theme.mjs"
+    },
+    "hand-drawn-narrative": {
+      "version": "1.0.0",
+      "file": "formats/hand-drawn-narrative.md"
+    },
+    "ink-primitives": {
+      "version": "1.0.0",
+      "file": "templates/InkPrimitives.tsx"
+    },
+    "paper-scribe": {
+      "version": "1.0.0",
+      "file": "formats/paper-scribe.md"
+    },
+    "paperboard": {
+      "version": "1.0.0",
+      "file": "formats/paperboard.md"
+    },
+    "check-paperboard": {
+      "version": "1.0.0",
+      "file": "scripts/check-paperboard.mjs"
+    },
+    "paper-scribe-review": {
+      "version": "1.0.0",
+      "file": "formats/paper-scribe-review.md"
+    }
+  },
+  "follows": {
+    "remotion-motion-plan/choreography": {
+      "version": "^1.0.0",
+      "integrity": "sha256-b5VDt4fiHATnW3LduPds1ffvg1wgEvaOfy3uTlCDkmU="
+    },
+    "remotion-motion-plan/check-choreography": {
+      "version": "^1.0.0",
+      "integrity": "sha256-HSbFPcva5iFNewSN3AmBuR1ROmupIZKCEr64XEL8zDs="
+    },
+    "remotion-motion-plan/continuous-choreography": {
+      "version": "^1.0.0",
+      "integrity": "sha256-lgsKzko0j18rk+b6/6yOR5PafXWOV+gXxcrRzOyJCJc="
+    },
+    "remotion-motion-plan/check-continuous-choreography": {
+      "version": "^1.0.0",
+      "integrity": "sha256-ndc08TkJlasgIgd2oQGKyExa14RodYHchDAJ7y63vwM="
+    },
+    "remotion-motion-plan/motion-evidence": {
+      "version": "^1.0.0",
+      "integrity": "sha256-mh65GUEFiCzUoDNJKuagPuex/zZEncdgTSAW4AHdXUU="
+    },
+    "remotion-motion-plan/check-motion-evidence": {
+      "version": "^1.0.0",
+      "integrity": "sha256-lCYaetiw26r+MINKHYkhdQrBF7oF7LnQaIX0G41s4oI="
+    },
+    "remotion-motion-plan/motion-language": {
+      "version": "^1.0.0",
+      "integrity": "sha256-/6KjkrL/fi37sJxCBVJ0rYaWNpzq432WHrHjEIgvbiw="
+    },
+    "remotion-motion-plan/check-motion-language": {
+      "version": "^1.0.0",
+      "integrity": "sha256-Pu/gIBW1DgAw0dWC/bMxwlPT99AbUKJSnuuikBmYusE="
+    },
+    "remotion-frame-checks/scene-layers": {
+      "version": "^1.0.0",
+      "integrity": "sha256-jGCnALIsD1aTsXXRCagPswiq78AOy6naei6wVrMdJ2E="
+    },
+    "remotion-frame-checks/check-scene-layers": {
+      "version": "^1.0.0",
+      "integrity": "sha256-30XLYoVuOh1/31WaGrTI3rnc8aKN/24Z3cKcwOVPf1w="
+    },
+    "remotion-frame-checks/svg-geometry": {
+      "version": "^1.0.0",
+      "integrity": "sha256-Xh1j12lw+Zc/9x2yGB91eh9vxJO7G4OcGVvDjQbXtrI="
+    },
+    "remotion-frame-checks/check-svg-geometry": {
+      "version": "^1.0.0",
+      "integrity": "sha256-SJ7FeRWx7IJhR4eDFyNKkKqhFuiRtwqdJFjCve7EDZY="
+    },
+    "remotion-frame-checks/layout": {
+      "version": "^1.0.0",
+      "integrity": "sha256-9YVY5yA1wMH5194YGVk+qmrZg1MEhkJ8dxj8U4IkUA0="
+    },
+    "remotion-frame-checks/check-layout": {
+      "version": "^1.0.0",
+      "integrity": "sha256-3TKlOnYweXSrUth6T0VxLUp56Lajt2j9bGpnQZijkfE="
+    },
+    "remotion-frame-checks/timing-boundary": {
+      "version": "^1.0.0",
+      "integrity": "sha256-LvZly6+4fkmLoA/6zab2Kwksv252xn5Zb6TSZOLawJU="
+    },
+    "remotion-frame-checks/check-timing-boundary": {
+      "version": "^1.0.0",
+      "integrity": "sha256-YoeXxOZ1jCqJzYf2sJiVQq4k2Vi8n2kcJwzmBp/LDHI="
+    },
+    "remotion-catalog/selection": {
+      "version": "^1.0.0",
+      "integrity": "sha256-N6aWVBVMic0h35dymFAQVUuNQg2ya3dMUxQK+8cGo5Q="
+    },
+    "remotion-catalog/catalog": {
+      "version": "^1.0.0",
+      "integrity": "sha256-+faxbgpd08hGJW6UEQYHh78WTVxcXZINQqngRogpkvc="
+    },
+    "png-asset-production/asset-manifest": {
+      "version": "^1.0.0",
+      "integrity": "sha256-QacLdpwm0gIsKFqCH1pP5Ddb67gF3ovU/oxTqAeNIXs="
+    },
+    "png-asset-production/check-asset-manifest": {
+      "version": "^1.0.0",
+      "integrity": "sha256-FYpwuJ7ZPvR90m4AtDy1ZDKUghT0SFp3lwXzwEHfPQM="
+    },
+    "png-outline-tracing/outline-timing": {
+      "version": "^1.0.0",
+      "integrity": "sha256-imZR2OGBZhJK+EtZVEbIvNhlfwf8rhGRpjqCYCjuwjk="
+    }
+  }
+}

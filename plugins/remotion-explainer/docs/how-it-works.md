@@ -2,8 +2,9 @@
 
 English · [日本語](how-it-works.ja.md)
 
-This page explains what each check of `remotion-motion-plan` and `remotion-frame-checks` reads, how it decides, and what it writes, and how `remotion-catalog` fetches, builds, and searches its catalog.
-The checks are eight Node.js scripts, four in `skills/remotion-motion-plan/scripts/` and four in `skills/remotion-frame-checks/scripts/`, and the catalog is one more, `skills/remotion-catalog/scripts/catalog.mjs`; all of them use only the modules built into Node.js 18 or later.
+This page explains what each check of the plugin reads, how it decides, and what it writes, how the tracer of `png-outline-tracing` draws an outline, and how `remotion-catalog` fetches, builds, and searches its catalog.
+The checks are fourteen Node.js scripts, four in `skills/remotion/scripts/`, two in `skills/remotion-explainer-review/scripts/`, four in `skills/remotion-motion-plan/scripts/`, and four in `skills/remotion-frame-checks/scripts/`, and one Python script, `skills/png-asset-production/scripts/check-asset-manifest.py`.
+The tracer and the catalog are two more Node.js scripts. The Node.js scripts use only the modules built into Node.js 18 or later, and the Python script only the standard library of Python 3.
 
 ## How a check runs
 
@@ -113,6 +114,61 @@ Each scene needs an id, the viewer question it answers, and its four layers.
 A layer from the catalog names the entry and what was adapted, a bespoke layer gives its reason, and only typography may be left out with `none`.
 The silhouette family, spatial grammar, and reveal grammar of each scene are compared with the scene before it, and the check refuses when all three are the same.
 
+## Beat dossier
+
+`check-beat-dossier.mjs` of `remotion` reads `beat-dossier.json`, the state machine of the whole video.
+Each beat needs an ID used once, a stage mode, a viewer question, a primary object, a proof object, a before, an operation, and an after, an annotation on a visible object within the beat's frames, an attention action, a reading hold above zero, and a handoff to the next beat with the object it carries and how it changes.
+An operation made of a presentation word, such as "show", "fade", or "transition", is refused, and so is a title or a card as the primary or the proof object.
+Beats may not overlap in their frames, and a handoff must point at a beat that comes later.
+On a pass it also prints `dossierHash`, the SHA-256 of the file, which the beat review cites.
+
+## Beat review
+
+`check-beat-review.mjs` reads `out/review/beat-review.json` and the dossier it names.
+The `dossierHash` must equal the SHA-256 of that dossier, and `compiledHash` must be given.
+Every beat of the dossier needs a review with four real frames, `orient`, `operation`, `read`, and `handoff`, each a file that exists, six scores of 4 or more, and a note.
+
+## Paperboard
+
+`check-paperboard.mjs` reads `paperboard.json` of a video in the paper scribe visual language.
+It checks the renderer ID of this subject, the canvas, the traits taken over and the ones not taken over, the objects, and each beat: its frames, its primary object, its paper structures and their targets, the drawing order, the operation, the reading hold, the change of focus, and the handoff.
+The frames of the beats come in order, a handoff points at an object the next beat uses, and the last beat hands off to `end` with `terminalState` set to `true`.
+
+## Stage theme
+
+`check-stage-theme.mjs` reads `production.json` when its art direction names a stage theme.
+The theme needs its ID, the style ID of the art it goes with, its allowed primitives, and a concrete policy of at least 12 characters for containers, labels, connectors, and traces.
+`visual.staticAssets` must hold reviewed PNGs of the subject, each in the theme's art style, so a video never mixes art materials.
+
+## Geometry samples
+
+`check-geometry-samples.mjs` of `remotion-explainer-review` reads `out/review/geometry-samples.json`, the real bounds of every visible object at sampled frames, written by the renderer's own layout function.
+Each object has positive bounds and appears once per frame, and stays inside the safe area unless it allows otherwise.
+Two objects may overlap only when the frame lists the pair as allowed.
+A connection joins two existing objects at the edges it names, within its gap, and with centers aligned within its tolerance.
+An object of a stable track is compared across at least two frames, and may move no more than its limit.
+
+## Continuity samples
+
+`check-continuity-samples.mjs` reads `out/review/continuity-samples.json`.
+Each scene boundary needs its before, during, and after frames, and a camera that moves and scales no more than its limits in one step.
+A boundary must carry at least one persistent object or one handoff.
+A persistent object is present on both sides and may not jump; a handoff passes from its object before, through its object during, to its object after, with a reason and without a jump.
+
+## Asset manifest
+
+`check-asset-manifest.py` of `png-asset-production` reads one `asset-manifest.json` and the files it names, relative to its folder.
+The manifest needs every field, one of the six material styles, whole-image motion only, and the paths of the raw PNG, the alpha PNG, and the three review composites.
+Each PNG must exist, start with the PNG signature, and have a positive size; the alpha PNG must be the size of the raw PNG and hold both fully transparent pixels and visible ones.
+It reads the PNGs with `zlib` and `struct` of the standard library.
+
+## Outline tracer
+
+`trace-alpha-outline.mjs` of `png-outline-tracing` reads one alpha PNG with Node.js's own `zlib`, the same way the timing boundary check does: 8-bit, non-interlaced images of every color type.
+A pixel counts as solid when its alpha is above the threshold, 210 by default, and the edges between solid and clear pixels are followed into closed contours.
+Contours of fewer than 16 points are dropped, the rest are simplified with a tolerance of 1.6 pixels, and `--mode main` keeps the one with the largest area while `--mode all` keeps every one.
+It writes the SVG with one unfilled path per contour and the JSON with the same paths, only where `--svg` and `--data` point, and exits 0, 1 when no closed silhouette is found, or 2 for a PNG it cannot read.
+
 ## Catalog
 
 `catalog.mjs` has three commands, and each prints one JSON object.
@@ -170,8 +226,8 @@ Each result holds its `id`, `source`, `title`, `file`, the absolute `path` of th
 
 | Kind | What |
 |---|---|
-| Reads | The files named on the command line; the catalog also reads its source list and the fetched sources |
-| Writes | The checks write only the audit files where `--audit-dir` or `--out` points; the agent writes the plans under `storyboard/` and the entries of the library; the catalog writes only under `catalog/` of the data folder |
+| Reads | The files named on the command line, and the files a manifest or a review names; the catalog also reads its source list and the fetched sources |
+| Writes | The checks write only the audit files where `--audit-dir` or `--out` points; the tracer writes only its SVG and JSON; the agent writes the plans under `storyboard/`, `production.json`, the PNG art, the composition, and the review files under `out/review/` of your project, and the entries of the library; the catalog writes only under `catalog/` of the data folder |
 | Runs | Nothing but itself and, for the catalog, `git`; rendering frames is done by Remotion in your project, and code from a catalog source is never run |
-| Sends | The checks make no network connection; `sync` downloads only the repositories of its source list; a search for a video uses only general words for the kind of motion |
+| Sends | The checks and the tracer make no network connection; `sync` downloads only the repositories of its source list; the prompts of PNG art go only to the agent's own image generation tool; a search for a video uses only general words for the kind of motion |
 | Keeps | The motion evidence library, the fetched sources, and the catalog in the data folder, readable only by you, until you delete them; nothing else outside your project |

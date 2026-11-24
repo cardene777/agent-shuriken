@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "assetId": "parcel",
+  "role": "The parcel carried from the warehouse through the sorter to the door",
+  "styleId": "felt-applique",
+  "staticRoleReason": "A tactile object that moves as a whole; its route and its sorting state are native Remotion geometry.",
+  "motionBoundary": "whole-image",
+  "allowedMotion": ["translate", "scale", "fade", "crop"],
+  "forbiddenExplanationWork": ["show the delivery route", "show the sorting steps", "act as a UI card"],
+  "generation": {
+    "prompt": "One cardboard parcel tied with string, made of cut wool felt layers: a warm cream base, deep teal structure, and one mustard accent. Centered with a clear margin on a flat #00FF00 background. No text, labels, frames, arrows, scenery, or second object.",
+    "rawPng": "artwork/parcel-raw.png",
+    "alphaPng": "artwork/parcel.png"
+  },
+  "review": {
+    "lightComposite": "review/parcel-light.png",
+    "darkComposite": "review/parcel-dark.png",
+    "sceneComposite": "review/parcel-scene.png",
+    "accepted": false
+  },
+  "outlineHandoff": null
+}

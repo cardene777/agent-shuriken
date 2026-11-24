@@ -1,0 +1,38 @@
+{
+  "topic": "How a parcel reaches the door",
+  "fps": 30,
+  "beats": [
+    {
+      "id": "unsorted",
+      "frames": {"start": 0, "end": 120},
+      "stageMode": "aperture",
+      "viewerQuestion": "Why can the parcel not leave the warehouse yet?",
+      "primary": "parcel",
+      "counterparts": ["warehouse-shelf"],
+      "proofObject": "parcel:no-route",
+      "before": "The parcel sits on the shelf with a blank label",
+      "operation": "The scanner beam crosses the blank label and finds no route",
+      "after": "The parcel needs a route before it can leave",
+      "annotation": {"text": "No route yet", "target": "parcel", "frames": {"start": 66, "end": 114}},
+      "attentionAction": "Only the blank label is lit while the shelf dims",
+      "readingHoldMs": 700,
+      "handoff": {"object": "parcel", "resultObject": "parcel", "toBeatId": "route", "change": "The parcel moves under the printer to get its route"}
+    },
+    {
+      "id": "route",
+      "frames": {"start": 120, "end": 240},
+      "stageMode": "inspection",
+      "viewerQuestion": "What does the label tell the sorter?",
+      "primary": "route-label",
+      "counterparts": ["parcel"],
+      "proofObject": "route-label:lane-3",
+      "before": "The parcel has no route",
+      "operation": "The printer writes the lane number onto the label, and the label is pressed onto the parcel",
+      "after": "The parcel carries a label for lane 3",
+      "annotation": {"text": "Lane 3", "target": "route-label", "frames": {"start": 192, "end": 234}},
+      "attentionAction": "The view closes in on the label so its lane number can be read",
+      "readingHoldMs": 800,
+      "handoff": {"object": "route-label", "resultObject": "route-label", "toBeatId": "end", "terminalState": true, "change": "The labeled parcel leaves toward the sorter"}
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "sourceHash": "8d2b4f6a0c1e3a5c7e9b1d3f5a7c9e0b2d4f6a8c0e1b3d5f7a9c2e4b6d8f0a1c",
+  "boundaries": [
+    {
+      "id": "warehouse-to-sorter",
+      "frames": {"before": 500, "during": 520, "after": 540},
+      "camera": {"maxCenterDelta": 16, "maxScaleDelta": 0.04},
+      "persistent": [
+        {"id": "warehouse", "maxCenterDelta": 8, "maxScaleDelta": 0.02}
+      ],
+      "handoffs": [
+        {
+          "from": "parcel-on-shelf",
+          "via": "parcel-in-motion",
+          "to": "parcel-on-belt",
+          "maxCenterDelta": 100,
+          "maxScaleDelta": 0.5,
+          "reason": "The parcel leaves the warehouse shelf and rides onto the sorter belt"
+        }
+      ]
+    }
+  ],
+  "frames": [
+    {
+      "frame": 500,
+      "camera": {"x": 960, "y": 540, "scale": 1},
+      "objects": [
+        {"id": "warehouse", "bounds": {"x": 120, "y": 400, "width": 300, "height": 250}},
+        {"id": "parcel-on-shelf", "bounds": {"x": 720, "y": 440, "width": 180, "height": 120}}
+      ]
+    },
+    {
+      "frame": 520,
+      "camera": {"x": 968, "y": 540, "scale": 1.02},
+      "objects": [
+        {"id": "warehouse", "bounds": {"x": 124, "y": 400, "width": 300, "height": 250}},
+        {"id": "parcel-in-motion", "bounds": {"x": 780, "y": 440, "width": 160, "height": 120}}
+      ]
+    },
+    {
+      "frame": 540,
+      "camera": {"x": 976, "y": 540, "scale": 1.04},
+      "objects": [
+        {"id": "warehouse", "bounds": {"x": 128, "y": 400, "width": 300, "height": 250}},
+        {"id": "parcel-on-belt", "bounds": {"x": 840, "y": 440, "width": 140, "height": 120}}
+      ]
+    }
+  ]
+}

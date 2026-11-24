@@ -1,0 +1,115 @@
+{
+  "musubi": "2026-11-21",
+  "provides": {
+    "geometry-samples": {
+      "version": "1.0.0",
+      "file": "formats/geometry-samples.md"
+    },
+    "check-geometry-samples": {
+      "version": "1.0.0",
+      "file": "scripts/check-geometry-samples.mjs"
+    },
+    "continuity-samples": {
+      "version": "1.0.0",
+      "file": "formats/continuity-samples.md"
+    },
+    "check-continuity-samples": {
+      "version": "1.0.0",
+      "file": "scripts/check-continuity-samples.mjs"
+    }
+  },
+  "follows": {
+    "remotion/art-direction": {
+      "version": "^1.0.0",
+      "integrity": "sha256-5ZMQkBj3JbA+6+iDVTFbSb4HrDv0NRZdUVx2dNzfmEw="
+    },
+    "remotion/explainer-direction": {
+      "version": "^1.0.0",
+      "integrity": "sha256-2sMBs+gmouybugQtBFPkMBwGEJ3s5Qu1nzWMYexi0Y0="
+    },
+    "remotion/composition-and-staging": {
+      "version": "^1.0.0",
+      "integrity": "sha256-KiD1bU1rkARKmHQ0/RLKTRqqyGd1/u3yFwF+l2fYyXE="
+    },
+    "remotion/reference-beats": {
+      "version": "^1.0.0",
+      "integrity": "sha256-6zhjoGzGGEyzgCDhzLCRqdVFnQwGfOHmaJcAYyV/Xuw="
+    },
+    "remotion/video-quality-review": {
+      "version": "^1.0.0",
+      "integrity": "sha256-cMUkb2tfIup443JCfq/C0dkwRb4IOcvPuM0+kizxdnY="
+    },
+    "remotion/beat-dossier": {
+      "version": "^1.0.0",
+      "integrity": "sha256-Odt+B7msnCRguJJRHuiSYyNV5wtO13jUAD98qmrce2g="
+    },
+    "remotion/check-beat-dossier": {
+      "version": "^1.0.0",
+      "integrity": "sha256-lhTv+kq+Ah16yr42Yh+UB4OCq1BnQsPVga4UcvpCPu4="
+    },
+    "remotion/beat-review": {
+      "version": "^1.0.0",
+      "integrity": "sha256-/ONLcEmNG0Jg71OWW9JXy/acUr0qeOApRM9nsDVoqOw="
+    },
+    "remotion/check-beat-review": {
+      "version": "^1.0.0",
+      "integrity": "sha256-HhlbzptYabMjWNURokifkCeRcmAiKVLtceKtSeMF/RE="
+    },
+    "remotion/static-art": {
+      "version": "^1.0.0",
+      "integrity": "sha256-+JUTAdMyr+H/rERk3J3wYXeqEZpYX1eVTf2qLXgUXJM="
+    },
+    "remotion/felt-applique": {
+      "version": "^1.0.0",
+      "integrity": "sha256-IMnBtM63iPNyQ9NirIXlVusYTVpwCPsyZHYJw6ltrF8="
+    },
+    "remotion/check-stage-theme": {
+      "version": "^1.0.0",
+      "integrity": "sha256-PqHc5pCRLS+zt9iqg2CCrmb0nCaKbEIK0xlTeofD7FE="
+    },
+    "remotion/hand-drawn-narrative": {
+      "version": "^1.0.0",
+      "integrity": "sha256-Y92S/aVj4L8nW6Mm/VgtgZK8E2uFHAUjcKaADjuuHZM="
+    },
+    "remotion/paper-scribe-review": {
+      "version": "^1.0.0",
+      "integrity": "sha256-f8AVKrDIEey0VhBeTPxanKnIvSyng4OAk0G7keMyvu8="
+    },
+    "remotion/paperboard": {
+      "version": "^1.0.0",
+      "integrity": "sha256-tELikQ8NilzZVdHlBh9TpF6X4mw3jUhoQs2w8kHYZSA="
+    },
+    "remotion/check-paperboard": {
+      "version": "^1.0.0",
+      "integrity": "sha256-ydiqH8GJd59HLSHtjIYsvIcgz0qgSfrGKulQsrBPVXk="
+    },
+    "remotion-frame-checks/layout": {
+      "version": "^1.0.0",
+      "integrity": "sha256-9YVY5yA1wMH5194YGVk+qmrZg1MEhkJ8dxj8U4IkUA0="
+    },
+    "remotion-frame-checks/check-layout": {
+      "version": "^1.0.0",
+      "integrity": "sha256-3TKlOnYweXSrUth6T0VxLUp56Lajt2j9bGpnQZijkfE="
+    },
+    "remotion-frame-checks/svg-geometry": {
+      "version": "^1.0.0",
+      "integrity": "sha256-Xh1j12lw+Zc/9x2yGB91eh9vxJO7G4OcGVvDjQbXtrI="
+    },
+    "remotion-frame-checks/check-svg-geometry": {
+      "version": "^1.0.0",
+      "integrity": "sha256-SJ7FeRWx7IJhR4eDFyNKkKqhFuiRtwqdJFjCve7EDZY="
+    },
+    "remotion-frame-checks/timing-boundary": {
+      "version": "^1.0.0",
+      "integrity": "sha256-LvZly6+4fkmLoA/6zab2Kwksv252xn5Zb6TSZOLawJU="
+    },
+    "remotion-frame-checks/check-timing-boundary": {
+      "version": "^1.0.0",
+      "integrity": "sha256-YoeXxOZ1jCqJzYf2sJiVQq4k2Vi8n2kcJwzmBp/LDHI="
+    },
+    "png-outline-tracing/outline-timing": {
+      "version": "^1.0.0",
+      "integrity": "sha256-imZR2OGBZhJK+EtZVEbIvNhlfwf8rhGRpjqCYCjuwjk="
+    }
+  }
+}

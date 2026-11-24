@@ -1,0 +1,7 @@
+interface:
+  display_name: "Remotion"
+  short_description: "Make a Remotion explainer video from approved art direction and roughs"
+  default_prompt: "Use $remotion to make an explainer video of how a parcel is sorted and delivered."
+
+policy:
+  allow_implicit_invocation: true

@@ -133,7 +133,7 @@
     {
       "name": "remotion-explainer",
       "source": "./plugins/remotion-explainer",
-      "description": "Plan the motion of a Remotion explainer video, find built examples for each scene in a catalog of licensed Remotion sources, and check its frames by machine: one subject carried from scene to scene, motions backed by videos you watched, connectors that end on their ports, a layout that keeps the safe area and the subtitle zone, and no flash where an element starts or ends"
+      "description": "Make a Remotion explainer video whose pictures belong to its subject, through gates you approve: plan the motion with one subject carried from scene to scene and motions backed by videos you watched, make original PNG art and outlines that draw in, find built examples in a catalog of licensed Remotion sources, and check the frames by machine for connectors that end on their ports, a layout that keeps the safe area and the subtitle zone, and no flash where an element starts or ends"
     },
     {
       "name": "repo-progress",

@@ -1,0 +1,19 @@
+{
+  "musubi": "2026-11-21",
+  "provides": {
+    "outline-timing": {
+      "version": "1.0.0",
+      "file": "formats/outline-timing.md"
+    },
+    "trace-alpha-outline": {
+      "version": "1.0.0",
+      "file": "scripts/trace-alpha-outline.mjs"
+    }
+  },
+  "follows": {
+    "remotion-frame-checks/timing-boundary": {
+      "version": "^1.0.0",
+      "integrity": "sha256-LvZly6+4fkmLoA/6zab2Kwksv252xn5Zb6TSZOLawJU="
+    }
+  }
+}

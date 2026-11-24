@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 108" width="192" height="108">
+  <!-- Stand-in for a rendered frame: the parcel on the shelf with a blank label. -->
+  <rect width="192" height="108" fill="#f6f1e7"/>
+  <rect x="40" y="70" width="112" height="6" fill="#6b5a45"/>
+  <rect x="76" y="40" width="40" height="30" fill="#c89b62" stroke="#172d3b" stroke-width="2"/>
+  <rect x="86" y="48" width="20" height="12" fill="#ffffff" stroke="#172d3b"/>
+</svg>

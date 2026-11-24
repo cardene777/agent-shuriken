@@ -1,0 +1,7 @@
+interface:
+  display_name: "Remotion Explainer Review"
+  short_description: "Review a Remotion explainer in real frames until no issue is left"
+  default_prompt: "Use $remotion-explainer-review to review the current build of this explainer."
+
+policy:
+  allow_implicit_invocation: true
