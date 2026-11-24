@@ -63,6 +63,14 @@ ln -sf "$PY" "$SYS/python3"
 export HOME="$T/home"
 H="$HOME"
 export MACHINE_CLEANUP_HOME="$T/state"
+# Every scan reads this empty folder in place of /, so no scan here reads this machine's system places.
+# The checks of administrator rows point it at a throwaway system root of their own.
+export MACHINE_CLEANUP_SYSTEM_ROOT="$T/sysroot-empty"
+mkdir -p "$MACHINE_CLEANUP_SYSTEM_ROOT"
+export DU_ARGS="$T/du-args.log"
+: > "$DU_ARGS"
+# Whether a password dialog can open depends on these, so each check that needs one sets it itself.
+unset SSH_CONNECTION SSH_TTY DISPLAY WAYLAND_DISPLAY SUDO_UID SUDO_GID SUDO_USER SUDO_ASKPASS
 export MOCK PY REAL_DU H
 export GIT_CONFIG_NOSYSTEM=1 GIT_AUTHOR_NAME=tester GIT_AUTHOR_EMAIL=tester GIT_COMMITTER_NAME=tester GIT_COMMITTER_EMAIL=tester
 # Variables that move a cache elsewhere would point the scan at this machine's real caches.
@@ -82,7 +90,9 @@ LOG='echo "$(basename "$0") $*" >> "$MOCK/calls.log"'
 stub ps "$LOG"'
 if [ -f "$MOCK/ps.first" ]; then cat "$MOCK/ps.first"; rm -f "$MOCK/ps.first"; else cat "$MOCK/ps" 2>/dev/null; fi'
 # du records the niceness it runs at, then prints a size from $MOCK/du.sizes or measures for real.
+# Every path it is asked to measure also goes to $DU_ARGS, which no check empties.
 stub du "$LOG"'
+echo "$*" >> "$DU_ARGS"
 "$PY" -c "import os; print(os.nice(0))" >> "$MOCK/du.nice"
 for p in "$@"; do case "$p" in -*) continue;; esac
   kb="$(awk -F "\t" -v p="$p" "\$1 == p { print \$2 }" "$MOCK/du.sizes" 2>/dev/null | tail -1)"
@@ -106,8 +116,25 @@ stub mdls "$LOG"'
 cat "$MOCK/mdls"'
 stub launchctl "$LOG"'
 exit 0'
+# systemctl lists the user's units from $MOCK/systemctl and the system's from $MOCK/systemctl-system.
 stub systemctl "$LOG"'
-case "$*" in *list-unit-files*) cat "$MOCK/systemctl" 2>/dev/null;; esac
+case "$*" in
+  *--user*list-unit-files*) cat "$MOCK/systemctl" 2>/dev/null;;
+  *list-unit-files*) cat "$MOCK/systemctl-system" 2>/dev/null;;
+esac
+exit 0'
+# sudo runs nothing: `sudo -n true` succeeds only when $MOCK/sudo-ok exists. osascript prints
+# $MOCK/osascript-answer as if typed into its dialog, and pkexec refuses. All three record their calls.
+stub sudo "$LOG"'
+[ -f "$MOCK/sudo-ok" ] && exit 0
+exit 1'
+stub osascript "$LOG"'
+cat "$MOCK/osascript-answer" 2>/dev/null'
+stub pkexec "$LOG"'
+exit 1'
+# journalctl prints $MOCK/journal-usage for --disk-usage, and exits with $MOCK/journal-rc when it exists.
+stub journalctl "$LOG"'
+case "$*" in *--disk-usage*) cat "$MOCK/journal-usage" 2>/dev/null; [ -f "$MOCK/journal-rc" ] && exit "$(cat "$MOCK/journal-rc")";; esac
 exit 0'
 stub flatpak "$LOG"'
 case "$*" in *list*) printf "org.example.Viewer\tViewer\t250.0 MB\n";; esac
@@ -2420,6 +2447,423 @@ check "while Ollama is not running, apply deletes the manifest and only the blob
   '[ -n "$(model_at "$OLLAMA_Q4")" ] && [ ! -e "$OLLAMA_Q4" ] && [ ! -e "$OLLAMA/blobs/sha256-$(printf "%064d" 0 | tr 0 e)" ] && [ -f "$OLLAMA/blobs/sha256-$(printf "%064d" 0 | tr 0 d)" ] && [ -f "$OLLAMA/blobs/sha256-$(printf "%064d" 0 | tr 0 b)" ] && [ -f "$OLLAMA_LATEST" ] && ! grep -q "^ollama rm" "$MOCK/calls.log"'
 check "apply leaves unpicked projects, leftovers, tool versions, and models alone" \
   '[ -n "$(cat_at project "$IDLE2")" ] && leftover_named com.gonevendor.app2 && [ -n "$(tool_at "$H/.pyenv/versions/3.9.18")" ] && [ -n "$(model_at "$HF_OTHER")" ] && [ -d "$IDLE2/.git" ] && [ -f "$LIB/Application Support/com.gonevendor.app2/data" ] && [ -d "$H/.pyenv/versions/3.9.18" ] && [ -d "$HF_OTHER" ] && [ -d "$LMS_OLD" ]'
+
+# --- administrator rows (#143) ---------------------------------------------------------------
+# A throwaway system root R stands in for / through MACHINE_CLEANUP_SYSTEM_ROOT, with a small HOME of
+# its own (AH). sudo, osascript, pkexec, launchctl, systemctl, apt-get, dnf, journalctl, and zenity are
+# stand-ins that record their calls. admin-apply and admin-restore run without sudo, as the user, on R.
+R="$T/sysroot"
+AH="$T/admin-home"
+SC="$R/Library/Caches"
+mkdir -p "$AH/Library/Caches" "$AH/.Trash" "$AH/Documents"
+# asys <state> <platform> <args>...: the script with the admin HOME, a state folder, and the root R.
+asys() { local s="$1"; shift; HOME="$AH" MACHINE_CLEANUP_HOME="$s" MACHINE_CLEANUP_SYSTEM_ROOT="$R" mc_as "$@"; }
+# sj <state> <filter>: the state's scan.json passes the jq filter.
+sj() { jq -e "$2" "$1/scan.json" > /dev/null 2>&1; }
+# sid <state> <path>: the id of the row at that path.
+sid() { jq -r --arg p "$2" '[.items[] | select(.path == $p) | .id][0] // empty' "$1/scan.json" 2>/dev/null; }
+# skid <state> <kind>: the id of the first row of that kind.
+skid() { jq -r --arg k "$2" '[.items[] | select(.kind == $k) | .id][0] // empty' "$1/scan.json" 2>/dev/null; }
+# Tools only some systems have: apt-get and dnf, and the dialog programs of Linux.
+PKG="$T/pkgbin"; DLG="$T/dialog-bin"; UNAME_D="$T/uname-darwin"; UNAME_L="$T/uname-linux"
+mkdir -p "$PKG" "$DLG" "$UNAME_D" "$UNAME_L"
+stub_in() { printf '#!/bin/bash\n%s\n' "$3" > "$1/$2"; chmod +x "$1/$2"; }
+stub_in "$PKG" apt-get "$LOG"
+stub_in "$PKG" dnf "$LOG"
+stub_in "$DLG" zenity "$LOG"'
+cat "$MOCK/zenity-answer" 2>/dev/null'
+stub_in "$UNAME_D" uname 'echo Darwin'
+stub_in "$UNAME_L" uname 'echo Linux'
+
+# macOS: caches of /Library/Caches, big and small, Apple's, one the user cannot read, one System
+# Integrity Protection guards, and one that grows after the scan.
+fill "$SC/com.vendor.big"; size "$SC/com.vendor.big" 81920
+fill "$SC/com.vendor.small"; size "$SC/com.vendor.small" 1024
+fill "$SC/com.apple.iconservices.store"; size "$SC/com.apple.iconservices.store" 204800
+fill "$SC/com.vendor.sealed"
+fill "$SC/com.vendor.guarded"; size "$SC/com.vendor.guarded" 81920
+fill "$SC/com.vendor.grown"; size "$SC/com.vendor.grown" 81920
+# Old and new logs in /Library/Logs and /private/var/log.
+mkdir -p "$R/Library/Logs/Vendor" "$R/private/var/log/asl"
+printf 'old' > "$R/Library/Logs/Vendor/old.log"; printf 'new' > "$R/Library/Logs/Vendor/new.log"
+printf 'old' > "$R/private/var/log/system.log.9.gz"; printf 'new' > "$R/private/var/log/system.log"
+printf 'old' > "$R/private/var/log/asl/2026.01.01.asl"
+old "$R/Library/Logs/Vendor/old.log" "$R/private/var/log/system.log.9.gz" "$R/private/var/log/asl/2026.01.01.asl"
+# Apps: one root installed (the user cannot change it), Apple's, and one the user can change.
+sysapp() {
+  local a="$R/Applications/$1.app"
+  mkdir -p "$a/Contents/MacOS"
+  printf '<?xml version="1.0" encoding="UTF-8"?>\n<plist version="1.0"><dict>\n<key>CFBundleIdentifier</key><string>%s</string>\n<key>CFBundleName</key><string>%s</string>\n</dict></plist>\n' "$2" "$1" > "$a/Contents/Info.plist"
+  size "$a" 102400
+}
+sysapp Legacy com.vendor.legacy
+sysapp Safari com.apple.Safari
+sysapp Free com.vendor.free
+# A launch daemon and a launch agent installed for everyone.
+sysplist() {
+  mkdir -p "$(dirname "$1")"
+  printf '<?xml version="1.0" encoding="UTF-8"?>\n<plist version="1.0"><dict>\n<key>Label</key><string>%s</string>\n<key>ProgramArguments</key><array><string>/opt/vendor/%s</string></array>\n</dict></plist>\n' "$2" "$2" > "$1"
+}
+DAEMON="$R/Library/LaunchDaemons/com.vendor.helper.plist"
+AGENT="$R/Library/LaunchAgents/com.vendor.agent.plist"
+sysplist "$DAEMON" com.vendor.helper
+sysplist "$AGENT" com.vendor.agent
+# The user's own app cache, a plain row the same apply frees.
+fill "$AH/Library/Caches/com.example.tool"; size "$AH/Library/Caches/com.example.tool" 81920
+# Linux: the apt and dnf caches, journald's folder, a service an administrator installed, and a
+# service of the operating system's packages that /etc/systemd/system only links to.
+fill "$R/var/cache/apt/archives"; size "$R/var/cache/apt/archives" 307200
+fill "$R/var/cache/dnf"; size "$R/var/cache/dnf" 204800
+mkdir -p "$R/var/log/journal" "$R/etc/systemd/system/multi-user.target.wants" "$R/usr/lib/systemd/system"
+printf '[Service]\nExecStart=/opt/vendor/agent\n' > "$R/etc/systemd/system/vendor-agent.service"
+printf '[Service]\nExecStart=/usr/sbin/sshd\n' > "$R/usr/lib/systemd/system/ssh.service"
+ln -s "$R/usr/lib/systemd/system/ssh.service" "$R/etc/systemd/system/multi-user.target.wants/ssh.service"
+printf 'vendor-agent.service enabled enabled\nssh.service enabled enabled\n' > "$MOCK/systemctl-system"
+printf 'Archived and active journals take up 1.5G in the file system.\n' > "$MOCK/journal-usage"
+
+# The macOS scan, where osascript can open a dialog. The user cannot change Legacy and Safari, and
+# cannot read the sealed cache while it runs.
+AD="$T/admin-darwin"
+chmod a-w "$R/Applications/Legacy.app" "$R/Applications/Safari.app"
+chmod 000 "$SC/com.vendor.sealed"
+: > "$MOCK/calls.log"
+asys "$AD" darwin scan --json --sample 0 --apps-dir "$R/Applications" > "$T/admin-darwin.out" 2> "$T/admin-darwin.err"
+cp "$MOCK/calls.log" "$T/admin-darwin.calls"
+chmod 700 "$SC/com.vendor.sealed"
+# The Linux scans: with no screen and a sudo that needs a password, with a sudo that needs none, with
+# a screen and zenity, and with a screen but no dialog program. apt-get and dnf are installed for all
+# but the last.
+AL="$T/admin-linux"; AN="$T/admin-nopasswd"; AZ="$T/admin-zenity"; AX="$T/admin-nodialog"
+PATH="$PKG:$PATH" asys "$AL" linux scan --json --sample 0 > /dev/null 2>&1
+touch "$MOCK/sudo-ok"
+PATH="$PKG:$PATH" asys "$AN" linux scan --json --sample 0 > /dev/null 2>&1
+rm -f "$MOCK/sudo-ok"
+DISPLAY=:0 PATH="$PKG:$DLG:$PATH" asys "$AZ" linux scan --json --sample 0 > /dev/null 2>&1
+DISPLAY=:0 asys "$AX" linux scan --json --sample 0 > /dev/null 2>&1
+# The macOS scan over SSH, where no dialog can open and sudo needs a password.
+AS_SSH="$T/admin-ssh"
+SSH_CONNECTION="10.0.0.2 50000 10.0.0.1 22" asys "$AS_SSH" darwin scan --json --sample 0 --apps-dir "$R/Applications" > /dev/null 2>&1
+# Safari stays as it was scanned; the cleanup at exit needs to delete it.
+chmod u+w "$R/Applications/Safari.app"
+
+check "scan lists system caches as administrator rows and leaves out Apple's" \
+  'sj "$AD" ".items | any(.path == \"$SC/com.vendor.big\" and .category == \"cache\" and .kind == \"system-cache\" and .admin == true and .size == 83886080)" && sj "$AD" ".items | any(.path == \"$SC/com.vendor.sealed\" and .kind == \"system-cache\" and .admin == true)" && ! sj "$AD" ".items | any(.path == \"$SC/com.vendor.small\" or ((.path // \"\") | startswith(\"$SC/com.apple.\")))"'
+
+admin_logs_ok() {
+  local got want="$R/Library/Logs/Vendor,$R/private/var/log,$R/private/var/log/asl"
+  got="$(jq -r '[.items[] | select(.kind == "system-logs" and .category == "log" and .admin == true) | .path] | sort | join(",")' "$AD/scan.json" 2>/dev/null)"
+  [ "$got" = "$want" ] || { echo "  system-logs rows: $got"; return 1; }
+  jq -e --arg n "$R/Library/Logs/Vendor/new.log" --arg l "$R/private/var/log/system.log" --arg o "$R/Library/Logs/Vendor/old.log" \
+    '[.items[] | select(.kind == "system-logs") | .detail.files[]] | (index($n) == null) and (index($l) == null) and (index($o) != null)' "$AD/scan.json" > /dev/null \
+    || { echo "  the rows hold a new log or miss an old one"; return 1; }
+}
+check "scan lists old system logs as administrator rows" 'admin_logs_ok'
+
+admin_apps_ok() {
+  sj "$AD" ".items | any(.path == \"$R/Applications/Legacy.app\" and .category == \"app\" and .kind == \"system-app\" and .admin == true)" || { echo "  no system-app row for Legacy.app"; return 1; }
+  ! sj "$AD" ".items | any(.path == \"$R/Applications/Safari.app\")" || { echo "  Apple's app is listed"; return 1; }
+  sj "$AD" ".items | any(.path == \"$R/Applications/Free.app\" and .kind == \"mac-app\" and (.admin // false) == false)" || { echo "  the app the user can change is not a plain app row"; return 1; }
+  sj "$AD" ".items | any(.path == \"$DAEMON\" and .category == \"login-item\" and .kind == \"launch-daemon\" and .admin == true)" || { echo "  no launch-daemon row"; return 1; }
+  sj "$AD" ".items | any(.path == \"$AGENT\" and .category == \"login-item\" and .kind == \"system-launch-agent\" and .admin == true)" || { echo "  no system-launch-agent row"; return 1; }
+}
+check "scan lists apps root installed and system launch daemons and agents as administrator rows" 'admin_apps_ok'
+
+# mc_sip <platform> <args>...: runs the script as if System Integrity Protection guarded the paths in
+# MC_GUARDED (separated by :), by adding the restricted flag to what file_flags reads for them.
+mc_sip() {
+  "$PY" -c 'import os, sys
+sys.path.insert(0, sys.argv[1])
+import machine_cleanup as m
+guarded = set(os.environ["MC_GUARDED"].split(":"))
+real = getattr(m, "file_flags", None)
+if real:
+    m.file_flags = lambda p: (real(p) | 0x80000) if p in guarded else real(p)
+sys.exit(m.main(sys.argv[3:], platform=sys.argv[2]))' "$SCRIPTS" "$@"
+}
+HOME="$AH" MACHINE_CLEANUP_HOME="$T/admin-sip" MACHINE_CLEANUP_SYSTEM_ROOT="$R" MC_GUARDED="$SC/com.vendor.guarded:$DAEMON" \
+  mc_sip darwin scan --json --sample 0 --apps-dir "$R/Applications" > /dev/null 2>&1
+check "scan leaves out places System Integrity Protection guards" \
+  'sj "$T/admin-sip" ".items | any(.path == \"$SC/com.vendor.big\" and .admin == true)" && sj "$T/admin-sip" ".items | any(.path == \"$AGENT\")" && ! sj "$T/admin-sip" ".items | any(.path == \"$SC/com.vendor.guarded\" or .path == \"$DAEMON\")"'
+
+admin_linux_ok() {
+  sj "$AL" ".items | any(.path == \"$R/var/cache/apt/archives\" and .category == \"cache\" and .kind == \"apt-cache\" and .admin == true and .command == [\"apt-get\", \"clean\"])" || { echo "  no apt cache row"; return 1; }
+  sj "$AL" ".items | any(.path == \"$R/var/cache/dnf\" and .category == \"cache\" and .kind == \"dnf-cache\" and .admin == true and .command == [\"dnf\", \"clean\", \"all\"])" || { echo "  no dnf cache row"; return 1; }
+  sj "$AL" '.items | any(.category == "log" and .kind == "journald" and .admin == true and .size == 1610612736 and .command == ["journalctl", "--vacuum-time=30d"])' || { echo "  no journald row of 1.5G"; return 1; }
+  sj "$AL" '.items | any(.category == "login-item" and .kind == "systemd-system" and .admin == true and .detail.unit == "vendor-agent.service")' || { echo "  no row for vendor-agent.service"; return 1; }
+  ! sj "$AX" '.items | any(.kind == "apt-cache" or .kind == "dnf-cache")' || { echo "  the apt or dnf cache is listed without apt-get or dnf"; return 1; }
+}
+check "scan lists the apt and dnf caches, journald, and services an administrator installed on Linux" 'admin_linux_ok'
+check "scan leaves out the services the operating system's packages install" \
+  'sj "$AL" ".items | any(.kind == \"systemd-system\" and .detail.unit == \"vendor-agent.service\")" && ! sj "$AL" ".items | any(.kind == \"systemd-system\" and .detail.unit == \"ssh.service\")"'
+
+# A disk row of the administrator kinds, for the page's checks.
+ADMIN_FNS="$ROW_FNS adminNote"
+ADMIN_ROW='const sys = { id: "d7", group: "disk", category: "cache", kind: "system-cache", admin: true, name: "com.vendor.big", path: "/Library/Caches/com.vendor.big", size: 83886080, level: "recommended", reason: { code: "rebuilt" }, rebuilt: true, locked: null };
+const sealed = Object.assign({}, sys, { id: "d8", name: "com.vendor.sealed", path: "/Library/Caches/com.vendor.sealed", size: null });
+const blocked = Object.assign({}, sys, { id: "d9", blocked: "no way to approve administrator rights here" });
+const plain = { id: "d6", group: "disk", category: "cache", kind: "app-cache", name: "tool", path: "/h/Library/Caches/tool", size: 1000, level: "recommended", reason: { code: "rebuilt" }, rebuilt: true, locked: null };'
+admin_measure_ok() {
+  sj "$AD" ".items | any(.path == \"$SC/com.vendor.sealed\" and .size == null)" || { echo "  the sealed cache has a size"; return 1; }
+  sj "$AD" ".items | any(.path == \"$SC/com.vendor.big\" and .size == 83886080)" || { echo "  the readable cache has no size"; return 1; }
+  ! grep -q '^sudo' "$T/admin-darwin.calls" || { echo "  the macOS scan ran sudo"; return 1; }
+  [ -n "$NODE" ] || return 0
+  local out
+  out="$(page_eval "$ADMIN_FNS" "$ADMIN_ROW"'
+console.log(texts(rowEl(sealed.name, "", sealed)).join("|")); lang = "ja"; console.log(texts(rowEl(sealed.name, "", sealed)).join("|"));' 2>&1)"
+  case "$out" in *"Not measured"*"測れませんでした"*) ;; *) echo "  $out"; return 1;; esac
+}
+check "scan measures system places without sudo and leaves what it cannot read unmeasured" 'admin_measure_ok'
+
+admin_rank_ok() {
+  local d l
+  d="$(jq -r '[.items[] | select(.admin == true) | "\(.kind)=\(.level)"] | unique | join(",")' "$AD/scan.json" 2>/dev/null)"
+  [ "$d" = "launch-daemon=check,system-app=check,system-cache=recommended,system-launch-agent=check,system-logs=recommended" ] || { echo "  macOS: $d"; return 1; }
+  l="$(jq -r '[.items[] | select(.admin == true) | "\(.kind)=\(.level)"] | unique | join(",")' "$AL/scan.json" 2>/dev/null)"
+  [ "$l" = "apt-cache=recommended,dnf-cache=recommended,journald=recommended,systemd-system=check" ] || { echo "  Linux: $l"; return 1; }
+}
+check "scan ranks administrator rows like the rows of the same kind" 'admin_rank_ok'
+
+NO_WAY="no way to approve administrator rights here"
+admin_blocked_ok() {
+  local s
+  for s in "$AL" "$AX" "$AS_SSH"; do
+    sj "$s" '[.items[] | select(.admin == true)] | length > 0' || { echo "  $s lists no administrator row"; return 1; }
+    sj "$s" "(.admin_approval == null) and ([.items[] | select(.admin == true)] | all(.blocked == \"$NO_WAY\" and .locked == null))" \
+      || { echo "  $s does not block its administrator rows"; return 1; }
+  done
+  sj "$AL" '.items | any(.kind == "apt-cache" and .level == "recommended")' || { echo "  a blocked row left its level"; return 1; }
+  local apt rc
+  apt="$(skid "$AL" apt-cache)"
+  asys "$AL" linux apply --select "machine-cleanup:select $apt" > "$T/admin-blocked.out" 2>&1; rc=$?
+  { [ -n "$apt" ] && [ "$rc" = 1 ] && grep -qE "^refused +$apt " "$T/admin-blocked.out" && [ ! -e "$AL/admin-plan.json" ] && [ -d "$R/var/cache/apt/archives" ]; } \
+    || { echo "  apply did not refuse the blocked row (exit $rc)"; return 1; }
+  [ -n "$NODE" ] || return 0
+  local out
+  out="$(page_eval "$ADMIN_FNS" "$ADMIN_ROW"'
+console.log(levelOf(blocked) + " row=" + buttons(rowEl(blocked.name, "", blocked)) + " detail=" + buttons(detailEl(blocked)) + " open=" + buttons(detailEl(sys)));
+console.log(texts(detailEl(blocked)).join("|"));' 2>&1)"
+  case "$out" in "recommended row=1 detail=0 open=1"*"cannot be approved here"*) ;; *) echo "  $out"; return 1;; esac
+}
+check "administrator rows cannot be picked where nothing can approve them" 'admin_blocked_ok'
+check "administrator rows can be picked where a dialog or passwordless sudo approves them" \
+  'sj "$AD" "(.admin_approval == \"dialog\") and ([.items[] | select(.admin == true)] | length > 0 and all((.blocked // null) == null))" && sj "$AN" "(.admin_approval == \"nopasswd\") and ([.items[] | select(.admin == true)] | length > 0 and all((.blocked // null) == null))" && sj "$AZ" ".admin_approval == \"dialog\""'
+
+# admin-apply refuses rows that are not administrator rows of the last scan, a path moved outside
+# its place, a link, and a row that grew. The scan of AR is a copy of AD's with one path changed.
+AR="$T/admin-refuse"
+cp -R "$AD" "$AR"
+mkdir -p "$AH/Documents/keep"; printf 'keep' > "$AH/Documents/keep/file"
+jq --arg p "$SC/com.vendor.sealed" --arg to "$AH/Documents/keep" '.items |= map(if .path == $p then .path = $to else . end)' "$AD/scan.json" > "$AR/scan.json"
+fill "$T/outside-cache2"
+rm -rf "$SC/com.vendor.guarded"; ln -s "$T/outside-cache2" "$SC/com.vendor.guarded"
+size "$SC/com.vendor.grown" 163840; printf 'more' > "$SC/com.vendor.grown/more"
+R_PLAIN="$(sid "$AD" "$AH/Library/Caches/com.example.tool")"
+R_OUT="$(sid "$AD" "$SC/com.vendor.sealed")"
+R_LINK="$(sid "$AD" "$SC/com.vendor.guarded")"
+R_GROWN="$(sid "$AD" "$SC/com.vendor.grown")"
+printf '{"version": 1, "ids": ["%s", "%s", "%s", "%s"]}\n' "$R_PLAIN" "$R_OUT" "$R_LINK" "$R_GROWN" > "$AR/admin-plan.json"
+chmod 600 "$AR/admin-plan.json"
+asys "$AR" darwin admin-apply --plan "$AR/admin-plan.json" > "$T/admin-refuse.out" 2>&1
+admin_refuse_ok() {
+  local i
+  for i in "$R_PLAIN" "$R_OUT" "$R_LINK" "$R_GROWN"; do
+    [ -n "$i" ] && grep -qE "^skipped +$i " "$T/admin-refuse.out" || { echo "  not skipped: $i"; return 1; }
+  done
+  [ -f "$AH/Library/Caches/com.example.tool/file" ] && [ -f "$AH/Documents/keep/file" ] && [ -f "$T/outside-cache2/file" ] \
+    && [ -L "$SC/com.vendor.guarded" ] && [ -f "$SC/com.vendor.grown/more" ] || { echo "  something was changed"; return 1; }
+}
+check "admin-apply refuses rows outside the system places, links, and rows changed since the scan" 'admin_refuse_ok'
+
+# mc_root <platform> <args>...: runs the script as if it ran as root.
+mc_root() {
+  "$PY" -c 'import os, sys
+sys.path.insert(0, sys.argv[1])
+import machine_cleanup as m
+os.geteuid = lambda: 0
+sys.exit(m.main(sys.argv[3:], platform=sys.argv[2]))' "$SCRIPTS" "$@"
+}
+# mc_chown <platform> <args>...: runs the script and records every os.chown in $CHOWN_LOG.
+mc_chown() {
+  "$PY" -c 'import os, sys
+sys.path.insert(0, sys.argv[1])
+import machine_cleanup as m
+real = os.chown
+def chown(path, uid, gid, *a, **k):
+    with open(os.environ["CHOWN_LOG"], "a") as f:
+        f.write("%s %s\n" % (uid, path))
+    return real(path, uid, gid, *a, **k)
+os.chown = chown
+sys.exit(m.main(sys.argv[3:], platform=sys.argv[2]))' "$SCRIPTS" "$@"
+}
+
+# The macOS apply: the user's cache and six administrator rows.
+A_PLAIN="$(sid "$AD" "$AH/Library/Caches/com.example.tool")"
+A_BIG="$(sid "$AD" "$SC/com.vendor.big")"
+A_VLOG="$(sid "$AD" "$R/Library/Logs/Vendor")"
+A_SLOG="$(sid "$AD" "$R/private/var/log")"
+A_APP="$(sid "$AD" "$R/Applications/Legacy.app")"
+A_DAEMON="$(sid "$AD" "$DAEMON")"
+A_AGENT="$(sid "$AD" "$AGENT")"
+A_ADMIN="$A_BIG $A_VLOG $A_SLOG $A_APP $A_DAEMON $A_AGENT"
+asys "$AD" darwin apply --select "machine-cleanup:select $A_PLAIN $A_ADMIN" > "$T/admin-apply.out" 2>&1; rc_admin_apply=$?
+admin_plan_ok() {
+  local i n
+  [ "$rc_admin_apply" = 0 ] && [ -n "$A_PLAIN" ] && [ -n "$A_BIG" ] || { echo "  apply exited $rc_admin_apply"; return 1; }
+  [ ! -e "$AH/Library/Caches/com.example.tool" ] || { echo "  the user's cache was not freed"; return 1; }
+  [ -d "$SC/com.vendor.big" ] && [ -f "$R/Library/Logs/Vendor/old.log" ] && [ -d "$R/Applications/Legacy.app" ] && [ -f "$DAEMON" ] \
+    || { echo "  apply changed an administrator row"; return 1; }
+  [ -f "$AD/admin-plan.json" ] && [ "$("$PY" -c 'import os, sys; print(oct(os.stat(sys.argv[1]).st_mode & 0o777))' "$AD/admin-plan.json")" = "0o600" ] \
+    || { echo "  no admin-plan.json with mode 600"; return 1; }
+  n="$(jq -r '.ids | sort | join(" ")' "$AD/admin-plan.json")"
+  [ "$n" = "$(printf '%s\n' $A_ADMIN | LC_ALL=C sort | tr '\n' ' ' | sed 's/ $//')" ] || { echo "  plan ids: $n"; return 1; }
+  for i in $A_ADMIN; do grep -qE "^needs-admin +$i " "$T/admin-apply.out" || { echo "  no needs-admin line for $i"; return 1; }; done
+  grep -F "SUDO_ASKPASS=$SCRIPTS/askpass.sh sudo -A " "$T/admin-apply.out" | grep -F "admin-apply --plan $AD/admin-plan.json" > /dev/null \
+    || { echo "  no sudo -A command"; return 1; }
+  local apt rc
+  apt="$(skid "$AN" apt-cache)"
+  asys "$AN" linux apply --select "machine-cleanup:select $apt" > "$T/admin-apply-nopasswd.out" 2>&1; rc=$?
+  [ "$rc" = 0 ] && grep -F "sudo -n " "$T/admin-apply-nopasswd.out" | grep -F "admin-apply --plan $AN/admin-plan.json" > /dev/null \
+    && ! grep -q "SUDO_ASKPASS" "$T/admin-apply-nopasswd.out" || { echo "  no sudo -n command where sudo needs no password"; return 1; }
+}
+check "apply leaves administrator rows to one printed sudo command" 'admin_plan_ok'
+
+# admin-apply, run with the plan apply wrote, as sudo runs it: SUDO_UID names the user.
+chmod u+w "$R/Applications/Legacy.app"
+: > "$MOCK/calls.log"
+: > "$T/chown.log"
+HOME="$AH" MACHINE_CLEANUP_HOME="$AD" MACHINE_CLEANUP_SYSTEM_ROOT="$R" SUDO_UID="$UID_NOW" SUDO_GID="$(id -g)" CHOWN_LOG="$T/chown.log" \
+  mc_chown darwin admin-apply --plan "$AD/admin-plan.json" > "$T/admin-run.out" 2>&1; rc_admin_run=$?
+cp "$MOCK/calls.log" "$T/admin-run.calls"
+# The Linux run frees the apt, dnf, and journald rows and the service, where sudo needs no password.
+L_IDS="$(skid "$AN" apt-cache) $(skid "$AN" dnf-cache) $(skid "$AN" journald) $(skid "$AN" systemd-system)"
+asys "$AN" linux apply --select "machine-cleanup:select $L_IDS" > "$T/admin-apply-linux.out" 2>&1
+: > "$MOCK/calls.log"
+SUDO_UID="$UID_NOW" PATH="$PKG:$PATH" asys "$AN" linux admin-apply --plan "$AN/admin-plan.json" > "$T/admin-run-linux.out" 2>&1; rc_admin_linux=$?
+cp "$MOCK/calls.log" "$T/admin-run-linux.calls"
+admin_free_ok() {
+  [ "$rc_admin_run" = 0 ] && [ "$rc_admin_linux" = 0 ] || { echo "  admin-apply exited $rc_admin_run and $rc_admin_linux"; return 1; }
+  [ ! -e "$SC/com.vendor.big" ] || { echo "  the system cache is still there"; return 1; }
+  [ ! -e "$R/Library/Logs/Vendor/old.log" ] && [ -f "$R/Library/Logs/Vendor/new.log" ] && [ ! -e "$R/private/var/log/system.log.9.gz" ] \
+    && [ -f "$R/private/var/log/system.log" ] && [ -f "$R/private/var/log/asl/2026.01.01.asl" ] || { echo "  the wrong logs were deleted"; return 1; }
+  grep -qx "apt-get clean" "$T/admin-run-linux.calls" && grep -qx "dnf clean all" "$T/admin-run-linux.calls" \
+    && grep -qx "journalctl --vacuum-time=30d" "$T/admin-run-linux.calls" || { echo "  the clean commands did not run"; return 1; }
+}
+check "admin-apply frees system caches and old system logs" 'admin_free_ok'
+
+KEEP="$R/Library/Application Support/machine-cleanup/disabled"
+stopped_ok=false
+[ ! -e "$R/Applications/Legacy.app" ] && [ -d "$AH/.Trash/Legacy.app" ] && [ ! -e "$DAEMON" ] && [ ! -e "$AGENT" ] \
+  && ls "$KEEP" 2>/dev/null | grep -q "com.vendor.helper.plist" \
+  && grep -qx "launchctl bootout system $DAEMON" "$T/admin-run.calls" && grep -qx "launchctl bootout gui/$UID_NOW $AGENT" "$T/admin-run.calls" \
+  && grep -qx "systemctl disable --now vendor-agent.service" "$T/admin-run-linux.calls" && stopped_ok=true
+asys "$AD" darwin restore "$A_APP" "$A_DAEMON" "$A_AGENT" > "$T/admin-restore-ask.out" 2>&1; rc_restore_ask=$?
+asked_ok=false
+[ "$rc_restore_ask" = 0 ] && [ -d "$AH/.Trash/Legacy.app" ] && grep -q "admin-restore" "$T/admin-restore-ask.out" \
+  && grep -qE "^needs-admin +$A_APP " "$T/admin-restore-ask.out" && asked_ok=true
+: > "$MOCK/calls.log"
+SUDO_UID="$UID_NOW" asys "$AD" darwin admin-restore --state "$AD" "$A_APP" "$A_DAEMON" "$A_AGENT" > "$T/admin-restore.out" 2>&1
+cp "$MOCK/calls.log" "$T/admin-restore.calls"
+: > "$MOCK/calls.log"
+L_UNIT="$(skid "$AN" systemd-system)"
+SUDO_UID="$UID_NOW" asys "$AN" linux admin-restore --state "$AN" "$L_UNIT" > "$T/admin-restore-linux.out" 2>&1
+cp "$MOCK/calls.log" "$T/admin-restore-linux.calls"
+check "admin-apply moves apps and stops daemons and services, and admin-restore puts them back" \
+  '$stopped_ok && $asked_ok && [ -d "$R/Applications/Legacy.app" ] && [ -f "$DAEMON" ] && [ -f "$AGENT" ] && grep -qx "launchctl bootstrap system $DAEMON" "$T/admin-restore.calls" && grep -qx "launchctl bootstrap gui/$UID_NOW $AGENT" "$T/admin-restore.calls" && grep -qx "systemctl enable --now vendor-agent.service" "$T/admin-restore-linux.calls"'
+
+# Run as root, admin-apply and admin-restore take no root but /.
+printf '{"version": 1, "ids": ["%s"]}\n' "$R_GROWN" > "$T/admin-root-plan.json"
+HOME="$AH" MACHINE_CLEANUP_HOME="$AR" MACHINE_CLEANUP_SYSTEM_ROOT="$R" mc_root darwin admin-apply --plan "$T/admin-root-plan.json" > "$T/admin-root.out" 2>&1; rc_root_apply=$?
+HOME="$AH" MACHINE_CLEANUP_HOME="$AD" MACHINE_CLEANUP_SYSTEM_ROOT="$R" mc_root darwin admin-restore --state "$AD" "$A_APP" > "$T/admin-root-restore.out" 2>&1; rc_root_restore=$?
+check "run as root, admin-apply refuses another system root and leaves the records owned by the user" \
+  '[ "$rc_root_apply" = 2 ] && [ "$rc_root_restore" = 2 ] && [ -f "$SC/com.vendor.grown/more" ] && grep -qx "$UID_NOW $AD/restore.json" "$T/chown.log"'
+
+# askpass.sh, as sudo runs it with its prompt: the stand-in dialogs print what was typed.
+ASKPASS="$SCRIPTS/askpass.sh"
+printf 'typed-pw-143' > "$MOCK/osascript-answer"
+printf 'typed-pw-143' > "$MOCK/zenity-answer"
+: > "$MOCK/calls.log"
+ask_mac="$(PATH="$UNAME_D:$PATH" bash "$ASKPASS" "machine-cleanup needs your password" 2> "$T/askpass.err")"
+ask_linux="$(DISPLAY=:0 PATH="$UNAME_L:$DLG:$PATH" bash "$ASKPASS" "machine-cleanup needs your password" 2>> "$T/askpass.err")"
+cp "$MOCK/calls.log" "$T/askpass.calls"
+askpass_ok() {
+  [ -x "$ASKPASS" ] || { echo "  askpass.sh is missing or cannot run"; return 1; }
+  [ "$ask_mac" = "typed-pw-143" ] && [ "$ask_linux" = "typed-pw-143" ] || { echo "  printed: $ask_mac / $ask_linux"; return 1; }
+  grep -q "^osascript .*display dialog" "$T/askpass.calls" && grep -q "^zenity .*--password" "$T/askpass.calls" || { echo "  the dialogs were not opened"; return 1; }
+  local found
+  found="$(grep -rl "typed-pw-143" "$T" 2>/dev/null | grep -v -e "/mock/osascript-answer$" -e "/mock/zenity-answer$")"
+  [ -z "$found" ] || { echo "  written to: $found"; return 1; }
+}
+check "askpass passes the typed password only to its standard output" 'askpass_ok'
+rm -f "$MOCK/osascript-answer" "$MOCK/zenity-answer"
+
+# A schedule of cache and log, with a system cache and an old system log in its own root.
+SR="$T/sched-sysroot"; SAH="$T/admin-sched-home"; SAS="$T/admin-sched-state"
+mkdir -p "$SAH" "$SR/Library/Logs/Vendor"
+fill "$SR/Library/Caches/com.vendor.big"; size "$SR/Library/Caches/com.vendor.big" 81920
+printf 'old' > "$SR/Library/Logs/Vendor/old.log"; old "$SR/Library/Logs/Vendor/old.log"
+ssys() { HOME="$SAH" MACHINE_CLEANUP_HOME="$SAS" MACHINE_CLEANUP_SYSTEM_ROOT="$SR" mc_as "$@"; }
+ssys darwin schedule add --kinds cache,log > /dev/null 2>&1
+ssys darwin scan --json --sample 0 --apps-dir "$SR/Applications" > /dev/null 2>&1
+ssys darwin scheduled-run > "$T/admin-sched-run.out" 2>&1
+check "a scheduled run never frees administrator rows" \
+  'sj "$SAS" ".items | any(.path == \"$SR/Library/Caches/com.vendor.big\" and .admin == true)" && [ -d "$SR/Library/Caches/com.vendor.big" ] && [ -f "$SR/Library/Logs/Vendor/old.log" ] && [ -s "$SAS/schedule-runs.jsonl" ] && ! grep -q "$SR" "$SAS/schedule-runs.jsonl"'
+
+admin_page_ok() {
+  [ -n "$NODE" ] || { echo "  node is not installed"; return 1; }
+  local out
+  out="$(page_eval "$ADMIN_FNS" "$ADMIN_ROW"'
+const sys2 = Object.assign({}, sys, { id: "d5" });
+console.log(texts(rowEl(sys.name, "", sys)).indexOf("Administrator") >= 0, texts(rowEl(plain.name, "", plain)).indexOf("Administrator") >= 0);
+console.log(adminNote([sys, sys2, plain]) + "#" + adminNote([sys]) + "#" + (adminNote([plain]) === ""));
+lang = "ja";
+console.log(texts(rowEl(sys.name, "", sys)).indexOf("管理者") >= 0);
+console.log(adminNote([sys, sys2, plain]));' 2>&1)"
+  local want
+  want="true false
+2 items need your administrator password. The operating system asks for it once, for all of them.#1 item needs your administrator password. The operating system asks for it once.#true
+true
+2件は管理者のパスワードが要ります。OSが1回だけ尋ねます。"
+  [ "$out" = "$want" ] || { echo "  $out"; return 1; }
+  sed -n '/^function fillConfirm/,/^}/p' "$SHEET" | grep -q 'adminNote(' || { echo "  the confirm dialog does not use adminNote"; return 1; }
+}
+check "the page tags administrator rows and the confirm dialog says the password is asked once" 'admin_page_ok'
+
+no_system_reads_ok() {
+  local x
+  for x in sudo osascript pkexec; do
+    [ "$(command -v "$x")" = "$BIN/$x" ] || { echo "  $x is not the stand-in"; return 1; }
+  done
+  ! grep -nE '/usr/bin/(sudo|osascript|pkexec)|/usr/sbin/(sudo|pkexec)' "$HERE/test-machine-cleanup.sh" > /dev/null || { echo "  the tests name a real sudo, osascript, or pkexec"; return 1; }
+  [ "$MACHINE_CLEANUP_SYSTEM_ROOT" = "$T/sysroot-empty" ] && has ".system_root == \"$T/sysroot-empty\"" || { echo "  the main scan did not read the empty system root"; return 1; }
+  "$PY" - "$DU_ARGS" "$T" <<'PY'
+import sys
+t = sys.argv[2]
+bad = [w for line in open(sys.argv[1], encoding="utf-8", errors="replace") for w in line.split()
+       if w.startswith(("/Library", "/Applications", "/private/var", "/var/", "/etc/", "/System")) and not w.startswith(t)]
+for w in bad[:5]:
+    print("  du measured " + w)
+sys.exit(1 if bad else 0)
+PY
+}
+check "the tests run no real sudo, osascript, or pkexec and read no system place of this machine" 'no_system_reads_ok'
+
+admin_docs_ok() {
+  local f w
+  for w in 'admin-apply' 'needs-admin' 'Never ask for the password' 'sudo -A'; do
+    grep -qF -- "$w" "$SKILL_DIR/SKILL.md" || { echo "  SKILL.md does not say $w"; return 1; }
+  done
+  for f in README.md README.ja.md docs/how-it-works.md docs/how-it-works.ja.md; do
+    for w in 'sudo -A' '/Library/Caches' '/Library/LaunchDaemons' 'journalctl --vacuum-time=30d' '/etc/systemd/system' 'MACHINE_CLEANUP_SYSTEM_ROOT'; do
+      grep -qF -- "$w" "$PLUGIN_DIR/$f" || { echo "  $f does not name $w"; return 1; }
+    done
+  done
+  grep -qF 'A schedule never frees administrator rows' "$PLUGIN_DIR/README.md" && grep -qF 'A schedule never frees administrator rows' "$PLUGIN_DIR/docs/how-it-works.md" \
+    && grep -qF '予約は管理者の行を空けません' "$PLUGIN_DIR/README.ja.md" && grep -qF '予約は管理者の行を空けません' "$PLUGIN_DIR/docs/how-it-works.ja.md" \
+    || { echo "  a page does not say that a schedule never frees administrator rows"; return 1; }
+  ! grep -qF 'It never asks for or uses an administrator password' "$PLUGIN_DIR/README.md" && ! grep -qF '管理者のパスワードを求めず、使いません' "$PLUGIN_DIR/README.ja.md" \
+    || { echo "  a README still says it never asks for an administrator password"; return 1; }
+}
+check "the SKILL.md and the docs describe administrator rows and how they are approved" 'admin_docs_ok'
 
 # --- the schedule ---------------------------------------------------------------------------
 # The schedule's checks use their own throwaway HOMEs, state folders, and stand-in outputs, so the

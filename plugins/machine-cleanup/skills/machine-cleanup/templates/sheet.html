@@ -168,6 +168,9 @@ th[aria-sort] .sort svg { color: var(--accent); }
 .tier-check { color: var(--warn); background: var(--warn-soft); }
 .tier-careful { color: var(--critical); background: var(--critical-soft); }
 .tier-inuse { color: var(--muted); background: var(--label); }
+/* A row that needs administrator rights: the operating system asks for the password when it is freed. */
+.tag-admin { margin-left: 6px; padding: 1px 9px; color: var(--fg); background: var(--label); }
+.admin-note { font-weight: 600; }
 .pick-cell { text-align: center; }
 .pick { display: inline-grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: var(--card); color: var(--muted); cursor: pointer; }
 .pick:hover { border-color: var(--accent); color: var(--accent); }
@@ -632,7 +635,7 @@ dialog h2 { margin: 0 0 12px; font-size: 20px; line-height: 1.35; }
     "helpOnceTitle": "Rows inside other rows",
     "helpOnce": "Each file or folder appears in one row. A row inside another row, such as node_modules in an unused project or an app's cache, is counted once in the totals. When both are picked, the agent frees the outer row with the inner one in it.",
     "helpNeverTitle": "What is never touched",
-    "helpNever": "Sync folders such as iCloud Drive, Dropbox, Google Drive, and OneDrive, Windows drives under WSL, files git tracks, Docker volumes, and anything that needs an administrator password.",
+    "helpNever": "Sync folders such as iCloud Drive, Dropbox, Google Drive, and OneDrive, Windows drives under WSL, files git tracks, Docker volumes, and places System Integrity Protection guards.",
     "helpNextTitle": "What happens next",
     "helpNext": "The agent frees only what you picked, then reports the free disk space, memory, and load before and after, measured on this computer.",
     "why_rebuilt": "Rebuilt the next time it is needed",
@@ -705,6 +708,16 @@ dialog h2 { margin: 0 0 12px; font-size: 20px; line-height: 1.35; }
     "name_trash": "Trash",
     "name_logs": "Logs",
     "name_app_logs": "{app} logs",
+    "name_system_logs": "System logs",
+    "name_cache_apt_cache": "apt cache",
+    "name_cache_dnf_cache": "dnf cache",
+    "name_journald": "journald logs",
+    "adminTag": "Administrator",
+    "adminNoteOne": "1 item needs your administrator password. The operating system asks for it once.",
+    "adminNoteMany": "{n} items need your administrator password. The operating system asks for it once, for all of them.",
+    "d_blocked": "Why it cannot be picked",
+    "blocked_noApproval": "Administrator rights cannot be approved here. No password dialog can open, and sudo asks for a password.",
+    "r_admin": "Needs administrator rights to read",
     "name_build": "{folder} in {project}",
     "name_dev_next_dev": "Next.js dev server",
     "name_dev_next_server": "Next.js server",
@@ -918,7 +931,7 @@ dialog h2 { margin: 0 0 12px; font-size: 20px; line-height: 1.35; }
     "helpOnceTitle": "ほかの行の中にある行",
     "helpOnce": "ファイルとフォルダは1つの行にだけ出ます。使っていないプロジェクトの中のnode_modulesやアプリのキャッシュのように、ほかの行の中にある行は、合計で1回だけ数えます。両方を選ぶと、エージェントは外の行を中の行ごと空けます。",
     "helpNeverTitle": "触らない物",
-    "helpNever": "iCloud Drive、Dropbox、Google Drive、OneDriveなどの同期フォルダ、WSLから見たWindowsのドライブ、gitが追跡するファイル、Dockerのボリューム、管理者のパスワードが要る物です。",
+    "helpNever": "iCloud Drive、Dropbox、Google Drive、OneDriveなどの同期フォルダ、WSLから見たWindowsのドライブ、gitが追跡するファイル、Dockerのボリューム、System Integrity Protectionが守る場所です。",
     "helpNextTitle": "この後に起きること",
     "helpNext": "エージェントは選んだ物だけを空け、このコンピューターで測ったディスクの空き、メモリ、負荷の前後を知らせます。",
     "why_rebuilt": "次に要る時に作り直されます",
@@ -991,6 +1004,16 @@ dialog h2 { margin: 0 0 12px; font-size: 20px; line-height: 1.35; }
     "name_trash": "ゴミ箱",
     "name_logs": "ログ",
     "name_app_logs": "{app}のログ",
+    "name_system_logs": "システムのログ",
+    "name_cache_apt_cache": "aptのキャッシュ",
+    "name_cache_dnf_cache": "dnfのキャッシュ",
+    "name_journald": "journaldのログ",
+    "adminTag": "管理者",
+    "adminNoteOne": "1件は管理者のパスワードが要ります。OSが1回だけ尋ねます。",
+    "adminNoteMany": "{n}件は管理者のパスワードが要ります。OSが1回だけ尋ねます。",
+    "d_blocked": "選べない理由",
+    "blocked_noApproval": "ここでは管理者の承認ができません。パスワードの窓を開けず、sudoがパスワードを求めます。",
+    "r_admin": "読むのに管理者の権限が要ります",
     "name_build": "{project}の{folder}",
     "name_dev_next_dev": "Next.jsの開発サーバー",
     "name_dev_next_server": "Next.jsのサーバー",
@@ -1129,7 +1152,7 @@ function lockText(s) {
 function reasonText(s) {
   const map = { "time limit": "r_time", "sync folder": "r_sync", "Windows drive": "r_windows", "symbolic link": "r_link",
     "not found": "r_missing", "could not be measured": "r_measure", "Docker is not running": "r_docker",
-    "too many files to tell its age": "r_tooMany" };
+    "too many files to tell its age": "r_tooMany", "needs administrator rights to read": "r_admin" };
   if (map[s]) return t(map[s]);
   if (/Full Disk Access/.test(s)) return t("r_fda");
   return s;
@@ -1233,7 +1256,12 @@ function detailPairs(it) {
   const d = it.detail || {};
   const out = [];
   if (it.locked) out.push(["d_inUse", lockText(it.locked)]);
-  else if (whyText(it)) out.push(["d_reason", whyText(it)]);
+  else {
+    // A row that needs administrator rights nothing here can approve keeps its level and says why it
+    // cannot be picked.
+    if (it.blocked) out.push(["d_blocked", t("blocked_noApproval")]);
+    if (whyText(it)) out.push(["d_reason", whyText(it)]);
+  }
   out.push(["d_effect", t(effect(it)[0])]);
   // Processes and containers have a memory size and a CPU share; login items have neither.
   if (it.group === "process" && it.category !== "login-item") {
@@ -1247,7 +1275,7 @@ function detailPairs(it) {
     if (d.project) out.push(["d_project", d.project]);
     return out;
   }
-  if (it.group === "disk") out.push(["d_size", human(it.size)]);
+  if (it.group === "disk") out.push(["d_size", it.admin && (it.size === null || it.size === undefined) ? t("notMeasured") : human(it.size)]);
   // A leftover lists every place the removed app left files in; other rows have one location.
   if (it.kind === "leftover") out.push(["d_places", [it.path].concat(d.support || []).map(tilde).join("\n"), "mono"]);
   else if (it.path) out.push(["d_path", tilde(it.path), "mono"]);
@@ -1258,7 +1286,7 @@ function detailPairs(it) {
   if (it.category === "tool") out.push(["d_tool", d.tool + " " + d.version + " (" + d.manager + ")"]);
   if (it.category === "model") out.push(["d_downloaded", day(d.downloaded)]);
   if (it.category === "duplicate") out.push(["d_copies", (d.copies || []).map(tilde).join("\n"), "mono"]);
-  if (it.category === "log") out.push(["d_contents", t("oldFiles", { n: d.file_count || 0, days: d.older_than_days || 30 })]);
+  if (it.category === "log" && it.kind !== "journald") out.push(["d_contents", t("oldFiles", { n: d.file_count || 0, days: d.older_than_days || 30 })]);
   return out;
 }
 // A row's level as a tag: an icon and the level's word.
@@ -1305,6 +1333,12 @@ function detailEl(it) {
   h.textContent = nameOf(it);
   head.appendChild(h);
   head.appendChild(tierTag(it));
+  if (it.admin) {
+    const a = document.createElement("span");
+    a.className = "tag tag-admin";
+    a.textContent = t("adminTag");
+    head.appendChild(a);
+  }
   box.appendChild(head);
   const table = document.createElement("table");
   table.className = "kv";
@@ -1351,7 +1385,7 @@ function detailEl(it) {
     c.appendChild(words);
     box.appendChild(c);
   }
-  if (!it.locked) {
+  if (!it.locked && !it.blocked) {
     const b = document.createElement("button");
     b.type = "button";
     b.id = "detail-pick";
@@ -1949,6 +1983,12 @@ function rowEl(name, where, it) {
     th.appendChild(w);
   }
   th.appendChild(tierTag(it));
+  if (it.admin) {
+    const a = document.createElement("span");
+    a.className = "tag tag-admin";
+    a.textContent = t("adminTag");
+    th.appendChild(a);
+  }
   tr.appendChild(th);
   const cell = function (text) {
     const td = document.createElement("td");
@@ -1961,11 +2001,11 @@ function rowEl(name, where, it) {
     cell(login ? "" : human(it.size));
     cell(login ? "" : String(it.cpu || 0));
   } else {
-    cell(human(it.size));
+    cell(it.admin && (it.size === null || it.size === undefined) ? t("notMeasured") : human(it.size));
   }
   const td = document.createElement("td");
   td.className = "pick-cell";
-  if (!it.locked) td.appendChild(pickToggle(it, name));
+  if (!it.locked && !it.blocked) td.appendChild(pickToggle(it, name));
   tr.appendChild(td);
   return tr;
 }
@@ -1985,7 +2025,7 @@ function cardEl(name, where, it) {
   open.addEventListener("click", function () { choose(it.id); });
   h.appendChild(open);
   top.appendChild(h);
-  if (!it.locked) top.appendChild(pickToggle(it, name));
+  if (!it.locked && !it.blocked) top.appendChild(pickToggle(it, name));
   li.appendChild(top);
   if (where) {
     const w = document.createElement("span");
@@ -1994,6 +2034,12 @@ function cardEl(name, where, it) {
     li.appendChild(w);
   }
   li.appendChild(tierTag(it));
+  if (it.admin) {
+    const a = document.createElement("span");
+    a.className = "tag tag-admin";
+    a.textContent = t("adminTag");
+    li.appendChild(a);
+  }
   const dl = document.createElement("dl");
   const pair = function (labelKey, value) {
     const div = document.createElement("div");
@@ -2224,7 +2270,7 @@ function togglePick(id) {
   picksChanged(false);
 }
 function pickAll(g) {
-  g.items.forEach(function (it) { if (!it.locked && !(it.detail && it.detail.set)) picked.add(it.id); });
+  g.items.forEach(function (it) { if (!it.locked && !it.blocked && !(it.detail && it.detail.set)) picked.add(it.id); });
   picksChanged(false);
   render();
 }
@@ -2238,6 +2284,13 @@ function picksChanged(keepUndo) {
   renderTally();
   renderSaveState();
   renderStatus();
+}
+// The line the confirm dialog shows when picked rows need administrator rights: the operating system
+// asks for the password once, for all of them. Empty when none does.
+function adminNote(items) {
+  const n = items.filter(function (it) { return it.admin; }).length;
+  if (!n) return "";
+  return n === 1 ? t("adminNoteOne") : t("adminNoteMany", { n: n });
 }
 // The confirm dialog lists the picked rows under their effects, leaving out a row inside another
 // picked row, which is freed with it.
@@ -2267,6 +2320,8 @@ function fillConfirm() {
     sec.appendChild(ul);
     box.appendChild(sec);
   });
+  const note = adminNote(top);
+  if (note) box.appendChild(node("p", "admin-note", note));
   el("copy-text").value = selectionText(items.map(function (it) { return it.id; }));
 }
 function openConfirm() {

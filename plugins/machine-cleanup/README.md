@@ -57,7 +57,17 @@ Only three kinds can be approved: `cache` (caches tools rebuild), `build` (build
 `schedule add` registers one job at 03:00, on Sunday when weekly, as a LaunchAgent on macOS, a systemd user timer on Linux, or one crontab line where no systemd user session runs.
 Each run frees only the approved kinds' rows that the scan ranks Recommended, after the same check `apply` runs, and records what it freed.
 `schedule show` and the next scan print the last run, and `schedule remove` takes the job away.
+A schedule never frees administrator rows.
 [How it works](docs/how-it-works.md#the-schedule) lists what each kind frees and leaves.
+
+## Rows that need administrator rights
+
+Some places only an administrator can change: on macOS, caches in `/Library/Caches`, old logs in `/Library/Logs` and `/private/var/log`, apps an administrator installed in `/Applications`, and the plists in `/Library/LaunchDaemons` and `/Library/LaunchAgents`; on Linux, the apt and dnf caches, journald's logs, and services whose unit file sits in `/etc/systemd/system`.
+The scan measures them without a password, shows what it cannot read as **Not measured**, and tags their rows **Administrator** on the page.
+When you pick some of them and press **Free**, the agent frees your other picks first and then runs one `sudo -A` command. The operating system's password dialog asks for your password once, for all of them, and `askpass.sh` hands what you type only to `sudo`, so the agent never sees it.
+Where `sudo` needs no password, the agent runs `sudo -n` instead and no dialog opens.
+Where no dialog can open, over SSH or on Linux without a display or a dialog program, and `sudo` asks for a password, these rows show their size and level but cannot be picked, and their details say why.
+Places System Integrity Protection guards and Apple's own caches never appear.
 
 ## What it finds
 
@@ -73,6 +83,7 @@ Each run frees only the approved kinds' rows that the scan ranks Recommended, af
 | Processes | Dev servers, watchers, and test runs left running after their session ended, and the 15 processes that use the most memory or CPU | The process gets the end signal, so it can save its work. It is ended at once only when you pick it again |
 | Login items | macOS LaunchAgents in your Library, and autostart entries and systemd user services on Linux | Stopped, and kept so that the agent can turn it back on |
 | Containers | Running Docker containers | Stopped. Their data stays |
+| System (administrator) | On macOS, caches in `/Library/Caches` of 50 MB or more, or that it cannot read, other than Apple's, files older than 30 days in `/Library/Logs` and `/private/var/log`, apps in `/Applications` an administrator installed that nobody opened for 90 days, and the plists in `/Library/LaunchDaemons` and `/Library/LaunchAgents`. On Linux, the apt and dnf caches, journald's logs, and enabled services whose unit file sits in `/etc/systemd/system` | System caches and old system logs are deleted. The apt and dnf caches are freed with `apt-get clean` and `dnf clean all`, and journald with `journalctl --vacuum-time=30d`. Apps move to your Trash. Launch daemons and agents are stopped and kept in `/Library/Application Support/machine-cleanup/disabled/`, and services are turned off with `systemctl disable --now`, so the agent can put them back |
 
 A file or folder appears in one row only: an old installer in Downloads is listed under Trash and logs, not again as a large file.
 A row inside another row, such as `node_modules` in an unused project or an app's cache, keeps its own row so that you can free it alone. The totals count it once, and when you pick both, the agent frees the outer row with the inner one in it.
@@ -82,7 +93,7 @@ A row inside another row, such as `node_modules` in an unused project or an app'
 - Anything a live agent session (Claude Code, Codex, GitHub Copilot CLI, or Gemini CLI) or an open terminal runs, the app or terminal a session runs in, processes working in a project a session works in, and every item in a project where a running program works. These rows show why and cannot be picked
 - Sync folders such as iCloud Drive, Dropbox, Google Drive, and OneDrive, because deleting there deletes in the cloud too, and Windows drives under WSL
 - Symbolic links and what they point to, files git tracks, and Docker volumes
-- Anything that needs an administrator password, and other users' processes
+- Places System Integrity Protection guards, Apple's caches in `/Library/Caches`, and other users' processes
 - Operating system settings such as swap and indexing
 
 ## Requirements
@@ -97,6 +108,7 @@ A row inside another row, such as `node_modules` in an unused project or an app'
 | npm, pnpm, Yarn, Bun, pip, uv, Homebrew, Go, CocoaPods | Optional. When one is installed, its own clean command frees its cache. Without it, the cache folder is deleted |
 | `flatpak` | Optional, on Linux, to list Flatpak apps |
 | `launchctl`, `systemctl`, or `crontab` | Only for a schedule: `launchctl` on macOS, and a systemd user session or `crontab` on Linux and WSL |
+| `sudo` | Only to free administrator rows. On Linux, the password dialog needs a display and `zenity`, `kdialog`, or `ssh-askpass`. macOS opens its own dialog with `osascript` |
 | A web browser | To pick on the page |
 | The design-formats plugin | Optional. When its page-design skill is installed, the agent checks the page's template with its verify |
 | The `musubi` command | Optional. When it is installed, the agent runs `musubi check` before reading the page-design formats |
@@ -110,7 +122,8 @@ In short:
 - It reads the version files in your projects (`.nvmrc`, `.python-version`, `.tool-versions`, `mise.toml`, `rust-toolchain.toml`, and similar), the version managers' settings, and Ollama's model manifests
 - It runs `ps`, `du`, `df`, `lsof`, `git`, `mdls` on macOS, and, when they are installed, `docker`, `flatpak`, `rustup`, `ollama`, and the package managers' clean commands. `git` only reads, and never fetches
 - It serves the page only on `127.0.0.1` with a one-time token and accepts a selection only from that page. It sends nothing over the network
-- It changes only what you picked, after checking it again, and a schedule frees only the kinds you approved. It never asks for or uses an administrator password
+- It changes only what you picked, after checking it again, and a schedule frees only the kinds you approved. It uses administrator rights only through the one `sudo -A` command for the administrator rows you picked, and the password goes from the operating system's dialog to `sudo` without reaching the agent or a file
+- It measures system places without a password. `MACHINE_CLEANUP_SYSTEM_ROOT` points them at another folder, which the tests use; run as root, `admin-apply` and `admin-restore` refuse any folder other than `/`
 - It hides values of command-line flags and environment variables whose names suggest a token, secret, password, or API key before a process command reaches the page or a file
 - It keeps the scan, the page session, what `restore` needs, and a schedule with its copy of the script and the record of its runs in `~/.local/share/machine-cleanup/`, readable only by you. `finish` removes everything but the restore records and the schedule
 - `skills/machine-cleanup/musubi.json` declares through musubi that machine-cleanup follows the `structure` and `look` formats, the `sheet` page type, and `verify` of page-design, in the design-formats plugin, as optional follows with `"optional": true`. The agent reads them only when page-design is installed, runs page-design's verify on the page's template, and otherwise uses the skill's own template. It reads nothing else from other plugins

@@ -5,6 +5,18 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+### Added
+
+- Rows that need administrator rights, tagged Administrator on the page. On macOS: caches in `/Library/Caches` of 50 MB or more other than Apple's, files older than 30 days in `/Library/Logs` and `/private/var/log`, apps an administrator installed in `/Applications` that nobody opened for 90 days, and the plists in `/Library/LaunchDaemons` and `/Library/LaunchAgents`. On Linux: the apt and dnf caches, journald's logs, and enabled services whose unit file sits in `/etc/systemd/system`. The scan measures them without a password and shows what it cannot read as Not measured, and it leaves out places System Integrity Protection guards
+- When the picks include administrator rows, `apply` frees the other picks and prints one `sudo -A` command. Its `askpass.sh` opens the operating system's password dialog, which asks once for all of them, and hands the password only to `sudo`. `admin-apply` checks each row again before freeing it, and `restore` prints an `admin-restore` command for the apps, launch daemons, and services it changed. Where `sudo` needs no password, the command uses `sudo -n`
+- Where no password dialog can open and `sudo` asks for a password, administrator rows keep their level but cannot be picked, their details say why, and `apply` refuses them
+- `MACHINE_CLEANUP_SYSTEM_ROOT` moves the system places under another folder for tests. Run as root, `admin-apply` and `admin-restore` refuse any value but `/`
+
+### Changed
+
+- The scan's format is version 6. Run `scan` again after updating, because `apply` refuses a scan of an older version
+- A schedule never frees administrator rows
+
 ## [0.2.0] - 2026-11-23
 
 ### Added

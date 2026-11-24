@@ -25,6 +25,7 @@
 | ファイル | ホーム (か各`--root`) を8段の深さまでたどります。隠しフォルダ、macOSの`~/Library`と`~/Applications`、「入らない場所」の場所は飛ばします |
 | 作業フォルダ | たどる途中で見つけたgitのプロジェクトを、`git log`、`git status`、`git remote`、`git rev-list`で読みます |
 | 道具の版 | nvm、fnm、pyenv、rbenv、asdf、mise、rustupの版のフォルダ (置き場を変える変数`NVM_DIR`、`FNM_DIR`、`PYENV_ROOT`、`RBENV_ROOT`、`ASDF_DATA_DIR`、`MISE_DATA_DIR`、`RUSTUP_HOME`に従います)、それぞれの既定の版、たどる途中で見つけた版の指定のファイル |
+| システムの場所 | 管理者の行の場所を、パスワード無しで読みます。「管理者の行」を見てください |
 
 たどる途中で`.git`を持つフォルダをプロジェクトと見ます。
 プロジェクトの一番上から4段以内の`node_modules`、`.next`、`.nuxt`、`.svelte-kit`、`.turbo`、`.parcel-cache`、`.vite`、`.angular`、`.expo`、`.docusaurus`、`.output`、`.vercel`、`.wrangler`、`dist`、`build`、`out`、`target`、`.venv`、`venv`、`__pycache__`、`.pytest_cache`、`.mypy_cache`、`.ruff_cache`、`.tox`、`.gradle`、`DerivedData`、`coverage`、`.cache`、`Pods`という名前のフォルダは、`git check-ignore`がgitの無視を返し、`git ls-files`が中に追跡するファイルを1つも見つけない時だけビルドの出力にします。
@@ -180,7 +181,9 @@ Ollamaのモデルの大きさは、ほかのモデルが使わないblobだけ�
 | WSLの`/mnt` | Windowsのドライブです |
 | シンボリックリンク | 調べる時はたどらず、`apply`もリンクとその先を変えません |
 | Dockerのボリューム | 作り直されないデータを持ちます |
-| アプリのフォルダの中のアプリを除く、ホームの外の全て | `apply`が変えるのを断ります |
+| System Integrity Protectionが守る場所 | macOSは誰にも変えさせません。調べる時は、制限の印を持つ物を外します |
+| `/Library/Caches`にあるAppleのキャッシュ (`com.apple.*`) | macOSが動いている間に使います |
+| アプリのフォルダの中のアプリと「管理者の行」のシステムの場所を除く、ホームの外の全て | `apply`が変えるのを断り、`admin-apply`はそのシステムの場所だけを変えます |
 
 ## ページとサーバー
 
@@ -273,6 +276,41 @@ Dockerを片付け、Docker Desktopのディスクのファイルがある時は
 | Linuxの自動起動 | ファイルを戻します |
 | systemdのユーザー単位 | `systemctl --user enable --now`を動かします |
 | ゴミ箱へ移したファイル、アプリ、作業フォルダ、消したアプリの残り | まだゴミ箱にあり、元の場所に何も無い時に戻します |
+| 管理者の行 | `needs-admin`の行を出し、最後に`admin-restore --state <状態のフォルダ> <id>...`の命令を出します。エージェントはそれをそのまま動かします |
+
+## 管理者の行
+
+管理者だけが変えられる場所があります。
+`scan`はそこを`"admin": true`の行として並べ、パスワード無しで測ります。読めない大きさは`null`で、ページには「測れませんでした」と出ます。
+
+| システム | 場所 | 並べる時 | `admin-apply`がすること |
+|---|---|---|---|
+| macOS | `/Library/Caches`の各フォルダ | 50MB以上か読めず、名前が`com.apple.`で始まらない | フォルダを消します |
+| macOS | `/Library/Logs`と`/private/var/log` | 中に30日より古いファイルがある。最上位のフォルダごとに1行 | 並べたファイルのうち、まだ30日より古い物を消します |
+| macOS | `/Applications`の`.app` | 自分では移せず、bundle idが`com.apple.`で始まらず、`mdls`が90日使っていないと返す | 自分のゴミ箱へ移します |
+| macOS | `/Library/LaunchDaemons`と`/Library/LaunchAgents`のplist | 常に。推奨度は確かめてから | `launchctl bootout`を動かし、rootだけが変えられる`/Library/Application Support/machine-cleanup/disabled/`へplistを移します |
+| Linux | `/var/cache/apt/archives`と`/var/cache/dnf` | `apt-get`か`dnf`が入っていて、フォルダが1MB以上 | `apt-get clean`か`dnf clean all`を動かします |
+| Linux | `/var/log/journal`か`/run/log/journal` | フォルダがあり`journalctl`が入っている。大きさは`journalctl --disk-usage`から取ります | `journalctl --vacuum-time=30d`を動かします |
+| Linux | `systemctl list-unit-files --state=enabled`が並べるサービス | 単位のファイルが、管理者が置く`/etc/systemd/system`にある。OSのパッケージは`/usr/lib/systemd/system`に置きます | `systemctl disable --now <unit>`を動かします |
+
+調べる時は、管理者の権限をどう承認できるかも決め、`admin_approval`に残します。
+
+| `admin_approval` | 当たる時 | `apply`が出す命令 |
+|---|---|---|
+| `dialog` | `sudo`が入っていて、macOSならSSH越しでなく、Linuxなら画面があり`zenity`、`kdialog`、`ssh-askpass`のどれかが入っている | `SUDO_ASKPASS=<scripts>/askpass.sh sudo -A -p '<prompt>' <python> <script> admin-apply --plan <state>/admin-plan.json` |
+| `nopasswd` | 窓を開けず、`sudo -n true`が通る | `sudo -n <python> <script> admin-apply --plan <state>/admin-plan.json` |
+| `null` | どちらでもない | 出しません。管理者の行はどれも理由を持つ`"blocked"`を持ち、推奨度はそのままで選べず、`apply`は断ります |
+
+`apply`はほかの選んだ物を空けてから、選んだ管理者の行のidを自分だけが読める`admin-plan.json`に書き、行ごとに`needs-admin`を出し、最後に命令を出します。
+`sudo -A`は`askpass.sh`をあなたとして動かします。`askpass.sh`はOSのパスワードの窓 (macOSは`osascript`、Linuxは`zenity`、`kdialog`、`ssh-askpass`) を開き、打った文字を`sudo`が読む標準出力にだけ出すので、パスワードはエージェントにもチャットにもファイルにもログにも届きません。
+1回の承認で、計画の全ての行を空けます。
+
+`admin-apply`はrootで動き、行ごとに確かめ直してから変えます。
+最後の調べの管理者の行でない物、選べない物か使用中の物、システムの場所の直下に無くなった物、シンボリックリンクかパスの途中にそれを持つ物、制限の印を持つ物、「変える直前の確かめ」の表がその種類に定める変化がある物は飛ばします。
+`restore`に要る記録は自分の状態のフォルダに書いて持ち主を自分 (`SUDO_UID`) に戻し、終わると計画を消します。
+
+`MACHINE_CLEANUP_SYSTEM_ROOT` (既定は`/`) はシステムの場所を全て別のフォルダの下へ移し、テストが使います。
+rootで動かすと、`admin-apply`と`admin-restore`は`/`以外の値を終わり方2で断ります。
 
 ## 予約した片付け
 
@@ -288,6 +326,7 @@ Dockerを片付け、Docker Desktopのディスクのファイルがある時は
 | `log` | 30日より古いログのファイル | 新しいログのファイル |
 
 Dockerのイメージと止まっているコンテナは残します。止まっているコンテナはデータを持つことがあり、このコンピューターで作ったイメージは取り直せないことがあるからです。
+予約は管理者の行を空けません。承認する人がその場に居ないからです。
 
 | システム | 登録の仕方 | 眠っている間に過ぎた回 |
 |---|---|---|
@@ -320,6 +359,7 @@ macOSでは、デスクトップ、書類、ダウンロードのようにmacOS�
 | `session.json` | ページのポートと合言葉 | `apply`か`finish` |
 | `selection.txt` | ページが最後に送った選択 | `apply`か`finish` |
 | `survivors.json` | 最後の`apply`で残ったプロセス | 次の`apply`か`finish` |
+| `admin-plan.json` | 最後の`apply`が`admin-apply`に任せた管理者の行 | `admin-apply`か`finish` |
 | `restore.json` | `restore`が戻せる物 | 項目を戻した`restore` |
 | `disabled/` | 止めたログイン項目のファイル | `restore` |
 | `schedule.json` | 許した種類、予約が動く間隔と時刻、予約を動かすシステム | `schedule remove` |
@@ -331,8 +371,8 @@ macOSでは、デスクトップ、書類、ダウンロードのようにmacOS�
 ## しないこと
 
 - 選んでいない物と使用中の物を、消す、移す、止める
-- シンボリックリンクをたどる、同期フォルダかWindowsのドライブに入る、アプリを除くホームの外の物を変える
-- 管理者のパスワードを求める、使う、ほかのユーザーのプロセスに触れる
+- シンボリックリンクをたどる、同期フォルダかWindowsのドライブに入る、アプリと選んだ管理者の行を除くホームの外の物を変える
+- 管理者のパスワードをチャットで求める、どこかに残す、選んだ管理者の行のほかに管理者の権限を使う、ほかのユーザーのプロセスに触れる
 - ネットワークに何かを送る、`127.0.0.1`以外でページを出す
 - OSの設定を変える、裏で動き続ける物を入れる (頼まれた時に`schedule add`が登録する予約の仕事1件を除く)
 
@@ -341,6 +381,7 @@ macOSでは、デスクトップ、書類、ダウンロードのようにmacOS�
 | 変数 | 効果 |
 |---|---|
 | `MACHINE_CLEANUP_HOME` | `~/.local/share/machine-cleanup`の代わりに使う状態のフォルダ |
+| `MACHINE_CLEANUP_SYSTEM_ROOT` | `/`の代わりに、管理者の行のシステムの場所を置くフォルダ。rootで動かすと、`admin-apply`と`admin-restore`はほかの値を断ります |
 | 「調べ方」のキャッシュの変数 | パッケージ管理ごとのキャッシュを探す場所 |
 | 「調べ方」の道具の版とモデルの変数 | 版の管理の道具が版を置く場所と、モデルを探す場所 |
 
@@ -350,6 +391,6 @@ macOSでは、デスクトップ、書類、ダウンロードのようにmacOS�
 |---|---|
 | 0 | 終わった |
 | 1 | `apply`か`restore`が断り、何も変えていない |
-| 2 | 入力が誤っているか、まだ調べていないか、`schedule add`でsystemdもcronも動かないシステムだった |
-| 3 | `apply`か予約の回が空けられない項目があったか、`schedule add`が仕事を登録できなかった |
+| 2 | 入力が誤っているか、まだ調べていないか、`schedule add`でsystemdもcronも動かないシステムだったか、`admin-apply`に計画が無いか、rootで動かした`admin-apply`か`admin-restore`のシステムの根が`/`でなかった |
+| 3 | `apply`か`admin-apply`か予約の回が空けられない項目があったか、`schedule add`が仕事を登録できなかった |
 | 4 | `serve`が選択を受け取らずに待ち終えた |

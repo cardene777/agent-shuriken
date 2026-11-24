@@ -25,6 +25,7 @@ It looks in this order, so the fastest and most useful results come first.
 | Files | A walk of the home folder (or each `--root`) up to 8 levels deep, which skips hidden folders, `~/Library` and `~/Applications` on macOS, and the places in "Places it never enters" |
 | Work folders | The git projects the walk met, read with `git log`, `git status`, `git remote`, and `git rev-list` |
 | Tool versions | The version folders of nvm, fnm, pyenv, rbenv, asdf, mise, and rustup, honoring `NVM_DIR`, `FNM_DIR`, `PYENV_ROOT`, `RBENV_ROOT`, `ASDF_DATA_DIR`, `MISE_DATA_DIR`, and `RUSTUP_HOME`, their defaults, and the version files the walk met |
+| System places | The places of the administrator rows, without a password: see "Administrator rows" |
 
 During the walk, a folder that holds `.git` is a project.
 Folders named `node_modules`, `.next`, `.nuxt`, `.svelte-kit`, `.turbo`, `.parcel-cache`, `.vite`, `.angular`, `.expo`, `.docusaurus`, `.output`, `.vercel`, `.wrangler`, `dist`, `build`, `out`, `target`, `.venv`, `venv`, `__pycache__`, `.pytest_cache`, `.mypy_cache`, `.ruff_cache`, `.tox`, `.gradle`, `DerivedData`, `coverage`, `.cache`, and `Pods` within four levels of the project's top are build output only when `git check-ignore` says git ignores them and `git ls-files` finds no tracked file inside.
@@ -180,7 +181,9 @@ Processes of other users are never listed.
 | `/mnt` under WSL | Windows drives |
 | Symbolic links | The scan never follows them, and `apply` never changes a link or what it points to |
 | Docker volumes | They hold data that is not rebuilt |
-| Anything outside the home folder, except app bundles in the app folders | `apply` refuses to change it |
+| Places System Integrity Protection guards | macOS lets no one change them. The scan leaves out anything with the restricted flag |
+| Apple's caches in `/Library/Caches` (`com.apple.*`) | macOS uses them while it runs |
+| Anything outside the home folder, except app bundles in the app folders and the system places of "Administrator rows" | `apply` refuses to change it, and `admin-apply` changes only those system places |
 
 ## The page and the server
 
@@ -273,6 +276,41 @@ When it ran a Docker prune and Docker Desktop's disk image exists, it adds that 
 | Linux autostart entries | Moves the file back |
 | systemd user services | Runs `systemctl --user enable --now` |
 | Files, apps, work folders, and app leftovers moved to the Trash | Moves them back while they are still in the Trash and nothing is in their old place |
+| Administrator rows | Prints `needs-admin` and, at the end, the `admin-restore --state <state folder> <id>...` command, which the agent runs as it is |
+
+## Administrator rows
+
+Some places only an administrator can change.
+`scan` lists them as rows with `"admin": true`, measured without a password; a size it cannot read is `null`, shown as "Not measured".
+
+| System | Place | Listed when | What `admin-apply` does |
+|---|---|---|---|
+| macOS | Each folder in `/Library/Caches` | It holds 50 MB or more, or it cannot be read, and its name does not start with `com.apple.` | Deletes the folder |
+| macOS | `/Library/Logs` and `/private/var/log` | A file in it is older than 30 days; one row for each top folder | Deletes the listed files that are still older than 30 days |
+| macOS | `.app` bundles in `/Applications` | You cannot move it, its bundle id does not start with `com.apple.`, and `mdls` reports no use for 90 days | Moves it to your own Trash |
+| macOS | Plists in `/Library/LaunchDaemons` and `/Library/LaunchAgents` | Always; ranked check first | Runs `launchctl bootout` and moves the plist into `/Library/Application Support/machine-cleanup/disabled/`, which only root can change |
+| Linux | `/var/cache/apt/archives` and `/var/cache/dnf` | `apt-get` or `dnf` is installed and the folder holds 1 MB or more | Runs `apt-get clean` or `dnf clean all` |
+| Linux | `/var/log/journal`, or `/run/log/journal` | The folder exists and `journalctl` is installed; `journalctl --disk-usage` gives its size | Runs `journalctl --vacuum-time=30d` |
+| Linux | Services `systemctl list-unit-files --state=enabled` lists | The unit file sits in `/etc/systemd/system`, where an administrator puts it; the operating system's packages put theirs in `/usr/lib/systemd/system` | Runs `systemctl disable --now <unit>` |
+
+The scan also decides how administrator rights can be approved, and keeps it as `admin_approval`.
+
+| `admin_approval` | When | The command `apply` prints |
+|---|---|---|
+| `dialog` | `sudo` is installed, and on macOS the session is not over SSH, or on Linux a display is set and `zenity`, `kdialog`, or `ssh-askpass` is installed | `SUDO_ASKPASS=<scripts>/askpass.sh sudo -A -p '<prompt>' <python> <script> admin-apply --plan <state>/admin-plan.json` |
+| `nopasswd` | No dialog can open, and `sudo -n true` succeeds | `sudo -n <python> <script> admin-apply --plan <state>/admin-plan.json` |
+| `null` | Neither | None. Each administrator row gets `"blocked"` with the reason, keeps its level, cannot be picked, and `apply` refuses it |
+
+`apply` frees the other picks, then writes the ids of the picked administrator rows to `admin-plan.json`, readable only by you, prints a `needs-admin` line for each, and ends with the command.
+`sudo -A` runs `askpass.sh` as you. It opens the operating system's password dialog (`osascript` on macOS, or `zenity`, `kdialog`, or `ssh-askpass`) and prints what you type only to its standard output, which `sudo` reads, so the password never reaches the agent, the chat, a file, or a log.
+One approval frees every row in the plan.
+
+`admin-apply` runs as root and checks each row again before acting.
+It skips a row that is not an administrator row of the last scan, is blocked or in use, no longer sits directly in its system place, is a symbolic link or has one on its path, carries the restricted flag, or changed after the scan as the table in "The check right before acting" says for its kind.
+It writes the records `restore` needs into your own state folder and gives them back to you (`SUDO_UID`), and it deletes the plan when it ends.
+
+`MACHINE_CLEANUP_SYSTEM_ROOT` (default `/`) moves every system place under another folder, which the tests use.
+Run as root, `admin-apply` and `admin-restore` refuse any value but `/` with exit 2.
 
 ## The schedule
 
@@ -288,6 +326,7 @@ Only the three kinds below can be approved, and the user picks them when registe
 | `log` | Log files older than 30 days | Newer log files |
 
 A run leaves Docker images and stopped containers, because a stopped container can hold data and an image built on this computer may not be fetched again.
+A schedule never frees administrator rows, because no one is there to approve them.
 
 | System | How it is registered | A run missed while the computer slept |
 |---|---|---|
@@ -320,6 +359,7 @@ Everything lives in `~/.local/share/machine-cleanup/` (or `MACHINE_CLEANUP_HOME`
 | `session.json` | The page's port and token | `apply`, or `finish` |
 | `selection.txt` | The last selection the page sent | `apply`, or `finish` |
 | `survivors.json` | Processes that survived the last `apply` | The next `apply`, or `finish` |
+| `admin-plan.json` | The administrator rows the last `apply` left to `admin-apply` | `admin-apply`, or `finish` |
 | `restore.json` | What `restore` can put back | `restore`, once an item is back |
 | `disabled/` | Login item files that were stopped | `restore` |
 | `schedule.json` | The approved kinds, how often and when the schedule runs, and the system that runs it | `schedule remove` |
@@ -331,8 +371,8 @@ Process commands are kept only after the values of flags and variables whose nam
 ## What it never does
 
 - Deletes, moves, or stops anything you did not pick, or anything in use
-- Follows a symbolic link, enters a sync folder or a Windows drive, or changes anything outside the home folder except app bundles
-- Asks for or uses an administrator password, or touches other users' processes
+- Follows a symbolic link, enters a sync folder or a Windows drive, or changes anything outside the home folder except app bundles and the administrator rows you picked
+- Asks for the administrator password in the chat, keeps it anywhere, uses administrator rights for anything but the administrator rows you picked, or touches other users' processes
 - Sends anything over the network, or serves the page anywhere but `127.0.0.1`
 - Changes operating system settings, or installs anything that runs in the background, except the one scheduled job that `schedule add` registers when you ask for it
 
@@ -341,6 +381,7 @@ Process commands are kept only after the values of flags and variables whose nam
 | Variable | Effect |
 |---|---|
 | `MACHINE_CLEANUP_HOME` | The state folder, instead of `~/.local/share/machine-cleanup` |
+| `MACHINE_CLEANUP_SYSTEM_ROOT` | The folder the system places of administrator rows sit under, instead of `/`. Run as root, `admin-apply` and `admin-restore` refuse any other value |
 | The cache variables in "The scan" | Where each package manager's cache is looked for |
 | The version manager and model variables in "The scan" | Where each version manager keeps its versions, and where models are looked for |
 
@@ -350,6 +391,6 @@ Process commands are kept only after the values of flags and variables whose nam
 |---|---|
 | 0 | Done |
 | 1 | `apply` or `restore` refused, and nothing changed |
-| 2 | Bad input, no scan yet, or a system that runs neither systemd nor cron for `schedule add` |
-| 3 | `apply` or a scheduled run could not free an item, or `schedule add` could not register the job |
+| 2 | Bad input, no scan yet, a system that runs neither systemd nor cron for `schedule add`, no plan for `admin-apply`, or a system root other than `/` for `admin-apply` or `admin-restore` run as root |
+| 3 | `apply`, `admin-apply`, or a scheduled run could not free an item, or `schedule add` could not register the job |
 | 4 | `serve` waited without receiving a selection |
