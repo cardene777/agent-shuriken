@@ -406,7 +406,7 @@ docs_name_variables() {
   grep -qF "trust the $(number_word "$n") agent-guards hooks" "$PLUGIN/README.md" \
     || { why="README.md does not say to trust the $(number_word "$n") agent-guards hooks"; return 1; }
   # The Japanese page counts with a digit; the phrase is matched by its number and the escaped word for hooks.
-  python3 -I -c 'import sys; sys.exit(0 if ("agent-guardsの" + sys.argv[2] + "つのフック") in open(sys.argv[1], encoding="utf-8").read() else 1)' \
+  python3 -I -c 'import sys; sys.exit(0 if ("agent-guards\u306e" + sys.argv[2] + "\u3064\u306e\u30d5\u30c3\u30af") in open(sys.argv[1], encoding="utf-8").read() else 1)' \
     "$PLUGIN/README.ja.md" "$n" || { why="README.ja.md does not count $n hooks"; return 1; }
 }
 
