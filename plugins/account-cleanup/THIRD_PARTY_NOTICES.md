@@ -13,7 +13,7 @@ This plugin includes the following third-party material.
 | License | MIT |
 
 The file is an unmodified copy.
-To update it, replace it with `_data/sites.json` from a newer upstream commit and update the commit and date above.
+To update it, run `bash tools/update-sites.sh` with `gh` signed in. It copies `_data/sites.json` of the newest upstream commit unmodified and writes that commit and the date above.
 
 ```
 The MIT License (MIT)

@@ -97,6 +97,12 @@ macOS向けに作っています。
 削除ページの一覧`skills/account-cleanup/data/sites.json`は、公開されているJustDeleteMeのデータを、MITライセンスのもとで改変せずにコピーした物です。
 出どころは[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)に記録しています。
 
+このリポジトリを保守する人は、[`tools/update-sites.sh`](tools/update-sites.sh)でこのコピーを新しくします。
+このコマンドは、ログイン済みの`gh`を通して、GitHubにjdm-contrib/jdmの最新のコミットと、そのコミットの`_data/sites.json`だけを問い合わせ、ほかには何も送りません。
+ファイルを改変せずにコピーし、コミットと日付を`THIRD_PARTY_NOTICES.md`に書きます。
+ダウンロードした物がサイトの一覧でない時は、どのファイルも変えません。
+スキルがこのコマンドを実行することはありません。
+
 ## ライセンス
 
 [MIT](LICENSE)

@@ -1,6 +1,6 @@
 # account-cleanup-skill
 
-| 条件 | 確かめ方 | 出元 |
+| Criterion | How to check | Origin |
 |---|---|---|
 | account-cleanupの評価のセットは、決めた4組の案件を5件のフォルダとして`plugins/account-cleanup/evals/`の下に持ち、どれも`case.yaml`を持つ。5件は`trigger-asks-first`、`unrelated-request`、`collect-and-describe`、`password-not-shown`、`plan-before-deleting` | `bash plugins/account-cleanup/skills/account-cleanup/tests/test-account-cleanup.sh`の検査`"the eval suite has the five cases"`が通る | #145 |
 | 案件の用意の命令を一時のHOMEで回すと、案件が前提にする状態ができる。`trigger-asks-first`と`unrelated-request`はデータのフォルダを持たず、`collect-and-describe`と`password-not-shown`はHOMEの下にChromeの保存データと履歴を持ってデータのフォルダを持たず、`plan-before-deleting`は日本を地域に保存し、消せないサービスを1件含む候補を持つ | `bash plugins/account-cleanup/skills/account-cleanup/tests/test-account-cleanup.sh`の検査`"the eval fixtures build the states their cases start from"`が通る | #145 |
@@ -90,3 +90,14 @@
 | 描いた後片付けの頁が、明暗の両方で4.5:1以上の文字を保ち、page-designの`verify`を通る | `bash plugins/account-cleanup/skills/account-cleanup/tests/test-account-cleanup.sh`の検査`"the drawn follow-up page keeps a contrast of 4.5 to 1 and passes page-design verify"`が通る | #321 |
 | 描いた候補のシートの全ての文字が、明暗の両方で背景に対して4.5:1以上 | `bash plugins/account-cleanup/skills/account-cleanup/tests/test-account-cleanup.sh`の検査`"every text on the drawn sheet has a contrast of at least 4.5 to 1 in both themes"`が通る | #321 |
 | repoの検査が全て通る | `bash scripts/check.sh`が終了 0 | #321 |
+| When a maintainer runs `tools/update-sites.sh`, it replaces `skills/account-cleanup/data/sites.json` with `_data/sites.json` of the newest commit of jdm-contrib/jdm, byte for byte | `bash plugins/account-cleanup/tests/test-update-sites.sh` check `"update-sites copies the newest upstream list unmodified"` passes | #490 |
+| The same run writes that commit and the day it ran into the `Source commit` and `Copied on` rows of the JustDeleteMe table in `THIRD_PARTY_NOTICES.md`, and changes no other line | `bash plugins/account-cleanup/tests/test-update-sites.sh` check `"update-sites writes the commit and date into the notice"` passes | #490 |
+| When the downloaded file is not a non-empty JSON list whose entries have `name` and `domains`, the command refuses with a non-zero exit and leaves `sites.json` and `THIRD_PARTY_NOTICES.md` unchanged | `bash plugins/account-cleanup/tests/test-update-sites.sh` check `"update-sites refuses a download that is not a site list"` passes | #490 |
+| When `gh` fails, as without a sign-in or a network, the command refuses with a non-zero exit and changes no file | `bash plugins/account-cleanup/tests/test-update-sites.sh` check `"update-sites changes nothing when gh fails"` passes | #490 |
+| The command asks GitHub only for the newest commit and the `_data/sites.json` file of jdm-contrib/jdm, and sends nothing else | `bash plugins/account-cleanup/tests/test-update-sites.sh` check `"update-sites asks GitHub only for the upstream commit and file"` passes | #490 |
+| No file under `skills/` runs or names `tools/update-sites.sh`, so the skill never runs it | `bash plugins/account-cleanup/tests/test-update-sites.sh` check `"the skill never runs update-sites"` passes | #490 |
+| The plugin's `README.md`, `README.ja.md`, `docs/how-it-works.md`, and `docs/how-it-works.ja.md` name `tools/update-sites.sh`, say that it connects to GitHub, and say that only maintainers run it | `bash plugins/account-cleanup/tests/test-update-sites.sh` check `"the READMEs and how-it-works pages describe update-sites"` passes | #490 |
+| `THIRD_PARTY_NOTICES.md` names `tools/update-sites.sh` as the way to update the list | `bash plugins/account-cleanup/tests/test-update-sites.sh` check `"the notice names update-sites"` passes | #490 |
+| The plugin's changelog names `tools/update-sites.sh` | `bash plugins/account-cleanup/tests/test-update-sites.sh` check `"the changelog names update-sites"` passes | #490 |
+| Every script parses, every page has a Japanese counterpart, and no local path, email address, or stray Japanese text is added | `bash scripts/check.sh` checks `"shell scripts parse"`, `"pages have Japanese counterparts"`, `"relative links resolve"`, `"no local user paths"`, `"no email addresses"`, and `"English outside the Japanese pages"` pass | #490 |
+| The plugin stays within the directory limits, its bundled data is credited, its version matches its changelog, and it passes `claude plugin validate` | `bash scripts/check.sh` checks `"plugins stay within directory limits"`, `"bundled data is credited"`, `"versions match the changelogs"`, and `"claude plugin validate"` pass | #490 |

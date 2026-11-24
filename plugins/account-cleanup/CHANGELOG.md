@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- `tools/update-sites.sh`, run only by maintainers of this repository, copies the newest JustDeleteMe list from GitHub unmodified and writes its commit and date into `THIRD_PARTY_NOTICES.md`; the skill never runs it
+
 ## [0.4.0] - 2026-11-24
 
 - The candidate sheet has Delete and Keep buttons instead of OK and Keep, with a check mark on the pressed one, and pressing "Copy items to delete" first shows every account it will delete with a warning that deleting cannot be undone. A sheet of 50 accounts or fewer is one list with a category filter, and only a longer one keeps a tab per category, without an All tab. Choices and memos stay in the browser per round until the sheet of the next round is opened, and the sheet says at the top right whether they are saved

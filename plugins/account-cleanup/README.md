@@ -87,6 +87,11 @@ In short:
 The deletion directory `skills/account-cleanup/data/sites.json` is an unmodified copy of the public JustDeleteMe data, under the MIT License.
 Its source is recorded in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
 
+Maintainers of this repository refresh the copy with [`tools/update-sites.sh`](tools/update-sites.sh).
+It asks GitHub, through a signed-in `gh`, for the newest commit of jdm-contrib/jdm and the `_data/sites.json` file at that commit, and sends nothing else.
+It copies the file unmodified and writes the commit and the date into `THIRD_PARTY_NOTICES.md`, and when the download is not a list of sites, it changes no file.
+The skill never runs it.
+
 ## License
 
 [MIT](LICENSE)
