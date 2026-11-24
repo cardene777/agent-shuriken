@@ -1,7 +1,7 @@
 {
   "name": "agent-guards",
   "version": "0.1.0",
-  "description": "Hooks that stop an agent from reading key files and .env files, sending text or commits that hold a key, running force pushes and other destructive git commands, and deleting whole folder trees, in Claude Code and Codex",
+  "description": "Hooks that stop an agent from reading or overwriting key files and .env files, printing values stored in 1Password, sending text or commits that hold a key, running force pushes and other destructive git commands, and deleting or locking whole folder trees, in Claude Code and Codex",
   "author": {
     "name": "cardene777",
     "url": "https://github.com/cardene777"
@@ -20,7 +20,7 @@
   "interface": {
     "displayName": "Agent Guards",
     "shortDescription": "Stop risky agent commands",
-    "longDescription": "Four hooks run before each shell command and file read the agent makes. The secret read hook refuses reads of .env files, private keys, credential files, the private data of macOS apps, and Claude Code's conversation records, and refuses a read whose file it cannot tell. The outbound hook refuses gh sends and git commits whose text, body file, or staged change holds a key-shaped value, naming the kind of key and the line without showing the value. The git hook refuses force pushes, reset --hard, --no-verify, clean -f, and commands that throw away uncommitted changes. The delete hook refuses deletes of the root, the home folder, the current folder, and system folders. Every refusal says why, and a refused git or delete command is shown with a leading ! for you to run yourself. Each hook turns off with its own environment variable, and two list files add your own secret places and protected paths. It needs Python 3.",
+    "longDescription": "Six hooks run before each shell command, file read, and file edit the agent makes. The secret read hook refuses reads of .env files, private keys, credential files, the private data of macOS apps, and Claude Code's conversation records, and refuses a read whose file it cannot tell. The secret write hook refuses writes to the same files from a shell command, the Write and Edit tools, or a Codex patch. The 1Password hook lets through only the op commands that print no stored value. The outbound hook refuses gh sends and git commits whose text, body file, or staged change holds a key-shaped value, naming the kind of key and the line without showing the value. The git hook refuses force pushes, reset --hard, --no-verify, clean -f, and commands that throw away uncommitted changes. The delete hook refuses deletes of the root, the home folder, the current folder, and system folders, and chmod -R on them. Every refusal says why, and a refused git or delete command is shown with a leading ! for you to run yourself. Each hook turns off with its own environment variable, and two list files add your own secret places and protected paths. It needs Python 3.",
     "developerName": "cardene777",
     "category": "Developer Tools",
     "capabilities": [],

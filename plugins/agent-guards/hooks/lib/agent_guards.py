@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""The four blocking hooks of agent-guards.
+"""The six blocking hooks of agent-guards.
 
 Claude Code and Codex start a hook for each PreToolUse event and pass the event as JSON on standard
 input. A hook prints a deny decision when it refuses the tool call and prints nothing otherwise, so
 it never approves a call that the agent's own permission rules would ask about.
 
-    agent_guards.py secret-read | outbound | git | delete
+    agent_guards.py secret-read | secret-write | onepassword | outbound | git | delete
 
 Each hook turns off with its own environment variable set to `off`. With AGENT_GUARDS_RECORD=on,
 each refusal adds one line (time, hook, kind) to refusals.log in the data folder; the line never
@@ -23,6 +23,8 @@ import time
 
 OFF_VARS = {
     "secret-read": "AGENT_GUARDS_SECRET_READ",
+    "secret-write": "AGENT_GUARDS_SECRET_WRITE",
+    "onepassword": "AGENT_GUARDS_ONEPASSWORD",
     "outbound": "AGENT_GUARDS_OUTBOUND",
     "git": "AGENT_GUARDS_GIT",
     "delete": "AGENT_GUARDS_DELETE",
@@ -435,6 +437,161 @@ def secret_read(event):
 
 
 # ---------------------------------------------------------------------------------------------
+# secret-write
+
+FILE_TOOLS = {"Write": "file_path", "Edit": "file_path", "MultiEdit": "file_path", "NotebookEdit": "notebook_path"}
+WRITE_REDIRECTS = {">", ">>", ">|", "&>", "&>>", ">&"}
+# Commands that write the files named by their arguments, and which arguments those are.
+LAST_IS_TARGET = {"cp", "mv", "install", "ln", "rsync", "scp"}
+SED_LIKE = {"sed", "perl"}
+
+
+def plain_args(args):
+    """The arguments of a simple command without its redirects and their targets."""
+    out, i = [], 0
+    while i < len(args):
+        if args[i] in WRITE_REDIRECTS or args[i] in ("<", "<<", "<<<", "<&", "<>"):
+            i += 2
+            continue
+        out.append(args[i])
+        i += 1
+    return out
+
+
+def write_targets(seg):
+    """The words a simple command writes as files. A word it cannot expand is left out, since an
+    unknown write target is far more often a temporary file than a secret one."""
+    targets = []
+    for i, w in enumerate(seg[:-1]):
+        if w in WRITE_REDIRECTS:
+            nxt = seg[i + 1]
+            # `2>&1` reads as `2`, `>&`, `1`, which points a stream at another stream, not at a file.
+            if w == ">&" and (nxt.isdigit() or nxt == "-"):
+                continue
+            targets.append(nxt)
+    cmd, args = command_of(seg)
+    words = [a for a in plain_args(args) if not (a.startswith("-") and a != "-")]
+    if cmd == "tee":
+        targets.extend(words)
+    elif cmd in LAST_IS_TARGET and len(words) >= 2:
+        targets.append(words[-1])
+    elif cmd in SED_LIKE and any(a == "-i" or a.startswith("-i") or a == "--in-place" or a.startswith("--in-place=")
+                                 for a in args):
+        targets.extend(words[1:] if not any(a in ("-e", "-f") for a in args) else words)
+    elif cmd == "truncate":
+        sized = plain_args(args)
+        targets.extend(a for j, a in enumerate(sized)
+                       if not a.startswith("-") and not (j > 0 and sized[j - 1] in ("-s", "--size", "-r", "--reference")))
+    elif cmd == "dd":
+        targets.extend(a[3:] for a in args if a.startswith("of="))
+    return targets
+
+
+def check_secret_write(word, cwd, how):
+    path = expand(word)
+    if path is None:
+        return
+    kind = secret_kind(absolute(path, cwd))
+    if kind:
+        raise Refusal("secret write", f"{how} `{word}`, which is {kind}. A secret file is not in git, so an "
+                      "overwrite cannot be undone, and the agent does not write it. Edit it yourself if you mean to.")
+
+
+def patch_text(tool_input):
+    if isinstance(tool_input, str):
+        return tool_input
+    if isinstance(tool_input, dict):
+        for key in ("patch", "input", "command"):
+            value = tool_input.get(key)
+            if isinstance(value, str):
+                return value
+            if isinstance(value, list):
+                return "\n".join(part for part in value if isinstance(part, str))
+    return ""
+
+
+PATCH_FILE = re.compile(r"^\*\*\* (?:Add File|Update File|Delete File|Move to): (.+?)\s*$")
+
+
+def secret_write(event):
+    cwd = event.get("cwd") or os.getcwd()
+    tool = event.get("tool_name")
+    tool_input = event.get("tool_input")
+    if tool in FILE_TOOLS:
+        path = tool_input.get(FILE_TOOLS[tool]) if isinstance(tool_input, dict) else ""
+        if isinstance(path, str) and path:
+            check_secret_write(os.path.expanduser(path), cwd, f"{tool} would change")
+        return
+    if tool == "apply_patch":
+        for line in patch_text(tool_input).splitlines():
+            m = PATCH_FILE.match(line)
+            if m:
+                check_secret_write(m.group(1), cwd, "the patch would change")
+        return
+    segs = segments(command_text(event))
+    if segs is None:
+        return
+    for seg in segs:
+        for target in write_targets(seg):
+            check_secret_write(target, cwd, "the command would write")
+
+
+# ---------------------------------------------------------------------------------------------
+# onepassword
+
+# `op` commands that print no value stored in 1Password and delete nothing. Every other `op`
+# command is refused, since values come out through many subcommands and flags.
+OP_SAFE = {("whoami",), ("account", "list"), ("vault", "list"), ("item", "list"), ("document", "list"),
+           ("document", "create"), ("document", "edit"), ("help",)}
+OP_GLOBAL_VALUE = {"--account", "--config", "--encoding", "--format", "--session"}
+OP_INFO_FLAGS = {"--version", "-v", "--help", "-h"}
+SUBSTITUTION = re.compile(r"\$\(([^()]*)\)|`([^`]*)`")
+
+
+def op_subcommand(args):
+    """The subcommand words of an `op` call, past its global options."""
+    words, i = [], 0
+    while i < len(args) and len(words) < 2:
+        a = args[i]
+        if a.startswith("-"):
+            i += 2 if a in OP_GLOBAL_VALUE else 1
+            continue
+        words.append(a)
+        i += 1
+    return words
+
+
+def op_allowed(args):
+    sub = op_subcommand(args)
+    if not sub:
+        return all(a in OP_INFO_FLAGS or a.startswith("-") for a in args)
+    if sub[0] == "help":
+        return True
+    return tuple(sub[:2]) in OP_SAFE or tuple(sub[:1]) in OP_SAFE
+
+
+def onepassword(event):
+    text = command_text(event)
+    texts = [text] + [a or b for a, b in SUBSTITUTION.findall(text)]
+    for t in texts:
+        segs = segments(t)
+        if segs is None:
+            if re.search(r"(^|[\s;&|(`])op\s", t):
+                raise Refusal("cannot tell", "it cannot read the command's quoting, and the command runs `op`. "
+                              "Write the command without unbalanced quotes.")
+            continue
+        for seg in segs:
+            cmd, args = command_of(seg)
+            if cmd == "op" and not op_allowed(args):
+                shown = " ".join(["op"] + op_subcommand(args))
+                raise Refusal("1Password value", f"`{shown}` can print a value stored in 1Password into the "
+                              "conversation. Only `op whoami`, `op account list`, `op vault list`, `op item list`, "
+                              "`op document list`, `op document create`, `op document edit`, `op --version`, and "
+                              "`op help` pass. Run it yourself in a terminal outside the agent, so the value does "
+                              "not reach the conversation.")
+
+
+# ---------------------------------------------------------------------------------------------
 # outbound
 
 # Key shapes with a fixed prefix, from the default rules of gitleaks (MIT), and two forms of a
@@ -764,6 +921,9 @@ def delete_targets(cmd, args):
     return []
 
 
+CHMOD_OPTION = re.compile(r"^(-[RfvhHLPc]+|--[a-z-]+(=.*)?)$")
+
+
 def delete_hook(event):
     cwd = event.get("cwd") or os.getcwd()
     text = command_text(event)
@@ -779,6 +939,14 @@ def delete_hook(event):
             if (recursive or cmd == "mv") and broad(target, cwd):
                 raise Refusal("broad delete", f"`{target}` would remove a whole folder tree such as the root, "
                               "the home folder, or the current folder." + run_it_yourself(text))
+        if cmd in ("chmod", "chown", "chgrp") and ("--recursive" in args or "R" in short_flags(args)):
+            # The first word is the mode or the owner; the rest are the places it changes. A mode can
+            # start with `-`, as in `-w`, so only the options of these commands are skipped.
+            for target in [a for a in plain_args(args) if not CHMOD_OPTION.match(a)][1:]:
+                if protected(target, cwd) or broad(target, cwd):
+                    raise Refusal("broad chmod", f"`{cmd} -R` on `{target}` would change the permissions of a whole "
+                                  "folder tree such as the root or the home folder, which can lock you out of it like "
+                                  "a delete." + run_it_yourself(text))
         if cmd == "find" and ("-delete" in args or ("-exec" in args and "rm" in args)):
             starts = []
             for a in args:
@@ -794,7 +962,22 @@ def delete_hook(event):
                     raise Refusal("broad delete", f"`find {s}` with -delete would remove a whole folder tree." + run_it_yourself(text))
 
 
-HOOKS = {"secret-read": secret_read, "outbound": outbound, "git": git_hook, "delete": delete_hook}
+HOOKS = {"secret-read": secret_read, "secret-write": secret_write, "onepassword": onepassword,
+         "outbound": outbound, "git": git_hook, "delete": delete_hook}
+
+
+def judged(hook, event):
+    """Whether the hook judges this event: shell commands, plus the Read tool for secret-read and the
+    file tools and Codex's apply_patch for secret-write."""
+    tool = event.get("tool_name")
+    tool_input = event.get("tool_input")
+    if tool == "apply_patch":
+        return hook == "secret-write"
+    if tool in FILE_TOOLS:
+        return hook == "secret-write"
+    if tool == "Read":
+        return hook == "secret-read"
+    return tool == "Bash" or (isinstance(tool_input, dict) and "command" in tool_input)
 
 
 def main():
@@ -810,7 +993,7 @@ def main():
         deny(hook, "it could not read the event Claude Code or Codex sent, so it refuses the call.")
         record(hook, "unreadable event")
         return 0
-    if event.get("tool_name") not in ("Bash", "Read") and "command" not in (event.get("tool_input") or {}):
+    if not isinstance(event, dict) or not judged(hook, event):
         return 0
     try:
         HOOKS[hook](event)

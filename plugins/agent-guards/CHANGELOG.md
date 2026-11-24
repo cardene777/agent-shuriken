@@ -5,6 +5,10 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- A secret write hook refuses writes to `.env` files, key files, and the places in `secret-paths` from a shell command (`>`, `>>`, `tee`, `cp`, `mv`, `sed -i`, `truncate`, `dd`), the Write, Edit, MultiEdit, and NotebookEdit tools, and a Codex patch. Turn it off with `AGENT_GUARDS_SECRET_WRITE=off`
+- A 1Password hook lets through only the `op` commands that print no stored value and delete nothing, such as `op whoami`, `op item list`, and `op document create`, and refuses `op read`, `op item get`, `op run`, `op signin`, and the rest. Turn it off with `AGENT_GUARDS_ONEPASSWORD=off`
+- The delete hook also refuses `chmod -R`, `chown -R`, and `chgrp -R` on the root, the home folder, the current folder, system folders, and the places in `protected-paths`
+
 ## [0.1.0] - 2026-11-24
 
 - Four hooks for Claude Code and Codex that run before each shell command and file read: secret read, outbound, git, and delete
