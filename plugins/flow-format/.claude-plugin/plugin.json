@@ -1,0 +1,20 @@
+{
+  "name": "flow-format",
+  "displayName": "Flow Format",
+  "version": "0.1.0",
+  "description": "Explain how a flow, a procedure, a chain of steps, or a workflow goes as numbered steps, each one action sentence and a short unindented paragraph of details, with a plain-text diagram after them when the flow branches or loops",
+  "author": {
+    "name": "cardene777",
+    "url": "https://github.com/cardene777"
+  },
+  "homepage": "https://github.com/cardene777/agent-shuriken/tree/main/plugins/flow-format",
+  "repository": "https://github.com/cardene777/agent-shuriken",
+  "license": "MIT",
+  "keywords": [
+    "explanation",
+    "workflow",
+    "procedure",
+    "steps",
+    "writing"
+  ]
+}
