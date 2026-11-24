@@ -125,9 +125,10 @@ docs_describe() {
   why=$(python3 -I - "$PLUGIN" <<'PY'
 import sys
 plugin = sys.argv[1]
-# Japanese words are written as escapes so this English test holds no Japanese text.
+# The Japanese word for maintaining is built from its code points, so this test holds no Japanese text.
+maintain = chr(0x4FDD) + chr(0x5B88)
 words = {"README.md": "maintainer", "docs/how-it-works.md": "maintainer",
-         "README.ja.md": "保守", "docs/how-it-works.ja.md": "保守"}
+         "README.ja.md": maintain, "docs/how-it-works.ja.md": maintain}
 for page, word in words.items():
     try:
         text = open(f"{plugin}/{page}", encoding="utf-8").read()
