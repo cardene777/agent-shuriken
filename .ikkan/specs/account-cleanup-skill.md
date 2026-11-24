@@ -1,6 +1,6 @@
 # account-cleanup-skill
 
-| 条件 | 確かめ方 | 出元 |
+| Criterion | How to check | Origin |
 |---|---|---|
 | account-cleanupの評価のセットは、決めた4組の案件を5件のフォルダとして`plugins/account-cleanup/evals/`の下に持ち、どれも`case.yaml`を持つ。5件は`trigger-asks-first`、`unrelated-request`、`collect-and-describe`、`password-not-shown`、`plan-before-deleting` | `bash plugins/account-cleanup/skills/account-cleanup/tests/test-account-cleanup.sh`の検査`"the eval suite has the five cases"`が通る | #145 |
 | 案件の用意の命令を一時のHOMEで回すと、案件が前提にする状態ができる。`trigger-asks-first`と`unrelated-request`はデータのフォルダを持たず、`collect-and-describe`と`password-not-shown`はHOMEの下にChromeの保存データと履歴を持ってデータのフォルダを持たず、`plan-before-deleting`は日本を地域に保存し、消せないサービスを1件含む候補を持つ | `bash plugins/account-cleanup/skills/account-cleanup/tests/test-account-cleanup.sh`の検査`"the eval fixtures build the states their cases start from"`が通る | #145 |
