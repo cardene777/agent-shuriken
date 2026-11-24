@@ -17,3 +17,6 @@
 | 従う10のpluginと`design-formats`の`CHANGELOG.md`が`## [Unreleased]`かリリースの節で`page-design`を名指す | `bash plugins/design-formats/skills/page-design/tests/test-followers.sh`の検査`"the changed plugins note the page-design follow in their changelogs"`が通る | #263 #467 |
 | 従う10のスキルと`page-design`の今のテストが全て通る | `bash plugins/design-formats/skills/page-design/tests/test-followers.sh --own-tests`の検査`"the followers and page-design keep passing their own tests"`が通る | #263 #474 |
 | repoの検査`scripts/check.sh`が通る | `bash plugins/design-formats/skills/page-design/tests/test-followers.sh --own-tests`の検査`"the repository checks pass"`が通る | #263 #474 |
+| The light checks of `test-followers.sh` still pass in a default run | `bash plugins/design-formats/skills/page-design/tests/test-followers.sh` checks `"the report skills follow page-design as optional follows"` and `"the changed plugins note the page-design follow in their changelogs"` pass | #474 |
+| Every page keeps its Japanese counterpart with the same headings after the doc changes | `bash scripts/check.sh` check `"pages have Japanese counterparts"` passes | #474 |
+| Relative links of the pages still resolve | `bash scripts/check.sh` check `"relative links resolve"` passes | #474 |
