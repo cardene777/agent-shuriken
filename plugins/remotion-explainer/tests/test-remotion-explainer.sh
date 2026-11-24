@@ -769,6 +769,70 @@ catalog_fetch() { catalog_judge fetch; }
 catalog_search() { catalog_judge search; }
 catalog_folder() { catalog_judge folder; }
 
+# catalog_links fetches a source whose README, one template, and one folder are symbolic links to files
+# outside it, and passes when build indexes only the real template and reads nothing through a link.
+catalog_links() {
+  command -v node >/dev/null || { why="node is not installed"; return 1; }
+  command -v git >/dev/null || { why="git is not installed"; return 1; }
+  [ -f "$CATALOG/scripts/catalog.mjs" ] || { why="remotion-catalog has no scripts/catalog.mjs"; return 1; }
+  why="$(python3 - "$CATALOG" "$T/links" <<'PY'
+import json, os, subprocess, sys
+skill, tmp = sys.argv[1], sys.argv[2]
+os.makedirs(os.path.join(tmp, "outside-folder"))
+os.makedirs(os.path.join(tmp, "zeta", "templates"))
+env = {"PATH": os.environ["PATH"], "HOME": os.path.join(tmp, "home"), "GIT_CONFIG_GLOBAL": "/dev/null",
+       "GIT_CONFIG_NOSYSTEM": "1", "GIT_AUTHOR_NAME": "Test", "GIT_AUTHOR_EMAIL": "test@example.com",
+       "GIT_COMMITTER_NAME": "Test", "GIT_COMMITTER_EMAIL": "test@example.com"}
+def write(rel, text):
+    with open(os.path.join(tmp, rel), "w", encoding="utf-8") as f:
+        f.write(text)
+write("outside-title.tsx", "export const Secret = () => <h1>secret title</h1>;\n")
+write("outside-folder/inner.tsx", "export const Inner = () => <h1>inner title</h1>;\n")
+write("outside-readme.md", "### Outside (1)\n\n| Template | File | Description |\n|---|---|---|\n| Outside | `real.tsx` | outside title |\n")
+write("zeta/LICENSE", "MIT License\n")
+write("zeta/templates/real.tsx", "export const Real = () => <h1>real title</h1>;\n")
+os.symlink(os.path.join(tmp, "outside-readme.md"), os.path.join(tmp, "zeta", "README.md"))
+os.symlink(os.path.join(tmp, "outside-title.tsx"), os.path.join(tmp, "zeta", "templates", "leak.tsx"))
+os.symlink(os.path.join(tmp, "outside-folder"), os.path.join(tmp, "zeta", "templates", "linked"))
+zeta = os.path.join(tmp, "zeta")
+def git(*args):
+    return subprocess.run(["git", "-C", zeta, *args], env=env, capture_output=True, text=True, check=True).stdout.strip()
+git("init", "-q")
+git("config", "uploadpack.allowAnySHA1InWant", "true")
+git("add", "-A")
+git("commit", "-q", "-m", "first")
+listing = {"schemaVersion": 1, "sources": [{"id": "zeta", "repository": f"file://{zeta}", "commit": git("rev-parse", "HEAD"),
+           "license": "MIT", "licenseEvidence": "LICENSE",
+           "adapter": {"kind": "files", "folder": "templates", "extension": ".tsx", "readme": "README.md"}}]}
+write("sources.json", json.dumps(listing))
+def run(*args):
+    p = subprocess.run(["node", os.path.join(skill, "scripts", "catalog.mjs"), *args], cwd=tmp, env=env, capture_output=True, text=True)
+    try:
+        return p.returncode, json.loads(p.stdout), p.stderr.strip()[-300:]
+    except ValueError:
+        return p.returncode, None, p.stderr.strip()[-300:]
+def fail(message):
+    sys.exit(print(message) or 1)
+code, out, err = run("sync", "--sources", os.path.join(tmp, "sources.json"))
+if code != 0 or not out:
+    fail(f"sync of a source with links exited {code}: {err}")
+code, out, err = run("build", "--sources", os.path.join(tmp, "sources.json"))
+if code != 0 or not out:
+    fail(f"build of a source with links exited {code}: {err}")
+data = os.path.join(tmp, "home", ".local", "share", "remotion-explainer", "catalog", "catalog.json")
+items = json.load(open(data, encoding="utf-8")).get("items", [])
+if [item.get("id") for item in items] != ["zeta:real"]:
+    fail(f"build indexed {[item.get('id') for item in items]} through links, not only zeta:real")
+if items[0].get("title") == "Outside" or "outside" in json.dumps(items[0]).lower():
+    fail("build read the README through a link to a file outside the source")
+code, out, err = run("search", "--layer", "typography", "title")
+if code != 0 or not out or [item.get("id") for item in out.get("results", [])] != ["zeta:real"]:
+    fail(f"search returned {out and [item.get('id') for item in out.get('results', [])]}, not only zeta:real")
+PY
+)" || return 1
+  why=""
+}
+
 check "the READMEs state the Remotion license terms" readme_license
 check "AGENTS.md names the plugin's Node.js use" agents_node
 check "remotion-frame-checks provides its contracts and checks" frame_provides
@@ -778,6 +842,7 @@ check "the motion plan checks accept valid and refuse broken plans" motion_judgm
 check "remotion-catalog fetches only licensed sources at pinned commits" catalog_fetch
 check "remotion-catalog searches each layer" catalog_search
 check "remotion-catalog keeps its data in its own folder" catalog_folder
+check "remotion-catalog reads nothing through a symbolic link" catalog_links
 
 printf 'checks: %d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
