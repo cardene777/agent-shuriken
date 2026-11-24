@@ -1,0 +1,7 @@
+interface:
+  display_name: "Remotion Frame Checks"
+  short_description: "Check the geometry, layout, timing, and scene design of a Remotion video"
+  default_prompt: "Use $remotion-frame-checks to check the layout of this Remotion project."
+
+policy:
+  allow_implicit_invocation: true

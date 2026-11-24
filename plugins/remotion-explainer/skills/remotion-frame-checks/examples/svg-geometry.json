@@ -1,0 +1,195 @@
+{
+  "schemaVersion": 1,
+  "renderedFromGeometrySpec": true,
+  "coordinateSystem": {
+    "width": 960,
+    "height": 540
+  },
+  "elements": [
+    {
+      "id": "warehouse",
+      "role": "source",
+      "bounds": {
+        "x": 80,
+        "y": 200,
+        "width": 200,
+        "height": 140
+      },
+      "ports": [
+        {
+          "id": "out",
+          "edge": "right",
+          "x": 280,
+          "y": 270
+        }
+      ]
+    },
+    {
+      "id": "warehouse-label",
+      "role": "label",
+      "bounds": {
+        "x": 100,
+        "y": 150,
+        "width": 160,
+        "height": 32
+      }
+    },
+    {
+      "id": "sorter",
+      "role": "operation",
+      "bounds": {
+        "x": 400,
+        "y": 210,
+        "width": 160,
+        "height": 120
+      },
+      "ports": [
+        {
+          "id": "in",
+          "edge": "left",
+          "x": 400,
+          "y": 270
+        },
+        {
+          "id": "out",
+          "edge": "right",
+          "x": 560,
+          "y": 270
+        }
+      ]
+    },
+    {
+      "id": "door",
+      "role": "target",
+      "bounds": {
+        "x": 680,
+        "y": 200,
+        "width": 200,
+        "height": 140
+      },
+      "ports": [
+        {
+          "id": "in",
+          "edge": "left",
+          "x": 680,
+          "y": 270
+        }
+      ]
+    },
+    {
+      "id": "parcel",
+      "role": "moving-object",
+      "bounds": {
+        "x": 640,
+        "y": 250,
+        "width": 40,
+        "height": 40
+      }
+    }
+  ],
+  "connectors": [
+    {
+      "id": "to-sorter",
+      "from": {
+        "elementId": "warehouse",
+        "portId": "out"
+      },
+      "to": {
+        "elementId": "sorter",
+        "portId": "in"
+      },
+      "points": [
+        {
+          "x": 280,
+          "y": 270
+        },
+        {
+          "x": 400,
+          "y": 270
+        }
+      ],
+      "avoid": [
+        "warehouse-label"
+      ]
+    },
+    {
+      "id": "to-door",
+      "from": {
+        "elementId": "sorter",
+        "portId": "out"
+      },
+      "to": {
+        "elementId": "door",
+        "portId": "in"
+      },
+      "points": [
+        {
+          "x": 560,
+          "y": 270
+        },
+        {
+          "x": 680,
+          "y": 270
+        }
+      ],
+      "avoid": [
+        "warehouse-label"
+      ]
+    }
+  ],
+  "clearanceRules": [
+    {
+      "a": "warehouse-label",
+      "b": "warehouse",
+      "minimum": 12
+    },
+    {
+      "a": "warehouse",
+      "b": "sorter",
+      "minimum": 48
+    },
+    {
+      "a": "sorter",
+      "b": "door",
+      "minimum": 48
+    }
+  ],
+  "arrivals": [
+    {
+      "id": "parcel-at-door",
+      "frame": 96,
+      "target": {
+        "elementId": "door",
+        "portId": "in"
+      },
+      "actualPoint": {
+        "x": 680,
+        "y": 270
+      },
+      "tolerance": 1,
+      "targetZone": {
+        "x": 630,
+        "y": 240,
+        "width": 60,
+        "height": 60
+      },
+      "actualBounds": {
+        "x": 640,
+        "y": 250,
+        "width": 40,
+        "height": 40
+      }
+    }
+  ],
+  "review": {
+    "scales": [
+      1,
+      0.5
+    ],
+    "frames": [
+      12,
+      60,
+      96
+    ]
+  }
+}

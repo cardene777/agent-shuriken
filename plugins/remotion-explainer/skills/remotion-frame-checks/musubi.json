@@ -1,0 +1,37 @@
+{
+  "musubi": "2026-11-21",
+  "provides": {
+    "svg-geometry": {
+      "version": "1.0.0",
+      "file": "formats/svg-geometry.md"
+    },
+    "layout": {
+      "version": "1.0.0",
+      "file": "formats/layout.md"
+    },
+    "timing-boundary": {
+      "version": "1.0.0",
+      "file": "formats/timing-boundary.md"
+    },
+    "scene-layers": {
+      "version": "1.0.0",
+      "file": "formats/scene-layers.md"
+    },
+    "check-svg-geometry": {
+      "version": "1.0.0",
+      "file": "scripts/check-svg-geometry.mjs"
+    },
+    "check-layout": {
+      "version": "1.0.0",
+      "file": "scripts/check-layout.mjs"
+    },
+    "check-timing-boundary": {
+      "version": "1.0.0",
+      "file": "scripts/check-timing-boundary.mjs"
+    },
+    "check-scene-layers": {
+      "version": "1.0.0",
+      "file": "scripts/check-scene-layers.mjs"
+    }
+  }
+}

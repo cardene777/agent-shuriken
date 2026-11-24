@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "scenes": [
+    {
+      "id": "arrive",
+      "viewerQuestion": "Where does a parcel start its trip?",
+      "form": {
+        "mode": "bespoke",
+        "rationale": "The parcel on a loading dock is drawn for this subject"
+      },
+      "composition": {
+        "mode": "bespoke",
+        "rationale": "The dock sits left so the trip reads left to right"
+      },
+      "typography": {
+        "mode": "bespoke",
+        "rationale": "One label names the dock next to it, not a heading"
+      },
+      "motion": {
+        "mode": "bespoke",
+        "rationale": "The parcel slides onto the dock once"
+      },
+      "silhouetteFamily": "parcel-on-dock",
+      "spatialGrammar": "left-to-right-handoff",
+      "revealGrammar": "slide-in"
+    },
+    {
+      "id": "sort",
+      "viewerQuestion": "How does the sorter choose a lane?",
+      "form": {
+        "mode": "bespoke",
+        "rationale": "The belt and its three lanes are drawn for this subject"
+      },
+      "composition": {
+        "mode": "bespoke",
+        "rationale": "The lanes fan out from the belt so the choice is visible"
+      },
+      "typography": {
+        "mode": "bespoke",
+        "rationale": "The lane names sit at the end of each lane"
+      },
+      "motion": {
+        "mode": "bespoke",
+        "rationale": "The path to the chosen lane draws in after the scan"
+      },
+      "silhouetteFamily": "sorting-belt",
+      "spatialGrammar": "split-into-lanes",
+      "revealGrammar": "draw-path"
+    },
+    {
+      "id": "deliver",
+      "viewerQuestion": "When is the parcel delivered?",
+      "form": {
+        "mode": "bespoke",
+        "rationale": "The door and the parcel on its step are drawn for this subject"
+      },
+      "composition": {
+        "mode": "bespoke",
+        "rationale": "A close view of the door, so the arrival fills the frame"
+      },
+      "typography": {
+        "mode": "none"
+      },
+      "motion": {
+        "mode": "bespoke",
+        "rationale": "The parcel settles on the step and stops"
+      },
+      "silhouetteFamily": "door-and-parcel",
+      "spatialGrammar": "close-up-arrival",
+      "revealGrammar": "settle"
+    }
+  ]
+}

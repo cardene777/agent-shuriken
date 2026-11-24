@@ -1,0 +1,33 @@
+{
+  "name": "remotion-explainer",
+  "version": "0.1.0",
+  "description": "Check the frames of a Remotion explainer video by machine: connectors that end on their ports, a layout that keeps the safe area and the subtitle zone, no flash where an element starts or ends, and scenes that do not repeat one design",
+  "author": {
+    "name": "cardene777",
+    "url": "https://github.com/cardene777"
+  },
+  "homepage": "https://github.com/cardene777/agent-shuriken/tree/main/plugins/remotion-explainer",
+  "repository": "https://github.com/cardene777/agent-shuriken",
+  "license": "MIT",
+  "keywords": [
+    "remotion",
+    "video",
+    "explainer",
+    "layout",
+    "animation"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Remotion Explainer",
+    "shortDescription": "Check Remotion video frames",
+    "longDescription": "Checks the files of a Remotion project that make an explainer video, and names the element, the scene, or the frame of every issue. The SVG geometry check keeps connectors on the ports of their targets, elements apart by their minimum, and moving things on their target at the arrival frame. The layout check keeps elements in the safe area and out of the subtitle zone, aligned, and clear of the routes of moving things. The timing boundary check reads the PNG frames rendered around the start or end of an element and finds pixels that show too early or too late, flashes of three frames or fewer, and flicker. The scene layers check makes every scene decide its form, composition, typography, and motion apart, and refuses two scenes in a row with the same design. The checks run on Node.js with its built-in modules only, read only the files you name, and send nothing anywhere.",
+    "developerName": "cardene777",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": [
+      "Check the layout spec of this Remotion project"
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
+  }
+}
