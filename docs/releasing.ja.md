@@ -47,6 +47,7 @@ japanese-writingの`references/connecting.md`か`SKILL.md`を変えた時は、�
 
 design-formatsか、スキルがpage-designに従うプラグインをリリースする前も、同じように`musubi check plugins/design-formats/skills plugins/doc-formats/skills plugins/techdebt/skills plugins/compare-report/skills plugins/machine-cleanup/skills plugins/account-cleanup/skills plugins/diagram-explainer/skills plugins/repo-progress/skills plugins/secure-dotfile/skills plugins/init-project/skills plugins/evm-dev/skills plugins/portman/skills`を実行し、`ok`が出た時だけリリースします。
 page-designの書式か雛形か`verify`を変えた時は、先に従う各スキルを変更に照らして確かめ、同じ命令に`--update`を付けて実行し、新しい指紋をコミットします。
+design-formatsをリリースする前と、page-designの書式か雛形か`verify`を変えた後は、`bash plugins/design-formats/skills/page-design/tests/test-followers.sh --own-tests`も実行します。page-designと、それに従う全てのスキルのテストと、`scripts/check.sh`を回すので、約25分かかります。
 
 diagram-stylesをリリースする前も、同じように`musubi check plugins/diagram-styles/skills`を実行し、`ok`が出た時だけリリースします。
 article-diagram-stylesの`references/style4.md`か`SKILL.md`を変えた時は、先にtech-book-figureを変更に照らして確かめ、同じ命令に`--update`を付けて実行し、新しい指紋をコミットします。

@@ -46,6 +46,7 @@ When `references/connecting.md` or the `SKILL.md` of japanese-writing changed, c
 
 Before releasing design-formats or a plugin whose skill follows page-design, run `musubi check plugins/design-formats/skills plugins/doc-formats/skills plugins/techdebt/skills plugins/compare-report/skills plugins/machine-cleanup/skills plugins/account-cleanup/skills plugins/diagram-explainer/skills plugins/repo-progress/skills plugins/secure-dotfile/skills plugins/init-project/skills plugins/evm-dev/skills plugins/portman/skills` the same way, and release only when it prints `ok`.
 When a format, a template, or `verify` of page-design changed, check each following skill against the change first, then run the same command with `--update` and commit the new fingerprints.
+Before releasing design-formats, and after a format, a template, or `verify` of page-design changed, also run `bash plugins/design-formats/skills/page-design/tests/test-followers.sh --own-tests`, which runs the own tests of page-design and of every skill that follows it, and `scripts/check.sh`, in about 25 minutes.
 
 Before releasing diagram-styles, run `musubi check plugins/diagram-styles/skills` the same way, and release only when it prints `ok`.
 When `references/style4.md` or the `SKILL.md` of article-diagram-styles changed, check tech-book-figure against the change first, then run the same command with `--update` and commit the new fingerprint.
