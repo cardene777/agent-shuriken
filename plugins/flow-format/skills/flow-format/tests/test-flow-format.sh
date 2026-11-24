@@ -274,7 +274,10 @@ no_local_names() {
 }
 
 repository_lists_it() {
-  local file unreleased
+  local file unreleased first
+  # The question table has a column per plugin, so its header is the one line naming the first
+  # plugin folder and this plugin as cells.
+  first="$(cd "$TOP/plugins" && LC_ALL=C ls -d -- */ | head -1 | tr -d /)"
   jq -e --arg n "$NAME" '[.plugins[] | select(.name == $n and .source == "./plugins/" + $n)] | length == 1' \
     "$TOP/.claude-plugin/marketplace.json" > /dev/null \
     || { why=".claude-plugin/marketplace.json does not list $NAME once from ./plugins/$NAME"; return 1; }
@@ -283,7 +286,7 @@ repository_lists_it() {
   done
   for file in docs/publishing.md docs/publishing.ja.md; do
     grep -qE "^\| $NAME \|" "$TOP/$file" || { why="$file has no status row for $NAME"; return 1; }
-    grep -E '^\| (Question|質問) \|' "$TOP/$file" | grep -qF "| $NAME |" \
+    grep -F "| $first |" "$TOP/$file" | grep -qF "| $NAME |" \
       || { why="the question table of $file has no column for $NAME"; return 1; }
   done
   unreleased="$(awk '/^## \[Unreleased\]/ { on = 1; next } /^## \[/ { on = 0 } on' "$TOP/CHANGELOG.md")"

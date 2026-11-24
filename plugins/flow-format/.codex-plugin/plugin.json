@@ -19,7 +19,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Flow Format",
-    "shortDescription": "Explain a flow as numbered steps",
+    "shortDescription": "Explain a flow step by step",
     "longDescription": "Answers a question about how something proceeds from start to end, such as a release process, a setup, or how a change gets from an issue to the main branch. Each step is one action sentence that starts with a verb, then a blank line, then an unindented paragraph of one to three sentences on what the step does, what it makes, and what it depends on. When the flow branches or loops, a plain-text diagram of boxes and arrows follows the steps. The answer is in the language you write in. Mermaid goes only into a file you asked for, never into the chat answer. It is one instruction file and runs nothing.",
     "developerName": "cardene777",
     "category": "Productivity",
