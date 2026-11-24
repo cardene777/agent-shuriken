@@ -1,0 +1,59 @@
+{
+  "sourceHash": "3f1c9a7e5b2d4c6f8a0e1b3d5f7a9c2e4b6d8f0a1c3e5b7d9f2a4c6e8b0d1f3a",
+  "viewport": {
+    "width": 1920,
+    "height": 1080,
+    "safeArea": {"left": 96, "right": 96, "top": 72, "bottom": 72}
+  },
+  "frames": [
+    {
+      "frame": 240,
+      "objects": [
+        {"id": "chapter-title", "bounds": {"x": 160, "y": 96, "width": 900, "height": 80}},
+        {"id": "sorter", "bounds": {"x": 400, "y": 360, "width": 240, "height": 180}},
+        {"id": "sorter-shadow", "bounds": {"x": 400, "y": 384, "width": 240, "height": 164}},
+        {"id": "sorter-inlet", "bounds": {"x": 640, "y": 440, "width": 40, "height": 20}},
+        {"id": "parcel", "bounds": {"x": 720, "y": 410, "width": 120, "height": 80}},
+        {"id": "caption", "allowOutsideSafeArea": true, "bounds": {"x": 360, "y": 940, "width": 1200, "height": 80}}
+      ],
+      "connections": [
+        {"from": "sorter", "to": "sorter-inlet", "fromEdge": "right", "toEdge": "left", "maxGap": 0, "centerTolerance": 0}
+      ],
+      "allowedOverlaps": [["sorter", "sorter-shadow"]]
+    },
+    {
+      "frame": 250,
+      "objects": [
+        {"id": "chapter-title", "bounds": {"x": 160, "y": 96, "width": 900, "height": 80}},
+        {"id": "sorter", "bounds": {"x": 400, "y": 360, "width": 240, "height": 180}},
+        {"id": "sorter-shadow", "bounds": {"x": 400, "y": 384, "width": 240, "height": 164}},
+        {"id": "sorter-inlet", "bounds": {"x": 640, "y": 440, "width": 40, "height": 20}},
+        {"id": "parcel", "bounds": {"x": 880, "y": 410, "width": 120, "height": 80}},
+        {"id": "caption", "allowOutsideSafeArea": true, "bounds": {"x": 360, "y": 940, "width": 1200, "height": 80}}
+      ],
+      "connections": [
+        {"from": "sorter", "to": "sorter-inlet", "fromEdge": "right", "toEdge": "left", "maxGap": 0, "centerTolerance": 0}
+      ],
+      "allowedOverlaps": [["sorter", "sorter-shadow"]]
+    },
+    {
+      "frame": 260,
+      "objects": [
+        {"id": "chapter-title", "bounds": {"x": 160, "y": 96, "width": 900, "height": 80}},
+        {"id": "sorter", "bounds": {"x": 400, "y": 360, "width": 240, "height": 180}},
+        {"id": "sorter-shadow", "bounds": {"x": 400, "y": 384, "width": 240, "height": 164}},
+        {"id": "sorter-inlet", "bounds": {"x": 640, "y": 440, "width": 40, "height": 20}},
+        {"id": "parcel", "bounds": {"x": 1040, "y": 410, "width": 120, "height": 80}},
+        {"id": "caption", "allowOutsideSafeArea": true, "bounds": {"x": 360, "y": 940, "width": 1200, "height": 80}}
+      ],
+      "connections": [
+        {"from": "sorter", "to": "sorter-inlet", "fromEdge": "right", "toEdge": "left", "maxGap": 0, "centerTolerance": 0}
+      ],
+      "allowedOverlaps": [["sorter", "sorter-shadow"]]
+    }
+  ],
+  "stableTracks": [
+    {"id": "chapter-title", "frames": [240, 250, 260], "maxDelta": 1},
+    {"id": "sorter", "frames": [240, 250, 260], "maxDelta": 0}
+  ]
+}

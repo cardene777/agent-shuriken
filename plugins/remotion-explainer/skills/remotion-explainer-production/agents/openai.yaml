@@ -1,0 +1,7 @@
+interface:
+  display_name: "Remotion Explainer Production"
+  short_description: "Build a Remotion explainer from an approved rough and dossier"
+  default_prompt: "Use $remotion-explainer-production to build the approved scenes of this explainer."
+
+policy:
+  allow_implicit_invocation: true

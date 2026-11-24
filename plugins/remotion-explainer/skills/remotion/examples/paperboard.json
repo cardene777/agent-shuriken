@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "visualLanguage": "paper-scribe",
+  "rendererId": "paper-scribe-parcel-route-v1",
+  "referenceStudy": {
+    "transferableTraits": [
+      "one continuous paperboard",
+      "focus that travels for a reason",
+      "structure before object paint"
+    ],
+    "prohibitedTransfers": [
+      "the reference's drawing hand",
+      "the reference's templates",
+      "generic title cards"
+    ]
+  },
+  "canvas": {"width": 1920, "height": 1080, "safeMargin": 108},
+  "objects": [
+    {
+      "id": "labeled-parcel",
+      "role": "carry",
+      "assetId": "parcel-labeled",
+      "businessRole": "The box the customer waits for, now carrying its route",
+      "state": "Labeled, with lane 3 readable"
+    },
+    {
+      "id": "sorter-belt",
+      "role": "counterpart",
+      "assetId": "sorter-belt",
+      "businessRole": "The belt that reads labels and turns each parcel into its lane",
+      "state": "Running, with lanes 1 to 4 open"
+    }
+  ],
+  "beats": [
+    {
+      "id": "route",
+      "frames": {"start": 0, "end": 210},
+      "stageMode": "inspection",
+      "viewerQuestion": "What does the label tell the sorter?",
+      "primaryObjectId": "labeled-parcel",
+      "focus": {"from": {"x": 420, "y": 460, "zoom": 1}, "to": {"x": 980, "y": 500, "zoom": 1.25}, "reason": "To read the lane on the label"},
+      "structures": [
+        {"id": "lane-bracket", "kind": "bracket", "targetObjectId": "labeled-parcel", "purpose": "Ties the lane number to the parcel itself"}
+      ],
+      "drawOrder": [
+        {"kind": "paper-structure", "targetId": "lane-bracket", "startFrame": 0, "endFrame": 36},
+        {"kind": "object-outline", "targetId": "labeled-parcel", "startFrame": 38, "endFrame": 82},
+        {"kind": "object-paint", "targetId": "labeled-parcel", "startFrame": 90, "endFrame": 124},
+        {"kind": "annotation", "targetId": "lane-number", "startFrame": 132, "endFrame": 164}
+      ],
+      "annotation": {"id": "lane-number", "targetObjectId": "labeled-parcel", "text": "Lane 3", "purpose": "route"},
+      "operation": "The focus closes in on the label until its lane can be read",
+      "readingHoldMs": 700,
+      "handoff": {"objectId": "labeled-parcel", "toBeatId": "sort", "change": "The parcel is carried to the right as the main object of the sorting beat"}
+    },
+    {
+      "id": "sort",
+      "frames": {"start": 210, "end": 420},
+      "stageMode": "exchange",
+      "viewerQuestion": "Which lane does the sorter send the parcel to?",
+      "primaryObjectId": "labeled-parcel",
+      "focus": {"from": {"x": 980, "y": 500, "zoom": 1.25}, "to": {"x": 1320, "y": 540, "zoom": 1}, "reason": "To follow the parcel from the belt into lane 3"},
+      "structures": [
+        {"id": "lane-three-frame", "kind": "frame", "targetObjectId": "sorter-belt", "purpose": "Marks lane 3 as the place the label names"}
+      ],
+      "drawOrder": [
+        {"kind": "paper-structure", "targetId": "lane-three-frame", "startFrame": 210, "endFrame": 240},
+        {"kind": "object-outline", "targetId": "sorter-belt", "startFrame": 242, "endFrame": 290},
+        {"kind": "object-paint", "targetId": "sorter-belt", "startFrame": 296, "endFrame": 330},
+        {"kind": "annotation", "targetId": "lane-arrival", "startFrame": 360, "endFrame": 392}
+      ],
+      "annotation": {"id": "lane-arrival", "targetObjectId": "labeled-parcel", "text": "In lane 3", "purpose": "result"},
+      "operation": "The belt turns the parcel off the main line into lane 3, where it stops",
+      "readingHoldMs": 800,
+      "handoff": {"objectId": "labeled-parcel", "toBeatId": "end", "terminalState": true, "change": "The parcel waits in lane 3 for the van to the door"}
+    }
+  ]
+}

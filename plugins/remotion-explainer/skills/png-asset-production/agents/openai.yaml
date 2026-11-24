@@ -1,0 +1,7 @@
+interface:
+  display_name: "PNG Asset Production"
+  short_description: "Make transparent PNG art for each object of an explainer video"
+  default_prompt: "Use $png-asset-production to make the PNG art of the parcel and the sorter."
+
+policy:
+  allow_implicit_invocation: true

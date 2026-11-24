@@ -1,0 +1,126 @@
+{
+  "artDirection": {
+    "designPattern": {
+      "id": "sewn-route",
+      "referenceTraits": [
+        "one setting kept for the whole video",
+        "pieces placed one at a time in reading order",
+        "the moving object carries the explanation"
+      ]
+    },
+    "patternAdaptation": {
+      "setting": "A sorting floor between the warehouse shelf and the street",
+      "metaphor": "Each lane is a pocket that holds the parcels bound for one street",
+      "openingImage": "One parcel on the shelf with a blank label",
+      "handoffImage": "The parcel in the pocket of lane 3, ready for the van to the door"
+    },
+    "visualPremise": "The route of a parcel told as felt pieces sewn onto one board",
+    "visualGrammar": {
+      "drawing": "Cut felt shapes with thick dark edges and a light stitch",
+      "depth": "Two layers: the board and the pieces sewn onto it",
+      "typography": "Short sewn tags next to the object they name",
+      "palette": [
+        {"role": "board", "color": "#1f4d4a"},
+        {"role": "primary", "color": "#e9b949"},
+        {"role": "warning", "color": "#c8432f"},
+        {"role": "tag", "color": "#f3ead3"}
+      ],
+      "space": "The route runs left to right and keeps the right third free for the next move",
+      "camera": "Moves only to follow the parcel or to read its label"
+    },
+    "connectorGrammar": "One approved felt arrow with an outer edge, a fabric core, a stitch, and a sewn head, laid on a reserved lane for static relations only",
+    "objectLexicon": [
+      {
+        "id": "parcel",
+        "role": "The box the customer is waiting for",
+        "shapeRationale": "A taped box with a label face, so the label can be read and changed",
+        "states": ["unlabeled", "labeled", "sorted", "delivered"],
+        "operations": ["scanned", "labeled", "sorted into a lane", "set on the step"],
+        "result": "The viewer can read where the parcel goes and when it arrives"
+      },
+      {
+        "id": "sorter-belt",
+        "role": "The belt that reads labels and turns each parcel into its lane",
+        "shapeRationale": "A belt with gates at each lane, so the turn into one lane can be seen",
+        "states": ["waiting", "turning", "clear"],
+        "operations": ["reads a label", "turns a parcel into a lane"],
+        "result": "The viewer can see that the label alone decides the lane"
+      }
+    ],
+    "motionLexicon": [
+      {"objectId": "parcel", "motion": "travels along the belt into its pocket", "meaning": "the sorter chose its lane"},
+      {"objectId": "sorter-belt", "motion": "one gate swings across the belt", "meaning": "the label opened this lane"}
+    ],
+    "scenePromise": [
+      {"sceneId": "scan", "newVisualDiscovery": "The blank label is the reason the parcel waits", "handoff": "The parcel moves under the printer"},
+      {"sceneId": "sort", "newVisualDiscovery": "The label decides which pocket takes the parcel", "handoff": "The pocket of lane 3 holds the parcel"}
+    ],
+    "stageTheme": {
+      "id": "felt-applique",
+      "assetStyleId": "felt-applique",
+      "stagePrimitives": ["felt-board", "felt-pocket", "felt-tag", "felt-connector", "annotation"],
+      "containerPolicy": "Pockets appear only where a lane holds parcels until the van leaves",
+      "labelPolicy": "Pockets of the same kind in one scene share the top offset and the label baseline",
+      "connectorPolicy": "Only for static relations; never laid over the route of a moving parcel",
+      "tracePolicy": "Only outlines made from accepted PNGs, and never an outline shown alone"
+    },
+    "referenceTraits": [
+      "one setting kept for the whole video",
+      "the moving object carries the explanation"
+    ]
+  },
+  "compositionRough": {
+    "video": "out/review/composition-rough/rough.mp4",
+    "compiledHash": "8c1e4b7a2d9f0c3e6b5a8d1f4c7e0b3a6d9c2f5e8b1a4d7c0e3f6a9b2c5d8e1f",
+    "review": {"decision": "pass", "issueCount": 0},
+    "approved": true
+  },
+  "visual": {
+    "assignments": [
+      {"id": "scan-parcel", "sceneId": "scan"},
+      {"id": "sort-parcel", "sceneId": "sort"}
+    ],
+    "staticAssets": [
+      {
+        "assetId": "parcel-labeled",
+        "assignmentIds": ["scan-parcel", "sort-parcel"],
+        "styleId": "felt-applique",
+        "staticRoleReason": "A sewn felt box reads as the parcel itself; a shape drawn in Remotion would read as an icon",
+        "rawPng": "artwork/parcel-labeled-raw.png",
+        "alphaPng": "artwork/parcel-labeled.png",
+        "manifestPath": "artwork/parcel-labeled.manifest.json",
+        "review": {
+          "lightComposite": "review/parcel-labeled-light.png",
+          "darkComposite": "review/parcel-labeled-dark.png",
+          "sceneComposite": "review/parcel-labeled-scene.png",
+          "agent": "pass",
+          "human": "pass"
+        },
+        "motionBoundary": "whole-image",
+        "allowedMotion": ["enter", "translate", "scale", "crop"],
+        "forbiddenExplanationWork": ["draw the route", "act as an interface card"],
+        "outline": null
+      },
+      {
+        "assetId": "sorter-belt",
+        "assignmentIds": ["sort-parcel"],
+        "styleId": "felt-applique",
+        "staticRoleReason": "The belt and its gates need the felt material of the board to read as one machine",
+        "rawPng": "artwork/sorter-belt-raw.png",
+        "alphaPng": "artwork/sorter-belt.png",
+        "manifestPath": "artwork/sorter-belt.manifest.json",
+        "review": {
+          "lightComposite": "review/sorter-belt-light.png",
+          "darkComposite": "review/sorter-belt-dark.png",
+          "sceneComposite": "review/sorter-belt-scene.png",
+          "agent": "pass",
+          "human": "pass"
+        },
+        "motionBoundary": "whole-image",
+        "allowedMotion": ["enter", "fade"],
+        "forbiddenExplanationWork": ["move a parcel", "stand in for a lane pocket"],
+        "outline": null
+      }
+    ]
+  }
+}

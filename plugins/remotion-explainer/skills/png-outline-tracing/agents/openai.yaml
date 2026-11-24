@@ -1,0 +1,7 @@
+interface:
+  display_name: "PNG Outline Tracing"
+  short_description: "Trace an approved PNG into outline paths that draw in"
+  default_prompt: "Use $png-outline-tracing to trace the outline of the approved parcel PNG."
+
+policy:
+  allow_implicit_invocation: true

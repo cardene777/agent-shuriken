@@ -1,0 +1,29 @@
+{
+  "dossierPath": "beat-dossier.json",
+  "dossierHash": "30d142dba9348f687092b8c274c723dac50f57b13d7b96eeafa73cf87d2e27fa",
+  "compiledHash": "5f2c9a3e7b1d4c6a8e0f2b4d6c8a0e2f4b6d8c0a2e4f6b8d0c2a4e6f8b0d2c4a",
+  "beats": [
+    {
+      "id": "unsorted",
+      "frames": [
+        {"kind": "orient", "path": "frames/unsorted-orient.svg"},
+        {"kind": "operation", "path": "frames/unsorted-operation.svg"},
+        {"kind": "read", "path": "frames/unsorted-read.svg"},
+        {"kind": "handoff", "path": "frames/unsorted-handoff.svg"}
+      ],
+      "scores": {"questionClarity": 4, "visualProof": 4, "hierarchy": 4, "operation": 4, "readingRhythm": 4, "handoff": 4},
+      "reviewNote": "The blank label is the only large lit object; the route label is absent until the handoff frame."
+    },
+    {
+      "id": "route",
+      "frames": [
+        {"kind": "orient", "path": "frames/route-orient.svg"},
+        {"kind": "operation", "path": "frames/route-operation.svg"},
+        {"kind": "read", "path": "frames/route-read.svg"},
+        {"kind": "handoff", "path": "frames/route-handoff.svg"}
+      ],
+      "scores": {"questionClarity": 5, "visualProof": 4, "hierarchy": 4, "operation": 4, "readingRhythm": 4, "handoff": 4},
+      "reviewNote": "The route label becomes the primary only after the lane number is printed and held for reading."
+    }
+  ]
+}

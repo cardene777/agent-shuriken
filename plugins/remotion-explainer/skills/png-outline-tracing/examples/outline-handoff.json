@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "assetId": "parcel",
+  "assetManifest": "artwork/parcel-asset-manifest.json",
+  "alphaPng": "artwork/parcel.png",
+  "outline": {
+    "svg": "artwork/parcel-outline.svg",
+    "data": "artwork/parcel-outline.json",
+    "mode": "main",
+    "threshold": 210,
+    "pathCount": 1
+  },
+  "fps": 30,
+  "startFrame": 540,
+  "timing": {
+    "draw": {"from": 0, "to": 42},
+    "hold": {"from": 42, "to": 48},
+    "paint": {"from": 48, "to": 69},
+    "release": {"from": 69, "to": 81}
+  },
+  "contourStays": false,
+  "reviewFrames": [
+    {"stage": "early-trace", "frame": 12, "image": "out/review/outline/parcel-0552.png"},
+    {"stage": "trace-70", "frame": 30, "image": "out/review/outline/parcel-0570.png"},
+    {"stage": "partial-paint", "frame": 58, "image": "out/review/outline/parcel-0598.png"},
+    {"stage": "settled", "frame": 90, "image": "out/review/outline/parcel-0630.png"}
+  ],
+  "review": {
+    "describesSilhouette": true,
+    "readableBeforePaint": true,
+    "paintSeparated": true,
+    "noLastingOutline": true,
+    "framesSafeAndClear": true,
+    "accepted": true
+  }
+}
