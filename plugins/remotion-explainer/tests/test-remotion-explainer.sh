@@ -935,7 +935,7 @@ manifest_check = lambda path: [sys.executable, "-I", os.path.join(skills_dir, "p
 
 if part == "neutral":
     need_five()
-    cjk = re.compile(r"[぀-ヿ㐀-鿿＀-￯]")
+    cjk = re.compile("[" + "".join(f"{chr(a)}-{chr(b)}" for a, b in ((0x3040, 0x30ff), (0x3400, 0x9fff), (0xff00, 0xffef))) + "]")
     for name in SKILLS:
         for path in files_of(os.path.join(skills_dir, name)):
             text = text_of(path)
