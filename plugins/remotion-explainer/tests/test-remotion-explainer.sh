@@ -1137,6 +1137,38 @@ explainer_nopackage() { explainer_judge nopackage; }
 explainer_nocorpus() { explainer_judge nocorpus; }
 explainer_originals() { explainer_judge originals; }
 
+# release_changelog passes when the plugin's changelog has an empty [Unreleased] section, then a dated
+# 0.1.0 section with entries, and the link definitions of both, and both manifests say 0.1.0.
+release_changelog() {
+  why="$(python3 - "$PLUGIN" <<'PY'
+import json, os, re, sys
+plugin = sys.argv[1]
+text = open(os.path.join(plugin, "CHANGELOG.md"), encoding="utf-8").read()
+def fail(message):
+    sys.exit(print(message) or 1)
+heads = re.findall(r"^## \[([^\]]+)\](.*)$", text, re.M)
+if [h[0] for h in heads[:2]] != ["Unreleased", "0.1.0"] or not re.fullmatch(r" - \d{4}-\d{2}-\d{2}", heads[1][1]):
+    fail(f"the changelog sections are {heads[:2]}, not [Unreleased] and a dated [0.1.0]")
+unreleased = text.split("## [Unreleased]", 1)[1].split("## [0.1.0]", 1)[0]
+if unreleased.strip():
+    fail("the [Unreleased] section is not empty")
+release = text.split("## [0.1.0]", 1)[1]
+if not re.search(r"^- ", release, re.M):
+    fail("the 0.1.0 section lists no change")
+links = {"Unreleased": "https://github.com/cardene777/agent-shuriken/compare/remotion-explainer--v0.1.0...HEAD",
+         "0.1.0": "https://github.com/cardene777/agent-shuriken/releases/tag/remotion-explainer--v0.1.0"}
+for name, url in links.items():
+    if f"[{name}]: {url}" not in text:
+        fail(f"the changelog has no link definition [{name}]: {url}")
+for rel in (".claude-plugin/plugin.json", ".codex-plugin/plugin.json"):
+    version = json.load(open(os.path.join(plugin, rel), encoding="utf-8")).get("version")
+    if version != "0.1.0":
+        fail(f"{rel} says version {version}, not 0.1.0")
+PY
+)" || return 1
+  why=""
+}
+
 check "the READMEs state the Remotion license terms" readme_license
 check "AGENTS.md names the plugin's Node.js use" agents_node
 check "remotion-frame-checks provides its contracts and checks" frame_provides
@@ -1157,6 +1189,7 @@ check "png-asset-production works without imagegen" explainer_imagegen
 check "png-outline-tracing needs no package" explainer_nopackage
 check "the plugin bundles no corpus or video" explainer_nocorpus
 check "the original checks accept valid and refuse broken examples" explainer_originals
+check "the changelog holds the 0.1.0 release" release_changelog
 
 printf 'checks: %d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
