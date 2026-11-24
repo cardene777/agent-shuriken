@@ -2,6 +2,7 @@
 # Tests for the remotion-explainer plugin. They read the plugin's pages, manifests, and skills, and run
 # the frame checks of remotion-frame-checks on the skill's valid examples and on broken copies made in
 # a throwaway folder. PNG frames are drawn here with Python's zlib, so the plugin stores no image.
+# The checks of remotion-motion-plan run the same way on the skill's example plans and evidence library.
 set -u
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -9,6 +10,7 @@ PLUGIN="$(cd "$HERE/.." && pwd)"
 ROOT="$(cd "$PLUGIN/../.." && pwd)"
 SKILLS="$PLUGIN/skills"
 FRAME="$SKILLS/remotion-frame-checks"
+MOTION="$SKILLS/remotion-motion-plan"
 T="$(cd "$(mktemp -d)" && pwd -P)"
 trap 'rm -rf "$T"' EXIT
 
@@ -325,10 +327,206 @@ PY
   why=""
 }
 
+# remotion-motion-plan provides its four contracts under formats/ and their four checks under scripts/,
+# each with a version, names every file in SKILL.md, and follows no other skill.
+motion_provides() {
+  why="$(python3 - "$MOTION" <<'PY'
+import json, os, re, sys
+skill = sys.argv[1]
+for need in ("SKILL.md", "agents/openai.yaml", "musubi.json"):
+    if not os.path.isfile(os.path.join(skill, need)):
+        sys.exit(print(f"remotion-motion-plan has no {need}") or 1)
+manifest = json.load(open(os.path.join(skill, "musubi.json"), encoding="utf-8"))
+body = open(os.path.join(skill, "SKILL.md"), encoding="utf-8").read()
+if manifest.get("musubi") not in ("2026-11-19", "2026-11-20", "2026-11-21"):
+    sys.exit(print(f"musubi.json names the definition {manifest.get('musubi')!r}") or 1)
+want = {
+    "choreography": "formats/choreography.md",
+    "continuous-choreography": "formats/continuous-choreography.md",
+    "motion-language": "formats/motion-language.md",
+    "motion-evidence": "formats/motion-evidence.md",
+    "check-choreography": "scripts/check-choreography.mjs",
+    "check-continuous-choreography": "scripts/check-continuous-choreography.mjs",
+    "check-motion-language": "scripts/check-motion-language.mjs",
+    "check-motion-evidence": "scripts/check-motion-evidence.mjs",
+}
+provides = manifest.get("provides") or {}
+if sorted(provides) != sorted(want):
+    sys.exit(print("musubi.json provides " + ", ".join(sorted(provides)) + ", not " + ", ".join(sorted(want))) or 1)
+for name, path in want.items():
+    entry = provides[name]
+    if entry.get("file") != path:
+        sys.exit(print(f"{name} names {entry.get('file')!r}, not {path}") or 1)
+    if not re.fullmatch(r"\d+\.\d+\.\d+", str(entry.get("version", ""))):
+        sys.exit(print(f"{name} has no MAJOR.MINOR.PATCH version") or 1)
+    if not os.path.isfile(os.path.join(skill, path)):
+        sys.exit(print(f"{path} does not exist") or 1)
+    if f"`{path}`" not in body:
+        sys.exit(print(f"SKILL.md does not name `{path}`") or 1)
+if manifest.get("follows"):
+    sys.exit(print("remotion-motion-plan follows " + ", ".join(manifest["follows"])) or 1)
+if "../" in body:
+    sys.exit(print("SKILL.md reads a path outside its folder") or 1)
+PY
+)" || return 1
+  why=""
+}
+
+# Each motion plan check passes the skill's example, refuses broken copies with the rule and the scene
+# or library entry of the issue, and exits 2 when it is called the wrong way.
+motion_judgments() {
+  command -v node >/dev/null || { why="node is not installed"; return 1; }
+  why="$(python3 - "$MOTION" "$T" <<'PY'
+import copy, json, os, subprocess, sys
+skill, tmp = sys.argv[1], sys.argv[2]
+scripts = os.path.join(skill, "scripts")
+examples = os.path.join(skill, "examples")
+problems = []
+
+def run(script, args):
+    p = subprocess.run(["node", os.path.join(scripts, script), *args], capture_output=True, text=True)
+    try:
+        out = json.loads(p.stdout)
+    except ValueError:
+        out = None
+    return p.returncode, out, p.stderr.strip()
+
+def summary(out, err):
+    if out is None:
+        return "no JSON result: " + (err.splitlines()[-1][:160] if err else "no output")
+    rules = sorted({str(i.get("rule")) for i in out.get("issues") or []})
+    return "decision " + str(out.get("decision")) + (" with " + ", ".join(rules) if rules else " and no issue")
+
+def write(name, data):
+    path = os.path.join(tmp, name)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f)
+    return path
+
+def passes(label, script, args):
+    code, out, err = run(script, args)
+    if code != 0 or not out or out.get("decision") != "pass" or out.get("issues"):
+        problems.append(f"{label}: expected a pass, got exit {code} and {summary(out, err)}")
+
+def refuses(label, script, rule, args, key, value):
+    code, out, err = run(script, args)
+    hits = [i for i in (out or {}).get("issues") or [] if i.get("rule") == rule]
+    if code != 1 or (out or {}).get("decision") != "revise" or not hits:
+        problems.append(f"{label}: expected exit 1 with {rule}, got exit {code} and {summary(out, err)}")
+    elif not any(i.get(key) == value for i in hits):
+        problems.append(f"{label}: the {rule} issue does not name {key} {value}: {hits[0]}")
+
+def load(name):
+    with open(os.path.join(examples, name), encoding="utf-8") as f:
+        return json.load(f)
+
+def cases():
+    # Choreography: every object on screen at entry, no state change, the same grammar twice, a rough
+    # that differs from the final cut.
+    plan = load("choreography-plan.json")
+    passes("the choreography example", "check-choreography.mjs", [write("choreo.json", plan)])
+    p = copy.deepcopy(plan)
+    for item in p["scenes"][1]["objectLifecycles"]:
+        item["introducedAt"] = "entry"
+    refuses("a scene that places every object at entry", "check-choreography.mjs", "no-late-introduction",
+            [write("choreo-entry.json", p)], "scene", p["scenes"][1]["id"])
+    p = copy.deepcopy(plan)
+    for item in p["scenes"][0]["objectLifecycles"]:
+        item["resultState"] = item["entryState"]
+    refuses("a scene where nothing changes state", "check-choreography.mjs", "no-state-change",
+            [write("choreo-state.json", p)], "scene", p["scenes"][0]["id"])
+    p = copy.deepcopy(plan)
+    p["scenes"][1]["viewGrammar"] = p["scenes"][0]["viewGrammar"]
+    refuses("two scenes in a row with the same view grammar", "check-choreography.mjs", "repeated-view-grammar",
+            [write("choreo-grammar.json", p)], "scene", p["scenes"][1]["id"])
+    p = copy.deepcopy(plan)
+    p["scenes"][0]["finalMotionParity"]["handoff"] = False
+    refuses("a rough whose handoff differs from the final cut", "check-choreography.mjs", "motion-parity",
+            [write("choreo-parity.json", p)], "scene", p["scenes"][0]["id"])
+
+    # Continuous choreography: a handoff that clears the board, a summary with a new symbol, the same axis twice.
+    plan = load("continuous-choreography-plan.json")
+    passes("the continuous choreography example", "check-continuous-choreography.mjs", [write("cont.json", plan)])
+    p = copy.deepcopy(plan)
+    p["scenes"][1]["entryFrom"]["subject"] = "a-fresh-board"
+    refuses("a handoff that clears the board", "check-continuous-choreography.mjs", "handoff-not-carried",
+            [write("cont-handoff.json", p)], "scene", p["scenes"][1]["id"])
+    p = copy.deepcopy(plan)
+    summary_scene = next(s for s in p["scenes"] if s.get("role") == "summary")
+    summary_scene["subjects"].append("a-new-symbol")
+    refuses("a summary that adds a new symbol", "check-continuous-choreography.mjs", "summary-new-subject",
+            [write("cont-summary.json", p)], "scene", summary_scene["id"])
+    p = copy.deepcopy(plan)
+    if p["scenes"][0].get("primaryAxis") in (None, "none"):
+        raise LookupError("the first scene of the continuous example moves along no axis")
+    p["scenes"][1]["primaryAxis"] = p["scenes"][0]["primaryAxis"]
+    refuses("two scenes in a row moving along the same axis", "check-continuous-choreography.mjs", "repeated-axis",
+            [write("cont-axis.json", p)], "scene", p["scenes"][1]["id"])
+
+    # Motion language, against the example evidence library.
+    library = load("motion-evidence-library.json")
+    lib = write("library.json", library)
+    plan = load("motion-language-plan.json")
+    passes("the motion language example", "check-motion-language.mjs", [write("lang.json", plan), lib])
+    p = copy.deepcopy(plan)
+    p["scenes"][0]["evidenceIds"] = []
+    refuses("a motion without evidence", "check-motion-language.mjs", "missing-evidence",
+            [write("lang-none.json", p), lib], "scene", p["scenes"][0]["id"])
+    p = copy.deepcopy(plan)
+    p["scenes"][0]["evidenceIds"] = ["no-such-entry"]
+    refuses("a motion citing an entry the library lacks", "check-motion-language.mjs", "unknown-evidence",
+            [write("lang-unknown.json", p), lib], "scene", p["scenes"][0]["id"])
+    candidate = next(e["id"] for e in library["entries"] if e.get("status") == "candidate")
+    p = copy.deepcopy(plan)
+    p["scenes"][0]["evidenceIds"] = [candidate]
+    refuses("a motion citing only a candidate entry", "check-motion-language.mjs", "unverified-evidence",
+            [write("lang-candidate.json", p), lib], "scene", p["scenes"][0]["id"])
+    p = copy.deepcopy(plan)
+    p["scenes"][1]["primaryRecipe"] = p["scenes"][0]["primaryRecipe"]
+    refuses("two scenes in a row with the same recipe", "check-motion-language.mjs", "repeated-recipe",
+            [write("lang-repeat.json", p), lib], "scene", p["scenes"][1]["id"])
+
+    # Motion evidence library: a verified entry without a time range, a duplicate id, a source without a URL.
+    passes("the motion evidence example", "check-motion-evidence.mjs", [lib])
+    l = copy.deepcopy(library)
+    verified = next(e for e in l["entries"] if e.get("status") == "verified")
+    verified["observations"][0]["range"] = "not checked"
+    refuses("a verified entry without a time range", "check-motion-evidence.mjs", "verified-without-range",
+            [write("lib-range.json", l)], "entry", verified["id"])
+    l = copy.deepcopy(library)
+    l["entries"][1]["id"] = l["entries"][0]["id"]
+    refuses("two entries with one id", "check-motion-evidence.mjs", "duplicate-entry",
+            [write("lib-duplicate.json", l)], "entry", l["entries"][0]["id"])
+    l = copy.deepcopy(library)
+    del l["entries"][0]["source"]["url"]
+    refuses("a source without its address", "check-motion-evidence.mjs", "source-shape",
+            [write("lib-source.json", l)], "entry", l["entries"][0]["id"])
+
+    # Called the wrong way.
+    for script, args in (("check-choreography.mjs", []), ("check-continuous-choreography.mjs", []),
+                         ("check-motion-language.mjs", [write("lang-alone.json", plan)]), ("check-motion-evidence.mjs", [])):
+        code, _, _ = run(script, args)
+        if code != 2:
+            problems.append(f"{script} with {len(args)} arguments: expected exit 2 for a wrong call, got {code}")
+
+try:
+    cases()
+except (OSError, ValueError, LookupError, KeyError, IndexError, StopIteration, TypeError) as e:
+    problems.append(f"{type(e).__name__}: {e}")
+if problems:
+    print(f"{len(problems)} problems; the first: {problems[0]}")
+    sys.exit(1)
+PY
+)" || return 1
+  why=""
+}
+
 check "the READMEs state the Remotion license terms" readme_license
 check "AGENTS.md names the plugin's Node.js use" agents_node
 check "remotion-frame-checks provides its contracts and checks" frame_provides
 check "the frame checks accept valid and refuse broken examples" frame_judgments
+check "remotion-motion-plan provides its contracts and checks" motion_provides
+check "the motion plan checks accept valid and refuse broken plans" motion_judgments
 
 printf 'checks: %d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
