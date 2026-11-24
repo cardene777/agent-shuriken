@@ -323,8 +323,12 @@ presence_start_end() {
   [ ! -e "$p" ] || { why="the presence file was not removed at session end"; return 1; }
 }
 presence_unset() {
+  local before after
+  before="$(find "$T" -type f 2>/dev/null | sort)"
   quiet presence "$(event_session SessionStart)" 'a session start without the variable' || return 1
-  [ -z "$(find "$HOME" "$T/presence" -type f 2>/dev/null)" ] || { why="a file was created without the variable"; return 1; }
+  after="$(find "$T" -type f 2>/dev/null | grep -v "^$RUNS\$" | sort)"
+  [ "$after" = "$(printf '%s\n' "$before" | grep -v "^$RUNS\$")" ] \
+    || { why="a file was created without the variable: $(comm -13 <(printf '%s\n' "$before") <(printf '%s\n' "$after") | tr '\n' ' ')"; return 1; }
 }
 
 # skill-log and mcp-log

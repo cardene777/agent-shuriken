@@ -8,6 +8,7 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 ## [Unreleased]
 
 - The agent-guards plugin, which adds hooks that stop the agent from reading key files, sending text or commits that hold a key, running destructive git commands, and deleting whole folder trees in Claude Code and Codex
+- The agent-notices plugin, which adds hooks that tell the agent about fragile shell commands, branch switches that did not happen, environment variables missing from `.env.example`, a temporary directory running short, and risky code patterns, format each edited file with the project's own formatter, and log skill and MCP calls when turned on, in Claude Code and Codex, without stopping a call
 - A plugin that holds hooks and no skills may carry hooks, and is not uploaded to OpenAI's directory; every other plugin stays without hooks
 
 ## [0.23.0] - 2026-11-24
