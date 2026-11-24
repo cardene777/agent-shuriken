@@ -833,6 +833,310 @@ PY
   why=""
 }
 
+# explainer_judge <part> checks one part of the five explainer skills, remotion,
+# remotion-explainer-production, remotion-explainer-review, png-asset-production, and
+# png-outline-tracing: their wording, their musubi links, and their checks run on the skills'
+# examples and on broken copies in the throwaway folder. PNGs are drawn here with Python's zlib.
+explainer_judge() {
+  command -v node >/dev/null || { why="node is not installed"; return 1; }
+  mkdir -p "$T/explainer-$1"
+  why="$(python3 - "$1" "$PLUGIN" "$T/explainer-$1" <<'PY'
+import base64, copy, hashlib, json, os, re, shutil, struct, subprocess, sys, zlib
+part, plugin, tmp = sys.argv[1], sys.argv[2], sys.argv[3]
+skills_dir = os.path.join(plugin, "skills")
+FIVE = ["remotion", "remotion-explainer-production", "remotion-explainer-review", "png-asset-production",
+        "png-outline-tracing"]
+SKILLS = sorted(name for name in os.listdir(skills_dir) if os.path.isfile(os.path.join(skills_dir, name, "SKILL.md")))
+STYLES = ["felt-applique", "torn-paper-collage", "ink-wash-linework", "clay-relief", "ceramic-miniature"]
+
+def fail(message):
+    sys.exit(print(message) or 1)
+
+def read(*parts):
+    with open(os.path.join(*parts), encoding="utf-8") as f:
+        return f.read()
+
+def need_five():
+    for name in FIVE:
+        if not os.path.isfile(os.path.join(skills_dir, name, "SKILL.md")):
+            fail(f"{name} has no SKILL.md")
+
+def files_of(root):
+    for r, dirs, names in os.walk(root):
+        dirs[:] = [d for d in dirs if d not in (".git", "node_modules")]
+        for n in names:
+            yield os.path.join(r, n)
+
+def text_of(path):
+    try:
+        with open(path, encoding="utf-8") as f:
+            return f.read()
+    except (UnicodeDecodeError, OSError):
+        return None
+
+def musubi(name):
+    path = os.path.join(skills_dir, name, "musubi.json")
+    return json.load(open(path, encoding="utf-8")) if os.path.isfile(path) else {}
+
+def png(path, w, h, pixel, palette=False):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    def chunk(kind, data):
+        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xffffffff)
+    if palette:
+        colors = [(0, 0, 0, 0), (180, 120, 60, 255)]
+        rows = b"".join(b"\x00" + bytes(0 if pixel(x, y)[3] == 0 else 1 for x in range(w)) for y in range(h))
+        body = (chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 3, 0, 0, 0))
+                + chunk(b"PLTE", b"".join(bytes(c[:3]) for c in colors))
+                + chunk(b"tRNS", bytes(c[3] for c in colors)))
+    else:
+        rows = b"".join(b"\x00" + b"".join(bytes(pixel(x, y)) for x in range(w)) for y in range(h))
+        body = chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0))
+    with open(path, "wb") as f:
+        f.write(b"\x89PNG\r\n\x1a\n" + body + chunk(b"IDAT", zlib.compress(rows)) + chunk(b"IEND", b""))
+
+def disc(x, y, size=48):
+    c, r = size / 2, size * 0.36
+    return (180, 120, 60, 255) if (x + 0.5 - c) ** 2 + (y + 0.5 - c) ** 2 <= r * r else (0, 0, 0, 0)
+
+def run(cmd, cwd=None):
+    p = subprocess.run(cmd, cwd=cwd or tmp, capture_output=True, text=True)
+    try:
+        out = json.loads(p.stdout)
+    except ValueError:
+        out = None
+    return p.returncode, out, p.stderr.strip()[-300:]
+
+def expect(label, cmd, rule=None):
+    code, out, err = run(cmd)
+    if rule is None:
+        if code != 0 or not out or out.get("decision") != "pass":
+            fail(f"{label} did not pass (exit {code}): {out and [i.get('rule') for i in out.get('issues', [])]} {err}")
+    else:
+        rules = [i.get("rule") for i in (out or {}).get("issues", [])]
+        if code != 1 or rule not in rules:
+            fail(f"{label} exited {code} with {rules}, not 1 with {rule}")
+
+def manifest_dir(name, style="felt-applique", change=None):
+    folder = os.path.join(tmp, name)
+    data = json.load(open(os.path.join(skills_dir, "png-asset-production", "examples", "asset-manifest.json"), encoding="utf-8"))
+    data["styleId"] = style
+    if change:
+        change(data)
+    for key in ("rawPng", "alphaPng"):
+        rel = data["generation"][key]
+        png(os.path.join(folder, rel), 48, 48, disc if key == "alphaPng" else (lambda x, y: (0, 255, 0, 255)))
+    for key in ("lightComposite", "darkComposite", "sceneComposite"):
+        png(os.path.join(folder, data["review"][key]), 48, 48, lambda x, y: (240, 240, 240, 255))
+    with open(os.path.join(folder, "asset-manifest.json"), "w", encoding="utf-8") as f:
+        json.dump(data, f)
+    return os.path.join(folder, "asset-manifest.json")
+
+manifest_check = lambda path: [sys.executable, "-I", os.path.join(skills_dir, "png-asset-production", "scripts", "check-asset-manifest.py"), path]
+
+if part == "neutral":
+    need_five()
+    cjk = re.compile(r"[぀-ヿ㐀-鿿＀-￯]")
+    for name in SKILLS:
+        for path in files_of(os.path.join(skills_dir, name)):
+            text = text_of(path)
+            if text and cjk.search(text):
+                fail(f"{os.path.relpath(path, plugin)} holds Japanese or other CJK text")
+        body = read(skills_dir, name, "SKILL.md")
+        if re.search(r"\$(?:remotion|png)[a-z-]*", body):
+            fail(f"{name}/SKILL.md calls a skill with the Codex $ prefix")
+        if re.search(r"\b(?:Bash|Read|Edit|Write|Grep|Glob) tool\b", body):
+            fail(f"{name}/SKILL.md names one agent's tool instead of a shell command")
+        if "AskUserQuestion" in body and "other agents" not in body:
+            fail(f"{name}/SKILL.md uses AskUserQuestion without saying what other agents do")
+        if "Talk to the user in the language they write in" not in body:
+            fail(f"{name}/SKILL.md does not say to talk in the user's language")
+elif part == "owner":
+    need_five()
+    words = ["/Us" + "ers/", "." + "codex/skills", "jf" + "et", "video-" + "generator", "remotion-high-" + "quality",
+             r"\bA2" + r"A\b", "commercial " + "paper", "face " + "value", "redemp" + "tion", "matur" + "ity",
+             "coup" + "on", "functional-" + "urls"]
+    pattern = re.compile("|".join(words), re.I)
+    for path in files_of(plugin):
+        if os.path.relpath(path, plugin).startswith("tests" + os.sep):
+            continue
+        text = text_of(path)
+        hit = text and pattern.search(text)
+        if hit:
+            fail(f"{os.path.relpath(path, plugin)} holds owner material: {hit.group(0)}")
+elif part in ("map", "fingerprints"):
+    need_five()
+    meta = {name: musubi(name) for name in SKILLS}
+    provides = {name: meta[name].get("provides", {}) for name in SKILLS}
+    owners = {}
+    for name, items in provides.items():
+        for content, entry in items.items():
+            owners.setdefault(content, []).append(name)
+            if not os.path.isfile(os.path.join(skills_dir, name, entry.get("file", ""))):
+                fail(f"{name} provides {content} from a file it lacks: {entry.get('file')}")
+    twice = sorted(c for c, o in owners.items() if len(o) > 1)
+    if twice:
+        fail(f"more than one skill provides {twice}")
+    for name in FIVE:
+        if not meta[name].get("follows"):
+            fail(f"{name} follows nothing in its musubi.json")
+    if part == "map":
+        named = re.compile(r"`([a-z0-9-]+)`(?: (?:format|check|command|script|template|contract))? of (?:the )?`([a-z0-9-]+)`")
+        first = re.compile(r"(?:Write in the|Run the) `([a-z0-9-]+)`(?: format)? of the `([a-z0-9-]+)` skill: open the `\2` skill by name")
+        for name in SKILLS:
+            follows = meta[name].get("follows", {})
+            for ref in follows:
+                skill, _, content = ref.partition("/")
+                if content not in provides.get(skill, {}):
+                    fail(f"{name} follows {ref}, which no skill of the plugin provides")
+            body = read(skills_dir, name, "SKILL.md")
+            for content, skill in first.findall(body):
+                if f"{skill}/{content}" not in follows:
+                    fail(f"{name}/SKILL.md opens {skill}/{content} without following it in musubi.json")
+            for ref in follows:
+                skill, _, content = ref.partition("/")
+                if not re.search(rf"(?:Write in the|Run the) `{re.escape(content)}`(?: format)? of the `{re.escape(skill)}` skill: open", body):
+                    fail(f"{name}/SKILL.md has no musubi lines for {ref}")
+            others = [s for s in SKILLS if s != name]
+            for path in files_of(os.path.join(skills_dir, name)):
+                text = text_of(path) or ""
+                for other in others:
+                    if f"skills/{other}/" in text or f"../{other}/" in text:
+                        fail(f"{os.path.relpath(path, plugin)} names the folder of {other} by path")
+                if path.endswith((".md", ".tsx")):
+                    for content, skill in named.findall(text):
+                        if skill in others and content in provides[skill] and f"{skill}/{content}" not in follows:
+                            fail(f"{os.path.relpath(path, plugin)} names {skill}/{content}, which {name} does not follow")
+    else:
+        for name in SKILLS:
+            for ref, entry in meta[name].get("follows", {}).items():
+                skill, _, content = ref.partition("/")
+                given = provides[skill][content]
+                h = hashlib.sha256()
+                for rel in ["SKILL.md", given["file"]] + ([given["check"]] if given.get("check") else []):
+                    data = open(os.path.join(skills_dir, skill, rel), "rb").read()
+                    h.update(f"{rel}\n{len(data)}\n".encode())
+                    h.update(data)
+                    h.update(b"\n")
+                if entry.get("integrity") != "sha256-" + base64.b64encode(h.digest()).decode():
+                    fail(f"the fingerprint {name} keeps for {ref} does not match the provider")
+                want = re.fullmatch(r"\^(\d+)\.(\d+)\.(\d+)", str(entry.get("version")))
+                have = [int(v) for v in given["version"].split(".")]
+                if not want or have[0] != int(want.group(1)) or have < [int(v) for v in want.groups()]:
+                    fail(f"{name} accepts {entry.get('version')} of {ref}, and the provider is {given['version']}")
+elif part == "official":
+    need_five()
+    for name in ("remotion", "remotion-explainer-production"):
+        body = read(skills_dir, name, "SKILL.md")
+        for piece in ("`remotion-best-practices`", "`remotion-markup`", "`remotion-docs`", "npx remotion skills add",
+                      "npx skills add remotion-dev/skills", "official Remotion documentation"):
+            if piece not in body:
+                fail(f"{name}/SKILL.md does not name {piece}")
+elif part == "styles":
+    need_five()
+    for rel in ("SKILL.md", os.path.join("formats", "material-styles.md")):
+        text = read(skills_dir, "png-asset-production", rel)
+        missing = [s for s in STYLES if f"`{s}`" not in text]
+        if missing or "`felt-applique` (default)" not in text:
+            fail(f"png-asset-production/{rel} does not list every style with felt-applique as the default: {missing}")
+    if "use `felt-applique`" not in read(skills_dir, "png-asset-production", "SKILL.md"):
+        fail("png-asset-production/SKILL.md does not use felt-applique when no style is named")
+    for style in STYLES:
+        expect(f"a manifest in {style}", manifest_check(manifest_dir(style, style)))
+    expect("a manifest in an unknown style", manifest_check(manifest_dir("neon", "neon")), "style-id")
+elif part == "imagegen":
+    need_five()
+    body = read(skills_dir, "png-asset-production", "SKILL.md")
+    for piece in ("image generation tool", "When it has none", "prompt", "the PNGs the user provides"):
+        if piece not in body:
+            fail(f"png-asset-production/SKILL.md does not say {piece!r} for agents without image generation")
+    expect("a manifest of PNGs the user provided", manifest_check(manifest_dir("provided")))
+    missing = manifest_dir("missing")
+    os.remove(os.path.join(os.path.dirname(missing), json.load(open(missing))["generation"]["alphaPng"]))
+    expect("a manifest without its alpha PNG", manifest_check(missing), "missing-file")
+elif part == "nopackage":
+    need_five()
+    script = os.path.join(skills_dir, "png-outline-tracing", "scripts", "trace-alpha-outline.mjs")
+    code = read(script)
+    spec = re.compile(r"""(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+|\brequire\s*\(\s*)["']([^"']+)["']""", re.I)
+    outside = [m for m in spec.findall(code) if not m.startswith(("node:", "./"))]
+    if outside or re.search(r"createRequire|pngjs", code):
+        fail(f"the tracer loads a package: {outside or 'createRequire or pngjs'}")
+    body = read(skills_dir, "png-outline-tracing", "SKILL.md")
+    if re.search(r"npm install|pnpm add|yarn add|npm i ", body):
+        fail("png-outline-tracing/SKILL.md asks to install a package")
+    for kind in ("rgba", "palette"):
+        source = os.path.join(tmp, f"{kind}.png")
+        png(source, 48, 48, disc, palette=(kind == "palette"))
+        svg, data = os.path.join(tmp, "out", f"{kind}.svg"), os.path.join(tmp, "out", f"{kind}.json")
+        p = subprocess.run(["node", script, "--input", source, "--svg", svg, "--data", data, "--mode", "main"],
+                           cwd=tmp, capture_output=True, text=True)
+        if p.returncode != 0 or not os.path.isfile(svg) or not os.path.isfile(data):
+            fail(f"the tracer exited {p.returncode} on a {kind} PNG: {p.stderr.strip()[-200:]}")
+        traced = json.load(open(data, encoding="utf-8"))
+        paths = re.findall(r'<path[^>]* d="([^"]+)"', read(svg))
+        if len(paths) != 1 or not paths[0].strip().lower().endswith("z") or traced.get("width") != 48 or not traced.get("paths"):
+            fail(f"the tracer did not write one closed path for a {kind} disc: {paths[:1]} {traced.get('width')}")
+    with open(os.path.join(tmp, "not.png"), "w") as f:
+        f.write("not a png")
+    p = subprocess.run(["node", script, "--input", os.path.join(tmp, "not.png"), "--svg", os.path.join(tmp, "x.svg"),
+                        "--data", os.path.join(tmp, "x.json")], cwd=tmp, capture_output=True, text=True)
+    if p.returncode != 2:
+        fail(f"the tracer exited {p.returncode}, not 2, on a file that is not a PNG")
+elif part == "nocorpus":
+    need_five()
+    media = (".png", ".jpg", ".jpeg", ".webp", ".gif", ".avif", ".mp4", ".mov", ".webm", ".mkv", ".wav", ".mp3", ".m4a", ".aac")
+    found = [os.path.relpath(p, plugin) for p in files_of(plugin) if p.lower().endswith(media)]
+    if found:
+        fail(f"the plugin bundles media files: {found[:3]}")
+    if os.path.exists(os.path.join(skills_dir, "remotion", "samples")):
+        fail("remotion bundles a samples folder")
+elif part == "originals":
+    need_five()
+    def broken(label, skill, check, example, change, rule, folder=None):
+        src = os.path.join(skills_dir, skill, "examples")
+        work = os.path.join(tmp, label)
+        shutil.copytree(src, work)
+        script = os.path.join(skills_dir, skill, "scripts", check)
+        expect(f"{check} on {example}", ["node", script, os.path.join(work, example)])
+        data = json.load(open(os.path.join(work, example), encoding="utf-8"))
+        change(data)
+        with open(os.path.join(work, example), "w", encoding="utf-8") as f:
+            json.dump(data, f)
+        expect(f"{check} on a broken {example}", ["node", script, os.path.join(work, example)], rule)
+    def operation(d): d["beats"][0]["operation"] = "Show the blank label"
+    def score(d): d["beats"][0]["scores"]["handoff"] = 2
+    def terminal(d): d["beats"][-1]["handoff"]["terminalState"] = False
+    def style(d): d["visual"]["staticAssets"][0]["styleId"] = "clay-relief"
+    def overlap(d):
+        objects = {o["id"]: o for o in d["frames"][0]["objects"]}
+        objects["parcel"]["bounds"] = copy.deepcopy(objects["sorter"]["bounds"])
+    def carried(d):
+        d["boundaries"][0]["persistent"] = []
+        d["boundaries"][0]["handoffs"] = []
+    broken("dossier", "remotion", "check-beat-dossier.mjs", "beat-dossier.json", operation, "presentation-verb")
+    broken("review", "remotion", "check-beat-review.mjs", "beat-review.json", score, "score")
+    broken("paperboard", "remotion", "check-paperboard.mjs", "paperboard.json", terminal, "terminal-handoff")
+    broken("stage", "remotion", "check-stage-theme.mjs", "production.json", style, "asset-style")
+    broken("geometry", "remotion-explainer-review", "check-geometry-samples.mjs", "geometry-samples.json", overlap, "overlap")
+    broken("continuity", "remotion-explainer-review", "check-continuity-samples.mjs", "continuity-samples.json", carried, "nothing-carried")
+    expect("check-asset-manifest", manifest_check(manifest_dir("manifest")))
+    def handoff(d): d["outlineHandoff"] = 5
+    expect("check-asset-manifest on a broken manifest", manifest_check(manifest_dir("bad-handoff", change=handoff)), "outline-handoff")
+PY
+)" || return 1
+  why=""
+}
+explainer_neutral() { explainer_judge neutral; }
+explainer_owner() { explainer_judge owner; }
+explainer_map() { explainer_judge map; }
+explainer_fingerprints() { explainer_judge fingerprints; }
+explainer_official() { explainer_judge official; }
+explainer_styles() { explainer_judge styles; }
+explainer_imagegen() { explainer_judge imagegen; }
+explainer_nopackage() { explainer_judge nopackage; }
+explainer_nocorpus() { explainer_judge nocorpus; }
+explainer_originals() { explainer_judge originals; }
+
 check "the READMEs state the Remotion license terms" readme_license
 check "AGENTS.md names the plugin's Node.js use" agents_node
 check "remotion-frame-checks provides its contracts and checks" frame_provides
@@ -843,6 +1147,16 @@ check "remotion-catalog fetches only licensed sources at pinned commits" catalog
 check "remotion-catalog searches each layer" catalog_search
 check "remotion-catalog keeps its data in its own folder" catalog_folder
 check "remotion-catalog reads nothing through a symbolic link" catalog_links
+check "every skill is in English and agent-neutral" explainer_neutral
+check "the plugin holds no owner material" explainer_owner
+check "the musubi map has one provider per item" explainer_map
+check "the musubi fingerprints match the providers" explainer_fingerprints
+check "the official Remotion skills are named with a fallback" explainer_official
+check "felt-applique is the default and the other styles are selectable" explainer_styles
+check "png-asset-production works without imagegen" explainer_imagegen
+check "png-outline-tracing needs no package" explainer_nopackage
+check "the plugin bundles no corpus or video" explainer_nocorpus
+check "the original checks accept valid and refuse broken examples" explainer_originals
 
 printf 'checks: %d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
