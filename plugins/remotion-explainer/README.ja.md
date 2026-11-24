@@ -1,6 +1,6 @@
 # Remotion Explainer
 
-Remotionで作る解説動画の動きを計画し、フレームを機械で確かめます。
+Remotionで作る解説動画の動きを計画し、場面ごとに借りる作例をカタログから探し、フレームを機械で確かめます。
 1つの主役を場面から場面へ受け渡しているか、動きの根拠に実際に見た動画があるか、線が接続点で終わっているか、画面の安全な範囲と字幕の場所を守っているか、要素の出始めと消え際に1フレームだけ何かが映らないかを調べます。
 
 [English](README.md) · 日本語
@@ -10,6 +10,8 @@ Remotionで作る解説動画の動きを計画し、フレームを機械で確
 このプラグインはそうした決まりを、Remotionのプロジェクトのファイルに対する取り決めとして書き、ファイルごとに機械で確かめます。
 問題ごとに、どの要素か、どの場面か、どのフレームか、根拠の一覧のどの項目かを名指します。
 Remotionの動画を作るスキルや見直すスキルは、この取り決めにmusubiで従うため、どのスキルも同じバージョンで確かめます。
+場面ごとの形、構図、文字、動きには、利用を許すライセンスで公開されたRemotionの作例を外のリポジトリから探します。
+白紙のファイルから始めず、出来上がった作例の仕組みを借りるためです。
 
 ```
 動きを計画する ──> 絵コンテのファイルを書く ──> 確かめる ──> 問題を直す ──> フレームを書き出す ──> 境目を確かめる
@@ -30,6 +32,7 @@ copilot plugin install remotion-explainer@agent-shuriken
 
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/remotion-explainer/skills/remotion-frame-checks   # Gemini CLI
 gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/remotion-explainer/skills/remotion-motion-plan
+gemini skills install https://github.com/cardene777/agent-shuriken.git --path plugins/remotion-explainer/skills/remotion-catalog
 ```
 
 `SKILL.md`を読むほかのエージェントでは、リリースごとに付くスキルのzipを、エージェントのスキルのフォルダに展開します。
@@ -37,20 +40,22 @@ gemini skills install https://github.com/cardene777/agent-shuriken.git --path pl
 
 ## 使い方
 
-このプラグインには2つのスキルがあり、それぞれ自分の仕事を頼むと始まります。
+このプラグインには3つのスキルがあり、それぞれ自分の仕事を頼むと始まります。
 
 | スキル | たとえばこう頼むと始まります | 呼び出し方 |
 |---|---|---|
 | `remotion-motion-plan` | 「この解説動画の場面の動きを計画して」 | Claude Codeでは`/remotion-explainer:remotion-motion-plan`を実行し、Codexでは`$`を入力して**Remotion Motion Plan**を選びます |
 | `remotion-frame-checks` | 「このRemotionのプロジェクトの配置を確かめて」や「矢印が早く映るフレームを探して」 | Claude Codeでは`/remotion-explainer:remotion-frame-checks`を実行し、Codexでは`$`を入力して**Remotion Frame Checks**を選びます |
+| `remotion-catalog` | 「2つの道筋を比べる場面の構図を探して」や「Remotionで作った題名の出し方を探して」 | Claude Codeでは`/remotion-explainer:remotion-catalog`を実行し、Codexでは`$`を入力して**Remotion Catalog**を選びます |
 
-GitHub Copilot CLIでは依頼の中に`/remotion-motion-plan`か`/remotion-frame-checks`と書き、Gemini CLIではやりたいことを書きます。
+GitHub Copilot CLIでは依頼の中に`/remotion-motion-plan`か`/remotion-frame-checks`か`/remotion-catalog`と書き、Gemini CLIではやりたいことを書きます。
 
 1. エージェントがあなたと場面ごとに、何に答え、何が現れ、何が変わり、次の場面へ何を渡すかを決め、`storyboard/choreography-plan.json`と`storyboard/continuous-choreography-plan.json`と`storyboard/motion-language-plan.json`を書きます
 2. どの動きも、あなたかエージェントが実際に見た動画を根拠にし、その動きが映る時間の範囲を動きの根拠の一覧に残します。合う物が無い時は、エージェントが候補を探し、自分で動画を再生できない時はあなたに見てもらいます
-3. エージェントがフレームの絵コンテのファイル、`storyboard/svg-geometry.json`と`storyboard/layout-spec.json`と`storyboard/scene-design-layers.json`を書くか読みます
-4. エージェントがファイルごとに確かめ、名指された問題を全部直し、通るまで繰り返します
-5. 出始めと消え際がある要素ごとに、エージェントがその境目の前後2フレームをRemotionで書き出し、確かめます
+3. 場面ごとに、エージェントが形、構図、文字、動きを1つずつカタログで探し、合う作例のファイルを読み、その仕組みだけを取り入れます
+4. エージェントがフレームの絵コンテのファイル、`storyboard/svg-geometry.json`と`storyboard/layout-spec.json`と`storyboard/scene-design-layers.json`を書くか読みます
+5. エージェントがファイルごとに確かめ、名指された問題を全部直し、通るまで繰り返します
+6. 出始めと消え際がある要素ごとに、エージェントがその境目の前後2フレームをRemotionで書き出し、確かめます
 
 ## 取り決めと確かめる物
 
@@ -70,30 +75,55 @@ GitHub Copilot CLIでは依頼の中に`/remotion-motion-plan`か`/remotion-fram
 
 ほかのスキルは、`remotion-frame-checks`の`layout`のように取り決めを名指し、そのスキルを名前で開いて従います。
 
+## カタログ
+
+`remotion-catalog`は、`data/sources.json`に載った出所をあなたのデータのフォルダに取ってきて、その作例から1つのカタログを作ります。
+探す時は、形、構図、文字、動きのうち1つの層ずつ探します。
+
+| 出所 | 中身 | ライセンス |
+|---|---|---|
+| `reactvideoeditor/remotion-templates` | `templates/`の下に1つずつ`.tsx`のファイルで書かれたRemotionのテンプレート | MIT |
+| `Vincentwei1021/video-shotcraft` | ショットの作り方を書いた`gallery/api/library.json`のショットカードと、`demos/`の下にあるRemotionのデモ | Apache-2.0 |
+
+出所はどれも1つのコミットに固定します。
+`sync`は、コミットが完全なハッシュでない出所と、利用を許すライセンスでない出所と、そのコミットにライセンスのファイルか節が無い出所を取ってきません。
+出所のコードは動かさず、ファイルを読むだけです。
+エージェントは仕組みを作る部分だけを、出所のライセンスの表示と一緒に写します。
+`video-shotcraft`の音は取ってきません。その出所の注意書きに、一部の音は出所を確かめていないと書かれているためです。
+出所ごとのコミットとライセンスの根拠は[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)にあります。
+
+```
+sync ──> build ──> search --layer composition compare two routes
+(git)    (catalog.json)   (出所とコミットとライセンスとファイルを持つ項目)
+```
+
 ## 必要な物
 
 | 道具 | 要る時 |
 |---|---|
-| Node.js 18以降 | 常に要ります。確かめる仕組みはNode.jsに初めから入っている部品だけを使うため、何もインストールしません |
+| Node.js 18以降 | 常に要ります。確かめる仕組みとカタログはNode.jsに初めから入っている部品だけを使うため、何もインストールしません |
+| `git` | カタログの出所を取ってくる時に要ります |
 | Remotion | 時間の境目を確かめるフレームを書き出す時に要ります。あなたのプロジェクトに入れる物です |
 
 ## Remotionのライセンス
 
 このプラグインはRemotionのパッケージも、Remotionの公式のスキルも同梱しません。
 読むのは、あなたのRemotionのプロジェクトのファイルと、書き出したフレームだけです。
+カタログが取ってくるのはRemotionのために書かれた作例で、Remotionそのものではありません。
 Remotionはあなたのプロジェクトに入れる物で、Remotion Licenseに従います。
 Free Licenseで使えるのは個人と3人までの会社で、それ以外の会社はRemotionを使う前にRemotionからCompany Licenseを受ける必要があります。
 
 ## 読む物と動かす物と送る物
 
-確かめ方は[仕組み](docs/how-it-works.ja.md)にあります。
-要点は次の5つです。
+確かめ方とカタログの仕組みは[仕組み](docs/how-it-works.ja.md)にあります。
+要点は次の6つです。
 
 - コマンドで名指したファイルだけを読み、その中身は指示でなくデータとして扱います
-- このプラグインの確かめる仕組みを`node`で動かし、フレームの書き出しが要る時はあなたのプロジェクトで`npx remotion still`を動かします
+- このプラグインの確かめる仕組みとカタログを`node`で動かし、カタログの出所を取ってくる時に`git`を動かし、フレームの書き出しが要る時はあなたのプロジェクトで`npx remotion still`を動かします
 - 計画はプロジェクトの`storyboard/`に書き、記録は`--audit-dir`か`--out`が指す所、たとえば`out/review/`にだけ書きます
-- 動きの根拠の一覧は、`~/.local/share/remotion-explainer/`か`REMOTION_EXPLAINER_HOME`が名指すフォルダに、あなただけが読めるように置き、あなたが消すまで残します
+- 動きの根拠の一覧と、取ってきた出所と、カタログは、`~/.local/share/remotion-explainer/`か`REMOTION_EXPLAINER_HOME`が名指すフォルダに、あなただけが読めるように置き、あなたが消すまで残します
 - 一覧に合う動きが無い時、エージェントは動きの種類を表す一般的な言葉で動画を探し、名前やあなたのファイルの文では探しません。確かめる仕組みそのものはどこにも何も送りません
+- `sync`は`data/sources.json`に載ったリポジトリだけをGitHubから取ってきて、ほかには何も送りません
 
 ## ライセンス
 

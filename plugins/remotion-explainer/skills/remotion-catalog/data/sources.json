@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "reactvideoeditor-remotion-templates",
+      "repository": "https://github.com/reactvideoeditor/remotion-templates.git",
+      "commit": "6209b724798e48ff395f8df1a6fa2d26082372b5",
+      "license": "MIT",
+      "licenseEvidence": "README.md#license",
+      "licenseNote": "The License section of the README states that all templates are available under the MIT License; the repository has no LICENSE file at this commit",
+      "adapter": {
+        "kind": "files",
+        "folder": "templates",
+        "extension": ".tsx",
+        "readme": "README.md"
+      }
+    },
+    {
+      "id": "video-shotcraft",
+      "repository": "https://github.com/Vincentwei1021/video-shotcraft.git",
+      "commit": "0d6f0b57f0d4d6700761644c07f7ef03c3e50234",
+      "license": "Apache-2.0",
+      "licenseEvidence": "LICENSE",
+      "licenseNote": "The shot cards are rewritten from scratch and name what they studied in references/shots/ATTRIBUTION.md; the sounds under assets/audio/ have sources that are not all confirmed, so they are not fetched",
+      "exclude": [
+        "assets/audio/"
+      ],
+      "adapter": {
+        "kind": "cards",
+        "library": "gallery/api/library.json",
+        "demos": "demos"
+      }
+    }
+  ]
+}
