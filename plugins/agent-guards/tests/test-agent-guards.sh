@@ -15,8 +15,8 @@ trap 'rm -rf "$T"' EXIT
 export HOME="$T/home"
 WORK="$T/work"
 mkdir -p "$HOME" "$WORK"
-unset XDG_CONFIG_HOME XDG_DATA_HOME AGENT_GUARDS_SECRET_READ AGENT_GUARDS_OUTBOUND AGENT_GUARDS_GIT \
-  AGENT_GUARDS_DELETE AGENT_GUARDS_RECORD
+unset XDG_CONFIG_HOME XDG_DATA_HOME AGENT_GUARDS_SECRET_READ AGENT_GUARDS_SECRET_WRITE AGENT_GUARDS_ONEPASSWORD \
+  AGENT_GUARDS_OUTBOUND AGENT_GUARDS_GIT AGENT_GUARDS_DELETE AGENT_GUARDS_RECORD
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
 
 PASS=0
@@ -29,6 +29,16 @@ check() { why=""; if "$2"; then ok "$1"; else ng "$1"; fi; }
 # Events in the shape Claude Code and Codex hand to a PreToolUse hook.
 event_bash() { jq -nc --arg c "$1" --arg d "${2:-$WORK}" '{hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: {command: $c}, cwd: $d}'; }
 event_read() { jq -nc --arg p "$1" --arg d "$WORK" '{hook_event_name: "PreToolUse", tool_name: "Read", tool_input: {file_path: $p}, cwd: $d}'; }
+# event_file <tool> <path>: a Claude Code file tool. NotebookEdit names its file in notebook_path.
+event_file() {
+  local key=file_path
+  [ "$1" = NotebookEdit ] && key=notebook_path
+  jq -nc --arg t "$1" --arg k "$key" --arg p "$2" --arg d "$WORK" \
+    '{hook_event_name: "PreToolUse", tool_name: $t, tool_input: {($k): $p, content: "x"}, cwd: $d}'
+}
+# event_patch <patch>: a Codex apply_patch call, with the patch in tool_input.patch.
+event_patch() { jq -nc --arg p "$1" --arg d "$WORK" '{hook_event_name: "PreToolUse", tool_name: "apply_patch", tool_input: {patch: $p}, cwd: $d}'; }
+patch_of() { printf '*** Begin Patch\n%s\n*** End Patch\n' "$1"; }
 
 # run_hook <hook> <event> prints what the hook printed. A missing hook prints nothing.
 run_hook() {
@@ -121,6 +131,84 @@ secret_unknown_target_refused() {
     *"name the file"*) ;;
     *) why="the refusal does not say to name the file directly"; return 1 ;;
   esac
+}
+
+secret_read_after_op_refused() {
+  local c
+  for c in 'op document create .env --title backup; cat .env' 'op document create .env --title backup | cat .env' \
+    'op document create .env --title backup && head .env'; do
+    refuses secret-read "$(event_bash "$c")" "$c" || return 1
+  done
+}
+
+secret_write_shell_refused() {
+  local c
+  for c in 'echo FOO=1 > .env' 'printf x >> .env.local' 'printf x | tee .env.production' 'tee -a .env < input.txt' \
+    'echo k > ~/.ssh/id_ed25519' 'cat a.pem > certs/server.pem' 'echo x > secrets/api.txt' 'echo x 2>&1 >.env' \
+    'cp .env.example .env' 'mv draft.txt .env.local' 'sed -i.bak s/a/b/ .env' 'truncate -s 0 .env'; do
+    refuses secret-write "$(event_bash "$c")" "$c" || return 1
+  done
+}
+
+secret_write_tools_refused() {
+  local pair tool path
+  for pair in "Write $WORK/.env" "Edit $WORK/.env.local" "MultiEdit $WORK/certs/server.key" \
+    "NotebookEdit $WORK/secrets/notes.ipynb" "Write $HOME/.ssh/id_ed25519"; do
+    tool="${pair%% *}"
+    path="${pair#* }"
+    refuses secret-write "$(event_file "$tool" "$path")" "$tool $path" || return 1
+  done
+}
+
+secret_write_patch_refused() {
+  local p
+  for p in "$(patch_of $'*** Add File: .env\n+FOO=1')" "$(patch_of $'*** Update File: config/server.key\n@@\n-a\n+b')" \
+    "$(patch_of $'*** Update File: notes.txt\n*** Move to: .env.local\n@@\n-a\n+b')" \
+    "$(patch_of $'*** Update File: src/a.py\n@@\n-a\n+b\n*** Add File: secrets/token.txt\n+x')"; do
+    refuses secret-write "$(event_patch "$p")" "patch: $(printf '%s' "$p" | sed -n 2p)" || return 1
+  done
+}
+
+secret_write_ordinary_allowed() {
+  local c p
+  for c in 'echo FOO=1 > .env.example' 'printf y > notes.txt' 'echo z | tee build.log' 'ls -la > listing.txt' 'cat .env.example'; do
+    passes secret-write "$(event_bash "$c")" "$c" || return 1
+  done
+  for p in "$WORK/.env.example" "$WORK/src/main.py"; do
+    passes secret-write "$(event_file Write "$p")" "Write $p" || return 1
+    passes secret-write "$(event_file Edit "$p")" "Edit $p" || return 1
+  done
+  passes secret-write "$(event_patch "$(patch_of $'*** Update File: src/a.py\n@@\n-a\n+b')")" 'patch of src/a.py'
+}
+
+secret_paths_write_listed() {
+  mkdir -p "$HOME/.config/agent-guards"
+  printf '%s\n' '~/vault/keys' > "$HOME/.config/agent-guards/secret-paths"
+  local result=0
+  refuses secret-write "$(event_bash 'echo x > ~/vault/keys/a.txt')" 'echo x > ~/vault/keys/a.txt' || result=1
+  [ "$result" -eq 0 ] && { refuses secret-write "$(event_file Write "$HOME/vault/keys/b.txt")" "Write ~/vault/keys/b.txt" || result=1; }
+  [ "$result" -eq 0 ] && { passes secret-write "$(event_bash 'echo x > ~/vault/notes.txt')" 'echo x > ~/vault/notes.txt' || result=1; }
+  rm -f "$HOME/.config/agent-guards/secret-paths"
+  return "$result"
+}
+
+onepassword_value_refused() {
+  local c
+  for c in 'op read op://Private/demo/password' 'op item get demo --format json' 'op item get demo --otp' \
+    'op document get abc123' 'op run -- env' 'op inject -i app.tpl' 'op signin' 'op item create --category login' \
+    'op item delete demo' 'op whoami && op read op://Private/demo/password' 'op vault list; op item get demo' \
+    'op item list | op item get -' 'bash -c "op read op://Private/demo/password"' \
+    'echo "$(op read op://Private/demo/password)"' 'export TOKEN=$(op read op://Private/demo/password)'; do
+    refuses onepassword "$(event_bash "$c")" "$c" || return 1
+  done
+}
+
+onepassword_safe_allowed() {
+  local c
+  for c in 'op whoami' 'op account list' 'op vault list' 'op item list --vault Private' 'op document list' \
+    'op document create .env --title backup' 'op document edit abc123 .env' 'op --version' 'op help' 'ls -la'; do
+    passes onepassword "$(event_bash "$c")" "$c" || return 1
+  done
 }
 
 printf 'first line\ntoken: %s\n' "$KEY_GH" > "$WORK/body.md"
@@ -216,6 +304,26 @@ delete_named_allowed() {
   done
 }
 
+delete_chmod_refused() {
+  local c r
+  mkdir -p "$HOME/.config/agent-guards"
+  printf '%s\n' '~/work/keep' > "$HOME/.config/agent-guards/protected-paths"
+  for c in 'chmod -R 000 /' 'chmod -R 000 ~' 'chmod -R 000 "$HOME"' 'chmod -R u-rwx ~' 'chmod --recursive 700 /' \
+    'chmod -R 000 ~/work/keep' 'chown -R nobody ~'; do
+    refuses delete "$(event_bash "$c")" "$c" || { rm -f "$HOME/.config/agent-guards/protected-paths"; return 1; }
+    r="$(reason delete "$(event_bash "$c")")"
+    case "$r" in *"! $c"*) ;; *) why="the refusal of '$c' does not show '! $c'"; rm -f "$HOME/.config/agent-guards/protected-paths"; return 1 ;; esac
+  done
+  rm -f "$HOME/.config/agent-guards/protected-paths"
+}
+
+delete_chmod_named_allowed() {
+  local c
+  for c in 'chmod -R 755 ./build' 'chmod -R u+w node_modules' 'chmod +x run.sh'; do
+    passes delete "$(event_bash "$c")" "$c" || return 1
+  done
+}
+
 protected_paths_listed() {
   mkdir -p "$HOME/.config/agent-guards"
   printf '%s\n' '~/work/keep' > "$HOME/.config/agent-guards/protected-paths"
@@ -228,15 +336,17 @@ protected_paths_listed() {
 }
 
 turn_off_one_hook() {
-  local hooks=(secret-read outbound git delete)
-  local vars=(AGENT_GUARDS_SECRET_READ AGENT_GUARDS_OUTBOUND AGENT_GUARDS_GIT AGENT_GUARDS_DELETE)
-  local events=("$(event_bash 'cat .env')" "$(event_bash 'gh issue create --title t --body-file body.md')" \
+  local hooks=(secret-read secret-write onepassword outbound git delete)
+  local vars=(AGENT_GUARDS_SECRET_READ AGENT_GUARDS_SECRET_WRITE AGENT_GUARDS_ONEPASSWORD AGENT_GUARDS_OUTBOUND \
+    AGENT_GUARDS_GIT AGENT_GUARDS_DELETE)
+  local events=("$(event_bash 'cat .env')" "$(event_bash 'echo FOO=1 > .env')" \
+    "$(event_bash 'op read op://Private/demo/password')" "$(event_bash 'gh issue create --title t --body-file body.md')" \
     "$(event_bash 'git push --force' "$REPO_DIR")" "$(event_bash 'rm -rf ~')")
   local i j
-  for i in 0 1 2 3; do
+  for i in 0 1 2 3 4 5; do
     export "${vars[$i]}=off"
     passes "${hooks[$i]}" "${events[$i]}" "${hooks[$i]} with ${vars[$i]}=off" || { unset "${vars[$i]}"; return 1; }
-    for j in 0 1 2 3; do
+    for j in 0 1 2 3 4 5; do
       [ "$i" -eq "$j" ] && continue
       refuses "${hooks[$j]}" "${events[$j]}" "${hooks[$j]} with ${vars[$i]}=off" || { unset "${vars[$i]}"; return 1; }
     done
@@ -263,12 +373,50 @@ manifests_declare_hooks() {
   [ "$(jq -c '.hooks' "$claude")" = "$(jq -c '.hooks' "$codex")" ] || { why="the two manifests declare different hooks"; return 1; }
   file="$(jq -r '.hooks // empty' "$claude")"
   [ -n "$file" ] && [ -f "$PLUGIN/${file#./}" ] || { why="the manifests name no hooks file that exists"; return 1; }
-  for h in secret-read outbound git delete; do
-    jq -e --arg h "$h" '[.hooks.PreToolUse[] | select(.matcher | test("Bash")) | .hooks[].command] | any(contains("hooks/" + $h + ".sh"))' \
-      "$PLUGIN/${file#./}" > /dev/null || { why="hooks file does not run $h.sh for Bash"; return 1; }
+  runs_for() {
+    jq -e --arg t "$1" --arg h "$2" \
+      '[.hooks.PreToolUse[] | select(.matcher as $m | $t | test("^(" + $m + ")$")) | .hooks[].command] | any(contains("hooks/" + $h + ".sh"))' \
+      "$PLUGIN/${file#./}" > /dev/null
+  }
+  for h in secret-read secret-write onepassword outbound git delete; do
+    runs_for Bash "$h" || { why="hooks file does not run $h.sh for Bash"; return 1; }
   done
-  jq -e '[.hooks.PreToolUse[] | select(.matcher | test("Read")) | .hooks[].command] | any(contains("hooks/secret-read.sh"))' \
-    "$PLUGIN/${file#./}" > /dev/null || { why="hooks file does not run secret-read.sh for Read"; return 1; }
+  runs_for Read secret-read || { why="hooks file does not run secret-read.sh for Read"; return 1; }
+  for t in Write Edit MultiEdit NotebookEdit apply_patch; do
+    runs_for "$t" secret-write || { why="hooks file does not run secret-write.sh for $t"; return 1; }
+  done
+}
+
+# The number of hook commands the hooks file declares, which is how many Codex lists in /hooks.
+hook_count() { jq '[.hooks.PreToolUse[].hooks[]] | length' "$HOOKS/hooks.json"; }
+number_word() {
+  local words=(zero one two three four five six seven eight nine ten eleven twelve)
+  printf '%s' "${words[$1]:-$1}"
+}
+
+docs_name_variables() {
+  local v f n
+  for v in AGENT_GUARDS_SECRET_READ AGENT_GUARDS_SECRET_WRITE AGENT_GUARDS_ONEPASSWORD AGENT_GUARDS_OUTBOUND \
+    AGENT_GUARDS_GIT AGENT_GUARDS_DELETE; do
+    for f in README.md README.ja.md docs/how-it-works.md docs/how-it-works.ja.md; do
+      grep -qF "$v" "$PLUGIN/$f" || { why="$f does not name $v"; return 1; }
+    done
+  done
+  n="$(hook_count)"
+  grep -qF "trust the $(number_word "$n") agent-guards hooks" "$PLUGIN/README.md" \
+    || { why="README.md does not say to trust the $(number_word "$n") agent-guards hooks"; return 1; }
+  # The Japanese page counts with a digit; the phrase is matched by its number and the escaped word for hooks.
+  python3 -I -c 'import sys; sys.exit(0 if ("agent-guards\u306e" + sys.argv[2] + "\u3064\u306e\u30d5\u30c3\u30af") in open(sys.argv[1], encoding="utf-8").read() else 1)' \
+    "$PLUGIN/README.ja.md" "$n" || { why="README.ja.md does not count $n hooks"; return 1; }
+}
+
+changelog_names_refusals() {
+  local section
+  section="$(awk '/^## \[Unreleased\]/{f=1; next} /^## \[/{f=0} f' "$PLUGIN/CHANGELOG.md")"
+  local w
+  for w in AGENT_GUARDS_SECRET_WRITE AGENT_GUARDS_ONEPASSWORD 'chmod -R'; do
+    case "$section" in *"$w"*) ;; *) why="the Unreleased section does not name $w"; return 1 ;; esac
+  done
 }
 
 repository_rules_allow_hook_plugins() {
@@ -287,6 +435,14 @@ check "secret read refuses app data and conversation records" secret_app_data_re
 check "secret read allows Documents, Downloads, and Pictures by default" secret_personal_folders_allowed
 check "secret-paths adds places to refuse reading" secret_paths_listed
 check "secret read refuses a target it cannot tell" secret_unknown_target_refused
+check "secret read refuses a read joined after op document create" secret_read_after_op_refused
+check "secret write refuses writes to .env and key files in a shell command" secret_write_shell_refused
+check "secret write refuses .env and key files in the file tools" secret_write_tools_refused
+check "secret write refuses a Codex patch that writes a secret file" secret_write_patch_refused
+check "secret write allows .env.example and ordinary files" secret_write_ordinary_allowed
+check "secret-paths adds places to refuse writing" secret_paths_write_listed
+check "1Password refuses op commands that can print a value" onepassword_value_refused
+check "1Password allows op commands that print no value" onepassword_safe_allowed
 check "outbound refuses a body holding a key without showing it" outbound_body_key_refused
 check "outbound refuses a commit whose staged change holds a key" outbound_commit_key_refused
 check "outbound refuses a body it cannot read and shows --body-file" outbound_unreadable_body_refused
@@ -295,10 +451,14 @@ check "git refuses force push, hard reset, skipped checks, and discarded changes
 check "git allows ordinary commands" git_ordinary_allowed
 check "delete refuses broad deletes with a ! command" delete_broad_refused
 check "delete allows a named folder" delete_named_allowed
+check "delete refuses chmod -R on the root, the home folder, and protected places" delete_chmod_refused
+check "delete allows chmod -R on a named folder" delete_chmod_named_allowed
 check "protected-paths adds places to refuse deleting" protected_paths_listed
 check "each hook turns off with its own variable" turn_off_one_hook
 check "records are off by default and on with a variable" records_off_by_default
 check "both manifests declare the same hooks" manifests_declare_hooks
+check "the README and how-it-works name every hook variable" docs_name_variables
+check "the changelog names the new refusals" changelog_names_refusals
 check "the repository rules allow hooks only in plugins without skills" repository_rules_allow_hook_plugins
 
 printf '%d passed, %d failed\n' "$PASS" "$FAIL"

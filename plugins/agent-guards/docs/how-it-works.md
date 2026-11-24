@@ -2,10 +2,19 @@
 
 English · [日本語](how-it-works.ja.md)
 
-Claude Code and Codex start each hook before a shell command or a file read, and pass the call as JSON on standard input.
+Claude Code and Codex start each hook before a shell command, a file read, or a file edit, and pass the call as JSON on standard input.
 A hook prints a deny decision with its reason when it refuses the call, and prints nothing otherwise.
 It never prints an approval, so a call it does not refuse still goes through the agent's own permission rules.
-All four hooks share one Python file, `hooks/lib/agent_guards.py`, and each `hooks/<name>.sh` starts it with the hook's name.
+All six hooks share one Python file, `hooks/lib/agent_guards.py`, and each `hooks/<name>.sh` starts it with the hook's name.
+
+| Hook | Runs before | Turned off with |
+|---|---|---|
+| `secret-read.sh` | A shell command and the Read tool | `AGENT_GUARDS_SECRET_READ=off` |
+| `secret-write.sh` | A shell command, the Write, Edit, MultiEdit, and NotebookEdit tools, and Codex's `apply_patch` | `AGENT_GUARDS_SECRET_WRITE=off` |
+| `onepassword.sh` | A shell command | `AGENT_GUARDS_ONEPASSWORD=off` |
+| `outbound.sh` | A shell command | `AGENT_GUARDS_OUTBOUND=off` |
+| `git.sh` | A shell command | `AGENT_GUARDS_GIT=off` |
+| `delete.sh` | A shell command | `AGENT_GUARDS_DELETE=off` |
 
 ## How a command is read
 
@@ -36,6 +45,37 @@ For the Read tool, it looks at `file_path`.
 
 When a reading command's file is a variable or a command substitution, such as `cat "$FILE"` or `cat $(find . -name '*.key')`, the hook cannot tell what it reads and refuses it.
 When `xargs` hands files to a reader, the hook refuses the command if any word of it is a secret file.
+
+## Secret write
+
+The hook refuses a write to a file that the secret read hook counts as secret, the places in your `secret-paths` list included.
+These files are seldom in git, so an overwrite cannot be undone.
+
+| Where | What it looks at |
+|---|---|
+| A shell command | The files after `>`, `>>`, `>\|`, `&>`, and `>&`, the files `tee` writes, the last file of `cp`, `mv`, `install`, `ln`, `rsync`, and `scp`, the files of `sed -i` and `perl -i`, the files of `truncate`, and `of=` of `dd` |
+| The Write, Edit, and MultiEdit tools | `file_path` |
+| The NotebookEdit tool | `notebook_path` |
+| Codex's `apply_patch` | The files after `*** Add File:`, `*** Update File:`, `*** Delete File:`, and `*** Move to:` in the patch |
+
+`2>&1` and the other forms that point a stream at another stream are not files.
+A write whose file comes from a variable or a command substitution, such as `echo x > "$OUT"`, is let through, since such a file is far more often a temporary one than a secret one.
+
+## 1Password
+
+The hook reads every `op` command of the 1Password CLI, also after `&&`, `;`, and pipes, inside `bash -c` and `eval`, and inside `$(...)` and backquotes.
+It passes only the commands that print no value stored in 1Password and delete nothing.
+
+| Passes | Why |
+|---|---|
+| `op whoami`, `op account list`, `op vault list`, `op item list`, `op document list` | They print names and ids, not stored values |
+| `op document create`, `op document edit` | They store a file, such as a `.env` file, without printing it |
+| `op --version`, `op help`, and `op` alone | They print the CLI's own text |
+
+Every other `op` command is refused, because values come out through many subcommands and flags: `op read`, `op item get` (with `--format json`, `--otp`, or `--share-link` as well as `--reveal`), `op document get`, `op run`, `op inject`, and `op signin`, which prints a session token.
+`op item create` and `op item edit` are refused too, since a value written on their command line stays in the conversation, and the delete commands are refused because they remove items from your vault.
+The global options `--account`, `--config`, `--encoding`, `--format`, and `--session` are skipped with their values before the subcommand is read.
+A refused command is not shown with a leading `!`, since a value printed by your own `!` command would reach the conversation too; run it in a terminal outside the agent.
 
 ## Outbound
 
@@ -76,15 +116,17 @@ A message built from a here-document written in the command is read, since its t
 | `rm -r` or `mv` of the root, the home folder, the current folder, `..`, `*`, or a top-level system folder such as `/usr` or `/Users` | `rm -rf /`, `rm -rf ~`, `rm -rf .` |
 | `find` with `-delete` or `-exec rm` that starts at one of those places; starting at the current folder is allowed with `-name`, `-path`, or `-regex` | `find / -delete` |
 | `rm`, `mv`, `rmdir`, `unlink`, or `find -delete` of a place in your `protected-paths` list, or inside one | `rm ~/work/keep/a.txt` |
+| `chmod`, `chown`, or `chgrp` with `-R` or `--recursive` on one of those places or a place in your `protected-paths` list, since a whole tree without permissions locks you out like a delete. The first word is the mode or the owner, and a mode such as `-w` is read as the mode | `chmod -R 000 ~`, `chown -R nobody ~` |
 
 ## When a hook cannot judge
 
 A hook that cannot read the event, or fails while judging, refuses the call and says so, rather than letting it through unseen.
 Without Python 3, each hook refuses every call and says to install Python 3 or turn the hook off.
-Each hook turns off with its own variable set to `off`, as the README lists.
+Each hook turns off with its own variable set to `off`, as the table at the top lists.
 
 ## Limits
 
 - The hooks see only the command text the agent sends. A script file the command runs is not read, so `bash cleanup.sh` is not checked inside
 - Key shapes without a fixed prefix, such as a random password, are not found
 - A command built at run time, for example by `printf` piped into `sh`, is not read
+- A write whose file comes from a variable is not refused, and a write by a program's own code, such as `python3 -c "open('.env', 'w')"`, is not read

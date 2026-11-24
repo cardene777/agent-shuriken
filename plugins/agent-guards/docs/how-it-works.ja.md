@@ -2,10 +2,19 @@
 
 [English](how-it-works.md) · 日本語
 
-Claude CodeとCodexは、シェルの命令とファイルの読み取りの前に各フックを起動し、呼び出しをJSONで標準入力に渡します。
+Claude CodeとCodexは、シェルの命令とファイルの読み取りと書き換えの前に各フックを起動し、呼び出しをJSONで標準入力に渡します。
 フックは、断る時は理由を付けた拒否の判断を出し、断らない時は何も出しません。
 許可の判断は出さないので、断らなかった呼び出しも、エージェント自身の許可の決まりを通ります。
-4つのフックは1つのPythonのファイル`hooks/lib/agent_guards.py`を使い、各`hooks/<name>.sh`がフックの名前を渡して起動します。
+6つのフックは1つのPythonのファイル`hooks/lib/agent_guards.py`を使い、各`hooks/<name>.sh`がフックの名前を渡して起動します。
+
+| フック | 動く時 | 外す変数 |
+|---|---|---|
+| `secret-read.sh` | シェルの命令とRead toolの前 | `AGENT_GUARDS_SECRET_READ=off` |
+| `secret-write.sh` | シェルの命令、Write、Edit、MultiEdit、NotebookEditのtool、Codexの`apply_patch`の前 | `AGENT_GUARDS_SECRET_WRITE=off` |
+| `onepassword.sh` | シェルの命令の前 | `AGENT_GUARDS_ONEPASSWORD=off` |
+| `outbound.sh` | シェルの命令の前 | `AGENT_GUARDS_OUTBOUND=off` |
+| `git.sh` | シェルの命令の前 | `AGENT_GUARDS_GIT=off` |
+| `delete.sh` | シェルの命令の前 | `AGENT_GUARDS_DELETE=off` |
 
 ## 命令の読み方
 
@@ -37,6 +46,45 @@ Read toolでは`file_path`を見ます。
 
 読む命令のファイルが`cat "$FILE"`や`cat $(find . -name '*.key')`のように変数か命令の置き換えの時は、何を読むか分からないので断ります。
 `xargs`が読む命令にファイルを渡す時は、命令のどれかの語が秘密のファイルなら断ります。
+
+## 秘密の書き込み
+
+フックは、秘密の読み取りのフックが秘密と数えるファイルへの書き込みを断ります。
+`secret-paths`の一覧の置き場も含みます。
+これらのファイルはgitに無いことが多く、上書きすると戻せません。
+
+| 所 | 見る物 |
+|---|---|
+| シェルの命令 | `>`、`>>`、`>\|`、`&>`、`>&`の後のファイル、`tee`が書くファイル、`cp`、`mv`、`install`、`ln`、`rsync`、`scp`の最後のファイル、`sed -i`と`perl -i`のファイル、`truncate`のファイル、`dd`の`of=` |
+| Write、Edit、MultiEditのtool | `file_path` |
+| NotebookEditのtool | `notebook_path` |
+| Codexの`apply_patch` | パッチの中の`*** Add File:`、`*** Update File:`、`*** Delete File:`、`*** Move to:`の後のファイル |
+
+`2>&1`のように出力を別の出力へ向ける形はファイルではありません。
+`echo x > "$OUT"`のように書く先が変数か命令の置き換えから来る書き込みは通します。
+そうしたファイルは、秘密のファイルよりも一時のファイルであることがずっと多いためです。
+
+## 1Password
+
+フックは、1PasswordのCLIの全ての`op`の命令を読みます。
+`&&`、`;`、パイプの後と、`bash -c`と`eval`の中と、`$(...)`とバッククォートの中も読みます。
+1Passwordに控えた値を出さず、何も消さない命令だけを通します。
+
+| 通す物 | 理由 |
+|---|---|
+| `op whoami`、`op account list`、`op vault list`、`op item list`、`op document list` | 名前とIDを出し、控えた値は出さない |
+| `op document create`、`op document edit` | `.env`のようなファイルを、中身を出さずに控える |
+| `op --version`、`op help`、`op`だけ | CLI自身の文を出す |
+
+ほかの`op`の命令は全て断ります。
+値は多くの命令と指定から出るためです。
+例えば`op read`、`op item get` (`--reveal`のほか`--format json`、`--otp`、`--share-link`でも出す)、`op document get`、`op run`、`op inject`、セッションのトークンを出す`op signin`です。
+`op item create`と`op item edit`も断ります。
+命令の行に書いた値が会話に残るためです。
+消す命令は、保管庫の項目を消すので断ります。
+命令を読む前に、全体の指定`--account`、`--config`、`--encoding`、`--format`、`--session`を値ごと飛ばします。
+断った命令は先頭に`!`を付けた形で返しません。
+自分で打った`!`の命令が出した値も会話に入るためで、エージェントの外の端末で打ってください。
 
 ## 外へ送る文
 
@@ -78,15 +126,17 @@ Read toolでは`file_path`を見ます。
 | ルート、ホームのフォルダ、今のフォルダ、`..`、`*`、`/usr`や`/Users`のような最上位のシステムのフォルダに対する`rm -r`か`mv` | `rm -rf /`、`rm -rf ~`、`rm -rf .` |
 | それらの置き場から始める`-delete`か`-exec rm`付きの`find`。今のフォルダから始める時は、`-name`、`-path`、`-regex`が在れば通す | `find / -delete` |
 | `protected-paths`の一覧の置き場かその中に対する`rm`、`mv`、`rmdir`、`unlink`、`find -delete` | `rm ~/work/keep/a.txt` |
+| それらの置き場か`protected-paths`の一覧の置き場に対する、`-R`か`--recursive`付きの`chmod`、`chown`、`chgrp`。木の全体から権限を外すと、消した時と同じく入れなくなるため。最初の語は権限か持ち主で、`-w`のような権限も権限として読む | `chmod -R 000 ~`、`chown -R nobody ~` |
 
 ## 判断できない時
 
 出来事を読めないか判断の途中で失敗したフックは、黙って通さずに、呼び出しを断ってそう伝えます。
 Python 3が無いと、各フックは毎回断り、Python 3を入れるかフックを外すように言います。
-各フックは、READMEの表のとおり、自分の変数を`off`にすると外れます。
+各フックは、冒頭の表のとおり、自分の変数を`off`にすると外れます。
 
 ## 限界
 
 - フックが見るのは、エージェントが送る命令の文だけです。命令が動かすスクリプトのファイルは読まないので、`bash cleanup.sh`の中身は調べません
 - ランダムなパスワードのように決まった前置きを持たない鍵の形は見つけません
 - `printf`の出力を`sh`に渡すように、動かす時に作る命令は読みません
+- 書く先が変数から来る書き込みは断りません。`python3 -c "open('.env', 'w')"`のように、プログラム自身のコードが書く物も読みません
