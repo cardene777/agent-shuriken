@@ -274,7 +274,7 @@ no_local_names() {
 }
 
 repository_lists_it() {
-  local file unreleased first
+  local file first
   # The question table has a column per plugin, so its header is the one line naming the first
   # plugin folder and this plugin as cells.
   first="$(cd "$TOP/plugins" && LC_ALL=C ls -d -- */ | head -1 | tr -d /)"
@@ -289,9 +289,49 @@ repository_lists_it() {
     grep -F "| $first |" "$TOP/$file" | grep -qF "| $NAME |" \
       || { why="the question table of $file has no column for $NAME"; return 1; }
   done
-  unreleased="$(awk '/^## \[Unreleased\]/ { on = 1; next } /^## \[/ { on = 0 } on' "$TOP/CHANGELOG.md")"
-  grep -qE "^- The $NAME plugin" <<< "$unreleased" \
-    || { why="the ## [Unreleased] section of CHANGELOG.md has no line starting \"The $NAME plugin\""; return 1; }
+  root_changelog_names "$TOP/CHANGELOG.md" \
+    || { why="CHANGELOG.md names $NAME neither under ## [Unreleased] nor in the newest release's Plugins table"; return 1; }
+}
+
+# root_changelog_names <file>: the root changelog names the plugin with a line under ## [Unreleased]
+# that starts with "The <name> plugin".
+root_changelog_names() {
+  local unreleased
+  unreleased="$(awk '/^## \[Unreleased\]/ { on = 1; next } /^## \[/ { on = 0 } on' "$1")"
+  grep -qE "^- The $NAME plugin" <<< "$unreleased"
+}
+
+# changelog_case <file> <form>: writes a root changelog that names the plugin under Unreleased
+# (unreleased), only in the Plugins table of the newest release (newest), only in the table of an
+# older release (older), or nowhere (none).
+changelog_case() {
+  {
+    printf '# Changelog\n\n## [Unreleased]\n\n'
+    [ "$2" = unreleased ] && printf -- '- The %s plugin, which explains a flow\n' "$NAME"
+    printf -- '- A change to the repository itself\n\n## [0.2.0] - 2026-12-01\n\n### Plugins\n\n| Plugin | Version |\n|---|---|\n| convey | 0.3.0 |\n'
+    [ "$2" = newest ] && printf '| %s | 0.1.0 |\n' "$NAME"
+    printf '\n## [0.1.0] - 2026-11-01\n\n### Plugins\n\n| Plugin | Version |\n|---|---|\n| convey | 0.2.0 |\n'
+    [ "$2" = older ] && printf '| %s | 0.1.0 |\n' "$NAME"
+    printf '\n'
+  } > "$1"
+}
+
+accepts_the_newest_release() {
+  changelog_case "$T/newest.md" newest
+  root_changelog_names "$T/newest.md" || { why="a changelog naming $NAME only in the newest release's Plugins table was refused"; return 1; }
+}
+
+accepts_the_unreleased_line() {
+  changelog_case "$T/unreleased.md" unreleased
+  root_changelog_names "$T/unreleased.md" || { why="a changelog naming $NAME under ## [Unreleased] was refused"; return 1; }
+}
+
+refuses_neither() {
+  local form
+  for form in none older; do
+    changelog_case "$T/$form.md" "$form"
+    ! root_changelog_names "$T/$form.md" || { why="a changelog naming $NAME in the $form form was accepted"; return 1; }
+  done
 }
 
 check "the plugin holds one skill of its name" holds_one_skill
@@ -307,6 +347,9 @@ check "the SKILL.md names no agent or its tool" no_agent_names
 check "no file holds a home path, a local agent path, or an issue reference" no_local_names
 check "the scan finds a planted line of each shape" scan_finds_planted_shapes
 check "the repository lists flow-format" repository_lists_it
+check "the root changelog check accepts the newest release's Plugins table" accepts_the_newest_release
+check "the root changelog check accepts the line under Unreleased" accepts_the_unreleased_line
+check "the root changelog check refuses a changelog that names neither" refuses_neither
 
 printf 'checks: %d\n' "$((PASS + FAIL))"
 printf '%d passed, %d failed\n' "$PASS" "$FAIL"
