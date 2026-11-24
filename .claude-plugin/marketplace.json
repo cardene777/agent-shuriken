@@ -16,6 +16,11 @@
       "description": "Hooks that stop an agent from reading key files and .env files, sending text or commits that hold a key, running force pushes and other destructive git commands, and deleting whole folder trees, in Claude Code and Codex"
     },
     {
+      "name": "agent-notices",
+      "source": "./plugins/agent-notices",
+      "description": "Hooks that tell an agent about fragile shell commands, branch switches that did not happen, environment variables missing from .env.example, a temporary directory running short, and risky code patterns, format each edited file with the project's own formatter, and log skill and MCP calls when turned on, in Claude Code and Codex, without ever stopping a call"
+    },
+    {
       "name": "chainome-diagram",
       "source": "./plugins/chainome-diagram",
       "description": "Design and review animated React and SVG diagrams that explain blockchain mechanics, with one active phase, state changes shown where they happen, and the prose kept apart from the diagram"
