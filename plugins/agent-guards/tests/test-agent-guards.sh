@@ -410,13 +410,37 @@ docs_name_variables() {
     "$PLUGIN/README.ja.md" "$n" || { why="README.ja.md does not count $n hooks"; return 1; }
 }
 
+# The newest entries: those under Unreleased, or those of the newest release when Unreleased has none.
 changelog_names_refusals() {
-  local section
-  section="$(awk '/^## \[Unreleased\]/{f=1; next} /^## \[/{f=0} f' "$PLUGIN/CHANGELOG.md")"
+  local section where="the Unreleased section"
+  section="$(awk '/^## \[Unreleased\]/{f=1; next} /^## \[/{f=0} f && /^- /' "$PLUGIN/CHANGELOG.md")"
+  if [ -z "$section" ]; then
+    where="the newest release section"
+    section="$(awk '/^## \[[0-9]/{n++; next} /^## \[/ || /^\[[^]]+\]: /{if (n) exit} n == 1 && /^- /' "$PLUGIN/CHANGELOG.md")"
+  fi
   local w
   for w in AGENT_GUARDS_SECRET_WRITE AGENT_GUARDS_ONEPASSWORD 'chmod -R'; do
-    case "$section" in *"$w"*) ;; *) why="the Unreleased section does not name $w"; return 1 ;; esac
+    case "$section" in *"$w"*) ;; *) why="$where does not name $w"; return 1 ;; esac
   done
+}
+
+# After a release, the entries sit in the newest release section below an empty Unreleased.
+changelog_check_reads_release() {
+  local dir="$T/released"
+  mkdir -p "$dir"
+  printf '%s\n' '# Changelog' '' '## [Unreleased]' '' '## [0.2.0] - 2026-01-01' '' \
+    '- Turn it off with `AGENT_GUARDS_SECRET_WRITE=off`' '- Turn it off with `AGENT_GUARDS_ONEPASSWORD=off`' \
+    '- The delete hook also refuses `chmod -R`' '' '## [0.1.0] - 2025-12-01' '' '- Four hooks' >"$dir/CHANGELOG.md"
+  PLUGIN="$dir" changelog_names_refusals || return 1
+  # Entries still under Unreleased are read first, and an older release does not stand in for them.
+  printf '%s\n' '# Changelog' '' '## [Unreleased]' '' '- An unrelated change' '' '## [0.2.0] - 2026-01-01' '' \
+    '- Turn it off with `AGENT_GUARDS_SECRET_WRITE=off`' '- Turn it off with `AGENT_GUARDS_ONEPASSWORD=off`' \
+    '- The delete hook also refuses `chmod -R`' >"$dir/CHANGELOG.md"
+  if PLUGIN="$dir" changelog_names_refusals; then
+    why="it read the 0.2.0 section although Unreleased has entries"
+    return 1
+  fi
+  why=""
 }
 
 repository_rules_allow_hook_plugins() {
@@ -459,6 +483,7 @@ check "records are off by default and on with a variable" records_off_by_default
 check "both manifests declare the same hooks" manifests_declare_hooks
 check "the README and how-it-works name every hook variable" docs_name_variables
 check "the changelog names the new refusals" changelog_names_refusals
+check "the changelog check reads the newest release when Unreleased is empty" changelog_check_reads_release
 check "the repository rules allow hooks only in plugins without skills" repository_rules_allow_hook_plugins
 
 printf '%d passed, %d failed\n' "$PASS" "$FAIL"
