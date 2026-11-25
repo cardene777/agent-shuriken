@@ -410,12 +410,17 @@ docs_name_variables() {
     "$PLUGIN/README.ja.md" "$n" || { why="README.ja.md does not count $n hooks"; return 1; }
 }
 
+# The newest entries: those under Unreleased, or those of the newest release when Unreleased has none.
 changelog_names_refusals() {
-  local section
-  section="$(awk '/^## \[Unreleased\]/{f=1; next} /^## \[/{f=0} f' "$PLUGIN/CHANGELOG.md")"
+  local section where="the Unreleased section"
+  section="$(awk '/^## \[Unreleased\]/{f=1; next} /^## \[/{f=0} f && /^- /' "$PLUGIN/CHANGELOG.md")"
+  if [ -z "$section" ]; then
+    where="the newest release section"
+    section="$(awk '/^## \[[0-9]/{n++; next} /^## \[/ || /^\[[^]]+\]: /{if (n) exit} n == 1 && /^- /' "$PLUGIN/CHANGELOG.md")"
+  fi
   local w
   for w in AGENT_GUARDS_SECRET_WRITE AGENT_GUARDS_ONEPASSWORD 'chmod -R'; do
-    case "$section" in *"$w"*) ;; *) why="the Unreleased section does not name $w"; return 1 ;; esac
+    case "$section" in *"$w"*) ;; *) why="$where does not name $w"; return 1 ;; esac
   done
 }
 
