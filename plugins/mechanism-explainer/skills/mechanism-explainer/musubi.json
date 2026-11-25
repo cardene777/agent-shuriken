@@ -1,0 +1,25 @@
+{
+  "musubi": "2026-11-20",
+  "follows": {
+    "dragon/plan": {
+      "version": "^1.0.0",
+      "integrity": "sha256-JqJuw+DYUWhX9RKYhdmAuc/h32jUyS7KPdPnftG5q1w=",
+      "optional": true
+    },
+    "dragon/page": {
+      "version": "^1.0.0",
+      "integrity": "sha256-afOZybHO9FG2YCHILNdLiJvIQwAH4A6nsGAjyGD+OTU=",
+      "optional": true
+    },
+    "dragon/cheatsheet": {
+      "version": "^1.0.0",
+      "integrity": "sha256-vtpSWs4rdJFOLTOxUtePS12xHOO4a/Mudpq5M0padew=",
+      "optional": true
+    },
+    "dragon/notation": {
+      "version": "^1.2.0",
+      "integrity": "sha256-khSWlsQAIevKfgzmkxUs8jZOb9uvOU0szXWmEBBKAfI=",
+      "optional": true
+    }
+  }
+}

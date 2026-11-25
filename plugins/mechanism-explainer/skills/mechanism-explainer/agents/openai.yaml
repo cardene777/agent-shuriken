@@ -1,0 +1,7 @@
+interface:
+  display_name: "Mechanism Explainer"
+  short_description: "Write an explainer page that answers one question per section with dragon figures"
+  default_prompt: "Use $mechanism-explainer to write an explainer of this topic, one question per section."
+
+policy:
+  allow_implicit_invocation: true

@@ -2,8 +2,8 @@
 # Tests for the mechanism-explainer plugin. They read the plugin's pages, manifests, and skill, run the
 # PDF script on a small page in a throwaway folder, and relay the manifest check of scripts/check.sh.
 # The PDF check uses a Chromium-based browser already on the machine and is skipped without one.
-# Nothing is fetched from the network and no real data folder is touched: HOME points at the throwaway
-# folder while the PDF script runs.
+# Nothing is fetched from the network and nothing is written outside the throwaway folder: the browser
+# profile goes to TMPDIR, which points there, and the refusal check also points HOME there.
 set -u
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -109,7 +109,7 @@ checks_before_export() {
 pdf_prints() {
   [ -f "$PDF" ] || { why="scripts/to-pdf.py is missing"; return 1; }
   local out status
-  out="$(HOME="$T/home" python3 "$PDF" "$HERE/fixtures/page.html" "$T/page.pdf" 2>&1)"
+  out="$(TMPDIR="$T" python3 "$PDF" "$HERE/fixtures/page.html" "$T/page.pdf" 2>&1)"
   status=$?
   if [ "$status" -eq 3 ]; then why="no Chromium-based browser on this machine"; return 77; fi
   [ "$status" -eq 0 ] || { why="to-pdf.py exited $status: $(printf '%s' "$out" | head -2)"; return 1; }
