@@ -1,0 +1,45 @@
+# Words to flag in Japanese documents written for general readers. Pass this file with `--words`
+# to `prose.py`, `check.py`, or `figure.py`.
+#
+# The difference from `prose-words.txt` is the reader, not the quality of the word:
+#   prose-words.txt  words no reader understands (meeting-room phrasing)
+#   this file        words ordinary in the field but unknown outside it
+#
+# Technical documents do not pass this file, so their katakana words for "endpoint" or "request"
+# are not flagged. A document with its own term table passes both (`--words` can be repeated):
+#   python3 scripts/prose.py <document.html> --words data/words-plain.txt --words <its table>
+#
+# The format is the term-table format (`word -> replacement` or `word → replacement`, and
+# `allow:` lines), not the three-column format of `prose-words.txt`.
+
+エンドポイント → 呼び出し口
+リクエスト → 問い合わせ
+レスポンス → 答え
+トランザクション → 取引
+バリデーション → 中身の確認
+ハンドリング → 扱い
+デプロイ → 配ること
+コンポーネント → 部品
+インターフェース → つなぎ目
+レイヤー → 層
+ペイロード → 運ぶ中身
+フェーズ → 段階
+ロジック → 処理の筋道
+ステータス → 状態
+パラメータ → 渡す値
+マイグレーション → 移行
+オーケストレーション → 全体の制御
+デフォルト → 既定
+
+# English spellings of the words above, so the same idea is not written two ways.
+endpoint → 呼び出し口
+transaction → 取引
+validation → 中身の確認
+handling → 扱い
+component → 部品
+interface → つなぎ目
+parameter → 渡す値
+
+# The replacement for "endpoint" above is listed as a coined word in `prose-words.txt`, where the
+# reader is technical. Allow it here so a document that passes this file can use it.
+allow: 呼び出し口

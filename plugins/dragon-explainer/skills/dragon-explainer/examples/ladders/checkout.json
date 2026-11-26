@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "alt": "Five steps of a checkout, with a line back to step 2 when the member is over a limit",
+  "back_note": "back to step %s",
+  "actors": {
+    "desk": {
+      "label": "Desk or kiosk",
+      "tone": "emphasis"
+    },
+    "system": {
+      "label": "Library system",
+      "tone": "plain"
+    },
+    "member": {
+      "label": "Member",
+      "tone": "strong"
+    }
+  },
+  "bands": [
+    {
+      "label": "AT THE DESK",
+      "from": 1,
+      "to": 2
+    },
+    {
+      "label": "IN THE SYSTEM",
+      "from": 3,
+      "to": 5
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "title": "Scan the member card",
+      "calls": "card reader",
+      "gate": "card not expired",
+      "actor": "desk",
+      "place": "member record"
+    },
+    {
+      "n": 2,
+      "title": "Scan each copy",
+      "calls": "barcode",
+      "gate": "no hold for others",
+      "actor": "desk",
+      "place": "copy record"
+    },
+    {
+      "n": 3,
+      "title": "Check the limits",
+      "calls": "loan rules",
+      "gate": "under the item limit",
+      "actor": "system",
+      "place": "member record"
+    },
+    {
+      "n": 4,
+      "title": "Set the due date",
+      "calls": "loan rules",
+      "actor": "system",
+      "place": "loan record"
+    },
+    {
+      "n": 5,
+      "title": "Take the receipt",
+      "calls": "printer or email",
+      "actor": "member",
+      "place": "receipt"
+    }
+  ],
+  "back": [
+    {
+      "from": 3,
+      "to": 2,
+      "label": "over the limit"
+    }
+  ]
+}

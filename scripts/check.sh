@@ -44,6 +44,18 @@ JA_ALLOWED=(
   plugins/diagram-explainer/skills/diagram-explainer/tests/test-render.sh
   plugins/diagram-explainer/skills/diagram-explainer/tests/fixtures/motion-page.html
   plugins/diagram-explainer/evals/japanese-document/case.yaml
+  plugins/dragon-explainer/skills/dragon-explainer/assets/ui.json
+  plugins/dragon-explainer/skills/dragon-explainer/scripts/check.py
+  plugins/dragon-explainer/skills/dragon-explainer/scripts/figure.py
+  plugins/dragon-explainer/skills/dragon-explainer/references/prose-words.txt
+  plugins/dragon-explainer/skills/dragon-explainer/references/words-plain.txt
+  plugins/dragon-explainer/skills/dragon-explainer/references/metaphor-words.tsv
+  plugins/dragon-explainer/skills/dragon-explainer/examples/content.sample.ja.json
+  plugins/dragon-explainer/skills/dragon-explainer/examples/a-flow.ja.dragon
+  plugins/dragon-explainer/skills/dragon-explainer/examples/ladders/checkout-ja.json
+  plugins/dragon-explainer/skills/dragon-explainer/tests/test-render.sh
+  plugins/dragon-explainer/skills/dragon-explainer/tests/fixtures/motion-page.html
+  plugins/dragon-explainer/evals/japanese-document/case.yaml
   plugins/diagram-styles/skills/article-diagram-styles/tests/test-article-diagram-styles.sh
   plugins/docs-publish/evals/_japanese.json
   plugins/excalidraw-diagram/skills/excalidraw-diagram/tests/test-excalidraw-diagram.sh

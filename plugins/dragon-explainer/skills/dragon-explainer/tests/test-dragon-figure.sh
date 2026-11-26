@@ -91,7 +91,7 @@ doc = {
     "lang": "en",
     "title": "Order checks",
     "lead": "An order is checked for payment before it ships.",
-    "tabs": [{"key": "p", "title": "Flow", "sections": [{
+    "tabs": [{"id": "p", "label": "Flow", "sections": [{
         "id": "p-s1",
         "title": "How is an order checked?",
         "answer": "A paid order ships and an unpaid one waits.",
@@ -113,6 +113,9 @@ build() {
   body="$dir/body.html"
   python3 "$SCRIPTS/render.py" --in "$1" --out "$body" > "$dir/render.log" 2>&1 || { why="render.py refused: $(tail -1 "$dir/render.log")"; return 1; }
   python3 "$SCRIPTS/despace.py" "$body" > /dev/null 2>&1
+  if [ -d "$dir/ladders" ]; then
+    python3 "$SCRIPTS/ladder.py" --html "$body" --src "$dir/ladders" > "$dir/ladder.log" 2>&1 || { why="ladder.py refused: $(tail -1 "$dir/ladder.log")"; return 1; }
+  fi
   python3 "$SCRIPTS/build.py" --in "$body" --out "$2" > "$dir/build.log" 2>&1 || { why="build.py refused: $(tail -1 "$dir/build.log")"; return 1; }
   dragon embed "$2" --out "$2" > "$dir/embed.log" 2>&1 || { why="dragon embed failed: $(tail -1 "$dir/embed.log")"; return 1; }
 }
