@@ -625,6 +625,14 @@ check_agents_english() {
   return "$bad"
 }
 
+# The ikkan gates refuse this repository unless .ikkan/checks.md names its reached checks,
+# and the implementation step's gate runs this script as those checks.
+check_ikkan_reached_checks() {
+  grep -qxF '| Reached checks | `bash scripts/check.sh` |' .ikkan/checks.md 2>/dev/null && return 0
+  echo '.ikkan/checks.md does not hold the row: | Reached checks | `bash scripts/check.sh` |'
+  return 1
+}
+
 check_plugin_validate() {
   command -v claude >/dev/null || { echo "claude is not installed"; return 77; }
   local target bad=0
@@ -664,6 +672,7 @@ run "no agent-shared copy is left" check_no_agent_shared_copy
 run "bundled data is credited" check_notices
 run "script dependencies are named in AGENTS.md" check_script_dependencies
 run "AGENTS.md asks for issues and new .ikkan records in English" check_agents_english
+run "the ikkan gates run these checks" check_ikkan_reached_checks
 run "claude plugin validate" check_plugin_validate
 
 printf '%d passed, %d failed, %d skipped\n' "$pass" "$fail" "$skip"
