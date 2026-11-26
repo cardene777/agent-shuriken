@@ -10,6 +10,48 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 ### Added
 
 - The english-writing plugin, which writes and fixes English text without adding anything the original does not say, following the patterns of `blader/humanizer` copied without changes, with rules of its own on phrasing translated word for word from Japanese, short sentences, and consistent terms, and a script that points at long sentences, passive voice, and phrasing translated from Japanese
+- The explaining plugin, which builds an explanation of how a protocol, a system, or a process works around one running example, with a numbered map of the stages, pairs of similar things told apart, misreadings ruled out, every combination of conditions with its result, moving figures where order or conditions matter, and a closing table with one sentence to take away, and provides that structure to other skills through musubi
+
+## [0.25.0] - 2026-11-26
+
+### Plugins
+
+| Plugin | Version |
+|---|---|
+| account-cleanup | 0.4.0 |
+| agent-guards | 0.2.1 |
+| agent-notices | 0.1.0 |
+| chainome-diagram | 0.2.0 |
+| compare-report | 0.6.0 |
+| convey | 0.3.0 |
+| design-formats | 0.2.0 |
+| diagram-composer | 0.1.1 |
+| diagram-explainer | 0.4.0 |
+| diagram-styles | 0.4.0 |
+| digital-dashboard | 0.1.2 |
+| doc-formats | 0.1.0 |
+| docs-publish | 0.4.0 |
+| evm-dev | 0.9.0 |
+| excalidraw-diagram | 0.3.0 |
+| feedback-loop | 0.1.2 |
+| flow-format | 0.1.0 |
+| init-project | 0.4.0 |
+| japanese-speaking | 0.3.0 |
+| japanese-writing | 0.3.0 |
+| learning-to-skill | 0.1.2 |
+| machine-cleanup | 0.3.0 |
+| mechanism-explainer | 0.2.0 |
+| motion-diagram | 0.1.0 |
+| portman | 0.4.0 |
+| product-deck | 0.2.0 |
+| remotion-explainer | 0.1.0 |
+| repo-progress | 0.2.0 |
+| screen-video | 0.4.0 |
+| secure-dotfile | 0.8.0 |
+| session-handoff | 0.1.1 |
+| skill-tune | 0.2.0 |
+| slides | 0.1.2 |
+| techdebt | 0.4.0 |
 
 ### Removed
 
@@ -710,7 +752,8 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 - First public release with the account-cleanup and pc-tidy plugins, installable from this marketplace in Claude Code and Codex
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/v0.24.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/v0.25.0...HEAD
+[0.25.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.25.0
 [0.24.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.24.0
 [0.23.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.23.0
 [0.22.0]: https://github.com/cardene777/agent-shuriken/releases/tag/v0.22.0

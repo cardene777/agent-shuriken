@@ -1,0 +1,9 @@
+{
+  "musubi": "2026-11-19",
+  "provides": {
+    "structure": {
+      "version": "1.0.0",
+      "file": "references/structure.md"
+    }
+  }
+}

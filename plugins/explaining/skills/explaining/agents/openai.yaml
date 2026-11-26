@@ -1,0 +1,7 @@
+interface:
+  display_name: "Explaining"
+  short_description: "Explain how something works around one running example, a map of the stages, and moving figures"
+  default_prompt: "Use $explaining to explain how a payment is confirmed across three servers."
+
+policy:
+  allow_implicit_invocation: true
