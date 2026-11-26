@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-26
+
 - The page opens with an overview figure of the whole mechanism, written in the page lead before the first topic
 - Every question heading ends with `[menu: <short name>]`, so the side menu lists it on one line
 - Every figure has one sentence before it on what to look at and two to four sentences after it on what it shows
@@ -18,5 +20,6 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - `scripts/to-pdf.py` prints the page to a PDF on A3 paper by default with a Chromium-based browser already on the machine
 - The skill follows the `plan`, `page`, `notation`, and `cheatsheet` formats of the `dragon` skill through musubi as optional follows
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/mechanism-explainer--v0.1.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/mechanism-explainer--v0.2.0...HEAD
+[0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/mechanism-explainer--v0.2.0
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/mechanism-explainer--v0.1.0
