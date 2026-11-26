@@ -1,13 +1,13 @@
 ---
 name: mechanism-explainer
-description: Writes an explainer of a system, a mechanism, or a piece of research in HTML, where each section answers one question with two to four figures drawn in the dragon notation, and prints it to a PDF. An explainer with one topic is one page, and one with two or more topics is split into an overview tab and one tab per topic, ordered so the mechanism comes before its background and records. Use when the user asks for an explainer, a learning guide, a document with figures, or an overview of how something works, from a topic, notes, or a Markdown file.
+description: Writes an explainer of a system, a mechanism, or a piece of research in HTML, where each section answers one question with two to four figures drawn in the dragon notation, and prints it to a PDF. An explainer of one kind of material with five or fewer questions is one page, and one with six or more questions or more than one kind of material is split into an overview tab and one tab per topic, ordered so the mechanism comes before its background and records. Use when the user asks for an explainer, a learning guide, a document with figures, or an overview of how something works, from a topic, notes, or a Markdown file.
 ---
 
 # Mechanism explainer
 
 Write an explainer that answers the reader's questions in order.
-An explainer with one topic is one page.
-An explainer with two or more topics is split into an overview tab and one tab per topic, so the reader never scrolls through every topic at once.
+Material of one kind with five or fewer questions makes one topic, and an explainer with one topic is one page.
+Six or more questions, or more than one kind of material, make two or more topics, and an explainer with two or more topics is split into an overview tab and one tab per topic, so the reader never scrolls through every topic at once.
 Each topic tab opens with a map: the part of the overview figure it explains and the one-sentence answers of its questions.
 Each section is one question, its one-sentence answer, and two to four figures that look at the question from different sides, such as the parts, a decision table, a comparison, or one case traced step by step.
 The figures come first and the prose follows them, and every long explanation sits in a card that opens just below the box it belongs to.
@@ -42,7 +42,7 @@ If the `dragon` skill is not installed, go on without the `plan` of `dragon`.
 The plan follows these rules whichever way it is written.
 
 - Plan one overview figure of the whole mechanism first: the parts, what goes between them, and which topic explains which part. It is the map the reader sees before any question.
-- Decide the topics before the questions. A short explanation that one topic covers stays one page; when the material needs two or more topics, dragon splits it into an overview tab and one tab per topic.
+- Decide the topics before the questions, from the number of questions the material raises and the kinds of material in it. Material of one kind with five or fewer questions is one topic and stays one page. With six or more questions, or more than one kind of material, make two or more topics, and dragon splits the page into an overview tab and one tab per topic.
 - Sort the material into four kinds before naming the topics: the mechanism (how the thing works), background knowledge (what the reader must know to follow it), records (what was run and what came out), and reference material (terms and where things are). A topic holds one kind, so the reader can tell the main line from what supports it.
 - Order the topics with the mechanism first, background knowledge after it, and records and reference material last.
 - A question that needs another topic goes after that topic, even when the material wrote it under an earlier one. Move it into the topic it belongs to, or into a later topic.

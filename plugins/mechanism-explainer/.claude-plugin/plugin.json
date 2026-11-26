@@ -1,7 +1,7 @@
 {
   "name": "mechanism-explainer",
   "displayName": "Mechanism Explainer",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Write an explainer page that answers one question per section with dragon figures, and print it to a PDF",
   "author": {
     "name": "cardene777",
