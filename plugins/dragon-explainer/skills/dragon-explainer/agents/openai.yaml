@@ -1,7 +1,0 @@
-interface:
-  display_name: "Dragon Explainer"
-  short_description: "Write an explainer with a dragon figure in every section as one HTML file"
-  default_prompt: "Use $dragon-explainer to write an explainer with dragon figures on this topic."
-
-policy:
-  allow_implicit_invocation: true

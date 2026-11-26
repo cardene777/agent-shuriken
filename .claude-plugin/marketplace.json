@@ -71,11 +71,6 @@
       "description": "Write the documentation of a library, command-line tool, or web service you build, public or private, in five parts, Quickstart, Concepts, API reference, Cookbook, and FAQ, in English and a second language you pick, with every page's translation and every relative link checked"
     },
     {
-      "name": "dragon-explainer",
-      "source": "./plugins/dragon-explainer",
-      "description": "Write an explainer as one HTML file with a figure in every section drawn in the dragon notation, built from JSON, embedded as SVG, and checked before you share it"
-    },
-    {
       "name": "evm-dev",
       "source": "./plugins/evm-dev",
       "description": "Tells whether an ERC is final or an EIP is live on Ethereum mainnet, how L2 networks, the Ethereum L1 roadmap, and consensus-only EIPs stand, writes Solidity contracts and their tests for the solc, OpenZeppelin, Foundry, and Hardhat versions a project uses, deploys them without the agent touching keys and records what was deployed, checks a release against the deployed version and the target chains, and designs contracts, wallets, multichain apps, dApp architectures, and apps built on financial standards such as ISO 20022 and FIX, from dated items checked against the official documents"
