@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-26
+
 - An explainer with two or more topics is no longer one long page: it opens on an overview page and shows each question on its own page, with the side menu and links to the previous and next pages. An explainer with one topic stays one page
 - The page is exported with dragon 0.85.0, which splits a guide page with two or more topics into pages and prints two steps of a figure to a sheet
 
@@ -23,6 +25,7 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - `scripts/to-pdf.py` prints the page to a PDF on A3 paper by default with a Chromium-based browser already on the machine
 - The skill follows the `plan`, `page`, `notation`, and `cheatsheet` formats of the `dragon` skill through musubi as optional follows
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/mechanism-explainer--v0.2.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/mechanism-explainer--v0.3.0...HEAD
+[0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/mechanism-explainer--v0.3.0
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/mechanism-explainer--v0.2.0
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/mechanism-explainer--v0.1.0
