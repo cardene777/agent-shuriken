@@ -41,17 +41,18 @@ In GitHub Copilot CLI, write `/mechanism-explainer` in your request, and in Gemi
 3. The agent writes the page as Markdown with `layout: guide`, checks every figure and its layout with dragon, and fixes what dragon names
 4. The agent exports the page with dragon, prints the PDF, and gives you the paths of the Markdown, the HTML that opens offline, and the PDF
 
-Each `##` of the page becomes a tab and each question a numbered section, listed at the top of its tab.
-Under each question, its one-sentence answer comes first, then the figures, then the short prose the figures do not carry.
+The page opens with an overview figure of the whole mechanism, and a side menu lists every topic and its questions by short names.
+Topics run one after another, and questions are numbered across them.
+Under each question, its one-sentence answer comes first, then each figure with one sentence before it on what to look at and a short paragraph after it on what it shows.
 Terms you may not know are underlined and open a card with their meaning, and check questions open their answer on a click.
-The PDF is printed on A3 paper by default. With dragon 0.80.1 it holds the first tab, with box cards open over their figure; [dragon#3956](https://github.com/cardene777/dragon/issues/3956) makes it hold every tab with the cards under each figure.
+The PDF is printed on A3 paper by default. It holds the overview and every topic in order, with every step of each figure and the box cards open under each figure.
 By default the files are kept in `explainer/<name>/` of the folder you work in.
 
 ## Requirements
 
 | Tool | When it's needed |
 |---|---|
-| Node.js 20 or later with `npx` | Always. The agent runs `npx -y @cardenelabs/dragon@0.80.1`, which fetches dragon into npm's cache on first use |
+| Node.js 20 or later with `npx` | Always. The agent runs `npx -y @cardenelabs/dragon@0.82.0`, which fetches dragon into npm's cache on first use |
 | `python3` | To print the PDF. The one that ships with macOS works |
 | Chrome, Chromium, Edge, Brave, or Playwright's headless shell | To print the PDF. Without one, you still get the HTML, and any browser can print it |
 | The dragon plugin | Optional. When its `dragon` skill is installed, the agent plans and writes the figures on its `plan`, `page`, `notation`, and `cheatsheet` formats |

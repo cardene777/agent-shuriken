@@ -137,6 +137,70 @@ description_names() {
   done
 }
 
+# The page opens with one figure of the whole mechanism, written in the page lead before the first topic,
+# which dragon shows as the overview at the head of the page (cardene777/dragon#3961).
+overview_in_lead() {
+  [ -f "$DOC" ] || { why="SKILL.md is missing"; return 1; }
+  grep -q -F 'overview figure' "$DOC" || { why="SKILL.md does not ask for an overview figure"; return 1; }
+  grep -q -i -E 'page lead.*before the first topic|before the first topic.*page lead' "$DOC" \
+    || { why="SKILL.md does not say the overview figure goes in the page lead before the first topic"; return 1; }
+}
+
+# Every question heading ends with a short menu name, with the length limits for Japanese and English.
+menu_names() {
+  [ -f "$DOC" ] || { why="SKILL.md is missing"; return 1; }
+  grep -q -F '[menu: ' "$DOC" || { why="SKILL.md does not show [menu: ...]"; return 1; }
+  grep -q -E '12 characters' "$DOC" || { why="SKILL.md does not give the 12-character limit for Japanese"; return 1; }
+  grep -q -E '24 characters' "$DOC" || { why="SKILL.md does not give the 24-character limit for English"; return 1; }
+}
+
+# One sentence before each figure says what to look at, and two to four sentences after it say what it shows.
+figure_explained() {
+  [ -f "$DOC" ] || { why="SKILL.md is missing"; return 1; }
+  grep -q -F 'one sentence before each figure' "$DOC" || { why="SKILL.md does not ask for one sentence before each figure"; return 1; }
+  grep -q -F 'two to four sentences after it' "$DOC" || { why="SKILL.md does not ask for two to four sentences after each figure"; return 1; }
+}
+
+# The test page's source has an overview figure in its lead and a menu name on every question. When the
+# pinned dragon is already on the machine, it exports the page with the left menu and the overview;
+# without it the export part is skipped, so nothing is fetched.
+test_page_overview() {
+  local md="$HERE/fixtures/page.md" version out
+  [ -f "$md" ] || { why="tests/fixtures/page.md is missing"; return 1; }
+  out="$(python3 - "$md" <<'PY'
+import re, sys
+lines = open(sys.argv[1], encoding="utf-8").read().split("\n")
+lead, fence, topic, questions, named = 0, False, False, 0, 0
+for line in lines:
+    if line.startswith("```"):
+        if not fence and line.strip() == "```dragon" and not topic:
+            lead += 1
+        fence = not fence
+        continue
+    if fence:
+        continue
+    if line.startswith("## "):
+        topic = True
+    elif line.startswith("### "):
+        questions += 1
+        if re.search(r"\[menu: [^\]]+\]\s*$", line):
+            named += 1
+if lead != 1:
+    print("the lead of page.md has %d figures" % lead); sys.exit(1)
+if questions == 0 or named != questions:
+    print("%d of %d questions in page.md have a menu name" % (named, questions)); sys.exit(1)
+PY
+)" || { why="$out"; return 1; }
+  version="$(grep -o -E '@cardenelabs/dragon@[0-9]+\.[0-9]+\.[0-9]+' "$DOC" | head -1)"
+  [ -n "$version" ] || { why="SKILL.md pins no dragon version"; return 1; }
+  mkdir -p "$T/export" && cp "$md" "$T/export/page.md"
+  if ! (cd "$T/export" && npm exec --offline --yes --package="$version" -- dragon export page.md >/dev/null 2>&1); then
+    why="dragon ${version#@cardenelabs/dragon@} is not on this machine"; return 77
+  fi
+  grep -q 'class="pg-overview' "$T/export/page.html" || { why="the exported page has no overview"; return 1; }
+  grep -q 'class="pg-menu' "$T/export/page.html" || { why="the exported page has no left menu"; return 1; }
+}
+
 # The repository's manifest check, relayed from scripts/check.sh.
 repo_manifests() {
   local out
@@ -153,6 +217,10 @@ check "the skill checks the notation and the layout before exporting" checks_bef
 check "the PDF script prints an exported page" pdf_prints
 check "the PDF script refuses without a browser" pdf_refuses
 check "the description names the page and the PDF" description_names
+check "the skill puts an overview figure in the page lead" overview_in_lead
+check "the skill names each question for the side menu" menu_names
+check "the skill explains every figure before and after it" figure_explained
+check "the test page has an overview and menu names" test_page_overview
 check "plugin manifests agree" repo_manifests
 
 printf 'mechanism-explainer: ran %d checks, %d failed, %d skipped\n' "$((PASS + FAIL + SKIP))" "$FAIL" "$SKIP"

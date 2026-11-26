@@ -5,6 +5,11 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The page opens with an overview figure of the whole mechanism, written in the page lead before the first topic
+- Every question heading ends with `[menu: <short name>]`, so the side menu lists it on one line
+- Every figure has one sentence before it on what to look at and two to four sentences after it on what it shows
+- The page is exported with dragon 0.82.0, which lists every question in a side menu numbered per topic, such as `2-1`, and prints the overview and every topic into the PDF with the box cards under each figure
+
 ## [0.1.0] - 2026-11-26
 
 - One skill, `mechanism-explainer`, that writes an explainer page where each section answers one question with a one-sentence answer and two to four figures drawn in the dragon notation
