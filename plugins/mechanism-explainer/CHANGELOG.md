@@ -5,6 +5,10 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- An explainer with two or more topics is split into an overview tab and one tab per topic instead of one page per question. The plan sorts the material into the mechanism, background knowledge, records, and reference material, puts the mechanism first and records and reference material last, and moves a question after the topic it needs
+- Every box of the overview figure that a topic explains links to that topic, so pressing the box opens its tab, and each topic tab opens with a map of the overview with that topic's boxes in color and the one-sentence answers of its questions
+- The page is exported with dragon 0.87.0, which draws the topic tabs and the maps
+
 ## [0.3.0] - 2026-11-26
 
 - An explainer with two or more topics is no longer one long page: it opens on an overview page and shows each question on its own page, with the side menu and links to the previous and next pages. An explainer with one topic stays one page

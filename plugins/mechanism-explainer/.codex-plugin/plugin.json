@@ -21,7 +21,7 @@
   "interface": {
     "displayName": "Mechanism Explainer",
     "shortDescription": "Question-led explainers",
-    "longDescription": "Writes an explainer of a system, a mechanism, or a piece of research in HTML: one page for one topic, or an overview page and one page per question for two or more topics. Each section answers one question: the question, a one-sentence answer, then two to four figures chosen for it, such as the structure, a decision table, a comparison, or one case traced step by step. The figures come from the dragon notation, and boxes with notes open a card just below them. The skill plans the questions and figures first, checks the notation and the layout with dragon, exports the page with dragon, and prints the page to a PDF.",
+    "longDescription": "Writes an explainer of a system, a mechanism, or a piece of research in HTML: one page for one topic, or an overview tab and one tab per topic for two or more topics, with the mechanism before its records and reference material. Each section answers one question: the question, a one-sentence answer, then two to four figures chosen for it, such as the structure, a decision table, a comparison, or one case traced step by step. The figures come from the dragon notation, and boxes with notes open a card just below them. The skill plans the questions and figures first, checks the notation and the layout with dragon, exports the page with dragon, and prints the page to a PDF.",
     "developerName": "cardene777",
     "category": "Productivity",
     "capabilities": [],
