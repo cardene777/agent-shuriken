@@ -5,6 +5,9 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- An explainer with two or more topics is no longer one long page: it opens on an overview page and shows each question on its own page, with the side menu and links to the previous and next pages. An explainer with one topic stays one page
+- The page is exported with dragon 0.85.0, which splits a guide page with two or more topics into pages and prints two steps of a figure to a sheet
+
 ## [0.2.0] - 2026-11-26
 
 - The page opens with an overview figure of the whole mechanism, written in the page lead before the first topic

@@ -206,13 +206,26 @@ PY
 PAGES=("$DOC" "$PLUGIN/README.md" "$PLUGIN/README.ja.md" "$PLUGIN/docs/how-it-works.md" "$PLUGIN/docs/how-it-works.ja.md" "$PLUGIN/.codex-plugin/plugin.json")
 
 # No page calls the explainer one page that reads top to bottom, since an explainer with two or more
-# topics is split into pages (#533).
+# topics is split into pages (#533). The Japanese phrases are written as escapes, so this file stays English:
+# "one page" (1-mai no peeji), "read from top to bottom", and "the topics continue from the top".
 no_one_page() {
   local f hit
   for f in "${PAGES[@]}"; do
     [ -f "$f" ] || { why="${f#"$ROOT"/} is missing"; return 1; }
-    hit="$(grep -n -i -E 'one (HTML )?page that (reads|answers)|reads top to bottom|runs the topics one after another|1枚の頁|上から下へ読む|話題は上から順に続' "$f" | head -1)"
-    [ -z "$hit" ] || { why="${f#"$ROOT"/}:${hit%%:*} still calls the explainer one page"; return 1; }
+    hit="$(python3 - "$f" <<'PY2'
+import re, sys
+pattern = re.compile(
+    r"one (html )?page that (reads|answers)|reads top to bottom|runs the topics one after another"
+    "|1\u679a\u306e\u9801|\u4e0a\u304b\u3089\u4e0b\u3078\u8aad\u3080|\u8a71\u984c\u306f\u4e0a\u304b\u3089\u9806\u306b\u7d9a",
+    re.IGNORECASE,
+)
+for n, line in enumerate(open(sys.argv[1], encoding="utf-8"), 1):
+    if pattern.search(line):
+        print(n)
+        break
+PY2
+)"
+    [ -z "$hit" ] || { why="${f#"$ROOT"/}:$hit still calls the explainer one page"; return 1; }
   done
 }
 

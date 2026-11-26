@@ -1,6 +1,7 @@
 # Mechanism Explainer
 
-Write an explainer of a system, a mechanism, or a piece of research as one page that reads top to bottom: each section answers one question with a one-sentence answer and two to four figures drawn in the dragon notation, and the same page prints to a PDF.
+Write an explainer of a system, a mechanism, or a piece of research: each section answers one question with a one-sentence answer and two to four figures drawn in the dragon notation, and the same explainer prints to a PDF.
+A short explainer with one topic is one page, and an explainer with two or more topics opens on an overview page and shows each question on its own page.
 
 English · [日本語](README.ja.md)
 
@@ -42,7 +43,8 @@ In GitHub Copilot CLI, write `/mechanism-explainer` in your request, and in Gemi
 4. The agent exports the page with dragon, prints the PDF, and gives you the paths of the Markdown, the HTML that opens offline, and the PDF
 
 The page opens with an overview figure of the whole mechanism, and a side menu lists every topic and its questions by short names.
-Topics run one after another, and questions are numbered across them.
+Questions are numbered per topic, such as `2-1`.
+With two or more topics, the first page holds the overview, and each question has its own page with links to the previous and next pages at its end.
 Under each question, its one-sentence answer comes first, then each figure with one sentence before it on what to look at and a short paragraph after it on what it shows.
 Terms you may not know are underlined and open a card with their meaning, and check questions open their answer on a click.
 The PDF is printed on A3 paper by default. It holds the overview and every topic in order, with every step of each figure and the box cards open under each figure.
@@ -52,7 +54,7 @@ By default the files are kept in `explainer/<name>/` of the folder you work in.
 
 | Tool | When it's needed |
 |---|---|
-| Node.js 20 or later with `npx` | Always. The agent runs `npx -y @cardenelabs/dragon@0.82.0`, which fetches dragon into npm's cache on first use |
+| Node.js 20 or later with `npx` | Always. The agent runs `npx -y @cardenelabs/dragon@0.85.0`, which fetches dragon into npm's cache on first use |
 | `python3` | To print the PDF. The one that ships with macOS works |
 | Chrome, Chromium, Edge, Brave, or Playwright's headless shell | To print the PDF. Without one, you still get the HTML, and any browser can print it |
 | The dragon plugin | Optional. When its `dragon` skill is installed, the agent plans and writes the figures on its `plan`, `page`, `notation`, and `cheatsheet` formats |
