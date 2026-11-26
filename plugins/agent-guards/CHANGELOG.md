@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The hooks skip the value of a wrapper option, so `sudo -u root rm -rf /`, `nice -n 10 op read`, and `env -C /tmp git push --force` are judged like the command alone, and they read the string of `env -S`, the command `xargs` runs, each command after `find -exec`, `-execdir`, `-ok`, and `-okdir`, and the text `watch` runs. The secret read hook refuses `find -exec` that hands a found secret file to a reader through `{}`
+
 ## [0.2.0] - 2026-11-25
 
 - A secret write hook refuses writes to `.env` files, key files, and the places in `secret-paths` from a shell command (`>`, `>>`, `tee`, `cp`, `mv`, `sed -i`, `truncate`, `dd`), the Write, Edit, MultiEdit, and NotebookEdit tools, and a Codex patch. Turn it off with `AGENT_GUARDS_SECRET_WRITE=off`

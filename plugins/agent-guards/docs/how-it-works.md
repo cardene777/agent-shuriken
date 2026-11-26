@@ -20,8 +20,10 @@ All six hooks share one Python file, `hooks/lib/agent_guards.py`, and each `hook
 
 The hooks read the command the way a shell splits it.
 They cut the command at `;`, `&&`, `||`, `|`, `&`, parentheses, and line breaks, and read each part on its own.
-They skip leading variable assignments and the words `sudo`, `env`, `command`, `nohup`, `time`, `timeout`, and `exec`, so `sudo rm -rf /` is read as `rm`.
-They read the text after `bash -c`, `sh -c`, `zsh -c`, and `eval` as another command, up to three levels deep.
+They skip leading variable assignments and the words `sudo`, `doas`, `env`, `command`, `builtin`, `nohup`, `nice`, `time`, `timeout`, and `exec` with their options, so `sudo rm -rf /` is read as `rm`.
+An option that takes a value is skipped with its value, so `sudo -u root rm -rf /`, `nice -n 10 rm -rf /`, and `env -C /tmp rm -rf ~` are read as `rm` too.
+The string after `env -S` is read as the words that follow, as env splits it.
+They read the text after `bash -c`, `sh -c`, `zsh -c`, and `eval`, the command `xargs` runs, each command after `find -exec`, `-execdir`, `-ok`, and `-okdir`, and the text `watch` runs, as other commands, up to three levels deep.
 The body of a here-document opened outside quotes is not read as commands.
 `~`, `$HOME`, and `${HOME}` become your home folder; any other variable or command substitution is left unknown.
 
@@ -45,6 +47,7 @@ For the Read tool, it looks at `file_path`.
 
 When a reading command's file is a variable or a command substitution, such as `cat "$FILE"` or `cat $(find . -name '*.key')`, the hook cannot tell what it reads and refuses it.
 When `xargs` hands files to a reader, the hook refuses the command if any word of it is a secret file.
+When `find -exec` hands the found files to a reader through `{}`, the hook refuses it if any word of the `find` command is a secret file, as in `find . -name .env -exec cat {} \;`.
 
 ## Secret write
 
