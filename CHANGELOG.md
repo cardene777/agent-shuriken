@@ -7,6 +7,10 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ## [Unreleased]
 
+### Added
+
+- The explaining plugin, which builds an explanation of how a protocol, a system, or a process works around one running example, with a numbered map of the stages, pairs of similar things told apart, misreadings ruled out, every combination of conditions with its result, moving figures where order or conditions matter, and a closing table with one sentence to take away, and provides that structure to other skills through musubi
+
 ## [0.25.0] - 2026-11-26
 
 ### Plugins

@@ -136,12 +136,12 @@ example_uses_everything() {
 names_of_this_pc() {
   python3 -I - "$@" <<'PY'
 import os, re, sys
-own = "https://github.com/" + "cardene777/"
+own = "github.com/" + "cardene777"
 shapes = {
     "home path": r"/(?:Users|home)/[^/\s]+/",
     "local agent path": r"~/\.(?:claude|codex)/",
     "issue reference": r"\b(?:GH|Issue) #\d+",
-    "outside URL": r"https?://(?!" + re.escape(own[len("https://"):]) + r")(?!www\.w3\.org/)[^\s)\"'>]+",
+    "outside URL": r"https?://(?!" + re.escape(own) + r"(?![\w.-]))(?!www\.w3\.org/)[^\s)\"'>]+",
 }
 pattern = re.compile("|".join(shapes.values()))
 images = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico")
@@ -179,7 +179,7 @@ scan_finds_planted_shapes() {
     printf '~/.%s/settings.json\n' claude
     printf 'fixed in %s #%d\n' GH 12
     printf 'read %s://%s/guide\n' https example.com
-    printf 'plain words, a docs/home/page.md link, #12 alone, and %s://%s/%s/agent-shuriken\n' https github.com cardene777
+    printf 'plain words, a docs/home/page.md link, #12 alone, %s://%s/%s, and %s://%s/%s/agent-shuriken\n' https github.com cardene777 https github.com cardene777
   } >> "$T/control/$NAME/skills/$NAME/SKILL.md"
   for n in 1 2 3 4; do expected="${expected}skills/$NAME/SKILL.md:$((lines + n)) "; done
   hits="$(names_of_this_pc "$T/control/$NAME" | grep -v '^skills/[^/]*/tests/' | tr '\n' ' ')"
