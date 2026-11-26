@@ -8,7 +8,7 @@ Mechanism Explainerは、題材を、読み手の問いに順に答える1枚の
 
 | 段 | 起きること | 実行する物 |
 |---|---|---|
-| 準備を確かめる | エージェントがdragon 0.80.1が動くかを確かめます | `npx -y @cardenelabs/dragon@0.80.1 --version` |
+| 準備を確かめる | エージェントがdragon 0.82.0が動くかを確かめます | `npx -y @cardenelabs/dragon@0.82.0 --version` |
 | 構成案を立てる | 読み手、問い、問いごとの2〜4枚の図を書き、合うまで直します | なし |
 | 書く | `layout: guide`と`note: pop`を持つ`<name>.md`と、語を集めた`glossary.md`を書きます | なし |
 | 確かめる | 全ての図の記法の誤りと配置の崩れを確かめ、dragonが出した行を全て直します | `dragon check`と`dragon check --layout` |

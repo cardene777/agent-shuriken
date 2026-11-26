@@ -51,15 +51,14 @@ GitHub Copilot CLIでは依頼の文に`/mechanism-explainer`を書き、Gemini 
 問いの下には1文の答えが先に来て、図ごとに、前に見る所の1文が、後に図が示すことの短い段落が続きます。
 知らないかもしれない語には下線が付き、押すと意味の札が開きます。確かめの問いは押すと答えが開きます。
 PDFは既定でA3の紙に書き出します。
-dragon 0.80.1では最初のタブだけが紙に出て、箱の札は図の上に重なって開きます。
-全てのタブと図の下に開いた札を紙に出す直しは[dragon#3956](https://github.com/cardene777/dragon/issues/3956)が持ちます。
+全体像と全ての話題が順に紙に出て、図は段ごとに並び、箱の札は図の下に開きます。
 既定では、作業しているフォルダの`explainer/<name>/`に置きます。
 
 ## 必要な物
 
 | 道具 | 要る時 |
 |---|---|
-| Node.js 20以降と`npx` | いつも。エージェントは`npx -y @cardenelabs/dragon@0.80.1`を実行し、初回にnpmがdragonをキャッシュへ取ってきます |
+| Node.js 20以降と`npx` | いつも。エージェントは`npx -y @cardenelabs/dragon@0.82.0`を実行し、初回にnpmがdragonをキャッシュへ取ってきます |
 | `python3` | PDFを書き出す時。macOSに入っている物で動きます |
 | Chrome、Chromium、Edge、Brave、またはPlaywrightのheadless shell | PDFを書き出す時。無くてもHTMLはでき、どのブラウザでも印刷できます |
 | dragonのプラグイン | 任意。`dragon`のスキルが入っていると、エージェントはその`plan`、`page`、`notation`、`cheatsheet`の形に沿って図を立てて書きます |

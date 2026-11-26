@@ -18,10 +18,10 @@ The examples write into `explainer/<slug>/` of the folder the user works in; use
 
 ## 1. Check the setup
 
-The page is drawn by dragon 0.80.1, fetched by npm into its cache on first use.
+The page is drawn by dragon 0.82.0, fetched by npm into its cache on first use.
 
 ```bash
-npx -y @cardenelabs/dragon@0.80.1 --version
+npx -y @cardenelabs/dragon@0.82.0 --version
 ```
 
 - When `npx` is missing, stop and tell the user to install Node.js 20 or later from nodejs.org.
@@ -94,8 +94,8 @@ When the page is in Japanese and the `japanese-writing` skill is installed, open
 ## 4. Check the notation and the layout
 
 ```bash
-npx -y @cardenelabs/dragon@0.80.1 check explainer/<slug>/<slug>.md
-npx -y @cardenelabs/dragon@0.80.1 check --layout explainer/<slug>/<slug>.md
+npx -y @cardenelabs/dragon@0.82.0 check explainer/<slug>/<slug>.md
+npx -y @cardenelabs/dragon@0.82.0 check --layout explainer/<slug>/<slug>.md
 ```
 
 Fix every error that `check` prints, one at a time, and run it again until it prints none.
@@ -106,8 +106,8 @@ Add `--lang ja` to both commands when the page is in Japanese, so the messages a
 ## 5. Export the page
 
 ```bash
-npx -y @cardenelabs/dragon@0.80.1 export explainer/<slug>/<slug>.md
-npx -y @cardenelabs/dragon@0.80.1 embed explainer/<slug>/<slug>.html
+npx -y @cardenelabs/dragon@0.82.0 export explainer/<slug>/<slug>.md
+npx -y @cardenelabs/dragon@0.82.0 embed explainer/<slug>/<slug>.html
 ```
 
 - `export` writes `<slug>.html` next to the Markdown. Add `--lang ja` when the page is in Japanese, so the words dragon adds to the page are Japanese.
@@ -121,9 +121,7 @@ D=<folder of this SKILL.md>; python3 "$D/scripts/to-pdf.py" explainer/<slug>/<sl
 
 It prints the page with a Chromium-based browser already on the machine, on A3 paper unless `--paper a4` or `--paper letter` is given, and writes `<slug>.offline.pdf`.
 The PDF holds what dragon's print styles draw.
-With dragon 0.80.1, that is the tab open when the page loads, with its term cards and check answers open and its box cards open over their figure.
-[dragon#3956](https://github.com/cardene777/dragon/issues/3956) makes the paper copy hold every tab with the box cards under each figure, and this skill moves to that version once it is released.
-Tell the user which tabs the PDF holds.
+With dragon 0.82.0, that is the overview and every topic in order, without the side menu, with every step of each figure drawn one after another, the check answers open, and the box cards open under each figure.
 
 | Exit code | What to do |
 |---|---|

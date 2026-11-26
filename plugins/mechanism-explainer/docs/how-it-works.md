@@ -8,7 +8,7 @@ The skill itself holds only the steps and the PDF script; the figure kinds and t
 
 | Step | What happens | What it runs |
 |---|---|---|
-| Check the setup | The agent confirms that dragon 0.80.1 runs | `npx -y @cardenelabs/dragon@0.80.1 --version` |
+| Check the setup | The agent confirms that dragon 0.82.0 runs | `npx -y @cardenelabs/dragon@0.82.0 --version` |
 | Plan | The agent writes who reads the page, the questions, and two to four figures per question, and changes the plan until you agree | Nothing |
 | Write | The agent writes `<name>.md` with `layout: guide` and `note: pop`, and a `glossary.md` for terms | Nothing |
 | Check | Every figure is checked for notation errors and for layout breaks, and each line dragon prints is fixed | `dragon check` and `dragon check --layout` |
