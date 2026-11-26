@@ -22,6 +22,7 @@ plugins/<name>/skills/<skill>/            SKILL.md, agents/openai.yaml, scripts/
 plugins/<name>/evals/                     Cases for claude plugin eval, run by hand; results are not committed
 docs/                                     Repository docs, each with a .ja.md counterpart
 scripts/check.sh                          Repository checks, run before every pull request
+scripts/reached-checks.sh                 Runs scripts/check.sh and the plugin tests that read the root files a branch changes; the ikkan gates run it
 scripts/release.sh                        Releases a plugin or the repository
 CHANGELOG.md                              The repository's releases
 .ikkan/specs/                             Acceptance criteria kept by the ikkan workflow, not installed with any plugin
