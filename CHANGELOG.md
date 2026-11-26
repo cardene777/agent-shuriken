@@ -7,6 +7,10 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ## [Unreleased]
 
+### Removed
+
+- The dragon-explainer plugin is no longer offered in the marketplace, because mechanism-explainer writes the same kind of explainer page with dragon figures and is the one explainer plugin kept here. Copies already installed keep working, and its past release and tag stay available
+
 ## [0.24.0] - 2026-11-26
 
 ### Plugins
