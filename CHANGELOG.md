@@ -9,6 +9,7 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ### Added
 
+- The english-writing plugin, which writes and fixes English text without adding anything the original does not say, following the patterns of `blader/humanizer` copied without changes, with rules of its own on phrasing translated word for word from Japanese, short sentences, and consistent terms, and a script that points at long sentences, passive voice, and phrasing translated from Japanese
 - The explaining plugin, which builds an explanation of how a protocol, a system, or a process works around one running example, with a numbered map of the stages, pairs of similar things told apart, misreadings ruled out, every combination of conditions with its result, moving figures where order or conditions matter, and a closing table with one sentence to take away, and provides that structure to other skills through musubi
 
 ## [0.25.0] - 2026-11-26

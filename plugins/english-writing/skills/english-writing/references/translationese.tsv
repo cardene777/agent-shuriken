@@ -1,0 +1,28 @@
+# Phrasing that reads as a word-for-word translation from Japanese. scripts/suspects.py reads this file.
+# pattern: a Python regular expression, matched without regard to case against each sentence, after
+#          inline code, link targets, and URLs are taken out. ^ is the start of the sentence.
+# example: a sentence the pattern points at. The plugin's test runs the script on every example.
+# instead: what to write in its place.
+pattern	example	instead
+\bit is necessary (?:for \w+ )?to\b	It is necessary to restart the server after the update.	use "need to", "must", or the verb alone: "Restart the server after the update."
+\bin order to\b	We changed the setting in order to reduce the load.	use "to": "We changed the setting to reduce the load."
+^(?:regarding|concerning|as for|with regard to|in regard to|with respect to)\b[^,]*,	Regarding the login error, we fixed it yesterday.	start with the subject: "We fixed the login error yesterday."
+\b(?:perform|performs|performed|performing|carry out|carries out|carried out|conduct|conducts|conducted|do|does|did|execute|executes|executed)\s+(?:the |a |an )?\w+(?:tion|sion|ment|ance|ence|al)\s+of\b	Please perform the confirmation of the settings.	use the verb inside the noun: "Please confirm the settings."
+\b(?:make|makes|made|making|do|does|did|doing)\s+(?:the |a |an )?(?:confirmation|correction|modification|registration|investigation|correspondence|setting|settings)\b(?!\s+of\b)	We will make a confirmation with the team tomorrow.	use the verb: "We will confirm with the team tomorrow."
+\bit is (?:possible|able) (?:for \w+ )?to\b	It is possible to change the port in the settings.	use "can" with a subject: "You can change the port in the settings."
+\b(?:becomes?|became|becoming) (?:possible|able) to\b	After the update, it becomes possible to export the report.	use "can" with a subject: "After the update, you can export the report."
+\bthere is (?:a )?possibility (?:that|of)\b|\bhas (?:a )?possibility (?:of|to|that)\b	There is a possibility that the nightly job fails.	use "may" or "might": "The nightly job may fail."
+\bit (?:can be|could be|is) (?:said|thought|considered) that\b	It can be said that the new design is faster.	state the claim, or name who holds it: "The new design is faster."
+\bin the case (?:of|that|where)\b	In the case of an error, the tool stops.	use "if" or "when": "If an error occurs, the tool stops."
+\bin this time\b	We fixed two bugs in this time.	use "this time", or name the release: "We fixed two bugs in this release."
+\bplease (?:be careful|be aware|note) (?:that|of|about)\b	Please note that the tool deletes the cache every night.	state the fact: "The tool deletes the cache every night."
+\b(?:usage|use|setting|installation|operation|operating|confirmation) (?:method|procedure)s?\b	The usage method is in the README.	use "how to" and a verb: "The README shows how to use it."
+\bsuch as\b[^.]*\betc\b	The tool reads formats such as JSON, YAML, etc.	keep "such as" or "etc.", not both: "The tool reads formats such as JSON and YAML."
+\b[a-z]+(?:tion|sion|ment|ance|ence|ity)\s+[a-z]+(?:tion|sion|ment|ance|ence|ity)\s+[a-z]+(?:tion|sion|ment|ance|ence|ity)\b	The server handles authentication information management.	unstack the nouns with a verb: "The server manages the sign-in details."
+\b(?:correspond|corresponds|corresponded|corresponding) (?:to|with) (?:the |this |that |a |an )?(?:issue|error|bug|request|problem|incident|inquiry)\b	We will correspond to the issue next week.	name the action: "We will fix the issue next week."
+\bfrom the (?:viewpoint|standpoint|point of view) of\b	From the viewpoint of security, we keep the keys offline.	use "for": "For security, we keep the keys offline."
+\bwith the (?:aim|purpose|objective) of\b	We added the flag with the aim of saving time.	use "to": "We added the flag to save time."
+\b(?:the )?above-mentioned\b|\bthe aforementioned\b	The above-mentioned settings apply to every user.	use "these", or name the thing: "These settings apply to every user."
+\bas below\b	Run the command as below.	end the sentence and put the command after it: "Run this command."
+^(?![^?]*\?\s*$)(?:is|are|was|were|can|could|will|should|must|has|have)\s+(?!(?:you|we|i|it|this|that|these|those|there|they|he|she|the|a|an|our|your|my|their|its|his|her|any|each|every|all|some|no|one|anyone|someone|everyone|nobody)\b)\w+	Can use the command on Linux too.	add the subject: "You can use the command on Linux too."
+^(?:confirmed|checked|verified|investigated|implemented|corrected|executed|performed|conducted)\s+(?:that|the|whether|if)\b	Confirmed that the build passes on Linux.	add the subject: "We confirmed that the build passes on Linux."
