@@ -614,11 +614,41 @@ check_agents_english() {
 }
 
 # The ikkan gates refuse this repository unless .ikkan/checks.md names its reached checks,
-# and the implementation step's gate runs this script as those checks.
+# and the implementation step's gate runs scripts/reached-checks.sh as those checks: this
+# script, then the plugin tests that read the root files a branch changes.
 check_ikkan_reached_checks() {
-  grep -qxF '| Reached checks | `bash scripts/check.sh` |' .ikkan/checks.md 2>/dev/null && return 0
-  echo '.ikkan/checks.md does not hold the row: | Reached checks | `bash scripts/check.sh` |'
+  grep -qxF '| Reached checks | `bash scripts/reached-checks.sh` |' .ikkan/checks.md 2>/dev/null && return 0
+  echo '.ikkan/checks.md does not hold the row: | Reached checks | `bash scripts/reached-checks.sh` |'
   return 1
+}
+
+# A plugin test that reads a root file can break without a change to its own plugin, so the
+# reached checks pick it when a branch changes that file. The remotion-explainer test reads the
+# dependency line of AGENTS.md, and every test picked for AGENTS.md names that file.
+check_reached_root_file() {
+  [ -f scripts/reached-checks.sh ] || { echo "scripts/reached-checks.sh is missing"; return 1; }
+  local got f bad=0
+  got="$(bash scripts/reached-checks.sh --list AGENTS.md)" || { echo "scripts/reached-checks.sh --list AGENTS.md failed"; return 1; }
+  printf '%s\n' "$got" | grep -qxF 'plugins/remotion-explainer/tests/test-remotion-explainer.sh' \
+    || { echo "--list AGENTS.md does not pick the remotion-explainer test"; bad=1; }
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    case "$f" in
+      plugins/*/tests/*|plugins/*/skills/*/tests/*) ;;
+      *) echo "--list AGENTS.md picked $f, which is not a plugin test"; bad=1; continue ;;
+    esac
+    grep -qF 'AGENTS.md' "$f" || { echo "--list AGENTS.md picked $f, which does not name AGENTS.md"; bad=1; }
+  done <<< "$got"
+  return "$bad"
+}
+
+# A change inside plugins/ is covered by the test step of its own issue, so it picks no plugin test.
+check_reached_inside_plugins() {
+  [ -f scripts/reached-checks.sh ] || { echo "scripts/reached-checks.sh is missing"; return 1; }
+  local got
+  got="$(bash scripts/reached-checks.sh --list plugins/techdebt/README.md)" \
+    || { echo "scripts/reached-checks.sh --list plugins/techdebt/README.md failed"; return 1; }
+  [ -z "$got" ] || { echo "a change inside plugins/ picked: $got"; return 1; }
 }
 
 check_plugin_validate() {
@@ -661,6 +691,8 @@ run "bundled data is credited" check_notices
 run "script dependencies are named in AGENTS.md" check_script_dependencies
 run "AGENTS.md asks for issues and new .ikkan records in English" check_agents_english
 run "the ikkan gates run these checks" check_ikkan_reached_checks
+run "the reached checks pick the plugin tests that read a changed root file" check_reached_root_file
+run "the reached checks pick no plugin test for a change inside plugins" check_reached_inside_plugins
 run "claude plugin validate" check_plugin_validate
 
 printf '%d passed, %d failed, %d skipped\n' "$pass" "$fail" "$skip"
