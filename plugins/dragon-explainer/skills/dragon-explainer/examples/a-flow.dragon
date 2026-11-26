@@ -1,0 +1,27 @@
+flow From the catalog to the pickup shelf
+
+box search as Member searches the catalog
+box list as Catalog lists every copy
+choice shelf as Is a copy on the shelf
+box pull as Staff pull the copy
+box queue as Member joins the hold queue
+box hold as Hold shelf for 7 days
+
+step Search
+  say The member searches by title, author, or subject.
+  start -> search
+  search -> list: search
+
+step Choose
+  say The catalog shows each copy with its branch and status.
+  list -> shelf: pick a copy
+
+step Pull or wait
+  say A copy on the shelf is pulled the same day; when every copy is out, the member waits in line.
+  shelf -> pull: on the shelf
+  shelf -> queue: all out
+
+step Pick up
+  say The copy waits 7 days at the pickup branch and the member gets a notice.
+  pull -> hold
+  queue -> hold: returned

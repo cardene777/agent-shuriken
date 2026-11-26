@@ -1,0 +1,321 @@
+/* Explainer layout. A header band holds the title, the switches, the PDF button, and the help button;
+   the left contents list picks a section; one section is shown at a time.
+   A document with 2 or more topics is split into pages by tabs in the header band.
+   Colors are tokens: light on :root, dark when the system asks for it or the reader picks it
+   (data-theme on <html>, set by doc.js). Paper (data-paper, set by print.js) always uses the light tokens.
+   On narrow screens a bar shows the current section and the contents button slides the list in. */
+:root {
+  color-scheme: light;
+  --bg: #f6f6f8; --surface: #fff; --line: #e4e4e8; --label: #f0f0f3;
+  --ink: #111114; --sub: #545a66;
+  --accent: #1d4ed8; --accent-soft: #eef2ff; --accent-ink: #fff;
+  --critical: #b91c1c; --critical-soft: #fdf2f2; --warn: #a15c07; --warn-soft: #fdf8ec;
+  --good: #047857; --good-soft: #ecfdf5;
+  --edge: #64748b; --edge-emphasis: #047857; --edge-dashed: #8b5cf6;
+  /* Chart colors named in a chart spec (assets/charts.js); --chart-on is text drawn on a colored bar. */
+  --chart-gray: #64748b; --chart-blue: #0369a1; --chart-orange: #c2410c; --chart-violet: #6d28d9;
+  --chart-violet2: #7c3aed; --chart-green: #047857; --chart-red: #b91c1c; --chart-on: #fff;
+  --shadow: rgba(0, 0, 0, .12); --scrim: rgba(17, 17, 20, .35);
+  /* The base colors are named after the keys of the page-design theme file (formats/theme.md), so
+     `page-design.py theme` can replace them; the shades below are mixed from them and follow along. */
+  --panel: var(--surface); --card: var(--surface); --ink-sub: var(--sub);
+  --panel-2: color-mix(in srgb, var(--bg) 51%, var(--surface));
+  --line-2: color-mix(in srgb, var(--ink) 8%, var(--line));
+  --rule: color-mix(in srgb, var(--bg) 32%, var(--sub));
+  --ink-2: color-mix(in srgb, var(--ink) 39%, var(--sub));
+  --ink-3: color-mix(in srgb, color-mix(in srgb, var(--ink) 36%, var(--sub)) 71%, var(--line));
+  --ink-faint: color-mix(in srgb, color-mix(in srgb, var(--ink) 38%, var(--sub)) 74%, var(--label));
+  --track: color-mix(in srgb, var(--bg) 97%, var(--sub));
+  --radius: 14px;
+  --side: 264px;
+  --top: 56px;
+  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+}
+/* --line and --line-2 draw frames; --rule draws the lines between table rows, at 3 to 1 against the
+   page and the table in both themes. --label is the background of the labels of the facts table. */
+/* The same dark tokens twice: once for the system setting, once for the reader's choice. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-paper]) {
+    color-scheme: dark;
+    --bg: #121519; --surface: #1a1e24; --line: #2e343d; --label: #242a32;
+    --ink: #e6e9ee; --sub: #b0b8c4;
+    --accent: #8aa8ff; --accent-soft: #1f2a45; --accent-ink: #0f1420;
+    --critical: #f19999; --critical-soft: #3a1f22; --warn: #e8b766; --warn-soft: #3a2e17;
+    --good: #6fd3a8; --good-soft: #15322a;
+    --edge: #94a3b8; --edge-emphasis: #34d399; --edge-dashed: #a78bfa;
+    --chart-gray: #94a3b8; --chart-blue: #7dd3fc; --chart-orange: #fdba74; --chart-violet: #c4b5fd;
+    --chart-violet2: #a78bfa; --chart-green: #6ee7b7; --chart-red: #fca5a5; --chart-on: #111418;
+    --shadow: rgba(0, 0, 0, .5); --scrim: rgba(0, 0, 0, .55);
+    --panel-2: color-mix(in srgb, var(--bg) 22%, var(--label));
+    --line-2: color-mix(in srgb, var(--sub) 16%, var(--line));
+    --rule: color-mix(in srgb, var(--sub) 45%, var(--line));
+    --ink-2: color-mix(in srgb, var(--ink) 44%, var(--sub));
+    --ink-3: color-mix(in srgb, var(--sub) 91%, var(--label));
+    --ink-faint: color-mix(in srgb, var(--bg) 14%, var(--sub));
+    --track: color-mix(in srgb, var(--line) 23%, var(--label));
+  }
+}
+:root[data-theme="dark"]:not([data-paper]) {
+  color-scheme: dark;
+  --bg: #121519; --surface: #1a1e24; --line: #2e343d; --label: #242a32;
+  --ink: #e6e9ee; --sub: #b0b8c4;
+  --accent: #8aa8ff; --accent-soft: #1f2a45; --accent-ink: #0f1420;
+  --critical: #f19999; --critical-soft: #3a1f22; --warn: #e8b766; --warn-soft: #3a2e17;
+  --good: #6fd3a8; --good-soft: #15322a;
+  --edge: #94a3b8; --edge-emphasis: #34d399; --edge-dashed: #a78bfa;
+  --chart-gray: #94a3b8; --chart-blue: #7dd3fc; --chart-orange: #fdba74; --chart-violet: #c4b5fd;
+  --chart-violet2: #a78bfa; --chart-green: #6ee7b7; --chart-red: #fca5a5; --chart-on: #111418;
+  --shadow: rgba(0, 0, 0, .5); --scrim: rgba(0, 0, 0, .55);
+  --panel-2: color-mix(in srgb, var(--bg) 22%, var(--label));
+  --line-2: color-mix(in srgb, var(--sub) 16%, var(--line));
+  --rule: color-mix(in srgb, var(--sub) 45%, var(--line));
+  --ink-2: color-mix(in srgb, var(--ink) 44%, var(--sub));
+  --ink-3: color-mix(in srgb, var(--sub) 91%, var(--label));
+  --ink-faint: color-mix(in srgb, var(--bg) 14%, var(--sub));
+  --track: color-mix(in srgb, var(--line) 23%, var(--label));
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--sans);
+  font-size: 15px; line-height: 1.8; -webkit-font-smoothing: antialiased; font-feature-settings: "palt";
+  display: grid; grid-template-columns: var(--side) minmax(0, 1fr); grid-template-rows: var(--top) minmax(0, 1fr);
+  overflow: hidden;
+}
+/* Links inside the document use the text color and an underline,
+   so they do not look like the browser's default blue links that leave the page. */
+a { color: inherit; text-underline-offset: 3px; }
+h1, h2, h3, p { margin: 0; }
+code { font-family: var(--mono); font-size: .88em; background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; }
+button { font: inherit; color: inherit; }
+
+/* Header band: the document name, the page tabs when there are several pages, and on the right the
+   language and light or dark switches, the PDF button, and the help button, in one row. */
+.doc-top { grid-column: 1 / -1; display: flex; align-items: stretch; gap: 12px; padding: 0 24px; background: var(--panel); border-bottom: 1px solid var(--line); min-width: 0; }
+.doc-brand { align-self: center; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 700; font-size: 15.5px; letter-spacing: -.01em; white-space: nowrap; }
+.doc-tools { display: flex; align-items: center; gap: 10px; margin-left: auto; flex: none; }
+.doc-tools .printbar { display: flex; align-items: center; }
+/* Page tabs: one row that scrolls sideways when it does not fit. The chosen tab has the accent color,
+   a 3px line under it, and weight 600; the line and the colors change in .2s. */
+.doc-pages { display: flex; gap: 4px; min-width: 0; margin-left: 16px; overflow-x: auto; scrollbar-width: none; }
+.doc-pages::-webkit-scrollbar { display: none; }
+.doc-pages button { display: flex; align-items: center; padding: 0 16px; font-size: 15px; color: var(--ink-2); background: none; border: 0; border-bottom: 3px solid transparent; margin-bottom: -1px; cursor: pointer; white-space: nowrap; transition: color .2s ease, border-color .2s ease, background-color .2s ease; }
+.doc-pages button:hover { color: var(--ink); background: var(--bg); }
+.doc-pages button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+.doc-pages button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* Language and light or dark switches, side by side. They sit in the header band; on narrow screens
+   doc.js moves them into the top bar. They need doc.js, like the help button, so both are hidden
+   without scripts. */
+.doc-ctrl { display: flex; align-items: center; gap: 6px; flex: none; }
+html:not(.doc-js) :is(.doc-ctrl, .doc-help, .details-all) { display: none; }
+.doc-seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: 8px; overflow: hidden; background: var(--panel); }
+.doc-seg button { display: inline-flex; align-items: center; justify-content: center; min-height: 28px; padding: 0 8px; border: 0; background: none; color: var(--ink-2); font-size: 12.5px; line-height: 1; cursor: pointer; white-space: nowrap; transition: background-color .15s, color .15s; }
+.doc-seg button + button { border-left: 1px solid var(--line-2); }
+.doc-seg button:hover { background: var(--bg); color: var(--ink); }
+.doc-seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.doc-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.doc-seg svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Icon buttons: the help button in the header band, the enlarge button of a figure, and the close
+   button of a dialog. Each has a label from the dictionary of the page. */
+.doc-help, .fig-enlarge, .doc-close { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 32px; height: 32px; padding: 0; border: 1px solid var(--line-2); border-radius: 999px; background: var(--panel); color: var(--ink-2); font-size: 15px; font-weight: 700; line-height: 1; cursor: pointer; }
+:is(.doc-help, .fig-enlarge, .doc-close):hover { border-color: var(--accent); color: var(--accent); }
+:is(.doc-help, .fig-enlarge, .doc-close):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.fig-enlarge svg { display: block; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Left contents list. One per page; only the shown page's list is visible. */
+.doc-side { background: var(--panel); border-right: 1px solid var(--line); padding: 22px 16px; display: flex; flex-direction: column; gap: 2px; overflow: auto; min-height: 0; }
+.doc-toc { display: flex; flex-direction: column; gap: 2px; }
+.doc-toc[hidden] { display: none; }
+.doc-toc .doc-toc-head { font-size: 12px; font-weight: 600; color: var(--accent); letter-spacing: .02em; padding: 0 12px 8px; }
+.doc-toc button { min-height: 44px; text-align: left; border: 0; background: none; padding: 9px 12px; border-radius: 9px; color: var(--ink-2); cursor: pointer; font-size: 14px; line-height: 1.5; }
+.doc-toc button:hover { background: var(--bg); }
+.doc-toc button[aria-current] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+
+/* Top bar for narrow screens. Hidden on wide screens. */
+.doc-mbar, .doc-scrim { display: none; }
+
+/* Body. One section per screen; the section explains its topic fully in prose. */
+.doc-main { overflow: auto; min-height: 0; display: flex; flex-direction: column; }
+.doc-page[hidden] { display: none; }
+.doc-sec { width: 100%; max-width: 1180px; margin: 0 auto; padding: 44px 52px 32px; }
+html.doc-js .doc-sec:not(.on) { display: none; }
+.doc-sec > * + * { margin-top: 18px; }
+.doc-pagehead { margin-bottom: 30px; }
+.doc-pagehead h1 { font-size: 34px; line-height: 1.25; letter-spacing: -.02em; }
+.doc-pagehead .lead { margin-top: 12px; font-size: 18px; color: var(--ink-2); }
+.doc-sec h2 { font-size: 26px; line-height: 1.35; letter-spacing: -.01em; }
+.doc-sec h2 .num { color: var(--ink-faint); font-size: 14px; margin-right: 12px; font-weight: 600; letter-spacing: 0; }
+.doc-sec h3 { font-size: 19px; line-height: 1.45; margin-top: 30px; }
+/* Japanese sentences start on new lines (render.py); the line height keeps wrapped lines and new sentences evenly spaced. */
+.doc-sec p, .doc-sec li { font-size: 16px; line-height: 1.75; color: var(--ink-2); }
+/* Text wraps at the same right edge as figures and boxes.
+   Balance headings and the lead, and avoid a last line with only one or two characters. */
+.doc-pagehead .lead, .doc-sec h2, .doc-sec h3 { text-wrap: balance; }
+.doc-sec p, .doc-sec li { text-wrap: pretty; }
+/* Japanese text wraps at phrase boundaries instead of inside words.
+   This applies only with `lang="ja"`; browsers without support wrap as usual.
+   A word longer than the column still breaks so nothing overflows sideways. */
+.doc-pagehead, .doc-sec, .doc-mbar, .doc-side { word-break: auto-phrase; overflow-wrap: break-word; }
+.doc-sec pre, .doc-sec code { word-break: normal; }
+/* Japanese text gets no added letter-spacing; the values above are for Latin text. */
+:lang(ja) :is(.doc-brand, .doc-toc-head, h1, h2, .keys b, .compare .big) { letter-spacing: normal; }
+.doc-sec ul, .doc-sec ol { padding-left: 1.4em; }
+.doc-step { width: 100%; max-width: 1180px; margin: 0 auto; padding: 8px 52px 32px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--ink-3); }
+.doc-step button { min-height: 44px; font-size: 13.5px; border: 1px solid var(--line); background: var(--panel); border-radius: 9px; padding: 8px 16px; cursor: pointer; color: var(--ink); }
+.doc-step button:disabled { opacity: .35; cursor: default; }
+
+/* Facts about the document under the first title: one fact per row, the label in its own cell. */
+.facts { width: 100%; margin-top: 20px; border-collapse: collapse; font-size: 14px; line-height: 1.6; background: var(--panel); border: 1px solid var(--line); }
+.facts th { width: 1%; padding: 8px 12px; background: var(--label); color: var(--ink-2); font-weight: 600; text-align: left; vertical-align: top; white-space: nowrap; }
+.facts td { padding: 8px 12px; color: var(--ink); }
+.facts tr + tr > * { border-top: 1px solid var(--line); }
+
+/* Figures and captions. The figure number (render.py) is kept apart from the caption by a margin,
+   not a space, so the gap is the same in Japanese, where spaces next to numbers are removed. */
+figure { position: relative; margin: 24px 0 0; }
+figcaption { font-size: 13px; color: var(--ink-3); margin-top: 10px; }
+figcaption .fig-no { margin-right: .6em; font-weight: 600; color: var(--ink-2); }
+/* doc.js puts an enlarge button at the right of the caption line; the caption leaves room for it. */
+figure > .fig-enlarge { position: absolute; right: 12px; bottom: 8px; }
+figure:has(> .fig-enlarge) > figcaption { min-height: 32px; padding-right: 44px; }
+/* A chart or step ladder that does not fit its frame at a readable size keeps its size and scrolls
+   sideways in its frame, and so does a table wider than its box. doc.js names the sides where it
+   continues in data-more; that edge fades out, and the line under a figure (.fig-more) says it scrolls.
+   A table keeps its first column in place, so the fade on its left starts after that column (--first). */
+.fig-scroll { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
+:is(.fig-scroll, .tbl)[data-more="right"] { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent); }
+.fig-scroll[data-more="left"] { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 56px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 56px), transparent); }
+.fig-scroll[data-more="left right"] { -webkit-mask-image: linear-gradient(to right, transparent, #000 56px, #000 calc(100% - 56px), transparent); mask-image: linear-gradient(to right, transparent, #000 56px, #000 calc(100% - 56px), transparent); }
+.tbl[data-more="left"] { -webkit-mask-image: linear-gradient(to right, #000 var(--first), transparent var(--first), #000 calc(var(--first) + 40px)); mask-image: linear-gradient(to right, #000 var(--first), transparent var(--first), #000 calc(var(--first) + 40px)); }
+.tbl[data-more="left right"] { -webkit-mask-image: linear-gradient(to right, #000 var(--first), transparent var(--first), #000 calc(var(--first) + 40px), #000 calc(100% - 56px), transparent); mask-image: linear-gradient(to right, #000 var(--first), transparent var(--first), #000 calc(var(--first) + 40px), #000 calc(100% - 56px), transparent); }
+:is(.fig-scroll, .tbl):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.fig-more { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 13px; line-height: 1.5; color: var(--ink-3); }
+.fig-more::before { content: "\2194"; font-size: 16px; color: var(--accent); }
+.fig-more[hidden] { display: none; }
+/* Line legend for figures drawn in `html` blocks. */
+.legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 12px 0 0; font-size: 12.5px; color: var(--ink-sub); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 22px; height: 0; border-top-width: 2px; border-top-style: solid; display: inline-block; }
+/* The drawing of a figure opens enlarged when pressed. */
+figure.free > :not(figcaption, button, dialog), figure.chart > .fig-scroll { cursor: zoom-in; }
+
+/* Dialogs: an enlarged figure fills the window and scrolls both ways; the help is a short list. */
+dialog { padding: 0; border: 1px solid var(--line-2); border-radius: var(--radius); background: var(--panel); color: var(--ink); box-shadow: 0 12px 40px var(--shadow); }
+dialog::backdrop { background: var(--scrim); }
+.doc-dialog-bar { display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 20px; border-bottom: 1px solid var(--line); }
+.doc-dialog-bar > :first-child { flex: 1 1 auto; min-width: 0; margin: 0; }
+dialog.fig-zoom { width: calc(100vw - 32px); height: calc(100dvh - 32px); max-width: none; max-height: none; }
+dialog.fig-zoom[open] { display: flex; flex-direction: column; }
+.fig-zoom .fig-zoom-title { font-size: 14px; line-height: 1.5; color: var(--ink-2); }
+.fig-zoom-view { flex: 1 1 auto; overflow: auto; padding: 24px; }
+/* The copy of the figure is laid out at the figure's width and drawn at twice that size. */
+.fig-zoom-stage { zoom: 2; }
+.fig-zoom-stage .fig-scroll { overflow: visible; -webkit-mask-image: none; mask-image: none; }
+dialog.doc-helpbox { width: min(480px, calc(100vw - 32px)); }
+.doc-helpbox h2 { font-size: 17px; line-height: 1.4; }
+.doc-helpbox ul { margin: 0; padding: 14px 24px 18px 40px; font-size: 15px; line-height: 1.7; color: var(--ink-2); }
+.doc-helpbox li + li { margin-top: 6px; }
+
+/* Reading shapes that are not figures. On narrow screens they reflow and never overflow sideways. */
+.keys { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.keys > div { background: var(--panel); border: 1px solid var(--line); border-top: 3px solid var(--accent); border-radius: 10px; padding: 12px 16px; min-width: 0; }
+.keys b { display: block; font-size: 20px; line-height: 1.35; letter-spacing: -.01em; }
+.keys span { display: block; margin-top: 4px; font-size: 13.5px; line-height: 1.65; color: var(--ink-3); }
+/* Cards: a list with one card per item, the same fields in the same order. A tone colors the tag
+   of a card only for a state (good or warn). */
+.doc-sec .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-bottom: 0; padding: 0; list-style: none; }
+.card { --t: var(--ink-3); --t-soft: var(--label); background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; min-width: 0; }
+.card[data-tone="good"] { --t: var(--good); --t-soft: var(--good-soft); }
+.card[data-tone="warn"] { --t: var(--warn); --t-soft: var(--warn-soft); }
+.card .chip { display: inline-block; font-size: 12px; font-weight: 700; padding: 1px 10px; border-radius: 999px; background: var(--t-soft); color: var(--t); }
+.card h4 { margin: 8px 0 4px; font-size: 17px; line-height: 1.45; }
+.doc-sec .card p, .doc-sec .card li { font-size: 14px; line-height: 1.7; }
+.card ul { margin: 0; }
+/* Notes. An explanation is a titled paragraph in gray text; a warning is a framed box with an icon
+   and a title that names the risk. */
+.note > b { display: block; font-size: 15px; color: var(--ink); }
+.doc-sec .note p { font-size: 15px; line-height: 1.7; color: var(--ink-2); }
+.note.warn { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 10px; align-items: start; background: var(--warn-soft); border: 1px solid var(--warn); border-left-width: 4px; border-radius: 4px 10px 10px 4px; padding: 13px 18px; }
+.note.warn > b { color: var(--warn); }
+.note.warn > p { grid-column: 2; }
+.doc-sec .note.warn p { color: var(--ink-2); }
+.note-icon { width: 18px; height: 18px; margin-top: 3px; fill: none; stroke: var(--warn); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.compare { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 14px; align-items: stretch; }
+.compare .side { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; }
+.compare .side.after { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.compare .cap { font-size: 12.5px; font-weight: 700; color: var(--ink-3); }
+.compare .big { font-size: 34px; font-weight: 800; line-height: 1.25; letter-spacing: -.02em; margin: 4px 0; overflow-wrap: anywhere; }
+.compare .after .big { color: var(--accent); }
+.doc-sec .compare .say { font-size: 13.5px; line-height: 1.7; }
+.compare .arrow { align-self: center; color: var(--ink-faint); font-size: 22px; }
+/* Writer-made shapes (`html` blocks). The writer's CSS applies only inside the block. */
+.free { max-width: 100%; overflow-x: auto; }
+figure.free { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px 26px 16px; }
+/* A motion figure: the page motion-diagram wrote, in a frame that doc.js makes as tall as the picture. */
+.motion-frame { display: block; width: 100%; height: 420px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+
+/* Tables. The caption names the table and its box. The box scrolls when the table is longer or wider
+   than it, keeping the header row on top and the first column at the left. The table takes the width
+   of its content, numbers align right in tabular figures, and long text wraps. */
+.tbl { max-height: 70vh; overflow: auto; }
+table { border-collapse: collapse; font-size: 14px; line-height: 1.7; }
+.tbl table { width: auto; max-width: 100%; border-collapse: separate; border-spacing: 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+.tbl caption { caption-side: top; padding: 0 0 8px; text-align: left; font-size: 13.5px; font-weight: 600; color: var(--ink-2); }
+th, td { padding: 8px 12px; text-align: left; vertical-align: top; }
+.tbl th { font-weight: 600; color: var(--ink-2); background: var(--panel); }
+.tbl td { color: var(--ink-2); }
+.tbl thead th { position: sticky; top: 0; z-index: 1; font-size: 12.5px; color: var(--ink-3); background: var(--panel-2); border-bottom: 2px solid var(--rule); }
+.tbl tbody tr:not(:last-child) > * { border-bottom: 1px solid var(--rule); }
+.tbl tr > :first-child { position: sticky; left: 0; border-right: 1px solid var(--line-2); }
+.tbl thead tr > :first-child { z-index: 2; }
+.tbl thead th:first-child { border-top-left-radius: var(--radius); }
+.tbl thead th:last-child { border-top-right-radius: var(--radius); }
+:is(th, td).num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+pre { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-size: 13px; }
+pre code { border: 0; padding: 0; background: none; }
+
+/* Collapsed details. Four or more in a row start with buttons that open or close all of them. */
+details.exp > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 12px; padding: 13px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--ink-sub); font-size: 13.5px; }
+details.exp > summary::-webkit-details-marker { display: none; }
+details.exp > summary::before { content: ""; flex: none; width: 0; height: 0; border-left: 6px solid currentColor; border-top: 4.5px solid transparent; border-bottom: 4.5px solid transparent; transition: transform .15s; }
+details.exp[open] > summary::before { transform: rotate(90deg); }
+.exp-body { padding: 4px 4px 0; }
+.details-all { display: flex; gap: 8px; }
+.details-all button { min-height: 32px; padding: 4px 14px; border: 1px solid var(--line-2); border-radius: 999px; background: var(--panel); color: var(--ink-2); font-size: 13px; cursor: pointer; }
+.details-all button:hover { border-color: var(--accent); color: var(--accent); }
+.doc-sec .details-all + details.exp, .doc-sec details.exp + details.exp { margin-top: 8px; }
+
+@media (max-width: 640px) {
+  .compare { grid-template-columns: minmax(0, 1fr); }
+  .compare .arrow { justify-self: center; transform: rotate(90deg); }
+}
+
+@media (max-width: 860px) {
+  body { grid-template-columns: minmax(0, 1fr); grid-template-rows: 50px auto minmax(0, 1fr); }
+  .doc-top { padding: 0 12px; }
+  /* On narrow screens a long title gives way to the page tabs. */
+  .doc-top .doc-brand { font-size: 14px; max-width: 34vw; }
+  .doc-pages { flex: 0 1 auto; margin-left: 0; }
+  .doc-pages button { padding: 0 10px; font-size: 14px; }
+  .doc-tools { gap: 8px; }
+  .doc-side { position: fixed; top: 0; bottom: 0; left: 0; width: 82%; max-width: 320px; z-index: 30; border-right: 1px solid var(--line); transform: translateX(-105%); box-shadow: 8px 0 30px var(--shadow); }
+  html.doc-side-open .doc-side { transform: none; }
+  html.doc-side-open .doc-scrim { display: block; position: fixed; inset: 0; background: var(--scrim); z-index: 25; }
+  /* The switches join the bar and move to a second row when the bar has no room for them. */
+  .doc-mbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; background: var(--panel); border-bottom: 1px solid var(--line); padding: 8px 14px; min-width: 0; }
+  .doc-mbar > button { font-size: 14px; border: 1px solid var(--line); background: var(--panel); border-radius: 9px; padding: 5px 12px; cursor: pointer; white-space: nowrap; }
+  .doc-mbar .doc-here { flex: 1 1 120px; min-width: 0; font-weight: 600; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .doc-mbar .doc-count { font-size: 12.5px; color: var(--ink-3); }
+  .doc-mbar .doc-ctrl { margin-left: auto; }
+  .doc-sec { padding: 26px 18px 20px; }
+  figure.free { padding: 16px; }
+  .doc-pagehead h1 { font-size: 26px; }
+  .doc-step { padding: 8px 18px 24px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
