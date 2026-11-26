@@ -112,7 +112,31 @@ def command_text(event):
 
 SHELLS = {"bash", "sh", "zsh", "dash", "ksh"}
 OPERATORS = {";", "&&", "||", "|", "|&", "&", "(", ")", ";;", "{", "}"}
-WRAPPERS = {"sudo", "command", "builtin", "exec", "nohup", "time", "nice", "doas"}
+# Commands that run the command after their options, and their options that take the next word as
+# their value. An option written with its value in the same word (`-n10`, `--user=root`) is one word.
+WRAPPERS = {
+    "sudo": {"-u", "-g", "-h", "-p", "-C", "-D", "-R", "-T", "-U", "-r", "-t", "--user", "--group", "--host",
+             "--prompt", "--close-from", "--chdir", "--chroot", "--command-timeout", "--other-user", "--role",
+             "--type"},
+    "doas": {"-u", "-C"},
+    "exec": {"-a"},
+    "time": {"-o", "-f", "--output", "--format"},
+    "nice": {"-n", "--adjustment"},
+    "env": {"-u", "-C", "--unset", "--chdir"},
+    "timeout": {"-s", "-k", "--signal", "--kill-after"},
+    "command": set(),
+    "builtin": set(),
+    "nohup": set(),
+}
+# Commands that run other commands, with the options that take a value. `find` runs the words after
+# each of FIND_EXEC, up to `;` or a `+` after `{}`.
+RUNNERS = {
+    "xargs": {"-a", "-d", "-E", "-I", "-J", "-L", "-n", "-P", "-R", "-s", "-S", "--arg-file", "--delimiter",
+              "--max-args", "--max-chars", "--max-lines", "--max-procs", "--process-slot-var"},
+    "watch": {"-n", "-q", "--interval", "--equexit"},
+}
+FIND_EXEC = {"-exec", "-execdir", "-ok", "-okdir"}
+ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 
 
 def strip_heredocs(text):
@@ -204,7 +228,7 @@ def tokens(text):
 
 
 def segments(text, depth=0):
-    """Simple commands of a shell text, each a list of words, with nested `bash -c` and `eval` texts."""
+    """Simple commands of a shell text, each a list of words, with the commands they run inside them."""
     words = tokens(text)
     if words is None:
         return None
@@ -218,40 +242,103 @@ def segments(text, depth=0):
             current.append(w)
     nested = []
     for seg in out:
-        cmd, args = command_of(seg)
-        if depth < 3 and cmd in SHELLS:
-            for i, a in enumerate(args):
-                if a in ("-c", "-lc", "-ic") and i + 1 < len(args):
-                    inner = segments(args[i + 1], depth + 1)
-                    nested.extend(inner or [])
-                    break
-        elif depth < 3 and cmd == "eval":
-            nested.extend(segments(" ".join(args), depth + 1) or [])
+        nested.extend(nested_segments(seg, depth))
     return out + nested
 
 
+def nested_segments(seg, depth):
+    """The commands one simple command runs inside itself, up to three levels deep: the text after
+    `bash -c` and `eval`, the command of `xargs`, each command after a `-exec` of `find`, and the text
+    `watch` hands to the shell."""
+    if depth >= 3:
+        return []
+    cmd, args = command_of(seg)
+    if cmd in SHELLS:
+        for i, a in enumerate(args):
+            if a in ("-c", "-lc", "-ic") and i + 1 < len(args):
+                return segments(args[i + 1], depth + 1) or []
+        return []
+    if cmd == "eval":
+        return segments(" ".join(args), depth + 1) or []
+    if cmd == "watch":
+        rest = past_options(args, RUNNERS["watch"])
+        return (segments(" ".join(rest), depth + 1) or []) if rest else []
+    out = []
+    for inner in run_commands(cmd, args):
+        out.append(inner)
+        out.extend(nested_segments(inner, depth + 1))
+    return out
+
+
+def past_options(args, values):
+    """The words after the leading options, skipping the value of each option in `values`."""
+    i = 0
+    while i < len(args) and args[i].startswith("-") and args[i] != "-":
+        if args[i] == "--":
+            return args[i + 1:]
+        i += 2 if args[i] in values else 1
+    return args[i:]
+
+
+def run_commands(cmd, args):
+    """The commands `xargs` and `find` run, each a list of words."""
+    if cmd == "xargs":
+        rest = past_options(args, RUNNERS["xargs"])
+        return [rest] if rest else []
+    if cmd != "find":
+        return []
+    out = []
+    for k, a in enumerate(args):
+        if a not in FIND_EXEC:
+            continue
+        inner = []
+        for b in args[k + 1:]:
+            if b == ";" or (b == "+" and inner and inner[-1] == "{}"):
+                break
+            inner.append(b)
+        if inner:
+            out.append(inner)
+    return out
+
+
+def env_split_string(seg, i):
+    """The string of the `env -S` option at seg[i] and the index after it, or None for another option."""
+    opt = seg[i]
+    if opt in ("-S", "--split-string"):
+        return (seg[i + 1], i + 2) if i + 1 < len(seg) else ("", i + 1)
+    if opt.startswith("--split-string="):
+        return opt.split("=", 1)[1], i + 1
+    if opt.startswith("-S"):
+        return opt[2:], i + 1
+    return None
+
+
 def command_of(seg):
-    """The command name of a simple command and its arguments, past assignments and wrappers."""
+    """The command name of a simple command and its arguments, past assignments and wrappers. The
+    value of a wrapper option is skipped with it, and the string of `env -S` is read as the words that
+    follow, as env splits it."""
     i = 0
     while i < len(seg):
         w = seg[i]
-        if re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", w):
+        name = os.path.basename(w)
+        if ASSIGNMENT.match(w):
             i += 1
-        elif os.path.basename(w) in WRAPPERS:
+            continue
+        if name not in WRAPPERS:
+            return name, seg[i + 1:]
+        values = WRAPPERS[name]
+        i += 1
+        while i < len(seg) and (seg[i].startswith("-") or (name == "env" and ASSIGNMENT.match(seg[i]))):
+            split = env_split_string(seg, i) if name == "env" else None
+            if split is not None:
+                try:
+                    words = shlex.split(split[0])
+                except ValueError:
+                    words = split[0].split()
+                return command_of(["env"] + words + seg[split[1]:])
+            i += 2 if seg[i] in values else 1
+        if name == "timeout":
             i += 1
-            while i < len(seg) and seg[i].startswith("-"):
-                i += 1
-        elif os.path.basename(w) == "env":
-            i += 1
-            while i < len(seg) and (seg[i].startswith("-") or re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", seg[i])):
-                i += 1
-        elif os.path.basename(w) == "timeout":
-            i += 1
-            while i < len(seg) and seg[i].startswith("-"):
-                i += 1
-            i += 1
-        else:
-            return os.path.basename(w), seg[i + 1:]
     return "", []
 
 
@@ -429,11 +516,18 @@ def secret_read(event):
                         p = expand(word)
                         if p and secret_kind(absolute(p, cwd)):
                             raise Refusal("secret read", f"the code reads `{word}`, which can hold keys, so the agent does not run it.")
-        elif cmd == "xargs" and any(command_of(args)[0] == r for r in READERS):
-            for word in every_word:
+        elif cmd in ("xargs", "find"):
+            # The reader gets its files from the input of xargs, or from the search of find through
+            # `{}`, so the words of the command that names them stand in for those files.
+            readers = [c for c in run_commands(cmd, args) if command_of(c)[0] in READERS]
+            if cmd == "find":
+                readers = [c for c in readers if any("{}" in w for w in c)]
+            if not readers:
+                continue
+            for word in (every_word if cmd == "xargs" else seg):
                 p = expand(word)
                 if p and secret_kind(absolute(p, cwd)):
-                    raise Refusal("secret read", f"the command passes `{word}` to a reader through xargs, and it can hold keys.")
+                    raise Refusal("secret read", f"the command passes `{word}` to a reader through {cmd}, and it can hold keys.")
 
 
 # ---------------------------------------------------------------------------------------------

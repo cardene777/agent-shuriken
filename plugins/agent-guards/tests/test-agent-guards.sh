@@ -500,17 +500,14 @@ docs_name_variables() {
     "$PLUGIN/README.ja.md" "$n" || { why="README.ja.md does not count $n hooks"; return 1; }
 }
 
-# The newest entries: those under Unreleased, or those of the newest release when Unreleased has none.
+# The entries of the 0.2.0 refusals, under Unreleased before the release and in a release section after
+# it, so a newer entry under Unreleased does not hide them.
 changelog_names_refusals() {
-  local section where="the Unreleased section"
-  section="$(awk '/^## \[Unreleased\]/{f=1; next} /^## \[/{f=0} f && /^- /' "$PLUGIN/CHANGELOG.md")"
-  if [ -z "$section" ]; then
-    where="the newest release section"
-    section="$(awk '/^## \[[0-9]/{n++; next} /^## \[/ || /^\[[^]]+\]: /{if (n) exit} n == 1 && /^- /' "$PLUGIN/CHANGELOG.md")"
-  fi
+  local entries
+  entries="$(awk '/^## \[/{f=1; next} /^\[[^]]+\]: /{f=0} f && /^- /' "$PLUGIN/CHANGELOG.md")"
   local w
   for w in AGENT_GUARDS_SECRET_WRITE AGENT_GUARDS_ONEPASSWORD 'chmod -R'; do
-    case "$section" in *"$w"*) ;; *) why="$where does not name $w"; return 1 ;; esac
+    case "$entries" in *"$w"*) ;; *) why="no section of the changelog names $w"; return 1 ;; esac
   done
 }
 
@@ -522,15 +519,11 @@ changelog_check_reads_release() {
     '- Turn it off with `AGENT_GUARDS_SECRET_WRITE=off`' '- Turn it off with `AGENT_GUARDS_ONEPASSWORD=off`' \
     '- The delete hook also refuses `chmod -R`' '' '## [0.1.0] - 2025-12-01' '' '- Four hooks' >"$dir/CHANGELOG.md"
   PLUGIN="$dir" changelog_names_refusals || return 1
-  # Entries still under Unreleased are read first, and an older release does not stand in for them.
-  printf '%s\n' '# Changelog' '' '## [Unreleased]' '' '- An unrelated change' '' '## [0.2.0] - 2026-01-01' '' \
-    '- Turn it off with `AGENT_GUARDS_SECRET_WRITE=off`' '- Turn it off with `AGENT_GUARDS_ONEPASSWORD=off`' \
-    '- The delete hook also refuses `chmod -R`' >"$dir/CHANGELOG.md"
-  if PLUGIN="$dir" changelog_names_refusals; then
-    why="it read the 0.2.0 section although Unreleased has entries"
-    return 1
-  fi
-  why=""
+  # Before the release, the same entries sit under Unreleased.
+  printf '%s\n' '# Changelog' '' '## [Unreleased]' '' '- Turn it off with `AGENT_GUARDS_SECRET_WRITE=off`' \
+    '- Turn it off with `AGENT_GUARDS_ONEPASSWORD=off`' '- The delete hook also refuses `chmod -R`' '' \
+    '## [0.1.0] - 2025-12-01' '' '- Four hooks' >"$dir/CHANGELOG.md"
+  PLUGIN="$dir" changelog_names_refusals || { why="under Unreleased: $why"; return 1; }
 }
 
 # A newer entry under Unreleased does not hide the entries of an earlier release, and a changelog that
