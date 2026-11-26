@@ -1,13 +1,14 @@
 ---
 name: mechanism-explainer
-description: Writes an explainer of a system, a mechanism, or a piece of research in HTML, where each section answers one question with two to four figures drawn in the dragon notation, and prints it to a PDF. An explainer with one topic is one page, and one with two or more topics is split into an overview page and one page per question. Use when the user asks for an explainer, a learning guide, a document with figures, or an overview of how something works, from a topic, notes, or a Markdown file.
+description: Writes an explainer of a system, a mechanism, or a piece of research in HTML, where each section answers one question with two to four figures drawn in the dragon notation, and prints it to a PDF. An explainer with one topic is one page, and one with two or more topics is split into an overview tab and one tab per topic, ordered so the mechanism comes before its background and records. Use when the user asks for an explainer, a learning guide, a document with figures, or an overview of how something works, from a topic, notes, or a Markdown file.
 ---
 
 # Mechanism explainer
 
 Write an explainer that answers the reader's questions in order.
 An explainer with one topic is one page.
-An explainer with two or more topics is split into an overview page and one page per question, so the reader never scrolls through every topic at once.
+An explainer with two or more topics is split into an overview tab and one tab per topic, so the reader never scrolls through every topic at once.
+Each topic tab opens with a map: the part of the overview figure it explains and the one-sentence answers of its questions.
 Each section is one question, its one-sentence answer, and two to four figures that look at the question from different sides, such as the parts, a decision table, a comparison, or one case traced step by step.
 The figures come first and the prose follows them, and every long explanation sits in a card that opens just below the box it belongs to.
 dragon draws the figures and exports the page, so this skill plans the questions, writes the page in dragon's Markdown, checks it, exports it, and prints the PDF.
@@ -20,10 +21,10 @@ The examples write into `explainer/<slug>/` of the folder the user works in; use
 
 ## 1. Check the setup
 
-The page is drawn by dragon 0.85.0, fetched by npm into its cache on first use.
+The page is drawn by dragon 0.87.0, fetched by npm into its cache on first use.
 
 ```bash
-npx -y @cardenelabs/dragon@0.85.0 --version
+npx -y @cardenelabs/dragon@0.87.0 --version
 ```
 
 - When `npx` is missing, stop and tell the user to install Node.js 20 or later from nodejs.org.
@@ -41,8 +42,11 @@ If the `dragon` skill is not installed, go on without the `plan` of `dragon`.
 The plan follows these rules whichever way it is written.
 
 - Plan one overview figure of the whole mechanism first: the parts, what goes between them, and which topic explains which part. It is the map the reader sees before any question.
-- Decide the topics first. A short explanation that one topic covers stays one page; when the material needs two or more topics, dragon splits it into an overview page and one page per question.
-- Split each topic into the questions the reader asks, usually two to five per topic. Each question becomes one section, and in an explainer with two or more topics, one page, so its answer and figures must make sense without the question before it on the screen.
+- Decide the topics before the questions. A short explanation that one topic covers stays one page; when the material needs two or more topics, dragon splits it into an overview tab and one tab per topic.
+- Sort the material into four kinds before naming the topics: the mechanism (how the thing works), background knowledge (what the reader must know to follow it), records (what was run and what came out), and reference material (terms and where things are). A topic holds one kind, so the reader can tell the main line from what supports it.
+- Order the topics so the mechanism comes first, background knowledge after it, and records and reference material last.
+- A question that needs another topic goes after that topic, even when the material wrote it under an earlier one. Move it into the topic it belongs to, or into a later topic.
+- Split each topic into the questions the reader asks, usually two to five per topic. Each question becomes one section, and its answer and figures must make sense to a reader who opened the tab at that question.
 - Give each question a short menu name that keeps its key word: at most 12 characters for Japanese and 24 characters for English, so it fits on one line of the side menu.
 - Give each section one question, a one-sentence answer, and two to four figures.
 - Make the figures of one question look at it from different sides. Two figures that show the same thing the same way are one figure too many.
@@ -72,7 +76,10 @@ Without the `dragon` skill, follow the shape below and dragon's [notation guide]
 The page starts with `layout: guide` and `note: pop` between `---` lines.
 dragon lists every topic (`##`) and its questions (`###`) in a side menu, numbers the questions per topic, such as `2-1`, and turns every box note into a card that opens on a click.
 With one topic, every section stacks on one page.
-With two or more topics, the first page shows the title, the page lead, the overview figure, and the topics in order, and each question is its own page with links to the previous and next pages at its end.
+With two or more topics, dragon puts an overview tab and one tab per topic at the top of the page.
+The overview tab shows the title, the page lead, the overview figure, and the topics in order.
+A topic tab shows every question of that topic, and the side menu lists only those questions.
+Each tab ends with links to the previous and next topics.
 
 Write the page lead, after the `#` title and before the first topic, in this order.
 
@@ -81,6 +88,10 @@ Write the page lead, after the `#` title and before the first topic, in this ord
 3. A paragraph that says which topic explains which part of the figure
 
 Put the overview figure in the page lead, before the first topic, and nowhere else: a topic named Overview would show up as one more topic in the menu.
+Every box of the overview figure that a topic explains gets `link: #<topic id>` among its attributes, such as `box api as API [link: #how-a-request-passes, note: ...]`.
+The topic id is the `##` heading in lower case with spaces turned into `-`, the same name dragon gives the topic's tab.
+Pressing the box opens that topic's tab, and dragon draws the map at the head of the tab from the same links: a still of the overview figure where only the linked boxes keep their colors, and the questions with their one-sentence answers.
+A topic that no box links to, such as the records or the reference material, gets the list of questions without the still.
 
 Write each section in this order.
 
@@ -99,8 +110,8 @@ When the page is in Japanese and the `japanese-writing` skill is installed, open
 ## 4. Check the notation and the layout
 
 ```bash
-npx -y @cardenelabs/dragon@0.85.0 check explainer/<slug>/<slug>.md
-npx -y @cardenelabs/dragon@0.85.0 check --layout explainer/<slug>/<slug>.md
+npx -y @cardenelabs/dragon@0.87.0 check explainer/<slug>/<slug>.md
+npx -y @cardenelabs/dragon@0.87.0 check --layout explainer/<slug>/<slug>.md
 ```
 
 Fix every error that `check` prints, one at a time, and run it again until it prints none.
@@ -111,8 +122,8 @@ Add `--lang ja` to both commands when the page is in Japanese, so the messages a
 ## 5. Export the page
 
 ```bash
-npx -y @cardenelabs/dragon@0.85.0 export explainer/<slug>/<slug>.md
-npx -y @cardenelabs/dragon@0.85.0 embed explainer/<slug>/<slug>.html
+npx -y @cardenelabs/dragon@0.87.0 export explainer/<slug>/<slug>.md
+npx -y @cardenelabs/dragon@0.87.0 embed explainer/<slug>/<slug>.html
 ```
 
 - `export` writes `<slug>.html` next to the Markdown. Add `--lang ja` when the page is in Japanese, so the words dragon adds to the page are Japanese.
@@ -126,7 +137,7 @@ D=<folder of this SKILL.md>; python3 "$D/scripts/to-pdf.py" explainer/<slug>/<sl
 
 It prints the page with a Chromium-based browser already on the machine, on A3 paper unless `--paper a4` or `--paper letter` is given, and writes `<slug>.offline.pdf`.
 The PDF holds what dragon's print styles draw.
-With dragon 0.85.0, that is the overview and every topic in order, also when the screen splits them into pages, without the side menu or the previous and next links, with the steps of each figure drawn two to a sheet, the check answers open, and the box cards open under each figure.
+With dragon 0.87.0, that is the overview and every topic in order, also when the screen splits them into tabs, without the tabs, the side menu, or the previous and next links, with the steps of each figure drawn two to a sheet, the check answers open, and the box cards open under each figure.
 
 | Exit code | What to do |
 |---|---|
@@ -136,7 +147,7 @@ With dragon 0.85.0, that is the overview and every topic in order, also when the
 
 ## 7. Look at it and hand it over
 
-Open `<slug>.offline.html` in a browser, at a desktop width and at a phone width, look at the overview, and open every question through the side menu and the previous and next links.
+Open `<slug>.offline.html` in a browser, at a desktop width and at a phone width, look at the overview, press the overview boxes to open their topics, and open every question through the tabs and the side menu.
 Fix figures that break, cards that do not open, and sections whose answer or figures say little, then run steps 4 to 6 again.
 
 Report to the user:
