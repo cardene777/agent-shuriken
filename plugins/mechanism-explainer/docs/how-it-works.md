@@ -1,7 +1,7 @@
 # How Mechanism Explainer works
 
 Mechanism Explainer turns a topic into an explainer that answers the reader's questions in order.
-An explainer with one topic is one page, and an explainer with two or more topics is an overview tab and one tab per topic.
+Material of one kind with five or fewer questions is one topic and one page, and six or more questions or more than one kind of material make two or more topics, shown as an overview tab and one tab per topic.
 It writes the page as Markdown in dragon's guide form, has dragon check, draw, and export it, and prints the PDF with a browser already on the machine.
 The skill itself holds only the steps and the PDF script; the figure kinds and the page form belong to dragon.
 

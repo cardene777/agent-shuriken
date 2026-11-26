@@ -1,7 +1,7 @@
 # Mechanism Explainer
 
 Write an explainer of a system, a mechanism, or a piece of research: each section answers one question with a one-sentence answer and two to four figures drawn in the dragon notation, and the same explainer prints to a PDF.
-A short explainer with one topic is one page, and an explainer with two or more topics opens on an overview tab and shows each topic in its own tab.
+An explainer of one kind of material with five or fewer questions is one page, and an explainer with six or more questions or more than one kind of material opens on an overview tab and shows each topic in its own tab.
 
 English · [日本語](README.ja.md)
 

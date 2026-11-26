@@ -245,6 +245,15 @@ splits_tabs() {
   done
 }
 
+# The number of questions and the kinds of material decide one page or topic tabs, so a plan cannot put
+# six or more questions into one topic and write one long page (#551).
+splits_by_count() {
+  local phrase
+  for phrase in 'one kind with five or fewer questions' 'six or more questions' 'more than one kind'; do
+    grep -q -F -- "$phrase" "$DOC" || { why="SKILL.md does not say '$phrase'"; return 1; }
+  done
+}
+
 # The plan sorts the material into four kinds and orders the topics so the mechanism comes first and the
 # records and the reference material come last (#547).
 sorts_kinds() {
@@ -301,6 +310,7 @@ check "the skill explains every figure before and after it" figure_explained
 check "the test page has an overview and menu names" test_page_overview
 check "no page calls the explainer one page" no_one_page
 check "the skill splits two or more topics into tabs" splits_tabs
+check "the skill splits at six questions or more than one kind" splits_by_count
 check "the skill sorts the topics by kind" sorts_kinds
 check "the skill puts a question after the topic it needs" orders_needed
 check "the skill links overview boxes to their topics" links_overview

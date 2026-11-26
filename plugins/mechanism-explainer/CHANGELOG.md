@@ -5,6 +5,10 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-27
+
+- The number of questions and the kinds of material decide between one page and topic tabs. Material of one kind with five or fewer questions is one page, and six or more questions or more than one kind of material split the explainer into an overview tab and one tab per topic, so a plan can no longer put many questions into one topic and write one long page
+
 ## [0.4.0] - 2026-11-27
 
 - An explainer with two or more topics is split into an overview tab and one tab per topic instead of one page per question. The plan sorts the material into the mechanism, background knowledge, records, and reference material, puts the mechanism first and records and reference material last, and moves a question after the topic it needs
