@@ -44,7 +44,7 @@ The plan follows these rules whichever way it is written.
 - Plan one overview figure of the whole mechanism first: the parts, what goes between them, and which topic explains which part. It is the map the reader sees before any question.
 - Decide the topics before the questions. A short explanation that one topic covers stays one page; when the material needs two or more topics, dragon splits it into an overview tab and one tab per topic.
 - Sort the material into four kinds before naming the topics: the mechanism (how the thing works), background knowledge (what the reader must know to follow it), records (what was run and what came out), and reference material (terms and where things are). A topic holds one kind, so the reader can tell the main line from what supports it.
-- Order the topics so the mechanism comes first, background knowledge after it, and records and reference material last.
+- Order the topics with the mechanism first, background knowledge after it, and records and reference material last.
 - A question that needs another topic goes after that topic, even when the material wrote it under an earlier one. Move it into the topic it belongs to, or into a later topic.
 - Split each topic into the questions the reader asks, usually two to five per topic. Each question becomes one section, and its answer and figures must make sense to a reader who opened the tab at that question.
 - Give each question a short menu name that keeps its key word: at most 12 characters for Japanese and 24 characters for English, so it fits on one line of the side menu.
