@@ -45,7 +45,6 @@ agents_node() {
   local rule
   rule="$(grep -m1 'Keep runtime dependencies small' "$ROOT/AGENTS.md")"
   case "$rule" in *'`remotion-explainer`'*) ;; *) why="the dependency line of AGENTS.md does not name remotion-explainer"; return 1 ;; esac
-  case "$rule" in *'Six plugins are exceptions'*) ;; *) why="the dependency line of AGENTS.md does not count six exceptions"; return 1 ;; esac
   why="$(python3 - "$SKILLS" <<'PY'
 import os, re, sys
 skills = sys.argv[1]
@@ -65,6 +64,30 @@ if not found:
 PY
 )" || return 1
   why=""
+}
+
+# The dependency line counts every exception plugin of the repository, so the check above passes
+# whatever number word the line uses: here it runs on a copy of AGENTS.md that counts twelve.
+agents_node_any_count() {
+  local src="$ROOT/AGENTS.md"
+  local ROOT="$T/agents-any-count"
+  mkdir -p "$ROOT"
+  sed -E '/Keep runtime dependencies small/s/[A-Z][a-z]+ plugins are exceptions/Twelve plugins are exceptions/' "$src" > "$ROOT/AGENTS.md"
+  grep -q 'Twelve plugins are exceptions' "$ROOT/AGENTS.md" || { why="the copy of AGENTS.md has no number word to change"; return 1; }
+  agents_node
+}
+
+# The check above refuses a dependency line that no longer names the plugin, and says why.
+agents_node_needs_name() {
+  local src="$ROOT/AGENTS.md"
+  local ROOT="$T/agents-no-name"
+  mkdir -p "$ROOT"
+  sed '/Keep runtime dependencies small/s/`remotion-explainer`/`another-plugin`/g' "$src" > "$ROOT/AGENTS.md"
+  if agents_node; then why="the check passed a line without remotion-explainer"; return 1; fi
+  case "$why" in
+    *'does not name remotion-explainer'*) why="" ;;
+    *) why="the check refused for another reason: $why"; return 1 ;;
+  esac
 }
 
 # remotion-frame-checks provides its four contracts under formats/ and their four checks under
@@ -1171,6 +1194,8 @@ PY
 
 check "the READMEs state the Remotion license terms" readme_license
 check "AGENTS.md names the plugin's Node.js use" agents_node
+check "the Node.js check passes whatever number the line counts" agents_node_any_count
+check "the Node.js check refuses a line without the plugin's name" agents_node_needs_name
 check "remotion-frame-checks provides its contracts and checks" frame_provides
 check "the frame checks accept valid and refuse broken examples" frame_judgments
 check "remotion-motion-plan provides its contracts and checks" motion_provides
