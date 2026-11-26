@@ -30,5 +30,5 @@
 | The two manifests of agent-guards still declare the same hooks after the release | `bash plugins/agent-guards/tests/test-agent-guards.sh` check `"both manifests declare the same hooks"` passes | #481 |
 | The root changelog still names every plugin, flow-format included, after its line stays under Unreleased | `bash scripts/check.sh` check `"the root changelog names every plugin"` passes | #485 |
 | The flow-format skill still keeps its answer form after the release | `bash plugins/flow-format/skills/flow-format/tests/test-flow-format.sh` check `"the good example walks from an issue to a merge in six steps of the form"` passes | #485 |
-| The `Reached checks` field of `.ikkan/checks.md` names `bash scripts/check.sh`, and the repository checks refuse a file without that row | `bash scripts/check.sh` check `"the ikkan gates run these checks"` passes | #517 |
+| The `Reached checks` field of `.ikkan/checks.md` names `bash scripts/reached-checks.sh`, and the repository checks refuse a file without that row | `bash scripts/check.sh` check `"the ikkan gates run these checks"` passes | #517, #545 |
 | The repository checks pass | `bash scripts/check.sh` ends with 0 | #517 |
