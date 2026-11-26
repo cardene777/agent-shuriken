@@ -230,23 +230,51 @@ PY2
 }
 
 # The skill keeps an explainer with one topic on one page, and splits one with two or more topics into an
-# overview page and one page per question (#533).
-splits_pages() {
+# overview tab and one tab per topic (#547). No page still says one page per question, the shape of #533.
+splits_tabs() {
   [ -f "$DOC" ] || { why="SKILL.md is missing"; return 1; }
+  local phrase f
+  for phrase in 'one topic is one page' 'two or more topics' 'an overview tab' 'one tab per topic'; do
+    grep -q -F -- "$phrase" "$DOC" || { why="SKILL.md does not say '$phrase'"; return 1; }
+  done
+  for f in "${PAGES[@]}"; do
+    if grep -q -i -E 'one page per question|an overview page' "$f"; then
+      why="${f#"$ROOT"/} still splits the explainer into one page per question"
+      return 1
+    fi
+  done
+}
+
+# The plan sorts the material into four kinds and orders the topics so the mechanism comes first and the
+# records and the reference material come last (#547).
+sorts_kinds() {
   local phrase
-  for phrase in 'one topic is one page' 'two or more topics' 'an overview page' 'one page per question'; do
+  for phrase in 'the mechanism' 'background knowledge' 'records' 'reference material' 'the mechanism first' 'records and reference material last'; do
     grep -q -F -- "$phrase" "$DOC" || { why="SKILL.md does not say '$phrase'"; return 1; }
   done
 }
 
-# Every dragon the skill and its pages run is 0.85.0 or later, the first version that splits a guide page
-# with two or more topics into pages.
-pins_splitting_dragon() {
+# A question that needs another topic goes after that topic, even when the material wrote it earlier (#547).
+orders_needed() {
+  grep -q -F -- 'A question that needs another topic goes after that topic' "$DOC" \
+    || { why="SKILL.md does not put a question after the topic it needs"; return 1; }
+}
+
+# Every box of the overview figure that a topic explains links to that topic, so its tab opens from the box
+# and dragon draws the tab's map from the same links (#547).
+links_overview() {
+  grep -q -F -- 'link: #<topic id>' "$DOC" || { why="SKILL.md does not write link: #<topic id> on the overview boxes"; return 1; }
+  grep -q -F -- 'Every box of the overview figure' "$DOC" || { why="SKILL.md does not link every box of the overview figure"; return 1; }
+}
+
+# Every dragon the skill and its pages run is 0.87.0 or later, the first version that splits a guide page
+# with two or more topics into topic tabs and draws each tab's map (#547).
+pins_tab_dragon() {
   local f v
   for f in "$DOC" "$PLUGIN/README.md" "$PLUGIN/README.ja.md" "$PLUGIN/docs/how-it-works.md" "$PLUGIN/docs/how-it-works.ja.md"; do
     for v in $(grep -o -E 'dragon@?[ ]?[0-9]+\.[0-9]+\.[0-9]+' "$f" | grep -o -E '[0-9]+\.[0-9]+\.[0-9]+' | sort -u); do
-      python3 -c 'import sys; a = tuple(map(int, sys.argv[1].split("."))); sys.exit(0 if a >= (0, 85, 0) else 1)' "$v" \
-        || { why="${f#"$ROOT"/} runs dragon $v, older than 0.85.0"; return 1; }
+      python3 -c 'import sys; a = tuple(map(int, sys.argv[1].split("."))); sys.exit(0 if a >= (0, 87, 0) else 1)' "$v" \
+        || { why="${f#"$ROOT"/} runs dragon $v, older than 0.87.0"; return 1; }
     done
   done
 }
@@ -272,8 +300,11 @@ check "the skill names each question for the side menu" menu_names
 check "the skill explains every figure before and after it" figure_explained
 check "the test page has an overview and menu names" test_page_overview
 check "no page calls the explainer one page" no_one_page
-check "the skill splits two or more topics into pages" splits_pages
-check "the skill pins a dragon that splits pages" pins_splitting_dragon
+check "the skill splits two or more topics into tabs" splits_tabs
+check "the skill sorts the topics by kind" sorts_kinds
+check "the skill puts a question after the topic it needs" orders_needed
+check "the skill links overview boxes to their topics" links_overview
+check "the skill pins a dragon with topic tabs" pins_tab_dragon
 check "plugin manifests agree" repo_manifests
 
 printf 'mechanism-explainer: ran %d checks, %d failed, %d skipped\n' "$((PASS + FAIL + SKIP))" "$FAIL" "$SKIP"
