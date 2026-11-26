@@ -324,6 +324,96 @@ delete_chmod_named_allowed() {
   done
 }
 
+# Wrapper options that take a value. The value is skipped, so the command behind it is judged.
+WRAPPED=('nice -n 10' 'sudo -u root' 'sudo -g staff' 'doas -u root' 'exec -a x' 'time -o run.txt' 'env -u FOO' \
+  'env -C /tmp' 'timeout -s KILL 5' 'timeout -k 1 5' 'nohup nice -n 5')
+
+onepassword_wrapped_refused() {
+  local p
+  for p in "${WRAPPED[@]}"; do
+    refuses onepassword "$(event_bash "$p op read op://Private/demo/password")" "$p op read" || return 1
+  done
+}
+
+git_delete_wrapped_refused() {
+  local c
+  for c in 'sudo -u root rm -rf /' 'nice -n 10 rm -rf /' 'env -C /tmp rm -rf ~' 'timeout -s KILL 5 rm -rf ~'; do
+    refuses delete "$(event_bash "$c")" "$c" || return 1
+  done
+  for c in 'nice -n 10 git push --force origin main' 'sudo -u root git push --force' \
+    'env -C /tmp git push --force origin main' 'exec -a x git reset --hard HEAD~1'; do
+    refuses git "$(event_bash "$c" "$REPO_DIR")" "$c" || return 1
+  done
+}
+
+secret_wrapped_refused() {
+  local c
+  for c in 'nice -n 10 cat .env' 'sudo -u root cat .env' 'env -u FOO head .env.local' 'time -o run.txt cat certs/server.pem'; do
+    refuses secret-read "$(event_bash "$c")" "$c" || return 1
+  done
+  for c in 'sudo -u root tee .env < input.txt' 'nice -n 10 cp .env.example .env' 'env -u FOO sed -i.bak s/a/b/ .env'; do
+    refuses secret-write "$(event_bash "$c")" "$c" || return 1
+  done
+}
+
+xargs_command_judged() {
+  local c
+  for c in 'echo op://Private/demo/password | xargs op read' 'xargs -n 1 op read < refs.txt' \
+    'xargs -I {} op read {} < refs.txt' 'xargs -0 -P 2 op item get < ids.txt'; do
+    refuses onepassword "$(event_bash "$c")" "$c" || return 1
+  done
+  for c in 'echo main | xargs git push --force origin' 'xargs -n 1 git reset --hard < refs.txt'; do
+    refuses git "$(event_bash "$c" "$REPO_DIR")" "$c" || return 1
+  done
+  for c in 'echo x | xargs rm -rf ~' 'echo x | xargs -n 1 rm -rf /'; do
+    refuses delete "$(event_bash "$c")" "$c" || return 1
+  done
+}
+
+find_exec_judged() {
+  local c
+  for c in 'find . -name x -exec op read {} \;' 'find . -name x -execdir op read {} +' \
+    'find . -ok op item get {} \;' 'find . -okdir op document get {} \;'; do
+    refuses onepassword "$(event_bash "$c")" "$c" || return 1
+  done
+  for c in 'find . -name .env -exec cat {} \;' 'find certs -name "*.pem" -exec head {} +' \
+    'find . -name .env.local -execdir cat {} \;'; do
+    refuses secret-read "$(event_bash "$c")" "$c" || return 1
+  done
+  refuses git "$(event_bash 'find . -maxdepth 0 -exec git push --force \;' "$REPO_DIR")" 'find -exec git push --force'
+}
+
+watch_command_judged() {
+  local c
+  for c in 'watch op read op://Private/demo/password' 'watch -n 1 op read op://Private/demo/password' \
+    'watch -n 1 -d op item get demo' 'watch --interval 2 "op read op://Private/demo/password"'; do
+    refuses onepassword "$(event_bash "$c")" "$c" || return 1
+  done
+  refuses delete "$(event_bash 'watch -n 5 rm -rf ~')" 'watch -n 5 rm -rf ~'
+}
+
+env_split_string_judged() {
+  local c
+  for c in "env -S 'op read op://Private/demo/password'" "env --split-string='op read op://Private/demo/password'" \
+    "env -S'op item get demo'" "env -u FOO -S 'op read op://Private/demo/password'"; do
+    refuses onepassword "$(event_bash "$c")" "$c" || return 1
+  done
+  for c in "env -S 'rm -rf /'" "env --split-string 'rm -rf ~'"; do
+    refuses delete "$(event_bash "$c")" "$c" || return 1
+  done
+}
+
+wrapped_ordinary_allowed() {
+  local c h
+  for c in 'nice -n 10 ls' 'sudo -u root ls /tmp' 'sudo -E ls' "env -S 'ls -l'" 'echo a | xargs -n 1 echo' \
+    "find . -name '*.md' -exec wc -l {} +" 'watch -n 1 ls' "grep -n 'op read' notes.md" 'nice -n 10 op item list' \
+    'timeout 5 op whoami' 'echo build | xargs rm -rf' 'find . -name node_modules -prune -exec rm -rf {} +'; do
+    for h in secret-read secret-write onepassword outbound git delete; do
+      passes "$h" "$(event_bash "$c")" "$c" || return 1
+    done
+  done
+}
+
 protected_paths_listed() {
   mkdir -p "$HOME/.config/agent-guards"
   printf '%s\n' '~/work/keep' > "$HOME/.config/agent-guards/protected-paths"
@@ -443,6 +533,46 @@ changelog_check_reads_release() {
   why=""
 }
 
+# A newer entry under Unreleased does not hide the entries of an earlier release, and a changelog that
+# names them nowhere still fails.
+changelog_check_reads_below_unreleased() {
+  local dir="$T/newer"
+  mkdir -p "$dir"
+  printf '%s\n' '# Changelog' '' '## [Unreleased]' '' '- A newer change' '' '## [0.2.0] - 2026-01-01' '' \
+    '- Turn it off with `AGENT_GUARDS_SECRET_WRITE=off`' '- Turn it off with `AGENT_GUARDS_ONEPASSWORD=off`' \
+    '- The delete hook also refuses `chmod -R`' '' '## [0.1.0] - 2025-12-01' '' '- Four hooks' >"$dir/CHANGELOG.md"
+  PLUGIN="$dir" changelog_names_refusals || { why="below a newer Unreleased entry: $why"; return 1; }
+  printf '%s\n' '# Changelog' '' '## [Unreleased]' '' '- A newer change' '' '## [0.2.0] - 2026-01-01' '' \
+    '- Turn it off with `AGENT_GUARDS_SECRET_WRITE=off`' '' '## [0.1.0] - 2025-12-01' '' '- Four hooks' >"$dir/CHANGELOG.md"
+  if PLUGIN="$dir" changelog_names_refusals; then
+    why="it passed although no section names AGENT_GUARDS_ONEPASSWORD or chmod -R"
+    return 1
+  fi
+  why=""
+}
+
+# The entries of this change name the commands the hooks now read behind wrappers and runners.
+changelog_names_runners() {
+  local section
+  section="$(awk '/^## \[Unreleased\]/{f=1; next} /^## \[/{f=0} f && /^- /' "$PLUGIN/CHANGELOG.md")"
+  if [ -z "$section" ]; then
+    section="$(awk '/^## \[[0-9]/{n++; next} /^## \[/ || /^\[[^]]+\]: /{if (n) exit} n == 1 && /^- /' "$PLUGIN/CHANGELOG.md")"
+  fi
+  local w
+  for w in xargs 'find -exec' watch 'env -S'; do
+    case "$section" in *"$w"*) ;; *) why="the newest entries do not name $w"; return 1 ;; esac
+  done
+}
+
+docs_name_runners() {
+  local f w
+  for f in docs/how-it-works.md docs/how-it-works.ja.md; do
+    for w in 'sudo -u' 'nice -n' xargs 'find -exec' '-execdir' watch 'env -S'; do
+      grep -qF -- "$w" "$PLUGIN/$f" || { why="$f does not name $w"; return 1; }
+    done
+  done
+}
+
 repository_rules_allow_hook_plugins() {
   [ -n "$REPO" ] || { why="not inside the repository"; return 1; }
   grep -qF 'holds hooks and no skills' "$REPO/AGENTS.md" || { why="AGENTS.md does not state the exception"; return 1; }
@@ -478,6 +608,17 @@ check "delete allows a named folder" delete_named_allowed
 check "delete refuses chmod -R on the root, the home folder, and protected places" delete_chmod_refused
 check "delete allows chmod -R on a named folder" delete_chmod_named_allowed
 check "protected-paths adds places to refuse deleting" protected_paths_listed
+check "1Password refuses op behind a wrapper option that takes a value" onepassword_wrapped_refused
+check "git and delete refuse their commands behind a wrapper option that takes a value" git_delete_wrapped_refused
+check "secret read and write refuse secret files behind a wrapper option that takes a value" secret_wrapped_refused
+check "the hooks judge the command xargs runs" xargs_command_judged
+check "the hooks judge the command after find -exec" find_exec_judged
+check "the hooks judge the command watch runs" watch_command_judged
+check "the hooks judge the command in the string of env -S" env_split_string_judged
+check "the hooks allow ordinary commands behind wrappers and runners" wrapped_ordinary_allowed
+check "how-it-works says the hooks read the commands behind wrappers and runners" docs_name_runners
+check "the changelog names the commands behind wrappers and runners" changelog_names_runners
+check "the changelog check finds released entries below a newer Unreleased entry" changelog_check_reads_below_unreleased
 check "each hook turns off with its own variable" turn_off_one_hook
 check "records are off by default and on with a variable" records_off_by_default
 check "both manifests declare the same hooks" manifests_declare_hooks
