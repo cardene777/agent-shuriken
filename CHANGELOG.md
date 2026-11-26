@@ -7,6 +7,10 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ## [Unreleased]
 
+### Added
+
+- The english-writing plugin, which writes and fixes English text without adding anything the original does not say, following the patterns of `blader/humanizer` copied without changes, with rules of its own on phrasing translated word for word from Japanese, short sentences, and consistent terms, and a script that points at long sentences, passive voice, and phrasing translated from Japanese
+
 ### Removed
 
 - The dragon-explainer plugin is no longer offered in the marketplace, because mechanism-explainer writes the same kind of explainer page with dragon figures and is the one explainer plugin kept here. Copies already installed keep working, and its past release and tag stay available

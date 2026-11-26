@@ -122,7 +122,7 @@ try:
     text = open(sys.argv[1], encoding="utf-8").read()
 except OSError:
     sys.exit(1)
-if re.search("[぀-ヿ㐀-鿿]", text):
+if re.search("[\u3040-\u30ff\u3400-\u9fff]", text):
     sys.exit(1)
 print(text.split("---", 2)[2] if text.startswith("---") else text)
 PY

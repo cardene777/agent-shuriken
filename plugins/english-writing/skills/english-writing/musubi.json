@@ -1,0 +1,9 @@
+{
+  "musubi": "2026-11-21",
+  "provides": {
+    "rules": {
+      "version": "1.0.0",
+      "file": "references/rules.md"
+    }
+  }
+}

@@ -1,0 +1,7 @@
+interface:
+  display_name: "English Writing"
+  short_description: "Write and fix English text so it reads naturally, with scripts that point at suspect lines"
+  default_prompt: "Use $english-writing to make this English text natural without adding anything."
+
+policy:
+  allow_implicit_invocation: true

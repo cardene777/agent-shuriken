@@ -1,0 +1,5 @@
+# Fingerprints of the files copied unmodified from blader/humanizer.
+# Source: blader/humanizer a32f24407364c74c812b43c15926d638bee1e072 (SKILL.md version 4.0.0)
+# Made by the command in docs/how-it-works.md, "Updating the upstream copy". Do not edit by hand.
+4ac4810254ab36d45419141aeb8e69bf50652cfafe5b2dab947d06d44e5cbf96  LICENSE
+3013910ef5433dab12f0d2b86d9cf9e3421a253ef986518a68ef07aa29629bdc  UPSTREAM-SKILL.md
