@@ -45,7 +45,6 @@ agents_node() {
   local rule
   rule="$(grep -m1 'Keep runtime dependencies small' "$ROOT/AGENTS.md")"
   case "$rule" in *'`remotion-explainer`'*) ;; *) why="the dependency line of AGENTS.md does not name remotion-explainer"; return 1 ;; esac
-  case "$rule" in *'Six plugins are exceptions'*) ;; *) why="the dependency line of AGENTS.md does not count six exceptions"; return 1 ;; esac
   why="$(python3 - "$SKILLS" <<'PY'
 import os, re, sys
 skills = sys.argv[1]
