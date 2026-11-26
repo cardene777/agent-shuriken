@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-26
+
 - The hooks skip the value of a wrapper option, so `sudo -u root rm -rf /`, `nice -n 10 op read`, and `env -C /tmp git push --force` are judged like the command alone, and they read the string of `env -S`, the command `xargs` runs, each command after `find -exec`, `-execdir`, `-ok`, and `-okdir`, and the text `watch` runs. The secret read hook refuses `find -exec` that hands a found secret file to a reader through `{}`
 
 ## [0.2.0] - 2026-11-25
@@ -21,6 +23,7 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - The git hook refuses force pushes, `git reset --hard`, `--no-verify`, `git clean -f`, and commands that throw away uncommitted changes, and the delete hook refuses deletes of the root, the home folder, the current folder, and system folders; both show the refused command with a leading `!`
 - `~/.config/agent-guards/secret-paths` and `protected-paths` add your own places, each hook turns off with its own `AGENT_GUARDS_*` variable, and `AGENT_GUARDS_RECORD=on` writes one line per refusal
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/agent-guards--v0.2.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/agent-guards--v0.2.1...HEAD
+[0.2.1]: https://github.com/cardene777/agent-shuriken/releases/tag/agent-guards--v0.2.1
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/agent-guards--v0.2.0
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/agent-guards--v0.1.0
