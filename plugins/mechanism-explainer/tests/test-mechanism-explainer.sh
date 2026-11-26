@@ -201,6 +201,56 @@ PY
   grep -q 'class="pg-menu' "$T/export/page.html" || { why="the exported page has no left menu"; return 1; }
 }
 
+# The pages the plugin shows to readers and agents: the skill, both READMEs, both how-it-works pages, and the
+# Codex plugin description.
+PAGES=("$DOC" "$PLUGIN/README.md" "$PLUGIN/README.ja.md" "$PLUGIN/docs/how-it-works.md" "$PLUGIN/docs/how-it-works.ja.md" "$PLUGIN/.codex-plugin/plugin.json")
+
+# No page calls the explainer one page that reads top to bottom, since an explainer with two or more
+# topics is split into pages (#533). The Japanese phrases are written as escapes, so this file stays English:
+# "one page" (1-mai no peeji), "read from top to bottom", and "the topics continue from the top".
+no_one_page() {
+  local f hit
+  for f in "${PAGES[@]}"; do
+    [ -f "$f" ] || { why="${f#"$ROOT"/} is missing"; return 1; }
+    hit="$(python3 - "$f" <<'PY2'
+import re, sys
+pattern = re.compile(
+    r"one (html )?page that (reads|answers)|reads top to bottom|runs the topics one after another"
+    "|1\u679a\u306e\u9801|\u4e0a\u304b\u3089\u4e0b\u3078\u8aad\u3080|\u8a71\u984c\u306f\u4e0a\u304b\u3089\u9806\u306b\u7d9a",
+    re.IGNORECASE,
+)
+for n, line in enumerate(open(sys.argv[1], encoding="utf-8"), 1):
+    if pattern.search(line):
+        print(n)
+        break
+PY2
+)"
+    [ -z "$hit" ] || { why="${f#"$ROOT"/}:$hit still calls the explainer one page"; return 1; }
+  done
+}
+
+# The skill keeps an explainer with one topic on one page, and splits one with two or more topics into an
+# overview page and one page per question (#533).
+splits_pages() {
+  [ -f "$DOC" ] || { why="SKILL.md is missing"; return 1; }
+  local phrase
+  for phrase in 'one topic is one page' 'two or more topics' 'an overview page' 'one page per question'; do
+    grep -q -F -- "$phrase" "$DOC" || { why="SKILL.md does not say '$phrase'"; return 1; }
+  done
+}
+
+# Every dragon the skill and its pages run is 0.85.0 or later, the first version that splits a guide page
+# with two or more topics into pages.
+pins_splitting_dragon() {
+  local f v
+  for f in "$DOC" "$PLUGIN/README.md" "$PLUGIN/README.ja.md" "$PLUGIN/docs/how-it-works.md" "$PLUGIN/docs/how-it-works.ja.md"; do
+    for v in $(grep -o -E 'dragon@?[ ]?[0-9]+\.[0-9]+\.[0-9]+' "$f" | grep -o -E '[0-9]+\.[0-9]+\.[0-9]+' | sort -u); do
+      python3 -c 'import sys; a = tuple(map(int, sys.argv[1].split("."))); sys.exit(0 if a >= (0, 85, 0) else 1)' "$v" \
+        || { why="${f#"$ROOT"/} runs dragon $v, older than 0.85.0"; return 1; }
+    done
+  done
+}
+
 # The repository's manifest check, relayed from scripts/check.sh.
 repo_manifests() {
   local out
@@ -221,6 +271,9 @@ check "the skill puts an overview figure in the page lead" overview_in_lead
 check "the skill names each question for the side menu" menu_names
 check "the skill explains every figure before and after it" figure_explained
 check "the test page has an overview and menu names" test_page_overview
+check "no page calls the explainer one page" no_one_page
+check "the skill splits two or more topics into pages" splits_pages
+check "the skill pins a dragon that splits pages" pins_splitting_dragon
 check "plugin manifests agree" repo_manifests
 
 printf 'mechanism-explainer: ran %d checks, %d failed, %d skipped\n' "$((PASS + FAIL + SKIP))" "$FAIL" "$SKIP"
