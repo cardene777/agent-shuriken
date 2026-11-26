@@ -19,10 +19,11 @@ The skill itself holds only the steps and the PDF script; the figure kinds and t
 
 | Part | How it is written | How it shows |
 |---|---|---|
-| Tab | `## <topic>` | A tab, with the list of its questions at the top |
-| Section | `### <question>?` | A numbered section |
+| Overview | A `dragon` fence in the page lead, before the first topic | The figure of the whole mechanism at the head of the page, with the topics as the reading route under it |
+| Topic | `## <topic>` | A heading in the side menu and in the page; topics run one after another |
+| Section | `### <question>? [menu: <short name>]` | A section numbered across topics, listed in the side menu by its short name |
 | Answer | `> <one sentence>` right under the question | The answer under the question |
-| Figure | A `dragon` fence | A figure drawn by dragon, before the prose |
+| Figure | One sentence, a `dragon` fence, then two to four sentences | A figure drawn by dragon, with what to look at before it and what it shows after it |
 | Card | `note:` on a box | A mark on the box, and a card just below it on a click |
 | Term | A link into `glossary.md` | An underlined word that opens a card with its meaning |
 | Check question | A `<details>` block | A question whose answer opens on a click |

@@ -38,7 +38,9 @@ If the `dragon` skill is not installed, go on without the `plan` of `dragon`.
 
 The plan follows these rules whichever way it is written.
 
-- Split the topic into the questions the reader asks, usually two to five per tab. Each question becomes one section.
+- Plan one overview figure of the whole mechanism first: the parts, what goes between them, and which topic explains which part. It is the map the reader sees before any question.
+- Split the topic into the questions the reader asks, usually two to five per topic. Each question becomes one section.
+- Give each question a short menu name that keeps its key word: at most 12 characters for Japanese and 24 characters for English, so it fits on one line of the side menu.
 - Give each section one question, a one-sentence answer, and two to four figures.
 - Make the figures of one question look at it from different sides. Two figures that show the same thing the same way are one figure too many.
 - Pick kinds by what the question asks: the parts and what goes between them, which cases pass and which stop, how two cases differ, one case step by step, or an amount against a limit.
@@ -64,14 +66,26 @@ If the `dragon` skill is not installed, go on without the `cheatsheet` of `drago
 
 Without the `dragon` skill, follow the shape below and dragon's [notation guide](https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md).
 
-The page starts with `layout: guide` and `note: pop` between `---` lines, so each `##` becomes a tab, each `###` a numbered section, and every box note a card that opens on a click.
+The page starts with `layout: guide` and `note: pop` between `---` lines.
+dragon lists every topic (`##`) and its questions (`###`) in a side menu, runs the topics one after another, numbers the questions across them, and turns every box note into a card that opens on a click.
+
+Write the page lead, after the `#` title and before the first topic, in this order.
+
+1. One or two sentences that say what the mechanism does
+2. The overview figure of the whole mechanism, so dragon shows it as the overview at the head of the page, with the topics as the reading route under it
+3. A paragraph that says which topic explains which part of the figure
+
+Put the overview figure in the page lead, before the first topic, and nowhere else: a topic named Overview would show up as one more topic in the menu.
+
 Write each section in this order.
 
-1. `### <question>?`
+1. `### <question>? [menu: <short name>]`, with the menu name from the plan
 2. `> <the answer in one sentence>`, right under the question
-3. One sentence that says what to look at, then the figures of the plan in their order
-4. The prose that the figures do not carry, after the figures, kept short
-5. One or two check questions as `<details>` blocks, when they help the reader test what they read
+3. For every figure of the plan, in order: one sentence before each figure that says what to look at, the figure, and two to four sentences after it that say what the figure shows and what follows from it
+4. One or two check questions as `<details>` blocks, when they help the reader test what they read
+
+Keep the sentence before a figure and the paragraph after it as separate paragraphs, so that between two figures there are two paragraphs.
+The paragraph after a figure states what the reader should conclude, such as which case passes and why, or what the next question builds on, instead of repeating the figure's step texts.
 
 Put explanations of a box into its `note:`, so they open as a card under the box instead of crowding the figure.
 Put terms the reader may not know into a `glossary.md` next to the page and link them from the text, as the `page` format says.
@@ -119,7 +133,7 @@ Tell the user which tabs the PDF holds.
 
 ## 7. Look at it and hand it over
 
-Open `<slug>.offline.html` in a browser, at a desktop width and at a phone width, and look at every tab.
+Open `<slug>.offline.html` in a browser, at a desktop width and at a phone width, look at the overview, and read every topic through the side menu.
 Fix figures that break, cards that do not open, and sections whose answer or figures say little, then run steps 4 to 6 again.
 
 Report to the user:
