@@ -1,13 +1,13 @@
 # Agent Guards
 
-Claude CodeとCodexで、エージェントが鍵のファイルを読むか上書きする、1Passwordに控えた値を出す、鍵をGitHubへ送る、強制pushを打つ、ホームのフォルダを消す、の手前で止めるフックです。
+Claude CodeとCodexで、エージェントが鍵のファイルを読むか上書きする、1Passwordに控えた値を出す、鍵をGitHubへ送る、強制pushを打つ、ホームのフォルダを消す、デスクトップが動くのに要るプロセスを止める、の手前で止めるフックです。
 
 [English](README.md) · 日本語
 
 シェルの命令を代わりに打つエージェントは、設定を探す途中で`~/.ssh/id_ed25519`や`.env`を読み、読んだ物をIssueに貼り、断られたpushを通すために`git push --force`を打ち、空白を1つ間違えて`rm -rf ~ /tmp/build`を打つことがあります。
 どれも命令1つで起き、打った後には戻せません。
 このプラグインは、エージェントが打つ全てのシェルの命令と、全てのファイルの読み取りと書き換えの前に動くフックを6つ足し、こうした命令を、エージェントが次の手を決められる理由を付けて断ります。
-3つのフックは同じプロセスの中で2つ以上の検査を回すので、11の検査が起動するプロセスは6つのフックの分だけです。
+3つのフックは同じプロセスの中で2つ以上の検査を回すので、12の検査が起動するプロセスは6つのフックの分だけです。
 フックは命令を許可しません。
 断らなかった命令は、今までどおりエージェントの許可の決まりへ進みます。
 
@@ -44,8 +44,9 @@ Codexの会話で`/hooks`を開き、agent-guardsの8つのフックを信用し
 | チェーン (外へ送る文) | 送り先が`127.0.0.1`、`localhost`、`::1`でないか読めない、`cast send`、`cast publish`、`cast rpc`と`cast erc20-token`の送る形、`forge script --broadcast`、`forge create`、`hardhat ignition deploy` | このPCのチェーンへの同じ命令と、`cast call`のような読むだけの命令 | `AGENT_GUARDS_CHAIN=off` |
 | 他人のリポジトリ (外へ送る文) | `own-owners`の一覧が在る時に、一覧に無い持ち主のリポジトリへ`gh`か`gh api`で送るissue、pull request、コメント、レビュー、題と本文の書き換えと、そうしたリポジトリへの`git push`と、GraphQLのmutationと、変数で渡したリポジトリ | 自分の持ち主への送信、読むだけの命令、ラベルの変更、一覧が無い時の全ての送信 | `AGENT_GUARDS_OTHER_REPOS=off` |
 | システム (削除) | `mount`、`umount`、`chroot`、`pfctl`、`mkfs`と、管理者の権限でシェルのスクリプトを走らせる`osascript`。`sudo`と`bash -c`の後ろも見ます | `grep mount notes.txt`のように引数に在るだけの同じ名前と、ほかの`osascript`のスクリプト | `AGENT_GUARDS_SYSTEM=off` |
+| プロセス (削除) | PID 1、PID 0、`-1`のような負のPIDへの`kill` (`-1`は全てのプロセスに信号を送ります)。`ps`がlaunchd、WindowServer、Finder、systemd、sshdのようなシステムのプロセスと答えるPIDへの`kill`。システムのプロセスの名前か、`pgrep`がそれに当てるパターンへの`pkill`と`killall`。ユーザーだけでプロセスを選ぶ`pkill`と`killall`。`kill $PID`や`kill $(pgrep -f node)`のように変数か命令の置き換えから来る対象。`sudo`と`bash -c`の後ろも見ます | ほかのPIDへの`kill`、`kill $!`、`kill %1`、`kill -0`、システムのプロセスに当たらないパターンへの`pkill -f`、`killall node` | `AGENT_GUARDS_PROCESSES=off` |
 
-断ったgit、削除、システム、チェーン、他人のリポジトリの命令は、先頭に`!`を付けた同じ命令と一緒に返るので、本当に打つ時は自分で打てます。
+断ったgit、削除、システム、プロセス、チェーン、他人のリポジトリの命令は、先頭に`!`を付けた同じ命令と一緒に返るので、本当に打つ時は自分で打てます。
 Claude Codeでは、先頭に`!`を付けて打った行は本人の命令としてシェルで動きます。
 Codexでは、その命令を端末で打ちます。
 
@@ -93,11 +94,12 @@ your-organization
 | Python 3 | 全てのフック。無いと、全てのフックが毎回断り、Python 3を入れるかフックを外すように言います |
 | `bash` | フックの起動 |
 | `git` | コミットでステージした変更と、`gh`の送信かpushを打つクローンのリモートの読み取り |
+| `ps`と`pgrep` | `kill`、`pkill`、`killall`が名指すプロセスを調べる。無いと、それらの命令はエージェントの許可の決まりへ進みます |
 
 ## 読む物と動かす物と送る物
 
 - Claude CodeやCodexがシェルの命令とファイルの読み取りと書き換えの前に送る出来事、`gh`の命令が名指す本文のファイル、コミットの前のステージした変更と`git add`が名指すファイル、書き込みが名指す各ファイルの名前の数、3つの一覧のファイルを読みます
-- コミットのリポジトリで`git rev-parse`、`git diff`、`git ls-files`を動かし、`gh`の送信かpushを打つクローンでリモートを読むために`git config`、`git symbolic-ref`、`git remote get-url`を動かし、ほかは何も動かしません
+- コミットのリポジトリで`git rev-parse`、`git diff`、`git ls-files`を動かし、`gh`の送信かpushを打つクローンでリモートを読むために`git config`、`git symbolic-ref`、`git remote get-url`を動かし、`kill`、`pkill`、`killall`が名指すプロセスを調べるために`ps`と`pgrep`を動かし、ほかは何も動かしません
 - どこにも何も送りません。`AGENT_GUARDS_RECORD=on`にしない限り何も残しません
 - フックを持つプラグインはOpenAIのプラグインの公式ディレクトリに載せられないので、載せていません。このマーケットプレイスから入れます
 

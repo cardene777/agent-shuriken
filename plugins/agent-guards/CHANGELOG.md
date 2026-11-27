@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The delete hook refuses `kill` of PID 1, PID 0, or a negative PID such as `-1`, `kill` of a system process such as launchd, WindowServer, Finder, systemd, or sshd, `pkill` and `killall` of a system process or that pick processes only by user, and targets taken from a variable or a command substitution. It asks `ps` and `pgrep` which processes a command names. Turn it off with `AGENT_GUARDS_PROCESSES=off`
+
 ## [0.4.0] - 2026-11-27
 
 - The delete hook also refuses writing over a place in `~/.config/agent-guards/protected-paths`: `cp`, `install`, `ln`, `rsync`, `scp`, or `mv` into it (also with `-t` or `--target-directory`), `tee`, `dd of=`, `sed -i`, `truncate`, and redirects into it, and `git rm` of it. Copying out of the place and the agent's Write and Edit tools stay allowed

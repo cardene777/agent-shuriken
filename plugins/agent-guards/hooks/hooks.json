@@ -1,5 +1,5 @@
 {
-  "description": "agent-guards: refuse secret reads and writes, writes through hard links, keys in shell startup files, 1Password values, keys in outbound text, chain sends to targets off this machine, sends to other owners' repositories, dangerous git commands, broad deletes, and system commands",
+  "description": "agent-guards: refuse secret reads and writes, writes through hard links, keys in shell startup files, 1Password values, keys in outbound text, chain sends to targets off this machine, sends to other owners' repositories, dangerous git commands, broad deletes, system commands, and commands that end system processes or every process",
   "hooks": {
     "PreToolUse": [
       {

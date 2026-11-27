@@ -38,7 +38,7 @@ cat > "$FAKEBIN/ps" <<FAKE
 #!/usr/bin/env bash
 pid=""
 while [ \$# -gt 0 ]; do case "\$1" in -p) pid="\$2"; shift 2 ;; *) shift ;; esac; done
-awk -v p="\$pid" '\$1 == p { print \$2; n++ } END { exit n ? 0 : 1 }' "$PROCS"
+awk -v p=",\$pid," 'index(p, "," \$1 ",") { print \$1, \$2; n++ } END { exit n ? 0 : 1 }' "$PROCS"
 FAKE
 cat > "$FAKEBIN/pgrep" <<FAKE
 #!/usr/bin/env bash

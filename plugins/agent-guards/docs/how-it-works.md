@@ -22,6 +22,7 @@ Each check turns off with its own variable, and a hook whose checks are all off 
 | `git.sh` | Git | A shell command | `AGENT_GUARDS_GIT=off` |
 | `delete.sh` | Delete | A shell command | `AGENT_GUARDS_DELETE=off` |
 | `delete.sh` | System | A shell command | `AGENT_GUARDS_SYSTEM=off` |
+| `delete.sh` | Processes | A shell command | `AGENT_GUARDS_PROCESSES=off` |
 
 ## How a command is read
 
@@ -231,6 +232,23 @@ They are read behind `sudo`, `env`, an absolute path such as `/sbin/mount`, and 
 A name that is only an argument, such as `grep mount notes.txt`, and `osascript` without administrator privileges pass.
 The refusal ends with the command after a leading `!`.
 
+## Processes
+
+The check refuses commands that end processes when they hit the whole machine or cannot be checked before they run.
+
+| Refused | Why |
+|---|---|
+| `kill` of PID 1, PID 0, or a negative PID, as in `kill -9 -1` or `kill -- -4242` | PID 1 is launchd or init, PID 0 is the agent's own process group, a negative PID is a process group, and `-1` is every process the user can signal |
+| `kill` of a PID that `ps -o pid=,comm= -p <PID>` reports as a system process | Ending launchd, WindowServer, Finder, Dock, loginwindow, systemd, dbus-daemon, the display server, sshd, or a similar process ends the desktop session, the logins, or the machine |
+| `killall` of a system process name, and `pkill` or `killall -m` of a name or pattern that `pgrep` matches to PID 1 or a system process, as in `pkill -f .` | The same processes, chosen by name |
+| `pkill` and `killall` that pick processes only by user, as in `pkill -u alice` | They end every process of that user, the agent and its terminal included |
+| `kill`, `pkill`, or `killall` whose target comes from a variable or a command substitution, other than `$!` and `$$` | The processes it ends cannot be checked before it runs; the refusal says to look up the PID and name it |
+
+`pkill` asks `pgrep` with the same options and pattern, without the signal, so the PIDs checked are the ones `pkill` would end.
+`kill -0`, which sends no signal, `kill %1` of a job, `kill -l`, and a PID with no process pass.
+They are read behind `sudo`, `env`, and `bash -c`, as the section on reading a command says.
+The refusal ends with the command after a leading `!`.
+
 ## When a hook cannot judge
 
 A hook that cannot read the event, or fails while judging, refuses the call and says so, rather than letting it through unseen.
@@ -246,3 +264,4 @@ Each check turns off with its own variable set to `off`, as the table at the top
 - A startup file written by copying another file over it, as with `cp`, is not read for keys, since only the command text is read
 - A deploy run by `hardhat run` or a script, and a Hardhat network chosen by `defaultNetwork` in the config, are not read
 - A send to GitHub by a program's own code, such as `curl` to the GitHub API, is not read
+- `kill` of PIDs read from standard input, as in `pgrep -f node | xargs kill`, is not checked against the processes it ends, and a machine without `ps` and `pgrep` lets `kill`, `pkill`, and `killall` through

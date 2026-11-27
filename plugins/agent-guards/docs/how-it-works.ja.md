@@ -22,6 +22,7 @@ Claude CodeとCodexは、シェルの命令とファイルの読み取りと書�
 | `git.sh` | git | シェルの命令の前 | `AGENT_GUARDS_GIT=off` |
 | `delete.sh` | 削除 | シェルの命令の前 | `AGENT_GUARDS_DELETE=off` |
 | `delete.sh` | システム | シェルの命令の前 | `AGENT_GUARDS_SYSTEM=off` |
+| `delete.sh` | プロセス | シェルの命令の前 | `AGENT_GUARDS_PROCESSES=off` |
 
 ## 命令の読み方
 
@@ -244,6 +245,23 @@ RPCのURLのpathはAPIの鍵を持つことがあるので、断る時はホス�
 `grep mount notes.txt`のように引数に在るだけの名前と、管理者の権限を使わない`osascript`は通します。
 断る時は、先頭に`!`を付けた同じ命令で終えます。
 
+## プロセス
+
+検査は、PC全体に及ぶか、動かす前に調べられないプロセスを止める命令を断ります。
+
+| 断る物 | 理由 |
+|---|---|
+| `kill -9 -1`や`kill -- -4242`のような、PID 1、PID 0、負のPIDへの`kill` | PID 1はlaunchdかinit、PID 0はエージェント自身のプロセスグループ、負のPIDはプロセスグループで、`-1`はユーザーが信号を送れる全てのプロセス |
+| `ps -o pid=,comm= -p <PID>`がシステムのプロセスと答えるPIDへの`kill` | launchd、WindowServer、Finder、Dock、loginwindow、systemd、dbus-daemon、画面のサーバー、sshdのようなプロセスを止めると、デスクトップの作業、ログイン、PCそのものが止まる |
+| システムのプロセスの名前への`killall`と、`pkill -f .`のように`pgrep`がPID 1かシステムのプロセスに当てる名前かパターンへの`pkill`と`killall -m` | 同じプロセスを名前で選ぶ |
+| `pkill -u alice`のようにユーザーだけでプロセスを選ぶ`pkill`と`killall` | そのユーザーの全てのプロセスを、エージェントとそのターミナルも含めて止める |
+| `$!`と`$$`以外の、変数か命令の置き換えから対象が来る`kill`、`pkill`、`killall` | 止めるプロセスを動かす前に調べられない。断る時は、PIDを調べて名指すように言う |
+
+`pkill`は、信号を除いた同じオプションとパターンで`pgrep`に尋ねるので、調べるPIDは`pkill`が止めるPIDと同じです。
+信号を送らない`kill -0`、ジョブへの`kill %1`、`kill -l`、プロセスの無いPIDは通します。
+命令の読み方の節のとおり、`sudo`、`env`、`bash -c`の後ろでも読みます。
+断る時は、先頭に`!`を付けた同じ命令で終えます。
+
 ## 判断できない時
 
 出来事を読めないか判断の途中で失敗したフックは、黙って通さずに、呼び出しを断ってそう伝えます。
@@ -259,3 +277,4 @@ Python 3が無いと、各フックは毎回断り、Python 3を入れるか検�
 - `cp`でほかのファイルを上書きして書いた起動ファイルは、命令の文だけを読むので、鍵を調べません
 - `hardhat run`やスクリプトが走らせる配備と、設定の`defaultNetwork`で選んだHardhatのネットワークは読みません
 - `curl`でGitHubのAPIへ送るように、プログラム自身のコードがGitHubへ送る物は読みません
+- `pgrep -f node | xargs kill`のように標準入力から読むPIDへの`kill`は、止めるプロセスを調べません。`ps`と`pgrep`の無いPCでは、`kill`、`pkill`、`killall`を通します
