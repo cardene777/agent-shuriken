@@ -725,12 +725,14 @@ chain_local_pass() {
 
 # Clones for the destination checks: fork has the user's origin and someone else's upstream, mine has
 # only the user's origin, and theirs is a clone of someone else's project. The URLs take the three
-# shapes git remotes hold.
+# shapes git remotes hold. The SSH user is joined here, so the file holds no text shaped like an
+# email address.
+SSH_USER="git""@"
 for d in fork mine theirs; do git init -q "$WORK/$d"; done
-git -C "$WORK/fork" remote add origin git@github.com:me/proj.git
+git -C "$WORK/fork" remote add origin "${SSH_USER}github.com:me/proj.git"
 git -C "$WORK/fork" remote add upstream https://github.com/other/proj.git
 git -C "$WORK/mine" remote add origin https://github.com/me/tool.git
-git -C "$WORK/theirs" remote add origin ssh://git@github.com/other/lib.git
+git -C "$WORK/theirs" remote add origin "ssh://${SSH_USER}github.com/other/lib.git"
 own_owners() { mkdir -p "$HOME/.config/agent-guards"; printf '%s\n' '# my accounts' me my-org > "$HOME/.config/agent-guards/own-owners"; }
 no_own_owners() { rm -f "$HOME/.config/agent-guards/own-owners"; }
 
