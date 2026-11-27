@@ -1,6 +1,6 @@
 {
   "name": "agent-guards",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Hooks that stop an agent from reading or overwriting key files and .env files, printing values stored in 1Password, sending text or commits that hold a key, running force pushes and other destructive git commands, and deleting or locking whole folder trees, in Claude Code and Codex",
   "author": {
     "name": "cardene777",
