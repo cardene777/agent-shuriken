@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-27
+
 - The delete hook refuses `kill` of PID 1, PID 0, or a negative PID such as `-1`, `kill` of a system process such as launchd, WindowServer, Finder, systemd, or sshd, `pkill` and `killall` of a system process or that pick processes only by user, and targets taken from a variable or a command substitution. It asks `ps` and `pgrep` which processes a command names. Turn it off with `AGENT_GUARDS_PROCESSES=off`
 
 ## [0.4.0] - 2026-11-27
@@ -38,7 +40,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - The git hook refuses force pushes, `git reset --hard`, `--no-verify`, `git clean -f`, and commands that throw away uncommitted changes, and the delete hook refuses deletes of the root, the home folder, the current folder, and system folders; both show the refused command with a leading `!`
 - `~/.config/agent-guards/secret-paths` and `protected-paths` add your own places, each hook turns off with its own `AGENT_GUARDS_*` variable, and `AGENT_GUARDS_RECORD=on` writes one line per refusal
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/agent-guards--v0.4.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/agent-guards--v0.5.0...HEAD
+[0.5.0]: https://github.com/cardene777/agent-shuriken/releases/tag/agent-guards--v0.5.0
 [0.4.0]: https://github.com/cardene777/agent-shuriken/releases/tag/agent-guards--v0.4.0
 [0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/agent-guards--v0.3.0
 [0.2.1]: https://github.com/cardene777/agent-shuriken/releases/tag/agent-guards--v0.2.1
