@@ -1718,6 +1718,12 @@ SYSTEM_PROCESSES = {
     "plasmashell", "gdm", "gdm3", "sddm", "lightdm", "NetworkManager", "polkitd", "kthreadd",
     "sshd",
 }
+# Terminal apps, by the names `ps` reports. Ending one closes every window it holds, the agent's own included.
+TERMINAL_APPS = {
+    "Terminal", "iTerm2", "ghostty", "wezterm-gui", "alacritty", "kitty", "gnome-terminal-server", "konsole", "xterm",
+}
+# Redirect operators of a simple command; each takes the next word as its target.
+REDIRECTS = WRITE_REDIRECTS | {"<", "<<", "<<<", "<&", "<>"}
 # `$!` is the agent's own last background job and `$$` its own shell, so both name a known process.
 KNOWN_PID_WORDS = {"$!", "$$"}
 # Options of pkill and killall that take a value, so the value is not read as a name or a pattern.
@@ -1759,32 +1765,52 @@ def unreadable(word):
     return word not in KNOWN_PID_WORDS and ("$" in word or "`" in word)
 
 
+def without_redirects(args, text):
+    """The arguments of a simple command without its redirects and their targets. A file descriptor
+    number written against its operator in the text, such as the `2` of `2>&1`, goes with it, since the
+    tokenizer splits it off; `kill 2 > out.txt` keeps PID 2."""
+    out, i = [], 0
+    while i < len(args):
+        if args[i] in REDIRECTS:
+            if out and out[-1].isdigit() and re.search(rf"(?<![\w$-]){out[-1]}{re.escape(args[i])}", text):
+                out.pop()
+            i += 2
+            continue
+        out.append(args[i])
+        i += 1
+    return out
+
+
 def kill_targets(args):
-    """The targets of `kill` past its signal option, and whether the signal is 0, which sends nothing.
-    None for `kill -l`, which only lists the signals."""
-    targets, signal, i = [], None, 0
+    """The targets of `kill` past its signal options, and whether it surely sends signal 0, which ends
+    nothing. None for `kill -l`, which only lists the signals. bash reads every `-s` and `-n` option, so
+    a later one replaces the signal; a second `-<signal>` word is a process group to bash and a signal to
+    another `kill`, so it is kept as a target and leaves the signal uncertain."""
+    targets, signals, i = [], [], 0
     while i < len(args):
         a = args[i]
         if a == "--":
             targets.extend(args[i + 1:])
             break
-        if signal is None and (a in ("-l", "-L", "--list") or a.startswith("--list=")):
+        if not signals and (a in ("-l", "-L", "--list") or a.startswith("--list=")):
             return None, False
-        if signal is None and a in ("-s", "-n", "--signal"):
-            signal = args[i + 1] if i + 1 < len(args) else ""
+        if a in ("-s", "-n", "--signal"):
+            signals.append(args[i + 1] if i + 1 < len(args) else "")
             i += 2
             continue
-        if signal is None and a.startswith("--signal="):
-            signal = a.split("=", 1)[1]
+        if a.startswith("--signal="):
+            signals.append(a.split("=", 1)[1])
             i += 1
             continue
-        if signal is None and a.startswith("-") and len(a) > 1:
-            signal = a[1:]
+        if a.startswith("-") and len(a) > 1:
+            if signals:
+                targets.append(a)
+            signals.append(a[1:])
             i += 1
             continue
         targets.append(a)
         i += 1
-    return targets, signal in ("0", "SIG0")
+    return targets, len(signals) == 1 and signals[0] in ("0", "SIG0")
 
 
 def selector_words(args, values):
@@ -1817,12 +1843,15 @@ def process_kills(event):
         cmd, args = command_of(seg)
         if cmd not in ("kill", "pkill", "killall"):
             continue
+        args = without_redirects(args, text)
         if cmd == "kill":
             targets, probe = kill_targets(args)
             selected, by_user = targets or [], False
         else:
             selected, by_user = selector_words(args, PKILL_VALUES if cmd == "pkill" else KILLALL_VALUES)
             probe = False
+        if probe:
+            continue
         for word in selected:
             if unreadable(word):
                 raise Refusal("unreadable process target", f"`{cmd}` takes its target `{word}` from a variable or a "
@@ -1832,8 +1861,6 @@ def process_kills(event):
             if by_user:
                 raise Refusal("user-wide kill", f"`{cmd}` with only a user ends every process of that user, the agent "
                               "and its terminal included." + run_it_yourself(text))
-            continue
-        if probe:
             continue
         if cmd == "kill":
             pids = [int(w) for w in selected if re.fullmatch(r"-?[0-9]+", w)]
@@ -1848,6 +1875,10 @@ def process_kills(event):
             if hit:
                 raise Refusal("system process kill", f"`killall {hit}` ends a system process the desktop session or "
                               "the machine needs." + run_it_yourself(text))
+            hit = next((w for w in selected if w in TERMINAL_APPS), None)
+            if hit:
+                raise Refusal("terminal app kill", f"`killall {hit}` ends a terminal app with every window it holds, "
+                              "the agent's own included." + run_it_yourself(text))
             continue
         else:
             if cmd == "killall":
@@ -1862,6 +1893,10 @@ def process_kills(event):
         if hit:
             raise Refusal("system process kill", f"`{cmd}` would end `{hit[1]}` (PID {hit[0]}), a system process "
                           "the desktop session or the machine needs." + run_it_yourself(text))
+        hit = next(((p, n) for p, n in names.items() if n in TERMINAL_APPS), None)
+        if hit:
+            raise Refusal("terminal app kill", f"`{cmd}` would end `{hit[1]}` (PID {hit[0]}), a terminal app with "
+                          "every window it holds, the agent's own included." + run_it_yourself(text))
 
 
 HOOKS = {"secret-read": secret_read, "secret-write": secret_write, "onepassword": onepassword,

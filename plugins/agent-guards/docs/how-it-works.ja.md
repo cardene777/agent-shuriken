@@ -255,10 +255,13 @@ RPCのURLのpathはAPIの鍵を持つことがあるので、断る時はホス�
 | `ps -o pid=,comm= -p <PID>`がシステムのプロセスと答えるPIDへの`kill` | launchd、WindowServer、Finder、Dock、loginwindow、systemd、dbus-daemon、画面のサーバー、sshdのようなプロセスを止めると、デスクトップの作業、ログイン、PCそのものが止まる |
 | システムのプロセスの名前への`killall`と、`pkill -f .`のように`pgrep`がPID 1かシステムのプロセスに当てる名前かパターンへの`pkill`と`killall -m` | 同じプロセスを名前で選ぶ |
 | `pkill -u alice`のようにユーザーだけでプロセスを選ぶ`pkill`と`killall` | そのユーザーの全てのプロセスを、エージェントとそのターミナルも含めて止める |
+| `ps`が答える名前で`Terminal`、`iTerm2`、ghostty、wezterm-gui、alacritty、kitty、gnome-terminal-server、konsole、xtermのどれかのターミナルのアプリへの`killall`、`pkill`、`kill` | アプリを止めると、エージェント自身の窓も含めて、そのアプリの全ての窓が閉じる |
 | `$!`と`$$`以外の、変数か命令の置き換えから対象が来る`kill`、`pkill`、`killall` | 止めるプロセスを動かす前に調べられない。断る時は、PIDを調べて名指すように言う |
 
 `pkill`は、信号を除いた同じオプションとパターンで`pgrep`に尋ねるので、調べるPIDは`pkill`が止めるPIDと同じです。
-信号を送らない`kill -0`、ジョブへの`kill %1`、`kill -l`、プロセスの無いPIDは通します。
+`2>&1`や`2>/dev/null`のようなリダイレクトはリダイレクトとして読み、その数をPIDと取りません。`kill 2 > out.txt`のように空白で離した数はPIDのままです。
+bashは`kill`の`-s`と`-n`を全て読むので、最後の物が信号を決めます。`kill -0 -9 1`のように2つ目の`-<信号>`の語があると信号が定まらないので、プロセスを止める命令として判断します。
+信号のオプションが1つだけの`kill -0`の確かめは信号を送らないので、`kill -0 $PPID`のようにどの対象でも通します。ジョブへの`kill %1`、`kill -l`、プロセスの無いPIDも通します。
 命令の読み方の節のとおり、`sudo`、`env`、`bash -c`の後ろでも読みます。
 断る時は、先頭に`!`を付けた同じ命令で終えます。
 
