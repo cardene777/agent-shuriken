@@ -1,0 +1,12 @@
+{
+  "en": {
+    "title": "Outline of {title}",
+    "open": "Open all chapters",
+    "close": "Close all chapters"
+  },
+  "ja": {
+    "title": "{title}の構成案",
+    "open": "すべての章を開く",
+    "close": "すべての章を閉じる"
+  }
+}

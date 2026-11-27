@@ -470,7 +470,7 @@ refuses_question_or_number() {
   outline_refuses 'question mark or number' \
     title-question 'o["title"] += "?"' \
     chapter-question 'o["chapters"][0]["name"] += "?"' \
-    section-wide-question 'o["chapters"][0]["pages"][0]["sections"][0]["name"] += "？"' \
+    section-wide-question 'o["chapters"][0]["pages"][0]["sections"][0]["name"] += "\uff1f"' \
     page-dash-number 'o["chapters"][0]["pages"][0]["name"] = "1-1 " + o["chapters"][0]["pages"][0]["name"]' \
     chapter-dot-number 'o["chapters"][1]["name"] = "2. " + o["chapters"][1]["name"]'
 }
@@ -488,7 +488,7 @@ refuses_bullet() {
   outline_refuses 'bullet' \
     dash-point 'o["chapters"][0]["pages"][0]["point"] = "- " + o["chapters"][0]["pages"][0]["point"]' \
     star-name 'o["overview"][0]["name"] = "* " + o["overview"][0]["name"]' \
-    middle-dot-point 'o["chapters"][0]["pages"][0]["sections"][0]["point"] = "・" + o["chapters"][0]["pages"][0]["sections"][0]["point"]' \
+    middle-dot-point 'o["chapters"][0]["pages"][0]["sections"][0]["point"] = "\u30fb" + o["chapters"][0]["pages"][0]["sections"][0]["point"]' \
     later-line-bullet 'o["chapters"][1]["pages"][0]["sections"][0]["point"] += "\n- another item"'
 }
 

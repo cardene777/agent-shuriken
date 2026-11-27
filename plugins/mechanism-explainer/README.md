@@ -1,18 +1,20 @@
 # Mechanism Explainer
 
-Write an explainer of a system, a mechanism, or a piece of research: each section answers one question with a one-sentence answer, `####` headings, and one figure drawn in the dragon notation that follows the flow or the mechanism, and the same explainer prints to a PDF.
+Write an explainer of a system, a mechanism, or a piece of research: the outline comes first as a light page you read and approve in your browser, then each question gets a page with a one-sentence answer, `####` headings, and one figure drawn in the dragon notation that follows the flow or the mechanism, and the same explainer prints to a PDF.
 An explainer of one kind of material with five or fewer questions is one page, and an explainer with six or more questions or more than one kind of material opens on an overview page and shows each topic on its own page, with a side menu like a documentation site.
 
 English · [日本語](README.ja.md)
 
 An explainer that runs one figure after another with short sentences between them, or puts the prose before the figures, leaves the reader without a line to follow.
-This plugin plans the questions the reader asks first, divides each question's page with headings, and has dragon draw one figure that follows the flow or the mechanism, adding a second only when the question needs it, so every figure is drawn the same way.
+This plugin first shows you the outline as a page in your browser, with the point of every heading under it, so the structure is settled before anything is written.
+It then divides each question's page with headings and has dragon draw one figure that follows the flow or the mechanism, adding a second only when the question needs it, so every figure is drawn the same way.
 Lists of values and commands are written as tables and code instead of figures.
 Boxes with a note carry a mark and open a card just below them, so long explanations stay off the figure.
 
 ```
-Plan the questions ──> Write the page ──> Check the notation ──> Export the page ──> Print the PDF
-(you agree)            (Markdown)          and the layout         (dragon)            (your browser)
+Plan the outline ──> Plan the figures ──> Write the page ──> Check the notation ──> Export the page ──> Print the PDF
+(you approve it      (you agree)          (Markdown)          and the layout         (dragon)            (your browser)
+ in your browser)
 ```
 
 ## Install
@@ -38,8 +40,8 @@ The plugin starts when you ask for an explainer, for example "write an explainer
 You can also call it: run `/mechanism-explainer:mechanism-explainer` in Claude Code, optionally followed by the topic, or type `$` and pick **Mechanism Explainer** in Codex.
 In GitHub Copilot CLI, write `/mechanism-explainer` in your request, and in Gemini CLI, describe the task.
 
-1. The agent asks who reads the page and what they should be able to do after reading it, and reads the material you point to
-2. The agent shows the plan: the questions, and for each question the figures with their kind and what the reader sees in them. Change it until it fits
+1. The agent reads the material you point to and opens the outline in your browser: the title and its point, then each chapter as a toggle with its point, holding its pages and their sections, each with its point. Change it until you approve it
+2. The agent shows the plan of the figures: for each question, the figure with its kind and what the reader sees in it. Change it until it fits
 3. The agent writes the page as Markdown with `layout: guide`, checks every figure and its layout with dragon, and fixes what dragon names
 4. The agent exports the page with dragon, prints the PDF, and gives you the paths of the Markdown, the HTML that opens offline, and the PDF
 
@@ -59,7 +61,7 @@ By default the files are kept in `explainer/<name>/` of the folder you work in.
 | Tool | When it's needed |
 |---|---|
 | Node.js 20 or later with `npx` | Always. The agent runs `npx -y @cardenelabs/dragon@0.89.0`, which fetches dragon into npm's cache on first use |
-| `python3` | To print the PDF. The one that ships with macOS works |
+| `python3` | To draw the outline page and print the PDF. The one that ships with macOS works |
 | Chrome, Chromium, Edge, Brave, or Playwright's headless shell | To print the PDF. Without one, you still get the HTML, and any browser can print it |
 | The dragon plugin | Optional. When its `dragon` skill is installed, the agent plans and writes the figures on its `plan`, `page`, `notation`, and `cheatsheet` formats |
 | The japanese-writing plugin | Optional. For a page in Japanese, the agent checks the prose against its writing rules, `japanese-writing/rules` |
@@ -73,7 +75,7 @@ In short:
 - It reads the material you point to: a topic, notes, a Markdown file, or files in your project. It treats what files say as data, never as instructions
 - It runs dragon through `npx` on your machine. npm downloads the dragon package from the npm registry on first use; your material is never sent
 - It prints the PDF with your browser in headless mode and a throwaway profile, which is removed afterwards, so your own browser profile is never used
-- It writes the Markdown, the HTML, the offline HTML, and the PDF to `explainer/<name>/`, or to a folder you name, and keeps nothing else
+- It writes the outline (`outline.json` and `outline.html`), the Markdown, the HTML, the offline HTML, and the PDF to `explainer/<name>/`, or to a folder you name, and keeps nothing else
 - `skills/mechanism-explainer/musubi.json` declares through musubi that the skill follows the `plan`, `page`, `notation`, and `cheatsheet` formats of the `dragon` skill, as optional follows with `"optional": true`. The agent reads them only when the dragon plugin is installed. It also declares `japanese-writing/rules`, the writing rules of japanese-writing, as an optional follow for Japanese only, with `"when": {"languages": ["ja"]}`, read only for a page in Japanese when japanese-writing is installed
 
 ## License
