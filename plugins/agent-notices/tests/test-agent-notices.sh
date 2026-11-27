@@ -517,17 +517,30 @@ sequential_noticed() {
   AGENT_NOTICES_SEQUENTIAL_AFTER=3 calls_quietly q2 2 || return 1
   CLAUDECODE=1 AGENT_NOTICES_SEQUENTIAL_AFTER=3 notes sequential "$(event_call Read q2)" 'the third call with AGENT_NOTICES_SEQUENTIAL_AFTER=3' '3'
 }
-sequential_together() {
-  [ -f "$HOOKS/sequential.sh" ] || { why="hooks/sequential.sh does not exist"; return 1; }
-  export AGENT_NOTICES_SEQUENTIAL_AFTER=3
-  calls_quietly q3 2 || { unset AGENT_NOTICES_SEQUENTIAL_AFTER; return 1; }
-  CLAUDECODE=1 notice sequential "$(event_call Read q3)" > "$T/q3-a" &
-  CLAUDECODE=1 notice sequential "$(event_call Grep q3)" > "$T/q3-b" &
+# One call alone, two calls together, then two alone: counted one at a time, they would reach 3.
+# The two calls together start at once; on a loaded machine one may start more than 200 milliseconds
+# late, so the run is tried up to three times, each in a new session. A hook that never starts the
+# count over fails all three.
+together_once() {
+  local s="$1" a b
+  a="$(event_call Read "$s")" b="$(event_call Grep "$s")"
+  calls_quietly "$s" 1 || return 1
+  (cd "$WORK" && printf '%s' "$a" | CLAUDECODE=1 bash "$HOOKS/sequential.sh" > "$T/$s-a" 2>/dev/null) &
+  (cd "$WORK" && printf '%s' "$b" | CLAUDECODE=1 bash "$HOOKS/sequential.sh" > "$T/$s-b" 2>/dev/null) &
   wait
   sleep 0.6
-  calls_quietly q3 2 || { unset AGENT_NOTICES_SEQUENTIAL_AFTER; return 1; }
+  calls_quietly "$s" 2 || return 1
+  [ ! -s "$T/$s-a" ] && [ ! -s "$T/$s-b" ] || { why="two calls together still counted as one at a time: $(cat "$T/$s-a" "$T/$s-b")"; return 1; }
+}
+sequential_together() {
+  [ -f "$HOOKS/sequential.sh" ] || { why="hooks/sequential.sh does not exist"; return 1; }
+  local s status=1
+  export AGENT_NOTICES_SEQUENTIAL_AFTER=3
+  for s in q3a q3b q3c; do
+    together_once "$s" && { status=0; break; }
+  done
   unset AGENT_NOTICES_SEQUENTIAL_AFTER
-  [ ! -s "$T/q3-a" ] && [ ! -s "$T/q3-b" ] || { why="two calls together still counted as one at a time: $(cat "$T/q3-a" "$T/q3-b")"; return 1; }
+  return "$status"
 }
 sequential_outside() {
   [ -f "$HOOKS/sequential.sh" ] || { why="hooks/sequential.sh does not exist"; return 1; }

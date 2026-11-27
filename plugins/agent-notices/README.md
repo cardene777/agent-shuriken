@@ -36,6 +36,8 @@ After an update changes a hook, Codex marks it as modified and stops running it 
 | tmp-space | A shell command | That the temporary directory has less free space than `AGENT_NOTICES_TMP_MIN_GB` gigabytes, 5 by default | `AGENT_NOTICES_TMP_SPACE=off` |
 | security | An edit | The reminder of each pattern of Anthropic's `security-guidance` plugin that the new code matches, such as `os.system(`, `innerHTML =`, `pickle.load`, or a GitHub Actions workflow | `AGENT_NOTICES_SECURITY=off` |
 | format | An edit | Runs the project's own formatter on the edited file, and tells the agent when the file changed so it reads it again | `AGENT_NOTICES_FORMAT=off` |
+| edit-loop | An edit | That it has edited the same file `AGENT_NOTICES_EDIT_LOOP_EVERY` times in this session, 5 by default, and again at every multiple, and to reproduce the failure and find the root cause before the next fix. `AGENT_NOTICES_EDIT_LOOP_SKILL=<skill>` makes the notice name your own debugging skill. Files git ignores and files in the temporary directory get no notice | `AGENT_NOTICES_EDIT_LOOP=off` |
+| sequential | Any tool call in Claude Code | That the last `AGENT_NOTICES_SEQUENTIAL_AFTER` tool calls, 10 by default, each came in a message of their own, and to make calls that do not need each other's results together in one message | `AGENT_NOTICES_SEQUENTIAL=off` |
 | presence | The start and end of a Claude Code session | Nothing. It creates the file `CLAUDE_CLIENT_PRESENCE_FILE` names at session start and removes it at session end, so Claude Code holds back mobile notifications while you are at the machine | `AGENT_NOTICES_PRESENCE=off` |
 | skill-log | A skill call in Claude Code | Nothing. It writes one line per call when turned on | Off unless `AGENT_NOTICES_SKILL_LOG=on` |
 | mcp-log | An MCP tool call | Nothing. It writes one line per call when turned on | Off unless `AGENT_NOTICES_MCP_LOG=on` |
@@ -43,6 +45,7 @@ After an update changes a hook, Codex marks it as modified and stops running it 
 Set a variable in the `env` field of `~/.claude/settings.json` for Claude Code, or in your shell's startup file for Codex.
 A notice for an edit comes right after the edit, since that is when the agent reads it.
 Codex has no Grep tool and no skill tool call, so grep-binary and skill-log run only in Claude Code; the presence file is read only by Claude Code.
+sequential also runs only in Claude Code, where `CLAUDECODE=1` is set, since its rule for telling calls made together from calls made one at a time was measured there.
 
 ## Formatters
 
@@ -79,13 +82,13 @@ When `XDG_DATA_HOME` is set, the files live in `$XDG_DATA_HOME/agent-notices/` i
 |---|---|
 | Python 3 | Every hook. Without it, the hooks do nothing |
 | `bash` | Starting the hooks |
-| `git` | The branch hook, and finding the top of the repository for env-example and format |
+| `git` | The branch hook, finding the top of the repository for env-example and format, and telling whether git ignores a file for edit-loop |
 
 ## What it reads, runs, and sends
 
 - It reads the event Claude Code or Codex sends after each shell command, edit, Grep, skill call, and MCP call, the files an edit changed, the `.env.example` files at the top of the repository, the project settings that name a formatter, and, after a Grep that found nothing, the files under the searched path
 - It runs `git` in the repository a command names, and the project's own formatter on the edited file
-- It keeps the branch each session last switched to, and the start time of a call while the logs are on, in `~/.local/share/agent-notices/`, readable only by you, and removes branch records older than seven days
+- It keeps the branch each session last switched to, how many times each session edited each file, how many calls in a row came one at a time, and the start time of a call while the logs are on, in `~/.local/share/agent-notices/`, readable only by you, and removes branch and count records older than seven days
 - It sends nothing anywhere and calls no model
 - It is not uploaded to OpenAI's plugin directory, because a plugin with hooks is not accepted there; install it from this marketplace
 

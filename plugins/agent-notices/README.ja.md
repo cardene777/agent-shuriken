@@ -38,6 +38,8 @@ Codexの会話で`/hooks`を開き、agent-noticesのフックを信用してく
 | tmp-space | シェルの命令の後 | 一時ディレクトリの空きが`AGENT_NOTICES_TMP_MIN_GB`ギガバイト (既定は5) より少ないこと | `AGENT_NOTICES_TMP_SPACE=off` |
 | security | 編集の後 | 新しいコードに当たる、Anthropicの`security-guidance`プラグインの型ごとの注意。例えば`os.system(`、`innerHTML =`、`pickle.load`、GitHub Actionsのワークフロー | `AGENT_NOTICES_SECURITY=off` |
 | format | 編集の後 | 編集したファイルにプロジェクトの整形の道具を回し、ファイルが変わった時は読み直すように知らせます | `AGENT_NOTICES_FORMAT=off` |
+| edit-loop | 編集の後 | この会話で同じファイルを`AGENT_NOTICES_EDIT_LOOP_EVERY`回 (既定は5) 直したこと。その倍数の回ごとにも知らせ、次の直しの前に失敗を再現して根本原因を探すように言います。`AGENT_NOTICES_EDIT_LOOP_SKILL=<スキル>`を置くと、知らせがあなたの原因を探すスキルを名指します。gitが無視するファイルと一時ディレクトリのファイルには知らせません | `AGENT_NOTICES_EDIT_LOOP=off` |
+| sequential | Claude Codeの全ての道具の呼び出しの後 | 直近の`AGENT_NOTICES_SEQUENTIAL_AFTER`回 (既定は10) の呼び出しが、どれも1つの返答に1つずつだったこと。互いの結果を要らない呼び出しは1つの返答にまとめるように言います | `AGENT_NOTICES_SEQUENTIAL=off` |
 | presence | Claude Codeの会話の始めと終わり | 何も知らせません。`CLAUDE_CLIENT_PRESENCE_FILE`が名指すファイルを始めに作り、終わりに消します。ファイルが在る間、Claude Codeはスマホへの通知を控えます | `AGENT_NOTICES_PRESENCE=off` |
 | skill-log | Claude Codeのスキルの呼び出し | 何も知らせません。オンの時、呼び出しごとに1行を書きます | `AGENT_NOTICES_SKILL_LOG=on`にしない限りオフ |
 | mcp-log | MCPの道具の呼び出し | 何も知らせません。オンの時、呼び出しごとに1行を書きます | `AGENT_NOTICES_MCP_LOG=on`にしない限りオフ |
@@ -47,6 +49,7 @@ Codexの会話で`/hooks`を開き、agent-noticesのフックを信用してく
 エージェントがそこで読むからです。
 CodexにはGrepの道具もスキルの呼び出しも無いので、grep-binaryとskill-logはClaude Codeだけで動きます。
 在席のファイルを読むのもClaude Codeだけです。
+sequentialも、`CLAUDECODE=1`が置かれるClaude Codeだけで動きます。まとめた呼び出しと1つずつの呼び出しを見分ける決まりを、Claude Codeで測ったからです。
 
 ## 整形の道具
 
@@ -83,13 +86,13 @@ formatのフックは、プロジェクトの設定が名指し、道具が既�
 |---|---|
 | Python 3 | 全てのフック。無いと、フックは何もしません |
 | `bash` | フックの起動 |
-| `git` | branchのフックと、env-exampleとformatでリポジトリの一番上を探す所 |
+| `git` | branchのフックと、env-exampleとformatでリポジトリの一番上を探す所と、edit-loopでgitが無視するファイルかを確かめる所 |
 
 ## 読む物と動かす物と送る物
 
 - Claude CodeやCodexがシェルの命令、編集、Grep、スキルの呼び出し、MCPの呼び出しの後に送る出来事、編集で変わったファイル、リポジトリの一番上の`.env.example`のファイル、整形の道具を名指すプロジェクトの設定、何も見つからなかったGrepの後は探した所の下のファイルを読みます
 - 命令が名指すリポジトリで`git`を動かし、編集したファイルにプロジェクトの整形の道具を動かします
-- 会話ごとに最後に切り替えたブランチと、ログがオンの間は呼び出しの始めの時刻を、あなただけが読める`~/.local/share/agent-notices/`に残し、7日より古いブランチの記録は消します
+- 会話ごとに最後に切り替えたブランチ、会話ごとにファイルを直した回数、1つずつ続いた呼び出しの数、ログがオンの間は呼び出しの始めの時刻を、あなただけが読める`~/.local/share/agent-notices/`に残し、7日より古いブランチと回数の記録は消します
 - どこにも何も送らず、モデルも呼びません
 - フックを持つプラグインはOpenAIのプラグインの公式ディレクトリに載せられないので、載せていません。このマーケットプレイスから入れます
 
