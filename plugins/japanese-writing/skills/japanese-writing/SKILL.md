@@ -19,11 +19,12 @@ Each has an English version beside it named `<name>.en.md`, with the same headin
 
 ## Content other skills follow
 
-Other skills, such as convey, follow this skill's guide to connecting sentences through musubi, a declaration in `musubi.json` that pins the version and fingerprint of what they follow.
+Other skills follow this skill's guide to connecting sentences, such as convey, and its writing rules, such as mechanism-explainer for Japanese pages, through musubi, a declaration in `musubi.json` that pins the version and fingerprint of what they follow.
 
 | Content | File | What it holds |
 |---|---|---|
 | `connecting` | `references/connecting.md` | How to cut a long Japanese sentence and connect the short ones with conjunctions |
+| `rules` | `references/rules.md` | The order of precedence, the plugin's own rules for writing and fixing Japanese text, and when to read each of its references |
 
 ## Running the scripts
 

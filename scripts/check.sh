@@ -651,6 +651,16 @@ check_reached_inside_plugins() {
   [ -z "$got" ] || { echo "a change inside plugins/ picked: $got"; return 1; }
 }
 
+# The musubi declarations of every skill, and the follows of the dragon skill fetched from
+# cardene777/dragon. A failing check of that script fails this one, with its lines as the reason.
+check_musubi() {
+  local out status
+  out="$(bash scripts/check-musubi.sh 2>&1)"
+  status=$?
+  printf '%s\n' "$out" | grep -v '^ok    '
+  return "$status"
+}
+
 check_plugin_validate() {
   command -v claude >/dev/null || { echo "claude is not installed"; return 77; }
   local target bad=0
@@ -693,6 +703,7 @@ run "AGENTS.md asks for issues and new .ikkan records in English" check_agents_e
 run "the ikkan gates run these checks" check_ikkan_reached_checks
 run "the reached checks pick the plugin tests that read a changed root file" check_reached_root_file
 run "the reached checks pick no plugin test for a change inside plugins" check_reached_inside_plugins
+run "musubi declarations match the contents they follow" check_musubi
 run "claude plugin validate" check_plugin_validate
 
 printf '%d passed, %d failed, %d skipped\n' "$pass" "$fail" "$skip"

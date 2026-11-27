@@ -14,6 +14,9 @@ Run it as a shell command, `python3 <folder of this SKILL.md>/scripts/contract-t
 ## 1. Read the project
 
 Read the versions with the solidity-code skill in this plugin: its `project` prints them, and its `list` shows the items on Solidity, OpenZeppelin, Foundry, and Hardhat, such as Foundry 1.0 dropping `testFail`.
+Run the `commands` of the `solidity-code` skill: open the `solidity-code` skill by name and run the file it names for `commands`.
+If the `musubi` command is available, run `musubi check` before reading, and stop if it fails.
+If the `solidity-code` skill is not installed, do not start: tell the user that `solidity-code` is missing and how to install it, then stop.
 Run `list` here for the items on test tools; an item applies when the project's version is at or past its `since`.
 When an item is marked `stale`, re-check it against the official document (the tool's changelog or reference) before relying on it, and tell the user what changed.
 When the document cannot be reached, use the item and say it is unconfirmed, with its checked date.

@@ -12,6 +12,7 @@ Mechanism Explainerは、題材を、読み手の問いに順に答える説明�
 | 準備を確かめる | エージェントがdragon 0.87.0が動くかを確かめます | `npx -y @cardenelabs/dragon@0.87.0 --version` |
 | 構成案を立てる | 読み手、問い、問いごとの2〜4枚の図を書き、合うまで直します | なし |
 | 書く | `layout: guide`と`note: pop`を持つ`<name>.md`と、語を集めた`glossary.md`を書きます | なし |
+| 日本語の文を確かめる | 日本語の頁で、japanese-writingが入っている時は、スキルがmusubiで従う`japanese-writing/rules`に照らして文を確かめます | `musubi`コマンドが入っている時は`musubi check` |
 | 確かめる | 全ての図の記法の誤りと配置の崩れを確かめ、dragonが出した行を全て直します | `dragon check`と`dragon check --layout` |
 | 書き出す | dragonが頁を書き、スクリプトを中に持つ写しも書きます | `dragon export`と`dragon embed` |
 | 印刷する | 頁を既定でA3の紙のPDFにします | `scripts/to-pdf.py` |

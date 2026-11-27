@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- `solidity-code` declares its script as the content `commands` in a new `musubi.json`, and `contract-tests`, `contract-deploy`, and `release-check` follow `solidity-code/commands`, so `musubi check` refuses them when the script changed after their last check, and they stop and say how to install solidity-code when it is missing
+
 ## [0.9.0] - 2026-11-23
 
 ### Added

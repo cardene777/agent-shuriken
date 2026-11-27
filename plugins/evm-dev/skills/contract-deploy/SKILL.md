@@ -14,6 +14,9 @@ Run it as a shell command, `python3 <folder of this SKILL.md>/scripts/contract-d
 ## 1. Read the project
 
 Read the versions with the solidity-code skill in this plugin: its `project` prints them.
+Run the `commands` of the `solidity-code` skill: open the `solidity-code` skill by name and run the file it names for `commands`.
+If the `musubi` command is available, run `musubi check` before reading, and stop if it fails.
+If the `solidity-code` skill is not installed, do not start: tell the user that `solidity-code` is missing and how to install it, then stop.
 Run `list` here for the items on keys, records, and verification.
 When an item is marked `stale`, re-check it against the official document before relying on it, and tell the user what changed; when the document cannot be reached, use the item and say it is unconfirmed, with its date.
 Ask which chains to deploy to, which of them are production chains (their tokens have value), and who should own each contract; never default ownership to the deployer.

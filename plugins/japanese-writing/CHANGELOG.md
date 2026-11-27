@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- `musubi.json` also declares `references/rules.md` as the content `rules`, version 1.0.0, so that mechanism-explainer follows the writing rules for Japanese pages through musubi and is checked again when they change
+
 ## [0.3.0] - 2026-11-23
 
 - The references read in English: every Markdown file under `references/`, the upstream copies included, has an English version beside it named `<name>.en.md`, with the same headings and tables, and a check fails when the two differ. The skill keeps reading the Japanese files and explains each fix in the language the user writes in

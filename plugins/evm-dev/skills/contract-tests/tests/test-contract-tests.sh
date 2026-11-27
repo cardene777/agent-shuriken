@@ -925,7 +925,8 @@ skill_rules() {
 check "the SKILL.md keeps its rules" skill_rules
 
 # The body is counted in words and the description in characters, as the size the agent reads.
-SKILL_WORDS_MAX=600
+# 61 words above 600 hold the three musubi lines that follow solidity-code/commands (agent-shuriken#553).
+SKILL_WORDS_MAX=661
 SKILL_DESCRIPTION_MAX=300
 skill_size() {
   [ -f "$SKILL" ] || return 1
@@ -986,6 +987,34 @@ others_kept() {
     && bash "$PLUGIN/skills/financial-standards/tests/test-financial-standards.sh" > "$T/financial-standards.out" 2>&1
 }
 check "the other evm-dev skills still pass their tests" others_kept
+
+# This skill runs the commands of solidity-code, so it follows solidity-code/commands through musubi
+# (agent-shuriken#553).
+follows_solidity_commands() {
+  python3 - "$SKILL_DIR/musubi.json" <<'PY' || return 1
+import json, re, sys
+try:
+    declaration = json.load(open(sys.argv[1], encoding="utf-8"))
+except OSError:
+    sys.exit(1)
+follow = declaration.get("follows", {}).get("solidity-code/commands", {})
+ok = (
+    declaration.get("musubi") == "2026-11-21"
+    and follow.get("version") == "^1.0.0"
+    and "optional" not in follow
+    and re.fullmatch(r"sha256-[A-Za-z0-9+/]{43}=", str(follow.get("integrity", ""))) is not None
+)
+sys.exit(0 if ok else 1)
+PY
+  local line
+  for line in \
+    'Run the `commands` of the `solidity-code` skill: open the `solidity-code` skill by name and run the file it names for `commands`.' \
+    'If the `musubi` command is available, run `musubi check` before reading, and stop if it fails.' \
+    'If the `solidity-code` skill is not installed, do not start: tell the user that `solidity-code` is missing and how to install it, then stop.'; do
+    grep -qxF -- "$line" "$SKILL_DIR/SKILL.md" || return 1
+  done
+}
+check "contract-tests follows commands of solidity-code" follows_solidity_commands
 
 printf '%d passed, %d failed (%d ran)\n' "$PASS" "$FAIL" "$((PASS + FAIL))"
 [ "$FAIL" -eq 0 ]

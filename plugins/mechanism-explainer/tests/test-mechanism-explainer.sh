@@ -288,6 +288,34 @@ pins_tab_dragon() {
   done
 }
 
+# A Japanese page is checked with japanese-writing, so the skill follows its writing rules through musubi
+# as an optional follow that musubi install brings along for Japanese (agent-shuriken#553).
+follows_japanese_rules() {
+  python3 - "$SKILL/musubi.json" <<'PY' || { why="musubi.json does not follow japanese-writing/rules as an optional follow for ja"; return 1; }
+import json, re, sys
+declaration = json.load(open(sys.argv[1], encoding="utf-8"))
+follow = declaration.get("follows", {}).get("japanese-writing/rules", {})
+ok = (
+    declaration.get("musubi") == "2026-11-21"
+    and follow.get("version") == "^1.0.0"
+    and follow.get("optional") is True
+    and follow.get("when") == {"languages": ["ja"]}
+    and re.fullmatch(r"sha256-[A-Za-z0-9+/]{43}=", str(follow.get("integrity", ""))) is not None
+)
+sys.exit(0 if ok else 1)
+PY
+  local line
+  for line in \
+    'When the `japanese-writing` skill is installed, write in the `rules` format of the `japanese-writing` skill: open the `japanese-writing` skill by name and read the file it names for `rules`.' \
+    'If the `japanese-writing` skill is not installed, go on without the `rules` of `japanese-writing`.'; do
+    grep -qxF -- "$line" "$DOC" || { why="SKILL.md lacks the line: $line"; return 1; }
+  done
+  local f
+  for f in README.md README.ja.md docs/how-it-works.md docs/how-it-works.ja.md; do
+    grep -qF 'japanese-writing/rules' "$PLUGIN/$f" || { why="$f does not name japanese-writing/rules"; return 1; }
+  done
+}
+
 # The repository's manifest check, relayed from scripts/check.sh.
 repo_manifests() {
   local out
@@ -315,6 +343,7 @@ check "the skill sorts the topics by kind" sorts_kinds
 check "the skill puts a question after the topic it needs" orders_needed
 check "the skill links overview boxes to their topics" links_overview
 check "the skill pins a dragon with topic tabs" pins_tab_dragon
+check "mechanism-explainer follows rules of japanese-writing for Japanese pages" follows_japanese_rules
 check "plugin manifests agree" repo_manifests
 
 printf 'mechanism-explainer: ran %d checks, %d failed, %d skipped\n' "$((PASS + FAIL + SKIP))" "$FAIL" "$SKIP"

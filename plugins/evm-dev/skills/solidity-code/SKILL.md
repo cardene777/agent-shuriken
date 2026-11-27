@@ -12,6 +12,14 @@ Talk to the user in the language they write in.
 The script is `scripts/solidity-code.py` next to this `SKILL.md`.
 Run it as a shell command, `python3 <folder of this SKILL.md>/scripts/solidity-code.py <command>`; `--help` describes every command.
 
+## Content other skills follow
+
+contract-tests, contract-deploy, and release-check run this skill's script through musubi, which pins its version and fingerprint in their `musubi.json`.
+
+| Content | File | What it holds |
+|---|---|---|
+| `commands` | `scripts/solidity-code.py` | The commands that read the project's versions, list the items, and scan the code |
+
 ## 1. Read the project
 
 Run `project` before writing: `project <project root>`.

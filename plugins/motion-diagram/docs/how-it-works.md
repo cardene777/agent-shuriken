@@ -64,6 +64,7 @@ On paper it keeps its colors and leaves out the replay button and the switches.
 The page is one HTML file: the template, the spec as data, and the dictionary of interface words in English and Japanese.
 It loads no fonts, scripts, or images from the network.
 Its colors are named after the keys of the shared theme file (`bg`, `surface`, `ink`, `sub`, `line`, `accent`, `accent-ink`, `accent-soft`, `bar`, `label`), and its fonts after `--sans` and `--mono`, so the `theme` command of `page-design` replaces them with the user's.
+The skill reaches that command through `page-design/verify`, which `musubi.json` declares as an optional musubi follow with its version range `^2.0.0` and fingerprint.
 It has light and dark colors of its own; the reader's system picks one, and the buttons in the header switch it, keeping the choice in the browser.
 
 ## Exporting
