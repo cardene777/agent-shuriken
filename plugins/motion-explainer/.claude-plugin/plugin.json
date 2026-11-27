@@ -1,0 +1,20 @@
+{
+  "name": "motion-explainer",
+  "displayName": "Motion Explainer",
+  "version": "0.1.0",
+  "description": "Explain how a mechanism works with a short video of one running example, scene by scene, with a narrator, art drawn as SVG for each subject, and figures drawn from the same art, as one offline HTML page",
+  "author": {
+    "name": "cardene777",
+    "url": "https://github.com/cardene777"
+  },
+  "homepage": "https://github.com/cardene777/agent-shuriken/tree/main/plugins/motion-explainer",
+  "repository": "https://github.com/cardene777/agent-shuriken",
+  "license": "MIT",
+  "keywords": [
+    "explainer",
+    "animation",
+    "video",
+    "svg",
+    "html"
+  ]
+}

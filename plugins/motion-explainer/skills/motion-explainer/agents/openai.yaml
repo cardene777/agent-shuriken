@@ -1,0 +1,7 @@
+interface:
+  display_name: "Motion Explainer"
+  short_description: "Explain a mechanism with a short video of one running example and figures drawn from the same art"
+  default_prompt: "Use $motion-explainer to explain how this mechanism works as a short video with figures."
+
+policy:
+  allow_implicit_invocation: true

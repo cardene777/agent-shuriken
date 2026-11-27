@@ -136,6 +136,11 @@
       "description": "Show how a mechanism works as one moving picture drawn from a small JSON spec, written as an HTML page, a video, a GIF, or an image"
     },
     {
+      "name": "motion-explainer",
+      "source": "./plugins/motion-explainer",
+      "description": "Explain how a mechanism works with a short video of one running example, scene by scene, with a narrator, art drawn as SVG for each subject, and figures drawn from the same art, as one offline HTML page"
+    },
+    {
       "name": "portman",
       "source": "./plugins/portman",
       "description": "Keep a registry of the localhost ports each project uses, so dev servers never collide: see what holds each port right now, get free ports that avoid common defaults, find collisions, and write a project's ports to .env.local and a Docker Compose override after you approve"
