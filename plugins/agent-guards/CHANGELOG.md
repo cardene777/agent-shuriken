@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-28
+
 - Every Bash check reads a command in the body of `if`, `while`, `until`, and `for`, in an `else` or `elif` branch, after `!` and `coproc`, and inside a backtick, a `$(...)` in double quotes, and a `<(...)` or `>(...)` process substitution, so `if true; then rm -rf ~; fi`, `` echo `git reset --hard` ``, and `echo "$(cat ~/.ssh/id_ed25519)"` are refused like the plain commands. Text in single quotes stays text
 - The process check refuses ending a terminal app, such as Terminal, iTerm2, ghostty, wezterm-gui, alacritty, kitty, gnome-terminal-server, konsole, or xterm, with `killall`, `pkill`, or `kill`, since it closes the agent's own window
 - The process check no longer refuses `kill <PID> 2>&1` and other commands with a redirect, which it read as PID 1, and it passes a `kill -0` probe whose target comes from a variable, such as `kill -0 $PPID`
@@ -45,7 +47,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - The git hook refuses force pushes, `git reset --hard`, `--no-verify`, `git clean -f`, and commands that throw away uncommitted changes, and the delete hook refuses deletes of the root, the home folder, the current folder, and system folders; both show the refused command with a leading `!`
 - `~/.config/agent-guards/secret-paths` and `protected-paths` add your own places, each hook turns off with its own `AGENT_GUARDS_*` variable, and `AGENT_GUARDS_RECORD=on` writes one line per refusal
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/agent-guards--v0.5.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/agent-guards--v0.6.0...HEAD
+[0.6.0]: https://github.com/cardene777/agent-shuriken/releases/tag/agent-guards--v0.6.0
 [0.5.0]: https://github.com/cardene777/agent-shuriken/releases/tag/agent-guards--v0.5.0
 [0.4.0]: https://github.com/cardene777/agent-shuriken/releases/tag/agent-guards--v0.4.0
 [0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/agent-guards--v0.3.0
