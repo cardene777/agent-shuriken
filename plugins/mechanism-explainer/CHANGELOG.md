@@ -5,6 +5,10 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-11-27
+
+- The page is exported with dragon 0.88.0. Each topic tab opens on its map and the one-sentence answers, and each question is its own page. The side menu shows no question numbers and lists the figure titles under the open question, which scroll to the figure when pressed, and each page ends with links to the previous and next pages
+
 ## [0.4.1] - 2026-11-27
 
 - The number of questions and the kinds of material decide between one page and topic tabs. Material of one kind with five or fewer questions is one page, and six or more questions or more than one kind of material split the explainer into an overview tab and one tab per topic, so a plan can no longer put many questions into one topic and write one long page

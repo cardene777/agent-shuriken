@@ -9,7 +9,7 @@ The skill itself holds only the steps and the PDF script; the figure kinds and t
 
 | Step | What happens | What it runs |
 |---|---|---|
-| Check the setup | The agent confirms that dragon 0.87.0 runs | `npx -y @cardenelabs/dragon@0.87.0 --version` |
+| Check the setup | The agent confirms that dragon 0.88.0 runs | `npx -y @cardenelabs/dragon@0.88.0 --version` |
 | Plan | The agent writes who reads the page, the questions, and two to four figures per question, and changes the plan until you agree | Nothing |
 | Write | The agent writes `<name>.md` with `layout: guide` and `note: pop`, and a `glossary.md` for terms | Nothing |
 | Check | Every figure is checked for notation errors and for layout breaks, and each line dragon prints is fixed | `dragon check` and `dragon check --layout` |
@@ -22,7 +22,7 @@ The skill itself holds only the steps and the PDF script; the figure kinds and t
 |---|---|---|
 | Overview | A `dragon` fence in the page lead, before the first topic | The figure of the whole mechanism at the head of the page, with the topics as the reading route under it. A box with `link: #<topic id>` opens that topic's tab |
 | Topic | `## <topic>` | A heading in the side menu and in the page. With two or more topics, each topic is its own tab |
-| Section | `### <question>? [menu: <short name>]` | A section numbered across topics, listed in the side menu by its short name |
+| Section | `### <question>? [menu: <short name>]` | A section numbered per topic in the page, listed in the side menu by its short name without a number, and shown as its own page inside its topic tab. The side menu lists its figure titles while it is open |
 | Answer | `> <one sentence>` right under the question | The answer under the question |
 | Figure | One sentence, a `dragon` fence, then two to four sentences | A figure drawn by dragon, with what to look at before it and what it shows after it |
 | Card | `note:` on a box | A mark on the box, and a card just below it on a click |

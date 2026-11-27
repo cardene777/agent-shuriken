@@ -42,9 +42,10 @@ In GitHub Copilot CLI, write `/mechanism-explainer` in your request, and in Gemi
 3. The agent writes the page as Markdown with `layout: guide`, checks every figure and its layout with dragon, and fixes what dragon names
 4. The agent exports the page with dragon, prints the PDF, and gives you the paths of the Markdown, the HTML that opens offline, and the PDF
 
-The page opens with an overview figure of the whole mechanism, and a side menu lists every topic and its questions by short names.
-Questions are numbered per topic, such as `2-1`.
-With two or more topics, the page has an overview tab and one tab per topic, and each tab ends with links to the previous and next topics.
+The page opens with an overview figure of the whole mechanism, and a side menu lists every topic and its questions by short names, without numbers.
+In the page, questions are numbered per topic, such as `2-1`.
+With two or more topics, the page has an overview tab and one tab per topic, and each question is its own page inside its topic tab.
+The side menu lists the figure titles under the open question, and each page ends with links to the previous and next pages.
 The topics are ordered so the mechanism comes first and the records and the reference material come last.
 Pressing a box of the overview figure opens the topic that explains it, and each topic tab opens with a map: the overview with that topic's boxes in color, and the one-sentence answers of its questions.
 Under each question, its one-sentence answer comes first, then each figure with one sentence before it on what to look at and a short paragraph after it on what it shows.
@@ -56,7 +57,7 @@ By default the files are kept in `explainer/<name>/` of the folder you work in.
 
 | Tool | When it's needed |
 |---|---|
-| Node.js 20 or later with `npx` | Always. The agent runs `npx -y @cardenelabs/dragon@0.87.0`, which fetches dragon into npm's cache on first use |
+| Node.js 20 or later with `npx` | Always. The agent runs `npx -y @cardenelabs/dragon@0.88.0`, which fetches dragon into npm's cache on first use |
 | `python3` | To print the PDF. The one that ships with macOS works |
 | Chrome, Chromium, Edge, Brave, or Playwright's headless shell | To print the PDF. Without one, you still get the HTML, and any browser can print it |
 | The dragon plugin | Optional. When its `dragon` skill is installed, the agent plans and writes the figures on its `plan`, `page`, `notation`, and `cheatsheet` formats |

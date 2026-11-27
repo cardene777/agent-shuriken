@@ -288,6 +288,27 @@ pins_tab_dragon() {
   done
 }
 
+# Every dragon the skill and its pages run is 0.88.0 or later, the first version that splits each topic tab
+# into one page per question and lists the figure titles of the open question in the side menu (#554).
+pins_question_page_dragon() {
+  local f v
+  for f in "$DOC" "$PLUGIN/README.md" "$PLUGIN/README.ja.md" "$PLUGIN/docs/how-it-works.md" "$PLUGIN/docs/how-it-works.ja.md"; do
+    for v in $(grep -o -E 'dragon@?[ ]?[0-9]+\.[0-9]+\.[0-9]+' "$f" | grep -o -E '[0-9]+\.[0-9]+\.[0-9]+' | sort -u); do
+      python3 -c 'import sys; a = tuple(map(int, sys.argv[1].split("."))); sys.exit(0 if a >= (0, 88, 0) else 1)' "$v" \
+        || { why="${f#"$ROOT"/} runs dragon $v, older than 0.88.0"; return 1; }
+    done
+  done
+}
+
+# SKILL.md tells the agent that each question is its own page, that the side menu has no numbers,
+# and that it lists the figure titles under the open question (#554).
+describes_question_pages() {
+  local phrase
+  for phrase in 'each question is its own page' 'side menu without numbers' 'figure titles under the open question'; do
+    grep -q -F -- "$phrase" "$DOC" || { why="SKILL.md does not say '$phrase'"; return 1; }
+  done
+}
+
 # The repository's manifest check, relayed from scripts/check.sh.
 repo_manifests() {
   local out
@@ -315,6 +336,8 @@ check "the skill sorts the topics by kind" sorts_kinds
 check "the skill puts a question after the topic it needs" orders_needed
 check "the skill links overview boxes to their topics" links_overview
 check "the skill pins a dragon with topic tabs" pins_tab_dragon
+check "the skill pins a dragon with question pages" pins_question_page_dragon
+check "the skill describes question pages" describes_question_pages
 check "plugin manifests agree" repo_manifests
 
 printf 'mechanism-explainer: ran %d checks, %d failed, %d skipped\n' "$((PASS + FAIL + SKIP))" "$FAIL" "$SKIP"
