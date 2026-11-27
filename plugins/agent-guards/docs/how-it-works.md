@@ -211,6 +211,8 @@ The refusal ends with the command after a leading `!`.
 | `rm -r` or `mv` of the root, the home folder, the current folder, `..`, `*`, or a top-level system folder such as `/usr` or `/Users` | `rm -rf /`, `rm -rf ~`, `rm -rf .` |
 | `find` with `-delete` or `-exec rm` that starts at one of those places; starting at the current folder is allowed with `-name`, `-path`, or `-regex` | `find / -delete` |
 | `rm`, `mv`, `rmdir`, `unlink`, or `find -delete` of a place in your `protected-paths` list, or inside one | `rm ~/work/keep/a.txt` |
+| Writing over a place in your `protected-paths` list, or inside one: `cp`, `install`, `ln`, `rsync`, `scp`, or `mv` with that destination (also through `-t` or `--target-directory`), `tee`, `dd of=`, `sed -i`, `truncate`, and the redirects `>`, `>>`, and `&>`. Copying out of the place and the agent's Write and Edit tools stay allowed | `cp build/claude ~/.local/bin/claude`, `echo x > ~/work/keep/a.txt` |
+| `git rm` of a place in your `protected-paths` list, or inside one, also with `-r`, `--cached`, or `git -C <folder>` | `git rm -r ~/work/keep` |
 | `chmod`, `chown`, or `chgrp` with `-R` or `--recursive` on one of those places or a place in your `protected-paths` list, since a whole tree without permissions locks you out like a delete. The first word is the mode or the owner, and a mode such as `-w` is read as the mode | `chmod -R 000 ~`, `chown -R nobody ~` |
 
 ## System
