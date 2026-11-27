@@ -3,11 +3,11 @@
   "title": "How a cache answers a request",
   "lead": "The first request travels all the way to the origin, and the next one is answered by the cache alone.",
   "direction": {
-    "summary": "Night-shift workshop drawn as flat cut paper: slate blues for machines, warm paper for pages, thick ink outlines with rounded joins, and a night owl who keeps watch over the shelves.",
+    "summary": "Night-shift workshop drawn as flat cut paper: slate blues for machines, warm paper for pages, and thick ink outlines with rounded joins.",
     "stage": "#eef1ec",
     "accent": "#e86a4f"
   },
-  "narrator": { "name": "Owl", "art": "art/owl.svg", "states": ["calm", "alert", "glad"] },
+  "cast": [{ "id": "bit", "body": "robot", "name": "Bit" }],
   "parts": [
     { "id": "browser", "name": "Browser", "art": "art/browser.svg", "states": ["idle", "asking", "showing"], "at": [4, 30], "size": [24, 42] },
     { "id": "cache", "name": "Cache", "art": "art/cache.svg", "states": ["empty", "checking", "kept", "stale"], "at": [40, 22], "size": [20, 52] },
@@ -15,12 +15,12 @@
     { "id": "letter", "name": "Request", "art": "art/letter.svg", "states": ["request", "page"], "at": [22, 14], "size": [9, 16] }
   ],
   "scenes": [
-    { "id": "ask", "chapter": "Ask", "line": "The browser asks for the page.", "narrator": "calm", "set": { "browser": "asking" } },
-    { "id": "look", "chapter": "Look", "line": "The cache looks for a copy and finds none.", "narrator": "alert", "set": { "cache": "checking" }, "move": { "letter": [44, 6] } },
-    { "id": "travel", "chapter": "Travel", "line": "So the request travels on to the origin server.", "narrator": "calm", "set": { "cache": "empty", "origin": "busy" }, "move": { "letter": [78, 0] } },
-    { "id": "keep", "chapter": "Keep", "line": "The origin answers, and the cache keeps a copy.", "narrator": "calm", "set": { "origin": "idle", "letter": "page", "cache": "kept" }, "move": { "letter": [56, 6] } },
-    { "id": "show", "chapter": "Show", "line": "The browser shows the page.", "narrator": "glad", "set": { "browser": "showing" }, "move": { "letter": [22, 14] } },
-    { "id": "again", "chapter": "Again", "line": "The next request stops at the cache and never reaches the origin.", "narrator": "glad", "set": { "browser": "asking", "letter": "request" }, "move": { "letter": [44, 6] } }
+    { "id": "ask", "chapter": "Ask", "line": "The browser asks for the page.", "pose": "explain", "fx": { "burst": "browser", "word": "pon" }, "set": { "browser": "asking" } },
+    { "id": "look", "chapter": "Look", "line": "The cache looks for a copy and finds none.", "pose": "surprised", "fx": { "word": "kachi", "at": "cache" }, "set": { "cache": "checking" }, "move": { "letter": [44, 6] } },
+    { "id": "travel", "chapter": "Travel", "line": "So the request travels on to the origin server.", "pose": "explain", "set": { "cache": "empty", "origin": "busy" }, "move": { "letter": [78, 0] } },
+    { "id": "keep", "chapter": "Keep", "line": "The origin answers, and the cache keeps a copy.", "pose": "explain", "fx": { "burst": "cache", "word": "don" }, "set": { "origin": "idle", "letter": "page", "cache": "kept" }, "move": { "letter": [56, 6] } },
+    { "id": "show", "chapter": "Show", "line": "The browser shows the page.", "pose": "cheer", "fx": { "burst": "browser", "word": "zuza" }, "set": { "browser": "showing" }, "move": { "letter": [22, 14] } },
+    { "id": "again", "chapter": "Again", "line": "The next request stops at the cache and never reaches the origin.", "pose": "cheer", "fx": { "burst": "cache", "word": "don" }, "set": { "browser": "asking", "letter": "request" }, "move": { "letter": [44, 6] } }
   ],
   "figures": [
     {

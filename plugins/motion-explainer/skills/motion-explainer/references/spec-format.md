@@ -1,8 +1,9 @@
 # Spec format
 
 A spec is one JSON file next to a folder of SVG files.
-The agent writes both for each subject: the JSON says what happens, and the SVG files are the art.
-`motion_explainer.py check` reads the spec and every SVG it names, and `render` inlines them into one HTML page.
+The agent writes both for each subject: the JSON says what happens, and the SVG files are the art of the parts.
+The cast takes its bodies from `characters/` of the skill, so the spec names a body, not a drawing.
+`motion_explainer.py check` reads the spec and every SVG it names, and `render` inlines them, the body sheets, and the effects core into one HTML page.
 
 ## Top level
 
@@ -12,7 +13,7 @@ The agent writes both for each subject: the JSON says what happens, and the SVG 
 | `title` | yes | The name of the page, at most 40 wide |
 | `lead` | yes | One sentence under the title that says what the video shows, at most 120 wide |
 | `direction` | yes | The art direction of this subject (below) |
-| `narrator` | yes | The character who says the line of each scene (below) |
+| `cast` | yes | Who says the line of each scene, one to four (below) |
 | `parts` | yes | The objects on the stage, one to twelve (below) |
 | `scenes` | yes | The running example, two to twelve scenes in order (below) |
 | `figures` | no | The figures under the player, each answering one question (below) |
@@ -29,15 +30,20 @@ The art direction is written before any SVG, so every part of one subject shares
 | `stage` | yes | The background color of the stage, as `#rrggbb` |
 | `accent` | yes | The color that marks a part that changes in a scene, as `#rrggbb` |
 
-## `narrator`
+## `cast`
 
 | Field | Required | What it holds |
 |---|---|---|
-| `name` | yes | What the narrator is called, at most 16 wide |
-| `art` | yes | The path of the narrator's SVG, relative to the spec |
-| `states` | yes | The narrator's expressions, such as `calm`, `alert`, and `glad`. The first is where it starts |
+| `id` | yes | Lower-case letters, digits, and `-`, unique in the cast |
+| `body` | yes | One of `robot`, `android`, `guide`, and `drone`, each used by at most one cast member |
+| `name` | yes | What the cast member is called, shown under the body and in the bubble, at most 16 wide |
+| `at` | no | `[x, y]`, the top left of the body on the stage, in percent. Without it, the cast member stands under the stage beside the bubble |
 
-State names, here and in `parts`, use lower-case letters, digits, and `-`.
+A body is a pixel-art sheet of four square poses side by side, in the order `wait`, `explain`, `surprised`, and `cheer`, with a transparent background.
+On the stage a body takes 13 percent of the stage width and 23.11 percent of its height, so `x + 13` and `y + 23.11` stay at most 100.
+`check` refuses the old `narrator` field and names `cast` in its place.
+
+State names in `parts` use lower-case letters, digits, and `-`.
 
 ## `parts`
 
@@ -56,7 +62,7 @@ The drawing keeps the shape of its `viewBox` inside its box, and the mark and th
 ## The SVG files
 
 Each file is one `<svg>` with a `viewBox`, at most 100,000 bytes.
-An element with `data-when="<state> <state>"` shows only while the part (or the narrator) is in one of those states, so one drawing holds every state and only what differs is drawn twice.
+An element with `data-when="<state> <state>"` shows only while the part is in one of those states, so one drawing holds every state and only what differs is drawn twice.
 Elements without `data-when` always show.
 Ids may repeat across files: each copy on the page gets its own ids, and `href="#..."` and `url(#...)` follow them.
 
@@ -79,15 +85,30 @@ So the page loads nothing from outside and runs nothing but its own player.
 |---|---|---|
 | `id` | yes | Lower-case letters, digits, and `-`, unique in the spec |
 | `chapter` | yes | The name of the chapter button, at most 16 wide |
-| `line` | yes | The one sentence the narrator says, at most 80 wide |
-| `narrator` | yes | The narrator's state in this scene |
+| `line` | yes | The one sentence the speaker says, at most 80 wide |
+| `speaker` | no | The `id` of the cast member who says the line. The first cast member when left out |
+| `pose` | no | The speaker's pose: `wait`, `explain`, `surprised`, or `cheer`. `explain` when left out; every other cast member waits |
+| `fx` | no | The effect of the scene (below) |
 | `set` | no | `{"<part id>": "<state>"}`, the parts that change state |
 | `move` | no | `{"<part id>": [x, y]}`, the parts that move, in percent of the stage |
 | `ms` | no | How long the scene plays, from 800 to 20000 milliseconds. 2800 when left out |
 
 A part keeps its state and place from the scene before.
 The player marks only the parts whose state or place differs from the scene before, so each scene shows one change.
-`check` refuses a scene that changes no part and keeps the narrator's state.
+`check` refuses a scene that changes no part and keeps the speaker and the pose of the scene before.
+
+### `fx`
+
+| Field | What it holds |
+|---|---|
+| `burst` | A part id. An impact burst goes off behind that part, with chips flying off it |
+| `word` | One sound-effect word: `don` (impact), `pon` (pop), `kachi` (click), `shu` (swish), `zuza` (skid), or `gogo` (rumble) |
+| `at` | A part id the word lands next to. The `burst` part when left out |
+
+`fx` holds at least one field, and a `word` needs `burst` or `at`.
+The effects go off once the moved parts have landed, and a part that moves lands in smoke puffs without any field.
+Opening a chapter and reduced motion fire no effect.
+The effects come from the bundled Sakuga VFX core, drawn on a canvas behind the parts for the burst and over the page for the rest.
 
 ## `figures`
 

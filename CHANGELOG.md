@@ -9,7 +9,7 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ### Added
 
-- The motion-explainer plugin, whose skill explains how a mechanism works with a short video of one running example on one offline HTML page, with a narrator, art the agent draws as SVG for each subject, and figures under the video drawn from the same art
+- The motion-explainer plugin, whose skill explains how a mechanism works with a short video of one running example on one offline HTML page, with a pixel-art cast in speech bubbles, effects on each change, art the agent draws as SVG for each subject, and figures under the video drawn from the same art
 
 ### Changed
 

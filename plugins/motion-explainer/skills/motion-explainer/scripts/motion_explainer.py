@@ -6,12 +6,15 @@ Usage:
   motion_explainer.py render <spec.json> --out <page.html>
 
 A spec walks one running example through a mechanism scene by scene: the art direction of the
-subject, a narrator, the parts on the stage with their states and places, the scenes that change
-them, and figures that answer one question each. The art is SVG files the agent draws for the
-subject, named by the spec. check prints one line per problem, `<field>: <problem>`, naming the
-field, such as `scenes[1].set.cache` or `parts[0].art`. render runs the same checks, writes nothing
-when any fails, and otherwise writes one page that loads nothing from the network: a player that
-plays the scenes once, with chapters, and the figures under it, drawn from the same art.
+subject, a cast of one to four speakers, the parts on the stage with their states and places, the
+scenes that change them, and figures that answer one question each. The part art is SVG files the
+agent draws for the subject, named by the spec; each cast member takes one of the four pixel bodies
+the skill ships (characters/), and each scene names its speaker, the speaker's pose, and an effect.
+check prints one line per problem, `<field>: <problem>`, naming the field, such as
+`scenes[1].set.cache` or `cast[0].body`. render runs the same checks, writes nothing when any fails,
+and otherwise writes one page that loads nothing from the network: a player that plays the scenes
+once, with chapters, effects from the bundled Sakuga VFX core (vendor/), and the figures under it,
+drawn from the same art.
 
 Text width counts 2 for a CJK character and 1 for any other character.
 
@@ -24,6 +27,7 @@ Uses only the Python standard library, reads only the spec, the art it names, an
 this script, writes only the page it is given, runs no other program, and connects to nothing.
 """
 
+import base64
 import copy
 import html
 import json
@@ -35,6 +39,8 @@ import xml.etree.ElementTree as ET
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TEMPLATES = os.path.join(os.path.dirname(HERE), "templates")
+CHARACTERS = os.path.join(os.path.dirname(HERE), "characters")
+CORE = os.path.join(os.path.dirname(HERE), "vendor", "sakuga-vfx", "core.js")
 
 SVG = "http://www.w3.org/2000/svg"
 XLINK = "http://www.w3.org/1999/xlink"
@@ -43,12 +49,18 @@ ET.register_namespace("xlink", XLINK)
 
 ID = re.compile(r"^[a-z][a-z0-9-]*$")
 COLOR = re.compile(r"^#[0-9a-fA-F]{6}$")
-LIMITS = {"title": 40, "lead": 120, "summary": 400, "narrator": 16, "name": 20, "chapter": 16,
+LIMITS = {"title": 40, "lead": 120, "summary": 400, "cast": 16, "name": 20, "chapter": 16,
           "line": 80, "question": 60, "answer": 120, "label": 40, "step": 30, "side": 24,
           "point": 40, "column": 24, "cell": 48}
 ART_BYTES = 100_000
 DEFAULT_MS, MIN_MS, MAX_MS = 2800, 800, 20000
 KINDS = ("still", "flow", "compare", "table")
+BODIES = ("robot", "android", "guide", "drone")
+POSES = ("wait", "explain", "surprised", "cheer")   # the order of the poses in each body's sheet
+WORDS = ("don", "pon", "kachi", "shu", "zuza", "gogo")   # the sound-effect words of the core
+FX_KEYS = ("burst", "word", "at")
+CAST_W = 13   # percent of the stage width a cast member takes on the stage; its poses are square
+CAST_H = round(CAST_W * 16 / 9, 2)
 REFUSED = {"script", "foreignObject", "iframe", "object", "embed", "image", "style"}
 DRAWING = {"svg", "g", "path", "rect", "circle", "ellipse", "line", "polyline", "polygon", "text",
            "tspan", "textPath", "defs", "use", "symbol", "title", "desc", "linearGradient",
@@ -81,7 +93,9 @@ class Spec:
         self.problems = []
         self.parts = {}
         self.order = []
-        self.art = {}       # "narrator" or a part id -> the parsed root of its art
+        self.cast = {}
+        self.cast_order = []
+        self.art = {}       # a part id -> the parsed root of its art
         self.scene_ids = {}
         self.frames = []
 
@@ -125,7 +139,9 @@ class Spec:
         self.text(s.get("title"), "title", LIMITS["title"])
         self.text(s.get("lead"), "lead", LIMITS["lead"])
         self.check_direction(s.get("direction"))
-        self.check_narrator(s.get("narrator"))
+        if "narrator" in s:
+            self.say("narrator", "is replaced by cast; list one to four cast members, each with one of the bodies %s" % ", ".join(BODIES))
+        self.check_cast(s.get("cast"))
         parts = s.get("parts")
         if not isinstance(parts, list) or not 1 <= len(parts) <= 12:
             self.say("parts", "must list one to twelve parts")
@@ -154,14 +170,56 @@ class Spec:
             if not isinstance(d.get(key), str) or not COLOR.match(d[key]):
                 self.say("direction." + key, "must be a color written as #rrggbb")
 
-    def check_narrator(self, n):
-        if not isinstance(n, dict):
-            self.say("narrator", "must be an object with name, art, and states")
+    def check_cast(self, cast):
+        if not isinstance(cast, list) or not 1 <= len(cast) <= len(BODIES):
+            self.say("cast", "must list one to four cast members, each with id, body, and name")
             return
-        self.text(n.get("name"), "narrator.name", LIMITS["narrator"])
-        states = self.states(n.get("states"), "narrator.states")
-        if states:
-            self.load_art("narrator", n.get("art"), "narrator.art", states)
+        bodies = []
+        for i, c in enumerate(cast):
+            field = "cast[%d]" % i
+            if not isinstance(c, dict):
+                self.say(field, "must be an object with id, body, and name")
+                continue
+            cid = c.get("id")
+            if not isinstance(cid, str) or not ID.match(cid):
+                self.say(field + ".id", "must start with a lowercase letter and use lowercase letters, digits, and -")
+                continue
+            if cid in self.cast:
+                self.say(field + ".id", 'is used twice ("%s")' % cid)
+                continue
+            body = c.get("body")
+            if body not in BODIES:
+                self.say(field + ".body", "must be one of %s" % ", ".join(BODIES))
+            elif body in bodies:
+                self.say(field + ".body", 'is cast twice ("%s"); give each cast member its own body' % body)
+            else:
+                bodies.append(body)
+            self.text(c.get("name"), field + ".name", LIMITS["cast"])
+            if "at" in c:
+                self.place(c["at"], field + ".at", [CAST_W, CAST_H], "the cast member")
+            self.cast[cid] = c
+            self.cast_order.append(cid)
+
+    def check_fx(self, fx, field):
+        """The effect of one scene: a burst behind a part, one sound-effect word next to a part, or both."""
+        if fx is None:
+            return None
+        field += ".fx"
+        if not isinstance(fx, dict) or not fx:
+            self.say(field, "must be an object with burst, word, or at")
+            return None
+        for key in fx:
+            if key not in FX_KEYS:
+                self.say("%s.%s" % (field, key), "is not a field of an effect; use burst, word, and at")
+        for key in ("burst", "at"):
+            if key in fx and fx[key] not in self.parts:
+                self.say("%s.%s" % (field, key), 'no part is named "%s"' % fx[key])
+        if "word" in fx:
+            if fx["word"] not in WORDS:
+                self.say(field + ".word", "must be one of %s" % ", ".join(WORDS))
+            elif "burst" not in fx and "at" not in fx:
+                self.say(field + ".at", "names no part for the word; name the part with burst or at")
+        return {key: fx[key] for key in FX_KEYS if key in fx}
 
     def check_part(self, i, p):
         field = "parts[%d]" % i
@@ -187,12 +245,12 @@ class Spec:
         if states:
             self.load_art(pid, p.get("art"), field + ".art", states)
 
-    def place(self, xy, field, size):
+    def place(self, xy, field, size, what="the part"):
         if not (isinstance(xy, list) and len(xy) == 2 and all(is_number(v) and 0 <= v <= 100 for v in xy)):
             self.say(field, "must be [x, y], each from 0 to 100 percent of the stage")
             return False
         if size and (xy[0] + size[0] > 100 or xy[1] + size[1] > 100):
-            self.say(field, "puts the part past the edge of the stage (x + w and y + h must be at most 100)")
+            self.say(field, "puts %s past the edge of the stage (x + %s and y + %s must be at most 100)" % (what, size[0], size[1]))
             return False
         return True
 
@@ -269,10 +327,9 @@ class Spec:
         return None
 
     def check_scenes(self, scenes):
-        narrator = self.spec["narrator"]
         state = {pid: self.parts[pid]["states"][0] for pid in self.order}
         place = {pid: list(self.parts[pid]["at"]) for pid in self.order}
-        face = narrator["states"][0]
+        voice = None
         for i, sc in enumerate(scenes):
             field = "scenes[%d]" % i
             if not isinstance(sc, dict):
@@ -287,14 +344,20 @@ class Spec:
                 self.scene_ids[sid] = i
             self.text(sc.get("chapter"), field + ".chapter", LIMITS["chapter"])
             self.text(sc.get("line"), field + ".line", LIMITS["line"])
-            look = sc.get("narrator")
-            if look not in narrator["states"]:
-                self.say(field + ".narrator", 'the narrator has no state "%s"; use one of %s' % (look, ", ".join(narrator["states"])))
+            if "narrator" in sc:
+                self.say(field + ".narrator", "is replaced by speaker and pose")
+            speaker = sc.get("speaker", self.cast_order[0])
+            if speaker not in self.cast:
+                self.say(field + ".speaker", 'no cast member is named "%s"; use one of %s' % (speaker, ", ".join(self.cast_order)))
+            pose = sc.get("pose", "explain")
+            if pose not in POSES:
+                self.say(field + ".pose", "must be one of %s" % ", ".join(POSES))
+            fx = self.check_fx(sc.get("fx"), field)
             ms = sc.get("ms", DEFAULT_MS)
             if not isinstance(ms, int) or isinstance(ms, bool) or not MIN_MS <= ms <= MAX_MS:
                 self.say(field + ".ms", "must be a whole number from %d to %d" % (MIN_MS, MAX_MS))
                 ms = DEFAULT_MS
-            changed = set()
+            changed, moved = set(), set()
             sets = sc.get("set", {})
             if not isinstance(sets, dict):
                 self.say(field + ".set", "must be an object of part ids and states")
@@ -320,15 +383,16 @@ class Spec:
                 elif self.place(xy, f, self.parts[pid]["size"]):
                     if place[pid] != list(xy):
                         changed.add(pid)
+                        moved.add(pid)
                     place[pid] = list(xy)
-            if not changed and look == face:
-                self.say(field, "changes nothing; set a state, move a part, or join it with the scene before")
-            if look in narrator["states"]:
-                face = look
+            if not changed and (speaker, pose) == voice:
+                self.say(field, "changes nothing; set a state, move a part, change the speaker or pose, or join it with the scene before")
+            voice = (speaker, pose)
             self.frames.append({"id": sid, "chapter": sc.get("chapter"), "line": sc.get("line"),
-                                "narrator": look, "ms": ms, "states": dict(state),
+                                "speaker": speaker, "pose": pose, "fx": fx, "ms": ms, "states": dict(state),
                                 "at": {k: list(v) for k, v in place.items()},
-                                "changed": [pid for pid in self.order if pid in changed]})
+                                "changed": [pid for pid in self.order if pid in changed],
+                                "moved": [pid for pid in self.order if pid in moved]})
 
     def part_state(self, pid, st, field):
         if pid not in self.parts:
@@ -476,6 +540,33 @@ def stage_html(spec, draw):
     return "\n".join(out)
 
 
+def cast_html(spec, on_stage):
+    """The cast members with a place (on the stage) or without one (beside the bubble), each a body
+    that shows one pose of its sheet and the member's name."""
+    out = []
+    first = spec.frames[0]
+    for cid in spec.cast_order:
+        c = spec.cast[cid]
+        if ("at" in c) != on_stage:
+            continue
+        style = ' style="left:%s%%;top:%s%%;width:%s%%"' % (c["at"][0], c["at"][1], CAST_W) if on_stage else ""
+        pose = first["pose"] if cid == first["speaker"] else "wait"
+        out.append('<figure class="me-cast" data-cast="%s" data-body="%s" data-pose="%s"%s><div class="me-body"></div>'
+                   '<figcaption class="me-name">%s</figcaption></figure>' % (cid, c["body"], pose, style, esc(c["name"])))
+    return "\n".join(out)
+
+
+def cast_css(spec):
+    """One rule per cast body that puts its pose sheet on the body, as a data URI so the page stays one file."""
+    out = []
+    for cid in spec.cast_order:
+        body = spec.cast[cid]["body"]
+        with open(os.path.join(CHARACTERS, body + ".png"), "rb") as f:
+            sheet = base64.b64encode(f.read()).decode("ascii")
+        out.append('.me-cast[data-body="%s"] .me-body { background-image: url(data:image/png;base64,%s); }' % (body, sheet))
+    return "\n".join(out)
+
+
 def chapters_html(spec):
     out = []
     for i, f in enumerate(spec.frames):
@@ -521,7 +612,7 @@ def figure_html(spec, draw, f):
 
 def state_css(spec):
     names = []
-    for states in [spec.spec["narrator"]["states"]] + [spec.parts[pid]["states"] for pid in spec.order]:
+    for states in [spec.parts[pid]["states"] for pid in spec.order]:
         for s in states:
             if s not in names:
                 names.append(s)
@@ -541,7 +632,11 @@ def page(spec):
     data = {"lang": lang, "parts": spec.order,
             "sizes": {pid: spec.parts[pid]["size"] for pid in spec.order},
             "insets": {pid: inset(spec, pid) for pid in spec.order},
-            "scenes": [{k: fr[k] for k in ("line", "narrator", "ms", "states", "at", "changed")} for fr in spec.frames]}
+            "cast": [{"id": cid, "name": spec.cast[cid]["name"], "at": spec.cast[cid].get("at")} for cid in spec.cast_order],
+            "castWidth": CAST_W, "castHeight": CAST_H,
+            "scenes": [{k: fr[k] for k in ("line", "speaker", "pose", "fx", "ms", "states", "at", "changed", "moved")} for fr in spec.frames]}
+    with open(CORE, encoding="utf-8") as f:
+        core = f.read()
 
     def script_json(value):
         return json.dumps(value, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
@@ -554,9 +649,12 @@ def page(spec):
         "{{accent}}": accent,
         "{{accent_ink}}": "#16130f" if luminance(accent) > 0.36 else "#ffffff",
         "{{state_css}}": state_css(spec),
-        "{{narrator}}": draw("narrator"),
-        "{{narrator_name}}": esc(s["narrator"]["name"]),
-        "{{start}}": esc(s["narrator"]["states"][0]),
+        "{{cast_css}}": cast_css(spec),
+        "{{cast_row}}": cast_html(spec, False),
+        "{{cast_stage}}": cast_html(spec, True),
+        "{{speaker}}": spec.frames[0]["speaker"],
+        "{{speaker_name}}": esc(spec.cast[spec.frames[0]["speaker"]]["name"]),
+        "{{fx_core}}": core,
         "{{parts}}": stage_html(spec, draw),
         "{{chapters}}": chapters_html(spec),
         "{{figures}}": "\n".join(figure_html(spec, draw, f) for f in s.get("figures", [])),
