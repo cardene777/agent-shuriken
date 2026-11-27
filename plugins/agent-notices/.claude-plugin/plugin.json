@@ -1,7 +1,7 @@
 {
   "name": "agent-notices",
   "displayName": "Agent Notices",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Hooks that tell an agent about fragile shell commands, branch switches that did not happen, environment variables missing from .env.example, a temporary directory running short, and risky code patterns, format each edited file with the project's own formatter, and log skill and MCP calls when turned on, in Claude Code and Codex, without ever stopping a call",
   "author": {
     "name": "cardene777",

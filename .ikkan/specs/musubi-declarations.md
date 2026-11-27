@@ -16,3 +16,7 @@
 | `release-check` follows `solidity-code/commands` besides `page-design/structure`, and its `SKILL.md` carries the three musubi lines for it | `bash plugins/evm-dev/skills/release-check/tests/test-release-check.sh` check `"release-check follows commands of solidity-code"` passes | #553 |
 | `convey` still follows `connecting` of `japanese-writing` as an optional follow | `bash plugins/convey/skills/convey/tests/test-convey.sh` check `"convey follows connecting of japanese-writing as an optional follow"` passes | #553 |
 | `mechanism-explainer` still pins one exact `dragon` version with topic tabs | `bash plugins/mechanism-explainer/tests/test-mechanism-explainer.sh` check `"the skill pins a dragon with topic tabs"` passes | #553 |
+| The follows of dragon in page-design and mechanism-explainer match the dragon skill on dragon's default branch | `bash scripts/check-musubi.sh` check `"musubi follows of dragon match the dragon skill"` passes | #561 |
+| The musubi declarations inside the repository still match | `bash scripts/check-musubi.sh` check `"musubi declarations inside the repository match"` passes | #561 |
+| musubi check still refuses a stale fingerprint | `bash scripts/check-musubi.sh` check `"musubi check refuses a stale fingerprint"` passes | #561 |
+| The dragon check still skips when dragon cannot be fetched | `bash scripts/check-musubi.sh` check `"the dragon check skips when dragon cannot be fetched"` passes | #561 |
