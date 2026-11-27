@@ -20,3 +20,6 @@
 | The musubi declarations inside the repository still match | `bash scripts/check-musubi.sh` check `"musubi declarations inside the repository match"` passes | #561 |
 | musubi check still refuses a stale fingerprint | `bash scripts/check-musubi.sh` check `"musubi check refuses a stale fingerprint"` passes | #561 |
 | The dragon check still skips when dragon cannot be fetched | `bash scripts/check-musubi.sh` check `"the dragon check skips when dragon cannot be fetched"` passes | #561 |
+| The `dragon/page` follow of mechanism-explainer matches the current dragon page guide, so the dragon check passes | `bash scripts/check-musubi.sh` check `"musubi follows of dragon match the dragon skill"` passes | #581 |
+| The musubi declarations inside the repository still match, so no other follow went stale | `bash scripts/check-musubi.sh` check `"musubi declarations inside the repository match"` passes | #581 |
+| musubi still refuses a follow whose provider changed after the last check, so rewriting one fingerprint does not loosen the check | `bash scripts/check-musubi.sh` check `"musubi check refuses a stale fingerprint"` passes | #581 |

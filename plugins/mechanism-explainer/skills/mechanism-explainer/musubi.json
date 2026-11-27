@@ -8,7 +8,7 @@
     },
     "dragon/page": {
       "version": "^1.0.0",
-      "integrity": "sha256-aEnEVfFt8izpFGKVMZYwwKUIRv6Mqcs9CT7GfB6wuHE=",
+      "integrity": "sha256-QX4h3BHBmBu3/ix0kS8atNssGyHvmG8EpzBDDGqvuc8=",
       "optional": true
     },
     "dragon/cheatsheet": {
