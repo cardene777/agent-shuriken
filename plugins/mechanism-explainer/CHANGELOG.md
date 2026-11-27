@@ -5,6 +5,13 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-27
+
+- Before anything is written, the skill writes the outline of the explainer as `outline.json`, draws it as one light HTML page with `scripts/outline.py`, and opens it in a browser. The page shows the title and its point first, then each chapter as a closed toggle with its point, and inside it the pages and their sections as headings with their points under them, with one button that opens and closes every chapter. The explainer is written only after the person approves the outline
+- `scripts/outline.py` refuses an outline with a name that has a question mark or starts with a number, an empty point, a point written twice, or a line that starts with a bullet, and writes no page
+- The skill gives reader-first writing rules: short noun headings without question marks or numbers, each chapter, page, and section opening with its point in one sentence, no sentence written twice, paragraphs and tables instead of bullet lists, and no lines about the reader, the goals, or the length. It no longer asks who reads the page, and question headings no longer end with a question mark
+- `references/outline-design.md` keeps the design rules of the outline page, each with the source it comes from
+
 ## [0.5.0] - 2026-11-27
 
 - The page is exported with dragon 0.89.0. It has no tabs at the top: like a documentation site, the side menu lists the topics, their questions, and the headings of the open page, and each level opens and closes with an arrow
