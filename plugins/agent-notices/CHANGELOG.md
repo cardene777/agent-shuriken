@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-27
+
 - edit-loop tells the agent when it has edited the same file five times in a session, and at every fifth edit after it, to reproduce the failure and find the root cause before the next fix. `AGENT_NOTICES_EDIT_LOOP_EVERY` changes the count, `AGENT_NOTICES_EDIT_LOOP_SKILL` names your own debugging skill in the notice, and files git ignores and files in the temporary directory get no notice
 - sequential tells the agent in Claude Code when ten tool calls in a row each came in a message of their own, to make calls that do not need each other's results together. `AGENT_NOTICES_SEQUENTIAL_AFTER` changes the count
 
@@ -20,5 +22,6 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - The skill and MCP logs, off unless `AGENT_NOTICES_SKILL_LOG=on` or `AGENT_NOTICES_MCP_LOG=on`, write names, times, durations, and outcomes, never arguments or results
 - Each hook turns off with its own `AGENT_NOTICES_*` variable
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/agent-notices--v0.1.0...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/agent-notices--v0.2.0...HEAD
+[0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/agent-notices--v0.2.0
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/agent-notices--v0.1.0

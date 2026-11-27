@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-27
+
 - The secret write hook refuses a write through a file that has a second name (hard link), since a harmless name can overwrite a key file under its other name. Turn it off with `AGENT_GUARDS_HARD_LINKS=off`
 - The secret write hook refuses a key written into a shell startup file such as `.zshrc`, `.bashrc`, `.profile`, or the fish config, also in a dotfiles folder or under a chezmoi source name, by the file tools, a Codex patch, or a command such as `echo ... >> ~/.zshrc`. Turn it off with `AGENT_GUARDS_STARTUP_KEYS=off`
 - The outbound hook refuses chain transactions sent to a target that is not on this machine: `cast send`, `cast publish`, the sending forms of `cast rpc` and `cast erc20-token`, `forge script --broadcast`, `forge create`, and `hardhat ignition deploy`. Turn it off with `AGENT_GUARDS_CHAIN=off`
@@ -30,7 +32,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 - The git hook refuses force pushes, `git reset --hard`, `--no-verify`, `git clean -f`, and commands that throw away uncommitted changes, and the delete hook refuses deletes of the root, the home folder, the current folder, and system folders; both show the refused command with a leading `!`
 - `~/.config/agent-guards/secret-paths` and `protected-paths` add your own places, each hook turns off with its own `AGENT_GUARDS_*` variable, and `AGENT_GUARDS_RECORD=on` writes one line per refusal
 
-[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/agent-guards--v0.2.1...HEAD
+[Unreleased]: https://github.com/cardene777/agent-shuriken/compare/agent-guards--v0.3.0...HEAD
+[0.3.0]: https://github.com/cardene777/agent-shuriken/releases/tag/agent-guards--v0.3.0
 [0.2.1]: https://github.com/cardene777/agent-shuriken/releases/tag/agent-guards--v0.2.1
 [0.2.0]: https://github.com/cardene777/agent-shuriken/releases/tag/agent-guards--v0.2.0
 [0.1.0]: https://github.com/cardene777/agent-shuriken/releases/tag/agent-guards--v0.1.0
