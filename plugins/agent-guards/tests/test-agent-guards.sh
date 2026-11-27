@@ -902,6 +902,66 @@ docs_name_terminal_probe() {
   done
 }
 
+# hidden_forms <command>: the command in each place the parser has to look inside, one per line.
+hidden_forms() {
+  printf '%s\n' "if true; then $1; fi" "while true; do $1; done" "until false; do $1; done" "for f in a; do $1; done" \
+    "if true; then echo a; else $1; fi" "if false; then echo a; elif true; then $1; fi" "! $1" "coproc $1" \
+    "echo \`$1\`" "\`$1\`" "echo \"\$($1)\"" "x=\"\$($1)\"" "echo \"\`$1\`\"" "if true; then echo \"\$($1)\"; fi"
+}
+
+# refuses_each <hook> <command>...: the hook denies each command, one per argument or line.
+refuses_each() {
+  local hook="$1" c
+  shift
+  while IFS= read -r c; do
+    [ -n "$c" ] || continue
+    refuses "$hook" "$(event_bash "$c")" "$c" || return 1
+  done < <(printf '%s\n' "$@")
+}
+
+parser_hidden_delete_refused() {
+  refuses_each delete "$(hidden_forms 'rm -rf ~')" "cat <(rm -rf ~)" "echo \$(echo \$(rm -rf ~))"
+}
+
+parser_hidden_kill_refused() {
+  refuses_each delete "if true; then kill 1; fi" "while true; do kill -9 1; done" "echo \`kill 1\`" "echo \"\$(kill 1)\""
+}
+
+parser_hidden_git_refused() {
+  refuses_each git "if true; then git push --force; fi" "echo \`git reset --hard\`" "echo \"\$(git reset --hard)\"" \
+    "until false; do git push -f origin main; done" "! git reset --hard HEAD~1"
+}
+
+parser_hidden_secret_refused() {
+  refuses_each secret-read "if true; then cat ~/.ssh/id_ed25519; fi" "echo \`cat ~/.ssh/id_ed25519\`" \
+    "echo \"\$(cat ~/.ssh/id_ed25519)\"" "x=\"\$(cat .env)\"" "while read l; do cat .env; done < list.txt"
+}
+
+parser_single_quotes_pass() {
+  local c h
+  # A commit message in a quoted here-document inside a substitution is text too.
+  local msg
+  msg="$(printf 'git commit -F - <<%s\nrefuse rm -rf ~ and git reset --hard in if bodies\nEOF' "'EOF'")"
+  for c in "echo '\`rm -rf ~\`'" "echo 'if true; then rm -rf ~; fi'" "grep -n 'then rm' notes.txt" \
+    "echo '\$(git reset --hard)'" "printf '%s\n' 'kill 1'" "echo \$((1 + 2))" "$msg" \
+    "$(printf 'git commit -m "$(cat <<%s\nrefuse rm -rf ~ in if bodies\nEOF\n)"' "'EOF'")" \
+    "echo done # \$(rm -rf ~) is refused now"; do
+    for h in delete git; do
+      passes "$h" "$(event_bash "$c")" "$c" || return 1
+    done
+  done
+}
+
+docs_name_hidden_places() {
+  local f w
+  for f in docs/how-it-works.md docs/how-it-works.ja.md; do
+    for w in '`if`' '`while`' '`until`' '`for`' '`!`' '`coproc`' 'backtick' '`$(...)`'; do
+      case "$f" in *.ja.md) [ "$w" = backtick ] && w='バッククォート' ;; esac
+      grep -qF -- "$w" "$PLUGIN/$f" || { why="$f does not name $w"; return 1; }
+    done
+  done
+}
+
 processes_turn_off() {
   # Without the variable the same command is refused, so a pass below is the variable's doing.
   refuses delete "$(event_bash 'kill 1')" 'kill 1 without AGENT_GUARDS_PROCESSES=off' || return 1
@@ -1173,6 +1233,12 @@ check "process check refuses a kill whose later signal word overrides signal 0" 
 check "process check passes a signal 0 probe of any target" processes_probe_pass
 check "process check refuses ending a terminal app" processes_terminal_refused
 check "the docs name the terminal apps and the probe" docs_name_terminal_probe
+check "delete refuses a broad delete hidden in a compound body or a substitution" parser_hidden_delete_refused
+check "process check refuses PID 1 hidden in a compound body or a backtick" parser_hidden_kill_refused
+check "git refuses a destructive command hidden in a compound body or a substitution" parser_hidden_git_refused
+check "secret-read refuses a key read hidden in a compound body or a substitution" parser_hidden_secret_refused
+check "single-quoted command text passes every hook" parser_single_quotes_pass
+check "the docs name the compound bodies and the substitutions" docs_name_hidden_places
 check "AGENT_GUARDS_PROCESSES=off turns only the process check off" processes_turn_off
 check "the docs name the process check and the commands it runs" docs_name_processes
 check "chain sends to a target that is not local are refused" chain_remote_refused
