@@ -855,6 +855,8 @@ processes_ordinary_pass() {
 }
 
 processes_turn_off() {
+  # Without the variable the same command is refused, so a pass below is the variable's doing.
+  refuses delete "$(event_bash 'kill 1')" 'kill 1 without AGENT_GUARDS_PROCESSES=off' || return 1
   off_lets_only AGENT_GUARDS_PROCESSES delete "$(event_bash 'kill 1')" delete "$(event_bash 'rm -rf ~')"
 }
 
