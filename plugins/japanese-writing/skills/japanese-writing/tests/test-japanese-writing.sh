@@ -394,17 +394,26 @@ pages_say() {
 }
 check "the README and how-it-works say what uv downloads and that no text is sent" "pages_say"
 
-# Other skills, such as convey, follow the connecting guide through musubi (#260).
-provides_connecting() {
+# Other skills follow the connecting guide (convey, #260) and the writing rules (mechanism-explainer for
+# Japanese pages, agent-shuriken#553) through musubi. The SKILL.md, the README, and how-it-works name both.
+provides_connecting_and_rules() {
   [ -f "$SKILL_DIR/musubi.json" ] || return 1
-  python3 - "$SKILL_DIR/musubi.json" <<'PY'
+  python3 - "$SKILL_DIR/musubi.json" <<'PY' || return 1
 import json, sys
 declaration = json.load(open(sys.argv[1], encoding="utf-8"))
-want = {"connecting": {"version": "1.0.0", "file": "references/connecting.md"}}
+want = {
+    "connecting": {"version": "1.0.0", "file": "references/connecting.md"},
+    "rules": {"version": "1.0.0", "file": "references/rules.md"},
+}
 sys.exit(0 if declaration.get("musubi") == "2026-11-19" and declaration.get("provides") == want and "follows" not in declaration else 1)
 PY
+  grep -E '^\| `rules` \|' "$SKILL_DIR/SKILL.md" | grep -qF '`references/rules.md`' || return 1
+  local page
+  for page in README.md README.ja.md docs/how-it-works.md docs/how-it-works.ja.md; do
+    grep -qF '`rules`' "$PLUGIN_DIR/$page" && grep -qF 'mechanism-explainer' "$PLUGIN_DIR/$page" || return 1
+  done
 }
-check "japanese-writing provides connecting in musubi.json" "provides_connecting"
+check "japanese-writing provides connecting and rules in musubi.json" "provides_connecting_and_rules"
 
 names_connecting() {
   grep -E '`connecting`' "$SKILL_DIR/SKILL.md" | grep -qF '`references/connecting.md`'

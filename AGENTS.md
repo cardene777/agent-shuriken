@@ -22,6 +22,7 @@ plugins/<name>/skills/<skill>/            SKILL.md, agents/openai.yaml, scripts/
 plugins/<name>/evals/                     Cases for claude plugin eval, run by hand; results are not committed
 docs/                                     Repository docs, each with a .ja.md counterpart
 scripts/check.sh                          Repository checks, run before every pull request
+scripts/check-musubi.sh                   Checks the musubi declarations of every skill and the follows of dragon; scripts/check.sh runs it
 scripts/reached-checks.sh                 Runs scripts/check.sh and the plugin tests that read the root files a branch changes; the ikkan gates run it
 scripts/release.sh                        Releases a plugin or the repository
 CHANGELOG.md                              The repository's releases
@@ -70,6 +71,7 @@ bash scripts/check.sh
 ```
 
 It parses every script, validates the marketplace and every plugin, checks that the manifests, `agents/openai.yaml`, changelogs, and Japanese counterparts agree, that links resolve, and that no local paths, email addresses, or stray Japanese text slipped in.
+It also runs `scripts/check-musubi.sh`, which checks every `musubi.json` with a pinned `musubi-cli` and the follows of dragon against the dragon skill on dragon's default branch, so a change on either side fails until the follows are checked against it and their fingerprints are rewritten with `musubi check --update`.
 It exits 1 and names the failing check when anything is wrong.
 
 Smoke-test scripts against a throwaway data directory or `HOME`, never against real accounts, vaults, or files.

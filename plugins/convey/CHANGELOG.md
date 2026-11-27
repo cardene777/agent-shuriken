@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The fingerprint of `japanese-writing/connecting` in `musubi.json` matches japanese-writing again, whose `SKILL.md` now also lists its writing rules as a content other skills follow; the guide to connecting sentences did not change
+
 ## [0.3.0] - 2026-11-24
 
 - `musubi.json` follows `japanese-writing/connecting`, the guide to connecting sentences, as an optional musubi follow. When the `musubi` command is installed, the agent runs `musubi check` before reading the guide, and the check refuses convey when the guide changed after the last check. Without japanese-writing, convey writes as before

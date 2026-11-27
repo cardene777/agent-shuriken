@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- `musubi.json` follows `page-design/verify`, the script that applies the user's theme, as an optional musubi follow, so `musubi check` refuses the skill when that script changed after its last check
+
 ## [0.1.0] - 2026-11-23
 
 - The `motion-diagram` skill reads what the user wants explained, lists the parts of the picture and the lines between them, agrees on them with the user, and only then writes them as a JSON spec

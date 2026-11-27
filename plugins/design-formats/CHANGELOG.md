@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The fingerprints of the dragon formats that `page-design` follows in `musubi.json` match dragon's current skill again, checked against what changed in dragon since the last check
+
 ## [0.2.0] - 2026-11-23
 
 - The tables of the skills that follow page-design list `theme` for compare-report and diagram-explainer, which apply the user's theme file to their pages

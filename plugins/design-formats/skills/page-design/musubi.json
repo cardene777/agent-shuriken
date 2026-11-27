@@ -53,37 +53,37 @@
   "follows": {
     "dragon/notation": {
       "version": "^1.0.0",
-      "integrity": "sha256-HPVUqzqCWk31GEYuwXFQPWLLRoscEBrMwLFerX5kxBo=",
+      "integrity": "sha256-khSWlsQAIevKfgzmkxUs8jZOb9uvOU0szXWmEBBKAfI=",
       "optional": true
     },
     "dragon/embed": {
       "version": "^1.0.0",
-      "integrity": "sha256-EB8k5UihwHLmNkmAJSGQq43MJL3jYwq2keVZQED5sr8=",
+      "integrity": "sha256-i3kHzHSvBkGiFldsUKEcRp26koTyAc7kATyu3uu1XoI=",
       "optional": true
     },
     "dragon/chart": {
       "version": "^1.0.0",
-      "integrity": "sha256-O5uaY4SekE7/e/lo/sRyJm6u7INDGxClWvDceIckfF8=",
+      "integrity": "sha256-W2mR3NfN2vXgKtZsnu6dp0xA+I39VSbpaJgRtcITnDM=",
       "optional": true
     },
     "dragon/flow": {
       "version": "^1.0.0",
-      "integrity": "sha256-N5pAa5JFTQdONN8wGBwn857wBRydXvaIAfiTc10lOso=",
+      "integrity": "sha256-P2GCZOIAynG9D31cvLTg8b5oFMceiiYMzFcrWMjpUeg=",
       "optional": true
     },
     "dragon/architecture": {
       "version": "^1.0.0",
-      "integrity": "sha256-XA1FO7I+Yjn+NGpfWUknNVLSSHHPlclOvfvXrqpv8s8=",
+      "integrity": "sha256-zYMgD4AB+umLfvJxjPXLtOaWHsV7Pi/amAcvnvXg8Tk=",
       "optional": true
     },
     "dragon/sequence": {
       "version": "^1.0.0",
-      "integrity": "sha256-8vK1XSsyc/RfIYhhbeHqndexzLXvb/kaxYVLgE+zXMs=",
+      "integrity": "sha256-DIttm7V8TXP6JDpFx8RGIDvsf0roUmOW9mggWjm7UGs=",
       "optional": true
     },
     "dragon/cycle": {
       "version": "^1.0.0",
-      "integrity": "sha256-XZL/DtRC5LGPnCuei6fYUX7G17kuyPfn9pUwOosKT4U=",
+      "integrity": "sha256-ySfzir9oRdJFAk2I44VQQVEsXbWFDJBJTkxO86YZQYI=",
       "optional": true
     }
   }

@@ -67,8 +67,8 @@ PDFは既定でA3の紙に書き出します。
 | `python3` | PDFを書き出す時。macOSに入っている物で動きます |
 | Chrome、Chromium、Edge、Brave、またはPlaywrightのheadless shell | PDFを書き出す時。無くてもHTMLはでき、どのブラウザでも印刷できます |
 | dragonのプラグイン | 任意。`dragon`のスキルが入っていると、エージェントはその`plan`、`page`、`notation`、`cheatsheet`の形に沿って図を立てて書きます |
-| japanese-writingのプラグイン | 任意。日本語の頁では、エージェントがそれで文を確かめます |
-| `musubi`コマンド | 任意。入っていると、エージェントはdragonの形を読む前に`musubi check`を実行します |
+| japanese-writingのプラグイン | 任意。日本語の頁では、エージェントがその書き方の規範`japanese-writing/rules`に照らして文を確かめます |
+| `musubi`コマンド | 任意。入っていると、エージェントはdragonの形とjapanese-writingの書き方の規範を読む前に`musubi check`を実行します |
 
 ## 読む物と実行する物と送る物
 
@@ -79,7 +79,7 @@ PDFは既定でA3の紙に書き出します。
 - dragonを手元のマシンで`npx`経由で実行します。初回にnpmがnpmのレジストリからdragonのパッケージを取ってきます。材料は送りません
 - PDFは、ブラウザをheadlessの形と使い捨てのプロファイルで動かして書き出し、終わったらプロファイルを消します。自分のブラウザのプロファイルは使いません
 - Markdown、HTML、ネットに繋がずに開けるHTML、PDFを`explainer/<name>/`か指定のフォルダに書き、ほかには何も残しません
-- `skills/mechanism-explainer/musubi.json`は、このスキルが`dragon`のスキルの`plan`、`page`、`notation`、`cheatsheet`の形に従うことを、musubiで`"optional": true`の任意の従い先として宣言します。エージェントはdragonのプラグインが入っている時だけそれを読みます
+- `skills/mechanism-explainer/musubi.json`は、このスキルが`dragon`のスキルの`plan`、`page`、`notation`、`cheatsheet`の形に従うことを、musubiで`"optional": true`の任意の従い先として宣言します。エージェントはdragonのプラグインが入っている時だけそれを読みます。japanese-writingの書き方の規範`japanese-writing/rules`も、`"when": {"languages": ["ja"]}`で日本語だけの任意の従い先として宣言し、japanese-writingが入っている時に日本語の頁でだけ読みます
 
 ## ライセンス
 

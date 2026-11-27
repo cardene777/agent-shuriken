@@ -84,6 +84,7 @@ Pressing a part shows its details and, when the spec gives one, an example.
 The picture runs left to right, and top to bottom on a phone.
 It reads in light and dark, and switches its buttons between English and Japanese.
 Its colors and fonts carry the names of the shared theme keys, so with `page-design` installed the agent can apply your look to it.
+`skills/motion-diagram/musubi.json` declares that the skill follows `page-design/verify`, the script of `page-design` that applies the look, as an optional musubi follow, so `musubi check` refuses the skill when that script changed after its last check.
 
 ## Requirements
 

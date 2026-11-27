@@ -5,6 +5,10 @@
       "version": "^1.0.0",
       "integrity": "sha256-3kv7vXqM+l7DX2pwTN5qZl1otGAHutPSsNXEqrAVNXw=",
       "optional": true
+    },
+    "solidity-code/commands": {
+      "version": "^1.0.0",
+      "integrity": "sha256-nHKBFC1mUHH+Z8oaGyzvHXpBYYHFKnYghpS89b35C34="
     }
   }
 }

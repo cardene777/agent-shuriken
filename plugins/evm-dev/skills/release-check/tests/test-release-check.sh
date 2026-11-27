@@ -712,7 +712,8 @@ skill_rules() {
 }
 check "the release-check SKILL.md keeps its rules" skill_rules
 
-SKILL_WORDS_MAX=659
+# 61 words above 659 hold the three musubi lines that follow solidity-code/commands (agent-shuriken#553).
+SKILL_WORDS_MAX=720
 SKILL_DESCRIPTION_MAX=300
 skill_size() {
   [ -f "$SKILL" ] || return 1
@@ -780,6 +781,36 @@ others_kept() {
     && bash "$PLUGIN/skills/contract-deploy/tests/test-contract-deploy.sh" > "$T/contract-deploy.out" 2>&1
 }
 check "the other evm-dev skills still pass their tests with release-check" others_kept
+
+# This skill runs the project command of solidity-code, so it follows solidity-code/commands through
+# musubi, besides the structure of page-design it already follows (agent-shuriken#553).
+follows_solidity_commands() {
+  python3 - "$SKILL_DIR/musubi.json" <<'PY' || return 1
+import json, re, sys
+try:
+    declaration = json.load(open(sys.argv[1], encoding="utf-8"))
+except OSError:
+    sys.exit(1)
+follows = declaration.get("follows", {})
+follow = follows.get("solidity-code/commands", {})
+ok = (
+    declaration.get("musubi") == "2026-11-21"
+    and "page-design/structure" in follows
+    and follow.get("version") == "^1.0.0"
+    and "optional" not in follow
+    and re.fullmatch(r"sha256-[A-Za-z0-9+/]{43}=", str(follow.get("integrity", ""))) is not None
+)
+sys.exit(0 if ok else 1)
+PY
+  local line
+  for line in \
+    'Run the `commands` of the `solidity-code` skill: open the `solidity-code` skill by name and run the file it names for `commands`.' \
+    'If the `musubi` command is available, run `musubi check` before reading, and stop if it fails.' \
+    'If the `solidity-code` skill is not installed, do not start: tell the user that `solidity-code` is missing and how to install it, then stop.'; do
+    grep -qxF -- "$line" "$SKILL_DIR/SKILL.md" || return 1
+  done
+}
+check "release-check follows commands of solidity-code" follows_solidity_commands
 
 printf '%d passed, %d failed (%d ran)\n' "$PASS" "$FAIL" "$((PASS + FAIL))"
 [ "$FAIL" -eq 0 ]

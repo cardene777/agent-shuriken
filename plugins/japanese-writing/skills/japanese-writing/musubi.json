@@ -4,6 +4,10 @@
     "connecting": {
       "version": "1.0.0",
       "file": "references/connecting.md"
+    },
+    "rules": {
+      "version": "1.0.0",
+      "file": "references/rules.md"
     }
   }
 }

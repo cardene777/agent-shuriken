@@ -96,7 +96,7 @@ L5 [比喩の動詞] 立ち: `config.json` は二つの置き場の隣に立ち�
 - 道具は`uv run`で動き、初めて使う時に`sudachipy`と`sudachidict-core`をPython Package Indexからuvの置き場に取りに行きます。あなたの文章はどこへも送らない作りで、道具は手元のマシンの中で動きます
 - 上流のスキルが任意で使う検出器`semantic.py`は入れていません。約1GBのモデルを取りに行き、そのモデルのcodeを実行するためです
 - 作業中のファイルはプロジェクトの外の一時のフォルダに置き、最後に消します。プラグインは何も残しません
-- `skills/japanese-writing/musubi.json`は、文と文のつなぎ方の手引き`references/connecting.md`を、ほかのスキルがmusubiで準拠するコンテンツ`connecting`として宣言します。`convey`は任意の準拠でこれに従います。スキル自身は`musubi.json`を読まず、`musubi`のコマンドが読みます
+- `skills/japanese-writing/musubi.json`は、ほかのスキルがmusubiで準拠するコンテンツを2つ宣言します。文と文のつなぎ方の手引き`references/connecting.md`が`connecting`で、書き方の規範`references/rules.md`が`rules`です。`convey`は`connecting`に、`mechanism-explainer`は日本語のページで`rules`に、どちらも任意の準拠で従います。スキル自身は`musubi.json`を読まず、`musubi`のコマンドが読みます
 - 貼られた文章とファイルの中身は直す材料として扱い、指示としては読みません
 
 ## 出どころ

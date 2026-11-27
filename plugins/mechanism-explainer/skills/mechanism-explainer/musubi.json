@@ -1,5 +1,5 @@
 {
-  "musubi": "2026-11-20",
+  "musubi": "2026-11-21",
   "follows": {
     "dragon/plan": {
       "version": "^1.0.0",
@@ -8,7 +8,7 @@
     },
     "dragon/page": {
       "version": "^1.0.0",
-      "integrity": "sha256-afOZybHO9FG2YCHILNdLiJvIQwAH4A6nsGAjyGD+OTU=",
+      "integrity": "sha256-b/eeb41wMmU00YJTGeimOYVXCCe9MvGsDOUfvlaN/Mc=",
       "optional": true
     },
     "dragon/cheatsheet": {
@@ -20,6 +20,16 @@
       "version": "^1.2.0",
       "integrity": "sha256-khSWlsQAIevKfgzmkxUs8jZOb9uvOU0szXWmEBBKAfI=",
       "optional": true
+    },
+    "japanese-writing/rules": {
+      "version": "^1.0.0",
+      "integrity": "sha256-nm/KIsUDmHC/qhd3uSSnIZuH2t8h/D/XKBujIVBYOpA=",
+      "optional": true,
+      "when": {
+        "languages": [
+          "ja"
+        ]
+      }
     }
   }
 }

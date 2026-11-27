@@ -61,8 +61,8 @@ By default the files are kept in `explainer/<name>/` of the folder you work in.
 | `python3` | To print the PDF. The one that ships with macOS works |
 | Chrome, Chromium, Edge, Brave, or Playwright's headless shell | To print the PDF. Without one, you still get the HTML, and any browser can print it |
 | The dragon plugin | Optional. When its `dragon` skill is installed, the agent plans and writes the figures on its `plan`, `page`, `notation`, and `cheatsheet` formats |
-| The japanese-writing plugin | Optional. For a page in Japanese, the agent checks the prose with it |
-| The `musubi` command | Optional. When it is installed, the agent runs `musubi check` before reading the dragon formats |
+| The japanese-writing plugin | Optional. For a page in Japanese, the agent checks the prose against its writing rules, `japanese-writing/rules` |
+| The `musubi` command | Optional. When it is installed, the agent runs `musubi check` before reading the dragon formats and the writing rules of japanese-writing |
 
 ## What it reads, runs, and sends
 
@@ -73,7 +73,7 @@ In short:
 - It runs dragon through `npx` on your machine. npm downloads the dragon package from the npm registry on first use; your material is never sent
 - It prints the PDF with your browser in headless mode and a throwaway profile, which is removed afterwards, so your own browser profile is never used
 - It writes the Markdown, the HTML, the offline HTML, and the PDF to `explainer/<name>/`, or to a folder you name, and keeps nothing else
-- `skills/mechanism-explainer/musubi.json` declares through musubi that the skill follows the `plan`, `page`, `notation`, and `cheatsheet` formats of the `dragon` skill, as optional follows with `"optional": true`. The agent reads them only when the dragon plugin is installed
+- `skills/mechanism-explainer/musubi.json` declares through musubi that the skill follows the `plan`, `page`, `notation`, and `cheatsheet` formats of the `dragon` skill, as optional follows with `"optional": true`. The agent reads them only when the dragon plugin is installed. It also declares `japanese-writing/rules`, the writing rules of japanese-writing, as an optional follow for Japanese only, with `"when": {"languages": ["ja"]}`, read only for a page in Japanese when japanese-writing is installed
 
 ## License
 

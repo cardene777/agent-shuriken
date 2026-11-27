@@ -39,6 +39,8 @@
 3. `bash scripts/release.sh <name> X.Y.Z --dry-run`を実行し、表示されたリリースノートと添付ファイルを読みます
 4. `bash scripts/release.sh <name> X.Y.Z`を実行します
 
+リリースのスクリプトが回す`scripts/check.sh`は`scripts/check-musubi.sh`を回します。これは全てのスキルの`musubi.json`を固定した`musubi-cli`で確かめ、dragonへの準拠をdragonの既定のブランチから取ったdragonのスキルに照らして確かめます。dragonを取れない時は、その確認だけを理由を添えて飛ばします。
+
 doc-formatsかevm-devをリリースする前に、手元のmusubiのリポジトリのmusubiの命令で、このリポジトリの根から`musubi check plugins/doc-formats/skills plugins/evm-dev/skills`を実行し、`ok`が出た時だけリリースします。
 `design-doc`の設計書の書式か`verify`を変えた時は、先に各設計のスキルを変更に照らして確かめ、同じ命令に`--update`を付けて実行し、新しい指紋をコミットします。
 

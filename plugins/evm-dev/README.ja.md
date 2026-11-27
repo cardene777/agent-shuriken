@@ -448,7 +448,7 @@ financial-standards: 2 problems; fill in or add each section named above
 | エージェントのWebへの接続 | 古い項目を確かめ直す時。無い時は、項目から答えて確かめられなかったと伝えます |
 | LedgerかTrezorのハードウェアウォレット | `contract-deploy`で本番のチェーンへ配る時の署名に使います。テストのチェーンには暗号化したキーストアを使います |
 | 記事の一覧の置き場への接続 | `~/.evm-dev/article-index`か`EVM_DEV_INDEX_URL`がURLを名指す時だけ要ります。無い時は、`evm-standards`は項目だけから探し、記事の一覧を読めなかったと伝えます |
-| `musubi`のコマンド | 無くても動きます。入っている時は、設計のスキルが`design-doc`の書式を読む前と、`release-check`が`page-design`の書式を読む前に、エージェントが`musubi check`を回します |
+| `musubi`のコマンド | 無くても動きます。入っている時は、設計のスキルが`design-doc`の書式を読む前と、`release-check`が`page-design`の書式を読む前と、`contract-tests`と`contract-deploy`と`release-check`が`solidity-code`のスクリプトを動かす前に、エージェントが`musubi check`を回します |
 
 ## 読む物と動かす物と送る物
 
@@ -467,6 +467,7 @@ financial-standards: 2 problems; fill in or add each section named above
 - `release-check`は`release-check.py`を動かし、ビルドの出力と渡されたJSONのファイルの中の保存の配置とABIとbytecodeだけを読み、見つけた物を1件1行で出します。何も書かず、`.env`のファイルと鍵は読みません
 - `release-check`は配ってある版を一時的なgitのworktreeに取り出し、プロジェクトの道具で2つの版をビルドしてテストを回し、終わったらworktreeを消します。プロジェクトにOpenZeppelinの検査が在る時、その検査は名前空間の保存を確かめるために、合うsolcをSolidityの配布元から取ってくることがあります
 - `skills/release-check/musubi.json`は、`release-check`が報告の順の書式`page-design/structure`に、`"optional": true`の任意の準拠で従うことをmusubiで宣言します。エージェントは`page-design`が入っている時だけ書式を読み、入っていなければ自分の順で報告します。`release-check`はほかのプラグインからこれ以外を読みません
+- `skills/solidity-code/musubi.json`は、スクリプト`scripts/solidity-code.py`をコンテンツ`commands`として宣言し、`contract-tests`と`contract-deploy`と`release-check`の`musubi.json`は、プロジェクトの版と項目を読むために動かす`solidity-code/commands`に従います。任意の準拠ではないため、`solidity-code`が無い時は始めずに入れ方を伝えて止まります
 - `contract-design`は`contract-design.py`を動かし、項目と、書いた設計書を読みます。設計書を確かめる時は節の名前だけを出します。書くのは設計書だけで、`.env`のファイルと鍵は読みません
 - `wallet-design`は`wallet-design.py`を動かし、項目と、書いた設計書を読みます。設計書を確かめる時は節の名前だけを出します。書くのは設計書だけで、`.env`のファイルと鍵は読まず、署名せず、鍵を渡す命令を断ります
 - `multichain-design`は`multichain-design.py`を動かし、項目と、書いた設計書を読みます。設計書を確かめる時は節の名前だけを出します。書くのは設計書だけで、`.env`のファイルと鍵は読まず、署名せず、鍵を渡す命令を断ります
