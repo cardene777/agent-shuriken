@@ -30,8 +30,10 @@ The hooks read the command the way a shell splits it.
 They cut the command at `;`, `&&`, `||`, `|`, `&`, parentheses, and line breaks, and read each part on its own.
 They skip leading variable assignments and the words `sudo`, `doas`, `env`, `command`, `builtin`, `nohup`, `nice`, `time`, `timeout`, and `exec` with their options, so `sudo rm -rf /` is read as `rm`.
 An option that takes a value is skipped with its value, so `sudo -u root rm -rf /`, `nice -n 10 rm -rf /`, and `env -C /tmp rm -rf ~` are read as `rm` too.
+They also pass over the shell words `if`, `then`, `else`, `elif`, `do`, `while`, `until`, `!`, and `coproc`, so a command in the body of `if`, `while`, `until`, or `for`, in an `else` or `elif` branch, or after `!` or `coproc` is read as itself.
 The string after `env -S` is read as the words that follow, as env splits it.
 They read the text after `bash -c`, `sh -c`, `zsh -c`, and `eval`, the command `xargs` runs, each command after `find -exec`, `-execdir`, `-ok`, and `-okdir`, and the text `watch` runs, as other commands, up to three levels deep.
+The text of each `$(...)` substitution, backtick substitution, and `<(...)` or `>(...)` process substitution is read as other commands too, also inside double quotes, within the same three levels; `$((...))` is arithmetic, and text in single quotes or after a `#` comment is not read.
 The body of a here-document opened outside quotes is not read as commands.
 `~`, `$HOME`, and `${HOME}` become your home folder; any other variable or command substitution is left unknown.
 
@@ -263,6 +265,7 @@ Each check turns off with its own variable set to `off`, as the table at the top
 - The hooks see only the command text the agent sends. A script file the command runs is not read, so `bash cleanup.sh` is not checked inside
 - Key shapes without a fixed prefix, such as a random password, are not found
 - A command built at run time, for example by `printf` piped into `sh`, is not read
+- The body of a here-document is not read, although the shell runs the substitutions in a body opened with an unquoted word
 - A write whose file comes from a variable is not refused, and a write by a program's own code, such as `python3 -c "open('.env', 'w')"`, is not read
 - A startup file written by copying another file over it, as with `cp`, is not read for keys, since only the command text is read
 - A deploy run by `hardhat run` or a script, and a Hardhat network chosen by `defaultNetwork` in the config, are not read

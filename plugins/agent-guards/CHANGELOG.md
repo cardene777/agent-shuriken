@@ -5,6 +5,7 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- Every Bash check reads a command in the body of `if`, `while`, `until`, and `for`, in an `else` or `elif` branch, after `!` and `coproc`, and inside a backtick, a `$(...)` in double quotes, and a `<(...)` or `>(...)` process substitution, so `if true; then rm -rf ~; fi`, `` echo `git reset --hard` ``, and `echo "$(cat ~/.ssh/id_ed25519)"` are refused like the plain commands. Text in single quotes stays text
 - The process check refuses ending a terminal app, such as Terminal, iTerm2, ghostty, wezterm-gui, alacritty, kitty, gnome-terminal-server, konsole, or xterm, with `killall`, `pkill`, or `kill`, since it closes the agent's own window
 - The process check no longer refuses `kill <PID> 2>&1` and other commands with a redirect, which it read as PID 1, and it passes a `kill -0` probe whose target comes from a variable, such as `kill -0 $PPID`
 - The process check reads every `-s` and `-n` option of `kill`, so `kill -0 -s 9 1`, which sends SIGKILL to PID 1, is refused instead of passing as a probe, and a second signal word, as in `kill -0 -9 1`, is judged as ending processes
