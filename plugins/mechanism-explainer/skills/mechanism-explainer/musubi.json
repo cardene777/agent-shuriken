@@ -3,22 +3,22 @@
   "follows": {
     "dragon/plan": {
       "version": "^1.0.0",
-      "integrity": "sha256-JqJuw+DYUWhX9RKYhdmAuc/h32jUyS7KPdPnftG5q1w=",
+      "integrity": "sha256-BRQKj2b3rzeCo2R9Uw0JwAUWQU6+tvz6wPU6TnsvE0I=",
       "optional": true
     },
     "dragon/page": {
       "version": "^1.0.0",
-      "integrity": "sha256-b/eeb41wMmU00YJTGeimOYVXCCe9MvGsDOUfvlaN/Mc=",
+      "integrity": "sha256-aEnEVfFt8izpFGKVMZYwwKUIRv6Mqcs9CT7GfB6wuHE=",
       "optional": true
     },
     "dragon/cheatsheet": {
       "version": "^1.0.0",
-      "integrity": "sha256-vtpSWs4rdJFOLTOxUtePS12xHOO4a/Mudpq5M0padew=",
+      "integrity": "sha256-oHFS9MSyutSsORRpP9XNRP4laQMI9EYDhJsPokXLlRk=",
       "optional": true
     },
     "dragon/notation": {
       "version": "^1.2.0",
-      "integrity": "sha256-khSWlsQAIevKfgzmkxUs8jZOb9uvOU0szXWmEBBKAfI=",
+      "integrity": "sha256-+dHb/wunY4GQ6Q6PPdwwTI3LfkI66rZfHnhbwgcW6Bg=",
       "optional": true
     },
     "japanese-writing/rules": {
