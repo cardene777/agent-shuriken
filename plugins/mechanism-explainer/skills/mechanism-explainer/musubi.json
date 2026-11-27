@@ -13,7 +13,7 @@
     },
     "dragon/cheatsheet": {
       "version": "^1.0.0",
-      "integrity": "sha256-oHFS9MSyutSsORRpP9XNRP4laQMI9EYDhJsPokXLlRk=",
+      "integrity": "sha256-06uS05oyhx+FTp0UdnAWPhi+IW7Z8Wmcoz/PDnKxgOI=",
       "optional": true
     },
     "dragon/notation": {
