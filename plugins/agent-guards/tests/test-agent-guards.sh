@@ -553,16 +553,13 @@ changelog_check_reads_below_unreleased() {
   why=""
 }
 
-# The entries of this change name the commands the hooks now read behind wrappers and runners.
+# The entries of 0.2.1 name the commands the hooks read behind wrappers and runners, under Unreleased
+# before the release and in a release section after it, so a newer entry under Unreleased does not hide them.
 changelog_names_runners() {
-  local section
-  section="$(awk '/^## \[Unreleased\]/{f=1; next} /^## \[/{f=0} f && /^- /' "$PLUGIN/CHANGELOG.md")"
-  if [ -z "$section" ]; then
-    section="$(awk '/^## \[[0-9]/{n++; next} /^## \[/ || /^\[[^]]+\]: /{if (n) exit} n == 1 && /^- /' "$PLUGIN/CHANGELOG.md")"
-  fi
-  local w
+  local entries w
+  entries="$(awk '/^## \[/{f=1; next} /^\[[^]]+\]: /{f=0} f && /^- /' "$PLUGIN/CHANGELOG.md")"
   for w in xargs 'find -exec' watch 'env -S'; do
-    case "$section" in *"$w"*) ;; *) why="the newest entries do not name $w"; return 1 ;; esac
+    case "$entries" in *"$w"*) ;; *) why="no section of the changelog names $w"; return 1 ;; esac
   done
 }
 

@@ -6,15 +6,22 @@ Claude CodeとCodexは、シェルの命令とファイルの読み取りと書�
 フックは、断る時は理由を付けた拒否の判断を出し、断らない時は何も出しません。
 許可の判断は出さないので、断らなかった呼び出しも、エージェント自身の許可の決まりを通ります。
 6つのフックは1つのPythonのファイル`hooks/lib/agent_guards.py`を使い、各`hooks/<name>.sh`がフックの名前を渡して起動します。
+3つのフックは同じプロセスの中で2つ以上の検査を回すので、検査ごとにプロセスを起動しません。
+各検査は自分の変数で外れ、検査が全て外れたフックはすぐに終わります。
 
-| フック | 動く時 | 外す変数 |
-|---|---|---|
-| `secret-read.sh` | シェルの命令とRead toolの前 | `AGENT_GUARDS_SECRET_READ=off` |
-| `secret-write.sh` | シェルの命令、Write、Edit、MultiEdit、NotebookEditのtool、Codexの`apply_patch`の前 | `AGENT_GUARDS_SECRET_WRITE=off` |
-| `onepassword.sh` | シェルの命令の前 | `AGENT_GUARDS_ONEPASSWORD=off` |
-| `outbound.sh` | シェルの命令の前 | `AGENT_GUARDS_OUTBOUND=off` |
-| `git.sh` | シェルの命令の前 | `AGENT_GUARDS_GIT=off` |
-| `delete.sh` | シェルの命令の前 | `AGENT_GUARDS_DELETE=off` |
+| フック | 検査 | 動く時 | 外す変数 |
+|---|---|---|---|
+| `secret-read.sh` | 秘密の読み取り | シェルの命令とRead toolの前 | `AGENT_GUARDS_SECRET_READ=off` |
+| `secret-write.sh` | 秘密の書き込み | シェルの命令、Write、Edit、MultiEdit、NotebookEditのtool、Codexの`apply_patch`の前 | `AGENT_GUARDS_SECRET_WRITE=off` |
+| `secret-write.sh` | ハードリンク | 秘密の書き込みと同じ呼び出しの前 | `AGENT_GUARDS_HARD_LINKS=off` |
+| `secret-write.sh` | 起動ファイルの鍵 | 秘密の書き込みと同じ呼び出しの前 | `AGENT_GUARDS_STARTUP_KEYS=off` |
+| `onepassword.sh` | 1Password | シェルの命令の前 | `AGENT_GUARDS_ONEPASSWORD=off` |
+| `outbound.sh` | 外へ送る文 | シェルの命令の前 | `AGENT_GUARDS_OUTBOUND=off` |
+| `outbound.sh` | チェーン | シェルの命令の前 | `AGENT_GUARDS_CHAIN=off` |
+| `outbound.sh` | 他人のリポジトリ | シェルの命令の前 | `AGENT_GUARDS_OTHER_REPOS=off` |
+| `git.sh` | git | シェルの命令の前 | `AGENT_GUARDS_GIT=off` |
+| `delete.sh` | 削除 | シェルの命令の前 | `AGENT_GUARDS_DELETE=off` |
+| `delete.sh` | システム | シェルの命令の前 | `AGENT_GUARDS_SYSTEM=off` |
 
 ## 命令の読み方
 
@@ -67,6 +74,49 @@ Read toolでは`file_path`を見ます。
 `echo x > "$OUT"`のように書く先が変数か命令の置き換えから来る書き込みは通します。
 そうしたファイルは、秘密のファイルよりも一時のファイルであることがずっと多いためです。
 
+## ハードリンク
+
+1つのファイルは、`ln`で作る別名 (ハードリンク) を持てます。
+1つの名前から書くと全ての名前のファイルが変わるので、`notes.txt`のような害の無い名前から`.env`を上書きでき、名前だけでは中身が分かりません。
+検査は、名前を2つ以上持つ普通のファイルへの書き込みを断ります。
+
+| 所 | 見る物 |
+|---|---|
+| シェルの命令 | `>`、`>>`などの書き先のファイルと、名前の先のファイルへ書く`tee`、`cp`、`scp`、`truncate`、`dd`の`of=`が書くファイル |
+| Write、Edit、MultiEdit、NotebookEditのtool | `file_path`と`notebook_path` |
+| Codexの`apply_patch` | パッチが足すか変えるファイル |
+
+`mv`、`ln`、`install`、`rsync`、`sed -i`、`perl -i`は名前を新しいファイルに置き換え、ほかの名前を元のまま残すので通します。
+まだ無いファイルと、名前の数を読めないファイルは通し、シンボリックリンクは指す先のファイルで判断します。
+断る時は、`cp`で名前が1つのファイルへ写し、そちらへ書くように言います。
+Linuxのpnpmのように`node_modules`のファイルを共有の置き場へリンクする道具では、そこでの書き換えも断ります。
+
+## 起動ファイルの鍵
+
+検査は、シェルの起動ファイルへ書く中身を読み、鍵を断ります。
+
+| 起動ファイル | 例 |
+|---|---|
+| 名前で決まるzshとbashの起動ファイル。置き場は問わない | ホームのフォルダかdotfilesのフォルダの`.zshrc`、`.zprofile`、`.zshenv`、`.zlogin`、`.bashrc`、`.bash_profile`、`.bash_login`、`.profile` |
+| fishの設定 | `fish`という名前のフォルダの`config.fish` |
+| chezmoiの元の名前で置いた同じファイル | `dot_zshrc`、`private_dot_zshrc.tmpl`、`dot_config/fish/config.fish` |
+
+| 所 | 読む物 |
+|---|---|
+| Write tool | `content` |
+| Edit toolとMultiEditの各編集 | `new_string` |
+| Codexの`apply_patch` | パッチがファイルへ足す行 |
+| 起動ファイルへ書くシェルの命令 | `echo 'export FOO_TOKEN=abc' >> ~/.zshrc`のような命令の全体 |
+
+| 断る物 | 通す物 |
+|---|---|
+| 名前が`_KEY`、`_TOKEN`、`_SECRET`、`_PASSWORD`で終わり、値をそのまま書いた、zshとbashの`export NAME=value`と、fishの`set -x NAME value`か`set -gx NAME value` | `"$(security find-generic-password -s NAME -w)"`、`$OTHER`、`${OTHER}`のように起動の時に読む値、空の値、`REPLACE_ME`、`CHANGEME`、`TODO`、`xxx`のような置き換え用の値、コメントにした行 |
+| 外へ送る文の検査が知るGitHubやAWSの鍵などの形。どの行に在っても断る | 鍵の形を持たない行 |
+
+断る時はファイルと、変数か鍵の種類を出し、値は出しません。
+値はmacOSのキーチェーンや1Passwordのような秘密の置き場に控え、起動の時に読むように言います。
+このマーケットプレイスのsecure-dotfileのプラグインは、そうした値を移します。
+
 ## 1Password
 
 フックは、1PasswordのCLIの全ての`op`の命令を読みます。
@@ -111,6 +161,51 @@ Read toolでは`file_path`を見ます。
 `--body "$(cat file)"`、`--body -`、変数で名指した本文のファイル、ほかの命令から作ったコミットの文のように読めない文は断り、`--body-file <path>`か`git commit -F <path>`の形を示します。
 命令の中に書いたヒアドキュメントから作った文は、文が命令に在るので読みます。
 
+## チェーン
+
+検査は、署名した取引をこのPCの外のチェーンへ送る命令を断ります。
+送った取引は取り消せないためです。
+
+| 送る命令 | 例 |
+|---|---|
+| `cast send`と`cast publish`。`cast s`と`cast p`も同じ | `cast send 0xabc "f()" --rpc-url https://rpc.example.org` |
+| `cast rpc`で送る`eth_sendRawTransaction`と`eth_sendTransaction` | `cast rpc eth_sendRawTransaction 0x02f8 --rpc-url https://rpc.example.org` |
+| `cast erc20-token`の`transfer`、`approve`、`mint`、`burn` | `cast erc20-token transfer 0xabc 0xdef 1 --rpc-url https://rpc.example.org` |
+| `--broadcast`付きの`forge script`と、`forge create` | `forge script script/Deploy.s.sol --broadcast --rpc-url https://rpc.example.org` |
+| `hardhat ignition deploy`。`npx`、`pnpm`、`yarn`、`bunx`、`npm exec`を通しても同じ | `npx hardhat ignition deploy ignition/modules/A.ts --network sepolia` |
+
+送り先は、castの`--rpc-url`と`-r`、forgeの`--rpc-url`と`--fork-url`と`-f`、命令の前に書いた`ETH_RPC_URL=`から読みます。
+URLが`http`、`https`、`ws`、`wss`を使い、ユーザー名とパスワードを持たず、ホストが`127.0.0.1`、`localhost`、`::1`の時に通します。
+送り先の無い命令、変数で渡した送り先、`--rpc-url sepolia`のような`foundry.toml`の名前、`--flashbots`付きの`cast`は、このPCの中に留まるかを確かめられないので断ります。
+Hardhatの配備は、`hardhat`と`localhost`のネットワークと`--network`の無い時は通し、`--network`か`HARDHAT_NETWORK=`がほかのネットワークを名指す時は断ります。
+`cast call`、`cast mktx`、`cast wallet sign`、`--broadcast`の無い`forge script`のように、読むだけの命令と送らない署名は通します。
+RPCのURLのpathはAPIの鍵を持つことがあるので、断る時はホストだけを出してURLの全体は出さず、先頭に`!`を付けた同じ命令で終えます。
+
+## 他人のリポジトリ
+
+検査は、自分の物でない持ち主のリポジトリへの送信を断ります。
+送った物はすぐに公開され、取り消せないためです。
+自分の物であるGitHubのユーザーと組織を`~/.config/agent-guards/own-owners`から1行に1つずつ読み、大文字と小文字を区別せずに比べます。
+ファイルが無いか持ち主が1つも無い時は、どれが自分のリポジトリか分からないので、何も断りません。
+
+| 送信 | 持ち主を読む所 |
+|---|---|
+| `gh issue create`、`gh pr create`、`gh issue comment`、`gh pr comment`、`gh pr review` | `-R`か`--repo`、`GH_REPO`、引数に渡したissueかpull requestのURL |
+| 題か本文か添付を変える`gh issue edit`と`gh pr edit`と、コメントを付けた`gh issue close`と`gh pr close` | 同上 |
+| `repos/<owner>/<name>/...`へのPOST、PATCH、PUT、DELETEか、指定の無いままフィールドを持つ`gh api` | エンドポイント |
+| `git push` | 送る先のリモートのURL。名指したリモート、`--repo`、ブランチのpushのリモートの順に読み、無ければ`origin` |
+
+| 持ち主を問わず断る物 | 理由 |
+|---|---|
+| `gh api graphql`のmutationと、検査が読めないquery | 送り先をIDで名指す |
+| 変数で渡したリポジトリ、エンドポイント、リモート | 誰のリポジトリか分からない |
+
+`-R`の無い`gh`の送信は、ghがクローンのリモートから選ぶリポジトリへ届き、フォークでは上流になります。
+`gh repo set-default`で選んだリモートか、選んでいない時はどれかのリモートが一覧の外の持ち主を名指す時は断り、`-R`でリポジトリを名指すように言います。
+読むだけの命令、ラベルと担当の変更、コメントの無いcloseは通します。
+リモートを読むため、クローンの中で`git config`、`git symbolic-ref`、`git remote get-url`を走らせます。
+断る時は、先頭に`!`を付けた同じ命令で終えます。
+
 ## git
 
 | 断る物 | 理由 |
@@ -131,11 +226,27 @@ Read toolでは`file_path`を見ます。
 | `protected-paths`の一覧の置き場かその中に対する`rm`、`mv`、`rmdir`、`unlink`、`find -delete` | `rm ~/work/keep/a.txt` |
 | それらの置き場か`protected-paths`の一覧の置き場に対する、`-R`か`--recursive`付きの`chmod`、`chown`、`chgrp`。木の全体から権限を外すと、消した時と同じく入れなくなるため。最初の語は権限か持ち主で、`-w`のような権限も権限として読む | `chmod -R 000 ~`、`chown -R nobody ~` |
 
+## システム
+
+検査は、PC全体を変え、戻しにくい命令を断ります。
+
+| 断る物 | 理由 |
+|---|---|
+| `mount`と`umount` | PCにマウントする物を変える |
+| `chroot` | 別のルートのフォルダの中で命令を走らせる |
+| `pfctl` | macOSのファイアウォールであるパケットフィルタを変える |
+| `mkfs`と`mkfs.*` | ディスクを初期化し、中身を消す |
+| `do shell script ... with administrator privileges`を持つ`osascript` | `sudo`と同じく、管理者としてシェルのスクリプトを走らせる |
+
+命令の読み方の節のとおり、`sudo`、`env`、`/sbin/mount`のような絶対パス、`bash -c`の後ろでも読みます。
+`grep mount notes.txt`のように引数に在るだけの名前と、管理者の権限を使わない`osascript`は通します。
+断る時は、先頭に`!`を付けた同じ命令で終えます。
+
 ## 判断できない時
 
 出来事を読めないか判断の途中で失敗したフックは、黙って通さずに、呼び出しを断ってそう伝えます。
-Python 3が無いと、各フックは毎回断り、Python 3を入れるかフックを外すように言います。
-各フックは、冒頭の表のとおり、自分の変数を`off`にすると外れます。
+Python 3が無いと、各フックは毎回断り、Python 3を入れるか検査を外すように言います。
+各検査は、冒頭の表のとおり、自分の変数を`off`にすると外れ、検査が全て外れたフックはすぐに終わります。
 
 ## 限界
 
@@ -143,3 +254,6 @@ Python 3が無いと、各フックは毎回断り、Python 3を入れるかフ�
 - ランダムなパスワードのように決まった前置きを持たない鍵の形は見つけません
 - `printf`の出力を`sh`に渡すように、動かす時に作る命令は読みません
 - 書く先が変数から来る書き込みは断りません。`python3 -c "open('.env', 'w')"`のように、プログラム自身のコードが書く物も読みません
+- `cp`でほかのファイルを上書きして書いた起動ファイルは、命令の文だけを読むので、鍵を調べません
+- `hardhat run`やスクリプトが走らせる配備と、設定の`defaultNetwork`で選んだHardhatのネットワークは読みません
+- `curl`でGitHubのAPIへ送るように、プログラム自身のコードがGitHubへ送る物は読みません

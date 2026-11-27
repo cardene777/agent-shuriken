@@ -5,6 +5,13 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The secret write hook refuses a write through a file that has a second name (hard link), since a harmless name can overwrite a key file under its other name. Turn it off with `AGENT_GUARDS_HARD_LINKS=off`
+- The secret write hook refuses a key written into a shell startup file such as `.zshrc`, `.bashrc`, `.profile`, or the fish config, also in a dotfiles folder or under a chezmoi source name, by the file tools, a Codex patch, or a command such as `echo ... >> ~/.zshrc`. Turn it off with `AGENT_GUARDS_STARTUP_KEYS=off`
+- The outbound hook refuses chain transactions sent to a target that is not on this machine: `cast send`, `cast publish`, the sending forms of `cast rpc` and `cast erc20-token`, `forge script --broadcast`, `forge create`, and `hardhat ignition deploy`. Turn it off with `AGENT_GUARDS_CHAIN=off`
+- With a list of your GitHub owners in `~/.config/agent-guards/own-owners`, the outbound hook refuses issues, pull requests, comments, reviews, and edits sent with `gh` or `gh api` to repositories of other owners, a `git push` to them, GraphQL mutations, and repositories held in variables. Turn it off with `AGENT_GUARDS_OTHER_REPOS=off`
+- The delete hook refuses `mount`, `umount`, `chroot`, `pfctl`, `mkfs`, and `osascript` running a shell script with administrator privileges. Turn it off with `AGENT_GUARDS_SYSTEM=off`
+- The new checks run in the process of the hook they belong to, so no hook starts on a call that did not start before, and a hook exits at once only when every check it runs is off
+
 ## [0.2.1] - 2026-11-26
 
 - The hooks skip the value of a wrapper option, so `sudo -u root rm -rf /`, `nice -n 10 op read`, and `env -C /tmp git push --force` are judged like the command alone, and they read the string of `env -S`, the command `xargs` runs, each command after `find -exec`, `-execdir`, `-ok`, and `-okdir`, and the text `watch` runs. The secret read hook refuses `find -exec` that hands a found secret file to a reader through `{}`
