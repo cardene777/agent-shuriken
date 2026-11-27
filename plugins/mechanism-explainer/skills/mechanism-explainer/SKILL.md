@@ -21,10 +21,10 @@ The examples write into `explainer/<slug>/` of the folder the user works in; use
 
 ## 1. Check the setup
 
-The page is drawn by dragon 0.87.0, fetched by npm into its cache on first use.
+The page is drawn by dragon 0.88.0, fetched by npm into its cache on first use.
 
 ```bash
-npx -y @cardenelabs/dragon@0.87.0 --version
+npx -y @cardenelabs/dragon@0.88.0 --version
 ```
 
 - When `npx` is missing, stop and tell the user to install Node.js 20 or later from nodejs.org.
@@ -74,12 +74,13 @@ If the `dragon` skill is not installed, go on without the `cheatsheet` of `drago
 Without the `dragon` skill, follow the shape below and dragon's [notation guide](https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md).
 
 The page starts with `layout: guide` and `note: pop` between `---` lines.
-dragon lists every topic (`##`) and its questions (`###`) in a side menu, numbers the questions per topic, such as `2-1`, and turns every box note into a card that opens on a click.
+dragon lists every topic (`##`) and its questions (`###`) in a side menu without numbers, numbers the questions per topic in the page, such as `2-1`, and turns every box note into a card that opens on a click.
 With one topic, every section stacks on one page.
 With two or more topics, dragon puts an overview tab and one tab per topic at the top of the page.
 The overview tab shows the title, the page lead, the overview figure, and the topics in order.
-A topic tab shows every question of that topic, and the side menu lists only those questions.
-Each tab ends with links to the previous and next topics.
+A topic tab opens on its map and the one-sentence answers of its questions, and each question is its own page: a question in the side menu or a row of the answers shows only that question.
+The side menu lists only the questions of the open topic, and lists the figure titles under the open question, which scroll to the figure when pressed.
+Each page ends with links to the previous and next pages, in the order overview, then each topic's map and its questions.
 
 Write the page lead, after the `#` title and before the first topic, in this order.
 
@@ -113,8 +114,8 @@ If the `japanese-writing` skill is not installed, go on without the `rules` of `
 ## 4. Check the notation and the layout
 
 ```bash
-npx -y @cardenelabs/dragon@0.87.0 check explainer/<slug>/<slug>.md
-npx -y @cardenelabs/dragon@0.87.0 check --layout explainer/<slug>/<slug>.md
+npx -y @cardenelabs/dragon@0.88.0 check explainer/<slug>/<slug>.md
+npx -y @cardenelabs/dragon@0.88.0 check --layout explainer/<slug>/<slug>.md
 ```
 
 Fix every error that `check` prints, one at a time, and run it again until it prints none.
@@ -125,8 +126,8 @@ Add `--lang ja` to both commands when the page is in Japanese, so the messages a
 ## 5. Export the page
 
 ```bash
-npx -y @cardenelabs/dragon@0.87.0 export explainer/<slug>/<slug>.md
-npx -y @cardenelabs/dragon@0.87.0 embed explainer/<slug>/<slug>.html
+npx -y @cardenelabs/dragon@0.88.0 export explainer/<slug>/<slug>.md
+npx -y @cardenelabs/dragon@0.88.0 embed explainer/<slug>/<slug>.html
 ```
 
 - `export` writes `<slug>.html` next to the Markdown. Add `--lang ja` when the page is in Japanese, so the words dragon adds to the page are Japanese.
@@ -140,7 +141,7 @@ D=<folder of this SKILL.md>; python3 "$D/scripts/to-pdf.py" explainer/<slug>/<sl
 
 It prints the page with a Chromium-based browser already on the machine, on A3 paper unless `--paper a4` or `--paper letter` is given, and writes `<slug>.offline.pdf`.
 The PDF holds what dragon's print styles draw.
-With dragon 0.87.0, that is the overview and every topic in order, also when the screen splits them into tabs, without the tabs, the side menu, or the previous and next links, with the steps of each figure drawn two to a sheet, the check answers open, and the box cards open under each figure.
+With dragon 0.88.0, that is the overview and every topic in order, also when the screen splits them into tabs, without the tabs, the side menu, or the previous and next links, with the steps of each figure drawn two to a sheet, the check answers open, and the box cards open under each figure.
 
 | Exit code | What to do |
 |---|---|

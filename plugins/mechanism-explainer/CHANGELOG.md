@@ -5,6 +5,9 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-11-27
+
+- The page is exported with dragon 0.88.0. Each topic tab opens on its map and the one-sentence answers, and each question is its own page. The side menu shows no question numbers and lists the figure titles under the open question, which scroll to the figure when pressed, and each page ends with links to the previous and next pages
 - `musubi.json` follows `japanese-writing/rules`, the writing rules of japanese-writing, as an optional follow for Japanese pages only, and the step that checks Japanese prose reads the rules through it, so `musubi check` refuses the skill when the rules changed after its last check. The fingerprints of the dragon formats it follows match dragon's current skill again
 
 ## [0.4.1] - 2026-11-27
