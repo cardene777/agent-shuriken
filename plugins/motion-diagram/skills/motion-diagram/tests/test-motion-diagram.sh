@@ -554,6 +554,39 @@ check "export writes mp4, gif, and png" export_writes_mp4_gif_and_png
 check "export without node says how to install it" export_without_node_says_how_to_install_it
 check "the skill agrees on the parts before writing the spec" the_skill_agrees_on_the_parts_first
 check "the docs say when the page runs, what #end does, and how it prints" the_docs_say_when_the_page_runs
+
+# The page takes the user's theme with the theme command of page-design's verify file, so the skill
+# follows page-design/verify through musubi as an optional follow (agent-shuriken#553).
+follows_page_design_verify() {
+  [ -f "$SKILL_DIR/musubi.json" ] || { why="musubi.json is missing"; return 1; }
+  python3 - "$SKILL_DIR/musubi.json" <<'PY' || { why="musubi.json does not follow only page-design/verify as an optional follow"; return 1; }
+import json, re, sys
+declaration = json.load(open(sys.argv[1], encoding="utf-8"))
+follows = declaration.get("follows", {})
+follow = follows.get("page-design/verify", {})
+ok = (
+    declaration.get("musubi") == "2026-11-21"
+    and "provides" not in declaration
+    and list(follows) == ["page-design/verify"]
+    and follow.get("version") == "^2.0.0"
+    and follow.get("optional") is True
+    and re.fullmatch(r"sha256-[A-Za-z0-9+/]{43}=", str(follow.get("integrity", ""))) is not None
+)
+sys.exit(0 if ok else 1)
+PY
+  local line page
+  for line in \
+    'When the `page-design` skill is installed, run the `verify` of the `page-design` skill: open the `page-design` skill by name and run the file it names for `verify`.' \
+    'If the `musubi` command is available, run `musubi check` before reading, and stop if it fails.' \
+    'If the `page-design` skill is not installed, go on without the `verify` of `page-design`.'; do
+    grep -qxF -- "$line" "$SKILL_DIR/SKILL.md" || { why="SKILL.md lacks the line: $line"; return 1; }
+  done
+  for page in README.md README.ja.md docs/how-it-works.md docs/how-it-works.ja.md; do
+    grep -qF 'page-design/verify' "$PLUGIN/$page" && grep -qF 'musubi.json' "$PLUGIN/$page" \
+      || { why="$page does not name musubi.json and page-design/verify"; return 1; }
+  done
+}
+check "motion-diagram follows verify of page-design as an optional follow" follows_page_design_verify
 check "claude plugin validate" claude_plugin_validate
 
 echo ""

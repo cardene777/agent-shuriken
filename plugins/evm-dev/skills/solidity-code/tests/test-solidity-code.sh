@@ -313,5 +313,23 @@ evm_standards_kept() {
 }
 check "the evm-standards items still pass their check" evm_standards_kept
 
+# contract-tests, contract-deploy, and release-check run this skill's commands, so the script is
+# provided through musubi as `commands` and they follow it (agent-shuriken#553).
+provides_commands() {
+  [ -f "$SKILL_DIR/musubi.json" ] || return 1
+  python3 - "$SKILL_DIR/musubi.json" <<'PY' || return 1
+import json, sys
+declaration = json.load(open(sys.argv[1], encoding="utf-8"))
+want = {"commands": {"version": "1.0.0", "file": "scripts/solidity-code.py"}}
+sys.exit(0 if declaration.get("musubi") == "2026-11-19" and declaration.get("provides") == want and "follows" not in declaration else 1)
+PY
+  grep -E '^\| `commands` \|' "$SKILL" | grep -qF '`scripts/solidity-code.py`' || return 1
+  local page
+  for page in README.md README.ja.md docs/how-it-works.md docs/how-it-works.ja.md; do
+    grep -qF 'solidity-code/commands' "$PLUGIN/$page" && grep -qF 'musubi.json' "$PLUGIN/$page" || return 1
+  done
+}
+check "solidity-code provides commands in musubi.json" provides_commands
+
 printf '%d passed, %d failed (%d ran)\n' "$PASS" "$FAIL" "$((PASS + FAIL))"
 [ "$FAIL" -eq 0 ]
