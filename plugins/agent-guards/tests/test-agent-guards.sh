@@ -434,6 +434,93 @@ protected_paths_listed() {
   return "$result"
 }
 
+# protected_list makes ~/work/keep the one protected place; protected_done takes the list away.
+protected_list() {
+  mkdir -p "$HOME/.config/agent-guards" "$HOME/work/keep"
+  printf '%s\n' '~/work/keep' > "$HOME/.config/agent-guards/protected-paths"
+}
+protected_done() { rm -f "$HOME/.config/agent-guards/protected-paths"; }
+
+# each_refused <hook> <cwd> <command>...: the hook refuses every command run in <cwd>.
+each_refused() {
+  local hook="$1" dir="$2" c
+  shift 2
+  for c in "$@"; do refuses "$hook" "$(event_bash "$c" "$dir")" "$c" || return 1; done
+}
+# each_passes <hook> <cwd> <command>...: the hook prints nothing for every command run in <cwd>.
+each_passes() {
+  local hook="$1" dir="$2" c
+  shift 2
+  for c in "$@"; do passes "$hook" "$(event_bash "$c" "$dir")" "$c" || return 1; done
+}
+
+delete_copy_into_protected() {
+  protected_list
+  local result=0
+  each_refused delete "$WORK" 'cp build/claude ~/work/keep/claude' 'cp -f a.txt b.txt ~/work/keep' \
+    'install -m 755 build/claude ~/work/keep/claude' 'ln -sf /tmp/other ~/work/keep/claude' \
+    'rsync -a dist/ ~/work/keep/' 'scp host:claude ~/work/keep/claude' \
+    "cp -t $HOME/work/keep a.txt" "cp --target-directory=$HOME/work/keep a.txt" || result=1
+  protected_done
+  return "$result"
+}
+
+delete_write_into_protected() {
+  protected_list
+  local result=0
+  each_refused delete "$WORK" 'tee ~/work/keep/a.txt < note.txt' 'echo x | tee -a ~/work/keep/a.txt' \
+    "dd if=build/claude of=$HOME/work/keep/claude" 'echo x > ~/work/keep/a.txt' 'echo x >> ~/work/keep/a.txt' \
+    'echo x >| ~/work/keep/a.txt' 'make &> ~/work/keep/build.log' 'ls 2> ~/work/keep/err.log' \
+    'echo x >~/work/keep/a.txt' || result=1
+  protected_done
+  return "$result"
+}
+
+delete_mv_into_protected() {
+  protected_list
+  local result=0
+  each_refused delete "$WORK" 'mv build/claude ~/work/keep/claude' 'mv -f a.txt ~/work/keep' || result=1
+  protected_done
+  return "$result"
+}
+
+delete_git_rm_protected() {
+  protected_list
+  local result=0
+  each_refused delete "$WORK" 'git rm ~/work/keep/a.txt' 'git rm -r ~/work/keep' 'git rm --cached ~/work/keep/a.txt' \
+    "git -C $HOME/work rm -r keep" || result=1
+  [ "$result" -eq 0 ] && { each_refused delete "$HOME/work" 'git rm -r keep' 'git rm -rf -- keep/a.txt' || result=1; }
+  protected_done
+  return "$result"
+}
+
+delete_reads_protected() {
+  protected_list
+  local result=0
+  each_passes delete "$WORK" 'cp ~/work/keep/a.txt /tmp/a.txt' 'rsync -a ~/work/keep/ ~/backup/' \
+    'cat ~/work/keep/a.txt > /tmp/a.txt' 'cp ~/work/keep/a.txt ~/work/keep-copy.txt' 'git rm ~/work/other.txt' \
+    'echo x > ~/work/keeper.txt' 'grep x ~/work/keep/a.txt 2> /dev/null' || result=1
+  protected_done
+  return "$result"
+}
+
+delete_leaves_file_tools() {
+  protected_list
+  local result=0 t
+  for t in Write Edit; do
+    passes delete "$(event_file "$t" "$HOME/work/keep/a.txt")" "$t of ~/work/keep/a.txt" || { result=1; break; }
+  done
+  protected_done
+  return "$result"
+}
+
+docs_protected_overwrite() {
+  local f
+  for f in README.md README.ja.md docs/how-it-works.md docs/how-it-works.ja.md; do
+    grep -qF 'git rm' "$PLUGIN/$f" || { why="$f does not say that git rm of a protected place is refused"; return 1; }
+  done
+}
+
 turn_off_one_hook() {
   local hooks=(secret-read secret-write onepassword outbound git delete)
   local vars=(AGENT_GUARDS_SECRET_READ AGENT_GUARDS_SECRET_WRITE AGENT_GUARDS_ONEPASSWORD AGENT_GUARDS_OUTBOUND \
@@ -898,6 +985,13 @@ check "delete allows a named folder" delete_named_allowed
 check "delete refuses chmod -R on the root, the home folder, and protected places" delete_chmod_refused
 check "delete allows chmod -R on a named folder" delete_chmod_named_allowed
 check "protected-paths adds places to refuse deleting" protected_paths_listed
+check "delete refuses copying and linking into a protected place" delete_copy_into_protected
+check "delete refuses tee, dd, and redirects into a protected place" delete_write_into_protected
+check "delete refuses mv into a protected place" delete_mv_into_protected
+check "delete refuses git rm of a protected place" delete_git_rm_protected
+check "the docs say protected places refuse overwriting and git rm" docs_protected_overwrite
+check "delete lets commands read from a protected place" delete_reads_protected
+check "delete leaves Write and Edit in a protected place to the agent" delete_leaves_file_tools
 check "1Password refuses op behind a wrapper option that takes a value" onepassword_wrapped_refused
 check "git and delete refuse their commands behind a wrapper option that takes a value" git_delete_wrapped_refused
 check "secret read and write refuse secret files behind a wrapper option that takes a value" secret_wrapped_refused
