@@ -79,7 +79,11 @@ The page runs once when its picture is first on screen: at once when it is opene
 Adding `#end` to the page's address opens it finished, without running, and a printed page stops any run and prints the finished picture without its buttons.
 The replay button runs it again, and a reader who asks for reduced motion sees the final counts without movement.
 When the page is narrower than 600 pixels, or too narrow for its columns, the picture runs top to bottom.
-With `page-design` installed, apply the user's colors and fonts with the file it names for `verify`: `python3 <that file> theme --keys light,dark,font.sans,font.mono <page.html>`, which reads `.design-theme.json` at the repository root, else `~/.design-theme.json`.
+Apply the user's colors and fonts to the page with the script of `page-design`.
+When the `page-design` skill is installed, run the `verify` of the `page-design` skill: open the `page-design` skill by name and run the file it names for `verify`.
+If the `musubi` command is available, run `musubi check` before reading, and stop if it fails.
+If the `page-design` skill is not installed, go on without the `verify` of `page-design`.
+Run that file as `python3 <that file> theme --keys light,dark,font.sans,font.mono <page.html>`, which reads `.design-theme.json` at the repository root, else `~/.design-theme.json`.
 Run it again after each `render`, since `render` writes the page anew.
 
 ## 5. Export a video, a GIF, and an image

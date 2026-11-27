@@ -3,7 +3,7 @@
   "follows": {
     "japanese-writing/connecting": {
       "version": "^1.0.0",
-      "integrity": "sha256-ayLzLkCkQuU8fM+7+zVoFPQDO4Svy1W/Z03ZLDSFnF4=",
+      "integrity": "sha256-hCgipguT7FbVoslzKUHEY2Mr8effGowiHocaeiVSelY=",
       "optional": true
     }
   }

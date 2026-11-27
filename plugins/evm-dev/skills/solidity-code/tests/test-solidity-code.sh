@@ -260,7 +260,8 @@ skill_rules() {
 check "the SKILL.md keeps its rules" skill_rules
 
 # The body is counted in words and the description in characters, as the size the agent reads.
-SKILL_WORDS_MAX=600
+# 54 words above 600 hold the section that declares the content commands for musubi (agent-shuriken#553).
+SKILL_WORDS_MAX=654
 SKILL_DESCRIPTION_MAX=300
 skill_size() {
   [ -f "$SKILL" ] || return 1

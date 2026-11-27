@@ -9,6 +9,13 @@ set -u
 root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$root" || exit 1
 
+# The musubi command, pinned so that a new release changes the result only through a pull request.
+MUSUBI_CLI="musubi-cli@0.3.0"
+# The dragon skill comes from the default branch, so a change of dragon fails the next run here
+# until the follows are checked against it and their fingerprints are rewritten.
+DRAGON_URL="https://github.com/cardene777/dragon.git"
+DRAGON_SKILLS="plugins/dragon/skills"
+
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
@@ -43,6 +50,29 @@ skills_folders() {
 
 need_npx() {
   command -v npx > /dev/null 2>&1 || { echo "npx is not installed"; return 77; }
+}
+
+# musubi_check <folder>...: musubi check on the skills folders, ending as musubi ends.
+musubi_check() {
+  npx -y "$MUSUBI_CLI" check "$@"
+}
+
+# fetch_dragon <url> <dir>: a shallow clone of only the skills folder of dragon, about 2 seconds.
+fetch_dragon() {
+  git clone --quiet --depth 1 --filter=blob:none --sparse "$1" "$2" > /dev/null 2>&1 \
+    && git -C "$2" sparse-checkout set "$DRAGON_SKILLS" > /dev/null 2>&1 \
+    && [ -d "$2/$DRAGON_SKILLS/dragon" ]
+}
+
+# dragon_check <url>: the repository's skills checked together with the dragon skill fetched from
+# <url>, so the follows of dragon are compared with it instead of being skipped as optional.
+dragon_check() {
+  local dir="$work/dragon-$RANDOM" folders=() f
+  fetch_dragon "$1" "$dir" \
+    || { echo "could not fetch the dragon skill from $1, so the follows of dragon were not checked"; return 77; }
+  need_npx || return $?
+  while IFS= read -r f; do folders+=("$f"); done < <(skills_folders)
+  musubi_check "${folders[@]}" "$dir/$DRAGON_SKILLS"
 }
 
 check_inside() {

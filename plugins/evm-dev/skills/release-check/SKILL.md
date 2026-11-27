@@ -14,6 +14,9 @@ Run it as a shell command, `python3 <folder of this SKILL.md>/scripts/release-ch
 ## 1. Read the project
 
 Read the versions with the solidity-code skill: its `project` prints them.
+Run the `commands` of the `solidity-code` skill: open the `solidity-code` skill by name and run the file it names for `commands`.
+If the `musubi` command is available, run `musubi check` before reading, and stop if it fails.
+If the `solidity-code` skill is not installed, do not start: tell the user that `solidity-code` is missing and how to install it, then stop.
 Run `list` for the items on EVM versions, the gas cap, storage layouts, and the tools.
 When an item is marked `stale`, re-check it against the official document and tell the user what changed; when the document cannot be reached, say the item is unconfirmed, with its checked date.
 Ask which chains the contracts go to and, for an upgrade, which git tag or commit is deployed now.

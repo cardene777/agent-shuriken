@@ -12,6 +12,7 @@ The skill itself holds only the steps and the PDF script; the figure kinds and t
 | Check the setup | The agent confirms that dragon 0.87.0 runs | `npx -y @cardenelabs/dragon@0.87.0 --version` |
 | Plan | The agent writes who reads the page, the questions, and two to four figures per question, and changes the plan until you agree | Nothing |
 | Write | The agent writes `<name>.md` with `layout: guide` and `note: pop`, and a `glossary.md` for terms | Nothing |
+| Check the Japanese prose | For a page in Japanese, when japanese-writing is installed, the agent checks the prose against `japanese-writing/rules`, which the skill follows through musubi | `musubi check`, when the `musubi` command is installed |
 | Check | Every figure is checked for notation errors and for layout breaks, and each line dragon prints is fixed | `dragon check` and `dragon check --layout` |
 | Export | dragon writes the page, then a copy that carries its scripts | `dragon export` and `dragon embed` |
 | Print | The page is printed to a PDF on A3 paper by default | `scripts/to-pdf.py` |

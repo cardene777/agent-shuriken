@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- `musubi.json` follows `japanese-writing/rules`, the writing rules of japanese-writing, as an optional follow for Japanese pages only, and the step that checks Japanese prose reads the rules through it, so `musubi check` refuses the skill when the rules changed after its last check. The fingerprints of the dragon formats it follows match dragon's current skill again
+
 ## [0.4.1] - 2026-11-27
 
 - The number of questions and the kinds of material decide between one page and topic tabs. Material of one kind with five or fewer questions is one page, and six or more questions or more than one kind of material split the explainer into an overview tab and one tab per topic, so a plan can no longer put many questions into one topic and write one long page

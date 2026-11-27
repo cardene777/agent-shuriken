@@ -561,7 +561,8 @@ skill_rules() {
 check "the contract-deploy SKILL.md keeps its rules" skill_rules
 
 # The body is counted in words and the description in characters, as the size the agent reads.
-SKILL_WORDS_MAX=600
+# 61 words above 600 hold the three musubi lines that follow solidity-code/commands (agent-shuriken#553).
+SKILL_WORDS_MAX=661
 SKILL_DESCRIPTION_MAX=300
 skill_size() {
   [ -f "$SKILL" ] || return 1

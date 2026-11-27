@@ -1,0 +1,9 @@
+{
+  "musubi": "2026-11-19",
+  "provides": {
+    "commands": {
+      "version": "1.0.0",
+      "file": "scripts/solidity-code.py"
+    }
+  }
+}

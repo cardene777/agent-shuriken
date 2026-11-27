@@ -105,7 +105,10 @@ The paragraph after a figure states what the reader should conclude, such as whi
 
 Put explanations of a box into its `note:`, so they open as a card under the box instead of crowding the figure.
 Put terms the reader may not know into a `glossary.md` next to the page and link them from the text, as the `page` format says.
-When the page is in Japanese and the `japanese-writing` skill is installed, open it by name and check the prose with it before the next step.
+When the page is in Japanese, check its prose against the writing rules of `japanese-writing` before the next step.
+When the `japanese-writing` skill is installed, write in the `rules` format of the `japanese-writing` skill: open the `japanese-writing` skill by name and read the file it names for `rules`.
+If the `musubi` command is available, run `musubi check` before reading, and stop if it fails.
+If the `japanese-writing` skill is not installed, go on without the `rules` of `japanese-writing`.
 
 ## 4. Check the notation and the layout
 

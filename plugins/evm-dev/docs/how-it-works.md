@@ -134,6 +134,10 @@ A tool item counts as out of date 90 days after it was checked, since the tools 
 `scan` exits 0 when nothing matches, 1 when something matches, and 3 when nothing matches but some items could not be judged.
 It never prints the text of a line, and never reads `lib/`, `node_modules/`, `out/`, `cache/`, hidden folders, or files whose names start with `.env`.
 
+contract-tests, contract-deploy, and release-check run this script for the project's versions and the items.
+`skills/solidity-code/musubi.json` declares the script as the content `commands`, version 1.0.0, and the `musubi.json` of each of the three follows `solidity-code/commands` with the version range `^1.0.0` and the fingerprint of the script at the last check.
+The follow is not optional, so those skills stop and say how to install solidity-code when it is missing.
+
 ## How the agent writes a contract
 
 1. It runs `project`, reads the code near the change, and follows the project's pragma, layout, naming, error style, and libraries

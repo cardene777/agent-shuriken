@@ -16,7 +16,7 @@
 | `references/rules.md` | このプラグイン | 優先の順、repoに置くMarkdownの書式、プラグインの規範、各参照を読む時、直しの返し方 |
 | `references/terminology.md`、`subject-and-verb.md`、`ai-smell.md`、`explaining.md`、`asking.md`、`natural-explanation.md`、`sentence-forms.md` | このプラグイン | 語の選び方、物が比喩の動詞の主語に立つ文の直し方、AIらしい文の3つの形、説明の組み立て方、問いと選択肢の書き方、記事の導入、文の8つの形 |
 | `references/connecting.md` | このプラグイン (文化庁の2つの資料を加工して作成) | 人に伝える文で、長い文を区切り、関係ごとの接続詞で結び、結論を先に置く書き方 |
-| `musubi.json` | このプラグイン | ほかのスキルがmusubiで準拠するコンテンツ`connecting`のバージョン1.0.0。ファイルは`references/connecting.md` |
+| `musubi.json` | このプラグイン | ほかのスキルがmusubiで準拠するコンテンツ。どちらもバージョン1.0.0で、`connecting`のファイルは`references/connecting.md`で`convey`が従い、`rules`のファイルは`references/rules.md`で`mechanism-explainer`が日本語のページで従う |
 | `references/metaphor-words.tsv` | このプラグイン | `suspects.py`が当てる比喩の語と正規表現。行ごとに、何を見つけて何と書けばよいかの英語の説明を持つ |
 | `references/<名前>.en.md`、`references/doctypes/<名前>.en.md` | このプラグイン (隣の参照を英訳) | 同じ決まりの英語版。Markdownの参照ごとに同じ見出しと表で隣に置き、英語で読む人が使う。スキルは日本語のファイルだけを読む |
 | `scripts/suspects.py` | このプラグイン | `lint.py`が数えない形を指す道具 |

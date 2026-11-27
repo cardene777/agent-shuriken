@@ -38,6 +38,8 @@ Versions are not changed in these pull requests.
 3. Run `bash scripts/release.sh <name> X.Y.Z --dry-run` and read the notes and assets it prints
 4. Run `bash scripts/release.sh <name> X.Y.Z`
 
+`scripts/check.sh`, which the release script runs, runs `scripts/check-musubi.sh`: it checks the `musubi.json` of every skill with the pinned `musubi-cli`, and the follows of dragon against the dragon skill fetched from dragon's default branch. When dragon cannot be fetched, that one check is skipped with the reason.
+
 Before releasing doc-formats or evm-dev, run `musubi check plugins/doc-formats/skills plugins/evm-dev/skills` from the root of this repository with the musubi command of your local musubi checkout, and release only when it prints `ok`.
 When the design format or `verify` of `design-doc` changed, check each design skill against the change first, then run the same command with `--update` and commit the new fingerprints.
 

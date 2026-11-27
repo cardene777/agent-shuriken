@@ -7,6 +7,10 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ## [Unreleased]
 
+### Changed
+
+- `scripts/check.sh` runs the new `scripts/check-musubi.sh`, which checks the musubi declarations of every skill with `musubi-cli` 0.3.0, and the follows of dragon against the dragon skill on dragon's default branch, so a fingerprint that no longer matches fails the checks instead of waiting for a release
+
 ## [0.26.0] - 2026-11-26
 
 ### Plugins

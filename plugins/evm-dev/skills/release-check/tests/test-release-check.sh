@@ -712,7 +712,8 @@ skill_rules() {
 }
 check "the release-check SKILL.md keeps its rules" skill_rules
 
-SKILL_WORDS_MAX=659
+# 61 words above 659 hold the three musubi lines that follow solidity-code/commands (agent-shuriken#553).
+SKILL_WORDS_MAX=720
 SKILL_DESCRIPTION_MAX=300
 skill_size() {
   [ -f "$SKILL" ] || return 1

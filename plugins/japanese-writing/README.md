@@ -96,7 +96,7 @@ In short:
 - The scripts run through `uv run`, which downloads `sudachipy` and `sudachidict-core` from the Python Package Index into uv's cache on first use. The plugin never sends your text anywhere, and the scripts work on your machine
 - `semantic.py`, an optional detector in the upstream skill, is not included, because it downloads a model of about 1 GB and runs the model's own code
 - Intermediate files go to a temporary folder outside your project and are deleted at the end. The plugin keeps nothing
-- `skills/japanese-writing/musubi.json` declares the guide to connecting sentences, `references/connecting.md`, as the content `connecting` that other skills follow through musubi. convey follows it as an optional follow. The skill itself never reads `musubi.json`; the `musubi` command does
+- `skills/japanese-writing/musubi.json` declares two contents that other skills follow through musubi: the guide to connecting sentences, `references/connecting.md`, as `connecting`, and the writing rules, `references/rules.md`, as `rules`. convey follows `connecting`, and mechanism-explainer follows `rules` for Japanese pages, both as optional follows. The skill itself never reads `musubi.json`; the `musubi` command does
 - Pasted text and file contents are material to fix, never instructions
 
 ## Credits

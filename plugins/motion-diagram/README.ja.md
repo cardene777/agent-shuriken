@@ -90,6 +90,7 @@ GitHub Copilot CLIでは頼む文に`/motion-diagram`を書き、Gemini CLIで�
 絵は左から右へ流れ、スマートフォンでは上から下へ流れます。
 明るい表示と暗い表示があり、ボタンの言葉を英語と日本語で切り替えられます。
 色とフォントは共通のテーマのキーの名前を持つため、`page-design`を入れていれば、エージェントがあなたの見た目を当てられます。
+`skills/motion-diagram/musubi.json`は、見た目を当てる`page-design`のスクリプト`page-design/verify`にこのスキルが従うことを、musubiの任意の準拠として宣言します。そのスクリプトが前の確認の後に変わると、`musubi check`がこのスキルを断ります。
 
 ## 必要な物
 
