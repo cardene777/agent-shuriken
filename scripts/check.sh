@@ -30,6 +30,10 @@ JA_ALLOWED=(
   plugins/motion-diagram/skills/motion-diagram/templates/ui.json
   plugins/motion-diagram/skills/motion-diagram/tests/test-motion-diagram.sh
   plugins/motion-diagram/examples/idea-intake.ja.json
+  plugins/motion-explainer/skills/motion-explainer/templates/ui.json
+  plugins/motion-explainer/skills/motion-explainer/scripts/motion_explainer.py
+  plugins/motion-explainer/skills/motion-explainer/references/spec-format.md
+  plugins/motion-explainer/examples/redelivery/spec.ja.json
   plugins/account-cleanup/skills/account-cleanup/scripts/browser.mjs
   plugins/account-cleanup/skills/account-cleanup/scripts/connections-guide.sh
   plugins/account-cleanup/skills/account-cleanup/scripts/subscriptions-guide.sh

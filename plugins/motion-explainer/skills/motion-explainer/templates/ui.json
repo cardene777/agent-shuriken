@@ -1,0 +1,24 @@
+{
+  "en": {
+    "play": "Play",
+    "pause": "Pause",
+    "replay": "Replay",
+    "player": "Video",
+    "chapters": "Chapters",
+    "figures": "Figures",
+    "theme": "Light or dark",
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "ja": {
+    "play": "再生",
+    "pause": "止める",
+    "replay": "最初から",
+    "player": "動画",
+    "chapters": "章",
+    "figures": "補足の図",
+    "theme": "明るい表示か暗い表示",
+    "light": "明るい",
+    "dark": "暗い"
+  }
+}

@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="{{lang}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{title}}</title>
+<style>
+/* Colors and fonts are tokens named after the keys of the page-design theme file, so the theme
+   command of page-design can replace them. The stage and the mark come from the art direction of
+   the spec and stay the same in light and dark, since the art is drawn on that stage. */
+:root {
+  color-scheme: light;
+  --bg: #f5f4f1; --surface: #ffffff; --ink: #17161a; --sub: #57555e; --line: #e3e1dc;
+  --accent: {{accent}}; --accent-ink: {{accent_ink}}; --accent-soft: color-mix(in srgb, {{accent}} 14%, #ffffff); --bar: #17161a; --label: #efede8;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --stage: {{stage}}; --mark: {{accent}}; --mark-ink: {{accent_ink}};
+  --line-2: color-mix(in srgb, var(--ink) 9%, var(--line));
+  --radius: 16px;
+  --ease: cubic-bezier(.45, .05, .2, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #131316; --surface: #1c1c21; --ink: #ecebef; --sub: #b4b2bc; --line: #2f2e35;
+    --accent: color-mix(in srgb, {{accent}} 72%, #ffffff); --accent-ink: #141317; --accent-soft: color-mix(in srgb, {{accent}} 24%, #1c1c21); --bar: #ecebef; --label: #26262c;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #131316; --surface: #1c1c21; --ink: #ecebef; --sub: #b4b2bc; --line: #2f2e35;
+  --accent: color-mix(in srgb, {{accent}} 72%, #ffffff); --accent-ink: #141317; --accent-soft: color-mix(in srgb, {{accent}} 24%, #1c1c21); --bar: #ecebef; --label: #26262c;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.7 var(--sans); }
+button { font: inherit; color: inherit; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.me { max-width: 1080px; margin: 0 auto; padding: 32px 24px 72px; }
+.me-top { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 14px 24px; margin-bottom: 20px; }
+.me-heading { flex: 1 1 460px; min-width: 0; }
+.me-title { margin: 0; font-size: clamp(24px, 3.2vw, 32px); line-height: 1.3; font-weight: 800; letter-spacing: -.01em; }
+.me-lead { margin: 8px 0 0; max-width: 64ch; color: var(--sub); font-size: 16.5px; line-height: 1.75; }
+.me-seg { display: inline-flex; padding: 3px; gap: 2px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--surface); }
+.me-seg button { padding: 5px 12px; border: 0; border-radius: 7px; background: transparent; color: var(--sub); font-size: 13px; font-weight: 700; cursor: pointer; }
+.me-seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+
+/* The player: the stage, the narrator with the line of the scene, and the chapters. */
+.me-player { border: 1px solid var(--line-2); border-radius: 20px; background: var(--surface); overflow: hidden; box-shadow: 0 1px 2px rgba(20, 18, 15, .05), 0 18px 40px -26px rgba(20, 18, 15, .35); }
+.me-screen { background: var(--stage); }
+.me-stage { position: relative; width: min(100%, calc(66vh * 16 / 9)); margin: 0 auto; aspect-ratio: 16 / 9; overflow: hidden; }
+.me-part { position: absolute; transition: left .9s var(--ease), top .9s var(--ease); }
+.me-art { width: 100%; height: 100%; }
+.me-art > svg { display: block; width: 100%; height: 100%; overflow: visible; }
+/* --ix and --iy say how far the drawing sits inside its box, so the mark and the label hug the drawing. */
+.me-part::before { content: ""; position: absolute; inset: calc(var(--iy, 0%) - 8px) calc(var(--ix, 0%) - 8px); border: 3px solid var(--mark); border-radius: 14px; opacity: 0; pointer-events: none; }
+.me-part[data-changed]::before { opacity: 1; }
+.me-tag { position: absolute; left: 50%; top: calc(100% - var(--iy, 0%)); display: none; padding: 3px 11px; border-radius: 999px; background: var(--mark); color: var(--mark-ink); font-size: 13px; font-weight: 800; line-height: 1.5; white-space: nowrap; transform: translate(-50%, 10px); box-shadow: 0 4px 12px -6px rgba(0, 0, 0, .4); }
+.me-part[data-tag="up"] .me-tag { top: auto; bottom: calc(100% - var(--iy, 0%)); transform: translate(-50%, -10px); }
+.me-part[data-align="start"] .me-tag { left: var(--ix, 0%); transform: translate(0, 10px); }
+.me-part[data-align="end"] .me-tag { left: auto; right: var(--ix, 0%); transform: translate(0, 10px); }
+.me-part[data-align="start"][data-tag="up"] .me-tag { transform: translate(0, -10px); }
+.me-part[data-align="end"][data-tag="up"] .me-tag { transform: translate(0, -10px); }
+.me-part[data-changed] .me-tag { display: block; }
+#me-player[data-playing="true"] .me-part[data-changed]::before { animation: me-ring .7s var(--ease) both; }
+#me-player[data-playing="true"] .me-part[data-changed] .me-art { animation: me-bump .6s var(--ease); }
+#me-player[data-playing="true"] .me-part[data-changed] .me-tag { animation: me-rise .5s var(--ease) both; }
+@keyframes me-ring { 0% { opacity: 0; transform: scale(1.14); } 60% { opacity: 1; transform: scale(.98); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes me-bump { 0% { transform: scale(1); } 35% { transform: scale(1.07); } 100% { transform: scale(1); } }
+@keyframes me-rise { 0% { opacity: 0; margin-top: 6px; } 100% { opacity: 1; margin-top: 0; } }
+.me-jump .me-part, .me-jump .me-part::before, .me-jump .me-art, .me-jump .me-tag { transition: none !important; animation: none !important; }
+
+.me-say { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 0 20px; padding: 18px 24px; border-top: 1px solid var(--line-2); }
+.me-narrator { width: 120px; aspect-ratio: 1; padding: 8px; border-radius: 22px; background: var(--stage); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .06); }
+.me-who { margin: 0; color: var(--sub); font-size: 13px; font-weight: 800; letter-spacing: .03em; }
+.me-line { margin: 4px 0 0; min-height: 3.3em; font-size: clamp(17px, 2.2vw, 22px); font-weight: 700; line-height: 1.6; }
+.me-line.me-in { animation: me-line .5s var(--ease) both; }
+@keyframes me-line { 0% { opacity: 0; transform: translateY(6px); } 100% { opacity: 1; transform: none; } }
+
+.me-controls { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px 16px; padding: 0 24px 22px; }
+.me-buttons { display: flex; gap: 8px; }
+.me-btn { min-width: 84px; padding: 9px 16px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--surface); font-size: 14px; font-weight: 800; cursor: pointer; }
+.me-btn[data-action="toggle"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.me-chapters { flex: 1 1 360px; display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+.me-chapters button { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 6px 8px; width: 100%; padding: 8px 10px 9px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--surface); color: var(--sub); text-align: left; cursor: pointer; }
+.me-chapters button[aria-current] { border-color: var(--accent); color: var(--ink); background: var(--accent-soft); }
+.me-bar { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.me-bar i { display: block; width: 0; height: 100%; background: var(--accent); }
+.me-chapters [data-fill="done"] .me-bar i { width: 100%; }
+.me-chapters [data-fill="run"] .me-bar i { animation: me-fill var(--ms, 2800ms) linear forwards; }
+#me-player[data-playing="false"] [data-fill="run"] .me-bar i { animation-play-state: paused; }
+@keyframes me-fill { from { width: 0; } to { width: 100%; } }
+.me-cn { font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--sub); }
+.me-ct { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13.5px; font-weight: 800; }
+
+/* The figures under the player, drawn from the same art. */
+.me-figures { display: grid; gap: 20px; margin-top: 44px; }
+.me-fig { margin: 0; padding: 24px; border: 1px solid var(--line-2); border-radius: var(--radius); background: var(--surface); }
+.me-q { margin: 0; font-size: 20px; font-weight: 800; line-height: 1.45; }
+.me-a { margin: 6px 0 18px; color: var(--sub); }
+.me-still { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); align-items: center; gap: 22px; }
+.me-mini { position: relative; aspect-ratio: 16 / 9; background: var(--stage); border-radius: 12px; overflow: hidden; }
+.me-piece { position: absolute; }
+.me-badge { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: var(--mark); color: var(--mark-ink); font-size: 13px; font-weight: 800; line-height: 1; }
+.me-piece > .me-badge { position: absolute; top: calc(var(--iy, 0%) - 10px); right: calc(var(--ix, 0%) - 10px); box-shadow: 0 0 0 2px var(--stage); }
+.me-legend { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.me-legend li { display: grid; grid-template-columns: 26px minmax(0, 1fr); align-items: start; gap: 12px; }
+.me-legend strong { display: block; font-size: 13px; color: var(--sub); }
+.me-flow { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 34px; margin: 0; padding: 0; list-style: none; }
+.me-step { position: relative; display: grid; gap: 10px; align-content: start; }
+.me-step:not(:last-child)::after { content: ""; position: absolute; top: 46px; right: -24px; width: 12px; height: 12px; border-top: 3px solid var(--sub); border-right: 3px solid var(--sub); transform: rotate(45deg); }
+.me-step p { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; align-items: baseline; font-weight: 700; line-height: 1.5; }
+.me-sn { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; background: var(--label); color: var(--sub); font-size: 12px; font-weight: 800; }
+.me-chip { height: 104px; padding: 10px; border-radius: 12px; background: var(--stage); }
+.me-compare { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.me-side { display: grid; gap: 12px; align-content: start; padding: 16px; border-radius: 12px; background: var(--label); }
+.me-side h4 { margin: 0; font-size: 16px; font-weight: 800; }
+.me-side .me-chip { height: 140px; }
+.me-side ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.me-side li { display: grid; grid-template-columns: 10px minmax(0, 1fr); gap: 10px; align-items: baseline; }
+.me-side li::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--accent); transform: translateY(-1px); }
+.me-table { overflow-x: auto; }
+.me-table table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.me-table th, .me-table td { padding: 10px 12px; border-bottom: 1px solid var(--line-2); text-align: left; vertical-align: top; }
+.me-table th { background: var(--label); font-size: 13.5px; color: var(--sub); }
+
+{{state_css}}
+
+@media (max-width: 720px) {
+  .me { padding: 20px 16px 56px; }
+  .me-say { gap: 0 14px; padding: 14px 16px; }
+  .me-narrator { width: 84px; padding: 6px; border-radius: 16px; }
+  .me-line { font-size: 16.5px; }
+  .me-controls { padding: 0 16px 16px; }
+  .me-tag { font-size: 12px; padding: 2px 8px; }
+  .me-part::before { inset: calc(var(--iy, 0%) - 5px) calc(var(--ix, 0%) - 5px); border-width: 2px; border-radius: 10px; }
+  .me-fig { padding: 18px 16px; }
+  .me-still { grid-template-columns: minmax(0, 1fr); }
+  .me-flow { grid-template-columns: minmax(0, 1fr); gap: 30px; }
+  .me-step:not(:last-child)::after { top: auto; right: auto; bottom: -22px; left: 50%; transform: translateX(-50%) rotate(135deg); }
+  .me-compare { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .me-part, .me-part::before, .me-art, .me-tag, .me-line, .me-bar i { transition: none !important; animation: none !important; }
+}
+@media print {
+  :root { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .me-controls, .me-seg { display: none; }
+  .me-fig { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<main class="me">
+  <header class="me-top">
+    <div class="me-heading">
+      <h1 class="me-title">{{title}}</h1>
+      <p class="me-lead">{{lead}}</p>
+    </div>
+    <div class="me-seg" role="group" aria-label="{{ui_theme}}"><button type="button" data-theme-choice="light">{{ui_light}}</button><button type="button" data-theme-choice="dark">{{ui_dark}}</button></div>
+  </header>
+  <section id="me-player" class="me-player" aria-label="{{ui_player}}" data-scene="-1" data-playing="false">
+    <div class="me-screen"><div id="me-stage" class="me-stage">
+{{parts}}
+    </div></div>
+    <div class="me-say">
+      <div class="me-narrator" data-narrator data-state="{{start}}">{{narrator}}</div>
+      <div>
+        <p class="me-who">{{narrator_name}}</p>
+        <p id="line" class="me-line" aria-live="polite"></p>
+      </div>
+    </div>
+    <div class="me-controls">
+      <div class="me-buttons">
+        <button type="button" class="me-btn" data-action="toggle">{{ui_play}}</button>
+        <button type="button" class="me-btn" data-action="replay">{{ui_replay}}</button>
+      </div>
+      <ol class="me-chapters" aria-label="{{ui_chapters}}">
+{{chapters}}
+      </ol>
+    </div>
+  </section>
+  <section id="me-figures" class="me-figures" aria-label="{{ui_figures}}">
+{{figures}}
+  </section>
+  <pre id="me-probe" hidden></pre>
+</main>
+<script type="application/json" id="me-data">{{data}}</script>
+<script type="application/json" id="me-ui">{{ui}}</script>
+<script>
+(() => {
+  'use strict';
+  const D = JSON.parse(document.getElementById('me-data').textContent);
+  const UI = JSON.parse(document.getElementById('me-ui').textContent)[D.lang];
+  const root = document.documentElement;
+  const player = document.getElementById('me-player');
+  const stage = document.getElementById('me-stage');
+  const lineEl = document.getElementById('line');
+  const narrator = player.querySelector('[data-narrator]');
+  const toggleBtn = player.querySelector('[data-action="toggle"]');
+  const replayBtn = player.querySelector('[data-action="replay"]');
+  const chapters = Array.from(player.querySelectorAll('[data-chapter]'));
+  const parts = {};
+  stage.querySelectorAll('.me-part').forEach(e => { parts[e.dataset.part] = e; });
+  const params = new URLSearchParams(location.hash.slice(1));
+  const PROBE = params.has('probe');
+  const SPEED = PROBE ? 8 : 1;
+  const reduceQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let reduce = reduceQuery.matches;
+  const last = D.scenes.length - 1;
+  let cur = -1, playing = false, ended = false, timer = 0, startedAt = 0, left = 0, played = 0;
+
+  /* Light or dark, kept for the next visit when storage is allowed. */
+  const read = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  const store = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* storage may be blocked */ } };
+  function setTheme(t) {
+    if (t === 'light' || t === 'dark') root.dataset.theme = t; else delete root.dataset.theme;
+    const now = root.dataset.theme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.querySelectorAll('[data-theme-choice]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.themeChoice === now)));
+  }
+  document.querySelectorAll('[data-theme-choice]').forEach(b => b.addEventListener('click', () => { store('me-theme', b.dataset.themeChoice); setTheme(b.dataset.themeChoice); }));
+  setTheme(PROBE ? null : read('me-theme'));
+
+  /* One scene: the line, the narrator, and every part in its state and place at the end of the scene.
+     Only the parts that changed from the scene before are marked. */
+  function show(i, moving) {
+    const s = D.scenes[i];
+    cur = i;
+    player.dataset.scene = String(i);
+    if (!moving) player.classList.add('me-jump');
+    lineEl.textContent = s.line;
+    narrator.dataset.state = s.narrator;
+    chapters.forEach(b => { b.removeAttribute('data-fill'); b.removeAttribute('aria-current'); });
+    for (const id of D.parts) {
+      const el = parts[id], at = s.at[id], size = D.sizes[id], gap = D.insets[id];
+      el.removeAttribute('data-changed');
+      el.dataset.state = s.states[id];
+      el.style.left = at[0] + '%';
+      el.style.top = at[1] + '%';
+      const left = at[0] + size[0] * gap[0] / 100, right = at[0] + size[0] * (1 - gap[0] / 100);
+      el.dataset.tag = at[1] + size[1] * (1 - gap[1] / 100) > 84 ? 'up' : 'down';
+      el.dataset.align = left < 6 ? 'start' : (right > 94 ? 'end' : 'center');
+    }
+    lineEl.classList.remove('me-in');
+    void stage.offsetWidth;
+    for (const id of s.changed) parts[id].setAttribute('data-changed', '');
+    unstack(s);
+    if (moving) lineEl.classList.add('me-in');
+    player.style.setProperty('--ms', s.ms / SPEED + 'ms');
+    chapters.forEach((b, k) => {
+      if (k < i || (k === i && !moving)) b.dataset.fill = 'done';
+      else if (k === i) b.dataset.fill = 'run';
+      if (k === i) b.setAttribute('aria-current', 'step');
+    });
+    if (!moving) { void stage.offsetWidth; player.classList.remove('me-jump'); }
+  }
+
+  /* Where the name label of a changed part ends up once the part has arrived, in pixels of the stage.
+     A label that would cover an earlier one moves to the other side of its drawing. */
+  function tagBox(id, at, side) {
+    const W = stage.clientWidth, H = stage.clientHeight, size = D.sizes[id], gap = D.insets[id], el = parts[id];
+    const tag = el.querySelector('.me-tag'), tw = tag.offsetWidth, th = tag.offsetHeight;
+    const left = (at[0] + size[0] * gap[0] / 100) * W / 100, right = (at[0] + size[0] * (1 - gap[0] / 100)) * W / 100;
+    const top = (at[1] + size[1] * gap[1] / 100) * H / 100, bottom = (at[1] + size[1] * (1 - gap[1] / 100)) * H / 100;
+    const x = el.dataset.align === 'start' ? left : (el.dataset.align === 'end' ? right - tw : (left + right - tw) / 2);
+    const y = side === 'up' ? top - 10 - th : bottom + 10;
+    return [x, y, x + tw, y + th];
+  }
+  const meets = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+  function unstack(s) {
+    const placed = [];
+    for (const id of s.changed) {
+      const el = parts[id];
+      let box = tagBox(id, s.at[id], el.dataset.tag);
+      if (placed.some(b => meets(b, box))) {
+        const other = el.dataset.tag === 'up' ? 'down' : 'up';
+        const moved = tagBox(id, s.at[id], other);
+        if (!placed.some(b => meets(b, moved))) { el.dataset.tag = other; box = moved; }
+      }
+      placed.push(box);
+    }
+  }
+
+  function label() {
+    toggleBtn.textContent = playing ? UI.pause : UI.play;
+    toggleBtn.setAttribute('aria-pressed', String(playing));
+  }
+  function setPlaying(v) { playing = v; player.dataset.playing = String(v); label(); }
+  function schedule(ms) { clearTimeout(timer); startedAt = performance.now(); left = ms; timer = setTimeout(advance, ms); }
+  function enter(i) { show(i, !reduce); played += 1; schedule(D.scenes[i].ms / SPEED); }
+  function advance() {
+    if (cur < last) enter(cur + 1);
+    else { clearTimeout(timer); ended = true; setPlaying(false); }
+  }
+  function play() {
+    if (cur < 0 || ended || (cur === last && left <= 0)) { replay(); return; }
+    setPlaying(true);
+    schedule(left);
+  }
+  function pause() {
+    clearTimeout(timer);
+    left = Math.max(0, left - (performance.now() - startedAt));
+    setPlaying(false);
+  }
+  function replay() { clearTimeout(timer); ended = false; setPlaying(true); enter(0); }
+  function openChapter(i) {
+    clearTimeout(timer);
+    ended = false;
+    setPlaying(false);
+    show(i, false);
+    left = 0;
+  }
+  toggleBtn.addEventListener('click', () => { if (playing) pause(); else play(); });
+  replayBtn.addEventListener('click', replay);
+  chapters.forEach(b => b.addEventListener('click', () => openChapter(Number(b.dataset.chapter))));
+  reduceQuery.addEventListener('change', e => { reduce = e.matches; });
+
+  /* The player plays once by itself. A reader who asks for reduced motion gets the first scene at its
+     end and moves on with the chapters or the play button, which then jumps from end to end. */
+  label();
+  if (reduce) { show(0, false); played = 1; left = 0; }
+  else timer = setTimeout(replay, PROBE ? 0 : 500);
+
+  /* #probe makes the page report what it shows, for the tests of the skill. */
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  async function until(f, limit) { const t0 = performance.now(); while (!f() && performance.now() - t0 < limit) await wait(30); }
+  function onlyItsState(box) {
+    const st = box.dataset.state;
+    return Array.from(box.querySelectorAll('[data-when]')).every(e => (getComputedStyle(e).display === 'none') !== e.getAttribute('data-when').split(/\s+/).includes(st));
+  }
+  function snapshot() {
+    const sr = stage.getBoundingClientRect();
+    const states = {}, at = {};
+    for (const id of D.parts) {
+      const r = parts[id].getBoundingClientRect();
+      states[id] = parts[id].dataset.state;
+      at[id] = [(r.left - sr.left) / sr.width * 100, (r.top - sr.top) / sr.height * 100];
+    }
+    return { scene: cur, playing, played, states, at, transition: getComputedStyle(parts[D.parts[0]]).transitionDuration };
+  }
+  function fonts() {
+    let min = 99;
+    player.querySelectorAll('*').forEach(e => {
+      if (e.closest('svg') || !e.getClientRects().length) return;
+      const own = Array.from(e.childNodes).some(n => n.nodeType === 3 && n.textContent.trim());
+      if (own) min = Math.min(min, parseFloat(getComputedStyle(e).fontSize));
+    });
+    return min;
+  }
+  async function probe() {
+    let out;
+    if (params.has('scenes')) {
+      out = { scenes: D.scenes.map((s, i) => {
+        openChapter(i);
+        return {
+          line: lineEl.textContent,
+          changed: Array.from(stage.querySelectorAll('.me-part[data-changed]')).map(e => e.dataset.part),
+          narrator: narrator.dataset.state,
+          narratorShowsOnlyItsState: onlyItsState(narrator),
+          partsShowOnlyTheirStates: D.parts.every(id => onlyItsState(parts[id]))
+        };
+      }) };
+    } else if (params.has('chapter')) {
+      await wait(120);
+      chapters[Number(params.get('chapter'))].click();
+      await wait(300);
+      out = snapshot();
+    } else if (params.has('pause')) {
+      await until(() => cur >= 1, 40000);
+      toggleBtn.click();
+      const before = cur;
+      await wait(Math.max(...D.scenes.map(s => s.ms)) / SPEED * 2);
+      const paused = { playing, sceneBefore: before, sceneAfter: cur };
+      toggleBtn.click();
+      await until(() => ended, 40000);
+      out = { paused, resumed: { scene: cur, playing } };
+    } else if (params.has('theme')) {
+      document.querySelector('[data-theme-choice="' + params.get('theme') + '"]').click();
+      await wait(50);
+      const cs = getComputedStyle(document.body);
+      out = { background: cs.backgroundColor, color: cs.color };
+    } else {
+      if (reduce) await wait(D.scenes.reduce((a, s) => a + s.ms, 0) / SPEED);
+      else await until(() => ended, 50000);
+      out = Object.assign(snapshot(), { scrollWidth: root.scrollWidth, innerWidth: window.innerWidth, minFont: fonts() });
+    }
+    document.getElementById('me-probe').textContent = JSON.stringify(out);
+  }
+  if (PROBE) probe();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "musubi": "2026-11-21",
+  "follows": {
+    "page-design/verify": {
+      "version": "^2.0.0",
+      "integrity": "sha256-ghJirjAe489dKI3Jgu+6G2ysIGRE/q1LLVd5oHxVhqY=",
+      "optional": true
+    }
+  }
+}

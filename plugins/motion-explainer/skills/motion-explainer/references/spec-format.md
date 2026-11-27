@@ -37,6 +37,8 @@ The art direction is written before any SVG, so every part of one subject shares
 | `art` | yes | The path of the narrator's SVG, relative to the spec |
 | `states` | yes | The narrator's expressions, such as `calm`, `alert`, and `glad`. The first is where it starts |
 
+State names, here and in `parts`, use lower-case letters, digits, and `-`.
+
 ## `parts`
 
 | Field | Required | What it holds |
@@ -48,19 +50,26 @@ The art direction is written before any SVG, so every part of one subject shares
 | `at` | yes | `[x, y]`, the top left of the part on the stage, in percent of the stage's width and height |
 | `size` | yes | `[w, h]`, the size of the part, in percent of the stage's width and height |
 
+The stage is 16:9, and `x + w` and `y + h` stay at most 100, here and after every move.
+The drawing keeps the shape of its `viewBox` inside its box, and the mark and the name label of a part hug the drawing.
+
 ## The SVG files
 
-Each file is one `<svg>` with a `viewBox`.
+Each file is one `<svg>` with a `viewBox`, at most 100,000 bytes.
 An element with `data-when="<state> <state>"` shows only while the part (or the narrator) is in one of those states, so one drawing holds every state and only what differs is drawn twice.
 Elements without `data-when` always show.
+Ids may repeat across files: each copy on the page gets its own ids, and `href="#..."` and `url(#...)` follow them.
 
 `check` refuses a file that:
 
 - names a state in `data-when` that the part does not declare
 - holds `<script>`, `<foreignObject>`, `<iframe>`, `<object>`, `<embed>`, or `<image>`
+- holds `<style>`, which would restyle the whole page; styles go in attributes
+- holds an element that is not a drawing element, such as `<a>` or `<animate>`
 - has an attribute starting with `on`
 - has an `href` or `xlink:href` that does not start with `#`
-- has `url(` that does not point at `#`, or `@import`
+- has `url(` that does not point at `#`, `@import`, or `javascript:`
+- declares a DOCTYPE or an entity
 
 So the page loads nothing from outside and runs nothing but its own player.
 
@@ -78,6 +87,7 @@ So the page loads nothing from outside and runs nothing but its own player.
 
 A part keeps its state and place from the scene before.
 The player marks only the parts whose state or place differs from the scene before, so each scene shows one change.
+`check` refuses a scene that changes no part and keeps the narrator's state.
 
 ## `figures`
 
@@ -86,7 +96,10 @@ The figures draw the same SVG as the video, so they share its look.
 
 | `kind` | Fields | What it draws |
 |---|---|---|
-| `still` | `scene`, `labels` (`{"<part id>": "<text>"}`) | The stage at the end of that scene, with a label beside each named part |
+| `still` | `scene`, `labels` (`{"<part id>": "<text>"}`, one to six) | The stage at the end of that scene, with a numbered mark on each named part and its label in the list beside the stage |
 | `flow` | `steps` (two to six of `{"part", "state", "text"}`) | The parts in the named states, in order, joined by arrows |
 | `compare` | `sides` (two of `{"title", "part", "state", "points"}`) | Two parts side by side, each with its title and one to four points |
-| `table` | `columns`, `rows` | A table whose rows have as many cells as there are columns |
+| `table` | `columns` (one to five), `rows` (one to twelve) | A table whose rows have as many cells as there are columns |
+
+A page holds at most eight figures.
+The widths are at most 40 for a label, 30 for the text of a step, 24 for the title of a side and for a column, 40 for a point, and 48 for a cell.

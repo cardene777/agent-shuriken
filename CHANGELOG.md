@@ -7,6 +7,10 @@ Versions follow semantic versioning, as [Releasing](docs/releasing.md) describes
 
 ## [Unreleased]
 
+### Added
+
+- The motion-explainer plugin, whose skill explains how a mechanism works with a short video of one running example on one offline HTML page, with a narrator, art the agent draws as SVG for each subject, and figures under the video drawn from the same art
+
 ### Changed
 
 - `scripts/check.sh` runs the new `scripts/check-musubi.sh`, which checks the musubi declarations of every skill with `musubi-cli` 0.3.0, and the follows of dragon against the dragon skill on dragon's default branch, so a fingerprint that no longer matches fails the checks instead of waiting for a release
