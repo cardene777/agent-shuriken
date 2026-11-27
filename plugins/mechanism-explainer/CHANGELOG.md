@@ -5,6 +5,11 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-27
+
+- The page is exported with dragon 0.89.0. It has no tabs at the top: like a documentation site, the side menu lists the topics, their questions, and the headings of the open page, and each level opens and closes with an arrow
+- Each question's page is divided by `####` headings and holds one figure that follows the flow or the mechanism, at most two, instead of two to four figures, and lists of values, fields, and commands are written as tables and code
+
 ## [0.4.2] - 2026-11-27
 
 - The page is exported with dragon 0.88.0. Each topic tab opens on its map and the one-sentence answers, and each question is its own page. The side menu shows no question numbers and lists the figure titles under the open question, which scroll to the figure when pressed, and each page ends with links to the previous and next pages
