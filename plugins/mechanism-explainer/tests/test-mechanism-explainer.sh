@@ -64,7 +64,7 @@ agents_dragon() {
 first_line() { grep -n -F -m1 -- "$1" "$DOC" | cut -d: -f1 || true; }
 
 # The plan comes before any notation: each section is one question, a one-sentence answer,
-# and two to four figures.
+# and one figure per question (#560).
 plans_first() {
   [ -f "$DOC" ] || { why="SKILL.md is missing"; return 1; }
   local plan guide phrase
@@ -73,7 +73,7 @@ plans_first() {
   [ -n "$plan" ] || { why="SKILL.md has no heading about the plan"; return 1; }
   [ -n "$guide" ] || { why="SKILL.md never names layout: guide"; return 1; }
   [ "$plan" -lt "$guide" ] || { why="the plan heading (line $plan) comes after the guide Markdown (line $guide)"; return 1; }
-  for phrase in 'one question' 'one-sentence answer' 'two to four figures'; do
+  for phrase in 'one question' 'one-sentence answer' 'one figure per question'; do
     grep -q -F -- "$phrase" "$DOC" || { why="SKILL.md does not say '$phrase'"; return 1; }
   done
 }
@@ -230,22 +230,33 @@ PY2
 }
 
 # The skill keeps an explainer with one topic on one page, and splits one with two or more topics into an
-# overview tab and one tab per topic (#547). No page still says one page per question, the shape of #533.
-splits_tabs() {
+# overview page and one page per topic with no tabs at the top (#560). No page still says topic tabs, the
+# shape of #547, or one page per question, the shape of #533. The Japanese phrases are written as escapes:
+# "the overview tab", "a tab per topic", and "the topic tab".
+splits_topics() {
   [ -f "$DOC" ] || { why="SKILL.md is missing"; return 1; }
   local phrase f
-  for phrase in 'one topic is one page' 'two or more topics' 'an overview tab' 'one tab per topic'; do
+  for phrase in 'one topic is one page' 'two or more topics' 'an overview page' 'one page per topic' 'no tabs at the top'; do
     grep -q -F -- "$phrase" "$DOC" || { why="SKILL.md does not say '$phrase'"; return 1; }
   done
   for f in "${PAGES[@]}"; do
-    if grep -q -i -E 'one page per question|an overview page' "$f"; then
-      why="${f#"$ROOT"/} still splits the explainer into one page per question"
+    if python3 - "$f" <<'PY3'
+import re, sys
+pattern = re.compile(
+    r"one page per question|an overview tab|one tab per topic|topic tabs?\b"
+    "|\u5168\u4f53\u50cf\u306e\u30bf\u30d6|\u8a71\u984c\u3054\u3068\u306e\u30bf\u30d6|\u8a71\u984c\u306e\u30bf\u30d6",
+    re.IGNORECASE,
+)
+sys.exit(0 if any(pattern.search(line) for line in open(sys.argv[1], encoding="utf-8")) else 1)
+PY3
+    then
+      why="${f#"$ROOT"/} still splits the explainer into tabs or into one page per question"
       return 1
     fi
   done
 }
 
-# The number of questions and the kinds of material decide one page or topic tabs, so a plan cannot put
+# The number of questions and the kinds of material decide one page or topic pages, so a plan cannot put
 # six or more questions into one topic and write one long page (#551).
 splits_by_count() {
   local phrase
@@ -269,43 +280,54 @@ orders_needed() {
     || { why="SKILL.md does not put a question after the topic it needs"; return 1; }
 }
 
-# Every box of the overview figure that a topic explains links to that topic, so its tab opens from the box
-# and dragon draws the tab's map from the same links (#547).
+# Every box of the overview figure that a topic explains links to that topic, so its page opens from the box
+# and dragon draws the page's map from the same links (#547).
 links_overview() {
   grep -q -F -- 'link: #<topic id>' "$DOC" || { why="SKILL.md does not write link: #<topic id> on the overview boxes"; return 1; }
   grep -q -F -- 'Every box of the overview figure' "$DOC" || { why="SKILL.md does not link every box of the overview figure"; return 1; }
 }
 
-# Every dragon the skill and its pages run is 0.87.0 or later, the first version that splits a guide page
-# with two or more topics into topic tabs and draws each tab's map (#547).
-pins_tab_dragon() {
+# Every dragon the skill and its pages run is 0.89.0 or later, the first version that drops the tabs at the
+# top and lists the topics, the questions, and the headings of the open page in a side menu that opens and
+# closes with arrows (#560).
+pins_docs_menu_dragon() {
   local f v
   for f in "$DOC" "$PLUGIN/README.md" "$PLUGIN/README.ja.md" "$PLUGIN/docs/how-it-works.md" "$PLUGIN/docs/how-it-works.ja.md"; do
     for v in $(grep -o -E 'dragon@?[ ]?[0-9]+\.[0-9]+\.[0-9]+' "$f" | grep -o -E '[0-9]+\.[0-9]+\.[0-9]+' | sort -u); do
-      python3 -c 'import sys; a = tuple(map(int, sys.argv[1].split("."))); sys.exit(0 if a >= (0, 87, 0) else 1)' "$v" \
-        || { why="${f#"$ROOT"/} runs dragon $v, older than 0.87.0"; return 1; }
-    done
-  done
-}
-
-# Every dragon the skill and its pages run is 0.88.0 or later, the first version that splits each topic tab
-# into one page per question and lists the figure titles of the open question in the side menu (#554).
-pins_question_page_dragon() {
-  local f v
-  for f in "$DOC" "$PLUGIN/README.md" "$PLUGIN/README.ja.md" "$PLUGIN/docs/how-it-works.md" "$PLUGIN/docs/how-it-works.ja.md"; do
-    for v in $(grep -o -E 'dragon@?[ ]?[0-9]+\.[0-9]+\.[0-9]+' "$f" | grep -o -E '[0-9]+\.[0-9]+\.[0-9]+' | sort -u); do
-      python3 -c 'import sys; a = tuple(map(int, sys.argv[1].split("."))); sys.exit(0 if a >= (0, 88, 0) else 1)' "$v" \
-        || { why="${f#"$ROOT"/} runs dragon $v, older than 0.88.0"; return 1; }
+      python3 -c 'import sys; a = tuple(map(int, sys.argv[1].split("."))); sys.exit(0 if a >= (0, 89, 0) else 1)' "$v" \
+        || { why="${f#"$ROOT"/} runs dragon $v, older than 0.89.0"; return 1; }
     done
   done
 }
 
 # SKILL.md tells the agent that each question is its own page, that the side menu has no numbers,
-# and that it lists the figure titles under the open question (#554).
+# and that it lists the headings of the open page (#554, #560).
 describes_question_pages() {
   local phrase
-  for phrase in 'each question is its own page' 'side menu without numbers' 'figure titles under the open question'; do
+  for phrase in 'each question is its own page' 'side menu without numbers' 'headings of the open page' 'opens and closes with an arrow'; do
     grep -q -F -- "$phrase" "$DOC" || { why="SKILL.md does not say '$phrase'"; return 1; }
+  done
+}
+
+# Each question's page is divided by #### headings and holds one figure that follows the flow or the
+# mechanism, at most two, with tables or code where they are enough. No page still asks for two to four
+# figures, which left a run of figures with short sentences between them (#560). The Japanese phrase is
+# written as an escape: "two to four figures".
+asks_one_figure() {
+  local phrase f
+  for phrase in '`####` headings' 'one figure per question' 'at most two' 'tables or code'; do
+    grep -q -F -- "$phrase" "$DOC" || { why="SKILL.md does not say '$phrase'"; return 1; }
+  done
+  for f in "${PAGES[@]}"; do
+    if python3 - "$f" <<'PY4'
+import re, sys
+pattern = re.compile(r"two to four figures|2\u301c4\u679a")
+sys.exit(0 if any(pattern.search(line) for line in open(sys.argv[1], encoding="utf-8")) else 1)
+PY4
+    then
+      why="${f#"$ROOT"/} still asks for two to four figures"
+      return 1
+    fi
   done
 }
 
@@ -358,14 +380,14 @@ check "the skill names each question for the side menu" menu_names
 check "the skill explains every figure before and after it" figure_explained
 check "the test page has an overview and menu names" test_page_overview
 check "no page calls the explainer one page" no_one_page
-check "the skill splits two or more topics into tabs" splits_tabs
+check "the skill splits two or more topics into pages without tabs" splits_topics
 check "the skill splits at six questions or more than one kind" splits_by_count
 check "the skill sorts the topics by kind" sorts_kinds
 check "the skill puts a question after the topic it needs" orders_needed
 check "the skill links overview boxes to their topics" links_overview
-check "the skill pins a dragon with topic tabs" pins_tab_dragon
-check "the skill pins a dragon with question pages" pins_question_page_dragon
-check "the skill describes question pages" describes_question_pages
+check "the skill pins a dragon with the docs menu" pins_docs_menu_dragon
+check "the skill describes question pages and the docs menu" describes_question_pages
+check "the skill asks for one figure and headings per question" asks_one_figure
 check "mechanism-explainer follows rules of japanese-writing for Japanese pages" follows_japanese_rules
 check "plugin manifests agree" repo_manifests
 
