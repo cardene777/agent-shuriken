@@ -58,7 +58,7 @@
     },
     "dragon/embed": {
       "version": "^1.0.0",
-      "integrity": "sha256-f5JsdmAbvHBCx9XhUHzWQNHsTkj0zMX02jD81Gx9abM=",
+      "integrity": "sha256-S+dQYZd2UVVIs/1be+BVXJrGB+I29S2MTYza5qAO7PA=",
       "optional": true
     },
     "dragon/chart": {
