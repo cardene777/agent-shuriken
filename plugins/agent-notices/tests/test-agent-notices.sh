@@ -17,7 +17,7 @@ WORK="$T/work"
 STUBS="$T/stubs"
 mkdir -p "$HOME" "$TMPDIR" "$WORK" "$STUBS"
 for v in $(env | sed -n 's/^\(AGENT_NOTICES_[A-Z_]*\)=.*/\1/p'); do unset "$v"; done
-unset XDG_CONFIG_HOME XDG_DATA_HOME CLAUDE_CLIENT_PRESENCE_FILE
+unset XDG_CONFIG_HOME XDG_DATA_HOME CLAUDE_CLIENT_PRESENCE_FILE CLAUDECODE
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
 BASE_PATH="$STUBS:/usr/bin:/bin:/usr/sbin:/sbin"
 for tool in jq python3 git; do
@@ -407,6 +407,8 @@ turn_off_each() {
   off_case AGENT_NOTICES_SECURITY security "$(event_write "$SEC/run.py" "$(cat "$SEC/run.py" 2>/dev/null)" "$SEC")" || return 1
   printf 'let z=1\n' > "$FMT/js/src/off.ts"
   off_case AGENT_NOTICES_FORMAT format "$(event_write "$FMT/js/src/off.ts" 'let z=1' "$FMT/js")" || return 1
+  AGENT_NOTICES_EDIT_LOOP_EVERY=1 off_case AGENT_NOTICES_EDIT_LOOP edit-loop "$(event_edit_in "$EL/src/off.ts" e8)" || return 1
+  CLAUDECODE=1 AGENT_NOTICES_SEQUENTIAL_AFTER=1 off_case AGENT_NOTICES_SEQUENTIAL sequential "$(event_call Read q6)" || return 1
   local p="$T/presence/off"
   [ -f "$HOOKS/presence.sh" ] || { why="hooks/presence.sh does not exist"; return 1; }
   CLAUDE_CLIENT_PRESENCE_FILE="$p" AGENT_NOTICES_PRESENCE=off run_hook presence "$(event_session SessionStart)" > /dev/null
@@ -434,6 +436,157 @@ codex_patch() {
   : > "$T/formatted.log"
   run_hook format "$(event_patch "$patch" "$CX")" > /dev/null
   ran prettier "$CX/app.ts" || ran prettier "app.ts" || { why="prettier did not run on app.ts from apply_patch"; return 1; }
+}
+
+# edit-loop
+EL="$WORK/el"
+mkdir -p "$EL/src" "$EL/.context"
+git -C "$EL" init -q -b main
+printf '.context/\n' > "$EL/.gitignore"
+event_edit_in() { jq -nc --arg p "$1" --arg s "$2" --arg d "$EL" \
+  '{hook_event_name: "PostToolUse", session_id: $s, tool_name: "Edit", tool_input: {file_path: $p, old_string: "a", new_string: "b"}, cwd: $d}'; }
+event_patch_in() { jq -nc --arg c "$1" --arg s "$2" --arg d "$EL" \
+  '{hook_event_name: "PostToolUse", session_id: $s, tool_name: "apply_patch", tool_input: {command: $c}, cwd: $d}'; }
+# edit_quietly <path> <session> <times>: that many edits, each without a notice.
+edit_quietly() {
+  local i got
+  for i in $(seq 1 "$3"); do
+    got="$(notice edit-loop "$(event_edit_in "$1" "$2")")"
+    [ -z "$got" ] || { why="edit-loop spoke on edit $i of $1 in $2: $got"; return 1; }
+  done
+}
+edit_loop_noticed() {
+  [ -f "$HOOKS/edit-loop.sh" ] || { why="hooks/edit-loop.sh does not exist"; return 1; }
+  local f="$EL/src/app.ts" i got
+  for i in $(seq 1 11); do
+    got="$(notice edit-loop "$(event_edit_in "$f" e1)")"
+    if [ "$i" -eq 5 ] || [ "$i" -eq 10 ]; then
+      case "$got" in *src/app.ts*"$i times"*) ;; *) why="edit $i of src/app.ts gave no notice with the file and '$i times': $got"; return 1 ;; esac
+    else
+      [ -z "$got" ] || { why="edit-loop spoke on edit $i: $got"; return 1; }
+    fi
+  done
+}
+edit_loop_apart() {
+  [ -f "$HOOKS/edit-loop.sh" ] || { why="hooks/edit-loop.sh does not exist"; return 1; }
+  edit_quietly "$EL/src/a.ts" e2 4 || return 1
+  edit_quietly "$EL/src/b.ts" e2 1 || return 1
+  edit_quietly "$EL/src/a.ts" e3 1 || return 1
+  notes edit-loop "$(event_edit_in "$EL/src/a.ts" e2)" 'the fifth edit of a.ts in its own session' 'a.ts' '5 times'
+}
+edit_loop_codex() {
+  local patch i
+  patch="$(printf '*** Begin Patch\n*** Update File: src/patched.ts\n@@\n-a\n+b\n*** End Patch\n')"
+  for i in 1 2 3 4; do
+    [ -z "$(notice edit-loop "$(event_patch_in "$patch" e4)")" ] || { why="edit-loop spoke on apply_patch $i"; return 1; }
+  done
+  notes edit-loop "$(event_patch_in "$patch" e4)" 'the fifth apply_patch of src/patched.ts' 'patched.ts' '5 times'
+}
+edit_loop_skips() {
+  [ -f "$HOOKS/edit-loop.sh" ] || { why="hooks/edit-loop.sh does not exist"; return 1; }
+  edit_quietly "$EL/.context/plan.md" e5 6 || return 1
+  edit_quietly "$TMPDIR/scratch.txt" e5 6
+}
+edit_loop_variables() {
+  [ -f "$HOOKS/edit-loop.sh" ] || { why="hooks/edit-loop.sh does not exist"; return 1; }
+  local got
+  AGENT_NOTICES_EDIT_LOOP_EVERY=3 edit_quietly "$EL/src/v.ts" e6 2 || return 1
+  got="$(AGENT_NOTICES_EDIT_LOOP_EVERY=3 notice edit-loop "$(event_edit_in "$EL/src/v.ts" e6)")"
+  case "$got" in *"3 times"*reproduces*) ;; *) why="the third edit with AGENT_NOTICES_EDIT_LOOP_EVERY=3 gave no general notice: $got"; return 1 ;; esac
+  case "$got" in *skill*) why="the notice names a skill without AGENT_NOTICES_EDIT_LOOP_SKILL: $got"; return 1 ;; esac
+  got="$(AGENT_NOTICES_EDIT_LOOP_EVERY=1 AGENT_NOTICES_EDIT_LOOP_SKILL=fix-the-cause notice edit-loop "$(event_edit_in "$EL/src/w.ts" e6)")"
+  case "$got" in *'`fix-the-cause`'*) ;; *) why="the notice does not name the skill AGENT_NOTICES_EDIT_LOOP_SKILL sets: $got"; return 1 ;; esac
+}
+
+# sequential
+event_call() { jq -nc --arg t "$1" --arg s "$2" --arg d "$WORK" \
+  '{hook_event_name: "PostToolUse", session_id: $s, tool_name: $t, tool_input: {}, tool_response: {}, cwd: $d}'; }
+# calls_quietly <session> <times>: that many Claude Code calls 0.6 seconds apart, each without a notice.
+calls_quietly() {
+  local i got
+  for i in $(seq 1 "$2"); do
+    got="$(CLAUDECODE=1 notice sequential "$(event_call Read "$1")")"
+    [ -z "$got" ] || { why="sequential spoke on call $i of $1: $got"; return 1; }
+    sleep 0.6
+  done
+}
+sequential_noticed() {
+  [ -f "$HOOKS/sequential.sh" ] || { why="hooks/sequential.sh does not exist"; return 1; }
+  calls_quietly q1 9 || return 1
+  CLAUDECODE=1 notes sequential "$(event_call Bash q1)" 'the tenth call in a row' '10' || return 1
+  AGENT_NOTICES_SEQUENTIAL_AFTER=3 calls_quietly q2 2 || return 1
+  CLAUDECODE=1 AGENT_NOTICES_SEQUENTIAL_AFTER=3 notes sequential "$(event_call Read q2)" 'the third call with AGENT_NOTICES_SEQUENTIAL_AFTER=3' '3'
+}
+# One call alone, two calls together, then two alone: counted one at a time, they would reach 3.
+# The two calls together start at once; on a loaded machine one may start more than 200 milliseconds
+# late, so the run is tried up to three times, each in a new session. A hook that never starts the
+# count over fails all three.
+together_once() {
+  local s="$1" a b
+  a="$(event_call Read "$s")" b="$(event_call Grep "$s")"
+  calls_quietly "$s" 1 || return 1
+  (cd "$WORK" && printf '%s' "$a" | CLAUDECODE=1 bash "$HOOKS/sequential.sh" > "$T/$s-a" 2>/dev/null) &
+  (cd "$WORK" && printf '%s' "$b" | CLAUDECODE=1 bash "$HOOKS/sequential.sh" > "$T/$s-b" 2>/dev/null) &
+  wait
+  sleep 0.6
+  calls_quietly "$s" 2 || return 1
+  [ ! -s "$T/$s-a" ] && [ ! -s "$T/$s-b" ] || { why="two calls together still counted as one at a time: $(cat "$T/$s-a" "$T/$s-b")"; return 1; }
+}
+sequential_together() {
+  [ -f "$HOOKS/sequential.sh" ] || { why="hooks/sequential.sh does not exist"; return 1; }
+  local s status=1
+  export AGENT_NOTICES_SEQUENTIAL_AFTER=3
+  for s in q3a q3b q3c; do
+    together_once "$s" && { status=0; break; }
+  done
+  unset AGENT_NOTICES_SEQUENTIAL_AFTER
+  return "$status"
+}
+sequential_outside() {
+  [ -f "$HOOKS/sequential.sh" ] || { why="hooks/sequential.sh does not exist"; return 1; }
+  AGENT_NOTICES_SEQUENTIAL_AFTER=1 quiet sequential "$(event_call Bash q4)" 'a call without CLAUDECODE=1'
+}
+
+# Where the counts are kept
+counts_private() {
+  local d="$HOME/.local/share/agent-notices" sub old new
+  for sub in edit-loop sequential; do
+    [ -d "$d/$sub" ] || { why="no $sub folder under the data folder"; return 1; }
+    old="$d/$sub/old-count" new="$d/$sub/recent-count"
+    : > "$old"; : > "$new"
+    python3 -c 'import os, sys, time; os.utime(sys.argv[1], (time.time() - 8 * 86400,) * 2); os.utime(sys.argv[2], (time.time() - 6 * 86400,) * 2)' "$old" "$new"
+  done
+  notice edit-loop "$(event_edit_in "$EL/src/prune.ts" e7)" > /dev/null
+  CLAUDECODE=1 notice sequential "$(event_call Read q5)" > /dev/null
+  for sub in edit-loop sequential; do
+    [ ! -e "$d/$sub/old-count" ] || { why="a $sub count file 8 days old was not removed"; return 1; }
+    [ -e "$d/$sub/recent-count" ] || { why="a $sub count file 6 days old was removed"; return 1; }
+  done
+  python3 - "$d" <<'PY' || { why="a count folder or file is readable by others"; return 1; }
+import os, stat, sys
+for sub in ("edit-loop", "sequential"):
+    folder = os.path.join(sys.argv[1], sub)
+    if stat.S_IMODE(os.stat(folder).st_mode) != 0o700:
+        sys.exit(1)
+    for name in os.listdir(folder):
+        if name.endswith("-count"):
+            continue
+        if stat.S_IMODE(os.stat(os.path.join(folder, name)).st_mode) & 0o077:
+            sys.exit(1)
+PY
+  local stray
+  stray="$(find "$T" \( -name '*edit-loop*' -o -name '*sequential*' \) -not -path "$d/*" -not -path "$d" 2>/dev/null)"
+  [ -z "$stray" ] || { why="counts were kept outside the data folder: $stray"; return 1; }
+}
+
+# The pages
+pages_describe() {
+  local page word
+  for page in docs/how-it-works.md docs/how-it-works.ja.md; do
+    for word in edit-loop sequential CLAUDECODE AGENT_NOTICES_EDIT_LOOP_SKILL; do
+      grep -qF "$word" "$PLUGIN/$page" || { why="$page does not name $word"; return 1; }
+    done
+  done
 }
 
 # The plugin's files
@@ -513,6 +666,16 @@ check "mcp-log records the server, tool, times, and outcome" mcp_log_on
 check "the logs keep no arguments or results" logs_no_arguments
 check "each hook turns off with its own variable" turn_off_each
 check "the edit hooks read a Codex apply_patch call" codex_patch
+check "edit-loop notes the fifth edit of one file and every fifth after it" edit_loop_noticed
+check "edit-loop counts each file and each session apart" edit_loop_apart
+check "edit-loop counts a Codex apply_patch edit" edit_loop_codex
+check "edit-loop stays quiet for ignored and temporary files" edit_loop_skips
+check "edit-loop names the skill and the count its variables set" edit_loop_variables
+check "sequential notes ten calls in a row made one at a time" sequential_noticed
+check "sequential starts over when calls come together" sequential_together
+check "sequential stays quiet outside Claude Code" sequential_outside
+check "the counts stay private in the data folder and old ones are removed" counts_private
+check "the pages describe edit-loop and sequential" pages_describe
 check "agent-notices leaves the startup-file scan to secure-dotfile" no_startup_scan
 check "both manifests declare the same hooks" manifests_declare_hooks
 check "the READMEs name every variable" readmes_name_variables

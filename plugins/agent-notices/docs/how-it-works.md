@@ -85,6 +85,26 @@ It runs the formatter in that folder with a 20 second limit and drops its output
 When the file's contents changed, it tells the agent to read the file again, since an edit that quotes the old text would fail.
 A formatter that is named but not installed is skipped; nothing is installed and `npx` is never run.
 
+## edit-loop
+
+After each edit, the hook adds one to the count of each file the edit changed, read as the table above says, in the count file of the session under `~/.local/share/agent-notices/edit-loop/`.
+The file is named by a hash of the session id and holds one JSON object from each file's real path to its count.
+When a count reaches a multiple of `AGENT_NOTICES_EDIT_LOOP_EVERY`, 5 by default, the hook tells the agent the file and the count, and to write a command that reproduces the failure and confirm the root cause before the next fix.
+With `AGENT_NOTICES_EDIT_LOOP_SKILL=<skill>`, the notice asks the agent to do that with that skill; a value other than letters, digits, `_`, `:`, `.`, and `-` is not used.
+A file git ignores, judged with `git check-ignore` in the file's folder only when the count reaches the notice, and a file in the temporary directory that Python reports, which is `TMPDIR` when it is set and `/tmp` otherwise, get no notice; they are drafts, not the work.
+Edits in another session have their own count file.
+
+## sequential
+
+The hook runs after every tool call in Claude Code, where `CLAUDECODE=1` is set in the hook's environment, and does nothing elsewhere or after `AskUserQuestion` and `ExitPlanMode`.
+It keeps the count of calls in a row that came one at a time, and the time of the last call, in the count file of the session under `~/.local/share/agent-notices/sequential/`, named by a hash of the session id.
+A call less than 200 milliseconds after the last one came together with it in one message, and starts the count over at 0.
+A call 500 milliseconds or more after the last one starts a new message and adds one; a call in between leaves the count as it is.
+When the count reaches `AGENT_NOTICES_SEQUENTIAL_AFTER`, 10 by default, the hook tells the agent to make calls that do not need each other's results together in one message, and starts over at 0.
+Each count file is read and written under a lock, so two calls that end at the same moment do not lose a count.
+
+Both folders are readable only by you, the count files are created with mode 600, and a count file older than seven days is removed on the next write.
+
 ## presence
 
 At `SessionStart`, the hook creates the file `CLAUDE_CLIENT_PRESENCE_FILE` names, with its folder, or updates its time.
@@ -109,3 +129,4 @@ Each hook turns off with its own variable set to `off`, and the two logs turn on
 - The nohup and branch hooks see only the command text the agent sends; a script the command runs is not read
 - The env-example hook reads the usual forms of each language; a name built at run time is not found
 - The grep-binary hook reads the pattern as a Python regular expression, which matches most patterns of ripgrep but not every one
+- The sequential hook tells calls made together from calls made one at a time only by the time between them, so the first call of a message with several calls counts as one made alone, and edits made through a shell command are not counted by edit-loop

@@ -5,6 +5,9 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- edit-loop tells the agent when it has edited the same file five times in a session, and at every fifth edit after it, to reproduce the failure and find the root cause before the next fix. `AGENT_NOTICES_EDIT_LOOP_EVERY` changes the count, `AGENT_NOTICES_EDIT_LOOP_SKILL` names your own debugging skill in the notice, and files git ignores and files in the temporary directory get no notice
+- sequential tells the agent in Claude Code when ten tool calls in a row each came in a message of their own, to make calls that do not need each other's results together. `AGENT_NOTICES_SEQUENTIAL_AFTER` changes the count
+
 ## [0.1.0] - 2026-11-24
 
 - Eleven hooks for Claude Code and Codex that add a notice for the agent and never stop a call: pipefail-grep, nohup, grep-binary, branch, env-example, tmp-space, security, format, presence, skill-log, and mcp-log

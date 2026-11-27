@@ -30,7 +30,14 @@
           { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/pipefail-grep.sh\"", "timeout": 5 },
           { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/env-example.sh\"", "timeout": 10 },
           { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/security.sh\"", "timeout": 10 },
-          { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/format.sh\"", "timeout": 60 }
+          { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/format.sh\"", "timeout": 60 },
+          { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/edit-loop.sh\"", "timeout": 10 }
+        ]
+      },
+      {
+        "matcher": ".*",
+        "hooks": [
+          { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/sequential.sh\"", "timeout": 5 }
         ]
       },
       {

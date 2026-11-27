@@ -7,6 +7,7 @@ reads after the call. It never returns a deny, an ask, a block, or a stop, and i
 the event cannot be read. Only the Python standard library is used.
 """
 import datetime
+import fcntl
 import hashlib
 import json
 import os
@@ -662,6 +663,136 @@ def presence(event):
             pass
 
 
+# ---------------------------------------------------------------- edit-loop and sequential
+
+COUNT_DAYS = 7
+# Calls closer than this come together in one message; calls further apart than MESSAGE_GAP start a new one.
+TOGETHER_GAP = 0.2
+MESSAGE_GAP = 0.5
+
+
+def count_file(name, session):
+    """The count file of one session in <data folder>/<name>/, removing count files older than COUNT_DAYS."""
+    folder = os.path.join(data_dir(), name)
+    os.makedirs(folder, mode=0o700, exist_ok=True)
+    os.chmod(folder, 0o700)
+    now = time.time()
+    for entry in os.listdir(folder):
+        old = os.path.join(folder, entry)
+        try:
+            if now - os.path.getmtime(old) > COUNT_DAYS * 86400:
+                os.remove(old)
+        except OSError:
+            pass
+    return os.path.join(folder, hashlib.sha256(str(session).encode()).hexdigest()[:24])
+
+
+def update_locked(path, change):
+    """Reads the file under an exclusive lock, passes its text to change, and writes back what change returns."""
+    fd = os.open(path, os.O_RDWR | os.O_CREAT, 0o600)
+    with os.fdopen(fd, "r+", encoding="utf-8") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        text = change(f.read())
+        f.seek(0)
+        f.truncate()
+        f.write(text)
+
+
+def positive_number(name, default):
+    try:
+        value = int(os.environ.get(name) or default)
+    except ValueError:
+        return default
+    return value if value > 0 else default
+
+
+def inside(path, folder):
+    path, folder = os.path.realpath(path), os.path.realpath(folder)
+    return path == folder or path.startswith(folder.rstrip(os.sep) + os.sep)
+
+
+def ignored_by_git(path):
+    folder = os.path.dirname(path)
+    while not os.path.isdir(folder):
+        parent = os.path.dirname(folder)
+        if parent == folder:
+            return False
+        folder = parent
+    try:
+        done = subprocess.run(["git", "check-ignore", "-q", "--", path], cwd=folder, capture_output=True,
+                              timeout=10, stdin=subprocess.DEVNULL)
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return done.returncode == 0
+
+
+def edit_loop(event):
+    session = event.get("session_id")
+    paths = sorted({os.path.realpath(path) for path, _, _ in edits(event)})
+    if not session or not paths:
+        return
+    every = positive_number("AGENT_NOTICES_EDIT_LOOP_EVERY", 5)
+    due = []
+
+    def count(text):
+        try:
+            counts = json.loads(text) if text.strip() else {}
+        except ValueError:
+            counts = {}
+        if not isinstance(counts, dict):
+            counts = {}
+        for path in paths:
+            n = counts.get(path)
+            n = (n if isinstance(n, int) else 0) + 1
+            counts[path] = n
+            if n % every == 0:
+                due.append((path, n))
+        return json.dumps(counts)
+
+    update_locked(count_file("edit-loop", session), count)
+    cwd = event.get("cwd") or os.getcwd()
+    skill = (os.environ.get("AGENT_NOTICES_EDIT_LOOP_SKILL") or "").strip()
+    how = f"use the `{skill}` skill to write" if re.fullmatch(r"[\w:.-]+", skill) else "write"
+    for path, n in due:
+        if inside(path, tempfile.gettempdir()) or ignored_by_git(path):
+            continue
+        say("edit-loop", f"You have edited `{shown(path, cwd)}` {n} times in this session. If the same kind of fix "
+            f"keeps coming back, {how} a command that reproduces the failure and confirm the root cause before the next fix.")
+
+
+def sequential(event):
+    if os.environ.get("CLAUDECODE") != "1":
+        return
+    session = event.get("session_id")
+    if not session or event.get("tool_name") in ("AskUserQuestion", "ExitPlanMode"):
+        return
+    after = positive_number("AGENT_NOTICES_SEQUENTIAL_AFTER", 10)
+    spoke = []
+
+    def count(text):
+        now = time.time()
+        try:
+            n, last = text.split()
+            n, last = int(n), float(last)
+        except ValueError:
+            n, last = 0, 0.0
+        gap = now - last
+        if gap < TOGETHER_GAP:
+            n = 0
+        elif gap >= MESSAGE_GAP:
+            n += 1
+        if n >= after:
+            spoke.append(n)
+            n = 0
+        return f"{n} {now}\n"
+
+    update_locked(count_file("sequential", session), count)
+    if spoke:
+        say("sequential", f"The last {after} tool calls each came in a message of their own. When calls do not "
+            "need each other's results, such as reads of several files or independent commands, make them together "
+            "in one message so they run at the same time.")
+
+
 # ---------------------------------------------------------------- skill-log and mcp-log
 
 def now_iso():
@@ -727,6 +858,8 @@ HOOKS = {
     "tmp-space": tmp_space,
     "security": security,
     "format": format_files,
+    "edit-loop": edit_loop,
+    "sequential": sequential,
     "presence": presence,
     "skill-log": skill_log,
     "mcp-log": mcp_log,
