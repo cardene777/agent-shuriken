@@ -5,6 +5,10 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The process check refuses ending a terminal app, such as Terminal, iTerm2, ghostty, wezterm-gui, alacritty, kitty, gnome-terminal-server, konsole, or xterm, with `killall`, `pkill`, or `kill`, since it closes the agent's own window
+- The process check no longer refuses `kill <PID> 2>&1` and other commands with a redirect, which it read as PID 1, and it passes a `kill -0` probe whose target comes from a variable, such as `kill -0 $PPID`
+- The process check reads every `-s` and `-n` option of `kill`, so `kill -0 -s 9 1`, which sends SIGKILL to PID 1, is refused instead of passing as a probe, and a second signal word, as in `kill -0 -9 1`, is judged as ending processes
+
 ## [0.5.0] - 2026-11-27
 
 - The delete hook refuses `kill` of PID 1, PID 0, or a negative PID such as `-1`, `kill` of a system process such as launchd, WindowServer, Finder, systemd, or sshd, `pkill` and `killall` of a system process or that pick processes only by user, and targets taken from a variable or a command substitution. It asks `ps` and `pgrep` which processes a command names. Turn it off with `AGENT_GUARDS_PROCESSES=off`

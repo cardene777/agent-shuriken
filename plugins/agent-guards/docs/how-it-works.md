@@ -242,10 +242,13 @@ The check refuses commands that end processes when they hit the whole machine or
 | `kill` of a PID that `ps -o pid=,comm= -p <PID>` reports as a system process | Ending launchd, WindowServer, Finder, Dock, loginwindow, systemd, dbus-daemon, the display server, sshd, or a similar process ends the desktop session, the logins, or the machine |
 | `killall` of a system process name, and `pkill` or `killall -m` of a name or pattern that `pgrep` matches to PID 1 or a system process, as in `pkill -f .` | The same processes, chosen by name |
 | `pkill` and `killall` that pick processes only by user, as in `pkill -u alice` | They end every process of that user, the agent and its terminal included |
+| `killall`, `pkill`, or `kill` of a terminal app: `Terminal`, `iTerm2`, ghostty, wezterm-gui, alacritty, kitty, gnome-terminal-server, konsole, or xterm, by the name `ps` reports | Ending the app closes every window it holds, the agent's own included |
 | `kill`, `pkill`, or `killall` whose target comes from a variable or a command substitution, other than `$!` and `$$` | The processes it ends cannot be checked before it runs; the refusal says to look up the PID and name it |
 
 `pkill` asks `pgrep` with the same options and pattern, without the signal, so the PIDs checked are the ones `pkill` would end.
-`kill -0`, which sends no signal, `kill %1` of a job, `kill -l`, and a PID with no process pass.
+A redirect such as `2>&1` or `2>/dev/null` is read as a redirect, so its numbers are never taken as PIDs; a number set apart by a space, as in `kill 2 > out.txt`, stays a PID.
+bash reads every `-s` and `-n` option of `kill`, so the last one decides the signal, and a second `-<signal>` word, as in `kill -0 -9 1`, makes the signal uncertain and the command is judged as one that ends processes.
+A `kill -0` probe with one signal option sends no signal, so it passes whatever its target, as in `kill -0 $PPID`; `kill %1` of a job, `kill -l`, and a PID with no process pass too.
 They are read behind `sudo`, `env`, and `bash -c`, as the section on reading a command says.
 The refusal ends with the command after a leading `!`.
 

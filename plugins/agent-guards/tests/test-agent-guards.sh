@@ -31,6 +31,8 @@ cat > "$PROCS" <<'TABLE'
 512 sshd sshd: user@pts/0
 4242 node node /work/app/node_modules/.bin/next dev
 4343 python3 python3 -m http.server 8000
+600 Terminal /System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal
+601 iTerm2 /Applications/iTerm.app/Contents/MacOS/iTerm2
 TABLE
 FAKEBIN="$T/fakebin"
 mkdir -p "$FAKEBIN"
@@ -854,6 +856,52 @@ processes_ordinary_pass() {
   done
 }
 
+processes_redirects_pass() {
+  local c
+  for c in 'kill 26450 2>&1' 'kill -KILL 26450 2>&1' 'kill 5 2>&1 &' 'kill 4242 &>/dev/null' 'kill 4242 2>/dev/null' \
+    'pkill -f foo 2>&1' 'killall node 2>&1' 'kill -9 4343 >> kill.log 2>&1'; do
+    passes delete "$(event_bash "$c")" "$c" || return 1
+  done
+}
+
+processes_redirect_pid1_refused() {
+  local c
+  for c in 'kill 1 2>&1' 'kill -9 1 >/dev/null' 'kill 88 2>/dev/null'; do
+    refused_with_bang delete "$c" || return 1
+  done
+}
+
+processes_signal_override_refused() {
+  local c
+  for c in 'kill -0 -s 9 1' 'kill -s 0 -s 9 1' 'kill -0 --signal=9 1' 'kill -0 -9 1' 'kill -s 0 -n 9 88'; do
+    refused_with_bang delete "$c" || return 1
+  done
+}
+
+processes_probe_pass() {
+  local c
+  for c in 'kill -0 1' 'kill -0 $PPID' 'kill -s 0 88' 'kill -n 0 "$PID"' 'kill -0 4242 2>/dev/null'; do
+    passes delete "$(event_bash "$c")" "$c" || return 1
+  done
+}
+
+processes_terminal_refused() {
+  local c
+  for c in 'killall Terminal' 'killall iTerm2' 'killall -9 ghostty' 'sudo killall konsole' 'pkill -x Terminal' \
+    'pkill -f iTerm' 'kill 600' 'kill -9 601'; do
+    refused_with_bang delete "$c" || return 1
+  done
+}
+
+docs_name_terminal_probe() {
+  local f w
+  for f in README.md README.ja.md docs/how-it-works.md docs/how-it-works.ja.md; do
+    for w in '`Terminal`' '`iTerm2`' '`kill -0`'; do
+      grep -qF -- "$w" "$PLUGIN/$f" || { why="$f does not name $w"; return 1; }
+    done
+  done
+}
+
 processes_turn_off() {
   # Without the variable the same command is refused, so a pass below is the variable's doing.
   refuses delete "$(event_bash 'kill 1')" 'kill 1 without AGENT_GUARDS_PROCESSES=off' || return 1
@@ -1119,6 +1167,12 @@ check "process check refuses system processes found by ps and pgrep" processes_s
 check "process check refuses targets from a variable or a command substitution" processes_unreadable_refused
 check "process check refuses pkill and killall that select only by user" processes_user_only_refused
 check "process check lets ordinary kill, pkill, and killall through" processes_ordinary_pass
+check "process check reads redirects as redirects, not targets" processes_redirects_pass
+check "process check refuses PID 1 with a redirect" processes_redirect_pid1_refused
+check "process check refuses a kill whose later signal word overrides signal 0" processes_signal_override_refused
+check "process check passes a signal 0 probe of any target" processes_probe_pass
+check "process check refuses ending a terminal app" processes_terminal_refused
+check "the docs name the terminal apps and the probe" docs_name_terminal_probe
 check "AGENT_GUARDS_PROCESSES=off turns only the process check off" processes_turn_off
 check "the docs name the process check and the commands it runs" docs_name_processes
 check "chain sends to a target that is not local are refused" chain_remote_refused
