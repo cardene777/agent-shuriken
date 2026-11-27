@@ -16,7 +16,8 @@ export HOME="$T/home"
 WORK="$T/work"
 mkdir -p "$HOME" "$WORK"
 unset XDG_CONFIG_HOME XDG_DATA_HOME AGENT_GUARDS_SECRET_READ AGENT_GUARDS_SECRET_WRITE AGENT_GUARDS_ONEPASSWORD \
-  AGENT_GUARDS_OUTBOUND AGENT_GUARDS_GIT AGENT_GUARDS_DELETE AGENT_GUARDS_RECORD
+  AGENT_GUARDS_OUTBOUND AGENT_GUARDS_GIT AGENT_GUARDS_DELETE AGENT_GUARDS_RECORD AGENT_GUARDS_HARD_LINKS \
+  AGENT_GUARDS_STARTUP_KEYS AGENT_GUARDS_SYSTEM AGENT_GUARDS_CHAIN AGENT_GUARDS_OTHER_REPOS GH_REPO
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
 
 PASS=0
@@ -35,6 +36,14 @@ event_file() {
   [ "$1" = NotebookEdit ] && key=notebook_path
   jq -nc --arg t "$1" --arg k "$key" --arg p "$2" --arg d "$WORK" \
     '{hook_event_name: "PreToolUse", tool_name: $t, tool_input: {($k): $p, content: "x"}, cwd: $d}'
+}
+# event_text <tool> <path> <text>: a Claude Code file tool that writes <text>: the content of Write, the
+# new_string of Edit, and the new_string of the one edit of MultiEdit.
+event_text() {
+  jq -nc --arg t "$1" --arg p "$2" --arg s "$3" --arg d "$WORK" '{hook_event_name: "PreToolUse", tool_name: $t, cwd: $d,
+    tool_input: (if $t == "Write" then {file_path: $p, content: $s}
+      elif $t == "MultiEdit" then {file_path: $p, edits: [{old_string: "a", new_string: $s}]}
+      else {file_path: $p, old_string: "a", new_string: $s} end)}'
 }
 # event_patch <patch>: a Codex apply_patch call, with the patch in tool_input.patch.
 event_patch() { jq -nc --arg p "$1" --arg d "$WORK" '{hook_event_name: "PreToolUse", tool_name: "apply_patch", tool_input: {patch: $p}, cwd: $d}'; }
@@ -575,6 +584,295 @@ repository_rules_allow_hook_plugins() {
     "$REPO/docs/creating-a-plugin.ja.md" || { why="docs/creating-a-plugin.ja.md does not state the exception"; return 1; }
 }
 
+# Hard links: linked/a.txt and linked/b.txt are two names of one file, and single.txt has one name.
+mkdir -p "$WORK/linked"
+printf 'x\n' > "$WORK/linked/a.txt"
+ln "$WORK/linked/a.txt" "$WORK/linked/b.txt"
+printf 'x\n' > "$WORK/single.txt"
+
+hard_link_write_refused() {
+  local t c r
+  for t in Write Edit MultiEdit NotebookEdit; do
+    refuses secret-write "$(event_file "$t" "$WORK/linked/b.txt")" "$t linked/b.txt" || return 1
+  done
+  refuses secret-write "$(event_patch "$(patch_of $'*** Update File: linked/b.txt\n@@\n-x\n+y')")" 'patch of linked/b.txt' || return 1
+  for c in 'echo y > linked/b.txt' 'printf y | tee -a linked/a.txt' 'sudo -u root tee linked/b.txt < input.txt'; do
+    refuses secret-write "$(event_bash "$c")" "$c" || return 1
+  done
+  r="$(reason secret-write "$(event_file Write "$WORK/linked/b.txt")")"
+  case "$r" in *"second name"*) ;; *) why="the refusal does not say the file has a second name: $r"; return 1 ;; esac
+  case "$r" in *"cp "*) ;; *) why="the refusal does not say to copy the file with cp: $r"; return 1 ;; esac
+}
+
+hard_link_one_name_passes() {
+  local t c
+  for t in Write Edit MultiEdit; do
+    passes secret-write "$(event_file "$t" "$WORK/single.txt")" "$t single.txt" || return 1
+    passes secret-write "$(event_file "$t" "$WORK/new-file.txt")" "$t new-file.txt" || return 1
+  done
+  passes secret-write "$(event_patch "$(patch_of $'*** Update File: single.txt\n@@\n-x\n+y')")" 'patch of single.txt' || return 1
+  for c in 'echo y > single.txt' 'printf y | tee -a single.txt'; do
+    passes secret-write "$(event_bash "$c")" "$c" || return 1
+  done
+}
+
+# Startup files in the home folder, in a dotfiles folder, and under chezmoi source names.
+mkdir -p "$WORK/dotfiles" "$WORK/chezmoi/dot_config/fish" "$HOME/.config/fish"
+
+startup_key_refused() {
+  local c r
+  refuses secret-write "$(event_text Write "$HOME/.zshrc" 'export FOO_API_KEY="abc123def456"')" 'Write ~/.zshrc' || return 1
+  refuses secret-write "$(event_text Edit "$HOME/.bashrc" 'export FOO_TOKEN=abc123def456')" 'Edit ~/.bashrc' || return 1
+  refuses secret-write "$(event_text MultiEdit "$WORK/dotfiles/.zshenv" "export DEPLOY_SECRET='abc123def456'")" \
+    'MultiEdit dotfiles/.zshenv' || return 1
+  refuses secret-write "$(event_text Write "$WORK/chezmoi/dot_zshrc" '  export FOO_PASSWORD=hunter2hunter2')" \
+    'Write chezmoi/dot_zshrc' || return 1
+  refuses secret-write "$(event_text Write "$WORK/chezmoi/private_dot_zshrc.tmpl" 'export FOO_ACCESS_KEY="abc123def456"')" \
+    'Write chezmoi/private_dot_zshrc.tmpl' || return 1
+  refuses secret-write "$(event_text Edit "$HOME/.config/fish/config.fish" 'set -gx FOO_API_KEY abc123def456')" \
+    'Edit the fish config' || return 1
+  refuses secret-write "$(event_text Write "$WORK/chezmoi/dot_config/fish/config.fish" 'set -x FOO_TOKEN "abc123def456"')" \
+    'Write the chezmoi fish config' || return 1
+  refuses secret-write "$(event_text Edit "$HOME/.profile" "export GITHUB=$KEY_GH")" 'Edit ~/.profile with a key-shaped value' || return 1
+  refuses secret-write "$(event_patch "$(patch_of $'*** Update File: dotfiles/.bash_profile\n@@\n-a\n+export FOO_PASSWORD="hunter2hunter2"')")" \
+    'patch of dotfiles/.bash_profile' || return 1
+  refuses secret-write "$(event_patch "$(patch_of $'*** Add File: chezmoi/dot_zprofile\n+export FOO_TOKEN=abc123def456')")" \
+    'patch adding chezmoi/dot_zprofile' || return 1
+  for c in "echo 'export FOO_API_KEY=\"abc123def456\"' >> ~/.zshrc" "printf 'export FOO_TOKEN=abc123def456\n' >> ~/.bashrc" \
+    "echo 'export GITHUB=$KEY_GH' | tee -a ~/.zprofile" "echo 'export FOO_SECRET=abc123def456' >> dotfiles/.zshrc"; do
+    refuses secret-write "$(event_bash "$c")" "$c" || return 1
+  done
+  r="$(reason secret-write "$(event_text Write "$HOME/.zshrc" 'export FOO_API_KEY="abc123def456"')")"
+  case "$r" in *abc123def456*) why="the refusal shows the value"; return 1 ;; esac
+  case "$r" in *.zshrc*) ;; *) why="the refusal does not name the file: $r"; return 1 ;; esac
+  case "$r" in *FOO_API_KEY*) ;; *) why="the refusal does not name the variable: $r"; return 1 ;; esac
+  r="$(reason secret-write "$(event_bash "echo 'export GITHUB=$KEY_GH' | tee -a ~/.zprofile")")"
+  r="${r%%! *}"
+  case "$r" in *"$KEY_GH"*) why="the refusal of a shell append shows the value"; return 1 ;; esac
+}
+
+startup_without_key_passes() {
+  local text c
+  for text in 'export FOO_API_KEY="$(security find-generic-password -s FOO_API_KEY -w)"' 'export FOO_TOKEN=$OTHER_TOKEN' \
+    'export FOO_TOKEN="${OTHER_TOKEN}"' 'export FOO_API_KEY="REPLACE_ME"' 'export FOO_API_KEY=""' \
+    '# export FOO_API_KEY="abc123def456"' 'export EDITOR=vim' 'export PATH="$HOME/bin:$PATH"' 'alias ll="ls -l"'; do
+    passes secret-write "$(event_text Write "$HOME/.zshrc" "$text")" "Write ~/.zshrc: $text" || return 1
+    passes secret-write "$(event_text Edit "$WORK/dotfiles/.bashrc" "$text")" "Edit dotfiles/.bashrc: $text" || return 1
+  done
+  passes secret-write "$(event_text Edit "$HOME/.config/fish/config.fish" 'set -gx FOO_API_KEY (security find-generic-password -s FOO_API_KEY -w)')" \
+    'fish value read at startup' || return 1
+  passes secret-write "$(event_text Write "$WORK/notes.md" 'export FOO_API_KEY="abc123def456"')" 'Write notes.md' || return 1
+  for c in "echo 'export EDITOR=vim' >> ~/.zshrc" "echo 'alias ll=\"ls -l\"' >> ~/.bashrc" \
+    "echo 'export FOO_API_KEY=\"\$(security find-generic-password -s FOO_API_KEY -w)\"' >> ~/.zshrc"; do
+    passes secret-write "$(event_bash "$c")" "$c" || return 1
+  done
+}
+
+system_commands_refused() {
+  local c r
+  for c in 'mount /dev/disk2s1 /mnt' 'umount /mnt' 'sudo mount -t tmpfs none /mnt' 'env FOO=1 umount /Volumes/x' \
+    '/sbin/mount -a' 'chroot /srv/jail /bin/sh' 'sudo pfctl -d' 'mkfs.ext4 /dev/sdb1' 'sudo -u root mkfs.vfat /dev/sdc' \
+    'bash -c "pfctl -f /etc/pf.conf"' "osascript -e 'do shell script \"touch /tmp/x\" with administrator privileges'"; do
+    refuses delete "$(event_bash "$c")" "$c" || return 1
+    r="$(reason delete "$(event_bash "$c")")"
+    case "$r" in *"! $c"*) ;; *) why="the refusal of '$c' does not show '! $c'"; return 1 ;; esac
+  done
+}
+
+system_args_pass() {
+  local c
+  for c in 'grep mount notes.txt' 'ls /mnt' 'diskutil list' "osascript -e 'display notification \"done\"'" 'man pfctl' \
+    'mountpoint -q /mnt' 'echo umount'; do
+    passes delete "$(event_bash "$c")" "$c" || return 1
+  done
+}
+
+chain_remote_refused() {
+  local c r
+  for c in 'cast send 0xabc "f()" --rpc-url https://mainnet.example.org/v3/abc123 --ledger' 'cast send 0xabc "f()" --ledger' \
+    'cast send 0xabc "f()" --rpc-url "$RPC_URL" --ledger' 'cast send 0xabc "f()" --rpc-url sepolia --ledger' \
+    'cast send 0xabc "f()" -r https://rpc.example.org --ledger' 'cast s 0xabc "f()" --rpc-url=https://rpc.example.org' \
+    'cast publish 0x02f8 --rpc-url https://rpc.example.org' 'cast rpc eth_sendRawTransaction 0x02f8 --rpc-url https://rpc.example.org' \
+    'cast erc20-token transfer 0xabc 0xdef 1 --rpc-url https://rpc.example.org' \
+    'forge script script/Deploy.s.sol --broadcast --rpc-url https://rpc.example.org' 'forge script script/Deploy.s.sol --broadcast' \
+    'forge create src/A.sol:A --rpc-url https://rpc.example.org --broadcast' 'forge create src/A.sol:A --rpc-url https://rpc.example.org' \
+    'forge create src/A.sol:A --broadcast' 'npx hardhat ignition deploy ignition/modules/A.ts --network sepolia' \
+    'pnpm hardhat ignition deploy ./ignition/modules/A.ts --network mainnet' \
+    'cast send 0xabc "f()" --rpc-url http://127.0.0.1:8545 --flashbots' \
+    'cast send 0xabc "f()" --rpc-url http://127.0.0.1.example.com:8545' 'cast send 0xabc "f()" --rpc-url http://127.0.0.1:8545@example.com' \
+    'sudo -u root cast send 0xabc "f()" --rpc-url https://rpc.example.org'; do
+    refuses outbound "$(event_bash "$c")" "$c" || return 1
+    r="$(reason outbound "$(event_bash "$c")")"
+    case "$r" in *"! $c"*) ;; *) why="the refusal of '$c' does not show '! $c'"; return 1 ;; esac
+  done
+  # The reason names the host; only the command after ! repeats the URL, whose path can hold an API key.
+  r="$(reason outbound "$(event_bash 'cast send 0xabc "f()" --rpc-url https://mainnet.example.org/v3/abc123 --ledger')")"
+  r="${r%%! *}"
+  case "$r" in *mainnet.example.org*) ;; *) why="the refusal does not name the host: $r"; return 1 ;; esac
+  case "$r" in *abc123*) why="the reason before the ! command shows the URL path: $r"; return 1 ;; esac
+}
+
+chain_local_pass() {
+  local c
+  for c in 'cast send 0xabc "f()" --rpc-url http://127.0.0.1:8545 --unlocked --from 0xabc' \
+    'cast send 0xabc "f()" --rpc-url http://localhost:8545' 'cast send 0xabc "f()" --rpc-url http://[::1]:8545' \
+    'forge script script/Deploy.s.sol --broadcast --rpc-url http://127.0.0.1:8545' \
+    'forge create src/A.sol:A --rpc-url http://localhost:8545 --broadcast' \
+    'npx hardhat ignition deploy ignition/modules/A.ts --network localhost' 'npx hardhat ignition deploy ignition/modules/A.ts' \
+    'npx hardhat ignition deploy ignition/modules/A.ts --network hardhat' 'cast call 0xabc "f()" --rpc-url https://rpc.example.org' \
+    'forge script script/Deploy.s.sol --rpc-url https://rpc.example.org' 'cast mktx 0xabc "f()" --rpc-url https://rpc.example.org' \
+    'cast wallet sign hello' 'forge build' 'npx hardhat test'; do
+    passes outbound "$(event_bash "$c")" "$c" || return 1
+  done
+}
+
+# Clones for the destination checks: fork has the user's origin and someone else's upstream, mine has
+# only the user's origin, and theirs is a clone of someone else's project. The URLs take the three
+# shapes git remotes hold.
+for d in fork mine theirs; do git init -q "$WORK/$d"; done
+git -C "$WORK/fork" remote add origin git@github.com:me/proj.git
+git -C "$WORK/fork" remote add upstream https://github.com/other/proj.git
+git -C "$WORK/mine" remote add origin https://github.com/me/tool.git
+git -C "$WORK/theirs" remote add origin ssh://git@github.com/other/lib.git
+own_owners() { mkdir -p "$HOME/.config/agent-guards"; printf '%s\n' '# my accounts' me my-org > "$HOME/.config/agent-guards/own-owners"; }
+no_own_owners() { rm -f "$HOME/.config/agent-guards/own-owners"; }
+
+other_repos_refused() {
+  own_owners
+  local c r pair d result=0
+  for c in 'gh issue create -R other/proj --title t --body-file clean.md' 'gh pr create --repo other/proj --title t --body-file clean.md' \
+    'gh issue comment 5 -R other/proj --body-file clean.md' 'gh pr comment 7 --repo=other/proj --body "thanks"' \
+    'gh pr review 7 -R other/proj --approve' 'gh issue edit 5 -R other/proj --title "new title"' \
+    'gh pr close 7 -R other/proj --comment "closing"' 'gh api -X POST repos/other/proj/issues -f title=t' \
+    'gh api repos/other/proj/issues/5/comments -f body=hi' 'gh api --method PATCH repos/other/proj/pulls/7 -f title=t' \
+    'gh api -X DELETE repos/other/proj/issues/comments/9' \
+    'gh api graphql -f query="mutation { closeIssue(input: {issueId: 1}) { clientMutationId } }"' \
+    'gh issue create -R "$REPO" --title t --body-file clean.md' "git -C $WORK/theirs push origin main"; do
+    refuses outbound "$(event_bash "$c")" "$c" || { result=1; break; }
+    r="$(reason outbound "$(event_bash "$c")")"
+    case "$r" in *"! $c"*) ;; *) why="the refusal of '$c' does not show '! $c'"; result=1; break ;; esac
+  done
+  if [ "$result" -eq 0 ]; then
+    for pair in "fork|gh pr create --title t --body-file ../clean.md" "fork|git push upstream feat/x" \
+      "theirs|git push origin main" "theirs|git push" "theirs|gh issue comment 3 --body-file ../clean.md"; do
+      d="$WORK/${pair%%|*}"
+      c="${pair#*|}"
+      refuses outbound "$(event_bash "$c" "$d")" "$c in ${pair%%|*}" || { result=1; break; }
+    done
+  fi
+  no_own_owners
+  return "$result"
+}
+
+other_repos_listed_pass() {
+  own_owners
+  local c pair d result=0
+  for c in 'gh issue create -R me/tool --title t --body-file clean.md' 'gh issue create -R My-Org/site --title t --body-file clean.md' \
+    'gh api repos/other/proj/issues' 'gh api -X GET repos/other/proj/pulls' 'gh issue edit 5 -R other/proj --add-label bug' \
+    'gh issue close 5 -R other/proj' 'gh repo view other/proj' 'gh api graphql -f query="query { viewer { login } }"' \
+    'gh api -X POST repos/me/tool/issues -f title=t' "git -C $WORK/mine push origin main"; do
+    passes outbound "$(event_bash "$c")" "$c" || { result=1; break; }
+  done
+  if [ "$result" -eq 0 ]; then
+    for pair in "mine|gh issue create --title t --body-file ../clean.md" "fork|git push origin feat/x" "fork|git push" "mine|git push"; do
+      d="$WORK/${pair%%|*}"
+      c="${pair#*|}"
+      passes outbound "$(event_bash "$c" "$d")" "$c in ${pair%%|*}" || { result=1; break; }
+    done
+  fi
+  no_own_owners
+  return "$result"
+}
+
+other_repos_without_list_pass() {
+  no_own_owners
+  local c
+  for c in 'gh issue create -R other/proj --title t --body-file clean.md' 'gh api -X POST repos/other/proj/issues -f title=t' \
+    'gh api graphql -f query="mutation { closeIssue(input: {issueId: 1}) { clientMutationId } }"' \
+    'gh issue create -R "$REPO" --title t --body-file clean.md'; do
+    passes outbound "$(event_bash "$c")" "$c" || return 1
+  done
+  passes outbound "$(event_bash 'git push upstream feat/x' "$WORK/fork")" 'git push upstream in fork'
+}
+
+# off_lets_only <variable> <hook> <event> [<hook> <event>]...: with <variable>=off the first event passes
+# its hook, and every other pair is still refused.
+off_lets_only() {
+  local var="$1" result=0
+  export "$var=off"
+  passes "$2" "$3" "$2 with $var=off" || result=1
+  shift 3
+  while [ "$result" -eq 0 ] && [ "$#" -ge 2 ]; do
+    refuses "$1" "$2" "$1 with $var=off" || result=1
+    shift 2
+  done
+  unset "$var"
+  return "$result"
+}
+
+moved_checks_turn_off() {
+  own_owners
+  local hl sk sys ch orp envw key rmh result=0
+  hl="$(event_file Write "$WORK/linked/b.txt")"
+  sk="$(event_text Write "$HOME/.zshrc" 'export FOO_API_KEY="abc123def456"')"
+  envw="$(event_file Write "$WORK/.env")"
+  sys="$(event_bash 'mount -a')"
+  rmh="$(event_bash 'rm -rf ~')"
+  ch="$(event_bash 'cast send 0xabc "f()" --rpc-url https://rpc.example.org')"
+  orp="$(event_bash 'gh issue create -R other/proj --title t --body-file clean.md')"
+  key="$(event_bash 'gh issue create -R me/tool --title t --body-file body.md')"
+  off_lets_only AGENT_GUARDS_HARD_LINKS secret-write "$hl" secret-write "$sk" secret-write "$envw" || result=1
+  [ "$result" -eq 0 ] && { off_lets_only AGENT_GUARDS_STARTUP_KEYS secret-write "$sk" secret-write "$hl" secret-write "$envw" || result=1; }
+  [ "$result" -eq 0 ] && { off_lets_only AGENT_GUARDS_SYSTEM delete "$sys" delete "$rmh" || result=1; }
+  [ "$result" -eq 0 ] && { off_lets_only AGENT_GUARDS_CHAIN outbound "$ch" outbound "$orp" outbound "$key" || result=1; }
+  [ "$result" -eq 0 ] && { off_lets_only AGENT_GUARDS_OTHER_REPOS outbound "$orp" outbound "$ch" outbound "$key" || result=1; }
+  # Turning off the first check of a hook leaves the moved checks in the same hook on.
+  [ "$result" -eq 0 ] && { off_lets_only AGENT_GUARDS_SECRET_WRITE secret-write "$envw" secret-write "$hl" secret-write "$sk" || result=1; }
+  [ "$result" -eq 0 ] && { off_lets_only AGENT_GUARDS_DELETE delete "$rmh" delete "$sys" || result=1; }
+  [ "$result" -eq 0 ] && { off_lets_only AGENT_GUARDS_OUTBOUND outbound "$key" outbound "$ch" outbound "$orp" || result=1; }
+  no_own_owners
+  return "$result"
+}
+
+hooks_file_eight() {
+  [ "$(hook_count)" = 8 ] || { why="the hooks file declares $(hook_count) hook commands"; return 1; }
+}
+
+MOVED_VARS=(AGENT_GUARDS_HARD_LINKS AGENT_GUARDS_STARTUP_KEYS AGENT_GUARDS_SYSTEM AGENT_GUARDS_CHAIN AGENT_GUARDS_OTHER_REPOS)
+
+docs_name_moved_variables() {
+  local v f
+  for f in README.md README.ja.md docs/how-it-works.md docs/how-it-works.ja.md; do
+    for v in "${MOVED_VARS[@]}" own-owners; do
+      grep -qF -- "$v" "$PLUGIN/$f" || { why="$f does not name $v"; return 1; }
+    done
+  done
+}
+
+changelog_names_moved_checks() {
+  local entries v
+  entries="$(awk '/^## \[/{f=1; next} /^\[[^]]+\]: /{f=0} f && /^- /' "$PLUGIN/CHANGELOG.md")"
+  for v in "${MOVED_VARS[@]}"; do
+    case "$entries" in *"$v"*) ;; *) why="no section of the changelog names $v"; return 1 ;; esac
+  done
+}
+
+# A newer entry under Unreleased does not hide the runner entries of 0.2.1, and a changelog that names
+# them nowhere still fails.
+runner_changelog_below_unreleased() {
+  local dir="$T/runners"
+  mkdir -p "$dir"
+  printf '%s\n' '# Changelog' '' '## [Unreleased]' '' '- A newer change' '' '## [0.2.1] - 2026-01-01' '' \
+    '- The hooks read xargs, find -exec, watch, and env -S' '' '## [0.2.0] - 2025-12-01' '' '- Earlier' >"$dir/CHANGELOG.md"
+  PLUGIN="$dir" changelog_names_runners || { why="below a newer Unreleased entry: $why"; return 1; }
+  printf '%s\n' '# Changelog' '' '## [Unreleased]' '' '- A newer change' '' '## [0.2.1] - 2026-01-01' '' '- Other' >"$dir/CHANGELOG.md"
+  if PLUGIN="$dir" changelog_names_runners; then
+    why="it passed although no section names the runners"
+    return 1
+  fi
+  why=""
+}
+
 check "secret read refuses .env and key files in a shell command" secret_shell_refused
 check "secret read refuses .env and key files in the Read tool" secret_read_tool_refused
 check "secret read allows .env.example and ordinary files" secret_ordinary_allowed
@@ -619,6 +917,22 @@ check "the README and how-it-works name every hook variable" docs_name_variables
 check "the changelog names the new refusals" changelog_names_refusals
 check "the changelog check reads the newest release when Unreleased is empty" changelog_check_reads_release
 check "the repository rules allow hooks only in plugins without skills" repository_rules_allow_hook_plugins
+check "hard links: a write to a file with a second name is refused" hard_link_write_refused
+check "hard links: a write to a file with one name passes" hard_link_one_name_passes
+check "startup keys: a key written into a shell startup file is refused" startup_key_refused
+check "startup keys: a startup file without a key passes" startup_without_key_passes
+check "system commands are refused with a ! command" system_commands_refused
+check "system command names as arguments and other osascript pass" system_args_pass
+check "chain sends to a target that is not local are refused" chain_remote_refused
+check "chain sends to local targets and chain reads pass" chain_local_pass
+check "sends to repositories of other owners are refused with a ! command" other_repos_refused
+check "sends to listed owners and reads pass" other_repos_listed_pass
+check "without own-owners no send is refused for its destination" other_repos_without_list_pass
+check "each moved check turns off with its own variable" moved_checks_turn_off
+check "the hooks file declares eight hook commands" hooks_file_eight
+check "the README and how-it-works name every moved check variable" docs_name_moved_variables
+check "the changelog names the moved checks" changelog_names_moved_checks
+check "the runner changelog check reads below a newer Unreleased entry" runner_changelog_below_unreleased
 
 printf '%d passed, %d failed\n' "$PASS" "$FAIL"
 printf 'checks: %d\n' "$((PASS + FAIL))"
