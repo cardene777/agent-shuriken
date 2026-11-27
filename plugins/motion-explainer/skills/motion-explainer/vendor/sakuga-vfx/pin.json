@@ -1,0 +1,8 @@
+{
+  "repo": "finktheartist/sakuga-vfx",
+  "commit": "c3dabb173928a3ad2372183103caf2e6f50953d0",
+  "file": "core.js",
+  "sha256": "f0518dd7d4dd1986eab2c9c76796421f4c827e91eac627f4c91a63c362c79419",
+  "license": "MIT",
+  "note": "core.js is copied unmodified from the file of the same name at this commit. Replace it only with the file of another commit, and update commit and sha256 with it."
+}

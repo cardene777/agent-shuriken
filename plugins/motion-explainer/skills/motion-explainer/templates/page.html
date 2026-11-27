@@ -46,11 +46,13 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .me-seg button { padding: 5px 12px; border: 0; border-radius: 7px; background: transparent; color: var(--sub); font-size: 13px; font-weight: 700; cursor: pointer; }
 .me-seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
 
-/* The player: the stage, the narrator with the line of the scene, and the chapters. */
+/* The player: the stage, the cast with the bubble that holds the line of the scene, and the chapters. */
 .me-player { border: 1px solid var(--line-2); border-radius: 20px; background: var(--surface); overflow: hidden; box-shadow: 0 1px 2px rgba(20, 18, 15, .05), 0 18px 40px -26px rgba(20, 18, 15, .35); }
 .me-screen { background: var(--stage); }
 .me-stage { position: relative; width: min(100%, calc(66vh * 16 / 9)); margin: 0 auto; aspect-ratio: 16 / 9; overflow: hidden; }
-.me-part { position: absolute; transition: left .9s var(--ease), top .9s var(--ease); }
+.me-part { position: absolute; z-index: 1; transition: left .9s var(--ease), top .9s var(--ease); }
+/* Bursts are drawn on a canvas behind the parts, so they never cover a drawing. */
+.me-fx-back { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
 .me-art { width: 100%; height: 100%; }
 .me-art > svg { display: block; width: 100%; height: 100%; overflow: visible; }
 /* --ix and --iy say how far the drawing sits inside its box, so the mark and the label hug the drawing. */
@@ -69,12 +71,38 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @keyframes me-ring { 0% { opacity: 0; transform: scale(1.14); } 60% { opacity: 1; transform: scale(.98); } 100% { opacity: 1; transform: scale(1); } }
 @keyframes me-bump { 0% { transform: scale(1); } 35% { transform: scale(1.07); } 100% { transform: scale(1); } }
 @keyframes me-rise { 0% { opacity: 0; margin-top: 6px; } 100% { opacity: 1; margin-top: 0; } }
-.me-jump .me-part, .me-jump .me-part::before, .me-jump .me-art, .me-jump .me-tag { transition: none !important; animation: none !important; }
+.me-jump .me-part, .me-jump .me-part::before, .me-jump .me-art, .me-jump .me-tag, .me-jump .me-cast, .me-jump .me-body { transition: none !important; animation: none !important; }
 
-.me-say { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 0 20px; padding: 18px 24px; border-top: 1px solid var(--line-2); }
-.me-narrator { width: 120px; aspect-ratio: 1; padding: 8px; border-radius: 22px; background: var(--stage); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .06); }
+/* The cast: pixel bodies that show one pose of a sheet of four (wait, explain, surprised, cheer).
+   The speaker of the scene stands large; the others wait smaller beside it. */
+.me-say { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 0 22px; padding: 12px 24px 20px; border-top: 1px solid var(--line-2); }
+.me-say[data-solo] { grid-template-columns: minmax(0, 1fr); }
+.me-cast-row { display: flex; align-items: flex-end; gap: 4px; }
+.me-cast-row:empty { display: none; }
+.me-cast { margin: 0; display: grid; justify-items: center; gap: 0; }
+.me-say .me-cast { width: 108px; transition: width .3s var(--ease); }
+.me-say .me-cast[data-speaking] { width: 176px; }
+.me-stage > .me-cast { position: absolute; z-index: 2; }
+.me-body { width: 100%; aspect-ratio: 1; background-repeat: no-repeat; background-size: 400% 100%; image-rendering: pixelated; }
+.me-cast[data-pose="wait"] .me-body { background-position: 0% 0; }
+.me-cast[data-pose="explain"] .me-body { background-position: 33.3333% 0; }
+.me-cast[data-pose="surprised"] .me-body { background-position: 66.6667% 0; }
+.me-cast[data-pose="cheer"] .me-body { background-position: 100% 0; }
+#me-player[data-playing="true"] .me-cast.me-hop .me-body { animation: me-hop .45s var(--ease); }
+@keyframes me-hop { 0% { transform: translateY(0); } 35% { transform: translateY(-8%); } 100% { transform: translateY(0); } }
+.me-name { margin-top: -2px; color: var(--sub); font-size: 12.5px; font-weight: 800; line-height: 1.4; white-space: nowrap; }
+.me-stage > .me-cast .me-name { padding: 0 8px; border-radius: 999px; background: var(--surface); }
+/* The bubble stands beside the speaker: under the stage, or on the stage next to a speaker placed there. */
+.me-bubble { position: relative; padding: 12px 20px 14px; border: 2.5px solid var(--ink); border-radius: 18px; background: var(--surface); box-shadow: 5px 6px 0 var(--line-2); }
+.me-bubble::before { content: ""; position: absolute; left: -11px; top: 50%; width: 18px; height: 18px; margin-top: -9px; background: var(--surface); border-left: 2.5px solid var(--ink); border-bottom: 2.5px solid var(--ink); transform: rotate(45deg); }
+.me-say[data-solo] .me-bubble::before { display: none; }
+.me-stage > .me-bubble { position: absolute; z-index: 3; width: min(36%, 360px); padding: 7px 13px 9px; }
+.me-stage > .me-bubble[data-side="left"]::before { left: auto; right: -11px; transform: rotate(225deg); }
+.me-stage > .me-bubble[data-side="above"]::before { left: 50%; top: auto; bottom: -11px; margin: 0 0 0 -9px; transform: rotate(-45deg); }
+.me-stage > .me-bubble[data-side="below"]::before { left: 50%; top: -11px; margin: 0 0 0 -9px; transform: rotate(135deg); }
 .me-who { margin: 0; color: var(--sub); font-size: 13px; font-weight: 800; letter-spacing: .03em; }
-.me-line { margin: 4px 0 0; min-height: 3.3em; font-size: clamp(17px, 2.2vw, 22px); font-weight: 700; line-height: 1.6; }
+.me-line { margin: 2px 0 0; min-height: 1.6em; font-size: clamp(17px, 2.2vw, 22px); font-weight: 700; line-height: 1.6; }
+.me-stage > .me-bubble .me-line { font-size: clamp(13px, 1.6vw, 17px); line-height: 1.5; }
 .me-line.me-in { animation: me-line .5s var(--ease) both; }
 @keyframes me-line { 0% { opacity: 0; transform: translateY(6px); } 100% { opacity: 1; transform: none; } }
 
@@ -126,12 +154,18 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .me-table th { background: var(--label); font-size: 13.5px; color: var(--sub); }
 
 {{state_css}}
+{{cast_css}}
 
 @media (max-width: 720px) {
   .me { padding: 20px 16px 56px; }
-  .me-say { gap: 0 14px; padding: 14px 16px; }
-  .me-narrator { width: 84px; padding: 6px; border-radius: 16px; }
+  .me-say { gap: 0 14px; padding: 10px 14px 14px; }
+  .me-say .me-cast { width: 64px; }
+  .me-say .me-cast[data-speaking] { width: 96px; }
+  .me-bubble { padding: 10px 14px 12px; }
   .me-line { font-size: 16.5px; }
+  .me-stage > .me-bubble { width: 52%; padding: 5px 10px 6px; border-width: 2px; }
+  .me-stage > .me-bubble .me-who { font-size: 12px; }
+  .me-stage > .me-bubble .me-line { font-size: 12.5px; }
   .me-controls { padding: 0 16px 16px; }
   .me-tag { font-size: 12px; padding: 2px 8px; }
   .me-part::before { inset: calc(var(--iy, 0%) - 5px) calc(var(--ix, 0%) - 5px); border-width: 2px; border-radius: 10px; }
@@ -142,7 +176,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .me-compare { grid-template-columns: minmax(0, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .me-part, .me-part::before, .me-art, .me-tag, .me-line, .me-bar i { transition: none !important; animation: none !important; }
+  .me-part, .me-part::before, .me-art, .me-tag, .me-line, .me-bar i, .me-cast, .me-body { transition: none !important; animation: none !important; }
 }
 @media print {
   :root { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
@@ -163,11 +197,12 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   <section id="me-player" class="me-player" aria-label="{{ui_player}}" data-scene="-1" data-playing="false">
     <div class="me-screen"><div id="me-stage" class="me-stage">
 {{parts}}
+{{cast_stage}}
     </div></div>
     <div class="me-say">
-      <div class="me-narrator" data-narrator data-state="{{start}}">{{narrator}}</div>
-      <div>
-        <p class="me-who">{{narrator_name}}</p>
+      <div class="me-cast-row">{{cast_row}}</div>
+      <div class="me-bubble" data-speaker="{{speaker}}">
+        <p class="me-who">{{speaker_name}}</p>
         <p id="line" class="me-line" aria-live="polite"></p>
       </div>
     </div>
@@ -186,6 +221,10 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   </section>
   <pre id="me-probe" hidden></pre>
 </main>
+<!-- The effects core of Sakuga VFX (MIT), bundled unmodified; see vendor/sakuga-vfx of the skill. -->
+<script>
+{{fx_core}}
+</script>
 <script type="application/json" id="me-data">{{data}}</script>
 <script type="application/json" id="me-ui">{{ui}}</script>
 <script>
@@ -197,7 +236,14 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   const player = document.getElementById('me-player');
   const stage = document.getElementById('me-stage');
   const lineEl = document.getElementById('line');
-  const narrator = player.querySelector('[data-narrator]');
+  const say = player.querySelector('.me-say');
+  const bubble = player.querySelector('.me-bubble');
+  const who = bubble.querySelector('.me-who');
+  const cast = {};
+  player.querySelectorAll('.me-cast').forEach(e => { cast[e.dataset.cast] = e; });
+  const castOf = {};
+  D.cast.forEach(c => { castOf[c.id] = c; });
+  if (!player.querySelector('.me-cast-row .me-cast')) say.dataset.solo = '';
   const toggleBtn = player.querySelector('[data-action="toggle"]');
   const replayBtn = player.querySelector('[data-action="replay"]');
   const chapters = Array.from(player.querySelectorAll('[data-chapter]'));
@@ -222,15 +268,52 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   document.querySelectorAll('[data-theme-choice]').forEach(b => b.addEventListener('click', () => { store('me-theme', b.dataset.themeChoice); setTheme(b.dataset.themeChoice); }));
   setTheme(PROBE ? null : read('me-theme'));
 
-  /* One scene: the line, the narrator, and every part in its state and place at the end of the scene.
-     Only the parts that changed from the scene before are marked. */
+  /* The bubble stands beside the speaker: under the stage, or on the stage next to a speaker placed
+     there, on the side (right, left, above, below) where it covers the least of the drawings. */
+  function overlap(a, b) { return Math.max(0, Math.min(a[2], b[2]) - Math.max(a[0], b[0])) * Math.max(0, Math.min(a[3], b[3]) - Math.max(a[1], b[1])); }
+  function placeBubble(c, s) {
+    if (!c.at) {
+      if (bubble.parentElement !== say) { bubble.removeAttribute('style'); bubble.removeAttribute('data-side'); say.append(bubble); }
+      return;
+    }
+    if (bubble.parentElement !== stage) stage.append(bubble);
+    const W = stage.clientWidth / 100, H = stage.clientHeight / 100;
+    const bw = bubble.offsetWidth / W, bh = bubble.offsetHeight / H, cw = D.castWidth, ch = D.castHeight;
+    const [x, y] = c.at;
+    const taken = D.parts.map(id => {
+      const at = s.at[id], size = D.sizes[id], gap = D.insets[id];
+      return [at[0] + size[0] * gap[0] / 100, at[1] + size[1] * gap[1] / 100, at[0] + size[0] * (1 - gap[0] / 100), at[1] + size[1] * (1 - gap[1] / 100)];
+    }).concat([[x, y, x + cw, y + ch]]);
+    const clamp = (v, max) => Math.max(1, Math.min(v, max));
+    const sides = [['right', x + cw + 1, y + ch / 2 - bh / 2], ['left', x - 1 - bw, y + ch / 2 - bh / 2],
+                   ['above', x + cw / 2 - bw / 2, y - 1 - bh], ['below', x + cw / 2 - bw / 2, y + ch + 1]];
+    let best = null;
+    for (const [side, l, t] of sides) {
+      const left = clamp(l, 99 - bw), top = clamp(t, 99 - bh), box = [left, top, left + bw, top + bh];
+      const cost = taken.reduce((sum, b) => sum + overlap(box, b), 0) + (Math.abs(left - l) + Math.abs(top - t)) * 4;
+      if (!best || cost < best.cost) best = { side, left, top, cost };
+    }
+    bubble.dataset.side = best.side;
+    bubble.style.left = best.left + '%';
+    bubble.style.top = best.top + '%';
+  }
+
+  /* One scene: the line, the speaker in its pose with the rest of the cast waiting, and every part in
+     its state and place at the end of the scene. Only the parts that changed from the scene before are marked. */
   function show(i, moving) {
     const s = D.scenes[i];
     cur = i;
     player.dataset.scene = String(i);
     if (!moving) player.classList.add('me-jump');
     lineEl.textContent = s.line;
-    narrator.dataset.state = s.narrator;
+    bubble.dataset.speaker = s.speaker;
+    who.textContent = castOf[s.speaker].name;
+    for (const id in cast) {
+      cast[id].dataset.pose = id === s.speaker ? s.pose : 'wait';
+      cast[id].toggleAttribute('data-speaking', id === s.speaker);
+      cast[id].classList.remove('me-hop');
+    }
+    placeBubble(castOf[s.speaker], s);
     chapters.forEach(b => { b.removeAttribute('data-fill'); b.removeAttribute('aria-current'); });
     for (const id of D.parts) {
       const el = parts[id], at = s.at[id], size = D.sizes[id], gap = D.insets[id];
@@ -245,6 +328,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     lineEl.classList.remove('me-in');
     void stage.offsetWidth;
     for (const id of s.changed) parts[id].setAttribute('data-changed', '');
+    if (moving) cast[s.speaker].classList.add('me-hop');
     unstack(s);
     if (moving) lineEl.classList.add('me-in');
     player.style.setProperty('--ms', s.ms / SPEED + 'ms');
@@ -254,6 +338,48 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       if (k === i) b.setAttribute('aria-current', 'step');
     });
     if (!moving) { void stage.offsetWidth; player.classList.remove('me-jump'); }
+    effects(i, moving);
+  }
+
+  /* Effects from the bundled Sakuga VFX core: puffs where each moved part lands, and the scene's
+     burst behind its part and its one sound-effect word, once the parts have arrived. Each effect is
+     noted in `fired` when it goes off. Reduced motion and a jump to a chapter fire none. */
+  const FX = window.SakugaFX || null;
+  const fired = [];
+  let back = null, fxTimers = [];
+  function art(id) { return parts[id].querySelector('.me-art'); }
+  function fire(i, kind, part, word) {
+    fired.push(word ? { scene: i, kind, part, word } : { scene: i, kind, part });
+    if (!FX) return;
+    if (!back) {
+      Object.assign(FX.P, { fill: '#ffffff', shade: '#e4dfd6', line: '#17161a', ink: '#17161a', accent: getComputedStyle(root).getPropertyValue('--mark').trim() || '#e86a4f', sfx: ['#17161a', '#ffffff'] });
+      /* The core keeps its back layers to its own controls; lending the stage to backLayer() puts a canvas first in it, behind the parts. */
+      back = FX.Base.prototype.backLayer.call({ root: stage });
+      back.c.classList.add('me-fx-back');
+    }
+    const p = FX.at(art(part), 0.5, 0.5);
+    if (kind === 'puff') {
+      const q = FX.at(art(part), 0.5, 1);
+      FX.puff(q.x - q.w * 0.45, q.y, { n: 3, vx: -22, vy: -10 });
+      FX.puff(q.x + q.w * 0.45, q.y, { n: 3, vx: 22, vy: -10 });
+    } else if (kind === 'burst') {
+      FX.burst(p.x, p.y, { r: Math.max(p.w, p.h) * 0.4, layer: back });
+      FX.shards(p.x, p.y - p.h * 0.3, { n: 5, speed: 170 });
+    } else {
+      FX.sfx(word, p.x + p.w * 0.62, p.y - p.h * 0.62, { size: 66, rot: -0.12 });
+      FX.kira(p.x - p.w * 0.58, p.y - p.h * 0.5);
+    }
+  }
+  function effects(i, moving) {
+    fxTimers.forEach(clearTimeout);
+    fxTimers = [];
+    if (!moving || reduce) return;
+    const s = D.scenes[i], fx = s.fx || {};
+    const later = (ms, f) => fxTimers.push(setTimeout(f, ms / SPEED));
+    for (const id of s.moved) later(860, () => fire(i, 'puff', id));
+    const hit = s.moved.length ? 900 : 260;
+    if (fx.burst) later(hit, () => fire(i, 'burst', fx.burst));
+    if (fx.word) later(hit, () => fire(i, 'word', fx.at || fx.burst, fx.word));
   }
 
   /* Where the name label of a changed part ends up once the part has arrived, in pixels of the stage.
@@ -337,7 +463,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       states[id] = parts[id].dataset.state;
       at[id] = [(r.left - sr.left) / sr.width * 100, (r.top - sr.top) / sr.height * 100];
     }
-    return { scene: cur, playing, played, states, at, transition: getComputedStyle(parts[D.parts[0]]).transitionDuration };
+    return { scene: cur, playing, played, states, at, fired: fired.slice(), transition: getComputedStyle(parts[D.parts[0]]).transitionDuration };
   }
   function fonts() {
     let min = 99;
@@ -356,11 +482,24 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
         return {
           line: lineEl.textContent,
           changed: Array.from(stage.querySelectorAll('.me-part[data-changed]')).map(e => e.dataset.part),
-          narrator: narrator.dataset.state,
-          narratorShowsOnlyItsState: onlyItsState(narrator),
+          speaker: bubble.dataset.speaker,
+          who: who.textContent,
+          poses: Object.fromEntries(Object.entries(cast).map(([id, e]) => [id, e.dataset.pose])),
+          frames: Object.fromEntries(Object.entries(cast).map(([id, e]) => [id, parseFloat(getComputedStyle(e.querySelector('.me-body')).backgroundPositionX)])),
           partsShowOnlyTheirStates: D.parts.every(id => onlyItsState(parts[id]))
         };
       }) };
+    } else if (params.has('cast')) {
+      const bubbleOnStage = D.scenes.map((s, i) => { openChapter(i); return bubble.parentElement === stage; });
+      openChapter(0);
+      await wait(100);
+      const sr = stage.getBoundingClientRect();
+      out = { bubbleOnStage, cast: Object.fromEntries(Object.entries(cast).map(([id, e]) => {
+        const r = e.getBoundingClientRect(), body = e.querySelector('.me-body');
+        return [id, { onStage: e.parentElement === stage, besideBubble: e.closest('.me-say') === say,
+                      at: [(r.left - sr.left) / sr.width * 100, (r.top - sr.top) / sr.height * 100],
+                      width: body.getBoundingClientRect().width, pixelated: getComputedStyle(body).imageRendering === 'pixelated' }];
+      })) };
     } else if (params.has('chapter')) {
       await wait(120);
       chapters[Number(params.get('chapter'))].click();

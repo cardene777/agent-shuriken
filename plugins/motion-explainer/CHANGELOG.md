@@ -5,6 +5,10 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The narrator is now a cast of one to four pixel-art bodies the skill ships (robot, android, guide, and drone), each a sheet of four poses: wait, explain, surprised, and cheer. A spec names a body per cast member instead of drawing a narrator, and each scene names its `speaker` and `pose`; the speaker talks in a speech bubble beside it, large under the stage or next to the parts when the spec places it on the stage, and the rest of the cast waits
+- A scene can name an effect: a burst behind a part and one sound-effect word next to it. Moved parts land in smoke puffs without any field. The effects come from the core of Sakuga VFX by finktheartist, bundled unmodified under the MIT license with its license and the commit it was copied from, and bursts are drawn behind the parts so they never hide a drawing. Reduced motion and opening a chapter fire no effect
+- `motion_explainer.py check` refuses an unknown body, a body cast twice, more than four cast members, a cast member placed past the edge of the stage, an unknown speaker or pose, an effect on an unknown part or with an unknown word, and the old `narrator` field, naming the field of each problem
+
 ## [0.1.0] - 2026-11-27
 
 - The `motion-explainer` skill picks one running example that passes the whole mechanism, splits it into scenes that change one thing each, writes an art direction for the subject, and draws the narrator and every part as SVG in that direction, with every state of a drawing in one file
