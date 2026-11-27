@@ -1,0 +1,77 @@
+{
+  "lang": "en",
+  "title": "How DNS finds an address",
+  "point": "DNS turns a name such as example.com into an IP address by asking a chain of servers, from the root down to the server that holds the name.",
+  "overview": [
+    {
+      "name": "Why names need DNS",
+      "point": "Computers connect to each other by IP address while people remember names, so something must turn one into the other."
+    },
+    {
+      "name": "The whole lookup",
+      "point": "A resolver asks a root server, then a top-level domain server, then the authoritative server, and hands the address back to the browser."
+    }
+  ],
+  "chapters": [
+    {
+      "name": "The lookup",
+      "point": "One lookup passes through four kinds of servers, and each of them points to the next one until the address is found.",
+      "pages": [
+        {
+          "name": "Resolver",
+          "point": "The resolver asks the other servers on behalf of the browser and keeps their answers for later lookups.",
+          "sections": [
+            {
+              "name": "Cache",
+              "point": "A resolver answers from its cache for as long as the TTL of the record allows."
+            },
+            {
+              "name": "Recursive queries",
+              "point": "Without a cached answer, the resolver asks the root, the top-level domain, and the authoritative servers in turn."
+            }
+          ]
+        },
+        {
+          "name": "Root and TLD servers",
+          "point": "The root servers point to the server of the top-level domain, and that server points to the server that holds the name.",
+          "sections": [
+            {
+              "name": "Root servers",
+              "point": "The root servers know where the server of every top-level domain such as `.com` is."
+            },
+            {
+              "name": "TLD servers",
+              "point": "The server of a top-level domain knows which authoritative server holds each name under it."
+            }
+          ]
+        },
+        {
+          "name": "Authoritative server",
+          "point": "The authoritative server holds the records of the name and gives the final answer.",
+          "sections": [
+            {
+              "name": "A and AAAA records",
+              "point": "An `A` record holds an IPv4 address and an `AAAA` record holds an IPv6 address."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Reference",
+      "point": "The terms of this explainer are listed with one sentence each.",
+      "pages": [
+        {
+          "name": "Terms",
+          "point": "Each term that the lookup uses is explained in one sentence.",
+          "sections": [
+            {
+              "name": "TTL",
+              "point": "TTL is the number of seconds a resolver may keep a record before it asks again."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

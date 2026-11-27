@@ -359,6 +359,178 @@ PY
   done
 }
 
+OUTLINE="$SKILL/scripts/outline.py"
+DESIGN="$SKILL/references/outline-design.md"
+
+# The outline comes before the plan of the figures: the skill writes outline.json, draws it with
+# scripts/outline.py, opens it in a browser, and writes nothing before the person approves it (#578).
+outline_first() {
+  [ -f "$DOC" ] || { why="SKILL.md is missing"; return 1; }
+  local outline figures guide command phrase
+  outline="$(grep -n -m1 -E '^## .*[Oo]utline' "$DOC" | cut -d: -f1)"
+  figures="$(grep -n -m1 -E '^## .*figures' "$DOC" | cut -d: -f1)"
+  guide="$(first_line 'layout: guide')"
+  command="$(first_line 'scripts/outline.py')"
+  [ -n "$outline" ] || { why="SKILL.md has no heading about the outline"; return 1; }
+  [ -n "$figures" ] && [ -n "$guide" ] || { why="SKILL.md lacks the plan of the figures or layout: guide"; return 1; }
+  [ "$outline" -lt "$figures" ] && [ "$outline" -lt "$guide" ] \
+    || { why="the outline heading (line $outline) comes after the plan of the figures (line $figures) or the guide Markdown (line $guide)"; return 1; }
+  [ -n "$command" ] && [ "$command" -gt "$outline" ] && [ "$command" -lt "$figures" ] \
+    || { why="SKILL.md does not run scripts/outline.py in the outline step"; return 1; }
+  for phrase in 'outline.json' 'in a browser' 'approves the outline'; do
+    grep -q -F -- "$phrase" "$DOC" || { why="SKILL.md does not say '$phrase'"; return 1; }
+  done
+}
+
+# Writes the test outline, changed by one line of Python that edits `o`, into its own folder, and runs
+# the outline script on it. The output goes to out.txt in the same folder.
+outline_run() {
+  local dir="$T/outline-$1"
+  mkdir -p "$dir"
+  python3 - "$HERE/fixtures/outline.json" "$dir/outline.json" "$2" <<'PY'
+import json, sys
+o = json.load(open(sys.argv[1], encoding="utf-8"))
+exec(sys.argv[3])
+json.dump(o, open(sys.argv[2], "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+PY
+  python3 "$OUTLINE" "$dir/outline.json" >"$dir/out.txt" 2>&1
+}
+
+# The test outline becomes one light page: the title and its point first, every chapter a closed toggle
+# with its point, one button for every chapter, and the sections of each page as headings with their
+# points under them, with no bullet list or table (#578).
+outline_draws() {
+  [ -f "$OUTLINE" ] || { why="scripts/outline.py is missing"; return 1; }
+  local dir="$T/outline-ok" out
+  outline_run ok 'pass' || { why="outline.py refused the test outline: $(head -2 "$dir/out.txt" | tr '\n' ' ')"; return 1; }
+  [ -f "$dir/outline.html" ] || { why="outline.py wrote no outline.html next to outline.json"; return 1; }
+  out="$(python3 - "$dir/outline.json" "$dir/outline.html" <<'PY'
+import html, json, re, sys
+o = json.load(open(sys.argv[1], encoding="utf-8"))
+page = open(sys.argv[2], encoding="utf-8").read()
+def text(s):
+    return re.sub(r"`([^`]+)`", r"<code>\1</code>", html.escape(s))
+def fail(message):
+    print(message); sys.exit(1)
+if '<meta name="color-scheme" content="light">' not in page:
+    fail("the page does not declare a light color scheme")
+if "prefers-color-scheme" in page or re.search(r"color-scheme:\s*[^;}]*dark", page):
+    fail("the page has a dark mode")
+first = page.find("<details")
+if first < 0:
+    fail("the page has no chapter toggles")
+head = page[:first]
+if "<h1>%s</h1>" % html.escape(o["title"]) not in head:
+    fail("the title is not the h1 before the chapters")
+if text(o["point"]) not in head:
+    fail("the point of the title is not before the chapters")
+chapters = re.findall(r'<details class="chapter"[^>]*>\s*<summary>(.*?)</summary>', page, re.S)
+if len(chapters) != len(o["chapters"]):
+    fail("the page has %d chapter toggles for %d chapters" % (len(chapters), len(o["chapters"])))
+if re.search(r"<details[^>]*\bopen\b", page):
+    fail("a chapter toggle starts open")
+for summary, chapter in zip(chapters, o["chapters"]):
+    if html.escape(chapter["name"]) not in summary or text(chapter["point"]) not in summary:
+        fail("the toggle of %s does not show its name and its point" % chapter["name"])
+if len(re.findall(r"<button\b", page)) != 1:
+    fail("the page does not have exactly one button")
+if "Open all chapters" not in page:
+    fail("the button does not say Open all chapters")
+for chapter in o["chapters"]:
+    for p in chapter["pages"]:
+        for s in p["sections"]:
+            pair = r"<dt>%s</dt>\s*<dd>%s</dd>" % (re.escape(html.escape(s["name"])), re.escape(text(s["point"])))
+            if not re.search(pair, page):
+                fail("the section %s is not its heading with its point under it" % s["name"])
+for tag in ("ul", "ol", "li", "table"):
+    if re.search(r"<%s\b" % tag, page):
+        fail("the page has a <%s> element" % tag)
+PY
+)" || { why="$out"; return 1; }
+}
+
+# Each change of the test outline must be refused with exit 1, write no page, and name the reason.
+# Arguments: the folder name, the reason the output must hold, then pairs of a case name and its edit.
+outline_refuses() {
+  [ -f "$OUTLINE" ] || { why="scripts/outline.py is missing"; return 1; }
+  local reason="$1" name edit status
+  shift
+  while [ "$#" -gt 1 ]; do
+    name="$1" edit="$2"
+    shift 2
+    outline_run "$name" "$edit"
+    status=$?
+    [ "$status" -eq 1 ] || { why="outline.py exited $status for $name"; return 1; }
+    [ ! -e "$T/outline-$name/outline.html" ] || { why="outline.py wrote a page for $name"; return 1; }
+    grep -q -F -- "$reason" "$T/outline-$name/out.txt" || { why="outline.py did not say '$reason' for $name"; return 1; }
+  done
+}
+
+refuses_question_or_number() {
+  outline_refuses 'question mark or number' \
+    title-question 'o["title"] += "?"' \
+    chapter-question 'o["chapters"][0]["name"] += "?"' \
+    section-wide-question 'o["chapters"][0]["pages"][0]["sections"][0]["name"] += "？"' \
+    page-dash-number 'o["chapters"][0]["pages"][0]["name"] = "1-1 " + o["chapters"][0]["pages"][0]["name"]' \
+    chapter-dot-number 'o["chapters"][1]["name"] = "2. " + o["chapters"][1]["name"]'
+}
+
+refuses_empty_or_repeated_point() {
+  outline_refuses 'point' \
+    empty-point 'o["chapters"][0]["point"] = ""' \
+    blank-point 'o["chapters"][0]["pages"][1]["sections"][0]["point"] = "   "' \
+    missing-point 'del o["overview"][0]["point"]' \
+    title-point-again 'o["chapters"][1]["point"] = o["point"]' \
+    section-point-again 'o["chapters"][0]["pages"][0]["sections"][1]["point"] = o["chapters"][0]["pages"][0]["sections"][0]["point"]'
+}
+
+refuses_bullet() {
+  outline_refuses 'bullet' \
+    dash-point 'o["chapters"][0]["pages"][0]["point"] = "- " + o["chapters"][0]["pages"][0]["point"]' \
+    star-name 'o["overview"][0]["name"] = "* " + o["overview"][0]["name"]' \
+    middle-dot-point 'o["chapters"][0]["pages"][0]["sections"][0]["point"] = "・" + o["chapters"][0]["pages"][0]["sections"][0]["point"]' \
+    later-line-bullet 'o["chapters"][1]["pages"][0]["sections"][0]["point"] += "\n- another item"'
+}
+
+# The skill gives the writer the reader-first rules of the outline and the explainer, and no longer writes
+# headings as questions or asks who reads the page (#578).
+reader_first_rules() {
+  [ -f "$DOC" ] || { why="SKILL.md is missing"; return 1; }
+  local phrase
+  for phrase in 'short noun headings' 'without question marks or numbers' 'its point in one sentence' \
+    'never repeat a sentence' 'paragraphs and tables instead of bullet lists' 'lines about the reader, the goals, or the length'; do
+    grep -q -i -F -- "$phrase" "$DOC" || { why="SKILL.md does not say '$phrase'"; return 1; }
+  done
+  ! grep -q -F -- '<question>?' "$DOC" || { why="SKILL.md still writes a heading as a question"; return 1; }
+  ! grep -q -F -- 'who reads the page' "$DOC" || { why="SKILL.md still asks who reads the page"; return 1; }
+}
+
+# The design rules of the outline page live in a reference file the skill links, and every rule in its
+# tables names a source URL (#578).
+design_sources() {
+  [ -f "$DESIGN" ] || { why="references/outline-design.md is missing"; return 1; }
+  grep -q -F 'references/outline-design.md' "$DOC" || { why="SKILL.md does not link references/outline-design.md"; return 1; }
+  local out
+  out="$(python3 - "$DESIGN" <<'PY'
+import re, sys
+lines = open(sys.argv[1], encoding="utf-8").read().split("\n")
+separator = re.compile(r"^\|\s*:?-{3,}")
+rows = []
+for i, line in enumerate(lines):
+    if not line.startswith("|") or separator.match(line):
+        continue
+    if i + 1 < len(lines) and separator.match(lines[i + 1]):
+        continue
+    rows.append((i + 1, line))
+if len(rows) < 10:
+    print("outline-design.md has %d rules in its tables" % len(rows)); sys.exit(1)
+for n, line in rows:
+    if "https://" not in line:
+        print("outline-design.md:%d names no source URL" % n); sys.exit(1)
+PY
+)" || { why="$out"; return 1; }
+}
+
 # The repository's manifest check, relayed from scripts/check.sh.
 repo_manifests() {
   local out
@@ -389,6 +561,13 @@ check "the skill pins a dragon with the docs menu" pins_docs_menu_dragon
 check "the skill describes question pages and the docs menu" describes_question_pages
 check "the skill asks for one figure and headings per question" asks_one_figure
 check "mechanism-explainer follows rules of japanese-writing for Japanese pages" follows_japanese_rules
+check "the skill plans the outline and shows it before writing" outline_first
+check "the outline script draws a light page with closed chapter toggles" outline_draws
+check "the outline script refuses a question or a numbered name" refuses_question_or_number
+check "the outline script refuses an empty or repeated point" refuses_empty_or_repeated_point
+check "the outline script refuses a bullet" refuses_bullet
+check "the skill gives the reader-first writing rules" reader_first_rules
+check "the skill keeps the outline design rules with their sources" design_sources
 check "plugin manifests agree" repo_manifests
 
 printf 'mechanism-explainer: ran %d checks, %d failed, %d skipped\n' "$((PASS + FAIL + SKIP))" "$FAIL" "$SKIP"
