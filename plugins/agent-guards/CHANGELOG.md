@@ -5,6 +5,8 @@ Versions follow semantic versioning: a major release changes how the plugin is c
 
 ## [Unreleased]
 
+- The delete hook also refuses writing over a place in `~/.config/agent-guards/protected-paths`: `cp`, `install`, `ln`, `rsync`, `scp`, or `mv` into it (also with `-t` or `--target-directory`), `tee`, `dd of=`, `sed -i`, `truncate`, and redirects into it, and `git rm` of it. Copying out of the place and the agent's Write and Edit tools stay allowed
+
 ## [0.3.0] - 2026-11-27
 
 - The secret write hook refuses a write through a file that has a second name (hard link), since a harmless name can overwrite a key file under its other name. Turn it off with `AGENT_GUARDS_HARD_LINKS=off`

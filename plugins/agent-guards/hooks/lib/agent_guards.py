@@ -659,13 +659,17 @@ def patch_files(text):
 WRITES_THROUGH = {"tee", "cp", "scp", "truncate", "dd"}
 
 
+def redirect_write_targets(seg):
+    """The files the redirects of a simple command write. `2>&1` points a stream at another stream."""
+    return [seg[i + 1] for i, w in enumerate(seg[:-1])
+            if w in WRITE_REDIRECTS and not (w == ">&" and (seg[i + 1].isdigit() or seg[i + 1] == "-"))]
+
+
 def write_through_targets(seg):
     cmd, _ = command_of(seg)
-    redirected = [seg[i + 1] for i, w in enumerate(seg[:-1])
-                  if w in WRITE_REDIRECTS and not (w == ">&" and (seg[i + 1].isdigit() or seg[i + 1] == "-"))]
     if cmd in WRITES_THROUGH:
         return write_targets(seg)
-    return redirected
+    return redirect_write_targets(seg)
 
 
 def second_name(word, cwd):
@@ -1580,6 +1584,44 @@ def delete_targets(cmd, args):
 CHMOD_OPTION = re.compile(r"^(-[RfvhHLPc]+|--[a-z-]+(=.*)?)$")
 
 
+def target_directory(args):
+    """The folder given with `-t <folder>`, `--target-directory <folder>`, or `--target-directory=<folder>`."""
+    for i, a in enumerate(args):
+        if a in ("-t", "--target-directory") and i + 1 < len(args):
+            return args[i + 1]
+        if a.startswith("--target-directory="):
+            return a.split("=", 1)[1]
+    return None
+
+
+def overwrite_targets(seg):
+    """The places a simple command writes over: its redirects and the files `write_targets` names, or the
+    folder a copy names with `-t`, whose last word is then a source."""
+    cmd, args = command_of(seg)
+    folder = target_directory(args) if cmd in LAST_IS_TARGET else None
+    if folder is None:
+        return write_targets(seg)
+    return redirect_write_targets(seg) + [folder]
+
+
+def git_rm_targets(args, cwd):
+    """The folder `git rm` paths are relative to, and the paths it removes."""
+    sub, rest, folder = git_parts(args)
+    base = cwd
+    if folder is not None:
+        path = expand(folder)
+        base = absolute(path, cwd) if path else cwd
+    if sub != "rm":
+        return base, []
+    paths, past_options = [], False
+    for a in rest:
+        if not past_options and a == "--":
+            past_options = True
+        elif past_options or not a.startswith("-"):
+            paths.append(a)
+    return base, paths
+
+
 def delete_hook(event):
     cwd = event.get("cwd") or os.getcwd()
     text = command_text(event)
@@ -1595,6 +1637,18 @@ def delete_hook(event):
             if (recursive or cmd == "mv") and broad(target, cwd):
                 raise Refusal("broad delete", f"`{target}` would remove a whole folder tree such as the root, "
                               "the home folder, or the current folder." + run_it_yourself(text))
+        # Copying, linking, or writing over a file replaces what a protected place holds as surely as
+        # deleting it, so the places a command writes are held to the same list.
+        for target in overwrite_targets(seg):
+            if protected(target, cwd):
+                raise Refusal("protected path", f"`{target}` is in your protected-paths list, and the command "
+                              "would write over it." + run_it_yourself(text))
+        if cmd == "git":
+            base, paths = git_rm_targets(args, cwd)
+            for target in paths:
+                if protected(target, base):
+                    raise Refusal("protected path", f"`git rm` would remove `{target}`, which is in your "
+                                  "protected-paths list." + run_it_yourself(text))
         if cmd in ("chmod", "chown", "chgrp") and ("--recursive" in args or "R" in short_flags(args)):
             # The first word is the mode or the owner; the rest are the places it changes. A mode can
             # start with `-`, as in `-w`, so only the options of these commands are skipped.

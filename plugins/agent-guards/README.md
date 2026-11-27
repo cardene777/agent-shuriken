@@ -56,7 +56,7 @@ A missing file adds nothing.
 | File | What it does |
 |---|---|
 | `~/.config/agent-guards/secret-paths` | Its places are refused for reading and writing, with everything inside them |
-| `~/.config/agent-guards/protected-paths` | Its places are refused for deleting, moving, and `chmod -R`, with everything inside them |
+| `~/.config/agent-guards/protected-paths` | Its places are refused for deleting, moving, `chmod -R`, writing over them with a copy, a link, `tee`, `dd`, or a redirect, and `git rm`, with everything inside them. Reading from them and the agent's own file tools stay allowed |
 | `~/.config/agent-guards/own-owners` | Each line names a GitHub user or organization that is yours, and sends to repositories of other owners are refused. Without it, no send is refused for where it goes |
 
 ```

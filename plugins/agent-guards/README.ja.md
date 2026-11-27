@@ -62,7 +62,7 @@ Codexでは、その命令を端末で打ちます。
 | ファイル | 働き |
 |---|---|
 | `~/.config/agent-guards/secret-paths` | 置き場の中身ごと、読み取りと書き込みを断ります |
-| `~/.config/agent-guards/protected-paths` | 置き場の中身ごと、削除と移動と`chmod -R`を断ります |
+| `~/.config/agent-guards/protected-paths` | 置き場の中身ごと、削除と移動と`chmod -R`と、コピーやリンクや`tee`や`dd`やリダイレクトでの上書きと、`git rm`を断ります。そこから読むことと、エージェント自身のfileの道具での書き込みは通します |
 | `~/.config/agent-guards/own-owners` | 各行に自分の物であるGitHubのユーザーか組織を書き、ほかの持ち主のリポジトリへの送信を断ります。無ければ、送り先で断る送信はありません |
 
 ```

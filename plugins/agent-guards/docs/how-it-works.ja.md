@@ -224,6 +224,8 @@ RPCのURLのpathはAPIの鍵を持つことがあるので、断る時はホス�
 | ルート、ホームのフォルダ、今のフォルダ、`..`、`*`、`/usr`や`/Users`のような最上位のシステムのフォルダに対する`rm -r`か`mv` | `rm -rf /`、`rm -rf ~`、`rm -rf .` |
 | それらの置き場から始める`-delete`か`-exec rm`付きの`find`。今のフォルダから始める時は、`-name`、`-path`、`-regex`が在れば通す | `find / -delete` |
 | `protected-paths`の一覧の置き場かその中に対する`rm`、`mv`、`rmdir`、`unlink`、`find -delete` | `rm ~/work/keep/a.txt` |
+| `protected-paths`の一覧の置き場かその中への上書き。そこを書き先にする`cp`、`install`、`ln`、`rsync`、`scp`、`mv` (`-t`か`--target-directory`で書き先を渡す形も含む)、`tee`、`dd of=`、`sed -i`、`truncate`と、リダイレクトの`>`、`>>`、`&>`。置き場から外へのコピーと、エージェントのWriteとEditの道具は通す | `cp build/claude ~/.local/bin/claude`、`echo x > ~/work/keep/a.txt` |
+| `protected-paths`の一覧の置き場かその中に対する`git rm`。`-r`、`--cached`、`git -C <folder>`の形も含む | `git rm -r ~/work/keep` |
 | それらの置き場か`protected-paths`の一覧の置き場に対する、`-R`か`--recursive`付きの`chmod`、`chown`、`chgrp`。木の全体から権限を外すと、消した時と同じく入れなくなるため。最初の語は権限か持ち主で、`-w`のような権限も権限として読む | `chmod -R 000 ~`、`chown -R nobody ~` |
 
 ## システム
