@@ -142,6 +142,8 @@ RUNNERS = {
 }
 FIND_EXEC = {"-exec", "-execdir", "-ok", "-okdir"}
 ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+# Shell words that run the command written after them, so the command of a part is the word after.
+SHELL_KEYWORDS = {"if", "then", "else", "elif", "do", "while", "until", "!", "coproc"}
 
 
 def strip_heredocs(text):
@@ -222,6 +224,107 @@ def unquoted_newlines_to_semicolons(text):
     return "".join(out)
 
 
+HEREDOC_OPEN = re.compile(r"<<(-?)\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\2")
+
+
+def skip_heredoc_bodies(text, i, pending):
+    """The index after the here-document bodies that start at text[i], the line after their `<<WORD`."""
+    n = len(text)
+    for word, tabs in pending:
+        while i < n:
+            end = text.find("\n", i)
+            end = n if end < 0 else end
+            line = text[i:end]
+            i = end + 1
+            if (line.lstrip("\t") if tabs else line) == word:
+                break
+    return i
+
+
+def close_paren(text, i):
+    """The index of the `)` that closes the substitution whose text starts at text[i], or the end of the
+    text when none does. Quotes, nested parentheses, comments, and here-document bodies are skipped."""
+    n, depth, quote, pending = len(text), 1, None, []
+    while i < n:
+        c = text[i]
+        if quote == "'":
+            quote = None if c == "'" else quote
+            i += 1
+            continue
+        if c == "\\":
+            i += 2
+            continue
+        if quote == '"':
+            quote = None if c == '"' else quote
+            i += 1
+            continue
+        if c in ("'", '"'):
+            quote = c
+        elif c == "#" and (i == 0 or text[i - 1] in " \t\n;&|("):
+            end = text.find("\n", i)
+            i = n if end < 0 else end
+            continue
+        elif text.startswith("<<", i) and not text.startswith("<<<", i):
+            m = HEREDOC_OPEN.match(text, i)
+            if m:
+                pending.append((m.group(3), m.group(1) == "-"))
+                i = m.end()
+                continue
+        elif c == "\n" and pending:
+            i = skip_heredoc_bodies(text, i + 1, pending)
+            pending = []
+            continue
+        elif c == "(":
+            depth += 1
+        elif c == ")":
+            depth -= 1
+            if depth == 0:
+                return i
+        i += 1
+    return n
+
+
+def substitution_texts(text):
+    """The texts of the substitutions a shell text runs: `$(...)`, backticks, `<(...)`, and `>(...)`,
+    also inside double quotes. Text in single quotes and comments is not read, and `$((...))` is
+    arithmetic. The bodies of here-documents opened outside quotes are already gone from the text."""
+    out, i, n, quote = [], 0, len(text), None
+    while i < n:
+        c = text[i]
+        if quote == "'":
+            quote = None if c == "'" else quote
+            i += 1
+            continue
+        if c == "\\":
+            i += 2
+            continue
+        if c == "'" and quote is None:
+            quote = "'"
+        elif c == '"':
+            quote = None if quote == '"' else '"'
+        elif c == "#" and quote is None and (i == 0 or text[i - 1] in " \t\n;&|()"):
+            end = text.find("\n", i)
+            i = n if end < 0 else end
+            continue
+        elif c == "`":
+            end = i + 1
+            while end < n and text[end] != "`":
+                end += 2 if text[end] == "\\" else 1
+            out.append(text[i + 1:end].replace("\\`", "`"))
+            i = end + 1
+            continue
+        elif text.startswith("$((", i):
+            i += 3
+            continue
+        elif text.startswith("$(", i) or (quote is None and text.startswith(("<(", ">("), i)):
+            end = close_paren(text, i + 2)
+            out.append(text[i + 2:end])
+            i = end + 1
+            continue
+        i += 1
+    return out
+
+
 def tokens(text):
     lexer = shlex.shlex(unquoted_newlines_to_semicolons(strip_heredocs(text)), posix=True, punctuation_chars=";&|()<>")
     lexer.whitespace_split = True
@@ -233,7 +336,8 @@ def tokens(text):
 
 
 def segments(text, depth=0):
-    """Simple commands of a shell text, each a list of words, with the commands they run inside them."""
+    """Simple commands of a shell text, each a list of words, with the commands they run inside them and
+    the commands of their substitutions, up to three levels deep."""
     words = tokens(text)
     if words is None:
         return None
@@ -248,6 +352,9 @@ def segments(text, depth=0):
     nested = []
     for seg in out:
         nested.extend(nested_segments(seg, depth))
+    if depth < 3:
+        for inner in substitution_texts(strip_heredocs(text)):
+            nested.extend(segments(inner, depth + 1) or [])
     return out + nested
 
 
@@ -319,14 +426,15 @@ def env_split_string(seg, i):
 
 
 def command_of(seg):
-    """The command name of a simple command and its arguments, past assignments and wrappers. The
+    """The command name of a simple command and its arguments, past assignments, the shell words of
+    SHELL_KEYWORDS, and wrappers. The
     value of a wrapper option is skipped with it, and the string of `env -S` is read as the words that
     follow, as env splits it."""
     i = 0
     while i < len(seg):
         w = seg[i]
         name = os.path.basename(w)
-        if ASSIGNMENT.match(w):
+        if ASSIGNMENT.match(w) or w in SHELL_KEYWORDS:
             i += 1
             continue
         if name not in WRAPPERS:
