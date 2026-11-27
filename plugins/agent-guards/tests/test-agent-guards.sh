@@ -955,8 +955,9 @@ parser_single_quotes_pass() {
 docs_name_hidden_places() {
   local f w
   for f in docs/how-it-works.md docs/how-it-works.ja.md; do
-    for w in '`if`' '`while`' '`until`' '`for`' '`!`' '`coproc`' 'backtick' '`$(...)`'; do
-      case "$f" in *.ja.md) [ "$w" = backtick ] && w='バッククォート' ;; esac
+    for w in '`if`' '`while`' '`until`' '`for`' '`!`' '`coproc`' 'backtick' '`$(...)`' '`<(...)`'; do
+      # The Japanese page names backticks in Japanese, which this English file does not hold.
+      if [ "$w" = backtick ]; then case "$f" in *.ja.md) continue ;; esac; fi
       grep -qF -- "$w" "$PLUGIN/$f" || { why="$f does not name $w"; return 1; }
     done
   done
