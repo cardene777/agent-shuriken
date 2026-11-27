@@ -1703,6 +1703,167 @@ def system_commands(event):
                       "not run it." + run_it_yourself(text))
 
 
+# ---------------------------------------------------------------------------------------------
+# processes: commands that end processes
+
+# Processes the desktop session, logins, or the machine itself stop without. Linux names also appear
+# cut to the 15 characters `ps` shows of them.
+SYSTEM_PROCESSES = {
+    "launchd", "kernel_task", "WindowServer", "loginwindow", "Finder", "Dock", "SystemUIServer", "cfprefsd",
+    "coreaudiod", "bluetoothd", "mds", "mds_stores", "securityd", "tccd", "notifyd", "trustd", "apsd", "syslogd",
+    "installd", "mdmclient", "nsurlsessiond", "configd", "powerd", "hidd", "opendirectoryd", "distnoted", "lsd",
+    "sandboxd", "logd", "fseventsd", "diskarbitrationd", "coreservicesd", "UserEventAgent",
+    "init", "systemd", "systemd-journald", "systemd-journal", "systemd-logind", "systemd-udevd", "systemd-resolved",
+    "systemd-resolve", "dbus-daemon", "dbus-broker", "Xorg", "Xwayland", "gnome-shell", "kwin_x11", "kwin_wayland",
+    "plasmashell", "gdm", "gdm3", "sddm", "lightdm", "NetworkManager", "polkitd", "kthreadd",
+    "sshd",
+}
+# `$!` is the agent's own last background job and `$$` its own shell, so both name a known process.
+KNOWN_PID_WORDS = {"$!", "$$"}
+# Options of pkill and killall that take a value, so the value is not read as a name or a pattern.
+PKILL_VALUES = {"-u", "-U", "-G", "-g", "-P", "-s", "-t", "-F", "--signal", "--euid", "--uid", "--group", "--pgroup",
+                "--parent", "--session", "--terminal", "--pidfile"}
+KILLALL_VALUES = {"-u", "-t", "-s", "-c", "--user", "--signal", "-o", "-y", "--older-than", "--younger-than"}
+USER_OPTIONS = {"-u", "-U", "--user", "--euid", "--uid"}
+SIGNAL_OPTION = re.compile(r"^-(?:[0-9]+|[A-Z][A-Z0-9+-]*|SIG[A-Z0-9+-]+)$")
+
+
+def process_names(pids):
+    """The names `ps` reports for the PIDs, as {pid: name}. A PID with no process, or a machine
+    without `ps`, gives no name, and the command goes on to the agent's own permission rules."""
+    if not pids:
+        return {}
+    try:
+        out = subprocess.run(["ps", "-o", "pid=,comm=", "-p", ",".join(str(p) for p in pids)],
+                             capture_output=True, text=True, timeout=5).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return {}
+    names = {}
+    for line in out.splitlines():
+        parts = line.strip().split(None, 1)
+        if len(parts) == 2 and parts[0].isdigit():
+            names[int(parts[0])] = os.path.basename(parts[1].strip())
+    return names
+
+
+def matching_pids(pgrep_args):
+    """The PIDs `pgrep` matches with the given options and pattern."""
+    try:
+        out = subprocess.run(["pgrep", *pgrep_args], capture_output=True, text=True, timeout=5).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return []
+    return [int(w) for w in out.split() if w.isdigit()]
+
+
+def unreadable(word):
+    return word not in KNOWN_PID_WORDS and ("$" in word or "`" in word)
+
+
+def kill_targets(args):
+    """The targets of `kill` past its signal option, and whether the signal is 0, which sends nothing.
+    None for `kill -l`, which only lists the signals."""
+    targets, signal, i = [], None, 0
+    while i < len(args):
+        a = args[i]
+        if a == "--":
+            targets.extend(args[i + 1:])
+            break
+        if signal is None and (a in ("-l", "-L", "--list") or a.startswith("--list=")):
+            return None, False
+        if signal is None and a in ("-s", "-n", "--signal"):
+            signal = args[i + 1] if i + 1 < len(args) else ""
+            i += 2
+            continue
+        if signal is None and a.startswith("--signal="):
+            signal = a.split("=", 1)[1]
+            i += 1
+            continue
+        if signal is None and a.startswith("-") and len(a) > 1:
+            signal = a[1:]
+            i += 1
+            continue
+        targets.append(a)
+        i += 1
+    return targets, signal in ("0", "SIG0")
+
+
+def selector_words(args, values):
+    """The names or patterns of `pkill` and `killall` past their options, and whether an option picks a user."""
+    words, by_user, i = [], False, 0
+    while i < len(args):
+        a = args[i]
+        if a == "--":
+            words.extend(args[i + 1:])
+            break
+        if a in values:
+            by_user = by_user or a in USER_OPTIONS
+            i += 2
+            continue
+        if a.startswith("-") and len(a) > 1:
+            by_user = by_user or a.split("=", 1)[0] in USER_OPTIONS
+            i += 1
+            continue
+        words.append(a)
+        i += 1
+    return words, by_user
+
+
+def process_kills(event):
+    text = command_text(event)
+    segs = segments(text)
+    if segs is None:
+        return
+    for seg in segs:
+        cmd, args = command_of(seg)
+        if cmd not in ("kill", "pkill", "killall"):
+            continue
+        if cmd == "kill":
+            targets, probe = kill_targets(args)
+            selected, by_user = targets or [], False
+        else:
+            selected, by_user = selector_words(args, PKILL_VALUES if cmd == "pkill" else KILLALL_VALUES)
+            probe = False
+        for word in selected:
+            if unreadable(word):
+                raise Refusal("unreadable process target", f"`{cmd}` takes its target `{word}` from a variable or a "
+                              "command substitution, so the processes it ends cannot be checked. Look up the PID "
+                              "first and name it in the command." + run_it_yourself(text))
+        if cmd != "kill" and not selected:
+            if by_user:
+                raise Refusal("user-wide kill", f"`{cmd}` with only a user ends every process of that user, the agent "
+                              "and its terminal included." + run_it_yourself(text))
+            continue
+        if probe:
+            continue
+        if cmd == "kill":
+            pids = [int(w) for w in selected if re.fullmatch(r"-?[0-9]+", w)]
+            for pid in pids:
+                if pid <= 1:
+                    why = {1: "PID 1 is launchd or init, the parent of every process",
+                           0: "PID 0 is every process in the agent's own process group"}.get(
+                        pid, f"PID {pid} is a process group, and -1 is every process the user can signal")
+                    raise Refusal("whole-machine kill", f"`kill` of {why}." + run_it_yourself(text))
+        elif cmd == "killall" and not any(a in ("-m", "-r", "--regexp") for a in args):
+            hit = next((w for w in selected if w in SYSTEM_PROCESSES), None)
+            if hit:
+                raise Refusal("system process kill", f"`killall {hit}` ends a system process the desktop session or "
+                              "the machine needs." + run_it_yourself(text))
+            continue
+        else:
+            if cmd == "killall":
+                pids = [p for w in selected for p in matching_pids([w])]
+            else:
+                pids = matching_pids([a for a in args if not SIGNAL_OPTION.match(a)
+                                      and not a.startswith("--signal")])
+            if 1 in pids:
+                raise Refusal("system process kill", f"`{cmd}` matches PID 1, launchd or init." + run_it_yourself(text))
+        names = process_names(sorted(set(p for p in pids if p > 1)))
+        hit = next(((p, n) for p, n in names.items() if n in SYSTEM_PROCESSES), None)
+        if hit:
+            raise Refusal("system process kill", f"`{cmd}` would end `{hit[1]}` (PID {hit[0]}), a system process "
+                          "the desktop session or the machine needs." + run_it_yourself(text))
+
+
 HOOKS = {"secret-read": secret_read, "secret-write": secret_write, "onepassword": onepassword,
          "outbound": outbound, "git": git_hook, "delete": delete_hook}
 
@@ -1711,7 +1872,7 @@ HOOKS = {"secret-read": secret_read, "secret-write": secret_write, "onepassword"
 CHECKS = {hook: [(OFF_VARS[hook], run)] for hook, run in HOOKS.items()}
 CHECKS["secret-write"] += [("AGENT_GUARDS_HARD_LINKS", hard_links), ("AGENT_GUARDS_STARTUP_KEYS", startup_keys)]
 CHECKS["outbound"] += [("AGENT_GUARDS_CHAIN", chain_sends), ("AGENT_GUARDS_OTHER_REPOS", other_repos)]
-CHECKS["delete"] += [("AGENT_GUARDS_SYSTEM", system_commands)]
+CHECKS["delete"] += [("AGENT_GUARDS_SYSTEM", system_commands), ("AGENT_GUARDS_PROCESSES", process_kills)]
 
 
 def judged(hook, event):

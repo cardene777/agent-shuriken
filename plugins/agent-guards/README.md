@@ -1,13 +1,13 @@
 # Agent Guards
 
-Hooks that stop your agent, in Claude Code and Codex, before it reads or overwrites a key file, prints a value stored in 1Password, sends a key to GitHub, runs a force push, or deletes your home folder.
+Hooks that stop your agent, in Claude Code and Codex, before it reads or overwrites a key file, prints a value stored in 1Password, sends a key to GitHub, runs a force push, deletes your home folder, or ends the processes your desktop runs on.
 
 English · [日本語](README.ja.md)
 
 An agent that runs shell commands for you can read `~/.ssh/id_ed25519` or `.env` while it looks for a setting, paste what it read into an issue, run `git push --force` to get past a rejected push, or run `rm -rf ~ /tmp/build` with a stray space.
 Each of these takes one command, and none of them can be undone after the command runs.
 This plugin adds six hooks that run before every shell command, file read, and file edit the agent makes, and refuse those commands with a reason the agent can act on.
-Three of the hooks run more than one check in the same process, so the eleven checks start no more processes than the six hooks.
+Three of the hooks run more than one check in the same process, so the twelve checks start no more processes than the six hooks.
 The hooks never approve a command; anything they do not refuse goes on to your agent's own permission rules as before.
 
 ## Install
@@ -41,8 +41,9 @@ Each check turns off with its own variable; a check named after another one in p
 | Chain (outbound) | `cast send`, `cast publish`, the sending forms of `cast rpc` and `cast erc20-token`, `forge script --broadcast`, `forge create`, and `hardhat ignition deploy`, when the target is not `127.0.0.1`, `localhost`, or `::1`, or cannot be read | The same commands against a chain on this machine, and reads such as `cast call` | `AGENT_GUARDS_CHAIN=off` |
 | Other repositories (outbound) | With an `own-owners` list, issues, pull requests, comments, reviews, and title or body edits sent with `gh` or `gh api` to a repository of an owner not in the list, a `git push` to such a repository, GraphQL mutations, and repositories held in variables | Sends to your own owners, reads, label changes, and every send when there is no list | `AGENT_GUARDS_OTHER_REPOS=off` |
 | System (delete) | `mount`, `umount`, `chroot`, `pfctl`, `mkfs`, and `osascript` running a shell script with administrator privileges, also behind `sudo` and `bash -c` | The same names as arguments, such as `grep mount notes.txt`, and other `osascript` scripts | `AGENT_GUARDS_SYSTEM=off` |
+| Processes (delete) | `kill` of PID 1, PID 0, or a negative PID such as `-1`, which signals every process; `kill` of a PID that `ps` reports as a system process, such as launchd, WindowServer, Finder, systemd, or sshd; `pkill` or `killall` of a system process name or of a pattern that `pgrep` matches to one; `pkill` and `killall` that pick processes only by user; and targets taken from a variable or a command substitution, such as `kill $PID` or `kill $(pgrep -f node)`, also behind `sudo` and `bash -c` | `kill` of other PIDs, `kill $!`, `kill %1`, `kill -0`, `pkill -f` of a pattern that matches no system process, and `killall node` | `AGENT_GUARDS_PROCESSES=off` |
 
-A refused git, delete, system, chain, or other-repository command comes back with the same command after a leading `!`, so you can run it yourself when you mean it.
+A refused git, delete, system, process, chain, or other-repository command comes back with the same command after a leading `!`, so you can run it yourself when you mean it.
 In Claude Code, a line typed with a leading `!` runs in your shell as your own command; in Codex, run the command in a terminal.
 
 Set a variable in the `env` field of `~/.claude/settings.json` for Claude Code, or in your shell's startup file for Codex.
@@ -87,11 +88,12 @@ The line never holds the command or a value.
 | Python 3 | Every hook. Without it, every hook refuses each call and says to install Python 3 or turn the hook off |
 | `bash` | Starting the hooks |
 | `git` | Reading the staged change of a commit, and the remotes of a clone that a `gh` send or a push goes from |
+| `ps` and `pgrep` | Finding which processes a `kill`, `pkill`, or `killall` names. Without them, those commands go on to your agent's permission rules |
 
 ## What it reads, runs, and sends
 
 - It reads the event Claude Code or Codex sends before each shell command, file read, and file edit, the body files a `gh` command names, the staged change and the files `git add` names before a commit, the link count of each file a write names, and the three list files
-- It runs `git rev-parse`, `git diff`, and `git ls-files` in the repository of a commit, and `git config`, `git symbolic-ref`, and `git remote get-url` in the clone of a `gh` send or a push to read its remotes, and nothing else
+- It runs `git rev-parse`, `git diff`, and `git ls-files` in the repository of a commit, and `git config`, `git symbolic-ref`, and `git remote get-url` in the clone of a `gh` send or a push to read its remotes, and `ps` and `pgrep` to find which processes a `kill`, `pkill`, or `killall` names, and nothing else
 - It sends nothing anywhere and keeps nothing unless `AGENT_GUARDS_RECORD=on` is set
 - It is not uploaded to OpenAI's plugin directory, because a plugin with hooks is not accepted there; install it from this marketplace
 

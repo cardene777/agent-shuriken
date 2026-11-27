@@ -19,6 +19,39 @@ unset XDG_CONFIG_HOME XDG_DATA_HOME AGENT_GUARDS_SECRET_READ AGENT_GUARDS_SECRET
   AGENT_GUARDS_OUTBOUND AGENT_GUARDS_GIT AGENT_GUARDS_DELETE AGENT_GUARDS_RECORD AGENT_GUARDS_HARD_LINKS \
   AGENT_GUARDS_STARTUP_KEYS AGENT_GUARDS_SYSTEM AGENT_GUARDS_CHAIN AGENT_GUARDS_OTHER_REPOS GH_REPO
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+unset AGENT_GUARDS_PROCESSES
+
+# The process check asks `ps` and `pgrep` which process a PID or a pattern names. These stand-ins answer
+# from a fixed table (PID, name, command line), so no real process is looked at or signalled.
+PROCS="$T/procs"
+cat > "$PROCS" <<'TABLE'
+1 launchd /sbin/launchd
+88 WindowServer /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer -daemon
+400 Finder /System/Library/CoreServices/Finder.app/Contents/MacOS/Finder
+512 sshd sshd: user@pts/0
+4242 node node /work/app/node_modules/.bin/next dev
+4343 python3 python3 -m http.server 8000
+TABLE
+FAKEBIN="$T/fakebin"
+mkdir -p "$FAKEBIN"
+cat > "$FAKEBIN/ps" <<FAKE
+#!/usr/bin/env bash
+pid=""
+while [ \$# -gt 0 ]; do case "\$1" in -p) pid="\$2"; shift 2 ;; *) shift ;; esac; done
+awk -v p=",\$pid," 'index(p, "," \$1 ",") { print \$1, \$2; n++ } END { exit n ? 0 : 1 }' "$PROCS"
+FAKE
+cat > "$FAKEBIN/pgrep" <<FAKE
+#!/usr/bin/env bash
+mode=name pat=""
+while [ \$# -gt 0 ]; do
+  case "\$1" in -f) mode=full; shift ;; -x) mode=exact; shift ;; --) shift; pat="\$1"; shift ;; -*) shift ;; *) pat="\$1"; shift ;; esac
+done
+awk -v m="\$mode" -v p="\$pat" '{ a = \$0; sub(/^[^ ]+ [^ ]+ /, "", a)
+  if ((m == "full" && a ~ p) || (m == "exact" && \$2 == p) || (m == "name" && \$2 ~ p)) { print \$1; n++ } }
+  END { exit n ? 0 : 1 }' "$PROCS"
+FAKE
+chmod +x "$FAKEBIN/ps" "$FAKEBIN/pgrep"
+export PATH="$FAKEBIN:$PATH"
 
 PASS=0
 FAIL=0
@@ -771,6 +804,71 @@ system_args_pass() {
   done
 }
 
+# refused_with_bang <hook> <command>: the hook denies the command and shows it again after a leading `!`.
+refused_with_bang() {
+  local r
+  refuses "$1" "$(event_bash "$2")" "$2" || return 1
+  r="$(reason "$1" "$(event_bash "$2")")"
+  case "$r" in *"! $2"*) ;; *) why="the refusal of '$2' does not show '! $2'"; return 1 ;; esac
+}
+
+processes_pid_refused() {
+  local c
+  for c in 'kill 1' 'kill -9 1' 'kill 0' 'kill -9 -1' 'kill -s KILL -1' 'kill -- -4242' 'sudo kill -9 1' \
+    'bash -c "kill -9 -1"' 'kill -HUP 4242 1'; do
+    refused_with_bang delete "$c" || return 1
+  done
+}
+
+processes_system_refused() {
+  local c
+  for c in 'kill 88' 'kill -9 400' 'kill 4242 512' 'pkill Finder' 'pkill -x WindowServer' 'pkill -f launchd' \
+    'pkill -f .' 'killall Dock' 'killall -9 Finder' 'killall WindowServer' 'sudo killall systemd'; do
+    refused_with_bang delete "$c" || return 1
+  done
+}
+
+processes_unreadable_refused() {
+  local c r
+  for c in 'kill $PID' 'kill -9 "$pid"' 'kill $(pgrep -f node)' 'kill `cat app.pid`' 'pkill -f "$PATTERN"' \
+    'killall $NAME' 'kill -9 ${PIDS}'; do
+    refuses delete "$(event_bash "$c")" "$c" || return 1
+    r="$(reason delete "$(event_bash "$c")")"
+    case "$r" in *PID*) ;; *) why="the refusal of '$c' does not say to name the PID"; return 1 ;; esac
+  done
+}
+
+processes_user_only_refused() {
+  local c
+  for c in 'pkill -u alice' 'pkill -U 501' 'killall -u alice' 'pkill -9 -u alice' 'sudo killall -u alice'; do
+    refused_with_bang delete "$c" || return 1
+  done
+}
+
+processes_ordinary_pass() {
+  local c
+  for c in 'kill 4242' 'kill -TERM 4343' 'kill -9 4242 4343' 'kill $!' 'kill -9 $!' 'kill %1' 'kill -0 4242' \
+    'kill 99999' 'kill -l' 'pkill -f "next dev"' 'pkill node' 'pkill -u alice node' 'killall node' 'killall -9 python3' \
+    'grep kill notes.txt' 'echo pkill done' 'man killall'; do
+    passes delete "$(event_bash "$c")" "$c" || return 1
+  done
+}
+
+processes_turn_off() {
+  # Without the variable the same command is refused, so a pass below is the variable's doing.
+  refuses delete "$(event_bash 'kill 1')" 'kill 1 without AGENT_GUARDS_PROCESSES=off' || return 1
+  off_lets_only AGENT_GUARDS_PROCESSES delete "$(event_bash 'kill 1')" delete "$(event_bash 'rm -rf ~')"
+}
+
+docs_name_processes() {
+  local f w
+  for f in README.md README.ja.md docs/how-it-works.md docs/how-it-works.ja.md; do
+    for w in AGENT_GUARDS_PROCESSES '`ps`' '`pgrep`' '`killall`'; do
+      grep -qF -- "$w" "$PLUGIN/$f" || { why="$f does not name $w"; return 1; }
+    done
+  done
+}
+
 chain_remote_refused() {
   local c r
   for c in 'cast send 0xabc "f()" --rpc-url https://mainnet.example.org/v3/abc123 --ledger' 'cast send 0xabc "f()" --ledger' \
@@ -1016,6 +1114,13 @@ check "startup keys: a key written into a shell startup file is refused" startup
 check "startup keys: a startup file without a key passes" startup_without_key_passes
 check "system commands are refused with a ! command" system_commands_refused
 check "system command names as arguments and other osascript pass" system_args_pass
+check "process check refuses PID 1, 0, and negative PIDs with a ! command" processes_pid_refused
+check "process check refuses system processes found by ps and pgrep" processes_system_refused
+check "process check refuses targets from a variable or a command substitution" processes_unreadable_refused
+check "process check refuses pkill and killall that select only by user" processes_user_only_refused
+check "process check lets ordinary kill, pkill, and killall through" processes_ordinary_pass
+check "AGENT_GUARDS_PROCESSES=off turns only the process check off" processes_turn_off
+check "the docs name the process check and the commands it runs" docs_name_processes
 check "chain sends to a target that is not local are refused" chain_remote_refused
 check "chain sends to local targets and chain reads pass" chain_local_pass
 check "sends to repositories of other owners are refused with a ! command" other_repos_refused
