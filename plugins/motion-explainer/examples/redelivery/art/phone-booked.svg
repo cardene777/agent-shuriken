@@ -2,10 +2,7 @@
   <rect x="10" y="6" width="90" height="168" rx="14" fill="#2f4f6f" stroke="#3a2a22" stroke-width="5"/>
   <rect x="20" y="22" width="70" height="128" rx="6" fill="#fdf7ea" stroke="#3a2a22" stroke-width="3"/>
   <circle cx="55" cy="161" r="6" fill="#cfe3ef"/>
-  <g data-when="idle">
-    <path d="M32 46 h46 M32 62 h36 M32 78 h42" stroke="#d8cbb4" stroke-width="6" stroke-linecap="round"/>
-  </g>
-  <g data-when="booked">
+  <g>
     <rect x="28" y="34" width="54" height="40" rx="5" fill="#f0b04a" stroke="#3a2a22" stroke-width="3"/>
     <path d="M55 42 v14 l8 6" fill="none" stroke="#3a2a22" stroke-width="4" stroke-linecap="round"/>
     <rect x="28" y="88" width="54" height="22" rx="11" fill="#5f9e6e" stroke="#3a2a22" stroke-width="3"/>

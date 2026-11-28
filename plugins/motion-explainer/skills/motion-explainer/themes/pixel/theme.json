@@ -1,0 +1,74 @@
+{
+  "name": "pixel",
+  "font": "\"Hiragino Maru Gothic ProN\", \"M PLUS Rounded 1c\", \"Hiragino Sans\", \"Noto Sans JP\", system-ui, sans-serif",
+  "colors": {
+    "ink": "#22303c",
+    "sub": "#5d6b76",
+    "line": "#d6dcd8",
+    "paper": "#ffffff",
+    "bg": "#eef1ec",
+    "panel": "#e1e7e3",
+    "slotLine": "#c3ccc7",
+    "primary": "#2f6f8f",
+    "primary2": "#1f5068",
+    "primarySoft": "#d8e8ef",
+    "accent": "#e86a4f",
+    "accent2": "#c24e35",
+    "accentSoft": "#fbe3dc",
+    "yellow": "#f2c14e",
+    "yellowSoft": "#fcefc9",
+    "ok": "#4f9d6b",
+    "okSoft": "#dff0e5",
+    "edge": "#1f5068"
+  },
+  "fx": {
+    "fill": "#ffffff",
+    "shade": "#fbe3dc",
+    "line": "#22303c",
+    "ink": "#22303c",
+    "accent": "#e86a4f",
+    "sfx": ["#e86a4f", "#ffffff"]
+  },
+  "floorY": 478,
+  "characterScale": 3,
+  "pixelated": true,
+  "characters": {
+    "robot": {
+      "default": "wait",
+      "faces": {
+        "wait": "faces/robot-wait.png",
+        "explain": "faces/robot-explain.png",
+        "surprised": "faces/robot-surprised.png",
+        "cheer": "faces/robot-cheer.png"
+      }
+    },
+    "android": {
+      "default": "wait",
+      "faces": {
+        "wait": "faces/android-wait.png",
+        "explain": "faces/android-explain.png",
+        "surprised": "faces/android-surprised.png",
+        "cheer": "faces/android-cheer.png"
+      }
+    },
+    "guide": {
+      "default": "wait",
+      "faces": {
+        "wait": "faces/guide-wait.png",
+        "explain": "faces/guide-explain.png",
+        "surprised": "faces/guide-surprised.png",
+        "cheer": "faces/guide-cheer.png"
+      }
+    },
+    "drone": {
+      "default": "wait",
+      "faces": {
+        "wait": "faces/drone-wait.png",
+        "explain": "faces/drone-explain.png",
+        "surprised": "faces/drone-surprised.png",
+        "cheer": "faces/drone-cheer.png"
+      }
+    }
+  },
+  "images": {}
+}
