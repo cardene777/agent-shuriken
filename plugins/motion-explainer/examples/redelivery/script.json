@@ -1,0 +1,117 @@
+{
+  "lang": "ja",
+  "title": "再配達の荷物が届くまで",
+  "lead": "留守で持ち帰った荷物が、受け取る時間の予約を経て、もう一度運ばれて届くまでを追います。",
+  "cast": {
+    "driver": { "character": "guide", "label": "配達員" },
+    "home": { "character": "android", "label": "受け取る人" }
+  },
+  "images": {
+    "truck-stopped": { "file": "art/truck-stopped.svg" },
+    "truck-driving": { "file": "art/truck-driving.svg" },
+    "parcel-loaded": { "file": "art/parcel-loaded.svg" },
+    "parcel-notice": { "file": "art/parcel-notice.svg" },
+    "parcel-delivered": { "file": "art/parcel-delivered.svg" },
+    "house-away": { "file": "art/house-away.svg" },
+    "house-home": { "file": "art/house-home.svg" },
+    "phone-idle": { "file": "art/phone-idle.svg" },
+    "phone-booked": { "file": "art/phone-booked.svg" }
+  },
+  "objects": {
+    "truck": { "type": "prop", "image": "truck-stopped", "states": { "driving": "truck-driving" }, "label": "トラック", "width": 230 },
+    "parcel": { "type": "prop", "image": "parcel-loaded", "states": { "notice": "parcel-notice", "delivered": "parcel-delivered" }, "label": "荷物", "width": 130 },
+    "house": { "type": "prop", "image": "house-away", "states": { "home": "house-home" }, "label": "家", "width": 190 },
+    "phone": { "type": "prop", "image": "phone-idle", "states": { "booked": "phone-booked" }, "label": "受け取りの予約", "width": 130 }
+  },
+  "scenes": [
+    {
+      "chapter": "積む",
+      "cast": ["driver"],
+      "layout": [["truck"], ["parcel"]],
+      "beats": [
+        { "do": "say", "who": "driver", "text": "荷物をトラックに積んだよ。", "face": "explain" },
+        { "do": "swap", "target": "truck", "state": "driving", "fx": { "word": "gogo", "dy": -100 } }
+      ]
+    },
+    {
+      "chapter": "留守",
+      "cast": ["driver"],
+      "layout": [["truck"], ["house"], ["parcel"]],
+      "beats": [
+        { "do": "swap", "target": "truck", "state": "base" },
+        { "do": "swap", "target": "parcel", "state": "notice", "fx": { "burst": 50, "word": "don", "dy": -90 } },
+        { "do": "say", "who": "driver", "text": "家に着いたけど、留守だった。", "face": "surprised", "emote": "!" }
+      ]
+    },
+    {
+      "chapter": "予約",
+      "cast": [{ "id": "home", "side": "right" }],
+      "layout": [["parcel"], ["phone"]],
+      "beats": [
+        { "do": "say", "who": "home", "text": "不在票を見て、夜7時に受け取る予約を入れたよ。", "face": "explain" },
+        { "do": "swap", "target": "phone", "state": "booked", "fx": { "burst": 44, "word": "pon", "dy": -90 } }
+      ]
+    },
+    {
+      "chapter": "再配達",
+      "cast": ["driver"],
+      "layout": [["truck"], ["house"]],
+      "beats": [
+        { "do": "swap", "target": "house", "state": "home" },
+        { "do": "swap", "target": "parcel", "state": "base" },
+        { "do": "swap", "target": "truck", "state": "driving", "fx": { "word": "gogo", "dy": -100 } },
+        { "do": "say", "who": "driver", "text": "予約の時間に、もう一度運ぶね。", "face": "explain" }
+      ]
+    },
+    {
+      "chapter": "届く",
+      "cast": ["driver", { "id": "home", "side": "right" }],
+      "layout": [["house"], ["parcel"]],
+      "beats": [
+        { "do": "swap", "target": "parcel", "state": "delivered", "fx": { "burst": 50, "word": "zuza", "dy": -90 } },
+        { "do": "say", "who": "home", "text": "今度はちゃんと受け取れたよ。", "face": "cheer", "act": "hop" }
+      ]
+    }
+  ],
+  "figures": [
+    {
+      "kind": "still",
+      "question": "留守の時に荷物はどうなるのか？",
+      "answer": "荷物に不在票を付けて持ち帰り、家の人が受け取る時間を選べるようにします。",
+      "scene": 1,
+      "labels": { "parcel": "不在票を付けて持ち帰る", "house": "窓の明かりが消えている" }
+    },
+    {
+      "kind": "flow",
+      "question": "再配達はどの順に進むのか？",
+      "answer": "積む、留守で持ち帰る、予約を受ける、もう一度運ぶ、の順に進みます。",
+      "steps": [
+        { "target": "truck", "state": "driving", "text": "積んで運ぶ" },
+        { "target": "parcel", "state": "notice", "text": "留守で持ち帰る" },
+        { "target": "phone", "state": "booked", "text": "時間を予約する" },
+        { "target": "parcel", "state": "delivered", "text": "受け取る" }
+      ]
+    },
+    {
+      "kind": "compare",
+      "question": "1回目と2回目で何が違うのか？",
+      "answer": "2回目は家の人が予約した時間に運ぶので、家に明かりがついています。",
+      "sides": [
+        { "title": "1回目", "target": "house", "points": ["時間を決めずに運ぶ", "留守で持ち帰る"] },
+        { "title": "2回目", "target": "house", "state": "home", "points": ["予約の時間に運ぶ", "その場で受け取る"] }
+      ]
+    },
+    {
+      "kind": "table",
+      "question": "予約できる時間はいつか？",
+      "answer": "その日の夜か、次の日以降の4つの時間から選べます。",
+      "columns": ["時間", "受け取れる日"],
+      "rows": [
+        ["午前", "次の日から"],
+        ["14時から16時", "次の日から"],
+        ["16時から18時", "その日から"],
+        ["19時から21時", "その日から"]
+      ]
+    }
+  ]
+}

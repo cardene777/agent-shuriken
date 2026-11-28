@@ -138,7 +138,7 @@
     {
       "name": "motion-explainer",
       "source": "./plugins/motion-explainer",
-      "description": "Explain how a mechanism works with a short video of one running example, scene by scene, with a pixel-art cast that talks in speech bubbles, effects on each change, part art drawn as SVG for each subject, and figures drawn from the same art, as one offline HTML page"
+      "description": "Explain how a mechanism works with a short video of one running example, scene by scene, built from a theme folder and a script, with characters that talk in speech bubbles, effects on each change, the things of each subject drawn as SVG, and figures drawn from the same things, as one offline HTML page"
     },
     {
       "name": "portman",

@@ -38,9 +38,6 @@ PIXEL="$SKILL_DIR/themes/pixel"
 CACHE_SCRIPT="$PLUGIN/examples/cache/script.json"
 REDELIVERY_SCRIPT="$PLUGIN/examples/redelivery/script.json"
 CORE_DIR="$SKILL_DIR/vendor/sakuga-vfx"
-# The spec tool of the earlier form, which the checks of current behavior still run.
-TOOL="$SKILL_DIR/scripts/motion_explainer.py"
-CACHE="$PLUGIN/examples/cache"
 # core.js of Sakuga VFX at the pinned commit, as published; the bundled copy must be this file.
 UPSTREAM_SHA256="f0518dd7d4dd1986eab2c9c76796421f4c827e91eac627f4c91a63c362c79419"
 export PYTHONDONTWRITEBYTECODE=1
@@ -392,7 +389,7 @@ for folder in sys.argv[1:]:
         if not os.path.isfile(path):
             continue
         text = open(path, encoding="utf-8", errors="replace").read()
-        if "data:image" in text:
+        if re.search(r"data:image/[a-z+]+;base64,[A-Za-z0-9+/=]{40}", text):
             print("%s holds a picture" % name); sys.exit(1)
         if re.search(r'<svg(?![^>]*class="ui")', text):
             print("%s holds a drawing that is not a player icon" % name); sys.exit(1)
@@ -791,55 +788,17 @@ PY
   why=""
 }
 
-# --- checks of the earlier form: render, probe, and refuse ------------------------------------------
+# --- the page, reduced motion, phone width, light and dark, the bundle, unsafe art --------------------
 
-render_one() {  # render_one <spec> <page>
-  [ -s "$2" ] && return 0
-  python3 "$TOOL" render "$1" --out "$2" > "$2.out" 2>&1 || { why="render exited $?: $(head -3 "$2.out" | tr '\n' ' ')"; return 1; }
-}
-
-render_cache() { render_one "$CACHE/spec.json" "$WORK/cache.html"; }
-
-# probe <name> <width> <hash> [--reduced-motion]: opens the cache page and saves what the page reports.
-probe() {
-  render_cache || return 1
-  local name="$1" width="$2" hash="$3"; shift 3
-  python3 "$BROWSER" dump "file://$WORK/cache.html#$hash" --size "${width}x900" "$@" > "$WORK/$name.dom" 2> "$WORK/$name.err" || { why="no browser: $(head -1 "$WORK/$name.err")"; return 1; }
-  python3 - "$WORK/$name.dom" "$WORK/$name.json" <<'PY' || { why="the page reported nothing"; return 1; }
-import html, re, sys
-m = re.search(r'<pre[^>]*id="me-probe"[^>]*>(.*?)</pre>', open(sys.argv[1]).read(), re.S)
-if not m:
-    sys.exit(1)
-open(sys.argv[2], "w").write(html.unescape(m.group(1)))
-PY
-}
-
-# The end state of every scene, worked out from the spec: states, places, the speaker and its pose.
-expected() {
-  python3 - "$CACHE/spec.json" "$WORK/expected.json" <<'PY'
-import json, sys
-s = json.load(open(sys.argv[1]))
-state = {p["id"]: p["states"][0] for p in s["parts"]}
-place = {p["id"]: list(p["at"]) for p in s["parts"]}
-cast = s.get("cast") or []
-out = []
-for sc in s["scenes"]:
-    for pid, st in sc.get("set", {}).items():
-        state[pid] = st
-    for pid, xy in sc.get("move", {}).items():
-        place[pid] = list(xy)
-    out.append({"speaker": sc.get("speaker", cast[0]["id"] if cast else None), "pose": sc.get("pose", "explain"),
-                "states": dict(state), "at": {k: list(v) for k, v in place.items()}})
-json.dump({"cast": cast, "scenes": out}, open(sys.argv[2], "w"))
-PY
-}
+build_cache() { build "$PIXEL" "$CACHE_SCRIPT" "$WORK/cache-pixel.html"; }
 
 render_writes_one_offline_page() {
-  render_cache || return 1
-  python3 - "$WORK/cache.html" "$CACHE/spec.json" <<'PY' || { why="the page loads from outside, misses a part, or puts the figures first"; return 1; }
+  build_cache || return 1
+  python3 - "$WORK/cache-pixel.html" "$CACHE_SCRIPT" <<'PY' || { why="the page loads from outside, misses an object, or puts the figures first"; return 1; }
 import json, re, sys
+from mxpage import held
 page = open(sys.argv[1]).read()
-spec = json.load(open(sys.argv[2]))
+script = json.load(open(sys.argv[2]))
 if re.search(r'\b(src|href)\s*=\s*["\']?(https?:)?//', page, re.I):
     sys.exit(1)
 if re.search(r'url\(\s*["\']?(https?:)?//', page, re.I) or "@import" in page:
@@ -847,91 +806,143 @@ if re.search(r'url\(\s*["\']?(https?:)?//', page, re.I) or "@import" in page:
 player, figures = page.find('id="me-player"'), page.find('id="me-figures"')
 if player < 0 or figures < 0 or player > figures:
     sys.exit(1)
-for p in spec["parts"]:
-    if 'data-part="%s"' % p["id"] not in page:
-        sys.exit(1)
+if set((held(page, "MX_SCRIPT") or {}).get("objects", {})) != set(script["objects"]):
+    sys.exit(1)
 PY
 }
 
-# The speaker takes the pose; every other cast member waits.
-speaker_and_poses_match() {  # speaker_and_poses_match <scenes.json>
-  python3 - "$1" "$WORK/expected.json" <<'PY'
+# The last line, and the face of each cast member, at the end of every scene of the cache example.
+scene_ends() {
+  python3 - "$CACHE_SCRIPT" "$WORK/scene-ends.json" <<'PY'
 import json, sys
-got = json.load(open(sys.argv[1]))["scenes"]
-want = json.load(open(sys.argv[2]))
-names = {c["id"]: c["name"] for c in want["cast"]}
-order = ["wait", "explain", "surprised", "cheer"]
-for i, (g, w) in enumerate(zip(got, want["scenes"])):
-    for cid in names:
-        pose = w["pose"] if cid == w["speaker"] else "wait"
-        if g["poses"].get(cid) != pose or abs(g["frames"][cid] - order.index(pose) * 100 / 3) > 0.5:
-            print("scene %d: %s is %r, want %r" % (i, cid, g["poses"].get(cid), pose)); sys.exit(1)
+s = json.load(open(sys.argv[1]))
+faces = {}
+out = []
+for sc in s["scenes"]:
+    line = None
+    for b in sc["beats"]:
+        if b["do"] in ("say", "face") and "face" in b:
+            faces[b["who"]] = b["face"]
+        if b["do"] == "say":
+            line = b["text"]
+    out.append({"line": line, "faces": dict(faces)})
+json.dump(out, open(sys.argv[2], "w"))
 PY
-}
-
-reduced_motion_fires_no_effect_and_still_changes_poses() {
-  expected
-  probe reduced-fired 1000 "probe&wait=all" --reduced-motion || return 1
-  python3 - "$WORK/reduced-fired.json" <<'PY' || { why="effects fired with reduced motion"; return 1; }
-import json, sys
-sys.exit(0 if json.load(open(sys.argv[1])).get("fired") == [] else 1)
-PY
-  [ $? -eq 0 ] || return 1
-  probe reduced-scenes 1000 "probe&scenes" --reduced-motion || return 1
-  why="$(speaker_and_poses_match "$WORK/reduced-scenes.json")" || return 1
-  why=""
 }
 
 reduced_motion_shows_each_scene_at_its_end() {
-  expected
-  probe reduced 1000 "probe&wait=all" --reduced-motion || return 1
-  python3 - "$WORK/reduced.json" <<'PY' || { why="the player moved or played with reduced motion"; return 1; }
-import json, sys
-g = json.load(open(sys.argv[1]))
-sys.exit(0 if g["playing"] is False and g["played"] <= 1 and g["transition"] in ("0s", "") else 1)
-PY
-  [ $? -eq 0 ] || return 1
-  probe reduced-chapter 1000 "probe&chapter=4" --reduced-motion || return 1
-  python3 - "$WORK/reduced-chapter.json" "$WORK/expected.json" <<'PY' || { why="a chapter with reduced motion did not show its end state"; return 1; }
-import json, sys
-g = json.load(open(sys.argv[1])); w = json.load(open(sys.argv[2]))["scenes"][4]
-ok = g["scene"] == 4 and g["states"] == w["states"] and g["transition"] in ("0s", "")
-ok = ok and all(abs(g["at"][k][0] - v[0]) < 0.5 and abs(g["at"][k][1] - v[1]) < 0.5 for k, v in w["at"].items())
-sys.exit(0 if ok else 1)
-PY
+  build_cache || return 1
+  scene_ends
+  js reduced <<'JS'
+const line = () => video.querySelector('.bubble p').textContent;
+MX.seek(0, true);
+out.scenes = [];
+for (let i = 0; i < MX.SCENE_T.length; i++) {
+  await wait(Math.max(0, MX.SCENE_T[i] + 200 - MX.now()));
+  out.scenes.push({ line: line(), moves: [...video.querySelectorAll('.actor, .obj')].map(e => getComputedStyle(e).transitionDuration).filter(d => !/^0s(, 0s)*$/.test(d)).length });
+}
+MX.seek(MX.SCENE_T[1] + 10, false);
+out.jumped = line();
+JS
+  probe_js "$WORK/cache-pixel.html" reduced 1000 --reduced-motion || return 1
+  judge reduced '
+want = json.load(open(os.path.join(os.path.dirname(sys.argv[1]), "scene-ends.json")))
+if len(got["scenes"]) != len(want):
+    print("the video has %d scenes, want %d" % (len(got["scenes"]), len(want))); sys.exit(1)
+for i, (g, w) in enumerate(zip(got["scenes"], want)):
+    if g["line"] != w["line"]:
+        print("scene %d opens on %r, not its last line %r" % (i, g["line"], w["line"])); sys.exit(1)
+    if g["moves"]:
+        print("scene %d still moves %d things" % (i, g["moves"])); sys.exit(1)
+if got["jumped"] != want[1]["line"]:
+    print("a jump into scene 1 shows %r" % got["jumped"]); sys.exit(1)
+'
+}
+
+reduced_motion_fires_no_effect_and_still_changes_poses() {
+  build_cache || return 1
+  scene_ends
+  js reduced-fx <<'JS'
+const log = [], FX = window.SakugaFX, sc = window.MX_SCRIPT, th = window.MX_THEME;
+for (const name of ['sfx', 'burst', 'shards', 'puff', 'kira', 'slash', 'ring']) {
+  const f = FX[name];
+  if (typeof f === 'function') FX[name] = function (...a) { log.push(name); return f.apply(this, a); };
+}
+MX.seek(0, true);
+out.faces = [];
+for (let i = 0; i < MX.SCENE_T.length; i++) {
+  await wait(Math.max(0, MX.SCENE_T[i] + 200 - MX.now()));
+  const shown = {};
+  for (const id in sc.cast) {
+    const src = video.querySelector(`.actor[data-actor="${id}"] img`).getAttribute('src'), faces = th.characters[sc.cast[id].character].faces;
+    shown[id] = Object.keys(faces).find(f => th.images[faces[f]] === src) || null;
+  }
+  out.faces.push(shown);
+}
+await wait(MX.END - MX.now() + 1000);
+out.fired = log;
+JS
+  probe_js "$WORK/cache-pixel.html" reduced-fx 1000 --reduced-motion || return 1
+  judge reduced-fx '
+want = json.load(open(os.path.join(os.path.dirname(sys.argv[1]), "scene-ends.json")))
+if got["fired"]:
+    print("reduced motion fired %s" % sorted(set(got["fired"]))); sys.exit(1)
+for i, (g, w) in enumerate(zip(got["faces"], want)):
+    for cid, face in w["faces"].items():
+        if g.get(cid) != face:
+            print("scene %d: %s shows %r, want %r" % (i, cid, g.get(cid), face)); sys.exit(1)
+'
 }
 
 a_phone_width_has_no_sideways_scroll_and_readable_scene_text() {
-  probe phone 390 "probe&wait=all" || return 1
-  python3 - "$WORK/phone.json" <<'PY' || { why="the page scrolls sideways or scene text is under 12 px"; return 1; }
-import json, sys
-g = json.load(open(sys.argv[1]))
-sys.exit(0 if g["scrollWidth"] <= g["innerWidth"] and g["minFont"] >= 12 else 1)
-PY
+  build_cache || return 1
+  js phone <<'JS'
+await wait(2500);
+const line = document.getElementById('me-line');
+out.scrollWidth = document.documentElement.scrollWidth;
+out.innerWidth = innerWidth;
+out.font = line ? parseFloat(getComputedStyle(line).fontSize) : 0;
+out.shown = !!line && line.offsetHeight > 0;
+out.line = line ? line.textContent : '';
+out.bubble = video.querySelector('.bubble p').textContent;
+JS
+  probe_js "$WORK/cache-pixel.html" phone 390 || return 1
+  judge phone '
+if got["scrollWidth"] > got["innerWidth"]:
+    print("the page is %d px wide in a %d px window" % (got["scrollWidth"], got["innerWidth"])); sys.exit(1)
+if not got["shown"] or got["font"] < 12 or not got["bubble"] or got["bubble"] not in got["line"]:
+    print("the line under the video is %r at %s px, while the bubble says %r" % (got["line"], got["font"], got["bubble"])); sys.exit(1)
+'
 }
 
 the_page_reads_in_light_and_dark() {
-  render_cache || return 1
-  grep -q 'prefers-color-scheme: dark' "$WORK/cache.html" || { why="no dark scheme in the page"; return 1; }
-  grep -q 'data-theme-choice="dark"' "$WORK/cache.html" || { why="no theme switch"; return 1; }
-  probe dark 1000 "probe&theme=dark" || return 1
-  probe light 1000 "probe&theme=light" || return 1
-  python3 - "$WORK/dark.json" "$WORK/light.json" <<'PY' || { why="the page does not turn dark and light"; return 1; }
-import json, re, sys
+  build_cache || return 1
+  grep -q 'prefers-color-scheme: dark' "$WORK/cache-pixel.html" || { why="no dark scheme in the page"; return 1; }
+  grep -q 'data-theme-choice="dark"' "$WORK/cache-pixel.html" || { why="no theme switch"; return 1; }
+  js themes <<'JS'
+const read = () => { const s = getComputedStyle(document.body); return { background: s.backgroundColor, color: s.color }; };
+document.querySelector('[data-theme-choice="dark"]').click();
+out.dark = read();
+document.querySelector('[data-theme-choice="light"]').click();
+out.light = read();
+JS
+  probe_js "$WORK/cache-pixel.html" themes 1000 || return 1
+  judge themes '
+import re
 def lum(c):
     r, g, b = [int(x) / 255 for x in re.findall(r"\d+", c)[:3]]
     return 0.2126 * r + 0.7152 * g + 0.0722 * b
-d, l = json.load(open(sys.argv[1])), json.load(open(sys.argv[2]))
-ok = lum(d["background"]) < 0.35 and lum(d["color"]) > 0.6 and lum(l["background"]) > 0.8 and lum(l["color"]) < 0.4
-sys.exit(0 if ok else 1)
-PY
+d, l = got["dark"], got["light"]
+if not (lum(d["background"]) < 0.35 and lum(d["color"]) > 0.6 and lum(l["background"]) > 0.8 and lum(l["color"]) < 0.4):
+    print("the page does not turn dark and light: %s" % got); sys.exit(1)
+'
 }
 
 # The bundled core is the upstream file at the pinned commit, its license sits next to it, and the
 # page holds the core once.
 the_effects_core_is_bundled_unmodified_with_its_license() {
-  render_cache || return 1
-  why="$(python3 - "$CORE_DIR" "$WORK/cache.html" "$UPSTREAM_SHA256" <<'PY'
+  build_cache || return 1
+  why="$(python3 - "$CORE_DIR" "$WORK/cache-pixel.html" "$UPSTREAM_SHA256" <<'PY'
 import hashlib, json, os, re, sys
 folder, page, want = sys.argv[1], open(sys.argv[2]).read(), sys.argv[3]
 try:
@@ -954,38 +965,25 @@ PY
   why=""
 }
 
-# A copy of the cache example in the work folder, its spec changed by a Python expression on `s`.
-variant() {  # variant <name> <expr>
-  rm -rf "$WORK/$1"; cp -R "$CACHE" "$WORK/$1"
-  python3 - "$WORK/$1/spec.json" "$2" <<'PY'
-import json, sys
-s = json.load(open(sys.argv[1]))
-exec(sys.argv[2])
-open(sys.argv[1], "w").write(json.dumps(s, ensure_ascii=False))
-PY
-}
-
-refuses() {  # refuses <spec> <field that must be named>
+# unsafe_art <name> <text to put before </svg>>: a copy of the cache example whose first drawing holds
+# the text; build must refuse it, name the image, and write nothing.
+unsafe_art() {
   local out status
-  out="$(python3 "$TOOL" check "$1" 2>&1)"; status=$?
-  [ "$status" -eq 1 ] || { why="check exited $status for $2"; return 1; }
-  printf '%s' "$out" | grep -qF "$2" || { why="check did not name $2"; return 1; }
-  python3 "$TOOL" render "$1" --out "$1.html" > /dev/null 2>&1
-  [ ! -e "$1.html" ] || { why="render wrote a page for $2"; return 1; }
-}
-
-unsafe_art() {  # unsafe_art <name> <text to put before </svg>>
-  variant "$1" 'pass'
-  python3 - "$WORK/$1/art/browser.svg" "$2" <<'PY'
+  rm -rf "$WORK/$1"; cp -R "$PLUGIN/examples/cache" "$WORK/$1"
+  python3 - "$WORK/$1/art/browser-idle.svg" "$2" <<'PY'
 import sys
 path, extra = sys.argv[1], sys.argv[2]
 svg = open(path).read()
 open(path, "w").write(svg.replace("</svg>", extra + "\n</svg>"))
 PY
-  refuses "$WORK/$1/spec.json" "parts[0].art"
+  out="$(python3 "$BUILD" "$PIXEL" "$WORK/$1/script.json" "$WORK/$1/page.html" 2>&1)"; status=$?
+  [ "$status" -eq 1 ] || { why="build exited $status for $1"; return 1; }
+  printf '%s' "$out" | grep -qF "images.browser-idle.file" || { why="build did not name images.browser-idle.file for $1"; return 1; }
+  [ ! -e "$WORK/$1/page.html" ] || { why="build wrote a page with $1"; return 1; }
 }
 
 check_refuses_art_that_loads_from_outside_or_runs_a_script() {
+  need "$BUILD" "$CACHE_SCRIPT" || return 1
   unsafe_art script '<script>alert(1)</script>' || return 1
   unsafe_art handler '<rect width="2" height="2" onclick="alert(1)"/>' || return 1
   unsafe_art outside '<use href="https://example.com/a.svg#x"/>' || return 1

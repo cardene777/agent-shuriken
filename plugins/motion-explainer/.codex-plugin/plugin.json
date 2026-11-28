@@ -1,7 +1,7 @@
 {
   "name": "motion-explainer",
   "version": "0.1.0",
-  "description": "Explain how a mechanism works with a short video of one running example, scene by scene, with a pixel-art cast that talks in speech bubbles, effects on each change, part art drawn as SVG for each subject, and figures drawn from the same art, as one offline HTML page",
+  "description": "Explain how a mechanism works with a short video of one running example, scene by scene, built from a theme folder and a script, with characters that talk in speech bubbles, effects on each change, the things of each subject drawn as SVG, and figures drawn from the same things, as one offline HTML page",
   "author": {
     "name": "cardene777",
     "url": "https://github.com/cardene777"
@@ -20,7 +20,7 @@
   "interface": {
     "displayName": "Motion Explainer",
     "shortDescription": "Mechanisms as short videos",
-    "longDescription": "Explains how a system or a process works by playing one running example from start to end as a short video, such as one request that reaches a server or one parcel that is delivered again. For each subject the agent writes an art direction and draws the objects on the stage as SVG, so two subjects never share a look, and casts one to four pixel-art bodies the plugin ships as the speakers. Each scene changes one thing, the speaker says one sentence about it in a speech bubble, only the parts that changed are marked, and an effect from the bundled Sakuga VFX core lands on the change. The player has play, pause, replay, and a chapter per scene, and shows each scene at its end for readers who ask for reduced motion. Figures under the video answer one question each and are drawn from the same art. Art that would load from outside or run a script is refused before anything is written, and the page opens offline.",
+    "longDescription": "Explains how a system or a process works by playing one running example from start to end as a short video, such as one request that reaches a server or one parcel that is delivered again. The video is built from a theme folder, which sets the colors, the font, and the characters with their faces, and a script, which names the cast, the things on screen, the scenes of beats, and the figures. The plugin ships a pixel-art theme with four bodies, and another plugin can pass a theme folder of its own. For each subject the agent draws the things on screen as SVG in an art direction of its own, so two subjects never share a look. Each scene changes one thing, a character says one sentence about it in a speech bubble, and an effect from the bundled Sakuga VFX core lands on the change. The engine places the cast at the edges and the things between them so nothing overlaps, and the bar under the video plays any step from its start. The agent captures the frames of every scene to look for overlaps before it shows the page. Figures under the video answer one question each and are drawn from the same things. An unknown field or a picture that would load from outside or run a script is refused before anything is written, and the page opens offline.",
     "developerName": "cardene777",
     "category": "Productivity",
     "capabilities": [],

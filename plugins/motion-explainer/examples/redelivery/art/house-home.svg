@@ -5,12 +5,10 @@
   <rect x="128" y="44" width="18" height="30" fill="#a8562e" stroke="#3a2a22" stroke-width="4"/>
   <rect x="86" y="126" width="30" height="64" rx="3" fill="#a8562e" stroke="#3a2a22" stroke-width="4"/>
   <circle cx="110" cy="160" r="3" fill="#f0b04a"/>
-  <rect x="44" y="112" width="30" height="28" rx="3" stroke="#3a2a22" stroke-width="4" fill="#5b6b7a" data-when="away"/>
-  <rect x="44" y="112" width="30" height="28" rx="3" stroke="#3a2a22" stroke-width="4" fill="#f7d26a" data-when="home"/>
-  <rect x="128" y="112" width="30" height="28" rx="3" stroke="#3a2a22" stroke-width="4" fill="#5b6b7a" data-when="away"/>
-  <rect x="128" y="112" width="30" height="28" rx="3" stroke="#3a2a22" stroke-width="4" fill="#f7d26a" data-when="home"/>
+  <rect x="44" y="112" width="30" height="28" rx="3" stroke="#3a2a22" stroke-width="4" fill="#f7d26a"/>
+  <rect x="128" y="112" width="30" height="28" rx="3" stroke="#3a2a22" stroke-width="4" fill="#f7d26a"/>
   <path d="M59 112 v28 M44 126 h30 M143 112 v28 M128 126 h30" stroke="#3a2a22" stroke-width="3"/>
-  <g data-when="home">
+  <g>
     <path d="M40 150 q-10 10 -18 8 M180 150 q10 10 18 8" fill="none" stroke="#f0b04a" stroke-width="4" stroke-linecap="round"/>
   </g>
 </svg>

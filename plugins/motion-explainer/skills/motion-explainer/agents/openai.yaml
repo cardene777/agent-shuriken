@@ -1,6 +1,6 @@
 interface:
   display_name: "Motion Explainer"
-  short_description: "Explain a mechanism with a short video of one running example and figures drawn from the same art"
+  short_description: "Explain a mechanism with a short video of one running example, built from a theme and a script, with figures drawn from the same things"
   default_prompt: "Use $motion-explainer to explain how this mechanism works as a short video with figures."
 
 policy:

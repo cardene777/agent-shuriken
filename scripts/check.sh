@@ -32,9 +32,7 @@ JA_ALLOWED=(
   plugins/motion-diagram/examples/idea-intake.ja.json
   plugins/motion-explainer/skills/motion-explainer/templates/ui.json
   plugins/mechanism-explainer/skills/mechanism-explainer/templates/ui.json
-  plugins/motion-explainer/skills/motion-explainer/scripts/motion_explainer.py
-  plugins/motion-explainer/skills/motion-explainer/references/spec-format.md
-  plugins/motion-explainer/examples/redelivery/spec.ja.json
+  plugins/motion-explainer/examples/redelivery/script.json
   plugins/account-cleanup/skills/account-cleanup/scripts/browser.mjs
   plugins/account-cleanup/skills/account-cleanup/scripts/connections-guide.sh
   plugins/account-cleanup/skills/account-cleanup/scripts/subscriptions-guide.sh

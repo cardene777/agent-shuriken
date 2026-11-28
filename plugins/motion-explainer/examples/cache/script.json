@@ -1,0 +1,132 @@
+{
+  "lang": "en",
+  "title": "How a cache answers a request",
+  "lead": "The first request travels all the way to the origin, and the next one is answered by the cache alone.",
+  "cast": {
+    "bit": { "character": "robot", "label": "Bit" }
+  },
+  "images": {
+    "browser-idle": { "file": "art/browser-idle.svg" },
+    "browser-asking": { "file": "art/browser-asking.svg" },
+    "browser-showing": { "file": "art/browser-showing.svg" },
+    "cache-empty": { "file": "art/cache-empty.svg" },
+    "cache-checking": { "file": "art/cache-checking.svg" },
+    "cache-kept": { "file": "art/cache-kept.svg" },
+    "cache-stale": { "file": "art/cache-stale.svg" },
+    "origin-idle": { "file": "art/origin-idle.svg" },
+    "origin-busy": { "file": "art/origin-busy.svg" },
+    "letter-request": { "file": "art/letter-request.svg" },
+    "letter-page": { "file": "art/letter-page.svg" }
+  },
+  "objects": {
+    "browser": { "type": "prop", "image": "browser-idle", "states": { "asking": "browser-asking", "showing": "browser-showing" }, "label": "Browser", "width": 190 },
+    "cache": { "type": "prop", "image": "cache-empty", "states": { "checking": "cache-checking", "kept": "cache-kept", "stale": "cache-stale" }, "label": "Cache", "width": 160 },
+    "origin": { "type": "prop", "image": "origin-idle", "states": { "busy": "origin-busy" }, "label": "Origin server", "width": 140 }
+  },
+  "scenes": [
+    {
+      "chapter": "Ask",
+      "cast": ["bit"],
+      "layout": [["browser"], ["cache"], ["origin"]],
+      "beats": [
+        { "do": "say", "who": "bit", "text": "The browser asks for the page.", "face": "explain" },
+        { "do": "swap", "target": "browser", "state": "asking", "fx": { "word": "pon", "dy": -90 } }
+      ]
+    },
+    {
+      "chapter": "Look",
+      "cast": ["bit"],
+      "layout": [["browser"], ["cache"], ["origin"]],
+      "beats": [
+        { "do": "fly", "image": "letter-request", "width": 64, "from": "browser", "to": "cache" },
+        { "do": "swap", "target": "cache", "state": "checking", "fx": { "word": "kachi", "dy": -100 } },
+        { "do": "say", "who": "bit", "text": "The cache looks for a copy and finds none.", "face": "surprised", "emote": "!" }
+      ]
+    },
+    {
+      "chapter": "Travel",
+      "cast": ["bit"],
+      "layout": [["browser"], ["cache"], ["origin"]],
+      "beats": [
+        { "do": "emote", "who": "bit", "emote": null },
+        { "do": "swap", "target": "cache", "state": "base" },
+        { "do": "fly", "image": "letter-request", "width": 64, "from": "cache", "to": "origin" },
+        { "do": "swap", "target": "origin", "state": "busy", "fx": { "word": "gogo", "dy": -110 } },
+        { "do": "say", "who": "bit", "text": "So the request goes on to the origin server.", "face": "explain" }
+      ]
+    },
+    {
+      "chapter": "Keep",
+      "cast": ["bit"],
+      "layout": [["browser"], ["cache"], ["origin"]],
+      "beats": [
+        { "do": "swap", "target": "origin", "state": "base" },
+        { "do": "fly", "image": "letter-page", "width": 64, "from": "origin", "to": "cache", "land": { "burst": 50, "word": "don", "dy": -100 } },
+        { "do": "swap", "target": "cache", "state": "kept", "wait": 950 },
+        { "do": "say", "who": "bit", "text": "The origin answers, and the cache keeps a copy.", "face": "explain" }
+      ]
+    },
+    {
+      "chapter": "Show",
+      "cast": ["bit"],
+      "layout": [["browser"], ["cache"], ["origin"]],
+      "beats": [
+        { "do": "fly", "image": "letter-page", "width": 64, "from": "cache", "to": "browser", "land": { "word": "zuza", "dy": -100 } },
+        { "do": "swap", "target": "browser", "state": "showing", "wait": 950 },
+        { "do": "say", "who": "bit", "text": "The browser shows the page.", "face": "cheer", "act": "hop" }
+      ]
+    },
+    {
+      "chapter": "Again",
+      "cast": ["bit"],
+      "layout": [["browser"], ["cache"], ["origin"]],
+      "beats": [
+        { "do": "swap", "target": "browser", "state": "asking" },
+        { "do": "fly", "image": "letter-request", "width": 64, "from": "browser", "to": "cache" },
+        { "do": "fly", "image": "letter-page", "width": 64, "from": "cache", "to": "browser", "land": { "burst": 50, "word": "don", "dy": -100 }, "wait": 950 },
+        { "do": "swap", "target": "browser", "state": "showing", "wait": 950 },
+        { "do": "say", "who": "bit", "text": "The next request stops at the cache.", "face": "cheer", "act": "hop" }
+      ]
+    }
+  ],
+  "figures": [
+    {
+      "kind": "still",
+      "question": "What does the cache hold after the first request?",
+      "answer": "It holds a copy of the page with a fresh tag, so the next request can stop there.",
+      "scene": 3,
+      "labels": { "cache": "Keeps the copy", "origin": "Answered once" }
+    },
+    {
+      "kind": "flow",
+      "question": "Which way does the first request go?",
+      "answer": "It passes the cache, which has nothing yet, and reaches the origin.",
+      "steps": [
+        { "target": "browser", "state": "asking", "text": "Asks" },
+        { "target": "cache", "state": "checking", "text": "Finds no copy" },
+        { "target": "origin", "state": "busy", "text": "Builds the page" },
+        { "target": "browser", "state": "showing", "text": "Shows it" }
+      ]
+    },
+    {
+      "kind": "compare",
+      "question": "How do the first and the second request differ?",
+      "answer": "The first one keeps the origin busy, and the second one never reaches it.",
+      "sides": [
+        { "title": "First request", "target": "origin", "state": "busy", "points": ["Travels to the origin", "Takes the longest"] },
+        { "title": "Second request", "target": "cache", "state": "kept", "points": ["Stops at the cache", "Comes back at once"] }
+      ]
+    },
+    {
+      "kind": "table",
+      "question": "When does the cache stop answering alone?",
+      "answer": "When its copy turns stale, it asks the origin again before answering.",
+      "columns": ["State of the copy", "What the cache does"],
+      "rows": [
+        ["No copy", "Sends the request on to the origin"],
+        ["Fresh copy", "Answers at once"],
+        ["Stale copy", "Checks with the origin, then answers"]
+      ]
+    }
+  ]
+}
