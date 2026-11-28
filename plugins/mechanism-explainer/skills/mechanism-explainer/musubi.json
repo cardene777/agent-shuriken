@@ -8,12 +8,12 @@
     },
     "dragon/page": {
       "version": "^1.0.0",
-      "integrity": "sha256-QX4h3BHBmBu3/ix0kS8atNssGyHvmG8EpzBDDGqvuc8=",
+      "integrity": "sha256-LPvmV7HOmCh6ro92+brnowvOI8b5SKH+cT823XBn/60=",
       "optional": true
     },
     "dragon/cheatsheet": {
       "version": "^1.0.0",
-      "integrity": "sha256-06uS05oyhx+FTp0UdnAWPhi+IW7Z8Wmcoz/PDnKxgOI=",
+      "integrity": "sha256-uzdxfq6oyQhI9aIaioU3daSMfDEUQrTOBjl65hne4yo=",
       "optional": true
     },
     "dragon/notation": {
